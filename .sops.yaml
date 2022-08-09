@@ -1,0 +1,10 @@
+keys:
+  - &gpg 23232A6D050ACE46DF02D72B84A772A8519FC163
+  - &tyo0 age18eh92k6pf786skmtluaxnsajxkh3yt6lj94z306qcjxjvyhmh5ysp9czwc
+creation_rules:
+  - path_regex: secrets/.*
+    key_groups:
+    - pgp:
+      - *gpg
+      age:
+      - *tyo0

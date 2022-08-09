@@ -1,0 +1,16 @@
+#!/usr/bin/env nix-shell
+#! nix-shell -p "expect" -i expect
+
+#set timeout -1
+
+cd ~/Projects/flakes
+
+spawn nix repl
+
+send ":lf .\n"
+
+send ":a builtins\n"
+
+send ":a nixosConfigurations.[ exec hostname ]\n"
+
+interact
