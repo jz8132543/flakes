@@ -32,7 +32,7 @@
       ipv4.routes = [
         { address = "169.254.42.42"; prefixLength = 32; }
       ];
-    }
+    };
   };
 
   services.openssh.enable = true;
