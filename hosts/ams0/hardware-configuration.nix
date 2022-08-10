@@ -22,15 +22,17 @@
   };
 
   networking = {
-    useNetworkd = true;
-    interfaces.ens2.useDHCP = true;
     useDHCP = true;
-    ipv6.addresses = [
-      { address = "2001:bc8:1824:b3b::1"; prefixLength = 64; }
-    ];
-    ipv4.routes = [
-      { address = "169.254.42.42"; prefixLength = 32; }
-    ];
+    useNetworkd = true;
+    interfaces.ens2 = {
+      useDHCP = true;
+      ipv6.addresses = [
+        { address = "2001:bc8:1824:b3b::1"; prefixLength = 64; }
+      ];
+      ipv4.routes = [
+        { address = "169.254.42.42"; prefixLength = 32; }
+      ];
+    }
   };
 
   services.openssh.enable = true;
