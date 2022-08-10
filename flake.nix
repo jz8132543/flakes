@@ -22,8 +22,8 @@
   outputs = { self, nixpkgs, home-manager , sops-nix, nixos-cn, nur, ... }@inputs:
     let
       username = "tippy";
-      # system = "x86_64-linux";
-      # pkgs = nixpkgs.legacyPackages.${system};
+      system = "x86_64-linux";
+      pkgs = nixpkgs.legacyPackages.${system};
     in {
       nixosConfigurations = {
         tyo0 = nixpkgs.lib.nixosSystem {
@@ -42,7 +42,7 @@
         };
       };
       homeConfigurations.${username} = home-manager.lib.homeManagerConfiguration {
-        # pkgs = self.legacyPackages."x86_64-linux";
+        inherit pkgs;
         modules = [ ./home/home.nix ];
       };
 
