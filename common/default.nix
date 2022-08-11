@@ -12,7 +12,6 @@
     domain = "dora.im";
     firewall.enable = false;
   };
-  nixpkgs.config.allowUnfree = true;
   zramSwap.enable = true;
   time.timeZone = "Asia/Shanghai";
   system.stateVersion = "22.11";
