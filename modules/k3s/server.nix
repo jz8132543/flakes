@@ -13,7 +13,7 @@
       # "--kubelet-arg=v=4" # Optionally add additional args to k3s
       # "--kubelet-arg=cgroup-driver=systemd"
       # "--container-runtime-endpoint unix:///run/containerd/containerd.sock"
-      "--no-deploy traefik"
+      "--disable traefik"
       "--https-listen-port 6444"
       ];
     };

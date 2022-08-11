@@ -60,18 +60,21 @@
         tyo0 = baseSystem rec {
           modules = [
             sops-nix.nixosModules.sops
+            ./common
             ./hosts/tyo0
           ];
         };
         ams0 = baseSystem rec {
           modules = [
             sops-nix.nixosModules.sops
+            ./common
             ./hosts/ams0
           ];
         };
         sin0 = baseSystem rec {
           modules = [
             sops-nix.nixosModules.sops
+            ./common
             ./hosts/sin0
           ];
         };
