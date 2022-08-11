@@ -42,7 +42,7 @@
             entryPoints = [ "https" ];
             service = "ping@internal";
           };
-          api = {
+          dashboard = {
             rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
             entryPoints = [ "https" ];
             service = "api@internal";

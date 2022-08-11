@@ -1,9 +1,6 @@
 { config, ... } :
 
 {
-  imports = [
-    # ./containerd.nix
-  ];
   services = {
     k3s = {
       enable = true;
