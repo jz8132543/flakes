@@ -27,12 +27,9 @@
     defaultGateway6.address = "2001:bc8:1824:b3b::";
     nameservers = [ "2a01:4f9:c010:3f02::1" "2a01:4f8:c2c:123f::1" "2a00:1098:2c::1" ];
     interfaces.ens2 = {
-      useDHCP = true;
+      useDHCP = false;
       ipv6.addresses = [
         { address = "2001:bc8:1824:b3b::1"; prefixLength = 64; }
-      ];
-      ipv4.routes = [
-        { address = "169.254.42.42"; prefixLength = 32; }
       ];
     };
   };
