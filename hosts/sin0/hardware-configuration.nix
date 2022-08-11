@@ -19,20 +19,20 @@
   networking = {
     useNetworkd = true;
     nameservers = [ "1.1.1.1" "1.0.0.1" ];
-    interfaces.ens0 = {
-      useDHCP = false;
-      ipv6.addresses = [
-        { address = "2400:6180:0:d0::e88:d001"; prefixLength = 64; }
-      ];
-      ipv4.routes = [
-        { address = "139.59.240.130"; prefixLength = 20; }
-      ];
-    };
-    interfaces.ens1 = {
-      useDHCP = false;
-      ipv4.routes = [
-        { address = "10.104.0.2"; prefixLength = 20; }
-      ];
+  };
+
+  systemd.network = {
+    enable = true;
+    networks = {
+      ens0 = {
+        matchConfig = { Name = "ens0"; };
+        address = [ "139.59.240.130/20" "2400:6180:0:d0::e88:d001/64" ];
+        gateway = [ "139.59.240.1" "2400:6180:0:d0::1" ];
+      };
+      ens1 = {
+        matchConfig = { Name = "ens1"; };
+        address = [ "10.104.0.2/20" ];
+      };
     };
   };
 
