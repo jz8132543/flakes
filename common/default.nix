@@ -36,7 +36,7 @@
     };
     extraOptions = ''
       experimental-features = nix-command flakes
-      warn-dirty = false
+      # warn-dirty = false
     '';
   };
   nixpkgs.config.allowUnfree = true;
