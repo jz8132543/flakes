@@ -24,6 +24,7 @@
         batdiff = "git diff --name-only --relative --diff-filter=d | xargs bat --diff";
 
         kubectl = "sudo k3s kubectl";
+        sops-update = "find . -name '*' -exec sops updatekeys {} \\;"
       };
       history = {
         size = 10000;

@@ -28,7 +28,7 @@
   };
   zramSwap.enable = true;
   networking = {
-    hostName = "tyo0";
+    hostName = "sin0";
     domain = "dora.im";
     firewall.enable = false;
   };
