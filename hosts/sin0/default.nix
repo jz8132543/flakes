@@ -35,4 +35,5 @@
   time.timeZone = "Asia/Shanghai";
   system.stateVersion = "22.11";
   services.openssh.enable = true;
+  services.logrotate.checkConfig = false;
 }

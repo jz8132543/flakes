@@ -2,7 +2,7 @@
 
   security.sudo.wheelNeedsPassword = false;
   users = {
-    mutableUsers = false;
+    mutableUsers = true;
     users = {
       tippy = {
         isNormalUser = true;
