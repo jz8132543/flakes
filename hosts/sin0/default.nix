@@ -1,4 +1,4 @@
-{ config, pkgs, modulesPath, suites, profiles, ... }: {
+{ lib, config, pkgs, modulesPath, suites, profiles, ... }: {
   imports =
     suites.server ++
     (with profiles; [
@@ -14,14 +14,13 @@
   ];
 
   networking.hostName = "sin0";
-  boot.loader.grub = {
-    efiSupport = true;
-    efiInstallAsRemovable = true;
-    device = "/dev/vda";
-  };
-  boot.initrd.availableKernelModules = [ "ata_piix" "uhci_hcd" "xen_blkfront" ];
+  boot.loader.grub.device = "/dev/vda";
+  boot.initrd.availableKernelModules = [ "ata_piix" "uhci_hcd" "virtio_pci" "virtio_scsi" "virtio_blk" ];
   boot.initrd.kernelModules = [ "nvme" ];
-  fileSystems."/" = { device = "/dev/vda1"; fsType = "ext4"; };
+  fileSystems."/" =
+    { device = "/dev/disk/by-uuid/136735fa-5cc1-470f-9359-ee736e42f844";
+      fsType = "ext4";
+    };
 
   networking = {
     defaultGateway = "128.199.64.1";
