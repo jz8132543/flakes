@@ -19,40 +19,33 @@
     efiInstallAsRemovable = true;
     device = "/dev/vda";
   };
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/136735fa-5cc1-470f-9359-ee736e42f844";
-      fsType = "ext4";
-    };
-
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/168D-B0CB";
-      fsType = "vfat";
-    };
-  boot = {
-    initrd = {
-      availableKernelModules = [ "ata_piix" "uhci_hcd" "virtio_pci" "virtio_scsi" "virtio_blk" ];
-      kernelModules = [ "nvme" ];
-    };
-  };
+  boot.initrd.availableKernelModules = [ "ata_piix" "uhci_hcd" "xen_blkfront" ];
+  boot.initrd.kernelModules = [ "nvme" ];
+  fileSystems."/" = { device = "/dev/vda1"; fsType = "ext4"; };
 
   networking = {
-    useNetworkd = true;
-    useDHCP = false;
-    nameservers = [ "1.1.1.1" "1.0.0.1" ];
-  };
+    defaultGateway = "128.199.64.1";
+    defaultGateway6 = "2400:6180:0:d0::1";
+    dhcpcd.enable = false;
+    usePredictableInterfaceNames = lib.mkForce false;
+    interfaces = {
+      eth0 = {
+        ipv4.addresses = [
+          { address="128.199.121.90"; prefixLength=18; }
+          { address="10.15.0.5"; prefixLength=16; }
+        ];
+        ipv6.addresses = [
+          { address="2400:6180:0:d0::1223:1001"; prefixLength=64; }
+          { address="fe80::984c:faff:fee5:d166"; prefixLength=64; }
+        ];
+        ipv4.routes = [ { address = "128.199.64.1"; prefixLength = 32; } ];
+        ipv6.routes = [ { address = "2400:6180:0:d0::1"; prefixLength = 128; } ];
+      };
 
-  systemd.network = {
-    enable = true;
-    networks = {
-      ens3 = {
-        matchConfig = { Name = "ens3"; };
-        address = [ "128.199.121.90/18" "2400:6180:0:d0::1223:1001/64" ];
-        gateway = [ "128.199.64.0" "2400:6180:0:d0::1" ];
-      };
-      ens4 = {
-        matchConfig = { Name = "ens4"; };
-        address = [ "10.104.0.2/20" ];
-      };
     };
   };
+  services.udev.extraRules = ''
+    ATTR{address}=="9a:4c:fa:e5:d1:66", NAME="eth0"
+    ATTR{address}=="82:a1:94:ed:56:34", NAME="eth1"
+  '';
 }
