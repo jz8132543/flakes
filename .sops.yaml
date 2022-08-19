@@ -2,7 +2,7 @@ keys:
   - &gpg 23232A6D050ACE46DF02D72B84A772A8519FC163
   - &tyo0 age18eh92k6pf786skmtluaxnsajxkh3yt6lj94z306qcjxjvyhmh5ysp9czwc
   - &ams0 age1ht8qv38vdrmuzehf8rpq9clm6uwk9q4w3qdkqcdjdfj9u2heeq3q0ep6dt
-  - &sin0 age145y583q37tcpxz9a6dmyst3y89cp957cuna5a73cjxlfmpa6ccpqycdlev
+  - &sin0 age1vhep9df8rea3gl36zsfkf85k7f76z6hza3kyhulh356gjnrqg33qel4fmy
 creation_rules:
   - path_regex: secrets/.*
     key_groups:
