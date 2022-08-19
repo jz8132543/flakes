@@ -99,6 +99,8 @@
         tippy = { suites, ... }: { imports = suites.base; };
       };
     };
+
+    homeConfigurations = digga.lib.mkHomeConfigurations self.nixosConfigurations;
   };
 
 }
