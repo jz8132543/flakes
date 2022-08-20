@@ -1,5 +1,6 @@
-{ pkgs, ... }: {
+{ pkgs, hmUsers, ... }: {
 
+  home-manager.users = {inherit (hmUsers) tippy;};
   security.sudo.wheelNeedsPassword = false;
   users = {
     mutableUsers = true;

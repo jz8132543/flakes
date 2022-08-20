@@ -6,6 +6,8 @@
     package = pkgs.gitFull;
     lfs.enable = true;
 
+    userName = "jz8132543";
+    userEmail = "jz8132543@live.cn";
     extraConfig = {
       init.defaultBranch = "main";
       pull.rebase = false;
@@ -15,6 +17,9 @@
 
       # fish git status
       bash.showInformativeStatus = true;
+
+      url."https://github.com/".insteadOf = "git://github.com/";
+      url."https://gitlab.com/".insteadOf = "git://gitlab.com/";
     };
 
     aliases = {

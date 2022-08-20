@@ -13,6 +13,7 @@ with inputs; rec {
     base = suites.core ++
     (with profiles; [
       users.root
+      users.tippy
     ]);
     network = with profiles; [
       networking.common
