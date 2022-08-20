@@ -18,7 +18,8 @@
       inputs.nixpkgs.follows = "nixos";
     };
     digga = {
-      url = "github:divnix/digga";
+      # url = "github:divnix/digga";
+      url = "github:divnix/digga/?ref=refs/pull/472/head";
       inputs = {
         nixpkgs.follows = "nixos";
         nixlib.follows = "nixos";
