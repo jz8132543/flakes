@@ -27,7 +27,10 @@
         # deploy.follows = "deploy";
       };
     };
-    sops-nix.url = github:Mic92/sops-nix;
+    sops-nix = {
+      url = github:Mic92/sops-nix;
+      inputs.nixpkgs.follows = "nixos";
+    };
   };
 
   outputs = { self, nixos, home , digga, ... } @ inputs:
@@ -36,70 +39,15 @@
     inherit self inputs;
 
     supportedSystems = [ "x86_64-linux"];
+
     channelsConfig = { allowUnfree = true; };
-    channels = rec {
-      nixos = {
-        # imports = [ (digga.lib.importOverlays ./overlays) ];
-        overlays = [
-          inputs.sops-nix.overlay
-          inputs.nixos-cn.overlay
-        ];
-      };
-    };
+    channels = import ./channels {inherit self inputs;};
 
     lib = import ./lib { lib = digga.lib // nixos.lib; };
 
-    nixos = {
-      hostDefaults = {
-        system = "x86_64-linux";
-        channelName = "nixos";
-        imports = [ (digga.lib.importExportableModules ./modules) ];
-        modules = [
-          home.nixosModules.home-manager
-          inputs.sops-nix.nixosModules.sops
-          inputs.nixos-cn.nixosModules.nixos-cn
-        ];
-      };
+    nixos = ./nixos;
 
-      imports = [ (digga.lib.importHosts ./hosts) ];
-      hosts = {
-        NixOS = { };
-      };
-      importables = rec {
-        profiles = digga.lib.rakeLeaves ./profiles // {
-            users = digga.lib.rakeLeaves ./users;
-          };
-        suites = nixos.lib.fix (suites: {
-          core = suites.nixSettings ++ (with profiles; [ programs.tools services.openssh ]);
-          nixSettings = with profiles.nix; [ gc settings cachix ];
-          base = suites.core ++
-          (with profiles; [
-            users.root
-          ]);
-          network = with profiles; [
-            networking.common
-            networking.resolved
-            networking.tools
-          ];
-          server = (with suites; [
-            base
-            network
-          ]);
-        });
-      };
-    };
-    home = {
-      imports = [ (digga.lib.importExportableModules ./users/modules) ];
-      importables = rec {
-        profiles = digga.lib.rakeLeaves ./users/profiles;
-        suites = with profiles; rec {
-          base = [ direnv git zsh gpg neovim ssh ];
-        };
-      };
-      users = {
-        tippy = { suites, ... }: { imports = suites.base; };
-      };
-    };
+    home = ./home;
 
     homeConfigurations = digga.lib.mkHomeConfigurations self.nixosConfigurations;
   };
