@@ -55,6 +55,7 @@
         set shiftwidth=2
 	      set expandtab
 
+        " https://github.com/VergeDX/config-nixpkgs/blob/master/config/neovim.nix
         " https://github.com/rose-pine/neovim#options
         lua vim.g.rose_pine_variant = 'dawn'
         lua vim.cmd('colorscheme rose-pine')
