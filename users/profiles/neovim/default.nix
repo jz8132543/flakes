@@ -78,7 +78,7 @@
         " https://github.com/onsails/lspkind-nvim#configuration
         lua require('lspkind').init()
 	lua require("nvim-lsp-installer").setup {}
-
+      '' + ''
         lua << EOF
         local lspkind = require('lspkind')
         require'cmp'.setup {
@@ -102,7 +102,7 @@
           },
         }
         EOF
-
+      '' + ''
         lua << EOF
         -- https://github.com/hrsh7th/cmp-nvim-lsp#setup
         local capabilities = vim.lsp.protocol.make_client_capabilities()
