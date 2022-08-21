@@ -33,7 +33,7 @@
     };
   };
 
-  outputs = { self, nixos, home , digga, ... } @ inputs:
+  outputs = { self, , digga, ... } @ inputs:
   digga.lib.mkFlake
   {
     inherit self inputs;
@@ -41,7 +41,7 @@
     supportedSystems = [ "x86_64-linux"];
 
     channelsConfig = { allowUnfree = true; };
-    channels = import ./channels inputs;
+    channels = import ./channels {inherit self inputs;};
 
     lib = import ./lib { lib = digga.lib // nixos.lib; };
 
