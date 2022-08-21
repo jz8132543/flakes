@@ -15,7 +15,8 @@
         ngc = "sudo nix-env --profile /nix/var/nix/profiles/system --delete-generations +2;nix-env --delete-generations +2;nix-collect-garbage";
         catage = "nix-shell -p ssh-to-age --run 'cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age'";
         ll = "ls -l";
-        ls = "exa";
+        ls = "exa -a --icons";
+        tree = "exa --tree --icons";
         top = "btm";
         # BAT
         cat = "bat --style=plain";

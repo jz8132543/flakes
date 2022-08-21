@@ -7,44 +7,89 @@
       viAlias = true;
       vimAlias = true;
       plugins = with pkgs; [
-        vimPlugins.telescope-nvim
-        vimPlugins.telescope-fzf-native-nvim
-        vimPlugins.gitsigns-nvim
-        vimPlugins.lua-dev-nvim
-        vimPlugins.nvim-treesitter
-        vimPlugins.which-key-nvim
-        vimPlugins.bufferline-nvim
-        vimPlugins.lspkind-nvim
-        vimPlugins.null-ls-nvim
-        vimPlugins.nvim-lspconfig
-        vimPlugins.lsp_signature-nvim
+        {
+          plugin = vimPlugins.telescope-nvim;
+          config = "lua require('telescope').setup { extensions = { fzf = { fuzzy = true } } }\n";
+        }
+        {
+          plugin = vimPlugins.telescope-fzf-native-nvim;
+          config = "lua require('telescope').load_extension('fzf')\n";
+        }
+        {
+          plugin = vimPlugins.gitsigns-nvim;
+          config = "lua require('gitsigns').setup { current_line_blame = true }\n";
+        }
+        {
+          plugin = vimPlugins.bufferline-nvim;
+          config = "lua require('bufferline').setup{}\n";
+        }
+        {
+          plugin = vimPlugins.lspkind-nvim;
+          config = "lua require('lspkind').init()\n";
+        }
+        {
+          plugin = vimPlugins.alpha-nvim;
+          config = "lua require'alpha'.setup(require'alpha.themes.dashboard'.config)\n";
+        }
+        {
+          plugin = vimPlugins.project-nvim;
+          config = "lua require('project_nvim').setup {}\n";
+        }
+        {
+          plugin = vimPlugins.lualine-nvim;
+          config = "lua require('lualine').setup({ options = { theme = 'rose-pine' } })\n";
+        }
+        {
+          plugin = nur.repos.m15a.vimExtraPlugins.rose-pine;
+          config = ''
+            lua vim.g.rose_pine_variant = 'dawn'
+            lua vim.cmd('colorscheme rose-pine')
+          '';
+        }
+        {
+          plugin = nur.repos.m15a.vimExtraPlugins.nvim-comment;
+          config = "lua require('nvim_comment').setup()\n";
+        }
+        {
+          plugin = nur.repos.m15a.vimExtraPlugins.nvim-lsp-installer;
+          config = "lua require('nvim-lsp-installer').setup {}\n";
+        }
+        {
+          plugin = vimPlugins.lsp_signature-nvim;
+          config = ''
+            lua require "lsp_signature".setup()
+            lua require'lsp_signature'.on_attach()
+          '';
+        }
+        {
+          plugin = vimPlugins.nvim-autopairs;
+          config = "lua require('nvim-autopairs').setup{}\n";
+        }
         vimPlugins.cmp-nvim-lsp
-        vimPlugins.nvim-cmp
         vimPlugins.cmp-path
         vimPlugins.cmp-buffer
         vimPlugins.cmp_luasnip
+        vimPlugins.nvim-cmp
+        vimPlugins.nvim-lspconfig
+
+        vimPlugins.lua-dev-nvim
+        vimPlugins.nvim-treesitter
+        vimPlugins.which-key-nvim
+        vimPlugins.null-ls-nvim
         vimPlugins.nvim-tree-lua
         vimPlugins.nvim-web-devicons
         vimPlugins.SchemaStore-nvim
-        vimPlugins.nvim-autopairs
-        vimPlugins.alpha-nvim
         vimPlugins.nvim-ts-context-commentstring
-        vimPlugins.project-nvim
-        vimPlugins.luasnip
         vimPlugins.plenary-nvim
         vimPlugins.FixCursorHold-nvim
         vimPlugins.popup-nvim
         # structlog.nvim
         vimPlugins.friendly-snippets
-        vimPlugins.lualine-nvim
         vimPlugins.nvim-notify
         # DAPInstall.nvim
         vimPlugins.toggleterm-nvim
         vimPlugins.nvim-dap
-        nur.repos.m15a.vimExtraPlugins.rose-pine
         nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
-        nur.repos.m15a.vimExtraPlugins.nvim-comment
-      	nur.repos.m15a.vimExtraPlugins.nvim-lsp-installer
       ];
 
       extraConfig = ''
@@ -53,46 +98,14 @@
         set showtabline=2
         set tabstop=2
         set shiftwidth=2
-	      set expandtab
-
-        " https://github.com/VergeDX/config-nixpkgs/blob/master/config/neovim.nix
-        " https://github.com/rose-pine/neovim#options
-        lua vim.g.rose_pine_variant = 'dawn'
-        lua vim.cmd('colorscheme rose-pine')
-        " https://github.com/rose-pine/neovim#usage
-        lua require('lualine').setup({ options = { theme = 'rose-pine' } })
-        lua require('telescope').setup { extensions = { fzf = { fuzzy = true } } }
-        lua require('telescope').load_extension('fzf')
-        " https://github.com/lewis991/gitsigns.nvim#installation
-        lua require('gitsigns').setup { current_line_blame = true }
-        " https://github.com/akinsho/bufferline.nvim#usage
-        lua require("bufferline").setup{}
-        " https://github.com/hrsh7th/nvim-cmp#basic-configuration
-        " https://github.com/hrsh7th/cmp-buffer#setup
-        " https://github.com/tzachar/cmp-tabnine#install
-        lua require('nvim_comment').setup()
-        " https://github.com/windwp/nvim-autopairs/
-        lua require('nvim-autopairs').setup{}
-        " https://github.com/goolord/alpha-nvim
-        lua require'alpha'.setup(require'alpha.themes.dashboard'.config)
-        " https://github.com/ahmedkhalf/project.nvim
-        lua require("project_nvim").setup {}
-        " https://github.com/rose-pine/neovim#usage
-        lua require('lualine').setup({ options = { theme = 'rose-pine' } })
-        " https://github.com/onsails/lspkind-nvim#configuration
-        lua require('lspkind').init()
-	      lua require("nvim-lsp-installer").setup {}
-        " https://github.com/ray-x/lsp_signature.nvim#attach-the-plugin
-        lua require "lsp_signature".setup()
-        " https://github.com/ray-x/lsp_signature.nvim/issues/1
-        lua require'lsp_signature'.on_attach()
+        set expandtab
       '' + ''
         lua << EOF
         local lspkind = require('lspkind')
         require'cmp'.setup {
           formatting = {
             format = function(entry, vim_item)
-              vim_item.kind = require("lspkind").presets.default[vim_item.kind] .. " " .. vim_item.kind
+              vim_item.kind = require('lspkind').presets.default[vim_item.kind] .. " " .. vim_item.kind
               vim_item.menu = ({
                 buffer = "[Buffer]",
                 nvim_lsp = "[LSP]",
@@ -112,28 +125,19 @@
         EOF
       '' + ''
         lua << EOF
-        -- https://github.com/hrsh7th/cmp-nvim-lsp#setup
         local capabilities = vim.lsp.protocol.make_client_capabilities()
         capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#rnix
         require'lspconfig'.rnix.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#tsserver
         require'lspconfig'.tsserver.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#pyright
         require'lspconfig'.pyright.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#yamlls
         require'lspconfig'.yamlls.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/CONFIG.md#clangd
         require'lspconfig'.clangd.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#cmake
-        -- require'lspconfig'.cmake.setup{ capabilities = capabilities, }
-        -- https://github.com/neovim/nvim-lspconfig/blob/master/doc/server_configurations.md#rls
-        require'lspconfig'.rls.setup{ capabilities = capabilities, }
         EOF
       '';
     };
   };
 
+  home.file.".config/nvim/settings.lua".source = ./init.lua;
   home.packages = with pkgs; [
     rnix-lsp
   ];
