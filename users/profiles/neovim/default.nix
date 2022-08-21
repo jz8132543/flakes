@@ -6,44 +6,43 @@
       enable = true;
       viAlias = true;
       vimAlias = true;
-      plugins = with pkgs.vimPlugins; [
-        telescope-nvim
-        telescope-fzf-native-nvim
-        gitsigns-nvim
-        lua-dev-nvim
-        nvim-treesitter
-        which-key-nvim
-        bufferline-nvim
-        lspkind-nvim
-        nvim-cmp
-        cmp-path
-        cmp-buffer
-        cmp_luasnip
-        cmp-nvim-lsp
-        nvim-tree-lua
-        comment-nvim
-        nvim-web-devicons
-        SchemaStore-nvim
-        nvim-autopairs
-        alpha-nvim
-        nvim-ts-context-commentstring
-        project-nvim
-        luasnip
-        plenary-nvim
-        FixCursorHold-nvim
-        popup-nvim
+      plugins = with pkgs; [
+        vimPlugins.telescope-nvim
+        vimPlugins.telescope-fzf-native-nvim
+        vimPlugins.gitsigns-nvim
+        vimPlugins.lua-dev-nvim
+        vimPlugins.nvim-treesitter
+        vimPlugins.which-key-nvim
+        vimPlugins.bufferline-nvim
+        vimPlugins.lspkind-nvim
+        vimPlugins.nvim-cmp
+        vimPlugins.cmp-path
+        vimPlugins.cmp-buffer
+        vimPlugins.cmp_luasnip
+        vimPlugins.cmp-nvim-lsp
+        vimPlugins.nvim-tree-lua
+        vimPlugins.comment-nvim
+        vimPlugins.nvim-web-devicons
+        vimPlugins.SchemaStore-nvim
+        vimPlugins.nvim-autopairs
+        vimPlugins.alpha-nvim
+        vimPlugins.nvim-ts-context-commentstring
+        vimPlugins.project-nvim
+        vimPlugins.luasnip
+        vimPlugins.plenary-nvim
+        vimPlugins.FixCursorHold-nvim
+        vimPlugins.popup-nvim
         # structlog.nvim
-        null-ls-nvim
+        vimPlugins.null-ls-nvim
         # nvim-lsp-installer
-        nvim-lspconfig
-        friendly-snippets
+        vimPlugins.nvim-lspconfig
+        vimPlugins.friendly-snippets
         # nlsp-settings.nvim
-        lualine-nvim
-        nvim-notify
+        vimPlugins.lualine-nvim
+        vimPlugins.nvim-notify
         # DAPInstall.nvim
-        toggleterm-nvim
-        nvim-dap
-      ] ++ with pkgs; [
+        vimPlugins.toggleterm-nvim
+        vimPlugins.nvim-dap
         nur.repos.m15a.vimExtraPlugins.rose-pine
         nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
         nur.repos.m15a.vimExtraPlugins.mason-nvim
