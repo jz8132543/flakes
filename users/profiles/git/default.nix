@@ -12,7 +12,6 @@
       init.defaultBranch = "main";
       pull.rebase = false;
       pull.ff = "only";
-      credential.helper = "libsecret";
       commit.gpgSign = true;
       user.signingkey = "23232A6D050ACE46DF02D72B84A772A8519FC163";
 
