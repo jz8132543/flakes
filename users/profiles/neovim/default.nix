@@ -21,7 +21,6 @@
         vimPlugins.cmp_luasnip
         vimPlugins.cmp-nvim-lsp
         vimPlugins.nvim-tree-lua
-        vimPlugins.comment-nvim
         vimPlugins.nvim-web-devicons
         vimPlugins.SchemaStore-nvim
         vimPlugins.nvim-autopairs
@@ -34,7 +33,6 @@
         vimPlugins.popup-nvim
         # structlog.nvim
         vimPlugins.null-ls-nvim
-        # nvim-lsp-installer
         vimPlugins.nvim-lspconfig
         vimPlugins.friendly-snippets
         # nlsp-settings.nvim
@@ -45,7 +43,8 @@
         vimPlugins.nvim-dap
         nur.repos.m15a.vimExtraPlugins.rose-pine
         nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
-        nur.repos.m15a.vimExtraPlugins.mason-nvim
+	nur.repos.m15a.vimExtraPlugins.nvim-comment
+      	nur.repos.m15a.vimExtraPlugins.nvim-lsp-installer
       ];
 
       extraConfig = ''
@@ -60,7 +59,7 @@
         lua require('lualine').setup({ options = { theme = 'rose-pine' } })
         lua require('telescope').setup { extensions = { fzf = { fuzzy = true } } }
         lua require('telescope').load_extension('fzf')
-        # https://github.com/lewis991/gitsigns.nvim#installation
+        " https://github.com/lewis991/gitsigns.nvim#installation
         lua require('gitsigns').setup { current_line_blame = true }
         " https://github.com/akinsho/bufferline.nvim#usage
         lua require("bufferline").setup{}
@@ -70,16 +69,15 @@
         lua require('nvim_comment').setup()
         " https://github.com/windwp/nvim-autopairs/
         lua require('nvim-autopairs').setup{}
-        # https://github.com/goolord/alpha-nvim
+        " https://github.com/goolord/alpha-nvim
         lua require'alpha'.setup(require'alpha.themes.dashboard'.config)
-        # https://github.com/ahmedkhalf/project.nvim
+        " https://github.com/ahmedkhalf/project.nvim
         lua require("project_nvim").setup {}
         " https://github.com/rose-pine/neovim#usage
         lua require('lualine').setup({ options = { theme = 'rose-pine' } })
-        # https://github.com/williamboman/mason.nvim#configuration
-        require("mason").setup()
         " https://github.com/onsails/lspkind-nvim#configuration
         lua require('lspkind').init()
+	lua require("nvim-lsp-installer").setup {}
 
         lua << EOF
         local lspkind = require('lspkind')
