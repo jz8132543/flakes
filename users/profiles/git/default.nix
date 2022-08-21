@@ -9,13 +9,14 @@
     userName = "jz8132543";
     userEmail = "jz8132543@live.cn";
     extraConfig = {
+      user.name = "jz8132543";
+      user.email = "jz8132543@live.cn";
+      user.signingkey = "23232A6D050ACE46DF02D72B84A772A8519FC163";
       init.defaultBranch = "main";
       pull.rebase = false;
       pull.ff = "only";
       commit.gpgSign = true;
-      user.signingkey = "23232A6D050ACE46DF02D72B84A772A8519FC163";
 
-      # fish git status
       bash.showInformativeStatus = true;
 
       url."https://github.com/".insteadOf = "git://github.com/";
