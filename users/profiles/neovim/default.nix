@@ -15,11 +15,14 @@
         vimPlugins.which-key-nvim
         vimPlugins.bufferline-nvim
         vimPlugins.lspkind-nvim
+        vimPlugins.null-ls-nvim
+        vimPlugins.nvim-lspconfig
+        vimPlugins.lsp_signature-nvim
+        vimPlugins.cmp-nvim-lsp
         vimPlugins.nvim-cmp
         vimPlugins.cmp-path
         vimPlugins.cmp-buffer
         vimPlugins.cmp_luasnip
-        vimPlugins.cmp-nvim-lsp
         vimPlugins.nvim-tree-lua
         vimPlugins.nvim-web-devicons
         vimPlugins.SchemaStore-nvim
@@ -32,10 +35,7 @@
         vimPlugins.FixCursorHold-nvim
         vimPlugins.popup-nvim
         # structlog.nvim
-        vimPlugins.null-ls-nvim
-        vimPlugins.nvim-lspconfig
         vimPlugins.friendly-snippets
-        # nlsp-settings.nvim
         vimPlugins.lualine-nvim
         vimPlugins.nvim-notify
         # DAPInstall.nvim
@@ -43,7 +43,7 @@
         vimPlugins.nvim-dap
         nur.repos.m15a.vimExtraPlugins.rose-pine
         nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
-	nur.repos.m15a.vimExtraPlugins.nvim-comment
+        nur.repos.m15a.vimExtraPlugins.nvim-comment
       	nur.repos.m15a.vimExtraPlugins.nvim-lsp-installer
       ];
 
@@ -51,6 +51,9 @@
         syntax enable
         set number
         set showtabline=2
+        set tabstop=2
+        set shiftwidth=2
+	      set expandtab
 
         " https://github.com/rose-pine/neovim#options
         lua vim.g.rose_pine_variant = 'dawn'
@@ -77,7 +80,11 @@
         lua require('lualine').setup({ options = { theme = 'rose-pine' } })
         " https://github.com/onsails/lspkind-nvim#configuration
         lua require('lspkind').init()
-	lua require("nvim-lsp-installer").setup {}
+	      lua require("nvim-lsp-installer").setup {}
+        " https://github.com/ray-x/lsp_signature.nvim#attach-the-plugin
+        lua require "lsp_signature".setup()
+        " https://github.com/ray-x/lsp_signature.nvim/issues/1
+        lua require'lsp_signature'.on_attach()
       '' + ''
         lua << EOF
         local lspkind = require('lspkind')
@@ -125,4 +132,8 @@
       '';
     };
   };
+
+  home.packages = with pkgs; [
+    rnix-lsp
+  ];
 }
