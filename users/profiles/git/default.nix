@@ -9,7 +9,7 @@
     # userName = "jz8132543";
     # userEmail = "jz8132543@live.cn";
     extraConfig = {
-      user.name = "i";
+      user.name = "jz8132543";
       user.email = "i@dora.im";
       user.signingkey = "23232A6D050ACE46DF02D72B84A772A8519FC163";
       init.defaultBranch = "main";
