@@ -33,7 +33,7 @@
     };
   };
 
-  outputs = { self, , digga, ... } @ inputs:
+  outputs = { self, digga, ... } @ inputs:
   digga.lib.mkFlake
   {
     inherit self inputs;
