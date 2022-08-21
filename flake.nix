@@ -41,7 +41,7 @@
     supportedSystems = [ "x86_64-linux"];
 
     channelsConfig = { allowUnfree = true; };
-    channels = import ./channels {inherit self inputs;};
+    channels = import ./channels inputs;
 
     lib = import ./lib { lib = digga.lib // nixos.lib; };
 
