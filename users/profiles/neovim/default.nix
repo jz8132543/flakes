@@ -7,7 +7,6 @@
       viAlias = true;
       vimAlias = true;
       plugins = with pkgs.vimPlugins; [
-        nur.repos.m15a.vimExtraPlugins.rose-pine
         telescope-nvim
         telescope-fzf-native-nvim
         gitsigns-nvim
@@ -36,52 +35,18 @@
         # structlog.nvim
         null-ls-nvim
         # nvim-lsp-installer
-        nur.repos.m15a.vimExtraPlugins.mason-nvim
         nvim-lspconfig
         friendly-snippets
         # nlsp-settings.nvim
-        nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
         lualine-nvim
         nvim-notify
         # DAPInstall.nvim
         toggleterm-nvim
         nvim-dap
-
-        # vim-logreview
-        # vim-surround
-        # auto-pairs
-        # direnv-vim
-        # nerdtree
-        # nerdtree-git-plugin
-        # vim-rooter
-        # vim-polyglot
-        # vim-ragtag
-        # MatchTagAlways
-        # nerdcommenter
-        # vim-orgmode
-        # vim-easymotion
-        # fzf-vim
-        # editorconfig-vim
-        # vim-better-whitespace
-        # vim-signature
-        # incsearch-vim
-        # vim-over
-        # tabular
-        # ultisnips
-        # vim-snippets
-        # nvim-lspconfig
-        # vim-fugitive
-        # vim-signify
-        # NeoSolarized
-        # vim-airline
-        # vim-airline-clock
-        # indentLine
-        # vim-mundo
-        # { plugin = dracula-vim;
-        #   optional = true;
-        # }
-        # vim-gnupg
-        # supertab
+      ] ++ with pkgs; [
+        nur.repos.m15a.vimExtraPlugins.rose-pine
+        nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
+        nur.repos.m15a.vimExtraPlugins.mason-nvim
       ];
 
       extraConfig = ''
