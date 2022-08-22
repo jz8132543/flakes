@@ -95,3 +95,5 @@ local config = {
 function M.setup()
   require('bufferline').setup(config)
 end
+
+return M

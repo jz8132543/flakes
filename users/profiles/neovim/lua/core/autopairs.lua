@@ -22,3 +22,5 @@ function M.setup()
       :with_pair(ts_conds.is_not_ts_node({'function'}))
   })
 end
+
+return M

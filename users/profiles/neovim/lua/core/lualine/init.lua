@@ -48,3 +48,5 @@ local config = {
 M.setup = function()
   require("lualine").setup(config)
 end
+
+return M

@@ -75,3 +75,5 @@ local config = {
 function M.setup()
   require('gitsigns').setup(config)
 end
+
+return M

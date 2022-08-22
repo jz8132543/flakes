@@ -77,6 +77,16 @@ local config = {
   },
 }
 
+function M.find_project_files()
+  local ok = pcall(builtin.git_files)
+
+  if not ok then
+    builtin.find_files()
+  end
+end
+
 function M.setup()
   require('telescope').setup(config)
 end
+
+return M
