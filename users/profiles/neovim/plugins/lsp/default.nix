@@ -2,11 +2,11 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      vimPlugins.plenary-nvim
+      vimPlugins.null-ls-nvim
       {
-        plugin = vimPlugins.gitsigns-nvim;
+        plugin = nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim;
         config = ''
-          require("core.gitsigns").setup()
+          require("core.lsp").setup()
         '';
       }
     ];
