@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.indent-blankline-nvim;
         config = ''
-          lua require("config.plugins.indent-blamkline")
+          lua require("config.plugins.indent-blankline")
         '';
       }
     ];

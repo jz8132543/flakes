@@ -11,7 +11,7 @@
       vimAlias = true;
       vimdiffAlias = true;
       extraConfig = ''
-        require("core")
+        lua require("core")
       '';
     };
   };
