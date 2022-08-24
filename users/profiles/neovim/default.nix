@@ -1,9 +1,6 @@
 { pkgs, lib, ... }:
 
 {
-
-  imports = [./plugins];
-
   programs = {
     neovim = {
       enable = true;
@@ -44,7 +41,7 @@
         vimPlugins.plenary-nvim
         vimPlugins.which-key-nvim
         vimPlugins.nvim-ts-rainbow
-        (nvim-treesitter.withPlugins (
+        (vimPlugins.nvim-treesitter.withPlugins (
         plugins: with plugins; [
           tree-sitter-nix
           tree-sitter-lua
