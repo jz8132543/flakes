@@ -2,11 +2,11 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      nur.repos.m15a.vimExtraPlugins.nvim-lspconfig
+      sumneko-lua-language-server
       # nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim
       # vimPlugins.null-ls-nvim
       {
-        plugin = nur.repos.m15a.vimExtraPlugins.mason-nvim;
+        plugin = nur.repos.m15a.vimExtraPlugins.nvim-lspconfig;
         config = ''
           lua require("config.lsp")
         '';

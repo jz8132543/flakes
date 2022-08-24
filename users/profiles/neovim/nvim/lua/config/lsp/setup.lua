@@ -1,5 +1,3 @@
-local lspconfig = require("utils").requirePlugin("lspconfig")
-
 local signs = {
     { name = "DiagnosticSignError", text = "" },
     { name = "DiagnosticSignWarn", text = "" },

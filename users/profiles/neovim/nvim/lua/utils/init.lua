@@ -1,4 +1,5 @@
 local M = {}
+local fn = vim.fn
 
 --- require plugin and check if it exists
 ---@param plugin_name (string)
@@ -55,6 +56,14 @@ function M.get_nvim_version()
     local patch = vim.tbl_get(vim.version(), "patch")
     local version = string.format("%d.%d.%d", major, minor, patch)
     return version
+end
+
+function M.executable(name)
+  if fn.executable(name) > 0 then
+    return true
+  end
+
+  return false
 end
 
 return M
