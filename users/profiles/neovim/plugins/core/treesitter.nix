@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.nvim-treesitter;
         config = ''
-          require("core.treesitter").setup()
+          lua require("core.treesitter").setup()
         '';
       }
     ];

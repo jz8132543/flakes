@@ -1,7 +1,7 @@
 { pkgs, lib, ... }:
 
 {
-  imports = ./plugins;
+  imports = [./plugins];
 
   programs = {
     neovim = {
@@ -14,7 +14,7 @@
 
   home.file.neovim = {
     source = ./lua;
-    target = "~/.config/nvim";
+    target = ".config/nvim/lua";
     recursive = true;
   };
 

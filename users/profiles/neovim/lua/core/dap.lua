@@ -26,13 +26,13 @@ M.config = {
 M.setup = function()
   local dap = require "dap"
 
-  vim.fn.sign_define("DapBreakpoint", config.breakpoint)
-  vim.fn.sign_define("DapBreakpointRejected", config..breakpoint_rejected)
-  vim.fn.sign_define("DapStopped", config.stopped)
+  vim.fn.sign_define("DapBreakpoint", M.config.breakpoint)
+  vim.fn.sign_define("DapBreakpointRejected", M.config.breakpoint_rejected)
+  vim.fn.sign_define("DapStopped", M.config.stopped)
 
   dap.defaults.fallback.terminal_win_cmd = "50vsplit new"
 
-  core.which_key.config.mappings["d"] = {
+  require('core.which-key.config.mappings')["d"] = {
     name = "Debug",
     t = { "<cmd>lua require'dap'.toggle_breakpoint()<cr>", "Toggle Breakpoint" },
     b = { "<cmd>lua require'dap'.step_back()<cr>", "Step Back" },
@@ -48,7 +48,6 @@ M.setup = function()
     s = { "<cmd>lua require'dap'.continue()<cr>", "Start" },
     q = { "<cmd>lua require'dap'.close()<cr>", "Quit" },
   }
-  end
 end
 
 return M

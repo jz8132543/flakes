@@ -1,5 +1,7 @@
 local M = {}
 
+local actions = require('telescope.actions')
+
 local config = {
   defaults = {
     prompt_prefix = " ",

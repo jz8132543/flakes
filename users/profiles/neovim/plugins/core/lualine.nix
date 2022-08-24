@@ -6,7 +6,7 @@
       {
         plugin = vimPlugins.lualine-nvim;
         config = ''
-          require("core.lualine").setup()
+          lua require("core.lualine").setup()
         '';
       }
     ];

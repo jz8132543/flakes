@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.which-key-nvim;
         config = ''
-          require("core.which-key").setup()
+          lua require("core.which-key").setup()
         '';
       }
     ];

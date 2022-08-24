@@ -6,7 +6,7 @@
       {
         plugin = nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim;
         config = ''
-          require("core.lsp").setup()
+          lua require("lsp").setup()
         '';
       }
     ];

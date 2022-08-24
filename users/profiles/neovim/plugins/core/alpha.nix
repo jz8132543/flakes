@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.alpha-nvim;
         config = ''
-          require("core.alpha").setup()
+          lua require("core.alpha").setup()
         '';
       }
     ];

@@ -7,7 +7,7 @@
       {
         plugin = vimPlugins.telescope-nvim;
         config = ''
-          require("core.telecope").setup()
+          lua require("core.telescope").setup()
         '';
       }
     ];

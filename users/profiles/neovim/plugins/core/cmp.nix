@@ -9,14 +9,14 @@
       vimPlugins.cmp-nvim-lua
       vimPlugins.cmp-buffer
       vimPlugins.cmp-calc
-      vimplugins.cmp-emoji
-      vimplugins.cmp-treesitter
+      vimPlugins.cmp-emoji
+      vimPlugins.cmp-treesitter
       vimPlugins.vim-crates
       vimPlugins.cmp-tmux
       {
         plugin = vimPlugins.nvim-cmp;
         config = ''
-          require("core.cmp").setup()
+          lua require("core.cmp").setup()
         '';
       }
     ];

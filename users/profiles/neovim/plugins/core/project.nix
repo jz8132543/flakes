@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.project-nvim;
         config = ''
-          require("core.project").setup()
+          lua require("core.project").setup()
         '';
       }
     ];

@@ -82,7 +82,6 @@ M.config = {
     ["w"] = { "<cmd>w!<CR>", "Save" },
     ["q"] = { "<cmd>lua require('utils.functions').smart_quit()<CR>", "Quit" },
     ["/"] = { "<cmd>lua require('Comment.api').toggle_current_linewise()<CR>", "Comment" },
-    ["f"] = { require("core.telescope.custom-finders").find_project_files, "Find File" },
     ["h"] = { "<cmd>nohlsearch<CR>", "No Highlight" },
     b = {
       name = "Buffers",
@@ -146,7 +145,6 @@ M.config = {
       a = { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action" },
       d = { "<cmd>Telescope diagnostics bufnr=0 theme=get_ivy<cr>", "Buffer Diagnostics" },
       w = { "<cmd>Telescope diagnostics<cr>", "Diagnostics" },
-      f = { require("lvim.lsp.utils").format, "Format" },
       i = { "<cmd>LspInfo<cr>", "Info" },
       I = { "<cmd>Mason<cr>", "Mason Info" },
       j = {
@@ -158,12 +156,6 @@ M.config = {
         "Prev Diagnostic",
       },
       l = { vim.lsp.codelens.run, "CodeLens Action" },
-      p = {
-        name = "Peek",
-        d = { "<cmd>lua require('lvim.lsp.peek').Peek('definition')<cr>", "Definition" },
-        t = { "<cmd>lua require('lvim.lsp.peek').Peek('typeDefinition')<cr>", "Type Definition" },
-        i = { "<cmd>lua require('lvim.lsp.peek').Peek('implementation')<cr>", "Implementation" },
-      },
       q = { vim.diagnostic.setloclist, "Quickfix" },
       r = { vim.lsp.buf.rename, "Rename" },
       s = { "<cmd>Telescope lsp_document_symbols<cr>", "Document Symbols" },
@@ -201,13 +193,13 @@ M.config = {
 M.setup = function()
   local which_key = require "which-key"
 
-  which_key.setup(config.setup)
+  which_key.setup(M.config.setup)
 
-  local opts = config.opts
-  local vopts = configvopts
+  local opts = M.config.opts
+  local vopts = M.configvopts
 
-  local mappings = config.mappings
-  local vmappings = config.vmappings
+  local mappings = M.config.mappings
+  local vmappings = M.config.vmappings
 
   which_key.register(mappings, opts)
   which_key.register(vmappings, vopts)

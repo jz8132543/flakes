@@ -9,7 +9,6 @@ M.config = {
   show_hidden = false,
   silent_chdir = true,
   ignore_lsp = {},
-  datapath = get_cache_dir(),
 }
 
 function M.setup()

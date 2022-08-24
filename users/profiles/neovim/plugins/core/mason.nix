@@ -5,7 +5,7 @@
       {
         plugin = nur.repos.m15a.vimExtraPlugins.mason-nvim;
         config = ''
-          require("core.mason").setup()
+          lua require("core.mason").setup()
         '';
       }
     ];

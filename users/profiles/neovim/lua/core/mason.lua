@@ -29,9 +29,6 @@ M.config= {
 
 function M.setup()
  require("mason").setup(config)
- require("mason-lspconfig").setup({
-   automatic_installation = true,
-})
 end
 
 return M

@@ -6,7 +6,7 @@
       {
         plugin = vimPlugins.gitsigns-nvim;
         config = ''
-          require("core.gitsigns").setup()
+          lua require("core.gitsigns").setup()
         '';
       }
     ];

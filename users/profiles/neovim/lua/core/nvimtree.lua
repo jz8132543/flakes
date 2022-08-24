@@ -25,7 +25,7 @@ local config = {
     hijack_cursor = false,
     update_cwd = false,
     diagnostics = {
-      enable = lvim.use_icons,
+      enable = true,
       show_on_dirs = false,
       icons = {
         hint = "",
@@ -80,12 +80,12 @@ local config = {
         },
       },
       icons = {
-        webdev_colors = lvim.use_icons,
+        webdev_colors = true,
         show = {
-          git = lvim.use_icons,
-          folder = lvim.use_icons,
-          file = lvim.use_icons,
-          folder_arrow = lvim.use_icons,
+          git = true,
+          folder = true,
+          file = true,
+          folder_arrow = true,
         },
         glyphs = {
           default = "",
@@ -174,6 +174,6 @@ function M.start_telescope(telescope_mode)
 end
 
 function M.setup()
-  core.which-key.config.mappings["e"] = { "<cmd>NvimTreeToggle<CR>", "Explorer" }
+  require('core.which-key.config.mappings')["e"] = { "<cmd>NvimTreeToggle<CR>", "Explorer" }
   require'alpha'.setup(config)
 end

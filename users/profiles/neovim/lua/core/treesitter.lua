@@ -1,5 +1,4 @@
 local M = {}
-local Log = require "lvim.core.log"
 
 local config = {
   on_config_done = nil,

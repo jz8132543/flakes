@@ -78,8 +78,6 @@ local config = {
         padding = 1,
       },
     },
-    show_buffer_icons = lvim.use_icons, -- disable filetype icons for buffers
-    show_buffer_close_icons = lvim.use_icons,
     show_close_icon = false,
     show_tab_indicators = true,
     persist_buffer_sort = true, -- whether or not custom sorted buffers should persist

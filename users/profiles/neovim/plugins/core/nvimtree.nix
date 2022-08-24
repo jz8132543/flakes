@@ -6,7 +6,7 @@
       {
         plugin = vimPlugins.nvim-tree-lua;
         config = ''
-          require("core.nvimtree").setup()
+          lua require("core.nvimtree").setup()
         '';
       }
     ];

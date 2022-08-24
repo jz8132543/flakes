@@ -3,7 +3,7 @@ local components = require "core.lualine.components"
 local config = {
   options = {
     theme = "auto",
-    icons_enabled = lvim.use_icons,
+    icons_enabled = true,
     component_separators = { left = "", right = "" },
     section_separators = { left = "", right = "" },
     disabled_filetypes = { "alpha", "NvimTree", "Outline" },

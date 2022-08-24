@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.nvim-dap;
         config = ''
-          require("core.dap").setup()
+          lua require("core.dap").setup()
         '';
       }
     ];

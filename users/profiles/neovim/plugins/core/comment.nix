@@ -7,7 +7,7 @@
       {
         plugin = nur.repos.m15a.vimExtraPlugins.nvim-comment;
         config = ''
-          require("core.comment").setup()
+          lua require("core.comment").setup()
         '';
       }
     ];

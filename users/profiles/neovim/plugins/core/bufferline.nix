@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.bufferline-nvim;
         config = ''
-          require("core.bufferline").setup()
+          lua require("core.bufferline").setup()
         '';
       }
     ];
