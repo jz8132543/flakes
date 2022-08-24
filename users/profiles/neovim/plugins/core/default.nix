@@ -11,6 +11,7 @@
     ./mason.nix
     ./nvimtree.nix
     ./project.nix
+    ./rose-pine.nix
     ./telescope.nix
     ./treesitter.nix
     ./which-key.nix

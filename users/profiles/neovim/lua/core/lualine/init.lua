@@ -2,7 +2,7 @@ local M = {}
 local components = require "core.lualine.components"
 local config = {
   options = {
-    theme = "auto",
+    theme = "rose-pine",
     icons_enabled = true,
     component_separators = { left = "", right = "" },
     section_separators = { left = "", right = "" },
