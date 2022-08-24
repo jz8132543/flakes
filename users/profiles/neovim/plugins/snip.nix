@@ -2,7 +2,8 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      dashboard-nvim
+      vimPlugins.luasnip
+      vimPlugins.cmp_luasnip
     ];
   };
 }

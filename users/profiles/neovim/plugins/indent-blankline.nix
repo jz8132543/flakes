@@ -2,11 +2,10 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      vimPlugins.null-ls-nvim
       {
-        plugin = nur.repos.m15a.vimExtraPlugins.nlsp-settings-nvim;
+        plugin = vimPlugins.indent-blankline-nvim;
         config = ''
-          lua require("lsp").setup()
+          lua require("config.plugins.indent-blamkline")
         '';
       }
     ];

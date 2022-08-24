@@ -2,11 +2,10 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      vimPlugins.telescope-nvim
       {
-        plugin = vimPlugins.nvim-tree-lua;
+        plugin = vimPlugins.which-key-nvim;
         config = ''
-          lua require("core.nvimtree").setup()
+          lua require("config.plugins.which-key")
         '';
       }
     ];

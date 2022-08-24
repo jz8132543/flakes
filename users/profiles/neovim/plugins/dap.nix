@@ -2,10 +2,11 @@
 
   programs.neovim = {
     plugins = with pkgs; [
+      vimPlugins.nvim-dap-ui
       {
-        plugin = vimPlugins.nvim-treesitter;
+        plugin = vimPlugins.nvim-dap;
         config = ''
-          lua require("core.treesitter").setup()
+          lua require("config.plugins.dap")
         '';
       }
     ];

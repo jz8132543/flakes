@@ -1,8 +1,4 @@
-local mason_lspconfig = require("utils").requirePlugin("mason-lspconfig")
 local lspconfig = require("utils").requirePlugin("lspconfig")
-if not mason_lspconfig or not lspconfig then
-    return
-end
 
 local signs = {
     { name = "DiagnosticSignError", text = "" },
@@ -77,9 +73,3 @@ local settings = {
     other_fields = ...,
 }
 
-mason_lspconfig.setup_handlers({
-    function(server_name)
-        lspconfig[server_name].setup(settings)
-    end,
-
-})

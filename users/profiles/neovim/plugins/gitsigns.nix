@@ -2,10 +2,11 @@
 
   programs.neovim = {
     plugins = with pkgs; [
+      vimPlugins.nvim-dap-ui
       {
-        plugin = vimPlugins.bufferline-nvim;
+        plugin = vimPlugins.gitsigns-nvim;
         config = ''
-          lua require("core.bufferline").setup()
+          lua require("config.plugins.gitsigns")
         '';
       }
     ];

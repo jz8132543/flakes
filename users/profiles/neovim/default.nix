@@ -10,12 +10,15 @@
       viAlias = true;
       vimAlias = true;
       vimdiffAlias = true;
+      extraConfig = ''
+        require("core")
+      '';
     };
   };
 
   home.file.neovim = {
-    source = ./nvim;
-    target = ".config/nvim";
+    source = ./nvim/lua;
+    target = ".config/nvim/lua";
     recursive = true;
   };
 

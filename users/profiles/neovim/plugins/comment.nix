@@ -3,9 +3,9 @@
   programs.neovim = {
     plugins = with pkgs; [
       {
-        plugin = nur.repos.m15a.vimExtraPlugins.mason-nvim;
+        plugin = vimPlugins.comment-nvim;
         config = ''
-          lua require("core.mason").setup()
+          lua require("config.plugins.comment")
         '';
       }
     ];

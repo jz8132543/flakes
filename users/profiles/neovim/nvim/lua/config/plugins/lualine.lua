@@ -16,7 +16,7 @@ lualine.setup({
         lualine_c = { "filename" },
         lualine_x = { "aerial" },
         lualine_y = { "progress" },
-        lualine_z = { "os.date('%a')", 'data', "require'lsp-status'.status()" },
+        lualine_z = { "os.date('%a')", 'data', "lsp_progress" },
     },
     inactive_sections = {
         lualine_a = {},

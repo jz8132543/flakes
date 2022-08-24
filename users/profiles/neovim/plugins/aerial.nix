@@ -2,11 +2,10 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      vimPlugins.plenary-nvim
       {
-        plugin = vimPlugins.gitsigns-nvim;
+        plugin = vimPlugins.aerial-nvim;
         config = ''
-          lua require("core.gitsigns").setup()
+          lua require("config.plugins.aerial")
         '';
       }
     ];

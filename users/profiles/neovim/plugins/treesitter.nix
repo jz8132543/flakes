@@ -2,10 +2,11 @@
 
   programs.neovim = {
     plugins = with pkgs; [
+      vimPlugins.nvim-ts-rainbow
       {
-        plugin = vimPlugins.project-nvim;
+        plugin = vimPlugins.nvim-treesitter;
         config = ''
-          lua require("core.project").setup()
+          lua require("config.plugins.treesitter")
         '';
       }
     ];

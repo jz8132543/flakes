@@ -3,9 +3,9 @@
   programs.neovim = {
     plugins = with pkgs; [
       {
-        plugin = vimPlugins.which-key-nvim;
+        plugin = vimPlugins.dashboard-nvim;
         config = ''
-          lua require("core.which-key").setup()
+          lua require("config.plugins.dashboard")
         '';
       }
     ];

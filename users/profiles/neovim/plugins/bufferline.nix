@@ -3,9 +3,9 @@
   programs.neovim = {
     plugins = with pkgs; [
       {
-        plugin = vimPlugins.nvim-dap;
+        plugin = vimPlugins.bufferline-nvim;
         config = ''
-          lua require("core.dap").setup()
+          lua require("config.plugins.bufferline")
         '';
       }
     ];

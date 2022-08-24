@@ -5,8 +5,7 @@
       {
         plugin = nur.repos.m15a.vimExtraPlugins.rose-pine;
         config = ''
-	  vim.cmd('colorscheme rose-pine')
-          lua require("core.rose-pine").setup()
+	        vim.cmd('colorscheme rose-pine')
         '';
       }
     ];

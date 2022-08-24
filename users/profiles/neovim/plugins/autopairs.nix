@@ -5,7 +5,7 @@
       {
         plugin = vimPlugins.nvim-autopairs;
         config = ''
-          lua require("core.autopairs").setup()
+          lua require("config.plugins.autopairs")
         '';
       }
     ];

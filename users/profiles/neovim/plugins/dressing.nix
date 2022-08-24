@@ -2,11 +2,10 @@
 
   programs.neovim = {
     plugins = with pkgs; [
-      vimPlugins.telescope-fzf-native-nvim
       {
-        plugin = vimPlugins.lualine-nvim;
+        plugin = vimPlugins.dressing-nvim;
         config = ''
-          lua require("core.lualine").setup()
+          lua require("config.plugins.dressing")
         '';
       }
     ];
