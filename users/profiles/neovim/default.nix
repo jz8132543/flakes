@@ -23,8 +23,6 @@
   };
 
   home.packages = with pkgs; [
-    libcxxStdenv
-    clang
     rnix-lsp
   ];
 }
