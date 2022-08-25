@@ -31,6 +31,13 @@
       url = github:Mic92/sops-nix;
       inputs.nixpkgs.follows = "nixos";
     };
+    deploy = {
+      url = "github:serokell/deploy-rs";
+      inputs = {
+        nixpkgs.follows = "nixos";
+        utils.follows = "digga/flake-utils-plus/flake-utils";
+      };
+    };
   };
 
   outputs = { self, nixos, digga, ... } @ inputs:
@@ -50,6 +57,21 @@
     home = ./home;
 
     homeConfigurations = digga.lib.mkHomeConfigurations self.nixosConfigurations;
+
+    deploy.nodes =
+      let
+        inherit (nixos) lib;
+        disabledHosts = [  ];
+        configs = lib.filterAttrs (name: cfg: !(lib.elem name disabledHosts)) self.nixosConfigurations;
+      in
+      digga.lib.mkDeployNodes
+        configs
+        (lib.mapAttrs
+          (name: cfg: {
+            hostname = "${cfg.config.networking.hostName}.dora.im";
+          })
+          configs);
+    deploy.sshUser = "root";
   };
 
 }
