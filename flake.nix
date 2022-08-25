@@ -40,7 +40,7 @@
     };
   };
 
-  outputs = { self, nixos, digga, ... } @ inputs:
+  outputs = { self, nixos, digga, deploy, ... } @ inputs:
   digga.lib.mkFlake
   {
     inherit self inputs;
@@ -72,6 +72,7 @@
           })
           configs);
     deploy.sshUser = "root";
+    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) inputs.deploy.lib;
   };
 
 }
