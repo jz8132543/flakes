@@ -13,7 +13,7 @@
   environment.systemPackages = with pkgs;[
   ];
 
-  networking.hostName = "tyo0";
+  networking.hostName = "ams0";
 
   boot.loader.grub = {
     efiSupport = true;
