@@ -3,9 +3,7 @@
     suites.server ++
     (with profiles; [
       services.acme
-      services.v2ray
       services.traefik
-      services.k3s
     ]) ++ (with profiles.users; [
       tippy
     ]);
