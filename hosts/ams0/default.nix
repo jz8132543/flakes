@@ -15,7 +15,6 @@
 
   networking.hostName = "tyo0";
 
-  imports = [ (modulesPath + "/profiles/qemu-guest.nix") ];
   boot.loader.grub = {
     efiSupport = true;
     efiInstallAsRemovable = true;
