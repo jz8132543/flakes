@@ -47,24 +47,32 @@
           tree-sitter-lua
           tree-sitter-rust
           tree-sitter-go
+          tree-sitter-python
+          tree-sitter-c
+          tree-sitter-cpp
+          tree-sitter-yaml
+          tree-sitter-vim
+          tree-sitter-fish
+          tree-sitter-markdown
         ]
       ))
 
       ];
       extraConfig = ''
         lua require("core")
-        vim.cmd('colorscheme rose-pine')
+        lua vim.cmd('colorscheme rose-pine')
       '';
     };
   };
 
   home.file.neovim = {
-    source = ./nvim/lua;
+    source = ./lua;
     target = ".config/nvim/lua";
     recursive = true;
   };
 
   home.packages = with pkgs; [
+    gcc
     rnix-lsp
   ];
 }
