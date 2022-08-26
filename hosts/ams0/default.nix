@@ -2,8 +2,6 @@
   imports =
     suites.server ++
     (with profiles; [
-      services.acme
-      services.traefik
     ]) ++ (with profiles.users; [
       tippy
     ]);
