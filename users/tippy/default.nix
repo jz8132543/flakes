@@ -4,17 +4,18 @@ let
   name = "tippy";
   homeDirectory = "/home/${name}";
 in{
-
-  home-manager.users.${name} = {
-    home.file.".ssh/id_ed25519".source = config.sops.secrets.id_ed25519.path;
-    
-  };
-
   sops.secrets.id_ed25519 = {
     neededForUsers = true;
     format = "binary";
     sopsFile = config.sops.secretsDir + /id_ed25519.keytab;
   };
+
+  home-manager.users.${name} = {
+    home.file.".ssh/id_ed25519".source = config.lib.file.mkOutOfStoreSymlink config.sops.secrets.id_ed25519.path;
+  };
+
+  environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
+
   security.sudo.wheelNeedsPassword = false;
   users = {
     mutableUsers = true;

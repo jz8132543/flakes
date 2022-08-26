@@ -9,7 +9,7 @@
       enableSyntaxHighlighting = false;
       dotDir = ".config/zsh";
       shellAliases = {
-        rebuild = "nixos-rebuild --use-remote-sudo -v -L --flake /home/tippy/Projects/flakes";
+        rebuild = "nixos-rebuild --use-remote-sudo -v -L --flake $HOME/Source/flakes";
         nu = "rebuild switch --upgrade";
         hu = "home-manager switch";
         ngc = "sudo nix-env --profile /nix/var/nix/profiles/system --delete-generations +2;nix-env --delete-generations +2;nix-collect-garbage";
