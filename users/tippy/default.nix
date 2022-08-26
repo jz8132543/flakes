@@ -3,18 +3,21 @@
 let
   name = "tippy";
   homeDirectory = "/home/${name}";
+  link = config.sops.secrets.id_ed25519.path;
 in{
   sops.secrets.id_ed25519 = {
-    neededForUsers = true;
     format = "binary";
+    owner = config.users.users.${name}.name;
+    group = config.users.users.${name}.group;
     sopsFile = config.sops.secretsDir + /id_ed25519.keytab;
   };
 
-  home-manager.users.${name} = {
-    home.file.".ssh/id_ed25519".source = config.lib.file.mkOutOfStoreSymlink config.sops.secrets.id_ed25519.path;
+  home-manager.users.${name} = { config, suites, ... } : {
+    imports = suites.base;
+    home.file.".ssh/id_ed25519".source = config.lib.file.mkOutOfStoreSymlink link;
   };
 
-  environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
+  # environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
 
   security.sudo.wheelNeedsPassword = false;
   users = {
