@@ -9,6 +9,7 @@
       enableSyntaxHighlighting = false;
       dotDir = ".config/zsh";
       shellAliases = {
+        deploy = "deploy --skip-checks";
         rebuild = "nixos-rebuild --use-remote-sudo -v -L --flake $HOME/Source/flakes";
         nu = "rebuild switch --upgrade";
         hu = "home-manager switch";
