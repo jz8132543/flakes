@@ -74,5 +74,6 @@
   home.packages = with pkgs; [
     gcc
     rnix-lsp
+    sumneko-lua-language-server
   ];
 }

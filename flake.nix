@@ -71,8 +71,10 @@
             hostname = "${cfg.config.networking.hostName}.dora.im";
           })
           configs);
-    deploy.sshUser = "root";
-    checks = builtins.mapAttrs (system: deployLib: deployLib.deployChecks self.deploy) inputs.deploy.lib;
+    deploy = {
+      sshUser = "root";
+      user = "tippy";
+    };
   };
 
 }

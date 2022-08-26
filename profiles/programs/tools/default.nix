@@ -6,5 +6,7 @@
     tmux
     git
     vim
+    screen
+    deploy-rs
   ];
 }
