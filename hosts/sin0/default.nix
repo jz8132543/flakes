@@ -1,3 +1,5 @@
+{ lib, config, pkgs, modulesPath, suites, profiles, ... }: 
+
 let
   btrfsSubvol = device: subvol: extraConfig: lib.mkMerge [
     {
@@ -55,6 +57,7 @@ in{
       [{
         device = "/dev/disk/by-uuid/6142d3f3-e44f-4a16-8d92-634e2ad033d9";
       }];
+  };
 
   networking = {
     defaultGateway = "128.199.64.1";
