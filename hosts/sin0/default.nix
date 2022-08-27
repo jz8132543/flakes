@@ -32,6 +32,7 @@ in{
       enable = true;
       version = 2;
       device = "/dev/vda";
+      efiSupport = true;
     };
   services.btrfs.autoScrub = {
     enable = true;
