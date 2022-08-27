@@ -51,7 +51,7 @@ in{
     fileSystems."/boot" =
       {
         device = "/dev/disk/by-uuid/E3E1-2EE5";
-        fsType = "ext4";
+        fsType = "vfat";
       };
     swapDevices =
       [{
