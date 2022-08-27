@@ -17,7 +17,7 @@ in{
     home.file.".ssh/id_ed25519".source = config.lib.file.mkOutOfStoreSymlink link;
   };
 
-  # environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
+  environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
 
   security.sudo.wheelNeedsPassword = false;
   users = {

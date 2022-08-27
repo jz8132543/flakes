@@ -11,5 +11,6 @@
     exa bat fzf fd
     age pinentry sequoia #gnupg
     sops
+    nixfmt
   ];
 }
