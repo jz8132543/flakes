@@ -31,7 +31,8 @@ in {
     group = "nginx";
     dnsProvider = "cloudflare";
     credentialsFile = config.sops.secrets.acme-im.path;
-    extraDomainNames = [ "*.dora.im" "*.${config.networking.hostName}.dora.im" ];
+    extraDomainNames =
+      [ "*.dora.im" "*.${config.networking.hostName}.dora.im" ];
     # inherit extralegoflags;
   };
 }

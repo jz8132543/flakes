@@ -1,4 +1,4 @@
-{ ...  }:
+{ ... }:
 
 {
   programs = {
@@ -11,15 +11,9 @@
         StrictHostKeyChecking no
       '';
       matchBlocks = {
-        "github.com" = {
-          user = "git";
-        };
-        "gitlab.com" = {
-          user = "git";
-        };
-        "*" = {
-          user = "tippy";
-        };
+        "github.com" = { user = "git"; };
+        "gitlab.com" = { user = "git"; };
+        "*" = { user = "tippy"; };
       };
     };
   };

@@ -1,9 +1,7 @@
 { pkgs, lib, config, ... }:
 
 {
-  imports = [
-    ./services.nix
-  ];
+  imports = [ ./services.nix ];
   sops.secrets.traefik = {
     format = "binary";
     sopsFile = config.sops.secretsDir + /traefik.keytab;
@@ -38,30 +36,20 @@
         email = "blackhole@dora.im";
         storage = config.services.traefik.dataDir + "/acme.json";
         keyType = "EC256";
-        dnsChallenge = {
-          provider = "cloudflare";
-        };
+        dnsChallenge = { provider = "cloudflare"; };
         # eab = {
         #   kid = config.sops.secrets.placeholder."traefik/KID";
         #   hmacEncoded = config.sops.secrets.placeholder."traefik/KIDHMAC";
         # };
       };
-      ping = {
-        manualRouting = true;
-      };
-      api = {
-        dashboard = true;
-      };
-      accessLog = {
-        filePath = "/tmp/access.log";
-      };
+      ping = { manualRouting = true; };
+      api = { dashboard = true; };
+      accessLog = { filePath = "/tmp/access.log"; };
       log = {
         filePath = "/tmp/traefik.log";
         level = "DEBUG";
       };
-      providers = {
-        kubernetesIngress = {  };
-      };
+      providers = { kubernetesIngress = { }; };
     };
     dynamicConfigOptions = {
       tls.options.default = {
@@ -72,8 +60,8 @@
   };
   # systemd.services.traefik.serviceConfig.EnvironmentFile = config.sops.secrets.traefik.path;
   systemd.services.traefik = {
-      serviceConfig.LoadCredential = "kubeconfig:/etc/rancher/k3s/k3s.yaml";
-      environment.KUBECONFIG = "%d/kubeconfig";
-      after = [ "k3s.service" ];
-    };
+    serviceConfig.LoadCredential = "kubeconfig:/etc/rancher/k3s/k3s.yaml";
+    environment.KUBECONFIG = "%d/kubeconfig";
+    after = [ "k3s.service" ];
+  };
 }

@@ -5,8 +5,6 @@
     enable = true;
     pinentryFlavor = "curses";
   };
-  programs.gpg = {
-    enable = true;
-  };
+  programs.gpg = { enable = true; };
 }
 

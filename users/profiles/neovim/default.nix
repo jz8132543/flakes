@@ -41,21 +41,20 @@
         vimPlugins.plenary-nvim
         vimPlugins.which-key-nvim
         vimPlugins.nvim-ts-rainbow
-        (vimPlugins.nvim-treesitter.withPlugins (
-        plugins: with plugins; [
-          tree-sitter-nix
-          tree-sitter-lua
-          tree-sitter-rust
-          tree-sitter-go
-          tree-sitter-python
-          tree-sitter-c
-          tree-sitter-cpp
-          tree-sitter-yaml
-          tree-sitter-vim
-          tree-sitter-fish
-          tree-sitter-markdown
-        ]
-      ))
+        (vimPlugins.nvim-treesitter.withPlugins (plugins:
+          with plugins; [
+            tree-sitter-nix
+            tree-sitter-lua
+            tree-sitter-rust
+            tree-sitter-go
+            tree-sitter-python
+            tree-sitter-c
+            tree-sitter-cpp
+            tree-sitter-yaml
+            tree-sitter-vim
+            tree-sitter-fish
+            tree-sitter-markdown
+          ]))
 
       ];
       extraConfig = ''
@@ -71,9 +70,5 @@
     recursive = true;
   };
 
-  home.packages = with pkgs; [
-    gcc
-    rnix-lsp
-    sumneko-lua-language-server
-  ];
+  home.packages = with pkgs; [ gcc rnix-lsp sumneko-lua-language-server ];
 }

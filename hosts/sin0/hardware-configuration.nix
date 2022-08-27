@@ -7,18 +7,19 @@
     efiInstallAsRemovable = true;
     device = "/dev/vda";
   };
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/74dd579c-a377-487d-b8f7-bc7c6df13ba1";
-      fsType = "ext4";
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/74dd579c-a377-487d-b8f7-bc7c6df13ba1";
+    fsType = "ext4";
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/922E-54A6";
-      fsType = "vfat";
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/922E-54A6";
+    fsType = "vfat";
+  };
   boot = {
     initrd = {
-      availableKernelModules = [ "ata_piix" "uhci_hcd" "virtio_pci" "virtio_scsi" "virtio_blk" ];
+      availableKernelModules =
+        [ "ata_piix" "uhci_hcd" "virtio_pci" "virtio_scsi" "virtio_blk" ];
       kernelModules = [ "nvme" ];
     };
   };

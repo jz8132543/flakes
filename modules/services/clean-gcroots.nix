@@ -1,20 +1,16 @@
 { config, pkgs, lib, ... }:
 
-let
-  cfg = config.services.clean-gcroots;
-in
+let cfg = config.services.clean-gcroots;
 
-with lib;
-{
+in with lib; {
   options.services.clean-gcroots = {
-    enable = mkOption
-      {
-        type = types.bool;
-        default = false;
-        description = ''
-          Whether to enable clean-gcroots service for users.
-        '';
-      };
+    enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Whether to enable clean-gcroots service for users.
+      '';
+    };
   };
   config = mkIf (cfg.enable) {
     systemd.user.services.clean-gcroots = {
@@ -24,9 +20,7 @@ with lib;
         ${pkgs.findutils}/bin/find -L "/nix/var/nix/gcroots/per-user/$user" -maxdepth 1 -type l -delete -print
       '';
       scriptArgs = "%u";
-      serviceConfig = {
-        Type = "oneshot";
-      };
+      serviceConfig = { Type = "oneshot"; };
     };
     systemd.user.timers.clean-gcroots = {
       description = "Timer for clean-gcroots";

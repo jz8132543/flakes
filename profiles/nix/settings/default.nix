@@ -3,7 +3,7 @@
 {
   nix = {
     settings = {
-      system-features = [  ];
+      system-features = [ ];
 
       auto-optimise-store = true;
       # automatic = true;

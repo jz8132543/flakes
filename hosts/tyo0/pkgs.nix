@@ -1,7 +1,5 @@
 { config, pkgs, ... }:
 
 {
-  environment.systemPackages = with pkgs;[
-    kubernetes-helm
-  ];
+  environment.systemPackages = with pkgs; [ kubernetes-helm ];
 }

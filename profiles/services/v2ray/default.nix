@@ -16,17 +16,13 @@
       virtualHosts."test.tippic.eu.org" = {
         forceSSL = true;
         useACMEHost = "tippic.eu.org";
-        listen = [
-          {
-            addr = "0.0.0.0";
-            port = 8443;
-            ssl = true;
-          }
-        ];
+        listen = [{
+          addr = "0.0.0.0";
+          port = 8443;
+          ssl = true;
+        }];
         locations = {
-          "/" = {
-            proxyPass = "https://mirrors.mit.edu/";
-          };
+          "/" = { proxyPass = "https://mirrors.mit.edu/"; };
           "/Ray/" = {
             proxyPass = "http://127.0.0.1:10000";
             proxyWebsockets = true;

@@ -18,9 +18,7 @@ lib.mkMerge [
         "2606:4700:4700::1001"
       ];
     };
-    networking.firewall.allowedUDPPorts = [
-      5353
-    ];
+    networking.firewall.allowedUDPPorts = [ 5353 ];
   }
   (lib.mkIf config.services.avahi.enable {
     services.resolved.extraConfig = ''

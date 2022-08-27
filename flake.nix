@@ -28,7 +28,7 @@
       };
     };
     sops-nix = {
-      url = github:Mic92/sops-nix;
+      url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixos";
     };
     deploy = {
@@ -40,41 +40,36 @@
     };
   };
 
-  outputs = { self, nixos, digga, deploy, ... } @ inputs:
-  digga.lib.mkFlake
-  {
-    inherit self inputs;
+  outputs = { self, nixos, digga, deploy, ... }@inputs:
+    digga.lib.mkFlake {
+      inherit self inputs;
 
-    supportedSystems = [ "x86_64-linux"];
+      supportedSystems = [ "x86_64-linux" ];
 
-    channelsConfig = { allowUnfree = true; };
-    channels = import ./channels {inherit self inputs;};
+      channelsConfig = { allowUnfree = true; };
+      channels = import ./channels { inherit self inputs; };
 
-    lib = import ./lib { lib = digga.lib // nixos.lib; };
+      lib = import ./lib { lib = digga.lib // nixos.lib; };
 
-    nixos = ./nixos;
+      nixos = ./nixos;
 
-    home = ./home;
+      home = ./home;
 
-    homeConfigurations = digga.lib.mkHomeConfigurations self.nixosConfigurations;
+      homeConfigurations =
+        digga.lib.mkHomeConfigurations self.nixosConfigurations;
 
-    deploy.nodes =
-      let
+      deploy.nodes = let
         inherit (nixos) lib;
-        disabledHosts = [  ];
-        configs = lib.filterAttrs (name: cfg: !(lib.elem name disabledHosts)) self.nixosConfigurations;
-      in
-      digga.lib.mkDeployNodes
-        configs
-        (lib.mapAttrs
-          (name: cfg: {
-            hostname = "${cfg.config.networking.hostName}.dora.im";
-          })
-          configs);
-    deploy = {
-      sshUser = "root";
-      user = "tippy";
+        disabledHosts = [ ];
+        configs = lib.filterAttrs (name: cfg: !(lib.elem name disabledHosts))
+          self.nixosConfigurations;
+      in digga.lib.mkDeployNodes configs (lib.mapAttrs
+        (name: cfg: { hostname = "${cfg.config.networking.hostName}.dora.im"; })
+        configs);
+      deploy = {
+        sshUser = "root";
+        user = "tippy";
+      };
     };
-  };
 
 }

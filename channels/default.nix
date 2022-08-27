@@ -1,6 +1,1 @@
-{
-  self,
-  inputs,
-} @ args: {
-  nixos = import ./nixos.nix args;
-}
+{ self, inputs, }@args: { nixos = import ./nixos.nix args; }

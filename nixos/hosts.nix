@@ -1,6 +1,1 @@
-{
-  self,
-  inputs,
-  ...
-}: {
-}
+{ self, inputs, ... }: { }

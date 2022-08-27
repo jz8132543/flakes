@@ -8,9 +8,9 @@
     format = "yaml";
     sopsFile = ../../secrets/traefik.yaml;
 
-    KID = {  };
-    HMAC = {  };
-    CLOUDFLARE_DNS_API_TOKEN = {  };
+    KID = { };
+    HMAC = { };
+    CLOUDFLARE_DNS_API_TOKEN = { };
   };
   services.traefik = {
     enable = true;
@@ -36,20 +36,14 @@
         email = "blackhole@dora.im";
         storage = config.services.traefik.dataDir + "/acme.json";
         keyType = "EC256";
-        dnsChallenge = {
-          provider = "cloudflare";
-        };
+        dnsChallenge = { provider = "cloudflare"; };
         eab = {
           kid = config.sops.secrets.traefik.KID.path;
           hmacEncoded = config.sops.secrets.traefik.HMAC.path;
         };
       };
-      ping = {
-        manualRouting = true;
-      };
-      api = {
-        dashboard = true;
-      };
+      ping = { manualRouting = true; };
+      api = { dashboard = true; };
     };
     dynamicConfigOptions = {
       tls.options.default = {
@@ -72,5 +66,6 @@
       };
     };
   };
-  systemd.services.traefik.serviceConfig.EnvironmentFile = config.sops.secrets.traefik.CLOUDFLARE_DNS_API_TOKEN.path;
+  systemd.services.traefik.serviceConfig.EnvironmentFile =
+    config.sops.secrets.traefik.CLOUDFLARE_DNS_API_TOKEN.path;
 }

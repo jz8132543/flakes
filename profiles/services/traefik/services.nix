@@ -43,7 +43,8 @@
             service = "ping@internal";
           };
           dashboard = {
-            rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
+            rule =
+              "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
             entryPoints = [ "https" ];
             service = "api@internal";
             middlewares = "auth";
@@ -51,7 +52,8 @@
         };
         middlewares = {
           compress.compress = { };
-          auth.basicauth.users = "tippy:$2y$10$oTDoQ9/2nwg8CpPQkeKT../Bkll8XQSwzx4zjJSNimQ/PJCT4i.3C";
+          auth.basicauth.users =
+            "tippy:$2y$10$oTDoQ9/2nwg8CpPQkeKT../Bkll8XQSwzx4zjJSNimQ/PJCT4i.3C";
         };
         # services = {
         #   k3s.loadBalancer = {
