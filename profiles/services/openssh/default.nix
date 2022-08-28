@@ -21,4 +21,8 @@ in {
     '';
   };
 
+  environment.global-persistence.directories = [
+    "/etc/ssh"
+  ];
+
 }
