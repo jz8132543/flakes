@@ -6,7 +6,7 @@
     pinentryFlavor = "curses";
   };
   programs.gpg = { enable = true; };
-  environment.global-persistence.user.directories = [
+  home.global-persistence.directories = [
     ".gnupg"
   ];
 }
