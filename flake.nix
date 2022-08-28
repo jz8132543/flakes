@@ -38,6 +38,7 @@
         utils.follows = "digga/flake-utils-plus/flake-utils";
       };
     };
+    impermanence.url = "github:nix-community/impermanence";
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:
