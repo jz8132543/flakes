@@ -22,7 +22,6 @@ in {
       home = homeDirectory;
       directories = [
         "Source"
-        ".gnupg"
       ];
     };
   };
