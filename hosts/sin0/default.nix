@@ -28,9 +28,6 @@ in{
   environment.global-persistence = {
     enable = true;
     root = "/persist";
-    files = [
-      config.sops.age.keyFile
-    ];
   };
 
   networking.hostName = "sin0";
