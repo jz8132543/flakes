@@ -1,6 +1,9 @@
-{ config, pkgs, ... }:
+{ config, pkgs, osConfig, ... }:
 
-{
+let
+  cfg = config.home.global-persistence;
+  sysCfg = osConfig.environment.global-persistence;
+in{
   programs = {
     zsh = {
       enable = true;
@@ -35,7 +38,10 @@
       };
       history = {
         size = 10000;
-        path = "$HOME/.cache/zsh_history";
+        path = 
+          (if config.home.global-persistence.enabled
+          then "../../${sysCfg.root}${cfg.home}/.config/zsh/zsh_history"
+          else "$HOME/.config/zsh/zsh_history");
       };
       oh-my-zsh = {
         enable = true;
