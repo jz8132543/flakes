@@ -14,6 +14,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
         extra_nix_config: |
           experimental-features = nix-command flakes
+          system-features = kvm
     - name: Setup cachix
       uses: cachix/cachix-action@master
       with:
