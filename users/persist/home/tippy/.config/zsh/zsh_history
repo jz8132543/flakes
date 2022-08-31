@@ -1,0 +1,165 @@
+nvim default.nix
+git add .
+git status
+nu
+zsh
+nvim default.nix
+git add .
+nu
+zsh
+nvim default.nix
+nu
+ls
+nvim default.nix
+nu
+zsh
+git add .
+nu
+zsh
+autoload -U promptinit && promptinit && prompt pure
+autoload -U promptinit
+promptinit
+prompt pure
+prompt -c pure
+ls
+cd ~/.config/zsh
+nvim default.nix
+git add .
+nu
+zsh
+cd ~/.config/zsh
+zsh
+cd ~/.config/zsh/plugins/pure-prompt/share/zsh/site-functions
+nvim default.nix
+git add .
+nu
+zsh
+nvim default.nix
+git add .
+nu
+nvim default.nix
+zsh
+PURE_GIT_PULL=0\
+      RPS1=""
+zstyle :prompt:pure:git:stash show yes
+ls
+zstyle :prompt:pure:git:fetch only_upstream yes
+zstyle :prompt:pure:environment:nix-shell show no
+git add .
+nu
+zstyle :prompt:pure:git:stash show yes
+setopt promptsubst\
+      _lineup=$'\e[1A' # https://superuser.com/a/737454\
+      _linedown=$'\e[1B'\
+      RPROMPT='%{''${_lineup}%}$(set_rprompt)%{''${_linedown}%}'
+function set_rprompt() {\
+        local _aws_vault_prompt='''\
+        local _aws_vault_prompt_size=0\
+        local _cf_vault_prompt='''\
+        local _cf_vault_prompt_size=0\
+        local _nix_shell_prompt='''\
+        local _nix_shell_prompt_size=0\
+        local _direnv_prompt='''\
+        local _direnv_prompt_size=0\
+        local _pipestatus_prompt='''\
+        local _pipestatus_prompt_size=0\
+        local _zero='%([BSUbfksu]|([FK]|){*})' # https://stackoverflow.com/a/10564427\
+        local _prompt_size=$(( ''${#''${(S%%)PROMPT//$~_zero/}} - 4 )) # offset by 4 (?) spaces in the second line\
+        local _column_width=$COLUMNS # total available space\
+        local _timestamp_width=21 # e.g. ' [22-02-07 21:23:17] '\
+        local _available_prompt_width=$(( _column_width - _prompt_size ))\
+        # aws-vault\
+        if [ -n "''${AWS_VAULT:-}" ] ; then\
+          local _expiration_delta_s=$(( $(gdate --date="''${AWS_SESSION_EXPIRATION}" +"%s") - $(gdate +"%s") ))\
+          local _expiration_detal_text="X"\
+          [[ $_expiration_delta_s -gt 0 ]] && _expiration_detal_text="$(gdate -d @"''${_expiration_delta_s}" +"%-Mm%-Ss")"\
+          local _aws_vault_text="aws-vault|''${AWS_VAULT} "\
+          _aws_vault_prompt_size="$(( ''${#_aws_vault_text} + ''${#_expiration_detal_text} + 3 + 2 ))" # 3 is for '[] ' 2 is for 'âƒ´ƒª '\
+          _aws_vault_prompt="âƒ´ƒª %B%F{066}''${_aws_vault_text}%f%b[%{%F{yellow}%}''${_expiration_detal_text}%{%f%}] "\
+        fi\
+        # cf-vault\
+        if [ -n "''${CLOUDFLARE_VAULT_SESSION:-}" ] ; then\
+           local _cf_vault_text="cf-vault|''${CLOUDFLARE_VAULT_SESSION} "\
+           _cf_vault_prompt_size="$(( ''${#_cf_vault_text} + 2 ))" # 2 is for 'âƒ´ƒª '\
+           _cf_vault_prompt="âƒ´ƒª %B%F{115}''${_cf_vault_text}%b"\
+        fi\
+        # nix-shell\
+        if [ -n "''${IN_NIX_SHELL:-}" ] ; then\
+          local _nix_shell_text='nix-shell '\
+          [ -n "''${NIX_SHELL_PACKAGES:-}" ] && _nix_shell_text="nix-shell(''${NIX_SHELL_PACKAGES}) "\
+          _nix_shell_prompt_size="$(( ''${#_nix_shell_text} + 2 + _nix_shell_offset ))" # 2 is for 'âƒ´ƒª '\
+          _nix_shell_prompt="âƒ´ƒª %B%F{107}''${_nix_shell_text}%f%b"\
+        fi\
+        # direnv\
+        if [[ -v DIRENV_DIR ]] ; then\
+          local _direnv_text="direnv|''${DIRENV_DIR##*/} "\
+          _direnv_prompt_size="$(( ''${#_direnv_text} + 2 ))" # 2 is for 'âƒ´ƒª '\
+          _direnv_prompt="âƒ´ƒª %B%F{130}''${_direnv_text}%f%b"\
+        fi\
+        # pipestatus\
+        if [[ "$_PIPESTATUS" != "0" ]]; then\
+          _pipestatus_prompt_size="$(( ''${#_PIPESTATUS} + 3 ))" # 3 is for '[] '\
+          _pipestatus_prompt="%F{$prompt_pure_colors[prompt:error]}[$_PIPESTATUS]%f "\
+        fi\
+        # final calculation\
+        local _home_directory_offset=0\
+        [[ "$PWD" == "$HOME" ]] && _home_directory_offset=1 # for some unknown reason at the $HOME directory only\
+        local _final_leftover_spaces=$(( _available_prompt_width - _pipestatus_prompt_size - _direnv_prompt_size - _nix_shell_prompt_size - _aws_vault_prompt_size - _cf_vault_prompt_size - _timestamp_width - _home_directory_offset ))\
+        local _final_spaces_padding="$([[ $_final_leftover_spaces -gt 0 ]] && printf '%*s' $_final_leftover_spaces)"\
+        local _final_prompt="''${_pipestatus_prompt}''${_direnv_prompt}''${_nix_shell_prompt}''${_aws_vault_prompt}''${_cf_vault_prompt}"\
+        if [[ $_available_prompt_width -gt 0 ]]\
+        then\
+          echo -n "%$(( _available_prompt_width - 2 ))<...<''${_final_prompt}''${_final_spaces_padding}[%{%F{yellow}%}$(date '+%y-%m-%d %H:%M:%S')%{%f%}]"\
+          #                                               | <--- prompt ---> | <--- space padding --->| <------------      Timestamp       ------------> |\
+        fi\
+      }\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}\
+}\
+;\
+;
+nvim default.nix
+nu
+git add .
+nu
+nvim default.nix
+git add .
+nu
+nvim default.nix
+nu
+nvim default.nix
+ls
+nvim default.nix
+git add .
+nu
+nvim default.nix
+git add .
+nu
+zsh
+ls
+nvim default.nix
+nu
+: 1661875133:0;nvim default.nix
+: 1661875820:0;nix-prefetch-url
+: 1661875836:0;nix-prefetch-url https://github.com/marlonrichert/zsh-edit.git
+: 1661875845:0;ls /nix/store/qwrcnlr0z5parw6wj5pcqs3bgpkvqdgk-zsh-edit.git
+: 1661875860:0;nix-prefetch-url https://github.com/marlonrichert/zsh-edit
+: 1661875870:0;ls /nix/store/vnvrwwbd8ikq188wxd96dzr6v95dxlyk-zsh-edit
+: 1661875878:0;nvim /nix/store/vnvrwwbd8ikq188wxd96dzr6v95dxlyk-zsh-edit
+: 1661876089:0;screen -R tyo0

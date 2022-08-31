@@ -19,6 +19,7 @@
     };
     extraOptions = ''
       experimental-features = nix-command flakes
+      system-features = kvm
       # warn-dirty = false
     '';
     package = pkgs.nixFlakes; # or versioned attributes like nixVersions.nix_2_8

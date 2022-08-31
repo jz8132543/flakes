@@ -21,6 +21,7 @@ in{
           "sudo nix-env --profile /nix/var/nix/profiles/system --delete-generations +2;nix-env --delete-generations +2;nix-collect-garbage";
         catage =
           "nix-shell -p ssh-to-age --run 'cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age'";
+        sops-update = "find . -name '*' -exec sops updatekeys {} \\;";
         ll = "ls -l";
         ls = "exa --icons";
         tree = "exa --tree --icons";
@@ -34,7 +35,7 @@ in{
           "git diff --name-only --relative --diff-filter=d | xargs bat --diff";
 
         kubectl = "sudo k3s kubectl";
-        sops-update = "find . -name '*' -exec sops updatekeys {} \\;";
+        scp = "time scp -Cpr -o Compression=yes -o CompressionLevel=9";
       };
       history = {
         size = 10000;
@@ -43,36 +44,41 @@ in{
           then "../../${sysCfg.root}${cfg.home}/.config/zsh/zsh_history"
           else "$HOME/.config/zsh/zsh_history");
       };
-      oh-my-zsh = {
-        enable = true;
-        plugins = [
-          "git"
-          "thefuck"
-          "docker"
-          "sudo"
-          "colored-man-pages"
-          "vi-mode"
-          "z"
-          "extract"
-        ];
-      };
       plugins = with pkgs; [
         {
-          name = "powerlevel10k";
-          src = pkgs.zsh-powerlevel10k;
-          file = "share/zsh-powerlevel10k/powerlevel10k.zsh-theme";
-        }
-        {
-          name = "powerlevel10k-config";
-          src = ./p10k;
-          file = "p10k.zsh";
+          name = "pure-prompt";
+          src = pkgs.pure-prompt;
+          # file = "share/zsh/site-functions/prompt_pure_setup";
         }
         {
           name = "fast-syntax-highlighting";
           src = pkgs.zsh-fast-syntax-highlighting;
           file = "share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh";
         }
+        {
+          name = "zsh-nix-shell";
+          src = pkgs.zsh-nix-shell;
+          file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
+        }
       ];
+      initExtra = ''
+        # pure-prompt
+        #. ${pkgs.pure-prompt}/share/zsh/site-functions/async
+        #. ${pkgs.pure-prompt}/share/zsh/site-functions/prompt_pure_setup
+        fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
+        autoload -U promptinit; promptinit
+        zstyle :prompt:pure:git:action show yes
+        zstyle :prompt:pure:git:arrow show yes
+        zstyle :prompt:pure:git:stash show yes
+        zstyle :prompt:pure:execution_time show yes
+        zstyle :prompt:pure:prompt:success color yellow
+        zstyle :prompt:pure:prompt:error color red
+        zstyle :prompt:pure:path color cyan
+        zstyle :prompt:pure:git.branch color yellow
+        PURE_PROMPT_SYMBOL='>'
+        prompt pure
+
+      '';
     };
     z-lua = {
       enable = true;
