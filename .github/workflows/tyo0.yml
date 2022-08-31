@@ -27,7 +27,4 @@ jobs:
       with:
         swap-size-gb: 10
     - name: build tyo0
-      with:
-        name: dora
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
       run: cachix watch-exec dora nix build .#nixosConfigurations.tyo0.config.system.build.image
