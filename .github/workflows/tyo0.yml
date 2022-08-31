@@ -25,4 +25,4 @@ jobs:
       with:
         swap-size-gb: 10
     - name: build tyo0
-      run: nix build .#nixosConfigurations.tyo0.config.system.build.image
+      run: nix build .#nixosConfigurations.tyo0.config.system.build.image | cachix push dora
