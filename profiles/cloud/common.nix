@@ -8,7 +8,6 @@ in
 {
   system.build.image = vmTools.runInLinuxVM (runCommand "image"
     {
-      memSize = 512;
       preVM = ''
         mkdir $out
         diskImage=$out/nixos.img
