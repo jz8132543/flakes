@@ -30,4 +30,4 @@ jobs:
       with:
         name: dora
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
-      run: nix build .#nixosConfigurations.tyo0.config.system.build.image | cachix push dora
+      run: cachix watch-exec dora nix build .#nixosConfigurations.tyo0.config.system.build.image
