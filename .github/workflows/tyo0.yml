@@ -2,7 +2,7 @@ name: "tyo0"
 on: workflow_dispatch
 
 jobs:
-  update:
+  tyo0:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -20,5 +20,9 @@ jobs:
       with:
         name: dora
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
+    - name: Set swap space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 10
     - name: build tyo0
       run: nix build .#nixosConfigurations.tyo0.config.system.build.image
