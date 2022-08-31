@@ -1,5 +1,7 @@
 name: "tyo0"
 on: workflow_dispatch
+env:
+  CACHIX_AUTH_TOKEN: ${{⋅secrets.CACHIX_SIGNING_KEY⋅}}
 
 jobs:
   tyo0:
@@ -25,4 +27,7 @@ jobs:
       with:
         swap-size-gb: 10
     - name: build tyo0
+      with:
+        name: dora
+        signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
       run: nix build .#nixosConfigurations.tyo0.config.system.build.image | cachix push dora

@@ -163,3 +163,17 @@ nu
 : 1661875870:0;ls /nix/store/vnvrwwbd8ikq188wxd96dzr6v95dxlyk-zsh-edit
 : 1661875878:0;nvim /nix/store/vnvrwwbd8ikq188wxd96dzr6v95dxlyk-zsh-edit
 : 1661876089:0;screen -R tyo0
+: 1661937696:0;nvim default.nix
+: 1661937926:0;git add .
+: 1661937931:0;nu
+: 1661938080:0;zsh
+: 1661938256:0;nvim default.nix
+: 1661938564:0;cat default.nix
+: 1661939274:0;nvim default.nix
+: 1661939613:0;cachix authtoken eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiIwNTc2NjdjMy1lMDYzLTQ3NWYtYmNkZC03Mzg0NWYyYTgxMWMiLCJzY29wZXMiOiJjYWNoZSJ9.undUpfqfz13ybHr1g-UBNgTIHW8Y231RHRXIv9lKjYs
+: 1661939632:0;nu|cachix push dora
+: 1661939782:0;...
+: 1661939785:0;ls
+: 1661939788:0;ls -al
+: 1661939793:0;rm -rf p10k
+: 1661939797:0;cd ../../..

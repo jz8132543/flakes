@@ -60,11 +60,19 @@ in{
           src = pkgs.zsh-nix-shell;
           file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
         }
+        {
+          name = "zsh-edit";
+          file = "zsh-edit.plugin.zsh";
+          src = pkgs.fetchFromGitHub {
+            owner = "marlonrichert";
+            repo = "zsh-edit";
+            rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
+            sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
+          };
+        }
       ];
       initExtra = ''
         # pure-prompt
-        #. ${pkgs.pure-prompt}/share/zsh/site-functions/async
-        #. ${pkgs.pure-prompt}/share/zsh/site-functions/prompt_pure_setup
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
         autoload -U promptinit; promptinit
         zstyle :prompt:pure:git:action show yes
@@ -77,7 +85,8 @@ in{
         zstyle :prompt:pure:git.branch color yellow
         PURE_PROMPT_SYMBOL='>'
         prompt pure
-
+        # zsh-edit
+        bindkey "^W" backward-kill-subword
       '';
     };
     z-lua = {
