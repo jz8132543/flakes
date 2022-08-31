@@ -22,5 +22,3 @@ jobs:
         signingKey: '${{ secrets.CACHIX_SIGNING_KEY }}'
     - name: build tyo0
       run: nix build .#nixosConfigurations.tyo0.config.system.build.image
-    - name: OK
-      run: nix-shell --run "echo OK"
