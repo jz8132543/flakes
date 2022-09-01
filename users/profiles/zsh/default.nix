@@ -72,6 +72,7 @@ in{
         }
       ];
       initExtra = ''
+        export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
         autoload -U promptinit; promptinit

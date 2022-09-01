@@ -4,7 +4,7 @@ with inputs; {
   importables = with inputs; rec {
     profiles = digga.lib.rakeLeaves ../users/profiles;
     suites = with profiles; rec {
-      base = [ direnv git zsh gpg neovim ssh tools ];
+      base = [ direnv git zsh gpg neovim ssh userTools ];
     };
   };
   users = { tippy = { suites, ... }: { imports = suites.base; }; };
