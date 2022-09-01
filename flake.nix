@@ -13,10 +13,7 @@
       inputs.nixpkgs.follows = "nixos";
       inputs.flake-utils.follows = "digga/flake-utils-plus/flake-utils";
     };
-    nur = {
-      url = "github:nix-community/NUR";
-      inputs.nixpkgs.follows = "nixos";
-    };
+    nur.url = "github:nix-community/NUR";
     digga = {
       # url = "github:divnix/digga";
       url = "github:divnix/digga/?ref=refs/pull/472/head";
@@ -24,7 +21,7 @@
         nixpkgs.follows = "nixos";
         nixlib.follows = "nixos";
         home-manager.follows = "home";
-        # deploy.follows = "deploy";
+        deploy.follows = "deploy";
       };
     };
     sops-nix = {

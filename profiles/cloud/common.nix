@@ -26,7 +26,7 @@ in
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
     mkdir -p /mnt/{boot,nix,persist}
-    mount /dev/vda1 /mnt/boot
+    mount /dev/vda1 /mnt/boot -o iocharset=iso8859-1
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/persist
     export NIX_STATE_DIR=$TMPDIR/state
