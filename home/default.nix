@@ -7,5 +7,5 @@ with inputs; {
       base = [ direnv git zsh gpg neovim ssh userTools ];
     };
   };
-  users = { tippy = { suites, ... }: { imports = suites.base; }; };
+  users = digga.lib.rakeLeaves ./users/hm;
 }
