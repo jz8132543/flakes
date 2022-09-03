@@ -23,6 +23,6 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: build
-      run: nix sign-paths $(nix flake check)
+      run: nix flake check --show-trace
     - name: push to S3
       run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com"
