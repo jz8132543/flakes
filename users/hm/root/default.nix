@@ -1,9 +1,10 @@
-{ config, ... }:
+{ config, hmUsers, ... }:
 
 let
   name = "root";
   homeDirectory = "/home/${name}";
 in{
+  home-manager.users = { inherit (hmUsers) root; };
   users.users.${name} = {
     initialPassword = "$6$KXZcD5Rqwx/oRo5A$gK5rEaUDm8eVH.RD8dXNwt0k/FwVbXNZtdSQFMRnSXfOxhw/7ZPnC9pPiRBx21GYxhE/wk8nMGETZgSfR03Ta0";
     openssh.authorizedKeys.keys = [
