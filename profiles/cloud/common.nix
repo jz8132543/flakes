@@ -16,7 +16,7 @@ in
       '';
       nativeBuildInputs = [ gptfdisk btrfs-progs mount util-linux nixUnstable config.system.build.nixos-install dosfstools ];
     } ''
-    sgdisk -Z -n 1:0:+110M -n 2:0:0 -t 1:ef02 -c 1:BOOT -c 2:NIXOS /dev/vda
+    sgdisk -Z -n 1:0:+1M -n 2:0:0 -t 1:ef02 -c 1:BOOT -c 2:NIXOS /dev/vda
     mknod /dev/btrfs-control c 10 234
     mkfs.vfat /dev/vda1
     mkfs.btrfs /dev/vda2
@@ -25,8 +25,9 @@ in
     btrfs subvol create /fsroot/@nix
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
+    btrfs subvol create /fsroot/@boot
     mkdir -p /mnt/{boot,nix,persist}
-    mount /dev/vda1 /mnt/boot -o iocharset=iso8859-1
+    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/boot
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/persist
     export NIX_STATE_DIR=$TMPDIR/state

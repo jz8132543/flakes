@@ -12,8 +12,8 @@ in
     };
 
     "/boot" = {
-      device = "/dev/disk/by-partlabel/BOOT";
-      fsType = "vfat";
+      inherit device fsType;
+      options = [ "subvol=@boot" ] ++ options;
     };
 
     "/tmp" = {
