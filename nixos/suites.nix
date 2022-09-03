@@ -1,7 +1,7 @@
 { self, inputs, ... }:
 with inputs; rec {
   profiles = digga.lib.rakeLeaves ../profiles // {
-    users = digga.lib.rakeLeaves ../users/hm;
+    users = digga.lib.rakeLeaves ../users;
   };
   suites = nixos.lib.fix (suites: {
     core = suites.nixSettings

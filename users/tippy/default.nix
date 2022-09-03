@@ -13,18 +13,18 @@ in {
   };
 
   environment.global-persistence.user.users = [ name ];
-  home-manager.users.${name} = { config, suites, ... }: {
-    imports = suites.base;
-    home.file.".ssh/id_ed25519".source =
-      config.lib.file.mkOutOfStoreSymlink link;
-    home.global-persistence = {
-      enable = true;
-      home = homeDirectory;
-      directories = [
-        "Source"
-      ];
-    };
-  };
+  # home-manager.users.${name} = { config, suites, ... }: {
+  #   imports = suites.base;
+  #   home.file.".ssh/id_ed25519".source =
+  #     config.lib.file.mkOutOfStoreSymlink link;
+  #   home.global-persistence = {
+  #     enable = true;
+  #     home = homeDirectory;
+  #     directories = [
+  #       "Source"
+  #     ];
+  #   };
+  # };
 
   environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
 
