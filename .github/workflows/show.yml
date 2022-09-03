@@ -1,5 +1,5 @@
 name: "show"
-on: [workflow_dispatch, push]
+on: workflow_dispatch
 
 jobs:
   show:
@@ -20,4 +20,4 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: show
-      run: nix flake show --show-trace
+      run: nix flake show --show-trace --allow-import-from-derivation
