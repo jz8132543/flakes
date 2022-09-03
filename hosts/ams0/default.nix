@@ -1,8 +1,7 @@
 { config, pkgs, modulesPath, suites, profiles, ... }: {
 
   imports = suites.server ++ (with profiles; [
-    cloud.filesystems
-    cloud.common
+    cloud
     services.acme
     services.traefik
   ]) ++ (with profiles.users; [ tippy ]);
@@ -12,8 +11,6 @@
   networking.hostName = "ams0";
 
   boot.loader.grub = {
-    efiSupport = true;
-    efiInstallAsRemovable = true;
     device = "nodev";
     extraConfig = ''
       serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1

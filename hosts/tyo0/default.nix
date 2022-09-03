@@ -2,8 +2,7 @@
 
 {
   imports = suites.server ++ (with profiles; [
-    cloud.filesystems
-    cloud.common
+    cloud
     services.acme
     services.v2ray
     services.traefik
