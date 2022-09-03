@@ -1,8 +1,5 @@
 name: "build cache"
-on: 
-  workflow_dispatch
-  push:
-    branches: [ "main" ]
+on: [workflow_dispatch, push]
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
