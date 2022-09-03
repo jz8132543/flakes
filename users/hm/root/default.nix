@@ -1,10 +1,18 @@
-{ config, hmUsers, ... }:
+{ config, ... }:
 
 let
   name = "root";
   homeDirectory = "/home/${name}";
 in{
-  home-manager.users = { inherit (hmUsers) root; };
+  home-manager.users.${name} = { config, ... }: {
+    home.global-persistence = {
+      enable = true;
+      home = homeDirectory;
+      directories = [
+        "Source"
+      ];
+    };
+  };
   users.users.${name} = {
     initialPassword = "$6$KXZcD5Rqwx/oRo5A$gK5rEaUDm8eVH.RD8dXNwt0k/FwVbXNZtdSQFMRnSXfOxhw/7ZPnC9pPiRBx21GYxhE/wk8nMGETZgSfR03Ta0";
     openssh.authorizedKeys.keys = [
