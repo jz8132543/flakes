@@ -4,6 +4,7 @@ on: [workflow_dispatch, push]
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  NIX_SECRET_KEY_FILE: /tmp/CACHE_KEY
 
 jobs:
   build:
@@ -24,6 +25,14 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: build
-      run: nix flake check --show-trace
+      run: |
+        set -e
+        system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
+        checks=$(nix eval --impure --json --expr "builtins.attrNames (builtins.getFlake \"$PWD\").checks.$system")
+        for check in $(echo "$checks" | jq -r '.[]'); do
+          echo "--- eval .#checks.$system.$check"
+          nix eval --raw .#checks.$system.$check --accept-flake-config
+          echo $NIX_SECRET_KEY_FILE # add a new line
+        done
     - name: push to S3
-      run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com"
+      run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#checks
