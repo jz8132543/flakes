@@ -3,6 +3,8 @@
 {
   programs.home-manager = {
     enable = true;
+    useUserPackages = true;
+    useGlobalPkgs = true;
   };
   # Allow unfree
   nixpkgs.config.allowUnfree = true;

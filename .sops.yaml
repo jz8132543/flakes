@@ -1,6 +1,6 @@
 keys:
   - &gpg 23232A6D050ACE46DF02D72B84A772A8519FC163
-  - &tyo0 age1lw73zy25jcp6mav3ewg75wznhxfl7hhsqwh78nh7uxssxzh2d3ysp2fwvy
+  - &tyo0 age1um59vuxencg3jty7y325x4sdfsnmwpghqvk7t7kaqrelayjpm4ssck7mnk
   - &ams0 age1ht8qv38vdrmuzehf8rpq9clm6uwk9q4w3qdkqcdjdfj9u2heeq3q0ep6dt
   - &sin0 age1q88jsfmck7f588fzqgsyx82kw7u22ha83zsshcv9l03tykwznv7sqfy2dp
 creation_rules:

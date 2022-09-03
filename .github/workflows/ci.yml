@@ -1,0 +1,30 @@
+name: "tyo0"
+on: workflow_dispatch
+env:
+  CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+jobs:
+  tyo0:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+    - name: Install nix
+      uses: cachix/install-nix-action@master
+      with:
+        install_url: https://github.com/numtide/nix-unstable-installer/releases/latest/download/install
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          system-features = kvm
+    - name: Setup cachix
+      uses: cachix/cachix-action@master
+      with:
+        name: dora
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - name: Set swap space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 10
+    - name: build tyo0
+      run: cachix watch-exec dora nix build .#nixosConfigurations.tyo0.config.system.build.image
