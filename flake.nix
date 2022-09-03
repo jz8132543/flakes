@@ -68,29 +68,29 @@
         sshUser = "root";
         user = "tippy";
       };
-      outputsBuilder = channels:
-      let
-        pkgs = channels.nixos;
-        inherit (pkgs) system lib;
-      in
-      {
-        checks =
-          deploy.lib.${system}.deployChecks self.deploy //
-          (
-            lib.foldl lib.recursiveUpdate { }
-              (lib.mapAttrsToList
-                (host: cfg:
-                  lib.optionalAttrs (cfg.pkgs.system == system)
-                    { "toplevel-${host}" = cfg.config.system.build.toplevel; })
-                self.nixosConfigurations)
-          ) // (
-            lib.mapAttrs'
-              (name: drv: lib.nameValuePair "package-${name}" drv)
-              self.packages.${system}
-          ) // {
-            devShell = self.devShell.${system};
-          };
-      };
+      #outputsBuilder = channels:
+      #let
+      #  pkgs = channels.nixos;
+      #  inherit (pkgs) system lib;
+      #in
+      #{
+      #  checks =
+      #    deploy.lib.${system}.deployChecks self.deploy //
+      #    (
+      #      lib.foldl lib.recursiveUpdate { }
+      #        (lib.mapAttrsToList
+      #          (host: cfg:
+      #            lib.optionalAttrs (cfg.pkgs.system == system)
+      #              { "toplevel-${host}" = cfg.config.system.build.toplevel; })
+      #          self.nixosConfigurations)
+      #    ) // (
+      #      lib.mapAttrs'
+      #        (name: drv: lib.nameValuePair "package-${name}" drv)
+      #        self.packages.${system}
+      #    ) // {
+      #      devShell = self.devShell.${system};
+      #    };
+      #};
     };
 
 }
