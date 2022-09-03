@@ -1,6 +1,6 @@
 { ... }: {
 
-  import = [
+  imports = [
     ./common.nix
     ./filesystems.nix
   ];
