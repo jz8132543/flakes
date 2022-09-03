@@ -4,8 +4,8 @@ let
   name = "root";
   homeDirectory = "/home/${name}";
 in{
-  users.users.root = {
-    initialPassword = "$6$T8HN3fbLSFq/QvjD$jb4zGjl.V1EcYkQhP4GcIVRsLf8SJUs6Mx9NCO2jl43AtOZTBj4JQ0OJafA5/ZMRwakjW3FP5ImrYBh2z4k/V/" ;
+  users.users.${name} = {
+    initialPassword = "$6$KXZcD5Rqwx/oRo5A$gK5rEaUDm8eVH.RD8dXNwt0k/FwVbXNZtdSQFMRnSXfOxhw/7ZPnC9pPiRBx21GYxhE/wk8nMGETZgSfR03Ta0";
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq"
     ];
