@@ -6,6 +6,7 @@
     cloud.common
     services.acme
     services.v2ray
+    services.traefik
   ]) ++ (with profiles.users; [ tippy ]);
 
   environment.systemPackages = with pkgs; [ kubernetes-helm ];

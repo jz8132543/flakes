@@ -41,6 +41,7 @@ in
   boot.postBootCommands = ''
       ${pkgs.gptfdisk}/bin/sgdisk -e -d 2 -n 2:0:0 -c 2:NIXOS -p /dev/vda
       ${pkgs.util-linux}/bin/partx -u /dev/vda
+      btrfs filesystem resize max /boot
       truncate -s 0 /swap/swapfile
       chattr +C /swap/swapfile
       btrfs property set /swap/swapfile compression none

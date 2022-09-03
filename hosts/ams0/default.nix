@@ -1,6 +1,11 @@
 { config, pkgs, modulesPath, suites, profiles, ... }: {
-  imports = suites.server ++ (with profiles; [ ])
-    ++ (with profiles.users; [ tippy ]);
+
+  imports = suites.server ++ (with profiles; [
+    cloud.filesystems
+    cloud.common
+    services.acme
+    services.traefik
+  ]) ++ (with profiles.users; [ tippy ]);
 
   environment.systemPackages = with pkgs; [ ];
 
@@ -15,14 +20,6 @@
       terminal_input console
       terminal_output console
     '';
-  };
-  fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/C957-9CB6";
-    fsType = "vfat";
-  };
-  fileSystems."/" = {
-    device = "/dev/vda1";
-    fsType = "ext4";
   };
   boot = {
     initrd = {
