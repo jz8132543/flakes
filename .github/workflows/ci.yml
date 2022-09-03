@@ -19,7 +19,7 @@ jobs:
           experimental-features = nix-command flakes
           system-features = kvm
     - name: Setup CACHE_KEY
-      run: echo "$CACHE_KEY" > /tmp/CACHE_KEY
+      run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: build
