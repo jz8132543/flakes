@@ -7,5 +7,5 @@ with inputs; {
       base = [ direnv git zsh gpg neovim ssh userTools ];
     };
   };
-  users = digga.lib.rakeLeaves ./users/hm;
+  users = digga.lib.rakeLeaves ../users/hm;
 }
