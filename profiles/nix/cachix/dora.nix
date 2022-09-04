@@ -1,8 +1,8 @@
 {
   nix = {
-    settings.substituters = [ "https://dora.cachix.org" ];
+    settings.substituters = [ "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" ];
     settings.trusted-public-keys = [
-      "dora.cachix.org-1:H5tXs7A0WTxy+hYPGKTzKe2gRQDXGZfZb1NG7ZJ3MY4="
+      "dora-1:Jwud5q69IwWld/IqXW6nwBDx5s8WtsKpim+N5v+8fiE="
     ];
   };
 }
