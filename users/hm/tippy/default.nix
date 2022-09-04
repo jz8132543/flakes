@@ -4,7 +4,7 @@ let
   name = "tippy";
   homeDirectory = "/home/${name}";
   ssh_link = config.sops.secrets.id_ed25519.path;
-  aws_link = config.sops.secrets.id_ed25519.path;
+  aws_link = config.sops.secrets.s3_credentials.path;
 in {
   sops.secrets.id_ed25519 = {
     format = "binary";
