@@ -27,6 +27,6 @@ jobs:
         echo $checks
         for check in $(echo "$checks" | jq -r '.[]'); do
           echo "--- upload $check"
-          nix eval --json .#hydraJobs.all-checks.$checks
+          nix eval --json .#hydraJobs.all-checks.$check
           echo
         done
