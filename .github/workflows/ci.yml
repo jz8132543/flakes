@@ -20,6 +20,7 @@ jobs:
         extra_nix_config: |
           experimental-features = nix-command flakes
           system-features = kvm
+          secret-key-files = /tmp/CACHE_KEY
     - name: Setup CACHE_KEY
       run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
       env:
@@ -27,4 +28,4 @@ jobs:
     - name: build
       run: nix flake check
     - name: push to S3
-      run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#checks
+      run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#

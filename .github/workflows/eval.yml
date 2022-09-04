@@ -20,4 +20,4 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: eval
-      run: nix eval --json .#deploy
+      run: nix eval --json .#
