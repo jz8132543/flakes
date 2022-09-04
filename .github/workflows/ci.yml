@@ -32,4 +32,5 @@ jobs:
     - name: push to s3
       run: |
         system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .hydraJobs.all-checks.$system
+        checks=$(nix eval --impure --json --expr "builtins.attrNames (builtins.getFlake \"$PWD\").checks.$system")
+        nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" #hydraJobs.all-checks.$checks

@@ -22,4 +22,5 @@ jobs:
     - name: eval
       run: |
         system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        nix eval --json .hydraJobs.all-checks.$system
+        checks=$(nix eval --impure --json --expr "builtins.attrNames (builtins.getFlake \"$PWD\").checks.$system")
+        nix eval --json #hydraJobs.all-checks.$checks
