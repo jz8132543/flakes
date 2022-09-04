@@ -11,12 +11,19 @@ in {
     group = config.users.users.${name}.group;
     sopsFile = config.sops.secretsDir + /id_ed25519.keytab;
   };
+  sops.secrets.s3_credentials = {
+    format = "binary";
+    mode = "0444";
+    sopsFile = config.sops.secretsDir + /s3_credentials.keytab;
+  };
 
   environment.global-persistence.user.users = [ name ];
   home-manager.users.${name} = { config, suites, ... }: {
     imports = suites.base;
     home.file.".ssh/id_ed25519".source =
-      config.lib.file.mkOutOfStoreSymlink link;
+      config.lib.file.mkOutOfStoreSymlink config.sops.secrets.id_ed25519.path;
+    home.file.".aws/credentials".source =
+      config.lib.file.mkOutOfStoreSymlink config.sops.secrets.s3_credentials.path;
     home.global-persistence = {
       enable = true;
       home = homeDirectory;
