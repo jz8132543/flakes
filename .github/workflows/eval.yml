@@ -21,12 +21,9 @@ jobs:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: eval
       run: |
-        system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        checks=$(nix eval --impure --json --expr "builtins.attrNames (builtins.getFlake \"$PWD\").checks.$system")
-        echo $system
-        echo $checks
-        for check in $(echo "$checks" | jq -r '.[]'); do
+        systems=$(nix eval --impure --raw  --expr "builtins.currentSystem")
+        for system in $(echo "$systems" | jq -r '.[]'); do
           echo "--- upload $check"
-          nix eval --json .#hydraJobs.all-checks.$check
+          nix eval --json .#hydraJobs.all-checks.$system
           echo
         done
