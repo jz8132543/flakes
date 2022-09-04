@@ -31,10 +31,5 @@ jobs:
       run: nix flake check --allow-import-from-derivation
     - name: push to s3
       run: |
-        set -e
-        systems=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        for system in $(echo "$systems" | jq -r '.[]'); do
-          echo "--- upload $check"
-          nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#hydraJobs.all-checks.$system
-          echo
-        done
+        system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
+        nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#hydraJobs.all-checks.$system
