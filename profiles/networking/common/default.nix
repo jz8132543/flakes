@@ -2,7 +2,7 @@
 
 {
   networking = {
-    domain = "dora.im";
+    # domain = "dora.im";
     firewall.enable = false;
   };
 
