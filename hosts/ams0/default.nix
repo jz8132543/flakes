@@ -8,8 +8,6 @@
 
   environment.systemPackages = with pkgs; [ ];
 
-  networking.hostName = "ams0";
-
   boot.loader.grub = {
     device = "nodev";
     extraConfig = ''

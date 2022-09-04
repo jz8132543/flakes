@@ -10,7 +10,6 @@
 
   environment.systemPackages = with pkgs; [ kubernetes-helm ];
 
-  networking.hostName = "tyo0";
   # Hardware
   boot.loader.grub.device = "/dev/vda";
   boot.initrd.availableKernelModules =

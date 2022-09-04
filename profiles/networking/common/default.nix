@@ -2,7 +2,8 @@
 
 {
   networking = {
-    domain = "dora.im";
+    # domain = "dora.im";
+    search = "dora.in";
     firewall.enable = false;
   };
 

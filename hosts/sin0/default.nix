@@ -30,7 +30,6 @@ in{
     root = "/persist";
   };
 
-  networking.hostName = "sin0";
   boot.initrd.availableKernelModules = [ "ata_piix" "uhci_hcd" "virtio_pci" "virtio_scsi" "virtio_blk" ];
   boot.initrd.kernelModules = [ "nvme" ];
   boot.loader.grub = {
