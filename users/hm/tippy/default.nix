@@ -3,7 +3,8 @@
 let
   name = "tippy";
   homeDirectory = "/home/${name}";
-  link = config.sops.secrets.id_ed25519.path;
+  ssh_link = config.sops.secrets.id_ed25519.path;
+  aws_link = config.sops.secrets.id_ed25519.path;
 in {
   sops.secrets.id_ed25519 = {
     format = "binary";
@@ -21,9 +22,9 @@ in {
   home-manager.users.${name} = { config, suites, ... }: {
     imports = suites.base;
     home.file.".ssh/id_ed25519".source =
-      config.lib.file.mkOutOfStoreSymlink config.sops.secrets.id_ed25519.path;
+      config.lib.file.mkOutOfStoreSymlink ssh_link;
     home.file.".aws/credentials".source =
-      config.lib.file.mkOutOfStoreSymlink config.sops.secrets.s3_credentials.path;
+      config.lib.file.mkOutOfStoreSymlink aws_link;
     home.global-persistence = {
       enable = true;
       home = homeDirectory;
