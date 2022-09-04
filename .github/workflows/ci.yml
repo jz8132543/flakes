@@ -28,7 +28,7 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: build
-      run: nix flake check
+      run: nix flake check --allow-import-from-derivation
     - name: push to s3
       run: |
         system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
