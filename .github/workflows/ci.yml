@@ -25,14 +25,6 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: build
-      run: |
-        set -e
-        system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        checks=$(nix eval --impure --json --expr "builtins.attrNames (builtins.getFlake \"$PWD\").checks.$system")
-        for check in $(echo "$checks" | jq -r '.[]'); do
-          echo "--- eval .#checks.$system.$check"
-          nix eval --raw .#checks.$system.$check --accept-flake-config
-          echo $NIX_SECRET_KEY_FILE # add a new line
-        done
+      run: nix flake check
     - name: push to S3
       run: nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#checks
