@@ -21,7 +21,7 @@ jobs:
           experimental-features = nix-command flakes
           system-features = kvm
           secret-key-files = /tmp/CACHE_KEY
-          substituters = https://dora.cachix.org https://nix-community.cachix.org https://cache.nixos.org 
+          substituters = https://dora.cachix.org https://nix-community.cachix.org https://cache.nixos.org https://e2.dora.im/nix
           trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= dora.cachix.org-1:H5tXs7A0WTxy+hYPGKTzKe2gRQDXGZfZb1NG7ZJ3MY4= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= dora-1:Jwud5q69IwWld/IqXW6nwBDx5s8WtsKpim+N5v+8fiE=
     - name: Setup CACHE_KEY
       run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
