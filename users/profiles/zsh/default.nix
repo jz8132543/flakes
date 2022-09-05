@@ -65,16 +65,16 @@ in{
           src = pkgs.zsh-autocomplete;
           # file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
         }
-        {
-          name = "zsh-edit";
-          file = "zsh-edit.plugin.zsh";
-          src = pkgs.fetchFromGitHub {
-            owner = "marlonrichert";
-            repo = "zsh-edit";
-            rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
-            sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
-          };
-        }
+        # {
+        #   name = "zsh-edit";
+        #   file = "zsh-edit.plugin.zsh";
+        #   src = pkgs.fetchFromGitHub {
+        #     owner = "marlonrichert";
+        #     repo = "zsh-edit";
+        #     rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
+        #     sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
+        #   };
+        # }
       ];
       completionInit = "autoload -U compinit && compinit -u";
       initExtra = ''
