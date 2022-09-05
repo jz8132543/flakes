@@ -82,7 +82,7 @@ in{
         alias -g ....='../../..'
         alias -g .....='../../../..'
         alias -g ......='../../../../..'
-        alias l=ls -al
+        alias l="ls -al"
         export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
         # autocomplete
         autoload -Uz compinit && compinit
