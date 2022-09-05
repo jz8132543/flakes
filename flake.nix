@@ -60,6 +60,11 @@
       homeConfigurations =
         digga.lib.mkHomeConfigurations self.nixosConfigurations;
 
+      templates = {
+        default = self.templates.project;
+        project = ./templates/project;
+      };
+
       deploy.nodes = let
         inherit (nixos) lib;
         disabledHosts = [ ];
