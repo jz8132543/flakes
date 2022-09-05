@@ -82,6 +82,7 @@ in{
         alias -g ....='../../..'
         alias -g .....='../../../..'
         alias -g ......='../../../../..'
+        alias l=ls -al
         export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
@@ -98,12 +99,6 @@ in{
         prompt pure
         # zsh-edit
         bindkey "^W" backward-kill-subword
-        flakify() {
-          if [ ! -e .envrc ]; then
-            cp -i $HOME/Source/flakes/templates/project/* .
-          fi
-          ${EDITOR:-vim} flake.nix
-        }
       '';
     };
     z-lua = {
