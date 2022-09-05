@@ -28,8 +28,10 @@ jobs:
       run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
+    - name: mkdir
+      run: sudo mkdir ~root/.aws
     - name: Setup AWS
-      run: 'sudo mkdir ~root/.aws && sudo echo "[default]\naws_access_key_id = $AWS_ACCESS_KEY_ID\naws_secret_access_key = $AWS_SECRET_ACCESS_KEY" > ~root/.aws/credentials'
+      run: sudo bash -c "echo \"[default]\naws_access_key_id = $AWS_ACCESS_KEY_ID\naws_secret_access_key = $AWS_SECRET_ACCESS_KEY\" > ~/.aws/credentials"
     - name: build
       run: nix flake check --allow-import-from-derivation
     - name: push to s3
