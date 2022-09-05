@@ -36,6 +36,10 @@
       };
     };
     impermanence.url = "github:nix-community/impermanence";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:

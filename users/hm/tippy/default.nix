@@ -30,6 +30,7 @@ in {
       home = homeDirectory;
       directories = [
         "Source"
+        ".local/share/direnv"
       ];
     };
   };
