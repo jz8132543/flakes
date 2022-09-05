@@ -48,7 +48,6 @@ in{
         {
           name = "pure-prompt";
           src = pkgs.pure-prompt;
-          # file = "share/zsh/site-functions/prompt_pure_setup";
         }
         {
           name = "fast-syntax-highlighting";
@@ -60,11 +59,6 @@ in{
           src = pkgs.zsh-nix-shell;
           file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
         }
-        # {
-        #   name = "zsh-autocomplete";
-        #   src = pkgs.zsh-autocomplete;
-        #   file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
-        # }
         {
           name = "zsh-edit";
           file = "zsh-edit.plugin.zsh";
@@ -84,12 +78,9 @@ in{
         alias -g ......='../../../../..'
         alias l="ls -al"
         export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
-        # autocomplete
-        autoload -Uz compinit && compinit
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
-        # fpath+=(${pkgs.zsh-autocomplete}/share/zsh-autocomplete)
-        autoload -U promptinit; promptinit
+        autoload -U promptinit; promptinit -i
         zstyle :prompt:pure:git:action show yes
         zstyle :prompt:pure:git:arrow show yes
         zstyle :prompt:pure:git:stash show yes
@@ -98,6 +89,7 @@ in{
         zstyle :prompt:pure:prompt:error color red
         zstyle :prompt:pure:path color cyan
         zstyle :prompt:pure:git.branch color yellow
+        zstyle :prompt:pure:host color yellow
         PURE_PROMPT_SYMBOL='>'
         prompt pure
         # zsh-edit
