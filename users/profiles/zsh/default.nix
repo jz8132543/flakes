@@ -76,6 +76,7 @@ in{
           };
         }
       ];
+      completionInit = "autoload -U compinit && compinit -u";
       initExtra = ''
         setopt auto_cd
         alias -g ...='../..'
@@ -88,6 +89,7 @@ in{
         autoload -Uz compinit && compinit
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
+        fpath+=(${pkgs.zsh-autocomplete}/share/zsh-autocomplete)
         autoload -U promptinit; promptinit
         zstyle :prompt:pure:git:action show yes
         zstyle :prompt:pure:git:arrow show yes
