@@ -78,6 +78,10 @@ in{
       ];
       initExtra = ''
         setopt auto_cd
+        alias -g ...='../..'
+        alias -g ....='../../..'
+        alias -g .....='../../../..'
+        alias -g ......='../../../../..'
         export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
