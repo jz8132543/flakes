@@ -60,23 +60,22 @@ in{
           src = pkgs.zsh-nix-shell;
           file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
         }
-        {
-          name = "zsh-autocomplete";
-          src = pkgs.zsh-autocomplete;
-          # file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
-        }
         # {
-        #   name = "zsh-edit";
-        #   file = "zsh-edit.plugin.zsh";
-        #   src = pkgs.fetchFromGitHub {
-        #     owner = "marlonrichert";
-        #     repo = "zsh-edit";
-        #     rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
-        #     sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
-        #   };
+        #   name = "zsh-autocomplete";
+        #   src = pkgs.zsh-autocomplete;
+        #   file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
         # }
+        {
+          name = "zsh-edit";
+          file = "zsh-edit.plugin.zsh";
+          src = pkgs.fetchFromGitHub {
+            owner = "marlonrichert";
+            repo = "zsh-edit";
+            rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
+            sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
+          };
+        }
       ];
-      completionInit = "autoload -U compinit && compinit -u";
       initExtra = ''
         setopt auto_cd
         alias -g ...='../..'
@@ -89,7 +88,7 @@ in{
         autoload -Uz compinit && compinit
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
-        fpath+=(${pkgs.zsh-autocomplete}/share/zsh-autocomplete)
+        # fpath+=(${pkgs.zsh-autocomplete}/share/zsh-autocomplete)
         autoload -U promptinit; promptinit
         zstyle :prompt:pure:git:action show yes
         zstyle :prompt:pure:git:arrow show yes
