@@ -61,6 +61,11 @@ in{
           file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
         }
         {
+          name = "zsh-autocomplete";
+          src = pkgs.zsh-autocomplete;
+          file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
+        }
+        {
           name = "zsh-edit";
           file = "zsh-edit.plugin.zsh";
           src = pkgs.fetchFromGitHub {
@@ -79,6 +84,8 @@ in{
         alias -g ......='../../../../..'
         alias l=ls -al
         export NIX_PATH="nixpkgs=$HOME/.nix-defexpr/channels/nixpkgs"
+        # autocomplete
+        autoload -Uz compinit && compinit
         # pure-prompt
         fpath+=(${pkgs.pure-prompt}/share/zsh/site-functions)
         autoload -U promptinit; promptinit
