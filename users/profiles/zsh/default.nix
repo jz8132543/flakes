@@ -56,6 +56,11 @@ in{
           file = "share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh";
         }
         {
+          name = "zsh-autocomplete";
+          src = pkgs.zsh-autocomplete;
+          file = "share/zsh-autocomplete/zsh-autocomplete.plugin.zsh";
+        }
+        {
           name = "zsh-nix-shell";
           src = pkgs.zsh-nix-shell;
           file = "share/zsh-nix-shell/nix-shell.plugin.zsh";
