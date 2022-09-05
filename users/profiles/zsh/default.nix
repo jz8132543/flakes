@@ -41,7 +41,7 @@ in{
         size = 10000;
         path = 
           (if config.home.global-persistence.enabled
-          then "../../${sysCfg.root}${cfg.home}/.config/zsh/zsh_history"
+          then "${sysCfg.root}${cfg.home}/.config/zsh/zsh_history"
           else "$HOME/.config/zsh/zsh_history");
       };
       plugins = with pkgs; [
