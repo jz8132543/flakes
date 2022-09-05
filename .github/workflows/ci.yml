@@ -29,7 +29,7 @@ jobs:
       env:
         CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: Setup AWS
-      run: 'echo "[default]\naws_access_key_id = $AWS_ACCESS_KEY_ID\naws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> /tmp/S3'
+      run: 'echo "[default]\naws_access_key_id = $AWS_ACCESS_KEY_ID\naws_secret_access_key = $AWS_SECRET_ACCESS_KEY" >> ~/.aws/credentials'
     - name: build
       run: nix flake check --allow-import-from-derivation
     - name: push to s3
