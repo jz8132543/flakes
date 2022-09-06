@@ -62,7 +62,10 @@
 
       templates = {
         default = self.templates.project;
-        project.path = ./templates/project;
+        project = {
+          path = ./templates/project;
+          description = "simple project template";
+        };
       };
 
       deploy.nodes = let
