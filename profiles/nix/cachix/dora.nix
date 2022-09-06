@@ -1,4 +1,11 @@
+{ config, ... }:
+
 {
+  sops.secrets.s3_credentials = {
+    format = "binary";
+    mode = "0444";
+    sopsFile = config.sops.secretsDir + /s3_credentials.keytab;
+  };
   nix = {
     settings.substituters = [ "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" ];
     settings.trusted-public-keys = [

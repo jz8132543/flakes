@@ -62,7 +62,7 @@
 
       templates = {
         default = self.templates.project;
-        project = ./templates/project;
+        project.path = ./templates/project;
       };
 
       deploy.nodes = let
