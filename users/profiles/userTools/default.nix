@@ -20,5 +20,6 @@
     sequoia # gnupg
     sops
     nixfmt
+    ripgrep
   ];
 }

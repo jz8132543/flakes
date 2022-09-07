@@ -15,8 +15,8 @@ lualine.setup({
         lualine_b = { "branch", "diff", "diagnostics" },
         lualine_c = { "filename" },
         lualine_x = { "aerial" },
-        lualine_y = { "progress" },
-        lualine_z = { "os.date('%a')", 'data', "lsp_progress" },
+        lualine_y = { "lsp_progress" },
+        lualine_z = { "progress" },
     },
     inactive_sections = {
         lualine_a = {},

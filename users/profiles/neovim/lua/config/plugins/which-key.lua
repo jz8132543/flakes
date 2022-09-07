@@ -222,6 +222,16 @@ wk.register({
     ["gcn"] = { ":Neogen<CR>", "Neogen" },
 })
 
+-- diagnostics
+wk.register({
+  d = {
+    name = "Diagnostics",
+    d = { "<cmd>Telescope diagnostics<CR>", "Telescope diagnostics" },
+    n = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Next" },
+    b = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Back" },
+  }
+}, { prefix = "<leader>" })
+
 -- lsp
 wk.register({
     rn = "Lsp rename",
