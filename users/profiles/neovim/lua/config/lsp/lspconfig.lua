@@ -33,3 +33,7 @@ lspconfig.util.default_config = vim.tbl_extend(
     }
   }
 )
+
+for _, server in ipairs(lsp_installer.get_installed_servers()) do
+  lspconfig[server.name].setup {}
+end
