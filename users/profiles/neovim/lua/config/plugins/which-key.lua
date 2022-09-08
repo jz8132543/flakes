@@ -234,9 +234,14 @@ wk.register({
 
 -- lsp
 wk.register({
-    rn = "Lsp rename",
-    ca = "Lsp code action",
-    ["="] = "Lsp formatting",
+  l = {
+    s = { "<cmd>lua vim.lsp.buf.document_symbol()<CR>", "Document symbol" },
+    d = { "<cmd>lua vim.lsp.buf.definition()<CR>", "Definition" },
+    D = { "<cmd>lua vim.lsp.buf.declaration()<CR>", "Declare" },
+    r = { "vim.lsp.buf.rename", "Rename" },
+    a = { "vim.lsp.buf.code_action", "Code action" },
+    f = { "<cmd>lua vim.lsp.buf.formatting_sync<CR>", "Format" },
+  },
 }, { prefix = "<leader>" })
 
 wk.register({
