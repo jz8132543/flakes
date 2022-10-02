@@ -1,5 +1,4 @@
-local M = {}
-
+local gitsigns = require("utils").requirePlugin("gitsigns")
 local config = {
   signs = {
     add = {
@@ -72,8 +71,4 @@ local config = {
   yadm = { enable = false },
 }
 
-function M.setup()
-  require('gitsigns').setup(config)
-end
-
-return M
+gitsigns.setup(config)

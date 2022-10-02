@@ -22,9 +22,9 @@ in{
         catage =
           "nix-shell -p ssh-to-age --run 'cat /etc/ssh/ssh_host_ed25519_key.pub | ssh-to-age'";
         sops-update = "find . -name '*' -exec sops updatekeys {} \\;";
-        ll = "ls -l";
-        ls = "exa --icons";
-        tree = "exa --tree --icons";
+        # ll = "ls -l";
+        # ls = "exa --icons";
+        # tree = "exa --tree --icons";
         top = "btm";
         # BAT
         cat = "bat --style=plain";
@@ -67,6 +67,16 @@ in{
             repo = "zsh-edit";
             rev = "4a8fa599792b6d52eadbb3921880a40872013d28";
             sha256 = "09gjb0c9ilnlc14ihpm93v6f7nz38fbn856djn3lj5vz62zjg3iw";
+          };
+        }
+        {
+          name = "exa-zsh";
+          file = "exa-zsh.plugin.zsh";
+          src = pkgs.fetchFromGitHub {
+            owner = "MohamedElashri";
+            repo = "exa-zsh";
+            rev = "c2ae91faabe41b5e2fcd5d7b79bf20c46e6e034e";
+            sha256 = "003zh8wmyqyg6jgm2bzx36agjnhrfad802i7wgb1w61hx1skykbj";
           };
         }
       ];

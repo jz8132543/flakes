@@ -1,11 +1,9 @@
 local lspconfig = require("lspconfig")
 local capabilities = vim.lsp.protocol.make_client_capabilities()
 capabilities = require('cmp_nvim_lsp').update_capabilities(capabilities)
-
-lspconfig.util.default_config = vim.tbl_extend(
-  "force",
-  lspconfig.util.default_config,
-  {
+local servers = { 'gopls', 'rust_analyzer', 'rnix', 'clangd', 'texlab', 'sumneko_lua' }
+for _, lsp in pairs(servers) do
+  require('lspconfig')[lsp].setup {
     on_attach = on_attach,
     capabilities = capabilities,
     flags = {
@@ -32,8 +30,6 @@ lspconfig.util.default_config = vim.tbl_extend(
       }
     }
   }
-)
-
-for _, server in ipairs(lsp_installer.get_installed_servers()) do
-  lspconfig[server.name].setup {}
 end
+
+require("mason").setup()

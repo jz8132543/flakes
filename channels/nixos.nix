@@ -1,4 +1,8 @@
 { self, inputs, ... }: {
-  overlays =
-    [ inputs.nur.overlay inputs.sops-nix.overlay inputs.nixos-cn.overlay ];
+  overlays = [
+    ../pkgs/default.nix
+    inputs.nur.overlay
+    inputs.sops-nix.overlay
+    inputs.nixos-cn.overlay
+  ];
 }

@@ -28,6 +28,7 @@
         vimPlugins.gitsigns-nvim
         vimPlugins.indent-blankline-nvim
         nur.repos.m15a.vimExtraPlugins.nvim-lspconfig
+        nur.repos.m15a.vimExtraPlugins.mason-nvim
         vimPlugins.lualine-nvim
         vimPlugins.nvim-web-devicons
         vimPlugins.lualine-lsp-progress
@@ -70,5 +71,11 @@
     recursive = true;
   };
 
-  home.packages = with pkgs; [ gcc rnix-lsp sumneko-lua-language-server ];
+  home.packages = with pkgs; [ 
+    gcc 
+    rnix-lsp 
+    sumneko-lua-language-server 
+    luajitPackages.luacheck
+    luaformatter
+  ];
 }

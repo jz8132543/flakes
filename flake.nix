@@ -40,9 +40,20 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+    nvfetcher = {
+      url = "github:berberman/nvfetcher";
+      inputs = {
+        nixpkgs.follows = "nixos";
+        flake-utils.follows = "digga/flake-utils-plus/flake-utils";
+        flake-compat.follows = "flake-compat";
+      };
+    };
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:
+    let
+      this = import ./pkgs;
+    in
     digga.lib.mkFlake {
       inherit self inputs;
 
