@@ -29,8 +29,8 @@ in
     mkdir -p /mnt/{boot/EFI,nix,persist,tmp}
     mount /dev/vda2 /mnt/boot/EFI
     mount tmpfs -t tmpfs -o size=4G -o mode=1777 /mnt/tmp
-    mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/nix
-    mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda2 /mnt/persist
+    mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
+    mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
     export NIX_STATE_DIR=$TMPDIR/state
     nix-store --load-db < ${db}/registration
     nixos-install --root /mnt --system ${toplevel} --no-channel-copy --no-root-passwd --substituters ""
