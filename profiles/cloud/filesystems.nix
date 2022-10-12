@@ -55,12 +55,12 @@ in
     '';
     loader = {
       efi = {
-        canTouchEfiVariables = true;
+        # canTouchEfiVariables = true;
         efiSysMountPoint = "/boot/EFI";
       };
       grub = {
          efiSupport = true;
-         # efiInstallAsRemovable = true;
+         efiInstallAsRemovable = true;
          device = "/dev/vda";
       };
     };
