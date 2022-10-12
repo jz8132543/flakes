@@ -18,10 +18,10 @@ in
     } ''
     sgdisk -Z -n 1:0:+1M -n 2:0:+100M 3:0:0 -t 1:ef02 2:EF00 -c 1:BOOT -c 2:EFI 3:NIXOS /dev/vda
     mknod /dev/btrfs-control c 10 234
-    mkfs.vfat /dev/disk/by-partlabel/BOOT
-    mkfs.vfat /dev/disk/by-partlabel/EFI
-    mkfs.btrfs /dev/disk/by-partlabel/NIXOS
-    mkdir /fsroot && mount /dev/disk/by-partlabel/NIXOS /fsroot
+    mkfs.vfat /dev/vda1
+    mkfs.vfat /dev/vda2
+    mkfs.btrfs /dev/vda3
+    mkdir /fsroot && mount /dev/vda3 /fsroot
     btrfs subvol create /fsroot/@nix
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
