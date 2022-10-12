@@ -12,7 +12,7 @@ in
     # };
 
     "/boot/EFI" = {
-      devices = "/dev/disk/by-partlabel/EFI";
+      device = "/dev/disk/by-partlabel/EFI";
       fsType = "vfat";
     };
 
