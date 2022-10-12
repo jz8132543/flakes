@@ -16,7 +16,7 @@ in
       '';
       nativeBuildInputs = [ gptfdisk btrfs-progs mount util-linux nixUnstable config.system.build.nixos-install dosfstools ];
     } ''
-    sgdisk -Z -n 1:0:+1M -n 2:0:+100M 3:0:0 -t 1:ef02 2:EF00 -c 1:BOOT -c 2:EFI 3:NIXOS /dev/vda
+    sgdisk -Z -n 1:0:+1M -n 2:0:+100M 3:0:0 -t 1:ef02 2:EF00 -c 1:BOOT -c 2:EFI -c 3:NIXOS /dev/vda
     mknod /dev/btrfs-control c 10 234
     mkfs.vfat /dev/vda1
     mkfs.vfat /dev/vda2
