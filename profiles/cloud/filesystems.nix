@@ -61,7 +61,7 @@ in
       grub = {
          efiSupport = true;
          efiInstallAsRemovable = true;
-         device = "/dev/vda";
+         device = "nodev";
       };
     };
   };
