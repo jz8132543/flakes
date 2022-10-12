@@ -60,7 +60,7 @@ in
       };
       grub = {
          efiSupport = true;
-         efiInstallAsRemovable = true;
+         # efiInstallAsRemovable = true;
          device = "/dev/vda";
       };
     };
