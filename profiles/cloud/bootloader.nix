@@ -38,8 +38,7 @@ in
     };
   };
 
-  boot = {
-    postBootCommands = ''
+  boot.postBootCommands = ''
       ${pkgs.gptfdisk}/bin/sgdisk -e -d 3 -n 3:0:0 -c 3:NIXOS -p /dev/vda
       ${pkgs.util-linux}/bin/partx -u /dev/vda
       btrfs filesystem resize max /nix
@@ -53,18 +52,6 @@ in
       fi
       swapon /swap/swapfile
     '';
-    loader = {
-      efi = {
-        canTouchEfiVariables = true;
-        efiSysMountPoint = "/boot/EFI";
-      };
-      grub = {
-         efiSupport = true;
-         efiInstallAsRemovable = true;
-         device = "/dev/vda";
-      };
-    };
-  };
 
   # swapDevices = [ { device = "/swap/swapfile"; size = 1024; } ];
 }
