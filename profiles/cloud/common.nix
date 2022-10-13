@@ -26,8 +26,8 @@ in
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
     btrfs subvol create /fsroot/@ROOT
-    mkdir -p /mnt/{boot/EFI,nix,persist,tmp}
-    mount /dev/vda2 /mnt/boot/EFI
+    mkdir -p /mnt/{boot,nix,persist,tmp}
+    mount /dev/vda2 /mnt/boot
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
     export NIX_STATE_DIR=$TMPDIR/state
