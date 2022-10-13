@@ -1,4 +1,4 @@
-{ config, pkgs, modulesPath, suites, profiles, ... }: {
+{ config, lib, pkgs, modulesPath, suites, profiles, ... }: {
 
   imports = suites.server ++ (with profiles; [
     cloud
