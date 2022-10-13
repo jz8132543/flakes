@@ -17,11 +17,14 @@
   };
   boot = {
     initrd = {
-      availableKernelModules = [ "ata_piix" "uhci_hcd" "xen_blkfront" ];
+      availableKernelModules = [ "ata_piix" "virtio_pci" "virtio_scsi" "virtio_blk" ];
       kernelModules = [ "nvme" ];
     };
     kernelParams = [ "console=ttyS0,115200n8" ];
+    kernelModules = [ "kvm-amd" ];
   };
+
+  hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
   networking = {
     useNetworkd = true;
