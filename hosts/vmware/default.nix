@@ -1,10 +1,14 @@
 { config, lib, pkgs, modulesPath, suites, profiles, ... }: {
 
-  imports = suites.server ++ (with profiles; [
-    cloud
-  ]) ++ (with profiles.users; [ tippy ]);
+  imports = suites.server ++
+    suites.multimedia ++
+    (with profiles; [
+      cloud
+    ]) ++ (with profiles.users; [ tippy ]);
 
   environment.systemPackages = with pkgs; [ ];
+
+  services.kde.enable = true;
 
   boot = {
     initrd = {
