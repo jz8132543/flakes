@@ -8,8 +8,6 @@
 
   environment.systemPackages = with pkgs; [ ];
 
-  services.kde.enable = true;
-
   boot = {
     initrd = {
       availableKernelModules = [ "ata_piix" "mptspi" "uhci_hcd" "ehci_pci" "sd_mod" "sr_mod" ]; 
@@ -18,6 +16,7 @@
   };
 
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  virtualisation.vmware.guest.enable = true;
 
   system.stateVersion = "22.11";
 }

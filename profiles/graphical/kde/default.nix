@@ -1,7 +1,5 @@
 { config, lib, ... }:
 
-lib.mkIf
-  config.services.kde.enable
 {
   services.xserver = {
     enable = true;

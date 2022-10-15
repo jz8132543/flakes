@@ -15,7 +15,6 @@ with inputs; rec {
     ];
     server = (with suites; [ base network ]);
     multimedia = with profiles; [
-      graphical.gnome
       graphical.kde
       graphical.sway
       graphical.fonts
