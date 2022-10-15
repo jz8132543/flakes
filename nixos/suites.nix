@@ -18,6 +18,7 @@ with inputs; rec {
       graphical.kde
       graphical.sway
       graphical.fonts
+      graphical.i18n
     ];
   });
 }

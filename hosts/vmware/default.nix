@@ -6,7 +6,10 @@
       cloud
     ]) ++ (with profiles.users; [ tippy ]);
 
-  environment.systemPackages = with pkgs; [ ];
+  environment.systemPackages = with pkgs; [ 
+    wezterm
+    neovide
+  ];
 
   boot = {
     initrd = {
