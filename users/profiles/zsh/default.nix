@@ -35,7 +35,7 @@ in{
           "git diff --name-only --relative --diff-filter=d | xargs bat --diff";
 
         kubectl = "sudo k3s kubectl";
-        scp = "time scp -Cpr -o Compression=yes -o CompressionLevel=9";
+        scp = "time scp -Cpr -o Compression=yes";
       };
       history = {
         size = 10000;
