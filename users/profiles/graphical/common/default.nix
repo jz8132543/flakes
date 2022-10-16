@@ -23,5 +23,4 @@
     platformTheme = "gtk";
   };
 
-  hardware.video.hidpi.enable = true;
 }

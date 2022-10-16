@@ -14,5 +14,12 @@ with lib;
         Whether to enable graphical environment.
       '';
     };
+    manager = lib.mkOption {
+      type = types.string;
+      default = "sway";
+      description = ''
+        The window manager.
+      '';
+    };
   };
 }

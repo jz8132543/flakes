@@ -64,4 +64,5 @@
     daemonize = true;
     scaling = "fill";
   };
+
 }
