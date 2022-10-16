@@ -27,4 +27,4 @@ jobs:
       with:
         swap-size-gb: 10
     - name: build img
-      run: cachix watch-exec dora nix build .#nixosConfigurations.ams0.config.system.build.image
+      run: cachix watch-exec dora nix build .#nixosConfigurations.vmware.config.system.build.image
