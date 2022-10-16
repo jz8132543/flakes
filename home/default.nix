@@ -6,6 +6,12 @@ with inputs; {
     suites = with profiles; rec {
       base = [ direnv git zsh gpg neovim ssh userTools ];
     };
+    multimedia = with profiles; [
+      graphical.common
+      graphical.sway
+      graphical.fonts
+      graphical.i18n
+    ];
   };
   # users = digga.lib.rakeLeaves ../users/hm;
   users = {

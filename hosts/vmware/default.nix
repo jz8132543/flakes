@@ -1,14 +1,15 @@
 { config, lib, pkgs, modulesPath, suites, profiles, ... }: {
 
   imports = suites.server ++
-    suites.multimedia ++
     (with profiles; [
       cloud
     ]) ++ (with profiles.users; [ tippy ]);
 
+  environment.graphical = true;
   environment.systemPackages = with pkgs; [ 
     wezterm
     neovide
+    firefox
   ];
 
   boot = {

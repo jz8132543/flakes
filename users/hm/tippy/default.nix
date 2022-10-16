@@ -1,4 +1,4 @@
-{ pkgs, hmUsers, config, ... }:
+{ pkgs, hmUsers, config, lib, ... }:
 
 let
   name = "tippy";
@@ -15,7 +15,9 @@ in {
 
   environment.global-persistence.user.users = [ name ];
   home-manager.users.${name} = { config, suites, ... }: {
-    imports = suites.base;
+    imports = suites.base ++
+      (if environment.graphical
+      then "suites.graphical" else "");
     home.file.".ssh/id_ed25519".source =
       config.lib.file.mkOutOfStoreSymlink ssh_link;
     home.file.".aws/credentials".source =

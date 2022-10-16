@@ -14,8 +14,6 @@
     desktopManager.plasma5.enable = true;
   };
 
-  hardware.video.hidpi.enable = true;
-
   environment.global-persistence.user = {
     directories = [
       ".local/share/applications"
