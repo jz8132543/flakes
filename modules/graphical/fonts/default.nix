@@ -1,4 +1,4 @@
-{ pkgs, lib, ... }:
+{ config, pkgs, lib, ... }:
 
 let
   iosevka-dora = pkgs.iosevka.override {
@@ -15,7 +15,7 @@ let
     set = "dora";
   };
 in
-{
+lib.mkIf config.environment.graphical.enable{
   fonts.fonts = with pkgs; [
     noto-fonts-emoji
 

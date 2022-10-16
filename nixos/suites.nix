@@ -14,11 +14,5 @@ with inputs; rec {
       networking.tools
     ];
     server = (with suites; [ base network ]);
-    graphical = suites.server ++ (with profiles; [
-      graphical.common
-      graphical.sway
-      graphical.fonts
-      graphical.i18n
-    ]);
   });
 }

@@ -1,6 +1,6 @@
-{ pkgs, config, lib, ... }:
+{ pkgs, config, nixosConfig, lib, ... }:
 
-{
+lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.graphical.manager == "sway" ) {
   wayland.windowManager.sway = {
     enable = true;
     extraOptions = [ "--unsupported-gpu" ];
@@ -64,5 +64,4 @@
     daemonize = true;
     scaling = "fill";
   };
-
 }

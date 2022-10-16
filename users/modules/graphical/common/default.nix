@@ -1,6 +1,6 @@
-{ config, pkgs, ...  }:
+{ nixosConfig, lib, pkgs, ...  }:
 
-{
+lib.mkIf nixosConfig.environment.graphical.enable {
   gtk = {
     enable = true;
     theme = {

@@ -15,7 +15,7 @@ with lib;
       '';
     };
     manager = lib.mkOption {
-      type = types.string;
+      type = types.str;
       default = "sway";
       description = ''
         The window manager.

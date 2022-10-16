@@ -1,8 +1,8 @@
-{ config, lib, pkgs, modulesPath, suites, profiles, ... }: {
+{ config, lib, pkgs, modulesPath, suites, profiles, ... }: 
 
-  imports =
-    (if config.environment.graphical.enable
-    then suites.graphical else suites.server) ++
+{
+
+  imports = suites.server ++
     (with profiles; [
       cloud
     ]) ++ (with profiles.users; [ tippy ]);
