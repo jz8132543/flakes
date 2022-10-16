@@ -5,7 +5,7 @@
       cloud
     ]) ++ (with profiles.users; [ tippy ]);
 
-  environment.graphical = true;
+  environment.graphical.enable = true;
   environment.systemPackages = with pkgs; [ 
     wezterm
     neovide

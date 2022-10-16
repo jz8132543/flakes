@@ -15,9 +15,10 @@ in {
 
   environment.global-persistence.user.users = [ name ];
   home-manager.users.${name} = { config, suites, ... }: {
-    imports = suites.base ++
-      (if environment.graphical
-      then "suites.graphical" else "");
+    #imports = suites.base ++ suites.graphical;
+    imports =
+      (if config.environment.graphical.enable
+      then "suites.graphical" else "suites.base");
     home.file.".ssh/id_ed25519".source =
       config.lib.file.mkOutOfStoreSymlink ssh_link;
     home.file.".aws/credentials".source =

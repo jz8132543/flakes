@@ -59,15 +59,13 @@
 
     };
   };
-  programs = {
-    sway = {
-      enable = true;
-      extraPackages = with pkgs; [
-        swaylock
-        swayidle
-      ];
-    };
+  programs.swaylock.settings = {
+    show-failed-attempts = true;
+    daemonize = true;
+    image = "${fbk-blurred}";
+    scaling = "fill";
   };
+
   home.packages = with pkgs; [
     systemd-run-app
   ];
