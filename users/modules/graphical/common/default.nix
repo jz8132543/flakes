@@ -23,4 +23,8 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     platformTheme = "gtk";
   };
 
+  home.packages = with pkgs; [ 
+    dconf 
+    swaylock
+  ];
 }

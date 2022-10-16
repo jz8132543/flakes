@@ -59,9 +59,82 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
 
     };
   };
-  programs.swaylock.settings = {
-    show-failed-attempts = true;
-    daemonize = true;
-    scaling = "fill";
+  programs = {
+    swaylock.settings = {
+      show-failed-attempts = true;
+      daemonize = true;
+      scaling = "fill";
+    };
+    waybar = {
+      enable = true;
+      settings = [ (import ./waybar.nix { inherit pkgs; }) ];
+      style = builtins.readFile ./waybar.css;
+      systemd.enable = true;
+    };
+    tmux = {
+      enable = true;
+      baseIndex = 1;
+      escapeTime = 10;
+      shell = "${pkgs.zsh}/bin/zsh";
+      keyMode = "vi";
+      terminal = "screen-256color";
+      extraConfig = ''
+        set -g status-position top
+        set -g set-clipboard on
+        set -g mouse on
+        set -g status-right ""
+        set -g renumber-windows on
+        new-session -s main
+      '';
+    };
+    foot = {
+      enable = true;
+      settings = {
+        main = {
+          shell = "${pkgs.tmux}/bin/tmux new-session -t main";
+          font = "JetBrains Mono:size=10";
+        };
+        cursor = {
+          color = "323d43 7fbbb3";
+        };
+        colors = {
+          background = "323d43";
+          foreground = "d8cacc";
+          regular0 = "4a555b";
+          regular1 = "e68183";
+          regular2 = "a7c080";
+          regular3 = "dbbc7f";
+          regular4 = "7fbbb3";
+          regular5 = "d699b6";
+          regular6 = "83c092";
+          regular7 = "d8caac";
+          bright0 = "525c62";
+          bright1 = "e68183";
+          bright2 = "a7c080";
+          bright3 = "dbbc7f";
+          bright4 = "7fbbb3";
+          bright5 = "d699b6";
+          bright6 = "83c092";
+          bright7 = "d8caac";
+          selection-foreground = "3c474d";
+          selection-background = "525c62";
+        };
+      };
+    };
+  };
+  xdg = {
+    enable = true;
+  };
+  services = {
+    swayidle = {
+      enable = true;
+      timeouts = [
+        { timeout = 900; command = "${pkgs.swaylock}/bin/swaylock"; }
+        { timeout = 905; command = ''swaymsg "output * dpms off"''; resumeCommand = ''swaymsg "output * dpms on"''; }
+      ];
+      events = [
+        { event = "lock"; command = "${pkgs.swaylock}/bin/swaylock"; }
+      ];
+    };
   };
 }
