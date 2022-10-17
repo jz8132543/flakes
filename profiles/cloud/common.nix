@@ -26,6 +26,7 @@ in
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
     btrfs subvol create /fsroot/@ROOT
+    mkdir /mnt
     mount -o subvol=@ROOT,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt
     mkdir -p /mnt/{boot/EFI,nix,persist,tmp}
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
