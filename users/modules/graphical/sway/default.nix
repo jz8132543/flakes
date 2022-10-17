@@ -7,9 +7,9 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
     wrapperFeatures.gtk = true;
     config = {
       modifier = "Mod4";
-      terminal = "systemd-run-app foot";
+      terminal = "foot";
       startup = [
-        { command = "systemd-run-app foot"; }
+        { command = "foot"; }
       ];
       assigns = {
         "1" = [{ app_id = "foot"; }];
@@ -47,7 +47,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+b" = null;
           "${modifier}+v" = null;
           "${modifier}+w" = null;
-          "${modifier}+d" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command 'systemd-run-app {cmd}'";
+          "${modifier}+d" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+space" = null;
           "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
@@ -56,10 +56,15 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "XF86AudioNext" = "exec ${pkgs.playerctl}/bin/playerctl next";
           "XF86AudioPrev" = "exec ${pkgs.playerctl}/bin/playerctl previous";
         };
-
     };
   };
   programs = {
+    mako = {
+      enable = true;
+      extraConfig = ''
+        on-button-right=exec ${pkgs.mako}/bin/makoctl menu -n "$id" ${pkgs.rofi}/bin/rofi -dmenu -p 'action: '
+      '';
+    };
     swaylock.settings = {
       show-failed-attempts = true;
       daemonize = true;
@@ -136,5 +141,8 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         { event = "lock"; command = "${pkgs.swaylock}/bin/swaylock"; }
       ];
     };
+  };
+  systemd.user = {
+    targets.sway-session.Unit.Wants = [ "xdg-desktop-autostart.target" ];
   };
 }

@@ -38,7 +38,7 @@ in {
     users.${name} = {
       isNormalUser = true;
       home = homeDirectory;
-      extraGroups = [ "wheel" ];
+      extraGroups = [ "wheel" "tty" "video" ];
       shell = pkgs.zsh;
       hashedPassword = "";
       openssh.authorizedKeys.keys = [
