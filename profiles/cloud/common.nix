@@ -26,11 +26,11 @@ in
     btrfs subvol create /fsroot/@persist
     btrfs subvol create /fsroot/@swap
     btrfs subvol create /fsroot/@ROOT
-    mkdir -p /mnt/{boot/EFI,nix,persist,tmp}
-    mount /dev/vda2 /mnt/boot/EFI
     mount -o subvol=@ROOT,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt
+    mkdir -p /mnt/{boot/EFI,nix,persist,tmp}
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
+    mount /dev/vda2 /mnt/boot/EFI
     export NIX_STATE_DIR=$TMPDIR/state
     nix-store --load-db < ${db}/registration
     nixos-install --root /mnt --system ${toplevel} --no-channel-copy --no-root-passwd --substituters ""
