@@ -67,5 +67,10 @@ in
     };
   };
 
+  environment.global-persistence = {
+    enable = true;
+    root = "/persist";
+  };
+
   # swapDevices = [ { device = "/swap/swapfile"; size = 1024; } ];
 }
