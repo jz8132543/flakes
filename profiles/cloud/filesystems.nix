@@ -63,7 +63,8 @@ in
         fi
       fi
       mkdir -p /mnt
-      mount /dev/disk/by-partlabel/NIXOS /mnt 
+      mount /dev/disk/by-partlabel/NIXOS /mnt
+      rm -rf /mnt/@ROOT/*
       btrfs subvolume delete -C /mnt/@ROOT
       btrfs subvolume create /mnt/@ROOT
     '';
