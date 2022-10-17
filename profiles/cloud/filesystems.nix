@@ -53,6 +53,20 @@ in
       fi
       swapon /swap/swapfile
     '';
+    initrd.postDeviceCommands = pkgs.lib.mkBefore ''
+      if [ ! -f "/dev/vda" ]; then
+        if [ -f "/dev/sda" ]; then
+          for i in {"",1,2,3}
+          do
+            ln -s /dev/sda$i /dev/vda$i
+          done
+        fi
+      fi
+      mkdir -p /mnt
+      mount /dev/disk/by-partlabel/NIXOS /mnt 
+      btrfs subvolume delete /mnt/@ROOT
+      btrfs subvolume create /mnt/@ROOT
+    '';
     loader = {
       efi = {
         # canTouchEfiVariables = true;
