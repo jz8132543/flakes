@@ -21,5 +21,6 @@
     sops
     nixfmt
     ripgrep
+    duf
   ];
 }
