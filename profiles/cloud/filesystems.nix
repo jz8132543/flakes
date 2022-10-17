@@ -64,7 +64,7 @@ in
       fi
       mkdir -p /mnt
       mount /dev/disk/by-partlabel/NIXOS /mnt 
-      btrfs subvolume delete /mnt/@ROOT
+      btrfs subvolume delete -C /mnt/@ROOT
       btrfs subvolume create /mnt/@ROOT
     '';
     loader = {
