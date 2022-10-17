@@ -11,7 +11,7 @@ in
     #   options = [ "defaults" "mode=755" ];
     # };
 
-    "/esp" = {
+    "/boot/EFI" = {
       device = "/dev/disk/by-partlabel/EFI";
       fsType = "vfat";
     };
@@ -56,7 +56,7 @@ in
     loader = {
       efi = {
         # canTouchEfiVariables = true;
-        efiSysMountPoint = "/esp";
+        efiSysMountPoint = "/boot/EFI";
       };
       grub = {
          efiSupport = true;
