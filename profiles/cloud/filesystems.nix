@@ -11,7 +11,7 @@ in
     #   options = [ "defaults" "mode=755" ];
     # };
 
-    "/boot/EFI" = {
+    "/boot" = {
       device = "/dev/disk/by-partlabel/EFI";
       fsType = "vfat";
     };
@@ -72,7 +72,7 @@ in
       systemd-boot.enable = true;
       efi = {
         canTouchEfiVariables = true;
-        efiSysMountPoint = "/boot/EFI";
+        efiSysMountPoint = "/boot";
       };
     };
   };

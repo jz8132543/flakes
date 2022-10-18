@@ -9,6 +9,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       modifier = "Mod4";
       terminal = "foot";
       startup = [
+        { command = "fcitx5 -d"; }
         { command = "foot"; }
       ];
       assigns = {

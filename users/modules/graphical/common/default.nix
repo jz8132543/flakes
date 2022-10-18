@@ -23,8 +23,10 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     platformTheme = "gtk";
   };
 
-  home.packages = with pkgs; [ 
+  home.packages = with pkgs; [
     dconf 
     swaylock
+    tdesktop
+    #nur.repos.rewine.v2raya
   ];
 }

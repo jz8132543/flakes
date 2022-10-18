@@ -20,4 +20,20 @@ lib.mkIf (config.environment.graphical.enable && config.environment.graphical.ma
     };
     logind.lidSwitch = "ignore";
   };
+  environment.sessionVariables = rec {
+    "WLR_NO_HARDWARE_CURSORS" = "1";
+    "AWS_METADATA_SERVICE_NUM_ATTEMPTS" = "1";
+  };
+  environment.global-persistence = {
+    files = [
+    ];
+    directories = [
+     "/etc/NetworkManager"
+    ];
+    user.directories = [
+      ".config/fcitx5"
+      ".mozilla"
+      ".local/share/TelegramDesktop"
+    ];
+  };
 }
