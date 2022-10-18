@@ -71,7 +71,7 @@ in
     loader = {
       systemd-boot.enable = true;
       efi = {
-        # canTouchEfiVariables = true;
+        canTouchEfiVariables = true;
         efiSysMountPoint = "/boot/EFI";
       };
     };
