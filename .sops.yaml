@@ -1,6 +1,7 @@
 keys:
   - &gpg 23232A6D050ACE46DF02D72B84A772A8519FC163
   - &vmware age1f266lyrpxq6hejveyhlml9d64vtfrwqvkg8gsamgd8pkgxfprelqkgl97z
+  - &surface age1f723rc6ensk5x22m364mtltfzy95xv27fvalmxmg734aldd45drqqlkxts
   - &tyo0 age1um59vuxencg3jty7y325x4sdfsnmwpghqvk7t7kaqrelayjpm4ssck7mnk
   - &ams0 age1ht8qv38vdrmuzehf8rpq9clm6uwk9q4w3qdkqcdjdfj9u2heeq3q0ep6dt
   - &sin0 age1q88jsfmck7f588fzqgsyx82kw7u22ha83zsshcv9l03tykwznv7sqfy2dp
@@ -10,6 +11,7 @@ creation_rules:
     - pgp:
       - *gpg
       age:
+      - *surface
       - *vmware
       - *tyo0
       - *ams0
