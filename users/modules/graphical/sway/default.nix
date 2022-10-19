@@ -48,15 +48,20 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+b" = null;
           "${modifier}+v" = null;
           "${modifier}+w" = null;
-          "${modifier}+d" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command '{cmd}'";
+          "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
-          "${modifier}+space" = null;
+          "${modifier}+d" = null;
           "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
           "XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioPause" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioNext" = "exec ${pkgs.playerctl}/bin/playerctl next";
           "XF86AudioPrev" = "exec ${pkgs.playerctl}/bin/playerctl previous";
         };
+      input = {
+        "type:keyboard" = {
+          xkb_options = "caps:swapescape,caps:escape";
+        };
+      };
     };
   };
   programs = {

@@ -22,4 +22,7 @@ with lib;
       '';
     };
   };
+  config.environment.China = mkIf cfg.enable {
+    enable = true;
+  };
 }

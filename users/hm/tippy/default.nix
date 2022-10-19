@@ -1,9 +1,5 @@
 { pkgs, hmUsers, config, lib, ... }:
-
-let
-  name = "tippy";
-  homeDirectory = "/home/${name}";
-  ssh_link = config.sops.secrets.id_ed25519.path;
+let name = "tippy"; homeDirectory = "/home/${name}"; ssh_link = config.sops.secrets.id_ed25519.path;
   aws_link = config.sops.secrets.s3_credentials.path;
 in {
   sops.secrets.id_ed25519 = {
@@ -38,7 +34,7 @@ in {
     users.${name} = {
       isNormalUser = true;
       home = homeDirectory;
-      extraGroups = [ "wheel" "tty" "video" ];
+      extraGroups = [ "wheel" "tty" "video" "audio" ];
       shell = pkgs.zsh;
       hashedPassword = "";
       openssh.authorizedKeys.keys = [
