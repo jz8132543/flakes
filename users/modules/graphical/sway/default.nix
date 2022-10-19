@@ -1,6 +1,19 @@
 { pkgs, config, nixosConfig, lib, ... }:
 
 let
+  inherit (config.lib.formats.rasi) mkLiteral;
+  rofi-theme = {
+    "*" = {
+      bg0 = mkLiteral "#212121F2";
+      bg1 = mkLiteral "#2A2A2A";
+      bg2 = mkLiteral "#3D3D3D80";
+      bg3 = mkLiteral "#1A73E8F2";
+      fg0 = mkLiteral "#E6E6E6";
+      fg1 = mkLiteral "#FFFFFF";
+      fg2 = mkLiteral "#969696";
+      fg3 = mkLiteral "#3D3D3D";
+    };
+  };
   bg = pkgs.fetchurl {
     url = "https://github.com/KubqoA/dotfiles/raw/main/hosts/unacorda/assets/bg.jpg";
     name = "bg.jpg";
@@ -36,19 +49,12 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           command = "floating enable, kill";
         }
         {
-          criteria = { app_id = "pavucontrol"; };
-          command = "floating enable, sticky enable, resize set width 550 px height 600px, move position cursor, move down 35";
-        }
-        {
           criteria = { urgent = "latest"; };
           command = "focus";
         }
       ];
-      gaps = {
-        inner = 5;
-        outer = 5;
-        smartGaps = true;
-      };
+      window.border = 0;
+      gaps.inner = 10;
       keybindings =
         let
           modifier = config.wayland.windowManager.sway.config.modifier;
@@ -96,8 +102,30 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
   programs = {
     mako = {
       enable = true;
+      anchor = "bottom-right";
+      layer = "overlay";
+
+      font = "SF Pro Display 11";
+
+      backgroundColor = "#e5e7eb";
+      progressColor = "source #d1d5db";
+      textColor = "#334155";
+      padding = "15,20";
+      margin = "0,10,10,0";
+
+      borderSize = 1;
+      borderColor = "#d1d5db";
+      borderRadius = 4;
+
+      defaultTimeout = 10000;
       extraConfig = ''
         on-button-right=exec ${pkgs.mako}/bin/makoctl menu -n "$id" ${pkgs.rofi}/bin/rofi -dmenu -p 'action: '
+        [urgency=high]
+        ignore-timeout=1
+        text-color=#ef4444;
+        background-color=#fecaca
+        progress-color=source #fca5a5
+        border-color=#fca5a5
       '';
     };
     swaylock.settings = {
@@ -161,7 +189,23 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         };
       };
     };
+    rofi = {
+      enable = true;
+      plugins = [
+        pkgs.rofi-emoji
+        pkgs.rofi-calc
+        pkgs.rofi-power-menu
+      ];
+      extraConfig = {
+        modi = "drun,filebrowser,window";
+        show-icons = true;
+        sort = true;
+        matching = "fuzzy";
+      };
+      theme = "rounded-blue-dark.rasi";
+    };
   };
+  home.file.".config/rofi/rounded-blue-dark.rasi".source = ./rounded-blue-dark.rasi;
   xdg = {
     enable = true;
   };

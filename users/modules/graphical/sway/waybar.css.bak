@@ -1,0 +1,51 @@
+/* Colors */
+/* Base */
+#workspaces button,
+#mode,
+#tray,
+#pulseaudio,
+#network,
+#memory,
+#cpu,
+#backlight,
+#battery,
+#clock,
+#custom-media,
+#custom-power {
+    background: #E5E7EB;
+    color: #374151;
+}
+/* Effects */
+#workspaces button:hover {
+    background: #E5E7EB;
+}
+#workspaces button.focused {
+    background: #D1D5DB;
+    color: #1F2937;
+}
+/* Disabled */
+#network.disconnected,
+#pulseaudio.muted,
+#custom-nordvpn.disconnected {
+    background: #E5E7EB;
+    color: #9CA3AF;
+}
+/* Green */
+#battery.charging {
+    background: #E5E7EB;
+    color: #34D399;
+}
+/* Urgent */
+#workspaces button.urgent,
+#battery.critical:not(.charging) {
+    background: #FECACA;
+    color: #991B1B;
+}
+/* Tooltip */
+tooltip {
+    background: #E5E7EB;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+tooltip * {
+    color: #374151;
+}
