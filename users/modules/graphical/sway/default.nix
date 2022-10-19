@@ -68,7 +68,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+b" = null;
           "${modifier}+v" = null;
           "${modifier}+w" = null;
-          "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command '{cmd}'";
+          "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show drun -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+d" = null;
           "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
@@ -105,8 +105,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       anchor = "bottom-right";
       layer = "overlay";
 
-      font = "SF Pro Display 11";
-
       backgroundColor = "#e5e7eb";
       progressColor = "source #d1d5db";
       textColor = "#334155";
@@ -122,7 +120,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         on-button-right=exec ${pkgs.mako}/bin/makoctl menu -n "$id" ${pkgs.rofi}/bin/rofi -dmenu -p 'action: '
         [urgency=high]
         ignore-timeout=1
-        text-color=#ef4444;
         background-color=#fecaca
         progress-color=source #fca5a5
         border-color=#fca5a5
@@ -197,7 +194,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         pkgs.rofi-power-menu
       ];
       extraConfig = {
-        modi = "drun,filebrowser,window";
+        modi = "drun";
         show-icons = true;
         sort = true;
         matching = "fuzzy";

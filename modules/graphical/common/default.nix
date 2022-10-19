@@ -17,7 +17,6 @@ lib.mkIf config.environment.graphical.enable{
   systemd.services.nix-daemon.environment = lib.mkIf config.environment.China.enable { all_proxy = "socks5://127.0.0.1:1080"; };
   environment.systemPackages = with pkgs; [
     thunderbird
-    chromium
   ];
   environment.global-persistence = {
     files = [
