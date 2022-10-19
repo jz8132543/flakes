@@ -17,6 +17,7 @@ lib.mkIf config.environment.graphical.enable{
     user.directories = [
       ".config/fcitx5"
       ".mozilla"
+      ".thunderbird"
       ".local/share/TelegramDesktop"
     ];
   };
