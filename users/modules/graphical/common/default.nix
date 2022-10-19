@@ -1,4 +1,4 @@
-{ nixosConfig, lib, pkgs, ...  }:
+{ nixosConfig, config, lib, pkgs, ...  }:
 
 lib.mkIf nixosConfig.environment.graphical.enable {
   gtk = {
@@ -6,6 +6,11 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     theme = {
       package = pkgs.sweet;
       name = "Sweet";
+    };
+    cursorTheme = {
+      package = pkgs.sweet;
+      name = "Sweet";
+      size = 48;
     };
     iconTheme = {
       package = pkgs.numix-icon-theme-circle;
@@ -16,6 +21,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
       name = "Roboto";
       size = 11;
     };
+    gtk2.configLocation = "${config.xdg.configHome}/gtk-2.0/gtkrc";
   };
 
   qt = {

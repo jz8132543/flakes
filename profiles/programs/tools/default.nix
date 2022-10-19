@@ -8,5 +8,6 @@
     vim
     screen
     deploy-rs
+    wget
   ];
 }

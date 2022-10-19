@@ -15,12 +15,6 @@ lib.mkIf nixosConfig.environment.graphical.enable {
           Cryptomining = true;
           Fingerprinting = true;
         };
-        Proxy = {
-          Mode = "manual";
-          SOCKSProxy = "127.0.0.1:1080";
-          SOCKSVersion = 5;
-          UseProxyForDNS = true;
-        };
         Preferences = {
           "browser.newtabpage.activity-stream.feeds.topsites" = false;
           "browser.newtabpage.activity-stream.showSponsoredTopSites" = false;
@@ -29,6 +23,10 @@ lib.mkIf nixosConfig.environment.graphical.enable {
           "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
             installation_mode = "force_installed";
             install_url = "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
+          };
+          "switchyomega@feliscatus.addons.mozilla.org" = {
+            installation_mode = "force_installed";
+            install_url = "https://addons.mozilla.org/firefox/downloads/latest/switchyomega/latest.xpi";
           };
         };
       };
