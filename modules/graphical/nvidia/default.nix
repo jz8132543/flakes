@@ -10,7 +10,10 @@ let
   '';
 in
 lib.mkIf config.environment.graphical.enable{
-  environment.systemPackages = [ nvidia-offload ];
+  environment.systemPackages = with pkgs; [
+    nvidia-offload
+    cudatoolkit
+  ];
 
   services.xserver.videoDrivers = [ "nvidia" ];
   hardware.nvidia.prime = {
