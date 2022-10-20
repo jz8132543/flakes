@@ -2,6 +2,7 @@
 
 lib.mkIf (config.environment.graphical.enable && config.environment.graphical.manager == "sway" ) {
   security.polkit.enable = true;
+  security.pam.services.swaylock = { };
   xdg.portal = {
     enable = true;
     wlr.enable = true;
@@ -21,6 +22,7 @@ lib.mkIf (config.environment.graphical.enable && config.environment.graphical.ma
     logind.lidSwitch = "ignore";
   };
   environment.sessionVariables = rec {
-    "WLR_NO_HARDWARE_CURSORS" = "1";
+    # "WLR_NO_HARDWARE_CURSORS" = "1";
+    # "XCURSOR_THEME" = "breeze_cursors";
   };
 }

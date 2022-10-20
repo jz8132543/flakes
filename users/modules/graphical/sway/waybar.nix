@@ -72,7 +72,7 @@ with lib;
     format-ethernet = "Ethernet ";
     format-linked = "Ethernet (No IP) ";
     format-disconnected = "Disconnected ";
-    format-alt = "{bandwidthDownBits}/{bandwidthUpBits}";
+    format-alt = "{bandwidthDownBytes}/{bandwidthUpBytes}";
     on-click-middle = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
   };
   pulseaudio = {

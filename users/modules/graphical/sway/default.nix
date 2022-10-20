@@ -2,18 +2,6 @@
 
 let
   inherit (config.lib.formats.rasi) mkLiteral;
-  rofi-theme = {
-    "*" = {
-      bg0 = mkLiteral "#212121F2";
-      bg1 = mkLiteral "#2A2A2A";
-      bg2 = mkLiteral "#3D3D3D80";
-      bg3 = mkLiteral "#1A73E8F2";
-      fg0 = mkLiteral "#E6E6E6";
-      fg1 = mkLiteral "#FFFFFF";
-      fg2 = mkLiteral "#969696";
-      fg3 = mkLiteral "#3D3D3D";
-    };
-  };
   bg = pkgs.fetchurl {
     url = "https://github.com/KubqoA/dotfiles/raw/main/hosts/unacorda/assets/bg.jpg";
     name = "bg.jpg";
@@ -40,8 +28,8 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         "1" = [{ app_id = "foot"; }];
         "2" = [{ app_id = "firefox"; }];
         "3" = [{ app_id = "telegramdesktop"; }];
-        "4" = [{ class = "thunderbird"; }];
-        "5" = [{ app_id = "qemu"; }];
+        "10" = [{ class = "thunderbird"; }];
+        "9" = [{ app_id = "qemu"; }];
       };
       window.commands = [
         {
@@ -70,7 +58,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+w" = null;
           "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show drun -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
-          "${modifier}+d" = null;
+          "${modifier}+0" = "workspace number 10";
           "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
           "XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioPause" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
@@ -98,6 +86,10 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       };
       bars = [ ];
     };
+    extraSessionCommands = ''
+      export XCURSOR_THEME=breeze_cursors
+      export WLR_NO_HARDWARE_CURSORS=1
+    '';
   };
   programs = {
     mako = {
@@ -119,16 +111,19 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       extraConfig = ''
         on-button-right=exec ${pkgs.mako}/bin/makoctl menu -n "$id" ${pkgs.rofi}/bin/rofi -dmenu -p 'action: '
         [urgency=high]
-        ignore-timeout=1
-        background-color=#fecaca
-        progress-color=source #fca5a5
-        border-color=#fca5a5
+          ignore-timeout=1
+          background-color=#fecaca
+          progress-color=source #fca5a5
+          border-color=#fca5a5
+        [org/gnome/desktop/interface]
+          cursor-theme='breeze_cursors'
       '';
     };
     swaylock.settings = {
       show-failed-attempts = true;
       daemonize = true;
       scaling = "fill";
+      image = "${bg}";
     };
     waybar = {
       enable = true;
@@ -197,7 +192,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         modi = "drun";
         show-icons = true;
         sort = true;
-        matching = "fuzzy";
+        # matching = "fuzzy";
       };
       theme = "rounded-blue-dark.rasi";
     };

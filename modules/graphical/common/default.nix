@@ -2,6 +2,7 @@
 
 lib.mkIf config.environment.graphical.enable{
   hardware.video.hidpi.enable = true;
+  hardware.opengl.enable = true;
   sound.enable = true;
   hardware.bluetooth.enable = true;
   hardware.pulseaudio = {

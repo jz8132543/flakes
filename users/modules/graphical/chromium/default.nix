@@ -6,6 +6,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     extensions = [
       "padekgcemlokbadohgkifijomclgjgif" # SwitchyOmega
       "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
+      "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
     ];
   };
 }

@@ -4,17 +4,16 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   gtk = {
     enable = true;
     theme = {
-      package = pkgs.materia-theme;
-      name = "Materia-light";
+      package = pkgs.libsForQt5.breeze-gtk;
+      name = "Breeze";
     };
     cursorTheme = {
-      package = pkgs.gnome.adwaita-icon-theme;
-      name = "Adwaita";
-      size = 38;
+      package = pkgs.libsForQt5.breeze-qt5;
+      name = "breeze_cursors";
     };
     iconTheme = {
-      package = pkgs.numix-icon-theme-circle;
-      name = "Numix-Circle";
+      package = pkgs.libsForQt5.breeze-qt5;
+      name = "Breeze_Snow";
     };
     font = {
       package = pkgs.roboto;
@@ -26,7 +25,11 @@ lib.mkIf nixosConfig.environment.graphical.enable {
 
   qt = {
     enable = true;
-    platformTheme = "gtk";
+    # platformTheme = "gtk";
+    style = {
+      package = pkgs.libsForQt5.breeze-qt5;
+      name = "BreezeLight";
+    };
   };
 
   home.packages = with pkgs; [
