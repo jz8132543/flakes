@@ -4,13 +4,13 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   gtk = {
     enable = true;
     theme = {
-      package = pkgs.sweet;
-      name = "Sweet";
+      package = pkgs.materia-theme;
+      name = "Materia-light";
     };
     cursorTheme = {
-      package = pkgs.sweet;
-      name = "Sweet";
-      size = 48;
+      package = pkgs.gnome.adwaita-icon-theme;
+      name = "Adwaita";
+      size = 38;
     };
     iconTheme = {
       package = pkgs.numix-icon-theme-circle;
