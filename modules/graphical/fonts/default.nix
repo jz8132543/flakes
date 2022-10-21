@@ -17,6 +17,8 @@ let
 in
 lib.mkIf config.environment.graphical.enable{
   fonts.fonts = with pkgs; [
+    noto-fonts
+    noto-fonts-cjk
     noto-fonts-emoji
 
     source-serif
@@ -52,6 +54,7 @@ lib.mkIf config.environment.graphical.enable{
       "Source Han Serif K"
     ];
     monospace = lib.mkAfter [
+      "JetBrains Mono"
       "Iosevka Dora"
     ];
     emoji = lib.mkBefore [

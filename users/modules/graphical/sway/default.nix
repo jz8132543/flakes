@@ -62,7 +62,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show drun -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+0" = "workspace number 10";
-          # "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
           "${modifier}+shift+s" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp -d)\" - | ${pkgs.wl-clipboard}/bin/wl-copy --type image/png";
           "XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioPause" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
@@ -70,8 +69,9 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "XF86AudioPrev" = "exec ${pkgs.playerctl}/bin/playerctl previous";
           "XF86MonBrightnessUp" = "exec ${pkgs.light}/bin/light -A 10";
           "XF86MonBrightnessDown" = "exec ${pkgs.light}/bin/light -U 10";
-          "XF86AudioRaiseVolume" = "exec ${pkgs.alsa-utils}/bin/amixer set Master 5%+";
-          "XF86AudioLowerVolume" = "exec ${pkgs.alsa-utils}/bin/amixer set Master 5%-";
+          "XF86AudioRaiseVolume" = "exec ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+";
+          "XF86AudioLowerVolume" = "exec ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-";
+          "XF86AudioMute" = "exec ${pkgs.wireplumber}/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle";
         };
       input = {
         "type:keyboard" = {
@@ -156,7 +156,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       settings = {
         main = {
           shell = "${pkgs.tmux}/bin/tmux new-session -t main";
-          font = "Iosevka Dora:size=11";
+          font = "JetBrains Mono:size=11";
         };
         cursor = {
           color = "323d43 7fbbb3";

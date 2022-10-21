@@ -73,7 +73,7 @@ with lib;
     format-linked = "Ethernet (No IP) ";
     format-disconnected = "Disconnected ";
     format-alt = "{bandwidthDownBytes}/{bandwidthUpBytes}";
-    on-click-middle = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
+    on-click-right = "${pkgs.networkmanagerapplet}/bin/nm-connection-editor";
   };
   pulseaudio = {
     scroll-step = 1;

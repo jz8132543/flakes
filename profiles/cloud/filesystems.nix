@@ -64,6 +64,7 @@ in
       fi
       mkdir -p /mnt
       mount /dev/disk/by-partlabel/NIXOS /mnt
+      chattr -i /var/empty
       rm -rf /mnt/@ROOT/*
       btrfs subvolume delete -C /mnt/@ROOT
       btrfs subvolume create /mnt/@ROOT

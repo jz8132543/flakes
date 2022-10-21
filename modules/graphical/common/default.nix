@@ -26,6 +26,7 @@ lib.mkIf config.environment.graphical.enable{
      "/etc/NetworkManager"
     ];
     user.directories = [
+      ".local/state"
     ];
   };
 }

@@ -12,8 +12,8 @@ lib.mkIf nixosConfig.environment.graphical.enable {
       name = "breeze_cursors";
     };
     iconTheme = {
-      package = pkgs.libsForQt5.breeze-qt5;
-      name = "Breeze_Snow";
+      package = pkgs.libsForQt5.breeze-icons;
+      name = "breeze";
     };
     # font = {
     #   package = pkgs.roboto;
@@ -40,7 +40,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     thunderbird
     wl-clipboard
     # sioyek
-    #nur.repos.rewine.v2raya
+    # nur.repos.rewine.v2raya
   ];
   home.global-persistence = {
     directories = [
