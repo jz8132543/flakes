@@ -41,4 +41,10 @@ lib.mkIf nixosConfig.environment.graphical.enable {
       };
     };
   };
+  home.global-persistence = {
+    directories = [
+      ".mozilla"
+    ];
+  };
+
 }

@@ -3,21 +3,20 @@
 lib.mkIf config.environment.graphical.enable{
   hardware.video.hidpi.enable = true;
   hardware.opengl.enable = true;
-  sound.enable = true;
   hardware.bluetooth.enable = true;
-  hardware.pulseaudio = {
+  security.rtkit.enable = true;
+  services.blueman.enable = true;
+  services.pipewire = {
     enable = true;
-    support32Bit = true;
-    tcp = {
-      enable = true;
-      anonymousClients.allowedIpRanges = [ "127.0.0.1" ];
-    };
+    alsa.enable = true;
+    alsa.support32Bit = true;
+    pulse.enable = true;
+    jack.enable = true;
   };
   networking.networkmanager.enable = true;
   programs.light.enable = true;
   systemd.services.nix-daemon.environment = lib.mkIf config.environment.China.enable { all_proxy = "socks5://127.0.0.1:1080"; };
   environment.systemPackages = with pkgs; [
-    thunderbird
   ];
   environment.global-persistence = {
     files = [
@@ -26,11 +25,6 @@ lib.mkIf config.environment.graphical.enable{
      "/etc/NetworkManager"
     ];
     user.directories = [
-      ".config/fcitx5"
-      ".mozilla"
-      ".thunderbird"
-      ".local/share/TelegramDesktop"
-      ".config/chromium"
     ];
   };
 }

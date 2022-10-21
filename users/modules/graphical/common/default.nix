@@ -35,7 +35,17 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   home.packages = with pkgs; [
     dconf 
     swaylock
+    swaynotificationcenter
     tdesktop
+    thunderbird
+    # sioyek
     #nur.repos.rewine.v2raya
   ];
+  home.global-persistence = {
+    directories = [
+      ".thunderbird"
+      ".local/share/TelegramDesktop"
+    ];
+  };
+
 }

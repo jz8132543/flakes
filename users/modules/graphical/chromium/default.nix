@@ -9,4 +9,9 @@ lib.mkIf nixosConfig.environment.graphical.enable {
       "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
     ];
   };
+  home.global-persistence = {
+    directories = [
+     ".config/chromium"
+    ];
+  };
 }

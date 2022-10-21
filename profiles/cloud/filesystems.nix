@@ -75,6 +75,7 @@ in
         efiSysMountPoint = "/boot";
       };
     };
+    kernelPackages = pkgs.linuxPackages_latest;
   };
 
   environment.global-persistence = {

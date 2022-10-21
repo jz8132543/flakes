@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 
-{
+lib.mkIf config.environment.graphical.enable{
   i18n = {
     defaultLocale = "en_US.UTF-8";
     inputMethod = {
@@ -11,4 +11,7 @@
       ];
     };
   };
+  environment.global-persistence.user.directories = [
+    ".config/fcitx5"
+  ];
 }
