@@ -62,7 +62,8 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show drun -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+0" = "workspace number 10";
-          "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
+          # "Print" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp)\" $HOME/Pictures/screenshot-$(date +\"%Y-%m-%d-%H-%M-%S\").png";
+          "${modifier}+shift+s" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp -d)\" - | ${pkgs.wl-clipboard}/bin/wl-copy --type image/png";
           "XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioPause" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioNext" = "exec ${pkgs.playerctl}/bin/playerctl next";
@@ -155,7 +156,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       settings = {
         main = {
           shell = "${pkgs.tmux}/bin/tmux new-session -t main";
-          font = "JetBrains Mono:size=10";
+          font = "Iosevka Dora:size=11";
         };
         cursor = {
           color = "323d43 7fbbb3";

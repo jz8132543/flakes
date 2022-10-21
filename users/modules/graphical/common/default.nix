@@ -15,11 +15,11 @@ lib.mkIf nixosConfig.environment.graphical.enable {
       package = pkgs.libsForQt5.breeze-qt5;
       name = "Breeze_Snow";
     };
-    font = {
-      package = pkgs.roboto;
-      name = "Roboto";
-      size = 11;
-    };
+    # font = {
+    #   package = pkgs.roboto;
+    #   name = "Roboto";
+    #   size = 11;
+    # };
     gtk2.configLocation = "${config.xdg.configHome}/gtk-2.0/gtkrc";
   };
 
@@ -38,6 +38,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     swaynotificationcenter
     tdesktop
     thunderbird
+    wl-clipboard
     # sioyek
     #nur.repos.rewine.v2raya
   ];

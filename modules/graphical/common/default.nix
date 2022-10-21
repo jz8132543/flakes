@@ -1,6 +1,7 @@
 { config, lib, pkgs, ...  }:
 
 lib.mkIf config.environment.graphical.enable{
+  boot.supportedFilesystems = [ "ntfs" ];
   hardware.video.hidpi.enable = true;
   hardware.opengl.enable = true;
   hardware.bluetooth.enable = true;
