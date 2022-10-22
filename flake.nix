@@ -3,7 +3,6 @@
 
   inputs = {
     nixos.url = "github:nixos/nixpkgs/nixos-unstable";
-    latest.url = "github:nixos/nixpkgs/master";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     home = {
       url = "github:nix-community/home-manager";
@@ -54,6 +53,12 @@
   outputs = { self, nixos, digga, deploy, ... }@inputs:
     let
       this = import ./pkgs;
+      pkgs = import nixos {
+        system = [ "x86_64-linux" "aarch64-linux" ];
+        overlays = [
+          self.overlays.default
+        ];
+      };
     in
     digga.lib.mkFlake {
       inherit self inputs;
@@ -78,6 +83,8 @@
           path = ./templates/project;
           description = "simple project template";
         };
+
+        packages = this.packages pkgs;
       };
 
       deploy.nodes = let
