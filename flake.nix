@@ -40,9 +40,9 @@
 outputs = inputs@{ self, nixpkgs, flake-utils-plus, ... }:
 let
   this = import ./pkgs;
-  hosts = [ "tyo0" "sin0" "ams0" ];
+  hosts = [ "tyo0" "sin0" "ams0" "surface" ];
   pkgs = import nixpkgs {
-    system = [ "aarch64-linux" "x86_64-linux" ];
+    system = "x86_64-linux";
   };
 in
 flake-utils-plus.lib.mkFlake {
@@ -51,9 +51,10 @@ flake-utils-plus.lib.mkFlake {
   nixosModules = import ./modules;
   lib = import ./lib { lib = nixpkgs.lib; };
 
-  nixosConfigurations = {
-    surface = import ./nixos/surface { system = "x86_64-linux"; inherit self nixpkgs inputs; };
-  } // self.colmenaHive.nodes;
+  # nixosConfigurations = {
+  #   surface = import ./nixos/surface { inherit pkgs lib; };
+  # } // self.colmenaHive.nodes;
+  nixosConfigurations = self.colmenaHive.nodes;
 
   hostDefaults = {
     system = "x86_64-linux";
