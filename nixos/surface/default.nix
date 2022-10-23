@@ -1,12 +1,14 @@
-{ config, lib, pkgs, modulesPath, suites, profiles, ... }: 
+{ self, inputs, config, lib, pkgs, ... }:
 
 {
-  imports = suites.server ++
-    (with profiles; [
-      cloud
-    ]) ++ (with profiles.users; [ tippy ]);
+  imports = [
+    self.nixosModules.base
+  ];
+  # imports = suites.server ++
+  #   (with profiles; [
+  #     cloud
+  #   ]) ++ (with profiles.users; [ tippy ]);
 
-  environment.graphical.enable = true;
   environment.systemPackages = with pkgs; [ 
     wezterm
     neovide

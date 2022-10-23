@@ -283,9 +283,7 @@
     },
     "nvfetcher": {
       "inputs": {
-        "flake-compat": [
-          "flake-compat"
-        ],
+        "flake-compat": "flake-compat_2",
         "flake-utils": "flake-utils_4",
         "nixpkgs": [
           "nixpkgs"
@@ -308,7 +306,6 @@
     "root": {
       "inputs": {
         "colmena": "colmena",
-        "flake-compat": "flake-compat_2",
         "flake-utils-plus": "flake-utils-plus",
         "home": "home",
         "impermanence": "impermanence",

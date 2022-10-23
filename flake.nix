@@ -1,41 +1,36 @@
 {
-  description = "nixos-config";
+description = "nixos-config";
 
-  inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-    flake-utils-plus.url = "github:gytis-ivaskevicius/flake-utils-plus";
-    nur.url = "github:nix-community/NUR";
-    impermanence.url = "github:nix-community/impermanence";
-    home = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nixos-cn = {
-      url = "github:nixos-cn/flakes";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    sops-nix = {
-      url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    colmena = {
-      url = "github:zhaofengli/colmena";
-      inputs.stable.follows = "nixpkgs";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-    nvfetcher = {
-      url = "github:berberman/nvfetcher";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-compat.follows = "flake-compat";
-      };
+inputs = {
+  nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  nixos-hardware.url = "github:nixos/nixos-hardware";
+  flake-utils-plus.url = "github:gytis-ivaskevicius/flake-utils-plus";
+  nur.url = "github:nix-community/NUR";
+  impermanence.url = "github:nix-community/impermanence";
+  home = {
+    url = "github:nix-community/home-manager";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  nixos-cn = {
+    url = "github:nixos-cn/flakes";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  sops-nix = {
+    url = "github:Mic92/sops-nix";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  colmena = {
+    url = "github:zhaofengli/colmena";
+    inputs.stable.follows = "nixpkgs";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
+  nvfetcher = {
+    url = "github:berberman/nvfetcher";
+    inputs = {
+      nixpkgs.follows = "nixpkgs";
     };
   };
+};
 
 outputs = inputs@{ self, nixpkgs, flake-utils-plus, ... }:
 let
@@ -48,14 +43,6 @@ in
 flake-utils-plus.lib.mkFlake {
   inherit self inputs;
 
-  nixosModules = import ./modules;
-  lib = import ./lib { lib = nixpkgs.lib; };
-
-  # nixosConfigurations = {
-  #   surface = import ./nixos/surface { inherit pkgs lib; };
-  # } // self.colmenaHive.nodes;
-  nixosConfigurations = self.colmenaHive.nodes;
-
   hostDefaults = {
     system = "x86_64-linux";
     modules = [
@@ -66,6 +53,14 @@ flake-utils-plus.lib.mkFlake {
       inputs.impermanence.nixosModules.impermanence
     ];
   };
+} // {
+  nixosModules = import ./modules;
+  lib = import ./lib { lib = nixpkgs.lib; };
+
+  # nixosConfigurations = {
+  #   surface = import ./nixos/surface { inherit pkgs lib; };
+  # } // self.colmenaHive.nodes;
+  nixosConfigurations = self.colmenaHive.nodes;
 
   formatter = pkgs.nixpkgs-fmt;
   packages = this.packages pkgs;
