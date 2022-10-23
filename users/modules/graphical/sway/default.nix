@@ -43,6 +43,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           command = "focus";
         }
       ];
+      focus.newWindow = "focus";
       window.border = 0;
       gaps.inner = 10;
       keybindings =
