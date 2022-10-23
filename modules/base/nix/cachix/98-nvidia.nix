@@ -1,6 +1,6 @@
 { config, lib, ... }:
 
-lib.mkIf (config.environment.China.enable) {
+{
   nix = {
     settings.substituters = [ "https://cuda-maintainers.cachix.org" ];
     settings.trusted-public-keys = [

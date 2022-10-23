@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 
-lib.mkIf (config.environment.graphical.enable && config.environment.graphical.manager == "sway" ) {
+lib.mkIf (config.hardware.graphical.enable && config.hardware.graphical.manager == "sway" ) {
   security.polkit.enable = true;
   security.pam.services.swaylock = { };
   xdg.portal = {

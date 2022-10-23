@@ -4,7 +4,7 @@ description = "nixos-config";
 inputs = {
   nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   nixos-hardware.url = "github:nixos/nixos-hardware";
-  flake-utils-plus.url = "github:gytis-ivaskevicius/flake-utils-plus";
+  flake-utils.url = "github:numtide/flake-utils";
   nur.url = "github:nix-community/NUR";
   impermanence.url = "github:nix-community/impermanence";
   home = {
@@ -32,49 +32,35 @@ inputs = {
   };
 };
 
-outputs = inputs@{ self, nixpkgs, flake-utils-plus, ... }:
+outputs = inputs@{ self, nixpkgs, ... }:
 let
   this = import ./pkgs;
   hosts = [ "tyo0" "sin0" "ams0" "surface" ];
-  pkgs = import nixpkgs {
-    system = "x86_64-linux";
-  };
 in
-flake-utils-plus.lib.mkFlake {
-  inherit self inputs;
+inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
+(
+  system:
+  let
+    pkgs = import nixpkgs {
+      inherit system;
+    };
+    lib = import ./lib { inherit pkgs inputs; lib = nixpkgs.lib; };
+    inherit (lib._) mapModules mapModulesRec;
+  in
+  {
+    formatter = pkgs.nixpkgs-fmt;
+    packages = this.packages pkgs;
+    legacyPackages = pkgs;
+    nixosModules = mapModulesRec ./modules import;
+  }
+) // {
 
-  hostDefaults = {
-    system = "x86_64-linux";
-    modules = [
-      inputs.home.nixosModules.home-manager
-      inputs.sops-nix.nixosModules.sops
-      inputs.nixos-cn.nixosModules.nixos-cn
-      inputs.nixos-cn.nixosModules.nixos-cn-registries
-      inputs.impermanence.nixosModules.impermanence
-    ];
-  };
-} // {
-  nixosModules = import ./modules;
-  lib = import ./lib { lib = nixpkgs.lib; };
-
-  # nixosConfigurations = {
-  #   surface = import ./nixos/surface { inherit pkgs lib; };
-  # } // self.colmenaHive.nodes;
   nixosConfigurations = self.colmenaHive.nodes;
-
-  formatter = pkgs.nixpkgs-fmt;
-  packages = this.packages pkgs;
-  legacyPackages = pkgs;
-  devShells.default = with pkgs; mkShell {
-    nativeBuildInputs = [ nvfetcher ];
-  };
+  home-manager = self.nixosModules.home;
 
   hydraJobs = self.packages.x86_64-linux //
   inputs.nixpkgs.lib.genAttrs hosts
-    (name: self.colmenaHive.nodes.${name}.config.system.build.install)
-  // {
-    local = self.nixosConfigurations.local.config.system.build.toplevel;
-  };
+    (name: self.colmenaHive.nodes.${name}.config.system.build.install);
 
   colmenaHive = inputs.colmena.lib.makeHive ({
     meta = {

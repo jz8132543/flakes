@@ -1,0 +1,8 @@
+{lib, ...}:
+rec {
+  inherit (lib._) mapModules mapModulesRec;
+  base = mapModulesRec ./base import;
+  graphical = mapModulesRec ./graphical;
+  cloud = mapModulesRec ./cloud;
+  services = mapModulesRec ./services;
+}

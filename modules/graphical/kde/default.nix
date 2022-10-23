@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 
-lib.mkIf (config.environment.graphical.enable && config.environment.graphical.manager == "kde" ) {
+lib.mkIf (config.hardware.graphical.enable && config.hardware.graphical.manager == "kde" ) {
   services.xserver = {
     enable = true;
     displayManager.sddm = {

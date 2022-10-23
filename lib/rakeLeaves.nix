@@ -19,6 +19,6 @@ let
   };
 
   files = lib.filterAttrs seive (builtins.readDir dirPath);
-in
-lib.filterAttrs (n: v: v != { }) (lib.mapAttrs' collect files)
-
+in rec {
+rakeLeaves = lib.filterAttrs (n: v: v != { }) (lib.mapAttrs' collect files);
+}

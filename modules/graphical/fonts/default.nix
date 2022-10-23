@@ -15,7 +15,7 @@ let
     set = "dora";
   };
 in
-lib.mkIf config.environment.graphical.enable{
+lib.mkIf config.hardware.graphical.enable{
   fonts.fonts = with pkgs; [
     noto-fonts
     noto-fonts-cjk

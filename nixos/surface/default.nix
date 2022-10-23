@@ -1,15 +1,17 @@
 { self, inputs, config, lib, pkgs, ... }:
 
 {
-  imports = [
-    self.nixosModules.base
-  ];
   # imports = suites.server ++
   #   (with profiles; [
   #     cloud
   #   ]) ++ (with profiles.users; [ tippy ]);
+  imports = [
+    # ../common.nix
 
-  environment.systemPackages = with pkgs; [ 
+    # self.nixosModules.cloud
+  ];
+
+  environment.systemPackages = with pkgs; [
     wezterm
     neovide
     firefox

@@ -1,6 +1,15 @@
 { pkgs, lib, config, ... }:
 
+with lib;
+let
+  cfg = config.modules.services.traefik;
+in
 {
+  options.modules.services.openssh = {
+    enable = _.mkBoolOpt false;
+  };
+} //
+mkIf cfg.enable {
   imports = [ ./services.nix ];
   sops.secrets.traefik = {
     format = "binary";

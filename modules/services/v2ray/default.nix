@@ -1,6 +1,17 @@
 { config, pkgs, ... }:
 
+{ config, options, lib, pkgs, ... }:
+
+with lib;
+let
+  cfg = config.modules.services.v2ray;
+in
 {
+  options.modules.services.v2ray = {
+    enable = _.mkBoolOpt false;
+  };
+} //
+mkIf cfg.enable {
   sops.secrets.v2ray = {
     format = "binary";
     sopsFile = config.sops.secretsDir + /v2ray.keytab;

@@ -109,11 +109,11 @@ with lib;
   };
 
   config = mkIf (cfg.enable && cfg.root != null) {
-    environment.persistence.${cfg.root} = {
-      inherit (cfg) directories files;
-      users = usersCfg;
-      hideMounts = true;
-    };
+    # environment.persistence.${cfg.root} = {
+    #   inherit (cfg) directories files;
+    #   users = usersCfg;
+    #   hideMounts = true;
+    # };
 
     system.activationScripts.ensurePersistenceRootExists = {
       text = ''

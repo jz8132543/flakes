@@ -9,7 +9,7 @@ let
     exec "$@"
   '';
 in
-lib.mkIf config.environment.graphical.enable{
+lib.mkIf config.hardware.graphical.enable{
   environment.systemPackages = with pkgs; [
     nvidia-offload
     cudatoolkit

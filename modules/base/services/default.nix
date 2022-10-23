@@ -1,7 +1,0 @@
-{ ... }: {
-
-  imports = [
-    ./clean-gcroots.nix
-  ];
-}
-

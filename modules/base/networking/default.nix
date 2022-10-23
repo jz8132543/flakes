@@ -1,8 +1,0 @@
-{ ... }: {
-
-  imports = [
-    ./common
-    ./resolved
-    ./tools
-  ];
-}

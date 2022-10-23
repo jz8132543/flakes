@@ -1,6 +1,6 @@
 { config, pkgs, lib, ... }:
 
-lib.mkIf config.environment.graphical.enable{
+lib.mkIf config.hardware.graphical.enable{
   i18n = {
     defaultLocale = "en_US.UTF-8";
     inputMethod = {

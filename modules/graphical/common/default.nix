@@ -1,6 +1,6 @@
 { config, lib, pkgs, ...  }:
 
-lib.mkIf config.environment.graphical.enable{
+lib.mkIf config.hardware.graphical.enable{
   boot.supportedFilesystems = [ "ntfs" ];
   hardware.video.hidpi.enable = true;
   hardware.opengl.enable = true;
@@ -16,7 +16,7 @@ lib.mkIf config.environment.graphical.enable{
   };
   networking.networkmanager.enable = true;
   programs.light.enable = true;
-  systemd.services.nix-daemon.environment = lib.mkIf config.environment.China.enable { all_proxy = "socks5://127.0.0.1:1080"; };
+  systemd.services.nix-daemon.environment = lib.mkIf config.hardware.china.enable { all_proxy = "socks5://127.0.0.1:1080"; };
   environment.systemPackages = with pkgs; [
   ];
   environment.global-persistence = {

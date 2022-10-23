@@ -1,6 +1,6 @@
 { config, lib, pkgs, ...  }:
 
-lib.mkIf config.environment.graphical.enable {
+lib.mkIf config.hardware.graphical.enable {
   environment.systemPackages = with pkgs; [
     wineWowPackages.staging
     winetricks
