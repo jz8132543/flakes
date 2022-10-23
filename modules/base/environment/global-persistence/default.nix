@@ -39,7 +39,7 @@ in
 
 with lib;
 {
-  options.environment.global-persistence = {
+  options.environment.global-persistence = lib.mkOption {
     enable = lib.mkOption {
       type = types.bool;
       default = false;
