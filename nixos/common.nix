@@ -1,8 +1,5 @@
 { pkgs, self, inputs, lib,  ... }: 
 
-let
-  a = (lib._.importExportableModules ./modules).exportedModules;
-in
 {
   imports = [
     inputs.home.nixosModules.home-manager
@@ -11,7 +8,7 @@ in
     inputs.nixos-cn.nixosModules.nixos-cn-registries
     inputs.impermanence.nixosModules.impermanence
   # ] ++ (builtins.map (path: ./${path}) (builtins.attrNames (builtins.readDir ../modules))).exportedModules;
-  ] ++ a;
+  ] ++ (builtins.map (path: ../modules/${path}) (builtins.attrNames (builtins.readDir ../modules)));
 
   #modules = [
   #];
