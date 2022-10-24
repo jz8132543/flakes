@@ -1,14 +1,8 @@
 { self, inputs, config, lib, pkgs, ... }:
 
 {
-  # imports = suites.server ++
-  #   (with profiles; [
-  #     cloud
-  #   ]) ++ (with profiles.users; [ tippy ]);
   imports = [
     ../common.nix
-
-    # self.nixosModules.cloud
   ];
 
   environment.systemPackages = with pkgs; [

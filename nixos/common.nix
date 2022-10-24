@@ -1,16 +1,19 @@
 { pkgs, self, inputs, lib,  ... }: 
 
+let
+  a = (lib._.importExportableModules ./modules).exportedModules;
+in
 {
   imports = [
-    # (lib._.importExportableModules ../modules)
-  ] ++ (builtins.map (path: ./${path}) (builtins.attrNames (builtins.readDir ../modules)));
+    inputs.home.nixosModules.home-manager
+    inputs.sops-nix.nixosModules.sops
+    inputs.nixos-cn.nixosModules.nixos-cn
+    inputs.nixos-cn.nixosModules.nixos-cn-registries
+    inputs.impermanence.nixosModules.impermanence
+  # ] ++ (builtins.map (path: ./${path}) (builtins.attrNames (builtins.readDir ../modules))).exportedModules;
+  ] ++ a;
 
   #modules = [
-  #  inputs.home.nixosModules.home-manager
-  #  inputs.sops-nix.nixosModules.sops
-  #  inputs.nixos-cn.nixosModules.nixos-cn
-  #  inputs.nixos-cn.nixosModules.nixos-cn-registries
-  #  inputs.impermanence.nixosModules.impermanence
   #];
 
   nixpkgs.overlays = [

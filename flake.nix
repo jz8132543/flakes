@@ -30,6 +30,7 @@ inputs = {
       nixpkgs.follows = "nixpkgs";
     };
   };
+  digga.url = "github:divnix/digga";
 };
 
 outputs = inputs@{ self, nixpkgs, ... }:
@@ -77,6 +78,8 @@ inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
       tags = [ "normal" ];
     };
     imports = [ ./nixos/${name} ];
+      # (lib._.importExportableModules ./modules).exportedModules;
+      # builtins.map (path: if (builtins.pathExists ("${self}" + path + "/default.nix")) then "${self}/modules/${path}" else "${self}/modules") (builtins.attrNames (builtins.readDir ./modules));
   }));
   };
 }
