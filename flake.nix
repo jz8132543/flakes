@@ -36,7 +36,6 @@ outputs = inputs@{ self, nixpkgs, ... }:
 let
   this = import ./pkgs;
   hosts = [ "tyo0" "sin0" "ams0" "surface" ];
-  lib = nixpkgs.lib;
 in
 inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
 (
@@ -45,18 +44,16 @@ inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
     pkgs = import nixpkgs {
       inherit system;
     };
-    inherit lib;
+    lib = import ./lib { inherit pkgs inputs; lib = nixpkgs.lib; };
+    inherit (lib._) mapModules mapModulesRec';
   in
   {
-    lib = import ./lib { inherit pkgs inputs; lib = nixpkgs.lib; };
-    inherit (lib._) mapModules mapModulesRec;
     formatter = pkgs.nixpkgs-fmt;
     packages = this.packages pkgs;
     legacyPackages = pkgs;
-    # nixosModules = mapModulesRec ./modules import;
+    nixosModules = (mapModulesRec' ./modules import);
   }
 ) // {
-
   nixosConfigurations = self.colmenaHive.nodes;
   home-manager = self.nixosModules.home;
 
@@ -67,7 +64,8 @@ inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
   colmenaHive = inputs.colmena.lib.makeHive ({
     meta = {
       specialArgs = {
-        inherit self inputs lib;
+        inherit self inputs;
+        lib = import ./lib { inherit inputs; pkgs = nixpkgs; lib = nixpkgs.lib; };
       };
       nixpkgs = import inputs.nixpkgs {
         system = "x86_64-linux";
