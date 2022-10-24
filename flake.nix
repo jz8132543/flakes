@@ -65,7 +65,7 @@ inputs.flake-utils.lib.eachSystem [ "aarch64-linux" "x86_64-linux" ]
   colmenaHive = inputs.colmena.lib.makeHive ({
     meta = {
       specialArgs = {
-        inherit self inputs;
+        inherit self inputs lib;
       };
       nixpkgs = import inputs.nixpkgs {
         system = "x86_64-linux";

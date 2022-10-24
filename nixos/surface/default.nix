@@ -6,7 +6,7 @@
   #     cloud
   #   ]) ++ (with profiles.users; [ tippy ]);
   imports = [
-    # ../common.nix
+    ../common.nix
 
     # self.nixosModules.cloud
   ];
