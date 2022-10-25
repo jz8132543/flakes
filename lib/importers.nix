@@ -121,7 +121,7 @@ in
   importExportableModules = dir:
     {
       # Meant to output a module that sets the modules option
-      exportedModules = builtins.attrValues (flattenTree (rakeLeaves dir));
+      exportedModules = (builtins.attrValues (flattenTree (rakeLeaves dir)));
     };
 
   importHosts = dir:
