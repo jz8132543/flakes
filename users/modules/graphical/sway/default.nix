@@ -39,6 +39,34 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           command = "floating enable, kill";
         }
         {
+          criteria = { title="^Picture-in-Picture$"; };
+          command = "floating enable; sticky enable";
+        }
+        {
+          criteria = { class=".*.exe"; };
+          command = "inhibit_idle fullscreen; floating enable; border none";
+        }
+        {
+          criteria = { title="MAX - Chromium"; };
+          command = "floating enable; sticky enable; border pixel 1";
+        }
+        {
+          criteria = { window_role="bubble"; };
+          command = "floating enable";
+        }
+        {
+          criteria = { window_role="pop-up"; };
+          command = "floating enable";
+        }
+        {
+          criteria = { window_role="dialog"; };
+          command = "floating enable";
+        }
+        {
+          criteria = { window_type="dialog"; };
+          command = "floating enable";
+        }
+        {
           criteria = { urgent = "latest"; };
           command = "focus";
         }
@@ -64,6 +92,8 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+0" = "workspace number 10";
           "${modifier}+shift+s" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp -d)\" - | ${pkgs.wl-clipboard}/bin/wl-copy --type image/png";
+          "${modifier}+ctrl+space" = "floating toggle";
+          "${modifier}+ctrl+t" = "sticky toggle";
           "XF86AudioPlay" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioPause" = "exec ${pkgs.playerctl}/bin/playerctl play-pause";
           "XF86AudioNext" = "exec ${pkgs.playerctl}/bin/playerctl next";
@@ -97,33 +127,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
     '';
   };
   programs = {
-    # mako = {
-    #   enable = true;
-    #   anchor = "bottom-right";
-    #   layer = "overlay";
-
-    #   backgroundColor = "#e5e7eb";
-    #   progressColor = "source #d1d5db";
-    #   textColor = "#334155";
-    #   padding = "15,20";
-    #   margin = "0,10,10,0";
-
-    #   borderSize = 1;
-    #   borderColor = "#d1d5db";
-    #   borderRadius = 4;
-
-    #   defaultTimeout = 10000;
-    #   extraConfig = ''
-    #     on-button-right=exec ${pkgs.mako}/bin/makoctl menu -n "$id" ${pkgs.rofi}/bin/rofi -dmenu -p 'action: '
-    #     [urgency=high]
-    #       ignore-timeout=1
-    #       background-color=#fecaca
-    #       progress-color=source #fca5a5
-    #       border-color=#fca5a5
-    #     [org/gnome/desktop/interface]
-    #       cursor-theme='breeze_cursors'
-    #   '';
-    # };
     swaylock.settings = {
       show-failed-attempts = true;
       daemonize = true;

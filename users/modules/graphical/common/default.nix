@@ -35,6 +35,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   home.packages = with pkgs; [
     dconf 
     swaylock
+    swayidle
     swaynotificationcenter
     tdesktop
     thunderbird
