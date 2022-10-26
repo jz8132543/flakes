@@ -70,7 +70,10 @@ in
       btrfs subvolume create /mnt/@ROOT
     '';
     loader = {
-      systemd-boot.enable = true;
+      systemd-boot = {
+        enable = true;
+        consoleMode = "max";
+      };
       efi = {
         canTouchEfiVariables = true;
         efiSysMountPoint = "/boot";
