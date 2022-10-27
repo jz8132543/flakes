@@ -12,6 +12,7 @@ lib.mkIf (config.environment.graphical.enable && config.environment.graphical.ma
     ExecStopPost = "${pkgs.util-linux}/bin/kill -SIGRTMIN+20 1";
   };
   services = {
+    logind.lidSwitch = "ignore";
     greetd = {
       enable = true;
       package = pkgs.greetd.tuigreet;
