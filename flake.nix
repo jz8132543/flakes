@@ -54,7 +54,7 @@
     let
       this = import ./pkgs;
       pkgs = import nixos {
-        system = [ "x86_64-linux" "aarch64-linux" ];
+        system = "x86_64-linux";
         overlays = [
           self.overlays.default
         ];

@@ -34,7 +34,7 @@ in {
     users.${name} = {
       isNormalUser = true;
       home = homeDirectory;
-      extraGroups = [ "wheel" "tty" "video" "audio" ];
+      extraGroups = [ "wheel" "tty" "video" "audio" "libvirtd" "kvm" ];
       shell = pkgs.zsh;
       hashedPassword = "$6$GMMZ.rYjvVSpsvDl$dfCbuPkqhBMJT6Pa/GtEdMXjRVe1GYAqgDu4AuF2mSerE3ARiNfRO82.7jkhZOtnEvY4pvstmoiWhugv0kSDR1";
       openssh.authorizedKeys.keys = [

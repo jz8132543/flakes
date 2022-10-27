@@ -17,7 +17,13 @@
     initrd = {
       availableKernelModules = [ "xhci_pci" "nvme" "usb_storage" "sd_mod" ]; 
     };
-    kernelModules = [ "kvm-intel" ];
+    kernelModules = [ "kvm-intel" "vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd" ];
+    kernelParams = [ "intel_iommu=on" "iommu=pt" "mitigations=off" "nowatchdog" ];
+    extraModprobeConfig = ''
+      options i915 enable_guc=2
+      options i915 enable_fbc=1
+      options kvm_intel nested=1
+    '';
   };
 
   powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";

@@ -9,6 +9,7 @@
   nixpkgs.config.allowUnfreePredicate = (pkg: true);
   home.packages = with pkgs; [
     cachix
+    nix-index
     thefuck
     bottom
     exa

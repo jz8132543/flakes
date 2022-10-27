@@ -88,7 +88,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           "${modifier}+v" = null;
           "${modifier}+w" = null;
           "${modifier}+n" = "exec ${pkgs.swaynotificationcenter}/bin/swaync-client -t -sw";
-          "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show drun -run-command '{cmd}'";
+          "${modifier}+space" = "exec ${pkgs.rofi}/bin/rofi -show run -run-command '{cmd}'";
           "${modifier}+Shift+l" = "exec loginctl lock-session";
           "${modifier}+0" = "workspace number 10";
           "${modifier}+shift+s" = "exec ${pkgs.grim}/bin/grim -g \"$(${pkgs.slurp}/bin/slurp -d)\" - | ${pkgs.wl-clipboard}/bin/wl-copy --type image/png";

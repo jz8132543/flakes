@@ -19,7 +19,6 @@ lib.mkIf (config.environment.graphical.enable && config.environment.graphical.ma
         default_session.command = "${pkgs.greetd.tuigreet}/bin/tuigreet --cmd sway";
       };
     };
-    logind.lidSwitch = "ignore";
   };
   environment.sessionVariables = rec {
     # "WLR_NO_HARDWARE_CURSORS" = "1";

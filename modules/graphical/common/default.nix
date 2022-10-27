@@ -2,9 +2,14 @@
 
 lib.mkIf config.environment.graphical.enable{
   boot.supportedFilesystems = [ "ntfs" ];
-  hardware.video.hidpi.enable = true;
-  hardware.opengl.enable = true;
-  hardware.bluetooth.enable = true;
+  hardware = {
+    video.hidpi.enable = true;
+    bluetooth.enable = true;
+    opengl = {
+      enable = true;
+      extraPackages = with pkgs; [ intel-media-driver ];
+    };
+  };
   security.rtkit.enable = true;
   services.blueman.enable = true;
   services.pipewire = {
