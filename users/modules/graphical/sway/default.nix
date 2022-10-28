@@ -154,7 +154,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
     alacritty = {
       enable = true;
       settings = {
-        font = { size = 15.0; };
+        font = { size = 12.0; };
         shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = [ "new-session" "-t" "main" ];
