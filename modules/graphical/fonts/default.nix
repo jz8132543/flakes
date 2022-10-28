@@ -1,24 +1,10 @@
 { config, pkgs, lib, ... }:
 
-let
-  iosevka-dora = pkgs.iosevka.override {
-    privateBuildPlan = {
-      family = "Iosevka Dora";
-      spacing = "fontconfig-mono";
-      serifs = "slab";
-      # no need to export character variants and stylistic set
-      no-cv-ss = "true";
-      ligations = {
-        inherits = "haskell";
-      };
-    };
-    set = "dora";
-  };
-in
 lib.mkIf config.environment.graphical.enable{
   fonts.fonts = with pkgs; [
     noto-fonts
-    noto-fonts-cjk
+    noto-fonts-cjk-sans
+    noto-fonts-cjk-serif
     noto-fonts-emoji
 
     source-serif
@@ -27,24 +13,19 @@ lib.mkIf config.environment.graphical.enable{
     source-han-sans
     source-code-pro
 
-    open-sans
-    liberation_ttf
-    wqy_zenhei
-    wqy_microhei
-
     jetbrains-mono
-    iosevka-dora
-    font-awesome
-    powerline-fonts
+    (nerdfonts.override { fonts = [ "JetBrainsMono" "Noto" ]; })
   ];
 
   fonts.fontconfig.defaultFonts = {
-    sansSerif = lib.mkBefore [
+    sansSerif = lib.mkBefore [ 
       "Source Sans 3"
       "Source Han Sans SC"
       "Source Han Sans TC"
       "Source Han Sans HW"
       "Source Han Sans K"
+      "Noto Sans"
+      "Noto Sans CJK SC"
     ];
     serif = lib.mkBefore [
       "Source Serif 4"
@@ -52,15 +33,10 @@ lib.mkIf config.environment.graphical.enable{
       "Source Han Serif TC"
       "Source Han Serif HW"
       "Source Han Serif K"
+      "Noto Serif"
+      "Noto Serif CJK SC"
     ];
-    monospace = lib.mkAfter [
-      "JetBrains Mono"
-      "Iosevka Dora"
-    ];
-    emoji = lib.mkBefore [
-      "Noto Color Emoji"
-    ];
+    monospace = lib.mkAfter [ "JetBrains Mono" ];
+    emoji = lib.mkBefore [ "Noto Color Emoji" ];
   };
-
-  passthru = { inherit iosevka-dora; };
 }
