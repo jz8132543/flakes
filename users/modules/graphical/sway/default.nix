@@ -16,22 +16,22 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
     wrapperFeatures.gtk = true;
     config = {
       modifier = "Mod4";
-      terminal = "foot";
+      terminal = "alacritty";
       startup = [
         { command = "swaymsg workspace 1"; }
         { command = "swaync"; }
         { command = "fcitx5 -d"; }
-        { command = "foot"; }
+        { command = "alacritty"; }
         { command = "telegram-desktop"; }
         { command = "thunderbird"; }
         { command = "firefox"; }
       ];
       assigns = {
-        "1" = [{ app_id = "foot"; }];
+        "1" = [{ app_id = "Alacritty"; }];
         "2" = [{ app_id = "firefox"; }];
         "3" = [{ app_id = "telegramdesktop"; }];
-        "10" = [{ class = "thunderbird"; }];
         "9" = [{ app_id = "qemu"; }];
+        "10" = [{ class = "thunderbird"; }];
       };
       window.commands = [
         {
@@ -65,10 +65,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         {
           criteria = { window_type="dialog"; };
           command = "floating enable";
-        }
-        {
-          criteria = { urgent = "latest"; };
-          command = "focus";
         }
       ];
       focus.newWindow = "focus";
@@ -154,6 +150,16 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
         set -g renumber-windows on
         new-session -s main
       '';
+    };
+    alacritty = {
+      enable = true;
+      settings = {
+        font = { size = 15.0; };
+        shell = {
+          program = "${pkgs.tmux}/bin/tmux";
+          args = [ "new-session" "-t" "main" ];
+        };
+      };
     };
     foot = {
       enable = true;

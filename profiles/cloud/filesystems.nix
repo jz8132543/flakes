@@ -70,6 +70,7 @@ in
       btrfs subvolume create /mnt/@ROOT
     '';
     loader = {
+      timeout = 0;
       systemd-boot = {
         enable = true;
         consoleMode = "max";
