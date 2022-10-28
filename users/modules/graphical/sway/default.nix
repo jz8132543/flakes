@@ -159,6 +159,7 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           program = "${pkgs.tmux}/bin/tmux";
           args = [ "new-session" "-t" "main" ];
         };
+        window.opacity = 0.8;
       };
     };
     foot = {
