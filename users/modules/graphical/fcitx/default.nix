@@ -45,6 +45,11 @@ in {
         "switches/@0/reset" = 1;
         "translator/dictionary" = "lantian_aurora_pinyin";
         "__include" = "emoji_suggestion:/patch";
+        "speller/algebra" = [
+          "erase/^xx$/"
+          "derive/([ei])n$/$1ng/"
+          "derive/([ei])ng$/$1n/"
+        ];
         punctuator = {
           import_preset = "symbols";
           half_shape = {
@@ -81,11 +86,6 @@ in {
             "`" = "`";
           };
         };
-        "speller/algebra" = [
-          "erase/^xx$/"
-          "derive/([ei])n$/$1ng/"
-          "derive/([ei])ng$/$1n/"
-        ];
       };
     };
 
