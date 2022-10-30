@@ -28,7 +28,6 @@ in{
         top = "btm";
         # BAT
         cat = "bat --style=plain";
-        fd = "fd -X bat";
         fzf =
           "fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
         batdiff =
