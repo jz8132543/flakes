@@ -84,8 +84,9 @@
           description = "simple project template";
         };
 
-        packages = this.packages pkgs;
       };
+
+      packages = this.packages pkgs;
 
       deploy.nodes = let
         inherit (nixos) lib;
