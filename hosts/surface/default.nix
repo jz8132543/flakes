@@ -8,9 +8,6 @@
 
   environment.graphical.enable = true;
   environment.systemPackages = with pkgs; [ 
-    wezterm
-    neovide
-    firefox
   ];
 
   boot = {
