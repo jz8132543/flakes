@@ -25,15 +25,15 @@ jobs:
           secret-key-files = /tmp/CACHE_KEY
           substituters = https://dora.cachix.org https://nix-community.cachix.org https://cache.nixos.org s3://nix?endpoint=g5s3.ph11.idrivee2-11.com
           trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= dora.cachix.org-1:H5tXs7A0WTxy+hYPGKTzKe2gRQDXGZfZb1NG7ZJ3MY4= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs= dora-1:Jwud5q69IwWld/IqXW6nwBDx5s8WtsKpim+N5v+8fiE=
+    - name: Setup CACHE_KEY
+      run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
+      env:
+        CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: Setup cachix
       uses: cachix/cachix-action@master
       with:
         name: dora
         authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - name: Setup CACHE_KEY
-      run: 'echo "$CACHE_KEY" > /tmp/CACHE_KEY'
-      env:
-        CACHE_KEY: ${{ secrets.CACHE_KEY }}
     - name: mkdir
       run: sudo mkdir ~root/.aws
     - name: Setup AWS
