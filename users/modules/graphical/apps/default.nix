@@ -6,7 +6,6 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     mpv
 
     logseq
-    nur.repos.rewine.v2raya
     nur.repos.xddxdd.baidupcs-go
     nur.repos.xddxdd.bilibili
     nur.repos.xddxdd.wechat-uos
