@@ -2,11 +2,19 @@
 
 lib.mkIf nixosConfig.environment.graphical.enable {
   home.packages = with pkgs;  [
-    bitwarden
-    bitwarden-cli
+    go
+    mpv
+
+    logseq
+    nur.repos.rewine.v2raya
+    nur.repos.xddxdd.baidupcs-go
+    nur.repos.xddxdd.bilibili
+    nur.repos.xddxdd.wechat-uos
   ];
   home.global-persistence = {
     directories = [
+      ".logseq"
+      ".config/Logseq"
     ];
   };
 

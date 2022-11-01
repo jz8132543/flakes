@@ -10,6 +10,7 @@ lib.mkIf config.environment.graphical.enable{
   environment.global-persistence = {
     user.directories = [
       ".steam"
+      ".local/share/Steam"
     ];
   };
 }
