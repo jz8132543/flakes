@@ -39,8 +39,8 @@ jobs:
     - name: Setup AWS
       run: sudo bash -c "echo -e \"[default]\naws_access_key_id = $AWS_ACCESS_KEY_ID\naws_secret_access_key = $AWS_SECRET_ACCESS_KEY\" > ~/.aws/credentials"
     - name: build
-      run: nix flake check --allow-import-from-derivation
+      run: cachix watch-exec dora  nix flake check --allow-import-from-derivation
     - name: push to s3
       run: |
         system=$(nix eval --impure --raw  --expr "builtins.currentSystem")
-        cachix watch-exec dora nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#hydraJobs.all-checks.$system
+        nix copy --to "s3://nix?endpoint=g5s3.ph11.idrivee2-11.com" .#hydraJobs.all-checks.$system
