@@ -34,5 +34,8 @@ in {
     user.files = [
       ".ssh/known_hosts"
     ];
+    user.directories = [
+      ".ssh/config.d"
+    ];
   };
 }

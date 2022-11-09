@@ -1,5 +1,7 @@
 { pkgs, hmUsers, config, lib, ... }:
-let name = "tippy"; homeDirectory = "/home/${name}"; ssh_link = config.sops.secrets.id_ed25519.path;
+let name = "tippy"; homeDirectory = "/home/${name}"; 
+  ssh_link = config.sops.secrets.id_ed25519.path;
+  ssh_pub_link = config.sops.secrets.id_ed25519_pub.path;
   aws_link = config.sops.secrets.s3_credentials.path;
 in {
   sops.secrets.id_ed25519 = {
@@ -8,12 +10,20 @@ in {
     group = config.users.users.${name}.group;
     sopsFile = config.sops.secretsDir + /id_ed25519.keytab;
   };
+  sops.secrets.id_ed25519_pub = {
+    format = "binary";
+    owner = config.users.users.${name}.name;
+    group = config.users.users.${name}.group;
+    sopsFile = config.sops.secretsDir + /id_ed25519_pub.keytab;
+  };
 
   environment.global-persistence.user.users = [ name ];
   home-manager.users.${name} = { config, suites, ... }: {
     imports = suites.base;
     home.file.".ssh/id_ed25519".source =
       config.lib.file.mkOutOfStoreSymlink ssh_link;
+    home.file.".ssh/id_ed25519.pub".source =
+      config.lib.file.mkOutOfStoreSymlink ssh_pub_link;
     home.file.".aws/credentials".source =
       config.lib.file.mkOutOfStoreSymlink aws_link;
     home.global-persistence = {

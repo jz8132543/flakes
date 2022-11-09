@@ -15,6 +15,9 @@
         "gitlab.com" = { user = "git"; };
         "*" = { user = "tippy"; };
       };
+      includes = [
+        "config.d/*"
+      ];
     };
   };
 }

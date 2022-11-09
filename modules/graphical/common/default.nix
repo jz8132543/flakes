@@ -10,6 +10,8 @@ lib.mkIf config.environment.graphical.enable{
       extraPackages = with pkgs; [ intel-media-driver ];
     };
   };
+  console.font = "latarcyrheb-sun32";
+  console.earlySetup = true;
   security.rtkit.enable = true;
   services.blueman.enable = true;
   services.pipewire = {
@@ -21,7 +23,11 @@ lib.mkIf config.environment.graphical.enable{
   };
   networking.networkmanager.enable = true;
   programs.light.enable = true;
-  systemd.services.nix-daemon.environment = lib.mkIf config.environment.China.enable { all_proxy = "socks5://127.0.0.1:1080"; };
+  systemd.services.nix-daemon.environment = lib.mkIf config.environment.China.enable {
+    all_proxy = "socks5://127.0.0.1:1080";
+    http_proxy = "socks5://127.0.0.1:1080";
+    https_proxy = "socks5://127.0.0.1:1080";
+  };
   environment.systemPackages = with pkgs; [
   ];
   environment.global-persistence = {
