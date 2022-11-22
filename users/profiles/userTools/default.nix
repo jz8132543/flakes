@@ -22,5 +22,6 @@
     nixfmt
     ripgrep
     duf
+    yubikey-manager
   ];
 }

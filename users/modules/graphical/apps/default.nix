@@ -6,6 +6,8 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     mpv
 
     logseq
+    wpsoffice
+    nur.repos.pokon548.v2raya-unstable
     nur.repos.xddxdd.baidupcs-go
     nur.repos.xddxdd.bilibili
     nur.repos.xddxdd.wechat-uos

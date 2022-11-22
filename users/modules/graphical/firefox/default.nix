@@ -4,7 +4,6 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   programs.firefox = {
     enable = true;
     package = pkgs.wrapFirefox pkgs.firefox-unwrapped {
-      forceWayland = true;
       extraPolicies = {
         PasswordManagerEnabled = false;
         DisableFirefoxAccounts = true;

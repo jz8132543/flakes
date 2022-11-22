@@ -7,75 +7,25 @@
       viAlias = true;
       vimAlias = true;
       vimdiffAlias = true;
-      plugins = with pkgs; [
-        vimPlugins.aerial-nvim
-        vimPlugins.nvim-autopairs
-        vimPlugins.bufferline-nvim
-
-        vimPlugins.cmp-nvim-lsp
-        vimPlugins.cmp-buffer
-        vimPlugins.cmp-path
-        vimPlugins.cmp-cmdline
-        vimPlugins.cmp-nvim-lua
-        vimPlugins.cmp-nvim-lsp-signature-help
-        vimPlugins.lspkind-nvim
-
-        vimPlugins.comment-nvim
-        vimPlugins.nvim-dap
-        vimPlugins.nvim-dap-ui
-        vimPlugins.dashboard-nvim
-        vimPlugins.dressing-nvim
-        vimPlugins.gitsigns-nvim
-        vimPlugins.indent-blankline-nvim
-        nur.repos.m15a.vimExtraPlugins.nvim-lspconfig
-        nur.repos.m15a.vimExtraPlugins.mason-nvim
-        vimPlugins.lualine-nvim
-        vimPlugins.nvim-web-devicons
-        vimPlugins.lualine-lsp-progress
-        vimPlugins.nvim-tree-lua
-        vimPlugins.project-nvim
-        nur.repos.m15a.vimExtraPlugins.rose-pine
-        vimPlugins.luasnip
-        vimPlugins.cmp_luasnip
-        vimPlugins.telescope-nvim
-        vimPlugins.telescope-fzf-native-nvim
-        vimPlugins.plenary-nvim
-        vimPlugins.which-key-nvim
-        vimPlugins.nvim-ts-rainbow
-        (vimPlugins.nvim-treesitter.withPlugins (plugins:
-          with plugins; [
-            tree-sitter-nix
-            tree-sitter-lua
-            tree-sitter-rust
-            tree-sitter-go
-            tree-sitter-python
-            tree-sitter-c
-            tree-sitter-cpp
-            tree-sitter-yaml
-            tree-sitter-vim
-            tree-sitter-fish
-            tree-sitter-markdown
-          ]))
-
-      ];
-      extraConfig = ''
-        lua require("core")
-        lua vim.cmd('colorscheme rose-pine')
-      '';
     };
   };
 
-  home.file.neovim = {
-    source = ./lua;
-    target = ".config/nvim/lua";
-    recursive = true;
-  };
-
   home.packages = with pkgs; [ 
+    gnumake cmake
     gcc 
     rnix-lsp 
     sumneko-lua-language-server 
     luajitPackages.luacheck
     luaformatter
   ];
+  home.global-persistence = {
+    directories = [
+      ".local/share/nvim"
+    ];
+  };
+  home.file.neovim = {
+    source = ./config;
+    target = ".config/nvim";
+    recursive = true;
+  };
 }
