@@ -1,4 +1,5 @@
 local opt = vim.opt
+local cache_dir = os.getenv("HOME") .. "/.cache/nvim/"
 
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
@@ -6,6 +7,14 @@ vim.g.maplocalleader = ' '
 -- color scheme
 vim.opt.termguicolors = true
 vim.cmd("colorscheme melange")
+
+-- open backup
+vim.o.backup = true
+vim.o.writebackup = true
+vim.o.backupdir = cache_dir .. "backup/"
+-- Ask for confirmation when handling unsaved or read-only files
+vim.o.confirm = true
+vim.o.signcolumn = "yes"
 
 -- command menu
 opt.pumheight = 20
@@ -25,16 +34,16 @@ opt.scrolloff = 5
 opt.number = true
 opt.relativenumber = true
 opt.signcolumn = 'yes'
-opt.mouse = 'a'
+opt.mouse = 'nv'
 opt.writebackup = false
 opt.swapfile = false
 opt.updatetime = 500
 opt.timeoutlen = 500
 opt.splitbelow = true
 opt.splitright = true
-opt.tabstop = 4
-opt.softtabstop = 4
-opt.shiftwidth = 4
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.shiftwidth = 2
 opt.expandtab = true
 opt.autoindent = true
 opt.smartindent = true
@@ -61,12 +70,7 @@ opt.fillchars:append {
   verthoriz = '╋',
 }
 
-opt.list = false
-opt.listchars:append 'eol:↴'
 opt.termguicolors = true
-
--- system clipboard
--- opt.clipboard = 'unnamedplus'
 
 -- colorschme
 opt.showmode = false

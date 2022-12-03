@@ -16,10 +16,13 @@ packer.startup(function(use)
   -- Highlight the variable with the same name
   use 'RRethy/vim-illuminate'
 
-  use { 'lukas-reineke/indent-blankline.nvim', config = [[ require 'plugins.indent-blankline' ]], disable = true }
+  use { 'lukas-reineke/indent-blankline.nvim', config = [[ require 'plugins.indent-blankline' ]] }
 
   -- Smart comment
   use { 'numToStr/Comment.nvim', config = [[ require 'plugins.comment' ]] }
+
+  -- Aerial
+  use { 'stevearc/aerial.nvim', config = [[ require 'plugins.aerial' ]] }
 
   -- File manager
   use {
@@ -27,8 +30,28 @@ packer.startup(function(use)
     config = [[ require 'plugins.nvim-tree']],
   }
 
+  -- Auto save session
+  use { 'rmagatti/auto-session' }
+   -- Lsp progress alert
+  use { 'j-hui/fidget.nvim', after = 'auto-session', config = [[ require 'plugins.fidget' ]] }
+
   -- Statusline
   use { 'nvim-lualine/lualine.nvim', config = [[ require 'plugins.lualine' ]] }
+  -- Bufferline
+  use { 'akinsho/bufferline.nvim', config = [[ require 'plugins.bufferline' ]] }
+
+  -- Git
+  use {
+    {
+      'tpope/vim-fugitive',
+      cmd = { 'G', 'G!', 'Git', 'Gstatus', 'Gblame', 'Gpush', 'Gpull' },
+    },
+    {
+      'lewis6991/gitsigns.nvim',
+      config = [[ require 'plugins.gitsigns' ]],
+    },
+    -- { 'sindrets/diffview.nvim' },
+  }
 
   -- Search
   use {

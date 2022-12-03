@@ -135,22 +135,6 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
       style = builtins.readFile ./waybar.css;
       systemd.enable = true;
     };
-    tmux = {
-      enable = true;
-      baseIndex = 1;
-      escapeTime = 10;
-      shell = "${pkgs.zsh}/bin/zsh";
-      keyMode = "vi";
-      terminal = "screen-256color";
-      extraConfig = ''
-        set -g status-position top
-        set -g set-clipboard on
-        set -g mouse on
-        set -g status-right ""
-        set -g renumber-windows on
-        new-session -s main
-      '';
-    };
     alacritty = {
       enable = true;
       settings = {

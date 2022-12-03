@@ -55,6 +55,8 @@ keymap("i", "jk", "<ESC>", opts)
 keymap("i", "kj", "<ESC>", opts)
 
 -- Visual --
+-- Copy to clipboard
+keymap("v", "<C-y>", "\"+y<Esc>", opts)
 -- Stay in indent mode
 keymap("v", "<", "<gv", opts)
 keymap("v", ">", ">gv", opts)
