@@ -78,8 +78,6 @@ in
       efi = {
         efiSysMountPoint = "/boot/efi";
       };
-
-      # Bootloader using GRUB 2
       grub = {
         enable = true;
         configurationLimit = 10; # It limits max entires to 10
@@ -94,6 +92,7 @@ in
           set theme=($drive1)${pkgs.libsForQt5.breeze-grub}/grub/themes/breeze/theme.txt
         '';
       };
+      timeout = 1;
     };
     supportedFilesystems = [ "vfat" "btrfs" ];
     kernelPackages = pkgs.linuxPackages_latest;
