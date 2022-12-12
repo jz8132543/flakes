@@ -83,6 +83,7 @@ in
         device = "nodev";
       };
     };
+    supportedFilesystems = [ "vfat" "btrfs" ];
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
