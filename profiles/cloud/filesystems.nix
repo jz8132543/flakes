@@ -91,7 +91,7 @@ in
         gfxpayloadEfi = lib.mkDefault "1920x1080";
         gfxpayloadBios = lib.mkDefault "1920x1080";
         extraConfig = ''
-          set theme=${pkgs.plasma5.breeze-grub}/grub/themes/breeze/theme.txt
+        set theme=${pkgs.libsForQt5.breeze-grub}/grub/themes/breeze/theme.txt
         '';
       };
     };
