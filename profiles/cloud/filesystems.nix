@@ -11,7 +11,7 @@ in
     #   options = [ "defaults" "mode=755" ];
     # };
 
-    "/boot" = {
+    "/boot/efi" = {
       device = "/dev/disk/by-partlabel/EFI";
       fsType = "vfat";
     };
@@ -70,14 +70,17 @@ in
       btrfs subvolume create /mnt/@ROOT
     '';
     loader = {
-      timeout = 1;
-      systemd-boot = {
-        enable = true;
-        consoleMode = "max";
-      };
       efi = {
         canTouchEfiVariables = true;
-        efiSysMountPoint = "/boot";
+        efiSysMountPoint = "/boot/efi";
+      };
+
+      # Bootloader using GRUB 2
+      grub = {
+        enable = true;
+        configurationLimit = 10; # It limits max entires to 10
+        efiSupport = true;
+        device = "nodev";
       };
     };
     kernelPackages = pkgs.linuxPackages_latest;
