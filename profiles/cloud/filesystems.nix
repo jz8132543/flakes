@@ -84,10 +84,6 @@ in
         efiSupport = true;
         efiInstallAsRemovable = true;
         device = "/dev/vda";
-        gfxmodeEfi = lib.mkDefault "text";
-        gfxmodeBios = lib.mkDefault "text";
-        gfxpayloadEfi = lib.mkDefault "1920x1080";
-        gfxpayloadBios = lib.mkDefault "1920x1080";
       };
       timeout = 1;
     };
