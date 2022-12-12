@@ -30,10 +30,10 @@ in
     btrfs subvol create /fsroot/@swap
     btrfs subvol create /fsroot/@ROOT
     btrfs subvol create /fsroot/@boot
-    mkdir -p /mnt/boot
+    mkdir -p /mnt
     mount -o subvol=@ROOT,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt
-    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/boot
     mkdir -p /mnt/{boot/efi,nix,persist}
+    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/boot
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
     mount /dev/vda2 /mnt/boot/efi
