@@ -84,13 +84,11 @@ in
         efiSupport = true;
         efiInstallAsRemovable = true;
         device = "/dev/vda";
+        theme = lib.mkDefault pkgs.libsForQt5.breeze-grub;
         gfxmodeEfi = lib.mkDefault "text";
         gfxmodeBios = lib.mkDefault "text";
         gfxpayloadEfi = lib.mkDefault "1920x1080";
         gfxpayloadBios = lib.mkDefault "1920x1080";
-        extraConfig = lib.mkDefault ''
-          set theme=($drive1)${pkgs.libsForQt5.breeze-grub}/grub/themes/breeze/theme.txt
-        '';
       };
       timeout = 1;
     };
