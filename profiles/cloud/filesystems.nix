@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 let
   device = "/dev/disk/by-partlabel/NIXOS";
   fsType = "btrfs";
@@ -86,6 +86,13 @@ in
         efiSupport = true;
         efiInstallAsRemovable = true;
         device = "/dev/vda";
+        gfxmodeEfi = lib.mkDefault "text";
+        gfxmodeBios = lib.mkDefault "text";
+        gfxpayloadEfi = lib.mkDefault "1920x1080";
+        gfxpayloadBios = lib.mkDefault "1920x1080";
+        extraConfig = ''
+          set theme=${pkgs.plasma5.breeze-grub}/grub/themes/breeze/theme.txt
+        '';
       };
     };
     supportedFilesystems = [ "vfat" "btrfs" ];
