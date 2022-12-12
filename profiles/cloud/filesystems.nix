@@ -90,8 +90,8 @@ in
         gfxmodeBios = lib.mkDefault "text";
         gfxpayloadEfi = lib.mkDefault "1920x1080";
         gfxpayloadBios = lib.mkDefault "1920x1080";
-        extraConfig = ''
-        set theme=${pkgs.libsForQt5.breeze-grub}/grub/themes/breeze/theme.txt
+        extraConfig = lib.mkDefault ''
+          set theme=($drive3)${pkgs.libsForQt5.breeze-grub}/grub/themes/breeze/theme.txt
         '';
       };
     };

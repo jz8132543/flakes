@@ -32,9 +32,9 @@ in
     btrfs subvol create /fsroot/@boot
     mkdir /mnt
     mount -o subvol=@ROOT,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt
+    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /boot
     mkdir -p /mnt/{boot/efi,nix,persist}
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
-    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /boot
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
     mount /dev/vda2 /mnt/boot/efi
     export NIX_STATE_DIR=$TMPDIR/state
