@@ -84,7 +84,6 @@ in
         efiSupport = true;
         efiInstallAsRemovable = true;
         device = "/dev/vda";
-        theme = lib.mkDefault pkgs.libsForQt5.breeze-grub;
         gfxmodeEfi = lib.mkDefault "text";
         gfxmodeBios = lib.mkDefault "text";
         gfxpayloadEfi = lib.mkDefault "1920x1080";
