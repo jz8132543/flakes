@@ -27,6 +27,13 @@ in {
     extraDomainNames = [ "*.tippic.eu.org" ];
     # inherit extralegoflags;
   };
+  security.acme.certs."tippy.ml" = {
+    group = "nginx";
+    dnsProvider = "cloudflare";
+    credentialsFile = config.sops.secrets.acme-eu.path;
+    extraDomainNames = [ "*.tippy.ml" ];
+    # inherit extralegoflags;
+  };
   security.acme.certs."dora.im" = {
     group = "nginx";
     dnsProvider = "cloudflare";

@@ -13,9 +13,9 @@
     };
     nginx = {
       enable = true;
-      virtualHosts."test.tippic.eu.org" = {
+      virtualHosts."test.tippy.ml" = {
         forceSSL = true;
-        useACMEHost = "tippic.eu.org";
+        useACMEHost = "tippy.ml";
         listen = [{
           addr = "0.0.0.0";
           port = 8443;
