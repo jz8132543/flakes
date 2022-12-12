@@ -32,7 +32,7 @@ in
     btrfs subvol create /fsroot/@boot
     mkdir -p /mnt/boot
     mount -o subvol=@ROOT,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt
-    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /boot
+    mount -o subvol=@boot,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/boot
     mkdir -p /mnt/{boot/efi,nix,persist}
     mount -o subvol=@nix,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/nix
     mount -o subvol=@persist,compress-force=zstd,space_cache=v2 /dev/vda3 /mnt/persist
