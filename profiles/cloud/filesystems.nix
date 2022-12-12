@@ -26,6 +26,11 @@ in
       options = [ "subvol=@nix" ] ++ options;
     };
 
+    "/boot" = {
+      inherit device fsType;
+      options = [ "subvol=@boot" ] ++ options;
+    };
+
     "/persist" = {
       inherit device fsType;
       options = [ "subvol=@persist" ] ++ options;
