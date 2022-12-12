@@ -85,7 +85,7 @@ in
         configurationLimit = 10; # It limits max entires to 10
         efiSupport = true;
         efiInstallAsRemovable = true;
-        device = "nodev";
+        device = "/dev/vda";
       };
     };
     supportedFilesystems = [ "vfat" "btrfs" ];

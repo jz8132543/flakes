@@ -22,8 +22,8 @@ in
     mkfs.vfat /dev/vda2
     mkfs.btrfs /dev/vda3
     # This is needed for systemd-boot to find ESP, and udev is not available here to create this
-    mkdir -p /dev/block
-    ln -s /dev/vda2 /dev/block/254:2
+    # mkdir -p /dev/block
+    # ln -s /dev/vda2 /dev/block/254:2
     mkdir /fsroot && mount /dev/vda3 /fsroot
     btrfs subvol create /fsroot/@nix
     btrfs subvol create /fsroot/@persist
