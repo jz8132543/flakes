@@ -16,6 +16,10 @@ in {
     format = "binary";
     sopsFile = config.sops.secretsDir + /acme-im.keytab;
   };
+  sops.secrets.acme-ml = {
+    format = "binary";
+    sopsFile = config.sops.secretsDir + /acme-ml.keytab;
+  };
 
   security.acme.defaults.email = "blackhole@dora.im";
   security.acme.acceptTerms = true;
@@ -30,7 +34,7 @@ in {
   security.acme.certs."tippy.ml" = {
     group = "nginx";
     dnsProvider = "cloudflare";
-    credentialsFile = config.sops.secrets.acme-eu.path;
+    credentialsFile = config.sops.secrets.acme-ml.path;
     extraDomainNames = [ "*.tippy.ml" ];
     # inherit extralegoflags;
   };
