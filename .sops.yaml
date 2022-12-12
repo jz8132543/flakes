@@ -2,7 +2,7 @@ keys:
   - &gpg 23232A6D050ACE46DF02D72B84A772A8519FC163
   - &vmware age1f266lyrpxq6hejveyhlml9d64vtfrwqvkg8gsamgd8pkgxfprelqkgl97z
   - &surface age1f723rc6ensk5x22m364mtltfzy95xv27fvalmxmg734aldd45drqqlkxts
-  - &tyo0 age129gqz8yxkxe4zlcqxrt2vfvjp6pe8qsveajzez05q59vqgkfec6q240fgt
+  - &tyo0 age1yvv6ul45tg59sw3uwfwz9z3p2xjhx6urfr96xhzewupufry7t43smzsc96
   - &ams0 age1ht8qv38vdrmuzehf8rpq9clm6uwk9q4w3qdkqcdjdfj9u2heeq3q0ep6dt
   - &sin0 age1q88jsfmck7f588fzqgsyx82kw7u22ha83zsshcv9l03tykwznv7sqfy2dp
 creation_rules:
