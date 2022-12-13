@@ -13,9 +13,9 @@
     };
     nginx = {
       enable = true;
-      virtualHosts."test.tippy.ml" = {
+      virtualHosts."test.dora.im" = {
         forceSSL = true;
-        useACMEHost = "tippy.ml";
+        useACMEHost = "dora.im";
         listen = [{
           addr = "0.0.0.0";
           port = 8443;
