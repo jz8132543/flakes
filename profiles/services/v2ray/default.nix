@@ -23,7 +23,7 @@
         }];
         locations = {
           "/" = { proxyPass = "https://mirrors.mit.edu/"; };
-          "/Ray" = {
+          "/Ray/" = {
             proxyPass = "http://127.0.0.1:10000";
             proxyWebsockets = true;
             extraConfig = ''
