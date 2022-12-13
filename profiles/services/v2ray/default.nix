@@ -13,9 +13,9 @@
     };
     nginx = {
       enable = true;
-      virtualHosts."test.tippic.eu.org" = {
+      virtualHosts."test.dora.im" = {
         forceSSL = true;
-        useACMEHost = "tippic.eu.org";
+        useACMEHost = "dora.im";
         listen = [{
           addr = "0.0.0.0";
           port = 8444;
