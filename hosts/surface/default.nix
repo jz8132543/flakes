@@ -26,6 +26,17 @@
     loader.grub = {
       device = lib.mkForce "nodev";
       fontSize = 30;
+      useOSProber = true;
+      extraEntries = ''
+        menuentry "Windows" {
+          insmod part_gpt
+          insmod ntfs
+          insmod search_fs_uuid
+          insmod chain
+          set root='(hd0,gpt4)'
+          chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+        }
+      '';
     };
   };
 

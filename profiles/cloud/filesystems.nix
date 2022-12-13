@@ -87,7 +87,7 @@ in
       };
       timeout = 1;
     };
-    supportedFilesystems = [ "vfat" "btrfs" ];
+    supportedFilesystems = [ "vfat" "btrfs" "ntfs" ];
     kernelPackages = pkgs.linuxPackages_latest;
   };
 
