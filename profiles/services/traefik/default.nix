@@ -59,9 +59,5 @@
     };
   };
   # systemd.services.traefik.serviceConfig.EnvironmentFile = config.sops.secrets.traefik.path;
-  systemd.services.traefik = {
-    serviceConfig.LoadCredential = "kubeconfig:/etc/rancher/k3s/k3s.yaml";
-    environment.KUBECONFIG = "%d/kubeconfig";
-    after = [ "k3s.service" ];
-  };
+  # Added k3s systemd configure
 }

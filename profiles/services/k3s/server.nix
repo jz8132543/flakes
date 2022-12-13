@@ -15,4 +15,10 @@
       ];
     };
   };
+  systemd.services.traefik = {
+    serviceConfig.LoadCredential = "kubeconfig:/etc/rancher/k3s/k3s.yaml";
+    environment.KUBECONFIG = "%d/kubeconfig";
+    after = [ "k3s.service" ];
+  };
+
 }
