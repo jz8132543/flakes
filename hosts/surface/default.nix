@@ -25,8 +25,8 @@
     '';
     loader.grub = {
       device = lib.mkForce "nodev";
-      fontSize = 30;
-      useOSProber = true;
+      gfxmodeEfi = "1600x1200";
+      theme = pkgs.nixos-grub2-theme;
       extraEntries = ''
         menuentry "Windows" {
           insmod part_gpt
