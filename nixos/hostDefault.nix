@@ -5,9 +5,10 @@ with inputs; {
   imports = [ (digga.lib.importExportableModules ../modules) ];
   modules = [
     home.nixosModules.home-manager
-    inputs.sops-nix.nixosModules.sops
-    inputs.nixos-cn.nixosModules.nixos-cn
-    inputs.nixos-cn.nixosModules.nixos-cn-registries
-    inputs.impermanence.nixosModules.impermanence
+    sops-nix.nixosModules.sops
+    nixos-cn.nixosModules.nixos-cn
+    nixos-cn.nixosModules.nixos-cn-registries
+    impermanence.nixosModules.impermanence
+    grub2-themes.nixosModule
   ];
 }

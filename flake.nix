@@ -48,6 +48,10 @@
         flake-compat.follows = "flake-compat";
       };
     };
+    grub2-themes = {
+      url = github:vinceliuice/grub2-themes;
+      inputs.nixpkgs.follows = "nixos";
+    };
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:

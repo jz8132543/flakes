@@ -23,20 +23,25 @@
       options kvm_intel emulate_invalid_guest_state=0
       options kvm ignore_msrs=1
     '';
-    loader.grub = {
-      device = lib.mkForce "nodev";
-      gfxmodeEfi = "1600x1200";
-      theme = pkgs.nixos-grub2-theme;
-      extraEntries = ''
-        menuentry "Windows" {
-          insmod part_gpt
-          insmod ntfs
-          insmod search_fs_uuid
-          insmod chain
-          set root='(hd0,gpt4)'
-          chainloader /EFI/Microsoft/Boot/bootmgfw.efi
-        }
-      '';
+    loader = {
+      grub = {
+        device = lib.mkForce "nodev";
+        gfxmodeEfi = lib.mkForce "1600x1200";
+        extraEntries = ''
+          menuentry "Windows" {
+            insmod part_gpt
+            insmod ntfs
+            insmod search_fs_uuid
+            insmod chain
+            set root='(hd0,gpt4)'
+            chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+          }
+        '';
+      };
+      grub2-theme = {
+        enable = true;
+        theme = "whitesur";
+      };
     };
   };
 

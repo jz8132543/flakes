@@ -218,6 +218,26 @@
         "type": "github"
       }
     },
+    "grub2-themes": {
+      "inputs": {
+        "nixpkgs": [
+          "nixos"
+        ]
+      },
+      "locked": {
+        "lastModified": 1668213765,
+        "narHash": "sha256-mTx1jAy6AOY4moWRGvCHYnUNX4qBL/ba47ZcIkhczJM=",
+        "owner": "vinceliuice",
+        "repo": "grub2-themes",
+        "rev": "c106dfb9b5b18ad092ff0f952f2b734933e8283e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vinceliuice",
+        "repo": "grub2-themes",
+        "type": "github"
+      }
+    },
     "home": {
       "inputs": {
         "nixpkgs": [
@@ -406,6 +426,7 @@
         "deploy": "deploy",
         "digga": "digga",
         "flake-compat": "flake-compat_3",
+        "grub2-themes": "grub2-themes",
         "home": "home",
         "impermanence": "impermanence",
         "nixos": "nixos",
