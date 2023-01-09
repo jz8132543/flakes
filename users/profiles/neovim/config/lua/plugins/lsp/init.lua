@@ -1,7 +1,57 @@
-local status_ok, _ = pcall(require, "lspconfig")
-if not status_ok then
-  return
+local servers = require("plugins.lsp.servers")
+
+local function on_attach(client, bufnr)
+  require("plugins.lsp.format").on_attach(client, bufnr)
+  require("plugins.lsp.keymaps").on_attach(client, bufnr)
 end
 
-require "plugins.lsp.mason"
-require "plugins.lsp.null-ls"
+return {
+  -- lspconfig
+  {
+    "neovim/nvim-lspconfig",
+    event = "BufReadPre",
+    dependencies = {
+      { "folke/neoconf.nvim", cmd = "Neoconf", config = true },
+      { "folke/neodev.nvim", config = true },
+      { "williamboman/mason.nvim", config = true, cmd = "Mason" },
+      { "williamboman/mason-lspconfig.nvim", config = { automatic_installation = false } },
+      "hrsh7th/cmp-nvim-lsp",
+    },
+    config = function()
+      -- diagnostics
+      for name, icon in pairs(require("config.icons").diagnostics) do
+        name = "DiagnosticSign" .. name
+        vim.fn.sign_define(name, { text = icon, texthl = name, numhl = "" })
+      end
+      vim.diagnostic.config({
+        underline = true,
+        update_in_insert = false,
+        virtual_text = { spacing = 4, prefix = "●" },
+        severity_sort = true,
+      })
+
+      -- lspconfig
+      local capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities())
+      for server, opts in pairs(servers) do
+        opts.capabilities = capabilities
+        opts.on_attach = on_attach
+        require("lspconfig")[server].setup(opts)
+      end
+    end,
+  },
+
+  -- formatters
+  {
+    "jose-elias-alvarez/null-ls.nvim",
+    event = "BufReadPre",
+    config = function()
+      local nls = require("null-ls")
+      nls.setup({
+        on_attach = on_attach,
+        sources = {
+          -- nls.builtins.formatting.prettierd,
+        },
+      })
+    end,
+  },
+}
