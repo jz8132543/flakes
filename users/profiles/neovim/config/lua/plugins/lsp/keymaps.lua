@@ -13,11 +13,8 @@ function M.on_attach(client, buffer)
           o = { "<cmd>:TypescriptOrganizeImports<CR>", "Organize Imports" },
           R = { "<cmd>:TypescriptRenameFile<CR>", "Rename File" },
         },
-        r = { "<cmd>lua vim.lsp.buf.rename()<cr>", "Rename", cond = cap.renameProvider },
-        a = {
-          { vim.lsp.buf.code_action, "Code Action" },
-          { "<cmd>lua vim.lsp.buf.code_action()<cr>", "Code Action", mode = "v" },
-        },
+        r = { "<cmd>Lspsaga rename<CR>", "Rename" },
+        a = { "<cmd>Lspsaga code_action<CR>", "Code Action" },
         f = {
           {
             require("plugins.lsp.format").format,
@@ -31,7 +28,7 @@ function M.on_attach(client, buffer)
             mode = "v",
           },
         },
-        d = { vim.diagnostic.open_float, "Line Diagnostics" },
+        d = { "<cmd>Lspsaga show_line_diagnostics<CR>", "Line Diagnostics" },
         l = {
           name = "+lsp",
           i = { "<cmd>LspInfo<cr>", "Lsp Info" },
@@ -43,27 +40,30 @@ function M.on_attach(client, buffer)
     },
     g = {
       name = "+goto",
-      d = { "<cmd>Telescope lsp_definitions<cr>", "Goto Definition" },
+      d = { "<cmd>Lspsaga peek_definition<cr>", "Goto Definition" },
       r = { "<cmd>Telescope lsp_references<cr>", "References" },
       R = { "<cmd>Trouble lsp_references<cr>", "Trouble References" },
       D = { "<cmd>Telescope lsp_declarations<CR>", "Goto Declaration" },
       I = { "<cmd>Telescope lsp_implementations<CR>", "Goto Implementation" },
       t = { "<cmd>Telescope lsp_type_definitions<cr>", "Goto Type Definition" },
+      h = { "<cmd>Lspsaga lsp_finder<CR>", "LSP finder" }
     },
     ["<C-k>"] = { "<cmd>lua vim.lsp.buf.signature_help()<CR>", "Signature Help", mode = { "n", "i" } },
-    ["K"] = { "<cmd>lua vim.lsp.buf.hover()<CR>", "Hover" },
+    ["K"] = { "<cmd>Lspsaga hover_doc<CR>", "Hover" },
     ["[d"] = { "<cmd>lua vim.diagnostic.goto_prev()<CR>", "Next Diagnostic" },
     ["]d"] = { "<cmd>lua vim.diagnostic.goto_next()<CR>", "Prev Diagnostic" },
-    ["[e"] = { "<cmd>lua vim.diagnostic.goto_prev({severity = vim.diagnostic.severity.ERROR})<CR>", "Next Error" },
-    ["]e"] = { "<cmd>lua vim.diagnostic.goto_next({severity = vim.diagnostic.severity.ERROR})<CR>", "Prev Error" },
-    ["[w"] = {
-      "<cmd>lua vim.diagnostic.goto_prev({severity = vim.diagnostic.severity.WARNING})<CR>",
-      "Next Warning",
+    ["[w"] = { "<cmd>Lspsaga diagnostic_jump_prev<CR>", "Prev WARN" },
+    ["]w"] = { "<cmd>Lspsaga diagnostic_jump_next<CR>", "Next WANR" },
+    ["[e"] = {
+      function() require("lspsaga.diagnostic").goto_prev({ severity = vim.diagnostic.severity.ERROR }) end,
+      "Prev Error",
     },
-    ["]w"] = {
-      "<cmd>lua vim.diagnostic.goto_next({severity = vim.diagnostic.severity.WARNING})<CR>",
-      "Prev Warning",
+    ["]e"] = {
+      function() require("lspsaga.diagnostic").goto_next({ severity = vim.diagnostic.severity.ERROR }) end,
+      "Next Error",
     },
+    ['<A-d>'] = { "<cmd>Lspsaga open_floaterm<CR>", "Float terminal" },
+    ['A-d'] = { [[<C-\><C-n><cmd>Lspsaga close_floaterm<CR>]], mode = "t" },
   })
 end
 

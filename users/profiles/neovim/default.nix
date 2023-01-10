@@ -8,10 +8,10 @@
   };
 
   home.packages = with pkgs; [
-    nil
+    nil nixpkgs-fmt
     nodejs
     nodePackages.npm
-    sumneko-lua-language-server
+    sumneko-lua-language-server stylua luajitPackages.luacheck
   ];
   home.global-persistence = {
     directories = [
