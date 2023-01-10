@@ -15,10 +15,10 @@ vim.opt.guifont = "FiraCode Nerd Font:h11"
 vim.opt.hidden = true -- Enable modified buffers in background
 vim.opt.ignorecase = true -- Ignore case
 vim.opt.inccommand = "nosplit" -- preview incremental substitute
-vim.opt.joinspaces = false -- No double spaces with join after a dot
+-- vim.opt.joinspaces = false -- No double spaces with join after a dot
 vim.opt.laststatus = 0
 vim.opt.list = true -- Show some invisible characters (tabs...
-vim.opt.mouse = "a" -- enable mouse mode
+vim.opt.mouse = "nv" -- enable mouse mode
 vim.opt.number = true -- Print line number
 vim.opt.pumblend = 10 -- Popup blend
 vim.opt.pumheight = 10 -- Maximum number of entries in a popup
@@ -46,3 +46,5 @@ vim.opt.wrap = false -- Disable line wrap
 
 -- fix markdown indentation settings
 vim.g.markdown_recommended_style = 0
+
+vim.opt.showmatch = true

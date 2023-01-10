@@ -54,6 +54,7 @@ return {
           nls.builtins.formatting.stylua,
           nls.builtins.formatting.nixpkgs_fmt,
           nls.builtins.formatting.clang_format,
+          nls.builtins.formatting.cmake_format,
           nls.builtins.formatting.shfmt,
           nls.builtins.formatting.isort,
           nls.builtins.formatting.black,
@@ -64,8 +65,9 @@ return {
           -- nls.builtins.formatting.fixjson.with({ filetypes = { "jsonc" } }),
           -- nls.builtins.formatting.eslint_d,
           -- nls.builtins.diagnostics.shellcheck,
-          nls.builtins.diagnostics.markdownlint,
           nls.builtins.diagnostics.luacheck,
+          nls.builtins.diagnostics.cmake_lint,
+          nls.builtins.diagnostics.markdownlint,
           nls.builtins.diagnostics.selene.with({
             condition = function(utils)
               return utils.root_has_file({ "selene.toml" })

@@ -3,13 +3,18 @@
 local servers = {
   bashls = {},
   clangd = {},
+  cmake = {},
   cssls = {},
   tsserver = {},
   html = {},
   jsonls = {},
   pyright = {},
   yamlls = {},
-  nil_ls = {},
+  nil_ls = {
+    formatting = {
+      command = { "nixpkgs-fmt" },
+    },
+  },
   sumneko_lua = {
     settings = {
       Lua = {
