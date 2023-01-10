@@ -8,11 +8,18 @@ let
     export __VK_LAYER_NV_optimus=NVIDIA_only
     exec "$@"
   '';
+  buildScript = ''nvcc -o "$1".bin "$1" -I ${pkgs.cudatoolkit}/include -ldir ${pkgs.cudatoolkit}/nvvm/libdevice/ -L ${pkgs.cudatoolkit}/lib -L ${pkgs.cudatoolkit.lib}/lib --dont-use-profile -G --std=c++11 -rdc=true -gencode=arch=compute_61,code=sm_61 -lcudadevrt patchelf --set-rpath "/run/opengl-driver/lib:"$(patchelf --print-rpath "$1".bin) "$1".bin
+'';
+  cudaCompile = pkgs.writeScriptBin "cudaCompile" ''
+    #!${pkgs.stdenv.shell}
+    ${buildScript}
+  '';
 in
 lib.mkIf config.environment.graphical.enable {
   environment.systemPackages = with pkgs; [
     nvidia-offload
     cudatoolkit
+    cudaCompile
   ];
   nixpkgs.config.permittedInsecurePackages = [
     "python-2.7.18.6"
