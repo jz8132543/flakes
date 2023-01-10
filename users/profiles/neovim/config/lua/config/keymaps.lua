@@ -52,6 +52,8 @@ vim.keymap.set("n", "<C-s>", "<cmd>:w<cr><esc>")
 vim.keymap.set("v", "<", "<gv")
 vim.keymap.set("v", ">", ">gv")
 
+vim.keymap.set("v", "<C-y>", '"+y<Esc>')
+
 -- lazygit
 vim.keymap.set("n", "<leader>gg", function()
   require("lazy.util").open_cmd({ "lazygit" }, {

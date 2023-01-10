@@ -9,10 +9,13 @@ let
     exec "$@"
   '';
 in
-lib.mkIf config.environment.graphical.enable{
+lib.mkIf config.environment.graphical.enable {
   environment.systemPackages = with pkgs; [
     nvidia-offload
     cudatoolkit
+  ];
+  nixpkgs.config.permittedInsecurePackages = [
+    "python-2.7.18.6"
   ];
 
   services.xserver.videoDrivers = [ "nvidia" ];

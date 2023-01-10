@@ -9,6 +9,6 @@ with inputs; {
     nixos-cn.nixosModules.nixos-cn
     nixos-cn.nixosModules.nixos-cn-registries
     impermanence.nixosModules.impermanence
-    grub2-themes.nixosModule
+    grub2-themes.nixosModules.default
   ];
 }

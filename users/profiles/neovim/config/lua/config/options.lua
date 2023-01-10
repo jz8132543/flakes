@@ -2,7 +2,6 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 vim.opt.autowrite = true -- enable auto write
-vim.opt.clipboard = "unnamedplus" -- sync with system clipboard
 vim.opt.cmdheight = 1
 vim.opt.completeopt = "menu,menuone,noselect"
 vim.opt.conceallevel = 3 -- Hide * markup for bold and italic
@@ -33,6 +32,7 @@ vim.opt.sidescrolloff = 8 -- Columns of context
 vim.opt.signcolumn = "yes" -- Always show the signcolumn, otherwise it would shift the text each time
 vim.opt.smartcase = true -- Don't ignore case with capitals
 vim.opt.smartindent = true -- Insert indents automatically
+vim.opt.autoindent = true -- Insert indents automatically
 vim.opt.spelllang = { "en" }
 vim.opt.splitbelow = true -- Put new windows below current
 vim.opt.tabstop = 2 -- Number of spaces tabs count for
