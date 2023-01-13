@@ -59,39 +59,4 @@ return {
       })
     end,
   },
-
-  -- auto pairs
-  {
-    "windwp/nvim-autopairs",
-    event = "VeryLazy",
-    config = function()
-      local cmp_autopairs = require("nvim-autopairs.completion.cmp")
-      local cmp = require("cmp")
-      cmp.event:on("confirm_done", cmp_autopairs.on_confirm_done())
-      local npairs = require("nvim-autopairs")
-      npairs.setup({
-        check_ts = true,
-        fast_wrap = {
-          map = "<A-e>",
-        },
-        enable_check_bracket_line = true,
-      })
-    end,
-  },
-
-  -- comments
-  { "JoosepAlviste/nvim-ts-context-commentstring" },
-  {
-    "echasnovski/mini.comment",
-    event = "VeryLazy",
-    config = function()
-      require("mini.comment").setup({
-        hooks = {
-          pre = function()
-            require("ts_context_commentstring.internal").update_commentstring({})
-          end,
-        },
-      })
-    end,
-  },
 }

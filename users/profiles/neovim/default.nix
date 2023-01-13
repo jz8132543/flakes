@@ -16,6 +16,7 @@
     sumneko-lua-language-server
     stylua
     luajitPackages.luacheck
+    clang
   ];
   home.global-persistence = {
     directories = [
