@@ -24,6 +24,9 @@ local servers = {
         completion = {
           callSnippet = "Replace",
         },
+        diagnostics = {
+          globals = { "vim", "use" },
+        },
       },
     },
   },

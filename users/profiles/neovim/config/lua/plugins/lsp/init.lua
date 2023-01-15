@@ -65,7 +65,7 @@ return {
           -- nls.builtins.formatting.fixjson.with({ filetypes = { "jsonc" } }),
           -- nls.builtins.formatting.eslint_d,
           -- nls.builtins.diagnostics.shellcheck,
-          nls.builtins.diagnostics.luacheck,
+          -- nls.builtins.diagnostics.luacheck,
           nls.builtins.diagnostics.cmake_lint,
           nls.builtins.diagnostics.markdownlint,
           nls.builtins.diagnostics.selene.with({

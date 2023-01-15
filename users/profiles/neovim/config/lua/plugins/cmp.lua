@@ -55,6 +55,13 @@ return {
           format = require("lspkind").cmp_format({
             mode = "symbol_text",
             maxwidth = 50,
+            menu = {
+              buffer = "[Buf]",
+              nvim_lsp = "[LSP]",
+              luasnip = "[Snip]",
+              nvim_lua = "[Lua]",
+              path = "[Path]",
+            },
           }),
         },
       })

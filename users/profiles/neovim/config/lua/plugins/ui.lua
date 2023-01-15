@@ -24,34 +24,6 @@ return {
     config = true,
   },
 
-  -- statusline
-  {
-    "nvim-lualine/lualine.nvim",
-    event = "VeryLazy",
-    config = {
-      options = {
-        globalstatus = true,
-        disabled_filetypes = { statusline = { "lazy", "alpha" } },
-      },
-      sections = {
-        lualine_a = { "mode" },
-        lualine_b = { "branch" },
-        lualine_c = { "filename" },
-        lualine_x = {
-          {
-            "diagnostics",
-            sources = { "nvim_lsp" },
-            symbols = { error = " ", warn = " ", info = " ", hint = " " },
-          },
-          "encoding",
-          "filetype",
-        },
-        lualine_y = { "progress" },
-        lualine_z = { "location" },
-      },
-    },
-  },
-
   -- indent guides for Neovim
   {
     "lukas-reineke/indent-blankline.nvim",
@@ -71,6 +43,9 @@ return {
     event = "VeryLazy",
     config = {
       lsp = {
+        progress = {
+          enable = false,
+        },
         override = {
           ["vim.lsp.util.convert_input_to_markdown_lines"] = true,
           ["vim.lsp.util.stylize_markdown"] = true,
