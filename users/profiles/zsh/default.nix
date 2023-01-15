@@ -3,7 +3,8 @@
 let
   cfg = config.home.global-persistence;
   sysCfg = osConfig.environment.global-persistence;
-in{
+in
+{
   programs = {
     zsh = {
       enable = true;
@@ -14,7 +15,7 @@ in{
       shellAliases = {
         deploy = "deploy --skip-checks";
         rebuild =
-          "nixos-rebuild --use-remote-sudo -v -L --flake $HOME/Source/flakes";
+          "nixos-rebuild --use-remote-sudo -L --flake $HOME/Source/flakes";
         nu = "rebuild switch --upgrade";
         hu = "home-manager switch";
         ngc =
@@ -38,7 +39,7 @@ in{
       };
       history = {
         size = 10000;
-        path = 
+        path =
           (if config.home.global-persistence.enabled
           then "${sysCfg.root}${cfg.home}/.config/zsh/zsh_history"
           else "$HOME/.config/zsh/zsh_history");

@@ -74,7 +74,7 @@ return {
             end,
           }),
           -- nls.builtins.code_actions.gitsigns,
-          nls.builtins.diagnostics.flake8,
+          -- nls.builtins.diagnostics.flake8,
         },
         root_dir = require("null-ls.utils").root_pattern(".null-ls-root", ".neoconf.json", ".git"),
       })

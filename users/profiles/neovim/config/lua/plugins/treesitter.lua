@@ -7,6 +7,7 @@ return {
       "nvim-treesitter/nvim-treesitter-textobjects",
       "nvim-treesitter/nvim-treesitter-refactor",
       "JoosepAlviste/nvim-ts-context-commentstring",
+      "nvim-treesitter/nvim-treesitter-context",
       "windwp/nvim-ts-autotag",
       "mrjones2014/nvim-ts-rainbow",
     },
@@ -59,6 +60,7 @@ return {
           enable = true, -- mandatory, false will disable the whole extension
         },
       })
+      require("treesitter-context").setup({})
     end,
   },
 }

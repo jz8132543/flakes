@@ -1,9 +1,12 @@
 { pkgs, hmUsers, config, lib, ... }:
-let name = "tippy"; homeDirectory = "/home/${name}"; 
+let
+  name = "tippy";
+  homeDirectory = "/home/${name}";
   ssh_link = config.sops.secrets.id_ed25519.path;
   ssh_pub_link = config.sops.secrets.id_ed25519_pub.path;
   aws_link = config.sops.secrets.s3_credentials.path;
-in {
+in
+{
   sops.secrets.id_ed25519 = {
     format = "binary";
     owner = config.users.users.${name}.name;
@@ -32,6 +35,7 @@ in {
       directories = [
         "Source"
         ".local/share/direnv"
+        ".local/share/containers"
       ];
     };
   };

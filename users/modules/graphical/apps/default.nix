@@ -1,4 +1,4 @@
-{ nixosConfig, lib, pkgs, ...  }:
+{ nixosConfig, lib, pkgs, ... }:
 
 lib.mkIf nixosConfig.environment.graphical.enable {
   home.packages = with pkgs;  [
@@ -15,6 +15,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     directories = [
       ".logseq"
       ".config/Logseq"
+      ".config/BaiduPCS-Go"
     ];
   };
 

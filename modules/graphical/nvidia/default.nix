@@ -20,6 +20,8 @@ lib.mkIf config.environment.graphical.enable {
     nvidia-offload
     cudatoolkit
     cudaCompile
+    python3
+    python3Packages.pytorch-bin
   ];
   nixpkgs.config.permittedInsecurePackages = [
     "python-2.7.18.6"

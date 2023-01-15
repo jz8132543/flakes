@@ -23,5 +23,7 @@
     ripgrep
     duf
     yubikey-manager
+    realvnc-vnc-viewer
+    podman-compose
   ];
 }

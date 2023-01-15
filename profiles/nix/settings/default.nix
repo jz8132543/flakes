@@ -1,10 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   nixpkgs.config.allowUnfree = true;
   nix = {
     settings = {
       system-features = [ ];
+      nix-path = [ "nixpkgs=${inputs.nixos}" ];
 
       auto-optimise-store = true;
       # automatic = true;
@@ -21,7 +22,7 @@
     extraOptions = ''
       experimental-features = nix-command flakes
       system-features = kvm big-parallel
-      # warn-dirty = false
+      warn-dirty = false
     '';
     package = pkgs.nixFlakes; # or versioned attributes like nixVersions.nix_2_8
   };

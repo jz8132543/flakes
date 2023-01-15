@@ -9,5 +9,7 @@
     screen
     deploy-rs
     wget
+    gptfdisk
+    unzip
   ];
 }
