@@ -93,9 +93,7 @@ return {
           },
           -- Right
           lualine_x = {
-            {
-              lsp_progress,
-            },
+            { lsp_progress },
             {
               "diagnostics",
               sources = { "nvim_diagnostic" },
@@ -110,7 +108,8 @@ return {
             },
           },
           lualine_y = {
-            "filetype",
+            { "filetype" },
+            { lsp_client_names },
           },
           lualine_z = {
             customLocation,
