@@ -24,7 +24,7 @@
     ];
   };
   home.file.neovim = {
-    source = ./config;
+    source = ./nvim;
     target = ".config/nvim";
     recursive = true;
   };
