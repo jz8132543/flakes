@@ -6,10 +6,10 @@ lib.mkIf nixosConfig.environment.graphical.enable {
     mpv
 
     logseq
-    wpsoffice
+    # wpsoffice
     nur.repos.xddxdd.baidupcs-go
-    nur.repos.xddxdd.bilibili
-    nur.repos.xddxdd.wechat-uos
+    # nur.repos.xddxdd.bilibili
+    # nur.repos.xddxdd.wechat-uos
   ];
   home.global-persistence = {
     directories = [

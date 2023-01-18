@@ -33,14 +33,14 @@ in
       enable = true;
       home = homeDirectory;
       directories = [
-        "Source"
+        "source"
         ".local/share/direnv"
         ".local/share/containers"
       ];
     };
   };
 
-  environment.etc."nixos".source = "${homeDirectory}/Source/flakes";
+  environment.etc."nixos".source = "${homeDirectory}/source/flakes";
 
   security.sudo.wheelNeedsPassword = false;
   users = {

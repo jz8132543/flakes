@@ -5,9 +5,6 @@
     enable = true;
     package = pkgs.gitFull;
     lfs.enable = true;
-
-    # userName = "jz8132543";
-    # userEmail = "jz8132543@live.cn";
     extraConfig = {
       user.name = "jz8132543";
       user.email = "i@dora.im";
@@ -18,11 +15,8 @@
       commit.gpgSign = true;
       gpg.format = "ssh";
       user.signingkey = "~/.ssh/id_ed25519.pub";
-
       bash.showInformativeStatus = true;
-
-      url."https://github.com/".insteadOf = "git://github.com/";
-      url."https://gitlab.com/".insteadOf = "git://gitlab.com/";
+      url."https://hub.fgit.ml/".insteadOf = "https://github.com/";
     };
 
     aliases = {

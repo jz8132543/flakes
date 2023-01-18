@@ -15,7 +15,7 @@ in
       shellAliases = {
         deploy = "deploy --skip-checks";
         rebuild =
-          "nixos-rebuild --use-remote-sudo -L --flake $HOME/Source/flakes";
+          "nixos-rebuild --use-remote-sudo -L --flake $HOME/source/flakes";
         nu = "rebuild switch --upgrade";
         hu = "home-manager switch";
         ngc =
