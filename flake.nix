@@ -52,10 +52,6 @@
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixos";
     };
-    nvim-config = {
-      url = "github:jz8132543/nvim";
-      flake = false;
-    };
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:

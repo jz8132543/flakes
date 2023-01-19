@@ -380,11 +380,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1674133491,
-        "narHash": "sha256-GGYCbZK+gsUgGMTZIiFK2bkC3bW0JYUar9bv8Aht6Jk=",
+        "lastModified": 1674139576,
+        "narHash": "sha256-HwsI0/cW92hTQdxm6CMaBjbUr3kPlfxhTT//ofyaN1M=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "213776f68ca48ad17f8261903be39c7a190b3dbb",
+        "rev": "2e0bde45d231b7b590af70aab9342858f93cf0ca",
         "type": "github"
       },
       "original": {
@@ -421,22 +421,6 @@
         "type": "github"
       }
     },
-    "nvim-config": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1674139458,
-        "narHash": "sha256-QJdb96MBc8obAVHiCiBxfK8Om9ASXILkZHrx0MeuH6w=",
-        "owner": "jz8132543",
-        "repo": "nvim",
-        "rev": "ecba8408c9333111f946f8dcb2ab45139bd66a4b",
-        "type": "github"
-      },
-      "original": {
-        "owner": "jz8132543",
-        "repo": "nvim",
-        "type": "github"
-      }
-    },
     "root": {
       "inputs": {
         "deploy": "deploy",
@@ -450,7 +434,6 @@
         "nixos-hardware": "nixos-hardware",
         "nur": "nur",
         "nvfetcher": "nvfetcher",
-        "nvim-config": "nvim-config",
         "sops-nix": "sops-nix"
       }
     },
