@@ -21,11 +21,12 @@
   home.global-persistence = {
     directories = [
       ".local/share/nvim"
+      ".config/nvim"
     ];
   };
-  home.file.neovim = {
-    source = inputs.nvim-config;
-    target = ".config/nvim";
-    recursive = true;
-  };
+  # home.file.neovim = {
+  #   source = inputs.nvim-config;
+  #   target = ".config/nvim";
+  #   recursive = true;
+  # };
 }

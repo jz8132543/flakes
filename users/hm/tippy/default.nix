@@ -29,6 +29,7 @@ in
       config.lib.file.mkOutOfStoreSymlink ssh_pub_link;
     home.file.".aws/credentials".source =
       config.lib.file.mkOutOfStoreSymlink aws_link;
+    home.file."source/nvim".source = config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/.config/nvim";
     home.global-persistence = {
       enable = true;
       home = homeDirectory;
