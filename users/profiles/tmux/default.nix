@@ -5,7 +5,7 @@
     enable = true;
     baseIndex = 1;
     escapeTime = 10;
-    shell = "${pkgs.zsh}/bin/zsh";
+    shell = "${pkgs.fish}/bin/fish";
     keyMode = "vi";
     terminal = "screen-256color";
     plugins = with pkgs; [

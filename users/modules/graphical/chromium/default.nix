@@ -1,4 +1,4 @@
-{ nixosConfig, config, lib, pkgs, ...  }:
+{ nixosConfig, config, lib, pkgs, ... }:
 
 lib.mkIf nixosConfig.environment.graphical.enable {
   programs.chromium = {
@@ -11,7 +11,7 @@ lib.mkIf nixosConfig.environment.graphical.enable {
   };
   home.global-persistence = {
     directories = [
-     ".config/chromium"
+      ".config/chromium"
     ];
   };
 }
