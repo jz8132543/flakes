@@ -3,7 +3,6 @@
 {
   sops.secrets.v2ray = {
     format = "binary";
-    owner = config.systemd.services.v2ray.serviceConfig.User;
     sopsFile = config.sops.secretsDir + /v2ray.keytab;
   };
 
