@@ -38,4 +38,15 @@
       };
     };
   };
+  systemd.services.v2ray = {
+    serviceConfig = {
+      ExecStart = [
+        ""
+        (pkgs.writeShellScript "start" ''
+          ${pkgs.v2ray}/bin/v2ray run -config $CREDENTIALS_DIRECTORY/config
+        '')
+      ];
+      LoadCredential = "config:${config.sops.secrets.v2ray.path}";
+    };
+  };
 }
