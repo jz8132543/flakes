@@ -9,7 +9,7 @@ let
   };
 in
 
-lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.graphical.manager == "sway" ) {
+lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.graphical.manager == "sway") {
   wayland.windowManager.sway = {
     enable = true;
     extraOptions = [ "--unsupported-gpu" ];
@@ -39,37 +39,41 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
           command = "floating enable, kill";
         }
         {
-          criteria = { title="^Picture-in-Picture$"; };
+          criteria = { title = "^Picture-in-Picture$"; };
           command = "floating enable; sticky enable";
         }
         {
-          criteria = { class=".*.exe"; };
+          criteria = { class = ".*.exe"; };
           command = "inhibit_idle fullscreen; floating enable; border none";
         }
         {
-          criteria = { title="MAX - Chromium"; };
+          criteria = { title = "MAX - Chromium"; };
           command = "floating enable; sticky enable; border pixel 1";
         }
         {
-          criteria = { window_role="bubble"; };
+          criteria = { window_role = "bubble"; };
           command = "floating enable";
         }
         {
-          criteria = { window_role="pop-up"; };
+          criteria = { window_role = "pop-up"; };
           command = "floating enable";
         }
         {
-          criteria = { window_role="dialog"; };
+          criteria = { window_role = "dialog"; };
           command = "floating enable";
         }
         {
-          criteria = { window_type="dialog"; };
+          criteria = { window_type = "dialog"; };
           command = "floating enable";
         }
       ];
       focus.newWindow = "focus";
       window.border = 0;
-      gaps.inner = 10;
+      gaps = {
+        inner = 5;
+        outer = 5;
+        smartGaps = true;
+      };
       keybindings =
         let
           modifier = config.wayland.windowManager.sway.config.modifier;
@@ -131,53 +135,20 @@ lib.mkIf (nixosConfig.environment.graphical.enable && nixosConfig.environment.gr
     };
     waybar = {
       enable = true;
-      settings = [ (import ./waybar.nix { inherit pkgs lib; }) ];
+      settings = [ (import ./waybar.nix { inherit pkgs; }) ];
       style = builtins.readFile ./waybar.css;
       systemd.enable = true;
     };
     alacritty = {
       enable = true;
       settings = {
+        import = [ ./alacritty.yml ];
         font = { size = 12.0; };
         shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = [ "new-session" "-t" "main" ];
         };
         window.opacity = 0.8;
-      };
-    };
-    foot = {
-      enable = true;
-      settings = {
-        main = {
-          shell = "${pkgs.tmux}/bin/tmux new-session -t main";
-          font = "JetBrains Mono:size=11";
-        };
-        cursor = {
-          color = "323d43 7fbbb3";
-        };
-        colors = {
-          background = "323d43";
-          foreground = "d8cacc";
-          regular0 = "4a555b";
-          regular1 = "e68183";
-          regular2 = "a7c080";
-          regular3 = "dbbc7f";
-          regular4 = "7fbbb3";
-          regular5 = "d699b6";
-          regular6 = "83c092";
-          regular7 = "d8caac";
-          bright0 = "525c62";
-          bright1 = "e68183";
-          bright2 = "a7c080";
-          bright3 = "dbbc7f";
-          bright4 = "7fbbb3";
-          bright5 = "d699b6";
-          bright6 = "83c092";
-          bright7 = "d8caac";
-          selection-foreground = "3c474d";
-          selection-background = "525c62";
-        };
       };
     };
     rofi = {
