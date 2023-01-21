@@ -24,7 +24,7 @@
         locations = {
           "/" = { proxyPass = "https://mirrors.mit.edu/"; };
           "/Ray/" = {
-            proxyPass = "http://127.0.0.1:10000";
+            proxyPass = "http://127.0.0.1:10001";
             proxyWebsockets = true;
             extraConfig = ''
               proxy_redirect off;
