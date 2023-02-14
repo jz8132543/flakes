@@ -3,6 +3,7 @@
 {
   programs.neovim = {
     enable = true;
+    # package = pkgs.neovim-nightly;
     vimAlias = true;
     vimdiffAlias = true;
   };
@@ -13,15 +14,13 @@
     nix-ld
     nodejs
     nodePackages.npm
-    sumneko-lua-language-server
-    stylua
-    luajitPackages.luacheck
-    clang
+    watchman
   ];
   home.global-persistence = {
     directories = [
       ".local/share/nvim"
       ".config/nvim"
+      ".config/coc"
     ];
   };
   # home.file.neovim = {

@@ -82,6 +82,11 @@ in
       ];
     };
   };
+  programs.command-not-found.enable = true;
+  programs.nix-index =
+  {
+    enableFishIntegration = true;
+  };
   home.global-persistence.directories = [
     ".local/share/fish"
   ];

@@ -52,6 +52,7 @@
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixos";
     };
+    neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
   };
 
   outputs = { self, nixos, digga, deploy, ... }@inputs:
