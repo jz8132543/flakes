@@ -6,8 +6,8 @@ let
 in {
   services.openssh = {
     enable = true;
-    forwardX11 = true;
     openFirewall = true;
+    settings.X11Forwarding = true;
     extraConfig = ''
       ClientAliveInterval ${aliveInterval}
       ClientAliveCountMax ${aliveCountMax}

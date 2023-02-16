@@ -11,9 +11,10 @@
   home.packages = with pkgs; [
     nil
     nixpkgs-fmt
-    nix-ld
     nodejs
+    yarn
     nodePackages.npm
+    vimPlugins.coc-nvim
     watchman
   ];
   home.global-persistence = {
@@ -23,9 +24,4 @@
       ".config/coc"
     ];
   };
-  # home.file.neovim = {
-  #   source = inputs.nvim-config;
-  #   target = ".config/nvim";
-  #   recursive = true;
-  # };
 }
