@@ -5,6 +5,7 @@ keys:
   - &tyo0 age1meypnzuyusw0mjx8q3kp2zlt7pdhe5fzg6xl9q5l4g86p47uk4gq2uf5kv
   - &ams0 age1ht8qv38vdrmuzehf8rpq9clm6uwk9q4w3qdkqcdjdfj9u2heeq3q0ep6dt
   - &sin0 age1q88jsfmck7f588fzqgsyx82kw7u22ha83zsshcv9l03tykwznv7sqfy2dp
+  - &lax3 age13rcltw85wa3xx4ff7qke7hawsxj3u9t6p4m3xhz5v9ttdg2g9gnshcshpy
 creation_rules:
   - path_regex: secrets/.*
     key_groups:
@@ -16,3 +17,4 @@ creation_rules:
       - *tyo0
       - *ams0
       - *sin0
+      - *lax3
