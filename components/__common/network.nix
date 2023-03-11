@@ -5,7 +5,6 @@
     search = [ "dora.im" ];
     firewall.enable = false;
     firewall.checkReversePath = false;
-    usePredictableInterfaceNames = true;
   };
 
   boot = {

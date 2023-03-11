@@ -33,7 +33,7 @@ in
             bootable = true;
             content = {
               type = "btrfs";
-              extraArgs = "-f";
+              extraArgs = [ "-f" ];
               subvolumes = {
                 "/boot" = mountOptions;
                 "/nix" = mountOptions;
