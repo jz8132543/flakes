@@ -14,3 +14,4 @@ send ":a builtins\n"
 send ":a nixosConfigurations.[ exec hostname ]\n"
 
 interact
+

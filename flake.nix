@@ -1,140 +1,75 @@
 {
-  description = "nixos-config";
+  description = "Flamework";
 
   inputs = {
-    nixos.url = "github:nixos/nixpkgs/nixos-unstable";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-    home = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixos";
-    };
-    nixos-cn = {
-      url = "github:nixos-cn/flakes";
-      inputs.nixpkgs.follows = "nixos";
-      inputs.flake-utils.follows = "digga/flake-utils-plus/flake-utils";
-    };
-    nur.url = "github:nix-community/NUR";
-    digga = {
-      # url = "github:divnix/digga";
-      url = "github:divnix/digga/?ref=refs/pull/472/head";
-      inputs = {
-        nixpkgs.follows = "nixos";
-        nixlib.follows = "nixos";
-        home-manager.follows = "home";
-        deploy.follows = "deploy";
-      };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    impermanence.url = "github:nix-community/impermanence";
+    flake-utils.url = "github:numtide/flake-utils";
+    colmena = {
+      url = "github:zhaofengli/colmena";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
     sops-nix = {
       url = "github:Mic92/sops-nix";
-      inputs.nixpkgs.follows = "nixos";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    deploy = {
-      url = "github:serokell/deploy-rs";
-      inputs = {
-        nixpkgs.follows = "nixos";
-        utils.follows = "digga/flake-utils-plus/flake-utils";
-      };
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    impermanence.url = "github:nix-community/impermanence";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.utils.follows = "flake-utils";
     };
-    nvfetcher = {
-      url = "github:berberman/nvfetcher";
-      inputs = {
-        nixpkgs.follows = "nixos";
-        flake-utils.follows = "digga/flake-utils-plus/flake-utils";
-        flake-compat.follows = "flake-compat";
-      };
+    spicetify-nix = {
+      url = github:the-argus/spicetify-nix;
+      inputs.nixpkgs.follows = "nixpkgs";
     };
-    grub2-themes = {
-      url = "github:vinceliuice/grub2-themes";
-      inputs.nixpkgs.follows = "nixos";
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
     };
-    neovim-nightly-overlay.url = "github:nix-community/neovim-nightly-overlay";
+
+    # NUR Repos
+    nur = {
+      url = "github:a1ca7raz/nurpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixos, digga, deploy, ... }@inputs:
+  outputs = inputs@{ self, nixpkgs, ... }:
     let
-      this = import ./pkgs;
-      pkgs = import nixos {
+      lib = nixpkgs.lib;
+      utils = import ./utils lib self;
+      pkgs = import nixpkgs {
         system = "x86_64-linux";
-        overlays = [
-        ];
+        config = {
+          allowUnfree = true;
+        };
+        overlays = utils.loader.overlays;
       };
     in
-    digga.lib.mkFlake {
-      inherit self inputs;
+    {
+      legacyPackages = pkgs;
 
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
-
-      channelsConfig = { allowUnfree = true; };
-      channels = import ./channels { inherit self inputs; };
-
-      lib = import ./lib { lib = digga.lib // nixos.lib; };
-
-      nixos = ./nixos;
-
-      home = ./home;
-
-      homeConfigurations =
-        digga.lib.mkHomeConfigurations self.nixosConfigurations;
-
-      templates = {
-        default = self.templates.project;
-        project = {
-          path = ./templates/project;
-          description = "simple project template";
-        };
-
+      devShells.x86_64-linux.default = with pkgs; mkShell {
+        nativeBuildInputs = [ colmena nvfetcher ];
       };
 
-      # packages = this.packages pkgs;
+      nixosModules = utils.module // utils.loader.nixosModules // (with inputs; {
+        sops = sops-nix.nixosModules.sops;
+        impermanence = impermanence.nixosModules.impermanence;
+        disko = disko.nixosModules.disko;
+        home = home-manager.nixosModules.home-manager;
+        lanzaboote = lanzaboote.nixosModules.lanzaboote;
+        nur = inputs.nur.nixosModule;
+      });
 
-      deploy.nodes =
-        let
-          inherit (nixos) lib;
-          disabledHosts = [ ];
-          configs = lib.filterAttrs (name: cfg: !(lib.elem name disabledHosts))
-            self.nixosConfigurations;
-        in
-        digga.lib.mkDeployNodes configs (lib.mapAttrs
-          (name: cfg: { hostname = "${cfg.config.networking.hostName}.dora.im"; })
-          configs);
-      deploy = {
-        sshUser = "root";
-        user = "tippy";
-      };
-      outputsBuilder = channels:
-        let
-          pkgs = channels.nixos;
-          inherit (pkgs) system lib;
-        in
-        {
-          checks =
-            deploy.lib.${system}.deployChecks self.deploy //
-            (
-              lib.foldl lib.recursiveUpdate { }
-                (lib.mapAttrsToList
-                  (host: cfg:
-                    lib.optionalAttrs (cfg.pkgs.system == system)
-                      { "toplevel-${host}" = cfg.config.system.build.toplevel; })
-                  self.nixosConfigurations)
-            ) // (
-              lib.mapAttrs'
-                (name: drv: lib.nameValuePair "package-${name}" drv)
-                self.packages.${system}
-            ) // {
-              devShell = self.devShell.${system};
-            };
+      nixosConfigurations = utils.loader.profiles.nixosConfigurations;
 
-          hydraJobs = self.checks.${system} // {
-            all-checks = pkgs.linkFarm "all-checks"
-              (lib.mapAttrsToList (name: drv: { inherit name; path = drv; })
-                self.checks.${system});
-          };
-        };
+      colmena = utils.loader.profiles.colmena;
     };
-
 }

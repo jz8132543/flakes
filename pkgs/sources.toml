@@ -1,4 +1,0 @@
-# nvfetcher.toml
-[mason-lspconfig]
-src.git = "https://github.com/williamboman/mason-lspconfig.nvim.git"
-fetch.git = "https://github.com/williamboman/mason-lspconfig.nvim.git"
