@@ -10,9 +10,9 @@
 
   home.persistence."/nix/persist/home/tippy" = {
     directories = [
-      "source"
-      ".local/share/direnv"
-      ".local/share/containers"
+      ".local/share/nvim"
+      ".config/nvim"
+      ".config/coc"
     ];
   };
 }
