@@ -11,42 +11,26 @@ in
       options = [ "defaults" "mode=755" ];
     };
 
-    # "/" = {
-    #   inherit device fsType;
-    #   options = [ "subvol=@ROOT" ] ++ options;
-    # };
-
-    "/boot/efi" = {
+    "/boot" = {
       device = "/dev/disk/by-partlabel/EFI";
       fsType = "vfat";
     };
 
     "/nix" = {
       inherit device fsType;
-      options = [ "subvol=@nix" ] ++ options;
+      options = [ "subvol=nix" ] ++ options;
     };
 
-    "/boot" = {
+    "/nix/persist" = {
       inherit device fsType;
-      options = [ "subvol=@boot" ] ++ options;
-    };
-
-    "/persist" = {
-      inherit device fsType;
-      options = [ "subvol=@persist" ] ++ options;
+      options = [ "subvol=persist" ] ++ options;
       neededForBoot = true;
-    };
-
-    "/swap" = {
-      inherit device fsType;
-      options = [ "subvol=@swap" ] ++ options;
     };
   };
 
   boot = {
     loader = {
       efi = {
-        efiSysMountPoint = "/boot/efi";
         canTouchEfiVariables = true;
       };
       grub = {
@@ -59,6 +43,4 @@ in
     };
     supportedFilesystems = [ "vfat" "btrfs" "ntfs" ];
   };
-
-  # swapDevices = [ { device = "/swap/swapfile"; size = 1024; } ];
 }

@@ -12,7 +12,6 @@
     enable = true;
     enableFccUnlock = true;
     dns = "dnsmasq";
-    wifi.backend = "iwd";
     firewallBackend = "none";
   };
 }

@@ -1,6 +1,6 @@
 { self }:
 {
-  targetHost = null;
+  targetHost = "surface.dora.im";
   targetPort = 22;
 
   activeModules = with self.nixosModules ; [
