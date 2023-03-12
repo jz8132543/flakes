@@ -55,6 +55,9 @@ in
   };
 
   fileSystems."/nix/persist".neededForBoot = true;
-  boot.loader.grub.enable = true;
-  boot.loader.grub.device = "/dev/vda";
+  boot.loader.grub = {
+    enable = true;
+    device = "/dev/vda";
+    efiInstallAsRemovable = true;
+  };
 }

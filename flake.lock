@@ -207,6 +207,26 @@
         "type": "github"
       }
     },
+    "grub2-themes": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1674015718,
+        "narHash": "sha256-cBgjWD/mR1tiPyVky9Bl5kUrDX6RnARJ+0cEJ4VhbRg=",
+        "owner": "vinceliuice",
+        "repo": "grub2-themes",
+        "rev": "7c0d8eb7849cd5a4cf6a26c8750dcf71c26f2b0f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "vinceliuice",
+        "repo": "grub2-themes",
+        "type": "github"
+      }
+    },
     "home-manager": {
       "inputs": {
         "nixpkgs": [
@@ -366,11 +386,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1678514777,
-        "narHash": "sha256-z5AeBhEpkrbITZItVUOnH/z/E2KJb+A4tw0h8uf5K60=",
+        "lastModified": 1678609752,
+        "narHash": "sha256-8Cje2IfFCkW8oUELffjca27nLItZLGvAPlGZQy3WAUo=",
         "owner": "a1ca7raz",
         "repo": "nurpkgs",
-        "rev": "84b2f495d624250c9d33f6888ba9a40edcbeb8e8",
+        "rev": "81daf9e5aff6350bae894fa4c55add80f8b26630",
         "type": "github"
       },
       "original": {
@@ -412,6 +432,7 @@
         "colmena": "colmena",
         "disko": "disko",
         "flake-utils": "flake-utils_2",
+        "grub2-themes": "grub2-themes",
         "home-manager": "home-manager",
         "impermanence": "impermanence",
         "lanzaboote": "lanzaboote",
