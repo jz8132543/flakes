@@ -45,6 +45,7 @@ in
       set fish_pager_color_completion normal
       set fish_pager_color_description B3A06D --italics
       set fish_pager_color_selected_background --reverse
+      set tide_character_icon '>'
     '';
   };
 }
