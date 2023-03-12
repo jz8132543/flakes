@@ -7,7 +7,7 @@ in
     self.nixosModules.disko
   ];
   options.utils.disk = lib.mkOption {
-    type = types.string;
+    type = lib.types.string;
     default = "/dev/vda";
     description = "disko disk";
   };
