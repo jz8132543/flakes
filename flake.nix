@@ -61,7 +61,7 @@
 
       nixosModules = utils.module // utils.loader.nixosModules // (with inputs; {
         sops = sops-nix.nixosModules.sops;
-        impermanence = impermanence.nixosModules.impermanence;
+        impermanence = impermanence.nixosModules;
         disko = disko.nixosModules.disko;
         home = home-manager.nixosModules.home-manager;
         lanzaboote = lanzaboote.nixosModules.lanzaboote;

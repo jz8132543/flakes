@@ -4,10 +4,10 @@ let
 in
 {
   imports = [
-    self.nixosModules.impermanence
+    self.nixosModules.impermanence.impermanence
   ];
 
-  environment.persistence."/persist" = {
+  environment.persistence."/nix/persist" = {
     hideMounts = true;
     directories = [
       "/var/cache"

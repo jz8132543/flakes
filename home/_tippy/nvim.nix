@@ -8,10 +8,11 @@
     vimdiffAlias = true;
   };
 
-  environment.persistence."/persist".users.tippy = {
+  home.persistence."/nix/persist/home/tippy" = {
     directories = [
-      ".local/share/nvim"
-      ".config/nvim"
+      "source"
+      ".local/share/direnv"
+      ".local/share/containers"
     ];
   };
 }
