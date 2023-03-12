@@ -6,7 +6,7 @@ in
   imports = [
     self.nixosModules.disko
   ];
-  options.utils.disk = mkOption {
+  options.utils.disk = lib.mkOption {
     type = types.string;
     default = "/dev/vda";
     description = "disko disk";
