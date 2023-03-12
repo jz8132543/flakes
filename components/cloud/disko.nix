@@ -15,7 +15,7 @@ in
   disko.devices = {
     disk.vda = {
       type = "disk";
-      device = ${config.utils.disk};
+      device = "${config.utils.disk}";
       content = {
         type = "table";
         format = "gpt";
@@ -74,7 +74,7 @@ in
   fileSystems."/nix/persist".neededForBoot = true;
   boot.loader.grub = {
     enable = true;
-    device = ${config.utils.disk};
+    device = "${config.utils.disk}";
     efiSupport = lib.mkDefault true;
     efiInstallAsRemovable = lib.mkDefault true;
   };
