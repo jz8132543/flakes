@@ -1,6 +1,7 @@
 { lib, ... }:
 {
   hardware.enableRedistributableFirmware = lib.mkDefault true;
+  zramSwap.enable = true;
 
   boot = {
     initrd.systemd.enable = true;
