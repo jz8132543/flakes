@@ -40,4 +40,5 @@
     };
   };
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  config.utils.disk = "/dev/nvme0n1p3";
 }

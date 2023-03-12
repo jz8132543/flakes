@@ -1,4 +1,4 @@
-{ self, ... }:
+{ self, lib, ... }:
 let
   mountOptions = { mountOptions = [ "discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2" ]; };
 in
@@ -6,12 +6,16 @@ in
   imports = [
     self.nixosModules.disko
   ];
-
+  options.utils.disk = mkOption {
+    type = types.string;
+    default = "/dev/vda";
+    description = "disko disk";
+  };
   disko.enableConfig = true;
   disko.devices = {
     disk.vda = {
       type = "disk";
-      device = "/dev/vda";
+      device = ${config.utils.disk};
       content = {
         type = "table";
         format = "gpt";
@@ -23,6 +27,19 @@ in
             end = "1M";
             part-type = "primary";
             flags = [ "bios_grub" ];
+          }
+	  {
+            name = "EFI";
+            type = "partition";
+            start = "1MiB";
+            end = "100MiB";
+            fs-type = "fat32";
+            bootable = true;
+            content = {
+              type = "filesystem";
+              format = "vfat";
+              mountpoint = "/boot/efi";
+            };
           }
           {
             name = "NIXOS";
@@ -57,8 +74,8 @@ in
   fileSystems."/nix/persist".neededForBoot = true;
   boot.loader.grub = {
     enable = true;
-    device = "/dev/vda";
-    efiSupport = true;
-    efiInstallAsRemovable = true;
+    device = ${config.utils.disk};
+    efiSupport = lib.mkDefault true;
+    efiInstallAsRemovable = lib.mkDefault true;
   };
 }
