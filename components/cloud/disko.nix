@@ -6,16 +6,11 @@ in
   imports = [
     self.nixosModules.disko
   ];
-  options.utils.disk = lib.mkOption {
-    type = lib.types.string;
-    default = "/dev/vda";
-    description = "disko disk";
-  };
   disko.enableConfig = true;
   disko.devices = {
     disk.vda = {
       type = "disk";
-      device = "${utils.disk}";
+      device = "${config.utils.disk}";
       content = {
         type = "table";
         format = "gpt";
@@ -74,7 +69,7 @@ in
   fileSystems."/nix/persist".neededForBoot = true;
   boot.loader.grub = {
     enable = true;
-    device = "${utils.disk}";
+    device = "${config.utils.disk}";
     efiSupport = lib.mkDefault true;
     efiInstallAsRemovable = lib.mkDefault true;
   };
