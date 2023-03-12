@@ -58,6 +58,7 @@ in
   boot.loader.grub = {
     enable = true;
     device = "/dev/vda";
+    efiSupport = true;
     efiInstallAsRemovable = true;
   };
 }

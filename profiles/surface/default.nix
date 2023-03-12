@@ -8,9 +8,9 @@
 
   components = {
     optionalComponents = [
-      "cloud"
       "tippy"
       "desktop"
+      "cn"
     ];
 
     blacklist = [ ];

@@ -1,3 +1,0 @@
-[submodule "users/profiles/neovim/nvim"]
-	path = users/profiles/neovim/nvim
-	url = git@github.com:jz8132543/nvim.git
