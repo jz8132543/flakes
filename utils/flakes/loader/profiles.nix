@@ -44,7 +44,7 @@ let
 
   _profiles = lib.fold
     (x: y: [
-      (mergeLoaderHooks (({ targetHost ? "", targetPort ? 22, ... }@z: rec {
+      (mergeLoaderHooks (({ targetHost ? "${x}", targetPort ? 22, ... }@z: rec {
         name = x;
         nixosSystem = mkSystem x z;
         modules = nixosSystem.modules;

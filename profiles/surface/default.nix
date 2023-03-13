@@ -1,10 +1,7 @@
 { self }:
 {
-  targetHost = "surface.dora.im";
-  targetPort = 22;
-
   activeModules = with self.nixosModules ; [
-v2raya
+    v2raya
   ];
 
   components = {

@@ -1,8 +1,5 @@
 { self }:
 {
-  targetHost = "ewr0.dora.im";
-  targetPort = 22;
-
   activeModules = with self.nixosModules ; [
   ];
 

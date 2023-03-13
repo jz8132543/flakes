@@ -23,11 +23,11 @@ in
             part-type = "primary";
             flags = [ "bios_grub" ];
           }
-	  {
+	        {
             name = "EFI";
             type = "partition";
             start = "1MiB";
-            end = "100MiB";
+            end = "200MiB";
             fs-type = "fat32";
             bootable = true;
             content = {
@@ -39,7 +39,7 @@ in
           {
             name = "NIXOS";
             type = "partition";
-            start = "1M";
+            start = "200M";
             end = "100%";
             part-type = "primary";
             bootable = true;
