@@ -39,7 +39,7 @@ in
           {
             name = "NIXOS";
             type = "partition";
-            start = "200M";
+            start = "201M";
             end = "100%";
             part-type = "primary";
             bootable = true;
