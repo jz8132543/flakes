@@ -5,7 +5,9 @@
     shell = pkgs.fish;
     extraGroups = [ "wheel" ];
     openssh.authorizedKeys.keys = import /${path}/config/sshkeys.nix;
+    passwordFile = config.sops.secrets.passwd.path;
   };
+  sops.secrets.passwd.neededForUsers = true;
   security.sudo.wheelNeedsPassword = false;
   environment.persistence."/nix/persist".users.tippy = {
     directories = [

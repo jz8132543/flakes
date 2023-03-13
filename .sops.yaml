@@ -1,7 +1,7 @@
 keys:
   - &admin 23232A6D050ACE46DF02D72B84A772A8519FC163
-  - &sys age166e9seuu932v0cr0nmeu0lnmy20r0ud5g34c34tmj92hrrngc9nq864amd
-  - &home age159un2les797fnnejf9nmlxj6j8ymrryrv3vv0x2kkxxamat7mveqjyrp2x
+  - &sys age1gneh0wvxdj8s4rgjdhpe9f780ypearyt5ly4zcx2zllz0vq55ywsdhux5m
+  - &home age1s02ehddjg4yff0jejn60yafuc4kx2tpywcpmvax2ycwlayes3c9qv5rgju
 creation_rules:
   - path_regex: config/secrets_uncrypted/.*
     key_groups:

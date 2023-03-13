@@ -4,6 +4,7 @@
   targetPort = 22;
 
   activeModules = with self.nixosModules ; [
+v2raya
   ];
 
   components = {
@@ -11,6 +12,7 @@
       "tippy"
       "desktop"
       "cn"
+      # "proxy"
     ];
 
     blacklist = [ ];
