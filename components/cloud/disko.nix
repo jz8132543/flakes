@@ -56,15 +56,23 @@ in
         ];
       };
     };
-    nodev = {
-      "/" = {
-        fsType = "tmpfs";
-        mountOptions = [ "defaults" "mode=755" ];
-      };
-    };
+    # nodev = {
+    #   "/" = {
+    #     fsType = "tmpfs";
+    #     mountOptions = [ "defaults" "mode=755" ];
+    #   };
+    # };
   };
 
-  fileSystems."/nix/persist".neededForBoot = true;
+  fileSystems.
+    fileSystems = {
+    "/" = {
+      fsType = "tmpfs";
+      options = [ "defaults" "mode=755" ];
+    };
+    "/nix/persist".neededForBoot = true;
+  };
+
   boot.loader.grub = {
     enable = true;
     device = "${config.utils.disk}";
