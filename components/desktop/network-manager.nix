@@ -13,5 +13,9 @@
     enableFccUnlock = true;
     # dns = "dnsmasq";
     firewallBackend = "none";
+    connectionConfig = {
+      "ipv4.dns-search" = "dora.im";
+      "ipv6.dns-search" = "dora.im";
+    };
   };
 }
