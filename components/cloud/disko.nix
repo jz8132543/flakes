@@ -46,7 +46,6 @@ in
               type = "btrfs";
               extraArgs = [ "-f" ];
               subvolumes = {
-                "/boot" = mountOptions;
                 "/nix" = mountOptions;
                 "/persist" = mountOptions // {
                   mountpoint = "/nix/persist";
