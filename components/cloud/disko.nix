@@ -64,8 +64,7 @@ in
     # };
   };
 
-  fileSystems.
-    fileSystems = {
+  fileSystems = {
     "/" = {
       fsType = "tmpfs";
       options = [ "defaults" "mode=755" ];
