@@ -71,7 +71,7 @@ log "Our temporary directory is ${tmpdir}"
 
 # The argument expansion for NIX_SSHOPTS is broken and we can't
 # directly put "quoted arguments with spaces" :(
-echo -e "ControlMaster auto\nControlPath ${tmpdir}/ssh.sock\nControlPersist 30m" > $tmpdir/ssh_config
+echo -e "Include $HOME/.ssh/config\nControlMaster auto\nControlPath ${tmpdir}/ssh.sock\nControlPersist 30m" > $tmpdir/ssh_config
 export NIX_SSHOPTS="-F ${tmpdir}/ssh_config"
 
 log "Getting SSH target..."

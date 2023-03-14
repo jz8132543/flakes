@@ -33,7 +33,7 @@ in
             content = {
               type = "filesystem";
               format = "vfat";
-              mountpoint = "/boot/efi";
+              mountpoint = "/boot";
             };
           }
           {
@@ -42,7 +42,6 @@ in
             start = "210M";
             end = "100%";
             part-type = "primary";
-            bootable = true;
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
