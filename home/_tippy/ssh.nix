@@ -9,6 +9,7 @@
         CanonicalDomains dora.im
         CheckHostIP no
         StrictHostKeyChecking no
+        UserKnownHostsFile /dev/null
       '';
       matchBlocks = {
         "github.com" = { user = "git"; };
