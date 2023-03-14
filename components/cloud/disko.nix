@@ -69,7 +69,18 @@ in
       fsType = "tmpfs";
       options = [ "defaults" "mode=755" ];
     };
-    "/nix/persist".neededForBoot = true;
+    "/boot" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/EFI";
+    };
+
+    "/nix" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
+    };
+
+    "/nix/persist" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
+      neededForBoot = true;
+    };
   };
 
   boot.loader.grub = {

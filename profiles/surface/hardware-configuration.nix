@@ -3,7 +3,6 @@
 {
   imports = [
     inputs.grub2-themes.nixosModules.default
-    ./filesystems.nix
   ];
   boot = {
     initrd = {
