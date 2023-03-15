@@ -3,7 +3,6 @@
   home.packages = with pkgs; [
     (ark.override { unfreeEnableUnrar = true; })
     ghostwriter
-    dolphin-nospace
     kate
     kcolorchooser
     kompare

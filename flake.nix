@@ -31,7 +31,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
-    nur = {
+    nur.url = "github:nix-community/NUR";
+    dora = {
       url = "github:a1ca7raz/nurpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -51,11 +52,14 @@
         config = {
           allowUnfree = true;
         };
-        overlays = utils.loader.overlays;
+        overlays = utils.loader.overlays ++ [
+          inputs.nur.overlay
+        ];
       };
     in
     {
       legacyPackages = pkgs;
+      packages = pkgs;
 
       devShells.x86_64-linux.default = with pkgs; mkShell {
         nativeBuildInputs = [ colmena nvfetcher ];
@@ -67,7 +71,7 @@
         disko = disko.nixosModules.disko;
         home = home-manager.nixosModules.home-manager;
         lanzaboote = lanzaboote.nixosModules.lanzaboote;
-        nur = inputs.nur.nixosModule;
+        nur = inputs.nur.nixosModules.nur;
       });
 
       nixosConfigurations = utils.loader.profiles.nixosConfigurations;

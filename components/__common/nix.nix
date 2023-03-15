@@ -1,6 +1,9 @@
 { self, inputs, ... }:
 {
-  imports = [ self.nixosModules.nur ]; # Import NUR Repos
+  #imports = [ self.nixosModules.nur ]; # Import NUR Repos
+  nixpkgs.overlays = [
+    inputs.nur.overlay
+  ];
 
   nix = {
     nrBuildUsers = 0;
