@@ -51,15 +51,18 @@ in
       ls = "${pkgs.exa}/bin/exa --icons";
       tree = "${pkgs.exa}/bin/exa --tree --icons";
       top = "${pkgs.bottom}/bin/btm";
-      # BAT
       cat = "${pkgs.bat}/bin/bat --style=plain";
       fzf =
         "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
       batdiff =
         "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
-
-      # kubectl = "sudo k3s kubectl";
+      rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
       scp = "time scp -Cpr -o Compression=yes";
     };
+  };
+  home.persistence."/nix/persist/home/tippy" = {
+    directories = [
+      ".local/share/fish"
+    ];
   };
 }
