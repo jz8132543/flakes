@@ -25,10 +25,27 @@
     '';
   };
   home.file.".config/hypr/hyprland.conf".source = ./hyprland.conf;
+  services = {
+    kanshi = {
+      enable = true;
+      profiles = {
+        dockd = {
+          outputs = [
+            {
+              criteria = "eDP-1";
+              position = "3240,2160";
+              scale = 2.0;
+              mode = "3240x2160";
+            }
+          ];
+        };
+      };
+    };
+  };
   home.packages = with pkgs; [
-    rofi
     swaynotificationcenter
     brave
     kanshi
+    kitty
   ];
 }
