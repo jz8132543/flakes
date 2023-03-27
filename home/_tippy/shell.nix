@@ -59,7 +59,7 @@ in
       batdiff =
         "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
       rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
-      scp = "time scp -Cpr -o Compression=yes";
+      # scp = "time scp -Cpr -o Compression=yes";
     };
   };
   home.persistence."/nix/persist/home/tippy" = {
