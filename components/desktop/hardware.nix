@@ -6,12 +6,11 @@
       driSupport32Bit = true;
       extraPackages = with pkgs; [ intel-media-driver ];
     };
-    video.hidpi.enable = true;
   };
   services = {
     xserver = {
       enable = true;
-      dpi = 144;
+      #dpi = 144;
       libinput.enable = true;
       libinput.touchpad = {
         horizontalScrolling = true;

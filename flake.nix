@@ -41,6 +41,7 @@
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hyprland.url = "github:hyprwm/Hyprland";
   };
 
   outputs = inputs@{ self, nixpkgs, ... }:
@@ -72,6 +73,7 @@
         home = home-manager.nixosModules.home-manager;
         lanzaboote = lanzaboote.nixosModules.lanzaboote;
         nur = inputs.nur.nixosModules.nur;
+        hyprland = inputs.hyprland.nixosModules.default;
       });
 
       nixosConfigurations = utils.loader.profiles.nixosConfigurations;
