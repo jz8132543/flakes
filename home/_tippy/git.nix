@@ -16,7 +16,6 @@
       gpg.format = "ssh";
       user.signingkey = "~/.ssh/id_ed25519.pub";
       bash.showInformativeStatus = true;
-      url."https://hub.fgit.ml/".insteadOf = "https://github.com/";
     };
 
     aliases = {
