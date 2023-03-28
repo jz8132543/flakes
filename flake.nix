@@ -42,6 +42,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hyprland.url = "github:hyprwm/Hyprland";
+    hyprland-config = {
+      url = "github:AmadeusWM/dotfiles-hyprland";
+      flake = false;
+    };
   };
 
   outputs = inputs@{ self, nixpkgs, ... }:
