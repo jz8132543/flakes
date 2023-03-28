@@ -7,6 +7,7 @@
     optionalComponents = [
       "cloud"
       "tippy"
+      "traefik"
     ];
 
     blacklist = [ ];

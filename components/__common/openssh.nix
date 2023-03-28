@@ -23,4 +23,5 @@
   };
 
   programs.ssh.package = pkgs.openssh_hpn;
+  programs.mosh.enable = true;
 }
