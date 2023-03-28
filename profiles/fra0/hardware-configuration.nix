@@ -10,10 +10,15 @@
   boot.kernelModules = [ "kvm-amd" ];
   utils.disk = "/dev/sda";
   networking = {
+    # useDHCP = false;
+    # useNetworkd = true;
     interfaces.ens3 = {
       useDHCP = true;
       ipv6.addresses = [{ address = "2a00:0f48:1003:25bc:0000:0000:0000:0001"; prefixLength = 64; }];
-      ipv6.routes = [{ address = "::"; prefixLength = 0; via = "2a00:0f48:1003:0000:0000:0000:0000:0001"; }];
+    };
+    defaultGateway6 = {
+      address = "2a00:0f48:1003:0000:0000:0000:0000:0001";
+      interface = "ens3";
     };
   };
 }
