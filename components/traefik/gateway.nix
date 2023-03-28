@@ -23,6 +23,7 @@ with lib;{
         certificatesResolvers.zerossl.acme = {
           caServer = "https://acme.zerossl.com/v2/DV90";
           email = "blackhole@dora.im";
+          storage = "/var/lib/traefik/acme.json";
           keyType = "EC256";
           eab = {
             kid = "s5QsCWwCNdhUcJAUR1TfNA";
