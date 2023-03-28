@@ -4,17 +4,19 @@
   programs = {
     ssh = {
       enable = true;
+      userKnownHostsFile = "/dev/null";
       extraConfig = ''
         CanonicalizeHostname yes
         CanonicalDomains dora.im
-        CheckHostIP no
         StrictHostKeyChecking no
-        UserKnownHostsFile /dev/null
       '';
       matchBlocks = {
         "github.com" = { user = "git"; };
         "gitlab.com" = { user = "git"; };
-        "*" = { user = "tippy"; };
+        "*" = {
+          user = "tippy";
+          checkHostIP = false;
+        };
       };
       includes = [
         "config.d/*"
