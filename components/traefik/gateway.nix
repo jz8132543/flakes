@@ -16,13 +16,18 @@ with lib;{
           };
           https = {
             address = ":443";
-            http.tls.certResolver = "le";
+            http.tls.certResolver = "zerossl";
             http3 = { };
           };
         };
-        certificatesResolvers.le.acme = {
+        certificatesResolvers.zerossl.acme = {
+          caServer = "https://acme.zerossl.com/v2/DV90";
           email = "blackhole@dora.im";
           keyType = "EC256";
+          eab = {
+            kid = "s5QsCWwCNdhUcJAUR1TfNA";
+            hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
+          };
           tlsChallenge = { };
         };
         ping = {
