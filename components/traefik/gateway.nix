@@ -29,7 +29,7 @@ with lib;{
             kid = "s5QsCWwCNdhUcJAUR1TfNA";
             hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
           };
-          tlsChallenge = { };
+          tlsChallenge.entryPoint = "http";
         };
         ping = {
           manualRouting = true;
