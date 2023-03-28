@@ -5,6 +5,8 @@
     ssh = {
       enable = true;
       userKnownHostsFile = "/dev/null";
+      serverAliveInterval = 30;
+      serverAliveCountMax = 60;
       extraConfig = ''
         CanonicalizeHostname yes
         CanonicalDomains dora.im

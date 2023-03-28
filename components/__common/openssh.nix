@@ -4,6 +4,10 @@
     enable = true;
     settings.PermitRootLogin = "prohibit-password";
     ports = [ 22 ];
+    extraConfig = ''
+      ClientAliveInterval 30
+      ClientAliveCountMax 60
+    '';
     hostKeys = [
       {
         path = "/etc/ssh/ssh_host_ed25519_key";
