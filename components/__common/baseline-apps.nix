@@ -48,5 +48,6 @@
     expect
     iperf
     nmap
+    colmena
   ];
 }
