@@ -8,6 +8,8 @@
       "cloud"
       "tippy"
       "traefik"
+      "headscale"
+      "tailscale"
     ];
 
     blacklist = [ ];
