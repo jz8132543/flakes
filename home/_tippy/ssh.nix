@@ -7,6 +7,7 @@
       userKnownHostsFile = "/dev/null";
       serverAliveInterval = 30;
       serverAliveCountMax = 60;
+      compression = true;
       extraConfig = ''
         CanonicalizeHostname yes
         CanonicalDomains dora.im
@@ -18,6 +19,8 @@
         "*" = {
           user = "tippy";
           checkHostIP = false;
+          forwardAgent = true;
+          forwardX11 = true;
         };
       };
       includes = [

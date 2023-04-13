@@ -8,9 +8,8 @@
       "cloud"
       "tippy"
       "traefik"
-      "postgres"
-      "headscale"
       "tailscale"
+      "v2ray"
     ];
 
     blacklist = [ ];
@@ -21,6 +20,6 @@
 
 
   extraConfiguration = { utils, ... }: {
-    networking.hostName = "fra0";
+    networking.hostName = "tyo0";
   };
 }
