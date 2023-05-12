@@ -8,4 +8,5 @@ lib.makeExtensible (self: {
   buildModuleList = import ./build-module-list.nix { inherit self lib; };
   flattenTree = import ./flatten-tree.nix { inherit lib; };
   rakeLeaves = import ./rake-leaves.nix { inherit inputs lib; };
+  rake = import ./rake.nix { inherit inputs lib; };
 })

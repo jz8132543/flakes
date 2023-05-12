@@ -8,8 +8,8 @@
 let
   inherit (inputs.nixpkgs.lib) nixosSystem;
 
-  nixosModules = self.lib.rakeLeaves ../nixos/modules;
-  hmModules = self.lib.rakeLeaves ../home-manager/modules;
+  nixosModules = self.lib.rake ../nixos/modules;
+  hmModules = self.lib.rake ../home-manager/modules;
 
   commonNixosModules =
     nixosModules.base.all
