@@ -34,7 +34,6 @@ let
   commonHmModules =
     hmModules.all
     ++ [
-      inputs.hyprland.homeManagerModules.default
       inputs.sops-nix.homeManagerModules
       {
         lib.self = self.lib;

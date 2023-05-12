@@ -4,8 +4,10 @@
 
   boot = {
     initrd.systemd.enable = true;
-    cleanTmpDir = true;
-    tmpOnTmpfs = false;
+    tmp = {
+      cleanOnBoot = true;
+      useTmpfs = false;
+    };
     kernelParams = [
       "panic=1"
       "boot.panic_on_fail" # Troubleshooting
