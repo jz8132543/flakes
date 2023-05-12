@@ -15,14 +15,14 @@ in
           {
             name = "bios_grub";
             start = "0";
-            end = "1M";
+            end = "1MiB";
             part-type = "primary";
             flags = [ "bios_grub" ];
           }
           {
             name = "EFI";
             start = "1MiB";
-            end = "257MiB";
+            end = "1025MiB";
             fs-type = "fat32";
             bootable = true;
             content = {
@@ -33,7 +33,7 @@ in
           }
           {
             name = "NIXOS";
-            start = "257M";
+            start = "1025M";
             end = "100%";
             part-type = "primary";
             content = {
