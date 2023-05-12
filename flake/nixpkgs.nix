@@ -6,11 +6,10 @@
 let
   packages = [
     inputs.sops-nix.overlays.default
-    inputs.nixos-cn.overlay
   ];
 in
 {
-  nixpkgs = {
+  flake.nixpkgs = {
     config = {
       allowUnfree = true;
     };

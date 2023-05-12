@@ -3,12 +3,9 @@ let
   mountOptions = { mountOptions = [ "discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2" ]; };
 in
 {
-  imports = [
-    self.nixosModules.disko
-  ];
   disko.enableConfig = true;
   disko.devices = {
-    disk.vda = {
+    disk.main = {
       type = "disk";
       device = "${config.utils.disk}";
       content = {
@@ -17,15 +14,13 @@ in
         partitions = [
           {
             name = "bios_grub";
-            type = "partition";
             start = "0";
             end = "1M";
             part-type = "primary";
             flags = [ "bios_grub" ];
           }
-	        {
+          {
             name = "EFI";
-            type = "partition";
             start = "1MiB";
             end = "200MiB";
             fs-type = "fat32";
@@ -38,8 +33,7 @@ in
           }
           {
             name = "NIXOS";
-            type = "partition";
-            start = "210M";
+            start = "200M";
             end = "100%";
             part-type = "primary";
             content = {

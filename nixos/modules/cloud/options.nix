@@ -1,7 +1,7 @@
-{ lib, ... }:
+{ lib, config, ... }:
 
 {
-  environment.global-persistence.enable = true;
+  config.environment.global-persistence.enable = true;
   options.utils.disk = lib.mkOption {
     type = lib.types.str;
     default = "/dev/vda";

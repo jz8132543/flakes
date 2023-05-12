@@ -30,6 +30,9 @@
     };
     nur.url = "github:nix-community/NUR";
     linyinfeng.url = "github:linyinfeng/nur-packages";
+    devshell.url = "github:numtide/devshell";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -53,9 +56,12 @@
           imports =
             [
               inputs.flake-parts.flakeModules.easyOverlay
+              inputs.devshell.flakeModule
+              inputs.treefmt-nix.flakeModule
+              inputs.pre-commit-hooks-nix.flakeModule
               inputs.linyinfeng.flakeModules.nixpkgs
               inputs.linyinfeng.flakeModules.passthru
-              # inputs.linyinfeng.flakeModules.nixago
+              inputs.linyinfeng.flakeModules.nixago
             ]
             ++ selfLib.buildModuleList ./flake;
         }
