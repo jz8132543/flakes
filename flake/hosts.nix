@@ -32,7 +32,7 @@ let
     ];
 
   commonHmModules =
-    hmModules.all
+    hmModules.base.all
     ++ [
       inputs.sops-nix.homeManagerModules
       inputs.impermanence.nixosModules.home-manager.impermanence
