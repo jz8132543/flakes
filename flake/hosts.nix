@@ -34,8 +34,6 @@ let
   commonHmModules =
     hmModules.base.all
     ++ [
-      inputs.sops-nix.homeManagerModules
-      inputs.impermanence.nixosModules.home-manager.impermanence
       {
         lib.self = self.lib;
       }
