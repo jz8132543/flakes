@@ -22,7 +22,7 @@ in
           {
             name = "EFI";
             start = "1MiB";
-            end = "200MiB";
+            end = "210MiB";
             fs-type = "fat32";
             bootable = true;
             content = {
@@ -33,7 +33,7 @@ in
           }
           {
             name = "NIXOS";
-            start = "200M";
+            start = "210M";
             end = "100%";
             part-type = "primary";
             content = {
