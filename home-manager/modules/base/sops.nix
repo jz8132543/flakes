@@ -1,7 +1,7 @@
-{ inputs, pkgs, ... }:
+{ inputs, pkgs, config, ... }:
 {
   imports = [
-    inputs.sops-nix.homeManagerModules
+    inputs.sops-nix.homeManagerModule
   ];
   sops = {
     age = {
