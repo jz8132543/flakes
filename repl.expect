@@ -7,11 +7,9 @@
 
 spawn nix repl
 
-send ":lf .\n"
+  send ":lf .\n"
 
-send ":a builtins\n"
+  send ":a builtins\n"
 
-send ":a nixosConfigurations.[ exec hostname ]\n"
-
-interact
+  interact
 
