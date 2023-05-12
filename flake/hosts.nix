@@ -12,7 +12,7 @@ let
   hmModules = self.lib.rakeLeaves ../home-manager/modules;
 
   commonNixosModules =
-    nixosModules.base
+    nixosModules.base.all
     ++ [
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.sops
@@ -32,7 +32,7 @@ let
     ];
 
   commonHmModules =
-    hmModules
+    hmModules.all
     ++ [
       inputs.hyprland.homeManagerModules.default
       inputs.sops-nix.homeManagerModules

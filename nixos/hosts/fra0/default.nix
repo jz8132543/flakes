@@ -1,7 +1,7 @@
 { self, nixosModules, ... }:
 {
   imports = [
-    nixosModules.base.all
+    # nixosModules.base.all
     ./hardware-configuration.nix
   ];
 }
