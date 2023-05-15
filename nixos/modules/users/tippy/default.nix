@@ -19,14 +19,14 @@ in
 
   home-manager.users.${name} = { hmModules, ... }: {
     imports = hmModules.${name}.all;
-    home.global-persistence = {
-      enable = true;
-      allowOther = false;
-      home = homeDirectory;
+    home.persistence."/nix/persist/home/tippy" = {
       directories = [
         "source"
         ".local/share/direnv"
       ];
+      files = [
+      ];
+      allowOther = false;
     };
   };
 }

@@ -16,7 +16,6 @@ let
     ++ [
       inputs.home-manager.nixosModules.home-manager
       inputs.sops-nix.nixosModules.sops
-      inputs.impermanence.nixosModules.impermanence
       inputs.disko.nixosModules.disko
       {
         lib.self = self.lib;
