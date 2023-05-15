@@ -12,6 +12,7 @@
         CanonicalizeHostname yes
         CanonicalDomains dora.im
         StrictHostKeyChecking no
+        LogLevel ERROR
       '';
       matchBlocks = {
         "github.com" = { user = "git"; };
