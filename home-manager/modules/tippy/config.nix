@@ -11,7 +11,7 @@ in
   '';
   home.file."source/nvim".source = config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/.config/nvim";
   sops.secrets."ssh/id_ed25519" = {
-    sopsFile = osConfig.sops-file.get "common.yaml";
+    # sopsFile = osConfig.sops-file.get "common.yaml";
     path = ".ssh/id_ed25519";
   };
   home.persistence."/nix/persist/home/tippy" = {
