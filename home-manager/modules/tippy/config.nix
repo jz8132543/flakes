@@ -8,9 +8,6 @@ in
     ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im
   '';
   home.file."source/nvim".source = config.lib.file.mkOutOfStoreSymlink "${homeDirectory}/.config/nvim";
-  home.persistence."/nix/persist/${homeDirectory}" = {
-    allowOther = false;
-  };
   home.packages = with pkgs; [
     duf
     sops

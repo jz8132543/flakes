@@ -21,6 +21,7 @@ in
     imports = hmModules.${name}.all;
     home.global-persistence = {
       enable = true;
+      allowOther = false;
       home = homeDirectory;
       directories = [
         "source"
