@@ -8,7 +8,11 @@ let
   yubikeyKeys = lib.attrValues yubikeys;
   hosts = {
     fra0 = {
-      key = "age1qrrwcee244ak7ax9xwuxdttzsan24g655lpmvry3275j6v4n2pesjwyawu";
+      key = "age15f7j88sget6mun9tgfc4e0qdptev982jcxfaf0js2ky52t00vsaqhywj8m";
+      owned = true;
+    };
+    tyo2 = {
+      key = "age1934xpm9at83g823dzwm3wxj64apvrx40wcv8ms2p9gvgxdxwsp3s0rvpyc";
       owned = true;
     };
   };
