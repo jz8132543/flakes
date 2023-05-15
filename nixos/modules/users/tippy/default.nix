@@ -12,10 +12,10 @@ in
     hashedPassword = "$6$0gRnTBQjBv9ipXZz$AEBVrBbWXgzZ0IICD1HVWeCwqELFe85.ePsOOdkvFM1E6/sKvQUUesvXhQN519Ud33RsqA3h5z.4luO8Jk4Ls/";
   };
   security.sudo.wheelNeedsPassword = false;
-  sops.secrets."ssh/id_ed25519" = {
-    neededForUsers = true;
-    sopsFile = config.sops-file.get "common.yaml";
-  };
+  # sops.secrets."ssh/id_ed25519" = {
+  #   neededForUsers = true;
+  #   sopsFile = config.sops-file.get "common.yaml";
+  # };
 
   home-manager.users.${name} = { hmModules, ... }: {
     imports = hmModules.${name}.all;

@@ -26,10 +26,13 @@ in
     sops-file.host = config.sops-file.get "hosts/${hostName}.yaml";
     sops-file.terraform = config.sops-file.get "terraform/hosts/${hostName}.yaml";
 
-    sops.gnupg.sshKeyPaths = [ ];
-    sops.age = {
-      sshKeyPaths = [ ];
-      keyFile = "/var/lib/sops-nix/key";
+    sops = {
+      defaultSopsFile = config.sops-file.get "common.yaml";
+      gnupg.sshKeyPaths = [ ];
+      age = {
+        sshKeyPaths = [ ];
+        keyFile = "/var/lib/sops-nix/key";
+      };
     };
   };
 }
