@@ -29,13 +29,7 @@ in
     sops.gnupg.sshKeyPaths = [ ];
     sops.age = {
       sshKeyPaths = [ ];
-      keyFile =
-        lib.mkDefault
-          (
-            if config.environment.global-persistence.enable
-            then "/persist/nix/var/lib/sops-nix/key"
-            else "/var/lib/sops-nix/key"
-          );
+      keyFile = "/var/lib/sops-nix/key";
     };
   };
 }
