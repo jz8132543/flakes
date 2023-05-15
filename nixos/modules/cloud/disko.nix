@@ -1,8 +1,11 @@
-{ self, lib, config, ... }:
+{ self, inputs, lib, config, ... }:
 let
   mountOptions = { mountOptions = [ "discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2" ]; };
 in
 {
+  imports = [
+    inputs.disko.nixosModules.disko
+  ];
   disko.enableConfig = true;
   disko.devices = {
     disk.main = {

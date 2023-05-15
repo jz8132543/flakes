@@ -1,11 +1,15 @@
 { config
 , lib
+, inputs
 , ...
 }:
 let
   inherit (config.networking) hostName;
 in
 {
+  imports = [
+    inputs.sops-nix.nixosModules.sops
+  ];
   options.sops-file = {
     directory = lib.mkOption {
       type = lib.types.path;
