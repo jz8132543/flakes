@@ -1,3 +1,5 @@
-/result
-/flake.lock
+result*
 .direnv
+
+/.sops.yaml
+.pre-commit-config.yaml

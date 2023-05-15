@@ -33,6 +33,9 @@
     devshell.url = "github:numtide/devshell";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
+    nixos-generators.url = "github:nix-community/nixos-generators";
+    deploy-rs.url = "github:serokell/deploy-rs";
+    nixago.url = "github:nix-community/nixago";
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -1,17 +1,1 @@
-keys:
-  - &admin 23232A6D050ACE46DF02D72B84A772A8519FC163
-  - &sys age1gneh0wvxdj8s4rgjdhpe9f780ypearyt5ly4zcx2zllz0vq55ywsdhux5m
-  - &home age1s02ehddjg4yff0jejn60yafuc4kx2tpywcpmvax2ycwlayes3c9qv5rgju
-creation_rules:
-  - path_regex: config/secrets_uncrypted/.*
-    key_groups:
-    - pgp:
-      - *admin
-      age:
-      - *sys
-  - path_regex: config/secrets_home_uncrypted/.*
-    key_groups:
-    - pgp:
-      - *admin
-      age:
-      - *home
+/nix/store/7wpd1sr8yz6rkk3mxzdsqjn06qlr41p9-sops.yaml
