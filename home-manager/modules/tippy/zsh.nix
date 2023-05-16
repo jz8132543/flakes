@@ -12,7 +12,12 @@
     enableAutosuggestions = true;
     enableSyntaxHighlighting = true;
     enableCompletion = true;
-
+    autocd = true;
+    oh-my-zsh = {
+      enable = true;
+      theme = "";
+      plugins = [ "git" "sudo" "z" "vi-mode" "colored-man-pages" ];
+    };
     shellAliases = {
       ls = "${pkgs.exa}/bin/exa --icons";
       tree = "${pkgs.exa}/bin/exa --tree --icons";
