@@ -3,7 +3,7 @@
     inputs.impermanence.nixosModules.impermanence
   ];
   environment.persistence."/nix/persist" = {
-    hideMounts = true;
+    # hideMounts = true;
     directories = [
       # service state directory
       "/var/lib"
