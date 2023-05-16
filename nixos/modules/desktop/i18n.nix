@@ -11,10 +11,10 @@
         libsForQt5.fcitx5-qt
         fcitx5-rime
         rime-data
-        nur.repos.xddxdd.rime-zhwiki
-        nur.repos.xddxdd.rime-aurora-pinyin
-        nur.repos.xddxdd.rime-dict
-        nur.repos.xddxdd.rime-moegirl
+        # nur.repos.xddxdd.rime-zhwiki
+        # nur.repos.xddxdd.rime-aurora-pinyin
+        # nur.repos.xddxdd.rime-dict
+        # nur.repos.xddxdd.rime-moegirl
       ];
     };
   };

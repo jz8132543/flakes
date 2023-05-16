@@ -23,7 +23,7 @@ in
       then hmModules.desktop.all
       else [ ]
     );
-    home.persistence."/nix/persist/${homeDirectory}" = {
+    home.persistence."/nix/persist${homeDirectory}" = {
       directories = [
         "source"
         ".local/share/direnv"

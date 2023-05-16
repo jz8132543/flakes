@@ -15,6 +15,7 @@ let
     nixosModules.base.all
     ++ [
       inputs.home-manager.nixosModules.home-manager
+      inputs.nur.nixosModules.nur
       {
         lib.self = self.lib;
         home-manager = {
