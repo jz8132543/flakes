@@ -14,12 +14,16 @@ in
   security.sudo.wheelNeedsPassword = false;
   sops.secrets."ssh/id_ed25519" = {
     neededForUsers = true;
-    #   sopsFile = config.sops-file.get "common.yaml";
   };
 
-  home-manager.users.${name} = { hmModules, ... }: {
-    imports = hmModules.${name}.all;
-    home.persistence."/nix/persist/home/tippy" = {
+  home-manager.users.${name} = { hmModules, osConfig, ... }: {
+    imports = hmModules.${name}.all
+      ++ (
+      if osConfig.services.xserver.enable
+      then hmModules.desktop.all
+      else [ ]
+    );
+    home.persistence."/nix/persist/${homeDirectory}" = {
       directories = [
         "source"
         ".local/share/direnv"

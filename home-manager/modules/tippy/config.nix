@@ -1,4 +1,4 @@
-{ config, osConfig, inputs, self, pkgs, ... }:
+{ config, pkgs, ... }:
 let
   homeDirectory = "/home/tippy";
 in

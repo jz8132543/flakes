@@ -77,5 +77,9 @@ in
       name = "fra0";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "surface";
+      system = "x86_64-linux";
+    })
   ];
 }
