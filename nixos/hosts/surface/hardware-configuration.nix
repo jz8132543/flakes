@@ -29,7 +29,7 @@
             insmod ntfs
             insmod search_fs_uuid
             insmod chain
-            set root='(hd0,gpt4)'
+            set root=UUID=E4CAC872CAC84312
             chainloader /EFI/Microsoft/Boot/bootmgfw.efi
           }
         '';
