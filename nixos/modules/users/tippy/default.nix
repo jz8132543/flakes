@@ -30,7 +30,7 @@ in
       ];
       files = [
       ];
-      allowOther = false;
+      allowOther = true;
     };
   };
 }
