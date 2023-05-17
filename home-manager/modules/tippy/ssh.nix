@@ -15,7 +15,7 @@
         LogLevel ERROR
       '';
       matchBlocks = {
-        "github.com" = { user = "git"; };
+        "github.com" = { user = "git"; hostname = "ssh.github.com"; port = 443; };
         "gitlab.com" = { user = "git"; };
         "*" = {
           user = "tippy";
