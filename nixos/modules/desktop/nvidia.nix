@@ -1,6 +1,9 @@
 { pkgs, lib, config, ... }:
 
 {
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (pkgs.lib.getName pkg) [
+    "nvidia-x11"
+  ];
   services.xserver.videoDrivers = [ "nvidia" ];
   systemd.services.nvidia-control-devices = {
     wantedBy = [
