@@ -10,12 +10,12 @@
           override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
-          domains = [ "hs.dora.im" ];
+          domains = [ "ts.dora.im" ];
           nameservers = [
             "9.9.9.9"
           ];
         };
-        server_url = "https://headscale.dora.im";
+        server_url = "https://ts.dora.im";
         metrics_listen_addr = "localhost:8095";
         logtail = {
           enabled = false;
@@ -33,12 +33,12 @@
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       headscale = {
-        rule = "Host(`headscale.dora.im`) && PathPrefix(`/`)";
+        rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
         entryPoints = [ "https" ];
         service = "headscale";
       };
       headscale_metrics = {
-        rule = "Host(`headscale.dora.im`) && PathPrefix(`/metrics`)";
+        rule = "Host(`ts.dora.im`) && PathPrefix(`/metrics`)";
         entryPoints = [ "https" ];
         service = "headscale_metrics";
       };

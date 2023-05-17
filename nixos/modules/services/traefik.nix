@@ -29,7 +29,7 @@
           kid = "s5QsCWwCNdhUcJAUR1TfNA";
           hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
         };
-        httpChallenge.entrypoint = "http";
+        dnsChallenge = { provider = "cloudflare"; };
       };
       ping = {
         manualRouting = true;
