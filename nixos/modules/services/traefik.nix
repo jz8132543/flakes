@@ -1,5 +1,5 @@
 { lib, config, ... }:
-with lib;{
+{
   config = {
     services.traefik = {
       enable = true;
@@ -26,8 +26,8 @@ with lib;{
           storage = "/var/lib/traefik/acme.json";
           keyType = "EC256";
           eab = {
-            kid = "s5QsCWwCNdhUcJAUR1TfNA";
-            hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
+            kid = builtins.readFile config.sops.secrets."traefik/KID".path;
+            hmacEncoded = builtins.readFile config.sops.secrets."traefik/HMAC".path;
           };
           httpChallenge.entrypoint = "http";
         };
@@ -43,7 +43,7 @@ with lib;{
       };
       dynamicConfigOptions = {
         tls.options.default = {
-          minVersion = "VersionTLS12";
+          minVersion = "VersionTLS13";
           sniStrict = true;
         };
         http = {
@@ -63,4 +63,5 @@ with lib;{
       };
     };
   };
+  systemd.services.traefik.serviceConfig.EnvironmentFile = config.sops.secrets."traefik/cloudflare".path;
 }
