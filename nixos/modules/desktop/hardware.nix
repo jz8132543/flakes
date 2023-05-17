@@ -10,14 +10,14 @@
   services = {
     xserver = {
       enable = true;
-      #dpi = 144;
-      libinput.enable = true;
-      libinput.touchpad = {
-        horizontalScrolling = true;
-        naturalScrolling = true;
-        tapping = true;
-        tappingDragLock = false;
-      };
+      # dpi = 144;
+      # libinput.enable = true;
+      # libinput.touchpad = {
+      #   horizontalScrolling = true;
+      #   naturalScrolling = true;
+      #   tapping = true;
+      #   tappingDragLock = false;
+      # };
       xkbOptions = "caps:swapescape,caps:escape";
     };
     # pipewire = {

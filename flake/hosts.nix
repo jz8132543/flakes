@@ -32,6 +32,7 @@ let
   commonHmModules =
     hmModules.base.all
     ++ [
+      inputs.nur.hmModules.nur
       {
         lib.self = self.lib;
       }

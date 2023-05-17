@@ -1,10 +1,5 @@
-{ self, inputs, ... }:
+{ inputs, ... }:
 {
-  #imports = [ self.nixosModules.nur ]; # Import NUR Repos
-  nixpkgs.overlays = [
-    inputs.nur.overlay
-  ];
-
   nix = {
     nrBuildUsers = 0;
     optimise.automatic = true;
@@ -22,8 +17,5 @@
       auto-optimise-store = true;
     };
   };
-
-  nixpkgs.config = {
-    allowUnfree = true;
-  };
+  nixpkgs.config.allowUnfree = true;
 }

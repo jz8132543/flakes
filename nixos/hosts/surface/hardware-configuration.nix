@@ -21,6 +21,7 @@
     loader = {
       grub = {
         device = lib.mkForce "nodev";
+        # useOSProber = true;
 
         gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
@@ -29,7 +30,7 @@
             insmod ntfs
             insmod search_fs_uuid
             insmod chain
-            set root=UUID=E4CAC872CAC84312
+            search --no-floppy --fs-uuid --set=root E4CAC872CAC84312
             chainloader /EFI/Microsoft/Boot/bootmgfw.efi
           }
         '';

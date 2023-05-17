@@ -1,4 +1,4 @@
-{ self, nixosModules, ... }:
+{ config, nixosModules, ... }:
 {
   imports = [
     ./hardware-configuration.nix
