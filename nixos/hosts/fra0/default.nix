@@ -5,6 +5,6 @@
   ]
   ++ nixosModules.cloud.all
   ++ nixosModules.users.tippy.all
-  ++ nixosModules.services.traefik
-  ++ nixosModules.services.headscale;
+  ++ nixosModules.services.traefik.all
+  ++ nixosModules.services.headscale.all;
 }
