@@ -18,6 +18,7 @@
   environment.systemPackages = with pkgs; [
     kooha
     pulseaudio
+    wl-clipboard
     gnome.gnome-boxes
     gnome.devhelp
     gnome.dconf-editor
