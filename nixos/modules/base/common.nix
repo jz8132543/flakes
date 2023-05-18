@@ -1,5 +1,4 @@
-{ ... }:
-{
+{...}: {
   time.timeZone = "Asia/Shanghai";
 
   users.mutableUsers = true;

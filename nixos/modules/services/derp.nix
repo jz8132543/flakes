@@ -1,10 +1,12 @@
-{ pkgs, config, ... }:
-let
+{
+  pkgs,
+  config,
+  ...
+}: let
   derperPort = config.ports.https;
   hostname = config.networking.hostName;
   user = "ts";
-in
-{
+in {
   systemd.services.derper = {
     script = ''
       ${pkgs.tailscale-derp}/bin/derper \
@@ -15,8 +17,8 @@ in
         -certmode manual \
         -verify-clients
     '';
-    after = [ "network-online.target" ];
-    wantedBy = [ "multi-user.service" ];
+    after = ["network-online.target"];
+    wantedBy = ["multi-user.service"];
   };
   systemd.services.derper-watchdog = {
     script = ''
@@ -30,19 +32,19 @@ in
         sleep 10
       done
     '';
-    path = with pkgs; [ curl ];
-    after = [ "derper.service" ];
-    requiredBy = [ "derper.service" ];
+    path = with pkgs; [curl];
+    after = ["derper.service"];
+    requiredBy = ["derper.service"];
   };
   services.traefik.dynamicConfigOptions.http = {
     routers.derp = {
       rule = "Host(`${hostname}.dora.im` && Path(`/derp`)";
-      entryPoints = [ "https" ];
+      entryPoints = ["https"];
       service = "derp";
     };
     services.derp.loadBalancer = {
       passHostHeader = true;
-      servers = [{ url = "http://127.0.0.1:${derperPort}"; }];
+      servers = [{url = "http://127.0.0.1:${derperPort}";}];
     };
   };
   networking.firewall.allowedTCPPorts = [

@@ -1,5 +1,4 @@
-{ lib }:
-let
+{lib}: let
   main = "23232A6D050ACE46DF02D72B84A772A8519FC163";
   yubikeys = {
     # TODO https://github.com/mozilla/sops/issues/1103
@@ -23,20 +22,19 @@ let
     path_regex = "^secrets/(terraform/)?hosts/${host}(\.plain)?\.yaml$";
     key_groups = [
       {
-        pgp = [ main ];
-        age = [ key ];
+        pgp = [main];
+        age = [key];
       }
     ];
   };
-in
-{
+in {
   creation_rules =
     [
       {
         path_regex = "^secrets/(terraform/)?common\.yaml$";
         key_groups = [
           {
-            pgp = [ main ];
+            pgp = [main];
             age = yubikeyKeys ++ ownedHostKeys;
           }
         ];

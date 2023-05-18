@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   programs.starship = {
     enable = true;
   };
@@ -20,10 +19,8 @@
       tree = "${pkgs.exa}/bin/exa --tree --icons";
       top = "${pkgs.bottom}/bin/btm";
       cat = "${pkgs.bat}/bin/bat --style=plain";
-      fzf =
-        "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
-      batdiff =
-        "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
+      fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
+      batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
       rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
     };
     initExtra = ''

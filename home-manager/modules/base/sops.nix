@@ -1,5 +1,10 @@
-{ inputs, osConfig, pkgs, config, ... }:
 {
+  inputs,
+  osConfig,
+  pkgs,
+  config,
+  ...
+}: {
   imports = [
     inputs.sops-nix.homeManagerModule
   ];
@@ -7,8 +12,8 @@
     defaultSopsFile = osConfig.sops-file.get "common.yaml";
     age = {
       keyFile = "/var/lib/sops-nix/key";
-      sshKeyPaths = [ ];
+      sshKeyPaths = [];
     };
-    gnupg.sshKeyPaths = [ ];
+    gnupg.sshKeyPaths = [];
   };
 }

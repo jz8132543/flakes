@@ -1,25 +1,27 @@
-{ config, inputs, lib, ... }:
-
-let cfg = config.nixpkgs; in
 {
+  config,
+  inputs,
+  lib,
+  ...
+}: let
+  cfg = config.nixpkgs;
+in {
   options.nixpkgs = {
     config = lib.mkOption {
       type = with lib.types; attrsOf raw;
-      default = { };
+      default = {};
     };
     overlays = lib.mkOption {
       type = with lib.types; listOf raw;
-      default = [ ];
+      default = [];
     };
   };
   config = {
-    perSystem = { system, ... }:
-      {
-        _module.args.pkgs = import inputs.nixpkgs {
-          inherit system;
-          inherit (cfg) config overlays;
-        };
+    perSystem = {system, ...}: {
+      _module.args.pkgs = import inputs.nixpkgs {
+        inherit system;
+        inherit (cfg) config overlays;
       };
-
+    };
   };
 }

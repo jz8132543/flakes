@@ -1,5 +1,9 @@
-{ pkgs, lib, osConfig, ... }:
-let
+{
+  pkgs,
+  lib,
+  osConfig,
+  ...
+}: let
   extensionPkgs = with pkgs.gnomeExtensions; [
     gsconnect
     appindicator
@@ -8,8 +12,7 @@ let
     kimpanel
   ];
   inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 type;
-in
-{
+in {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
@@ -32,7 +35,7 @@ in
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
-        disabled-extensions = [ ];
+        disabled-extensions = [];
         favorite-apps = lib.mkBefore [
           "com.raggesilver.BlackBox.desktop"
           "org.gnome.Nautilus.desktop"
@@ -49,8 +52,8 @@ in
       };
       # use fcitx5
       "org/gnome/desktop/wm/keybindings" = {
-        switch-input-source = mkArray type.string [ ];
-        switch-input-source-backward = mkArray type.string [ ];
+        switch-input-source = mkArray type.string [];
+        switch-input-source-backward = mkArray type.string [];
       };
       # "org/gnome/desktop/input-sources" = {
       #   sources = mkArray (type.tupleOf [type.string type.string]) [
@@ -117,7 +120,7 @@ in
         picture-options = "zoom";
       };
       "com/raggesilver/BlackBox" = {
-        terminal-padding = mkTuple [ (mkUint32 5) (mkUint32 5) (mkUint32 5) (mkUint32 5) ];
+        terminal-padding = mkTuple [(mkUint32 5) (mkUint32 5) (mkUint32 5) (mkUint32 5)];
         font = "monospace 10";
         theme-light = "Tomorrow";
         theme-dark = "Tomorrow Night";

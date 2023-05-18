@@ -1,8 +1,12 @@
-{ self, inputs, lib, config, ... }:
-let
-  mountOptions = { mountOptions = [ "discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2" ]; };
-in
 {
+  self,
+  inputs,
+  lib,
+  config,
+  ...
+}: let
+  mountOptions = {mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];};
+in {
   imports = [
     inputs.disko.nixosModules.disko
   ];
@@ -20,7 +24,7 @@ in
             start = "0";
             end = "1MiB";
             part-type = "primary";
-            flags = [ "bios_grub" ];
+            flags = ["bios_grub"];
           }
           {
             name = "EFI";
@@ -41,12 +45,14 @@ in
             part-type = "primary";
             content = {
               type = "btrfs";
-              extraArgs = [ "-f" ];
+              extraArgs = ["-f"];
               subvolumes = {
                 "/nix" = mountOptions;
-                "/persist" = mountOptions // {
-                  mountpoint = "/nix/persist";
-                };
+                "/persist" =
+                  mountOptions
+                  // {
+                    mountpoint = "/nix/persist";
+                  };
               };
             };
           }
@@ -64,7 +70,7 @@ in
   fileSystems = {
     "/" = {
       fsType = "tmpfs";
-      options = [ "defaults" "mode=755" ];
+      options = ["defaults" "mode=755"];
     };
     "/boot" = {
       device = lib.mkForce "/dev/disk/by-partlabel/EFI";

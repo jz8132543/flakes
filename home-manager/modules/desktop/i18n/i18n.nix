@@ -1,5 +1,10 @@
-{ config, osConfig, lib, pkgs, ... }:
-let
+{
+  config,
+  osConfig,
+  lib,
+  pkgs,
+  ...
+}: let
   yq = "${pkgs.yq-go}/bin/yq";
   home = "${config.home.homeDirectory}";
   rimeConfig = ".local/share/fcitx5/rime";
@@ -7,18 +12,17 @@ let
     sync_dir: "${home}/Syncthing/Main/rime"
     installation_id: "${osConfig.networking.hostName}"
   '';
-in
-{
+in {
   # fcitx
   xdg.configFile."fcitx5" = {
     source = ./_config;
     recursive = true;
   };
-  home.activation.removeExistingFcitx5Profile = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+  home.activation.removeExistingFcitx5Profile = lib.hm.dag.entryBefore ["checkLinkTargets"] ''
     rm -f "${config.xdg.configHome}/fcitx5/profile"
   '';
   # rime
-  home.activation.patchRimeInstallation = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  home.activation.patchRimeInstallation = lib.hm.dag.entryAfter ["writeBoundary"] ''
     target="${home}/${rimeConfig}/installation.yaml"
     if [ -e "$target" ]; then
       ${yq} eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' "$target" - --inplace <<EOF

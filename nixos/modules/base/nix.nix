@@ -1,5 +1,4 @@
-{ inputs, ... }:
-{
+{inputs, ...}: {
   nix = {
     nrBuildUsers = 0;
     optimise.automatic = true;
@@ -10,8 +9,8 @@
     };
 
     settings = {
-      nix-path = [ "nixpkgs=${inputs.nixpkgs}" ];
-      experimental-features = [ "nix-command" "flakes" "auto-allocate-uids" "cgroups" ];
+      nix-path = ["nixpkgs=${inputs.nixpkgs}"];
+      experimental-features = ["nix-command" "flakes" "auto-allocate-uids" "cgroups"];
       auto-allocate-uids = true;
       use-cgroups = true;
       auto-optimise-store = true;

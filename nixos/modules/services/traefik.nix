@@ -1,6 +1,9 @@
-{ lib, config, ... }:
 {
-  config.sops.secrets."traefik/cloudflare" = { };
+  lib,
+  config,
+  ...
+}: {
+  config.sops.secrets."traefik/cloudflare" = {};
   config.services.traefik = {
     enable = true;
     staticConfigOptions = {
@@ -17,7 +20,7 @@
         https = {
           address = ":443";
           http.tls.certResolver = "zerossl";
-          http3 = { };
+          http3 = {};
         };
       };
       certificatesResolvers.zerossl.acme = {
@@ -29,7 +32,7 @@
           kid = "s5QsCWwCNdhUcJAUR1TfNA";
           hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
         };
-        dnsChallenge = { provider = "cloudflare"; };
+        dnsChallenge = {provider = "cloudflare";};
       };
       ping = {
         manualRouting = true;
@@ -50,12 +53,12 @@
         routers = {
           ping = {
             rule = "Host(`${config.networking.fqdn}`) && Path(`/`)";
-            entryPoints = [ "https" ];
+            entryPoints = ["https"];
             service = "ping@internal";
           };
           traefik = {
             rule = "Host(`${config.networking.fqdn}`) && Path(`/traefik`)";
-            entryPoints = [ "https" ];
+            entryPoints = ["https"];
             service = "prometheus@internal";
           };
         };

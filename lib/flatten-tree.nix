@@ -1,5 +1,4 @@
-{ lib }:
-let
+{lib}: let
   mkNewPrefix = prefix: name: "${
     if prefix == ""
     then ""
@@ -8,6 +7,6 @@ let
   flattenTree' = prefix: remain:
     if lib.isAttrs remain
     then lib.flatten (lib.mapAttrsToList (name: value: flattenTree' (mkNewPrefix prefix name) value) remain)
-    else [ (lib.nameValuePair prefix remain) ];
+    else [(lib.nameValuePair prefix remain)];
 in
-tree: lib.listToAttrs (flattenTree' "" tree)
+  tree: lib.listToAttrs (flattenTree' "" tree)

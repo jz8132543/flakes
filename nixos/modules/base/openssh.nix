@@ -1,9 +1,13 @@
-{ pkgs, lib, path, ... }:
 {
+  pkgs,
+  lib,
+  path,
+  ...
+}: {
   services.openssh = {
     enable = true;
     settings.PermitRootLogin = "prohibit-password";
-    ports = [ 22 ];
+    ports = [22];
     extraConfig = ''
       ClientAliveInterval 30
       ClientAliveCountMax 60

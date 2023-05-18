@@ -1,5 +1,8 @@
-{ config, lib, ... }:
 {
+  config,
+  lib,
+  ...
+}: {
   services = {
     headscale = {
       enable = true;
@@ -10,7 +13,7 @@
           override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
-          domains = [ "ts.dora.im" ];
+          domains = ["ts.dora.im"];
           nameservers = [
             "9.9.9.9"
           ];
@@ -34,28 +37,28 @@
     routers = {
       headscale = {
         rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
-        entryPoints = [ "https" ];
+        entryPoints = ["https"];
         service = "headscale";
       };
       headscale_metrics = {
         rule = "Host(`ts.dora.im`) && PathPrefix(`/metrics`)";
-        entryPoints = [ "https" ];
+        entryPoints = ["https"];
         service = "headscale_metrics";
       };
     };
     services = {
       headscale.loadBalancer = {
         passHostHeader = true;
-        servers = [{ url = "http://localhost:${toString config.services.headscale.port}"; }];
+        servers = [{url = "http://localhost:${toString config.services.headscale.port}";}];
       };
       headscale_metrics.loadBalancer = {
         passHostHeader = true;
-        servers = [{ url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics"; }];
+        servers = [{url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics";}];
       };
     };
   };
-  environment.systemPackages = [ config.services.headscale.package ];
+  environment.systemPackages = [config.services.headscale.package];
   environment.persistence."/nix/persist" = {
-    directories = [ "/var/lib/headscale" ];
+    directories = ["/var/lib/headscale"];
   };
 }

@@ -1,6 +1,9 @@
-{ pkgs, lib, inputs, ... }:
-
 {
+  pkgs,
+  lib,
+  inputs,
+  ...
+}: {
   programs.neovim = {
     enable = true;
     # package = pkgs.neovim-nightly;

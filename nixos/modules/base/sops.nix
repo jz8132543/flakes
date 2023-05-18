@@ -1,12 +1,11 @@
-{ config
-, lib
-, inputs
-, ...
-}:
-let
-  inherit (config.networking) hostName;
-in
 {
+  config,
+  lib,
+  inputs,
+  ...
+}: let
+  inherit (config.networking) hostName;
+in {
   imports = [
     inputs.sops-nix.nixosModules.sops
   ];
@@ -32,12 +31,11 @@ in
 
     sops = {
       defaultSopsFile = config.sops-file.get "common.yaml";
-      gnupg.sshKeyPaths = [ ];
+      gnupg.sshKeyPaths = [];
       age = {
-        sshKeyPaths = [ ];
+        sshKeyPaths = [];
         keyFile = "/var/lib/sops-nix/key";
       };
     };
   };
 }
-

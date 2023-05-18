@@ -1,9 +1,9 @@
-{ config
-, pkgs
-, lib
-, ...
-}:
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   services.xserver = {
     enable = true;
     displayManager.gdm.enable = true;

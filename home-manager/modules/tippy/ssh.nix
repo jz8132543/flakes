@@ -1,6 +1,4 @@
-{ ... }:
-
-{
+{...}: {
   programs = {
     ssh = {
       enable = true;
@@ -15,8 +13,16 @@
         LogLevel ERROR
       '';
       matchBlocks = {
-        "github.com" = { user = "git"; hostname = "ssh.github.com"; port = 443; };
-        "gitlab.com" = { user = "git"; hostname = "altssh.gitlab.com"; port = 443; };
+        "github.com" = {
+          user = "git";
+          hostname = "ssh.github.com";
+          port = 443;
+        };
+        "gitlab.com" = {
+          user = "git";
+          hostname = "altssh.gitlab.com";
+          port = 443;
+        };
         "*" = {
           user = "tippy";
           checkHostIP = false;

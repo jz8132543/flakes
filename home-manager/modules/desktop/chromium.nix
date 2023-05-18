@@ -1,7 +1,10 @@
-{ nixosConfig, config, lib, pkgs, ... }:
-
 {
-
+  nixosConfig,
+  config,
+  lib,
+  pkgs,
+  ...
+}: {
   programs.chromium = {
     enable = true;
     extensions = [
@@ -9,7 +12,6 @@
       "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
       "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
     ];
-
   };
   home.persistence."/nix/persist/home/tippy" = {
     directories = [
@@ -17,4 +19,3 @@
     ];
   };
 }
-

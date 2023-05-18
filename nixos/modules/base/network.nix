@@ -1,9 +1,8 @@
-{ ... }:
-{
+{...}: {
   networking = {
-    nameservers = [ "1.1.1.1" "1.0.0.1" ];
+    nameservers = ["1.1.1.1" "1.0.0.1"];
     domain = "dora.im";
-    search = [ "dora.im" ];
+    search = ["dora.im"];
     firewall.enable = false;
     firewall.checkReversePath = false;
   };

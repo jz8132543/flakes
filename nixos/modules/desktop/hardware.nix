@@ -1,10 +1,9 @@
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   hardware = {
     opengl = {
       enable = true;
       driSupport32Bit = true;
-      extraPackages = with pkgs; [ intel-media-driver ];
+      extraPackages = with pkgs; [intel-media-driver];
     };
   };
   services = {
@@ -32,5 +31,5 @@
   security.rtkit.enable = true;
   console.font = "latarcyrheb-sun32";
   console.earlySetup = true;
-  boot.supportedFilesystems = [ "ntfs" ];
+  boot.supportedFilesystems = ["ntfs"];
 }

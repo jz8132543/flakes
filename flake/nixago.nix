@@ -1,3 +1,3 @@
-{ ... }: {
-  imports = [ ../nixago ];
+{...}: {
+  imports = [../nixago];
 }
