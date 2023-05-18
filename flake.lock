@@ -388,11 +388,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1684189380,
-        "narHash": "sha256-GUp9OkZynocyppLur1VX8oAjtXGue0oKRHbsksOMUm0=",
+        "lastModified": 1684321175,
+        "narHash": "sha256-V4EbM+jK7pvjKBaj0dgAiW9ultzDE27Nz5fRyu/ceMk=",
         "owner": "nix-community",
         "repo": "home-manager",
-        "rev": "b7d814c5744dca7e70b3dc2638f06568dce96ca6",
+        "rev": "59659243cd4ababda605e79b4a9c2e6d83e24c86",
         "type": "github"
       },
       "original": {
@@ -591,6 +591,21 @@
         "type": "github"
       }
     },
+    "nixos-hardware": {
+      "locked": {
+        "lastModified": 1684169666,
+        "narHash": "sha256-N5jrykeSxLVgvm3Dd3hZ38/XwM/jU+dltqlXgrGlYxk=",
+        "owner": "nixos",
+        "repo": "nixos-hardware",
+        "rev": "71ce85372a614d418d5e303dd5702a79d1545c04",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixos-hardware",
+        "type": "github"
+      }
+    },
     "nixos-stable": {
       "locked": {
         "lastModified": 1683928319,
@@ -720,11 +735,11 @@
     },
     "nixpkgs_6": {
       "locked": {
-        "lastModified": 1684215771,
-        "narHash": "sha256-fsum28z+g18yreNa1Y7MPo9dtps5h1VkHfZbYQ+YPbk=",
+        "lastModified": 1684305980,
+        "narHash": "sha256-vd4SKXX1KZfSX6n3eoguJw/vQ+sBL8XGdgfxjEgLpKc=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "963006aab35e3e8ebbf6052b6bf4ea712fdd3c28",
+        "rev": "e6e389917a8c778be636e67a67ec958f511cc55d",
         "type": "github"
       },
       "original": {
@@ -768,11 +783,11 @@
     },
     "nur": {
       "locked": {
-        "lastModified": 1684295137,
-        "narHash": "sha256-y/4MZfxwbee45jERnQ3ZaBt7EMwjF5ND57S8NoYEXRE=",
+        "lastModified": 1684391573,
+        "narHash": "sha256-KAM28ADe8ZtOdqeDVHb4FxFrGLREBnuapgjuMHY+eL4=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "e304a1e91a0896b0b987b94151c14826186178b8",
+        "rev": "9a3234de5d9fdb8733553c7e14b67dcdc08be2bd",
         "type": "github"
       },
       "original": {
@@ -817,6 +832,7 @@
         "linyinfeng": "linyinfeng",
         "nixago": "nixago",
         "nixos-generators": "nixos-generators",
+        "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_6",
         "nur": "nur",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",

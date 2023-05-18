@@ -81,6 +81,9 @@ in
     (mkHost {
       name = "surface";
       system = "x86_64-linux";
+      extraModules = with inputs.nixos-hardware.nixosModules;[
+        # microsoft-surface-common
+      ];
     })
   ];
 }

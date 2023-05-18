@@ -28,6 +28,7 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     nur.url = "github:nix-community/NUR";
     linyinfeng.url = "github:linyinfeng/nur-packages";
     devshell.url = "github:numtide/devshell";

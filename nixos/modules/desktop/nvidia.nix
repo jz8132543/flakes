@@ -17,7 +17,7 @@
   # };
   hardware.nvidia = {
     modesetting.enable = true;
-    # package = config.boot.kernelPackages.nvidiaPackages.production;
+    package = config.boot.kernelPackages.nvidiaPackages.production;
     nvidiaSettings = true;
     prime = {
       offload.enable = true;

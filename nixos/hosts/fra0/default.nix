@@ -7,6 +7,6 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.headscale
-      nixosModules.services.derp
+      # nixosModules.services.derp
     ];
 }
