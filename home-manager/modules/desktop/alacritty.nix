@@ -10,7 +10,7 @@
       enable = true;
       settings = {
         # import = [ ./alacritty.yml ];
-        font = {size = 12.0;};
+        font = {size = 14.0;};
         shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = ["new-session" "-t" "main"];
