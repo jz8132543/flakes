@@ -49,5 +49,6 @@
     iperf
     nmap
     colmena
+    deploy-rs
   ];
 }
