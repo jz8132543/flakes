@@ -23,16 +23,22 @@
       batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
       rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
     };
+    initExtraBeforeCompInit = ''
+      zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=*'
+    '';
     initExtra = ''
-      source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
-      source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-      source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh
+      # source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
+      # source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+      # source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh
+
       bindkey "^[[1;5C" forward-word
       bindkey "^[[1;5D" backward-word
-      autoload -U select-word-style
-      select-word-style bash
-      WORDCHARS='*?_-.[]~=&;!#$%^(){}<>'
-      bindkey "^W" backward-kill-word
+      bindkey -v
+      bindkey -M vicmd '^[[1;5C' emacs-forward-word
+      bindkey -M vicmd '^[[1;5D' emacs-backward-word
+      bindkey -M viins '^[[1;5C' emacs-forward-word
+      bindkey -M viins '^[[1;5D' emacs-backward-word
+      WORDCHARS=''${WORDCHARS//[\/&.;_-]}
       alias -g ...='../..'
       alias -g ....='../../..'
       alias -g .....='../../../..'

@@ -21,6 +21,10 @@
     };
   };
 
+  environment.systemPackages = with pkgs; [
+    repmgr
+  ];
+
   # backup postgresql database
   # services.postgresqlBackup = {
   #   enable = true;
