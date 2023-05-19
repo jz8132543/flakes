@@ -5,9 +5,10 @@
 }: {
   services.postgresql = {
     enable = true;
+    enableTCPIP = true;
     package = pkgs.postgresql_15;
-    extraPlugins = with pkgs.postgresqlPackages; [
-      repmgr
+    extraPlugins = with pkgs; [
+      postgresql15Packages.repmgr
       pgpool
       pgbouncer
     ];
@@ -17,13 +18,9 @@
       host all all fdef:6567:bd7a::/48 trust
     '';
     settings = {
-      shared_preload_libraries = "repmgr";
+      # shared_preload_libraries = "repmgr";
     };
   };
-
-  environment.systemPackages = with pkgs; [
-    repmgr
-  ];
 
   # backup postgresql database
   # services.postgresqlBackup = {
