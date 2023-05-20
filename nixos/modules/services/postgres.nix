@@ -16,20 +16,15 @@
       rev = "v${version}";
       sha256 = "sha256-QUxLqCZIopvqDncpaA8bxm9MHvO6R6jPrcd8hF8lqQs=";
     };
-
     nativeBuildInputs = with pkgs; [flex];
-
     buildInputs = with pkgs; [postgresql_15 openssl zlib readline curl json_c];
-
     installPhase = ''
       mkdir -p $out/{bin,lib,share/postgresql/extension}
-
       cp repmgr{,d} $out/bin
       cp *.so       $out/lib
       cp *.sql      $out/share/postgresql/extension
       cp *.control  $out/share/postgresql/extension
     '';
-
     meta = with lib; {
       homepage = "https://repmgr.org/";
       description = "Replication manager for PostgreSQL cluster";
@@ -75,6 +70,9 @@ in {
       host all all 127.0.0.1/32 trust
       host all all 100.64.0.0/10 trust
       host all all fdef:6567:bd7a::/48 trust
+    '';
+    initialScript = pkgs.writeText "initialScript" ''
+      create extension repmgr;
     '';
     settings = {
       password_encryption = "scram-sha-256";
