@@ -37,7 +37,7 @@
       bindkey -M viins '^[[1;5C' emacs-forward-word
       bindkey -M viins '^[[1;5D' emacs-backward-word
 
-      WORDCHARS=''${WORDCHARS//[\/&.;_-]}
+      WORDCHARS=''${WORDCHARS//[\/&.;_-#]}
       alias -g ...='../..'
       alias -g ....='../../..'
       alias -g .....='../../../..'
