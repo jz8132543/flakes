@@ -85,6 +85,7 @@ in {
       max_replication_slots = 10;
       archive_mode = "on";
       archive_command = "/run/current-system/sw/bin/true";
+      wal_log_hints = "on";
       # Required for repmgrd
       shared_preload_libraries = "repmgr";
     };
