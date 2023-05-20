@@ -2,9 +2,42 @@
   config,
   pkgs,
   self,
+  lib,
   ...
 }: let
-  repmgr = config.services.postgresql.package.pkgs.repmgr;
+  # repmgr = config.services.postgresql.package.pkgs.repmgr;
+  repmgr = pkgs.stdenv.mkDerivation rec {
+    pname = "repmgr";
+    version = "5.4.0";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "EnterpriseDB";
+      repo = "repmgr";
+      rev = "v${version}";
+      sha256 = "sha256-QUxLqCZIopvqDncpaA8bxm9MHvO6R6jPrcd8hF8lqQs=";
+    };
+
+    nativeBuildInputs = with pkgs; [flex];
+
+    buildInputs = with pkgs; [postgresql_15 openssl zlib readline curl json_c];
+
+    installPhase = ''
+      mkdir -p $out/{bin,lib,share/postgresql/extension}
+
+      cp repmgr{,d} $out/bin
+      cp *.so       $out/lib
+      cp *.sql      $out/share/postgresql/extension
+      cp *.control  $out/share/postgresql/extension
+    '';
+
+    meta = with lib; {
+      homepage = "https://repmgr.org/";
+      description = "Replication manager for PostgreSQL cluster";
+      license = licenses.postgresql;
+      platforms = pkgs.postgresql.meta.platforms;
+      maintainers = with maintainers; [zimbatm];
+    };
+  };
   repmgrConfig = ''
     node_id=${self.lib.data.hosts.${config.networking.hostName}.id}
     node_name='${config.networking.hostName}'
@@ -30,19 +63,18 @@ in {
     package = pkgs.postgresql_15;
     dataDir = "${postgresHome}/${config.services.postgresql.package.psqlSchema}";
     initdbArgs = ["-E UTF-8 -U postgres --locale=en_US.UTF-8"];
-    extraPlugins = with pkgs; [
-      repmgr
-      pgpool
-      pgbouncer
-    ];
+    logLinePrefix = "user=%u,db=%d,app=%a,client=%h ";
+    extraPlugins = with pkgs;
+      [
+        pgpool
+        pgbouncer
+      ]
+      ++ [repmgr];
     authentication = ''
       local all all trust
       host all all 127.0.0.1/32 trust
       host all all 100.64.0.0/10 trust
       host all all fdef:6567:bd7a::/48 trust
-    '';
-    initialScript = pkgs.writeText "initialScript" ''
-      CREATE EXTENSION repmgr;
     '';
     settings = {
       password_encryption = "scram-sha-256";
@@ -55,32 +87,15 @@ in {
       # Required for repmgrd
       shared_preload_libraries = "repmgr";
     };
+    ensureDatabases = ["repmgr"];
     ensureUsers = [
       {
         name = "repmgr";
-        ensureClauses = {
-          superuser = true;
-          createdb = true;
-        };
+        ensureClauses = {superuser = true;};
       }
     ];
   };
 
-  systemd.sockets.repmgr_role = {
-    socketConfig = {
-      ListenStream = "${config.networking.hostName}.ts.dora.im:9999";
-      Accept = true;
-    };
-    wantedBy = ["sockets.target"];
-  };
-
-  systemd.services."repmgr_role@" = {
-    description = "Service for HAProxy to check node status/role";
-    serviceConfig = {
-      ExecStart = "-${repmgr}/bin/repmgr -f /etc/repmgr.conf --log-level=ERROR node check --role";
-      StandardInput = "socket";
-    };
-  };
   systemd.services.repmgrd = {
     after = ["openssh.service" "postgresql.service"];
     wants = ["postgresql.service"];
@@ -121,16 +136,14 @@ in {
   ];
 
   # backup postgresql database
-  # services.postgresqlBackup = {
-  #   enable = true;
-  #   backupAll = true;
-  #   compression = "zstd";
-  # };
-  # services.restic.backups.b2 = {
-  #   paths = [
-  #     config.services.postgresqlBackup.location
-  #   ];
-  # };
+  services.postgresqlBackup = {
+    enable = true;
+    backupAll = true;
+    compression = "zstd";
+  };
+  # services.restic.backups.b2.paths = [
+  #   config.services.postgresqlBackup.location
+  # ];
   # systemd.services."restic-backups-b2" = {
   #   requires = ["postgresqlBackup.service"];
   #   after = ["postgresqlBackup.service"];
