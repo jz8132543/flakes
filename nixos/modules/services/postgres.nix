@@ -40,15 +40,16 @@
     data_directory='${config.services.postgresql.dataDir}'
     repmgr_bindir='${repmgr}/bin'
     pg_bindir='${config.services.postgresql.package}/bin'
+    replication_user = 'postgres'
 
     failover=automatic
     promote_command='${repmgr}/bin/repmgr standby promote -f /etc/repmgr.conf --log-to-file'
     follow_command='${repmgr}/bin/repmgr standby follow -f /etc/repmgr.conf --log-to-file --upstream-node-id=%n'
 
-    service_start_command='/run/wrappers/bin/sudo systemctl start postgresql.service'
-    service_stop_command='/run/wrappers/bin/sudo systemctl stop postgresql.service'
-    service_restart_command'/run/wrappers/bin/sudo systemctl restart postgresql.service'
-    service_reload_command'/run/wrappers/bin/sudo systemctl reload postgresql.service'
+    service_start_command='sudo systemctl start postgresql.service'
+    service_stop_command='sudo systemctl stop postgresql.service'
+    service_restart_command='sudo systemctl restart postgresql.service'
+    service_reload_command='sudo systemctl reload postgresql.service'
   '';
   postgresHome = "/var/lib/postgresql";
 in {
