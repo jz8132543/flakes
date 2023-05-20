@@ -71,6 +71,8 @@ in {
       host all all ::1/128            trust
       host all all 100.64.0.0/10      trust
       host all all fdef:6567:bd7a::/48 trust
+      host replication all 100.64.0.0/10      trust
+      host replication all fdef:6567:bd7a::/48 trust
     '';
     initialScript = pkgs.writeText "initialScript" ''
       create extension repmgr;
