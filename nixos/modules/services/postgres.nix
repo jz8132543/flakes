@@ -36,7 +36,7 @@
   repmgrConfig = ''
     node_id=${self.lib.data.hosts.${config.networking.hostName}.id}
     node_name='${config.networking.hostName}'
-    conninfo='host=${config.networking.hostName}.ts.dora.im user=repmgr dbname=repmgr connect_timeout=500'
+    conninfo='host=${config.networking.hostName}.ts.dora.im user=repmgr dbname=repmgr connect_timeout=1000'
     data_directory='${config.services.postgresql.dataDir}'
     repmgr_bindir='${repmgr}/bin'
     pg_bindir='${config.services.postgresql.package}/bin'
