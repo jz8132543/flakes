@@ -36,7 +36,7 @@
   repmgrConfig = ''
     node_id=${self.lib.data.hosts.${config.networking.hostName}.id}
     node_name='${config.networking.hostName}'
-    conninfo='host=${config.networking.hostName}.ts.dora.im user=repmgr dbname=repmgr connect_timeout=1000'
+    conninfo='host=${config.networking.hostName}.ts.dora.im user=postgres dbname=repmgr connect_timeout=1000'
     data_directory='${config.services.postgresql.dataDir}'
     repmgr_bindir='${repmgr}/bin'
     pg_bindir='${config.services.postgresql.package}/bin'
@@ -45,10 +45,10 @@
     promote_command='${repmgr}/bin/repmgr standby promote -f /etc/repmgr.conf --log-to-file'
     follow_command='${repmgr}/bin/repmgr standby follow -f /etc/repmgr.conf --log-to-file --upstream-node-id=%n'
 
-    service_start_command='sudo systemctl start postgresql.service'
-    service_stop_command='sudo systemctl stop postgresql.service'
-    service_restart_command'sudo systemctl restart postgresql.service'
-    service_reload_command'sudo systemctl reload postgresql.service'
+    service_start_command='/run/wrappers/bin/sudo systemctl start postgresql.service'
+    service_stop_command='/run/wrappers/bin/sudo systemctl stop postgresql.service'
+    service_restart_command'/run/wrappers/bin/sudo systemctl restart postgresql.service'
+    service_reload_command'/run/wrappers/bin/sudo systemctl reload postgresql.service'
   '';
   postgresHome = "/var/lib/postgresql";
 in {
@@ -90,12 +90,6 @@ in {
       shared_preload_libraries = "repmgr";
     };
     ensureDatabases = ["repmgr"];
-    ensureUsers = [
-      {
-        name = "repmgr";
-        ensureClauses = {superuser = true;};
-      }
-    ];
   };
 
   systemd.services.repmgrd = {
