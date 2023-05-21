@@ -18,7 +18,7 @@
             "9.9.9.9"
           ];
         };
-        server_url = "https://ts.dora.im";
+        server_url = "https://headscale.dora.im";
         metrics_listen_addr = "localhost:8095";
         logtail = {
           enabled = false;
@@ -36,12 +36,12 @@
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       headscale = {
-        rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
+        rule = "Host(`headscale.dora.im`) && PathPrefix(`/`)";
         entryPoints = ["https"];
         service = "headscale";
       };
       headscale_metrics = {
-        rule = "Host(`ts.dora.im`) && PathPrefix(`/metrics`)";
+        rule = "Host(`headscale.dora.im`) && PathPrefix(`/metrics`)";
         entryPoints = ["https"];
         service = "headscale_metrics";
       };
