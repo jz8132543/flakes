@@ -1,4 +1,4 @@
-{...}: {
+{ ... }: {
   programs = {
     ssh = {
       enable = true;
@@ -26,8 +26,8 @@
         "*" = {
           user = "tippy";
           checkHostIP = false;
-          forwardAgent = true;
-          forwardX11 = true;
+          # forwardAgent = true;
+          # forwardX11 = true;
         };
       };
       includes = [

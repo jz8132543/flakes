@@ -1,4 +1,4 @@
-{pkgs, ...}: {
+{ pkgs, ... }: {
   # Git (Global)
   programs.git = {
     enable = true;
@@ -33,6 +33,7 @@
   };
 
   environment.systemPackages = with pkgs; [
+    nixVersions.unstable
     curlFull
     wget
     neofetch
