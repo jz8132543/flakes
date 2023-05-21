@@ -86,7 +86,7 @@ in
       system = "x86_64-linux";
     })
     (mkHost {
-      name = "sin0";
+      name = "dfw0";
       system = "x86_64-linux";
     })
   ];

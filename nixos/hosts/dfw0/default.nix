@@ -1,7 +1,6 @@
-{
-  self,
-  nixosModules,
-  ...
+{ self
+, nixosModules
+, ...
 }: {
   imports =
     nixosModules.cloud.all
@@ -9,7 +8,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.headscale
+      # nixosModules.services.headscale
       nixosModules.services.postgres
       # nixosModules.services.derp
     ];
