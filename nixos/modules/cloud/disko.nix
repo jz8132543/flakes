@@ -3,6 +3,7 @@
   inputs,
   lib,
   config,
+  pkgs,
   ...
 }: let
   mountOptions = {mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];};
@@ -53,6 +54,11 @@ in {
                   // {
                     mountpoint = "/nix/persist";
                   };
+                "/rootfs" =
+                  mountOptions
+                  // {
+                    mountpoint = "/";
+                  };
               };
             };
           }
@@ -68,12 +74,16 @@ in {
   };
 
   fileSystems = {
-    "/" = {
-      fsType = "tmpfs";
-      options = ["defaults" "mode=755"];
-    };
+    # "/" = {
+    #   fsType = "tmpfs";
+    #   options = ["defaults" "mode=755"];
+    # };
     "/boot" = {
       device = lib.mkForce "/dev/disk/by-partlabel/EFI";
+    };
+
+    "/" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
     };
 
     "/nix" = {
@@ -86,10 +96,20 @@ in {
     };
   };
 
-  boot.loader.grub = {
-    enable = true;
-    device = "${config.utils.disk}";
-    efiSupport = lib.mkDefault true;
-    efiInstallAsRemovable = lib.mkDefault true;
+  boot = {
+    loader.grub = {
+      enable = true;
+      device = "${config.utils.disk}";
+      efiSupport = lib.mkDefault true;
+      efiInstallAsRemovable = lib.mkDefault true;
+    };
+    initrd.postDeviceCommands = pkgs.lib.mkBefore ''
+      mkdir -p /mnt
+      mount /dev/disk/by-partlabel/NIXOS /mnt
+      chattr -i /mnt/rootfs/var/empty
+      rm -rf /mnt/rootfs/*
+      btrfs subvolume delete -C /mnt/rootfs
+      btrfs subvolume create /mnt/rootfs
+    '';
   };
 }
