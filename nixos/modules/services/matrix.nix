@@ -1,14 +1,15 @@
-{ config
-, pkgs
-, self
-, lib
-, ...
+{
+  config,
+  pkgs,
+  self,
+  lib,
+  ...
 }: {
   # matrix-synapse
-  sops.secrets."matrix/mail" = { };
-  sops.secrets."matrix/signing-key" = { };
-  sops.secrets."b2/keyID" = { };
-  sops.secrets."b2/applicationKey" = { };
+  sops.secrets."matrix/mail" = {};
+  sops.secrets."matrix/signing-key" = {};
+  sops.secrets."b2/keyID" = {};
+  sops.secrets."b2/applicationKey" = {};
   services.matrix-synapse = {
     enable = true;
     withJemalloc = true;
@@ -50,7 +51,7 @@
 
       listeners = [
         {
-          bind_addresses = [ "127.0.0.1" ];
+          bind_addresses = ["127.0.0.1"];
           port = config.ports.matrix;
           tls = false;
           type = "http";
@@ -58,7 +59,7 @@
           resources = [
             {
               compress = true;
-              names = [ "client" "federation" ];
+              names = ["client" "federation"];
             }
           ];
         }
