@@ -9,5 +9,11 @@
     "surface": {
       "id": "10"
     }
+  },
+  "matrix": {
+    "media": {
+      "host": "s3.eu-central-003.backblazeb2.com",
+      "name": "matrix-doraim"
+    }
   }
 }
