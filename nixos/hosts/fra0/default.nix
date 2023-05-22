@@ -1,7 +1,6 @@
-{
-  self,
-  nixosModules,
-  ...
+{ self
+, nixosModules
+, ...
 }: {
   imports =
     nixosModules.cloud.all
@@ -11,6 +10,7 @@
       nixosModules.services.traefik
       nixosModules.services.headscale
       nixosModules.services.postgres
+      nixosModules.services.vaultwarden
       # nixosModules.services.derp
     ];
 }

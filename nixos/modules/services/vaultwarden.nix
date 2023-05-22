@@ -1,14 +1,15 @@
-{
-  config,
-  lib,
-  ...
+{ config
+, lib
+, ...
 }: {
+  sops.secrets."vaultwarden/ADMIN_TOKEN" = { };
+  sops.secrets."vaultwarden/mail" = { };
   services.vaultwarden = {
     enable = true;
     dbBackend = "postgresql";
     config = {
       domain = "https://vault.dora.im";
-      databaseUrl = "postgresql:///vaultwarden";
+      databaseUrl = "postgresql://vaultwarden@fra0.ts.dora.im/vaultwarden";
       signupsAllowed = false;
       emergencyAccessAllowed = false;
       websocketEnabled = true;
@@ -32,23 +33,23 @@
     routers = {
       vault = {
         rule = "Host(`vault.dora.im`) && PathPrefix(`/`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "vault";
       };
       vault_ws = {
         rule = "Host(`vault.dora.im`) && PathPrefix(`/notifications/hub`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "vault_ws";
       };
     };
     services = {
       vault.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.vaultwarden-http}";}];
+        servers = [{ url = "http://localhost:${toString config.ports.vaultwarden-http}"; }];
       };
       vault_ws.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.vaultwarden-websocket}";}];
+        servers = [{ url = "http://localhost:${toString config.ports.vaultwarden-websocket}"; }];
       };
     };
   };
