@@ -1,11 +1,11 @@
-{ config
-, self
-, inputs
-, lib
-, getSystem
-, ...
-}:
-let
+{
+  config,
+  self,
+  inputs,
+  lib,
+  getSystem,
+  ...
+}: let
   inherit (inputs.nixpkgs.lib) nixosSystem;
 
   nixosModules = self.lib.rake ../nixos/modules;
@@ -46,29 +46,27 @@ let
     inherit inputs self hmModules;
   };
 
-  mkHost =
-    { name
-    , configurationName ? name
-    , system
-    , extraModules ? [ ]
-    ,
-    }: {
-      ${name} = nixosSystem {
-        inherit system;
-        specialArgs = nixosSpecialArgs;
-        modules =
-          commonNixosModules
-          ++ extraModules
-          ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
-          ++ [
-            ({ lib, ... }: {
-              networking.hostName = lib.mkDefault name;
-            })
-          ];
-      };
+  mkHost = {
+    name,
+    configurationName ? name,
+    system,
+    extraModules ? [],
+  }: {
+    ${name} = nixosSystem {
+      inherit system;
+      specialArgs = nixosSpecialArgs;
+      modules =
+        commonNixosModules
+        ++ extraModules
+        ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
+        ++ [
+          ({lib, ...}: {
+            networking.hostName = lib.mkDefault name;
+          })
+        ];
     };
-in
-{
+  };
+in {
   passthru = {
     inherit nixosModules hmModules;
   };
