@@ -1,22 +1,25 @@
-{
-  config,
-  pkgs,
-  self,
-  lib,
-  ...
+{ config
+, pkgs
+, self
+, lib
+, ...
 }: {
   # matrix-synapse
+  sops.secrets."matrix/mail" = { };
+  sops.secrets."matrix/signing-key" = { };
+  sops.secrets."b2/keyID" = { };
+  sops.secrets."b2/applicationKey" = { };
   services.matrix-synapse = {
     enable = true;
     withJemalloc = true;
     plugins = [
-      pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
+      config.nur.repos.linyinfeng.synapse-s3-storage-provider
     ];
     settings = {
       server_name = "dora.im";
       public_baseurl = "https://matrix.dora.im";
       admin_contact = "mailto:i@dora.im";
-      signing_key_path = config.sops.secrets."matrix/singing-key".path;
+      signing_key_path = config.sops.secrets."matrix/signing-key".path;
 
       database = {
         name = "psycopg2";
@@ -47,7 +50,7 @@
 
       listeners = [
         {
-          bind_addresses = ["127.0.0.1"];
+          bind_addresses = [ "127.0.0.1" ];
           port = config.ports.matrix;
           tls = false;
           type = "http";
@@ -55,7 +58,7 @@
           resources = [
             {
               compress = true;
-              names = ["client" "federation"];
+              names = [ "client" "federation" ];
             }
           ];
         }
@@ -75,7 +78,7 @@
         smtp_user = "matrix@dora.im";
         notif_from = "matrix@dora.im";
         force_tls = true;
-        smtp_pass = config.sops.placeholder."mail_password";
+        smtp_pass = config.sops.placeholder."matrix/mail";
       };
       media_storage_providers = [
         # as backup of all local media
@@ -95,7 +98,7 @@
     };
   };
   environment.systemPackages = [
-    pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
+    config.nur.repos.linyinfeng.synapse-s3-storage-provider
   ];
 
   # systemd.services.matrix-synapse = {
@@ -107,7 +110,4 @@
   #         chown matrix-synapse:matrix-synapse "${config.services.matrix-synapse.settings.signing_key_path}"
   #       ''))
   #   ];
-  restartTriggers = [
-    config.sops.templates."synapse-extra-config".file
-  ];
 }
