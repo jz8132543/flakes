@@ -7,7 +7,7 @@
 }: {
   # matrix-synapse
   sops.secrets."matrix/mail" = {};
-  sops.secrets."matrix/signing-key" = {};
+  sops.secrets."matrix/signing-key" = {owner = "matrix-synapse";};
   sops.secrets."b2/keyID" = {};
   sops.secrets."b2/applicationKey" = {};
   sops.secrets."oidc/id" = {};
@@ -28,7 +28,9 @@
         name = "psycopg2";
         args = {
           # local database
-          database = "postgresql://synapse@postgres.dora.im/synapse";
+          user = "synapse";
+          database = "synapse";
+          host = "postgres.dora.im";
         };
       };
 
@@ -122,13 +124,28 @@
     config.nur.repos.linyinfeng.synapse-s3-storage-provider
   ];
 
-  # systemd.services.matrix-synapse = {
-  #   # copy singing key to signing key path
-  #   serviceConfig.ExecStartPre = lib.mkBefore [
-  #     ("+"
-  #       + (pkgs.writeShellScript "matrix-synapse-fix-permissions" ''
-  #         cp "${config.sops.secrets."synapse/signing-key".path}" "${config.services.matrix-synapse.settings.signing_key_path}"
-  #         chown matrix-synapse:matrix-synapse "${config.services.matrix-synapse.settings.signing_key_path}"
-  #       ''))
-  #   ];
+  services.traefik.dynamicConfigOptions.http = {
+    routers = {
+      matrix = {
+        rule = "Host(`matrix.dora.im`) && PathPrefix(`/`)";
+        entryPoints = ["https"];
+        service = "matrix";
+      };
+      # matrix_metrics = {
+      #   rule = "Host(`matrix.dora.im`) && PathPrefix(`/metrics`)";
+      #   entryPoints = [ "https" ];
+      #   service = "matrix_metrics";
+      # };
+    };
+    services = {
+      matrix.loadBalancer = {
+        passHostHeader = true;
+        servers = [{url = "http://localhost:${toString config.ports.matrix}";}];
+      };
+      # matrix_metrics.loadBalancer = {
+      #   passHostHeader = true;
+      #   servers = [{ url = "http://localhost:${toString config.ports.matrix_metrics}"; }];
+      # };
+    };
+  };
 }

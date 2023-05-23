@@ -2,7 +2,6 @@
   hardware.enableRedistributableFirmware = lib.mkDefault true;
 
   boot = {
-    initrd.systemd.enable = true;
     tmp = {
       cleanOnBoot = true;
       useTmpfs = false;
