@@ -10,7 +10,7 @@
     dbBackend = "postgresql";
     config = {
       domain = "https://vault.dora.im";
-      databaseUrl = "postgresql://vaultwarden@fra0.ts.dora.im/vaultwarden";
+      databaseUrl = "postgresql://vaultwarden@postgres.dora.im/vaultwarden";
       signupsAllowed = false;
       emergencyAccessAllowed = false;
       websocketEnabled = true;
