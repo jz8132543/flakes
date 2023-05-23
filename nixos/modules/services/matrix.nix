@@ -97,11 +97,11 @@ lib.mkMerge [
         oidc_providers = [
           {
             idp_id = "authentik";
-            idp_name = "sso.dora.im";
+            idp_name = "authentik";
             idp_icon = "mxc://authelia.com/cKlrTPsGvlpKxAYeHWJsdVHI";
             issuer = "https://sso.dora.im/application/o/matrix/";
-            client_id = config.sops.secrets."oidc/id".path;
-            client_secret = config.sops.secrets."oidc/secret".path;
+            client_id = config.sops.placeholder."oidc/id";
+            client_secret = config.sops.placeholder."oidc/secret";
             scopes = [ "openid" "profile" "email" ];
             allow_existing_users = true;
             user_mapping_provider.config = {
