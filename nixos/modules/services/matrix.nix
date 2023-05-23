@@ -10,6 +10,8 @@
   sops.secrets."matrix/signing-key" = {};
   sops.secrets."b2/keyID" = {};
   sops.secrets."b2/applicationKey" = {};
+  sops.secrets."oidc/id" = {};
+  sops.secrets."oidc/secret" = {};
   services.matrix-synapse = {
     enable = true;
     withJemalloc = true;
@@ -26,7 +28,7 @@
         name = "psycopg2";
         args = {
           # local database
-          database = "matrix-synapse";
+          database = "postgresql://synapse@postgres.dora.im/synapse";
         };
       };
 
@@ -81,6 +83,24 @@
         force_tls = true;
         smtp_pass = config.sops.placeholder."matrix/mail";
       };
+      oidc_providers = [
+        {
+          idp_id = "authentik";
+          idp_name = "sso.dora.im";
+          idp_icon = "mxc://authelia.com/cKlrTPsGvlpKxAYeHWJsdVHI";
+          issuer = "https://sso.dora.im/application/o/matrix/";
+          client_id = config.sops.secrets."oidc/id".path;
+          client_secret = config.sops.secrets."oidc/secret".path;
+          scopes = ["openid" "profile" "email"];
+          allow_existing_users = true;
+          user_mapping_provider.config = {
+            confirm_localpart = true;
+            localpart_template = "{{ user.preferred_username }}";
+            display_name_template = "{{ user.name }}";
+            email_template = "{{ user.email }}";
+          };
+        }
+      ];
       media_storage_providers = [
         # as backup of all local media
         {
