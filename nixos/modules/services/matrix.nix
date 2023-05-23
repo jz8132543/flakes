@@ -117,10 +117,11 @@ lib.mkMerge [
           {
             module = "s3_storage_provider.S3StorageProviderBackend";
             store_local = true;
-            store_remote = false;
+            store_remote = true;
             store_synchronous = true;
             config = {
               bucket = config.lib.self.data.matrix.media.name;
+              region_name = config.lib.self.data.matrix.media.region;
               endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
               access_key_id = config.sops.placeholder."b2/keyID";
               secret_access_key = config.sops.placeholder."b2/applicationKey";

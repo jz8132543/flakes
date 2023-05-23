@@ -13,7 +13,8 @@
   "matrix": {
     "media": {
       "host": "s3.eu-central-003.backblazeb2.com",
-      "name": "matrix-doraim"
+      "name": "matrix-doraim",
+      "region": "eu-central-003"
     }
   }
 }
