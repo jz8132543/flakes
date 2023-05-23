@@ -1,7 +1,6 @@
-{
-  self,
-  nixosModules,
-  ...
+{ self
+, nixosModules
+, ...
 }: {
   imports =
     nixosModules.cloud.all
@@ -13,6 +12,7 @@
       nixosModules.services.postgres
       nixosModules.services.vaultwarden
       nixosModules.services.matrix
+      nixosModules.services.authentik
       # nixosModules.services.derp
     ];
 }
