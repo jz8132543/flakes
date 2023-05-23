@@ -90,7 +90,7 @@ in {
   };
 
   systemd.services.repmgrd = {
-    after = ["openssh.service" "postgresql.service"];
+    after = ["openssh.service" "postgresql.service" "tailscaled.service"];
     wants = ["postgresql.service"];
     wantedBy = ["multi-user.target"];
     path = [repmgr];
