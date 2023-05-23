@@ -1,0 +1,11 @@
+{
+  "default_server_config": {
+    "m.homeserver": {
+      "base_url": "https://m.dora.im",
+      "server_name": "dora.im"
+    }
+  },
+  "features": {
+    "feature_latex_maths": true
+  }
+}

@@ -1,20 +1,20 @@
-{
-  config,
-  lib,
-  ...
+{ config
+, lib
+, ...
 }: {
   options.ports = lib.mkOption {
     type = with lib.types; attrsOf port;
-    default = {};
+    default = { };
   };
 
   config = {
     assertions = [
       {
-        assertion = let
-          vals = lib.attrValues config.ports;
-          noCollision = l: lib.length (lib.unique l) == lib.length l;
-        in
+        assertion =
+          let
+            vals = lib.attrValues config.ports;
+            noCollision = l: lib.length (lib.unique l) == lib.length l;
+          in
           noCollision vals;
         message = "ports collision";
       }
@@ -91,6 +91,7 @@
       wireguard = 51820;
       authentik = 9000;
       authentik_metrics = 9300;
+      nginx = 8080;
     };
   };
 }
