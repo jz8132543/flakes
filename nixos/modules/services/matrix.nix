@@ -134,52 +134,6 @@ lib.mkMerge [
       config.nur.repos.linyinfeng.synapse-s3-storage-provider
     ];
   }
-  # matrix-qq
-  {
-    # the matrix-qq service is hosted on another host
-
-
-    services.matrix-synapse.settings.app_service_config_files = [
-      config.sops.templates."matrix-qq-registration".path
-    ];
-    systemd.services.matrix-synapse.restartTriggers = [
-      config.sops.templates."matrix-qq-registration".file
-    ];
-    sops.templates."matrix-qq-registration" = {
-      owner = "matrix-synapse";
-      content = builtins.toJSON {
-        id = "qq";
-        url = "https://shg0.ts.dora.im";
-        as_token = config.sops.placeholder."matrix_qq_appservice_as_token";
-        hs_token = config.sops.placeholder."matrix_qq_appservice_hs_token";
-        sender_localpart = "qq";
-        rate_limited = false;
-        de.sorunome.msc2409.push_ephemeral = true;
-        push_ephemeral = true;
-        namespaces = {
-          users = [
-            {
-              exclusive = true;
-              regex = "^@qqbot:dora\.im$";
-            }
-            {
-              exclusive = true;
-              regex = "^@_qq_.*:dora\.im$";
-            }
-          ];
-        };
-      };
-    };
-
-    sops.secrets."matrix_qq_appservice_as_token" = {
-      sopsFile = config.sops-file.terraform;
-      restartUnits = [ "matrix-synapse.service" "matrix-qq.service" ];
-    };
-    sops.secrets."matrix_qq_appservice_hs_token" = {
-      sopsFile = config.sops-file.terraform;
-      restartUnits = [ "matrix-synapse.service" "matrix-qq.service" ];
-    };
-  }
   # reverse proxy
   {
     services.traefik.dynamicConfigOptions.http = {
