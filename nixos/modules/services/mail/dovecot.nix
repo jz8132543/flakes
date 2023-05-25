@@ -31,7 +31,7 @@ in
       default_internal_user  = ${cfg.user}
       default_internal_group = ${cfg.group}
       disable_plaintext_auth = no
-      auth_username_format   = %Ln
+      auth_username_format   = %Lu
 
       mail_home = ${maildir}/%u
       mail_location = maildir:~
@@ -39,10 +39,9 @@ in
       mail_gid=${cfg.mailGroup}
 
       passdb {
-        driver = pam
-        args = %s
+        args = /etc/dovecot/dovecot-ldap.conf.ext
+        driver = ldap
       }
-
       service imap-login {
         inet_listener imap {
           port    = 8143
@@ -93,5 +92,26 @@ in
         sieve_after = /var/lib/dovecot/sieve/after
       }
     '';
+  };
+  sops.secrets."mail/ldap" = { };
+  sops.templates."dovecot-ldap" = {
+    content = ''
+      uris = ldap://sso.dora.im:3389
+      dn = cn=mail,ou=server,dc=dora,dc=im
+      dnpass = ${config.sops.placeholder."mail/ldap"}
+      base = ou=server,dc=dora,dc=im
+      auth_bind_userdn = cn=%n,ou=server,dc=dora,dc=im
+      auth_bind = yes
+      pass_filter = (&(objectClass=user)(cn=%n))
+      # pass_attrs =
+      # =proxy=y,
+      # =proxy_timeout=10,
+      # =user=%{ldap:mailRoutingAddress},
+      # =password=%{ldap:userPassword}
+      # pass_filter = (mailRoutingAddress=%u)
+      # iterate_attrs = mailRoutingAddress=user
+      # iterate_filter = (objectClass= messageStoreRecipient)
+    '';
+    path = "/etc/dovecot/dovecot-ldap.conf.ext";
   };
 }

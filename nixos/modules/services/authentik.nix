@@ -17,7 +17,7 @@ let
         # AUTHENTIK_REDIS__DB = "authentik";
         AUTHENTIK_LISTEN__HTTP = "127.0.0.1:${toString config.ports.authentik}";
         AUTHENTIK_LISTEN__HTTPS = "127.0.0.1:0";
-        AUTHENTIK_LISTEN__METRICS = "127.0.0.1:${toString config.ports.authentik_metrics}";
+        AUTHENTIK_LISTEN__METRICS = "127.0.0.1:${toString config.ports.authentik-metrics}";
         AUTHENTIK_POSTGRESQL__HOST = "postgres.dora.im";
         AUTHENTIK_POSTGRESQL__PORT = "5432";
         AUTHENTIK_POSTGRESQL__NAME = "authentik";
@@ -30,12 +30,15 @@ let
     };
 in
 {
-  sops.secrets."authentik/secret-key" = { };
-  sops.templates."ldap-container".content = {
-    AUTHENTIK_HOST = "https://sso.dora.im";
-    AUTHENTIK_INSECURE = "false";
-    AUTHENTIK_TOKEN = config.sops.placeholder."authentik/AUTHENTIK_TOKEN";
+  sops.secrets = {
+    "authentik/secret-key" = { };
+    "authentik/AUTHENTIK_TOKEN" = { };
   };
+  sops.templates."ldap-container".content = ''
+    AUTHENTIK_HOST=https://sso.dora.im
+    AUTHENTIK_INSECURE=false
+    AUTHENTIK_TOKEN=${config.sops.placeholder."authentik/AUTHENTIK_TOKEN"}
+  '';
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.containers = {
     authentik-server = mkAuthentikContainer {
@@ -48,7 +51,7 @@ in
     authentik-ldap = {
       dependsOn = [ "authentik-server" ];
       image = "ghcr.io/goauthentik/ldap:latest";
-      environmentFiles = config.sops."ldap-container".path;
+      environmentFiles = [ config.sops.templates."ldap-container".path ];
       extraOptions = [ "--network=host" ];
     };
   };
@@ -58,12 +61,12 @@ in
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       authentik = {
-        rule = "Host(`sso.dora.im`) && PathPrefix(`/`)";
+        rule = "(Host(`sso.dora.im`) || Host(`ldap.dora.im`)) && PathPrefix(`/`)";
         entryPoints = [ "https" ];
         service = "authentik";
       };
       authentik_metrics = {
-        rule = "Host(`sso.dora.im`) && PathPrefix(`/metrics`)";
+        rule = "(Host(`sso.dora.im`) || Host(`ldap.dora.im`)) && PathPrefix(`/metrics`)";
         entryPoints = [ "https" ];
         service = "authentik_metrics";
       };
@@ -75,7 +78,7 @@ in
       };
       authentik_metrics.loadBalancer = {
         passHostHeader = true;
-        servers = [{ url = "http://localhost:${toString config.ports.authentik_metrics}"; }];
+        servers = [{ url = "http://localhost:${toString config.ports.authentik-metrics}"; }];
       };
     };
   };

@@ -89,8 +89,10 @@
       vlmcsd = 40044;
       tailscale = 41641;
       wireguard = 51820;
-      authentik = 9000;
-      authentik_metrics = 9300;
+      authentik = 9001;
+      authentik-ldap = 9000;
+      authentik-metrics = 9301;
+      authentik-ldap-metrics = 9300;
       nginx = 8080;
     };
   };
