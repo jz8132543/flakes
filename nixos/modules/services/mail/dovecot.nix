@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 let
   cfg = config.services.dovecot2;
-  maildir = "/var/spool/mail";
+  maildir = "/var/vmail";
 in
 {
   systemd.tmpfiles.rules = [
@@ -12,6 +12,9 @@ in
     modules = [ pkgs.dovecot_pigeonhole ];
     mailUser = "dovemail";
     mailGroup = "dovemail";
+    mailLocation = "maildir:/var/vmail/%d/%n/Maildir";
+    enableImap = true;
+    enableLmtp = true;
     sieveScripts = {
       after = builtins.toFile "after.sieve" ''
         require "fileinto";
@@ -42,6 +45,10 @@ in
         args = /etc/dovecot/dovecot-ldap.conf.ext
         driver = ldap
       }
+      userdb {
+        args = /etc/dovecot/dovecot-ldap.conf.ext
+        driver = ldap
+      }
       service imap-login {
         inet_listener imap {
           port    = 8143
@@ -64,29 +71,29 @@ in
         mail_plugins = $mail_plugins sieve
       }
 
-      namespace inbox {
-        inbox = yes
-        mailbox Drafts {
-          auto = subscribe
-          special_use = \Drafts
-        }
-        mailbox Sent {
-          auto = subscribe
-          special_use = \Sent
-        }
-        mailbox Trash {
-          auto = subscribe
-          special_use = \Trash
-        }
-        mailbox Junk {
-          auto = subscribe
-          special_use = \Junk
-        }
-        mailbox Archive {
-          auto = subscribe
-          special_use = \Archive
-        }
-      }
+      # namespace inbox {
+      #   inbox = yes
+      #   mailbox Drafts {
+      #     auto = subscribe
+      #     special_use = \Drafts
+      #   }
+      #   mailbox Sent {
+      #     auto = subscribe
+      #     special_use = \Sent
+      #   }
+      #   mailbox Trash {
+      #     auto = subscribe
+      #     special_use = \Trash
+      #   }
+      #   mailbox Junk {
+      #     auto = subscribe
+      #     special_use = \Junk
+      #   }
+      #   mailbox Archive {
+      #     auto = subscribe
+      #     special_use = \Archive
+      #   }
+      # }
 
       plugin {
         sieve_after = /var/lib/dovecot/sieve/after
@@ -99,10 +106,17 @@ in
       uris = ldap://sso.dora.im:3389
       dn = cn=mail,ou=server,dc=dora,dc=im
       dnpass = ${config.sops.placeholder."mail/ldap"}
-      base = ou=server,dc=dora,dc=im
+      base = dc=dora,dc=im
       auth_bind_userdn = cn=%n,ou=server,dc=dora,dc=im
       auth_bind = yes
       pass_filter = (&(objectClass=user)(cn=%n))
+      user_filter = (&(objectClass=user)(cn=%n))
+      user_attrs = \
+      quota=quota_rule=*:bytes=%$, \
+      =home=/var/vmail/%d/%n/, \
+      =mail=maildir:/var/vmail/%d/%n/Maildir
+      iterate_attrs = =user=%{ldap:cn}
+      iterate_filter = (objectClass=user)
       # pass_attrs =
       # =proxy=y,
       # =proxy_timeout=10,

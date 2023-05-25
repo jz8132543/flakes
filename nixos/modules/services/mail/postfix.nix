@@ -56,7 +56,7 @@ in
           smtpd_sasl_path = "/run/dovecot2/auth-postfix";
           # smtpd_sender_login_maps = "hash:/etc/postfix/senders";
           smtpd_client_restrictions = "permit_sasl_authenticated,reject";
-          # smtpd_sender_restrictions = "reject_sender_login_mismatch";
+          smtpd_sender_restrictions = "reject_sender_login_mismatch";
           smtpd_recipient_restrictions = "reject_non_fqdn_recipient,reject_unknown_recipient_domain,permit_sasl_authenticated,reject";
           smtpd_upstream_proxy_protocol = "haproxy";
         };
