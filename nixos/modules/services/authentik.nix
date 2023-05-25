@@ -26,13 +26,16 @@ let
         # AUTHENTIK_DEFAULT_USER_CHANGE_USERNAME = "true";
         # AUTHENTIK_DEFAULT_USER_CHANGE_EMAIL = "true";
       };
-      extraOptions = [
-        "--network=host"
-      ];
+      extraOptions = [ "--network=host" ];
     };
 in
 {
   sops.secrets."authentik/secret-key" = { };
+  sops.templates."ldap-container".content = {
+    AUTHENTIK_HOST = "https://sso.dora.im";
+    AUTHENTIK_INSECURE = "false";
+    AUTHENTIK_TOKEN = config.sops.placeholder."authentik/AUTHENTIK_TOKEN";
+  };
   virtualisation.podman.enable = true;
   virtualisation.oci-containers.containers = {
     authentik-server = mkAuthentikContainer {
@@ -41,6 +44,12 @@ in
     authentik-worker = mkAuthentikContainer {
       cmd = [ "worker" ];
       dependsOn = [ "authentik-server" ];
+    };
+    authentik-ldap = {
+      dependsOn = [ "authentik-server" ];
+      image = "ghcr.io/goauthentik/ldap:latest";
+      environmentFiles = config.sops."ldap-container".path;
+      extraOptions = [ "--network=host" ];
     };
   };
   services.redis.servers."" = {
