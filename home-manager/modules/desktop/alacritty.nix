@@ -19,10 +19,4 @@
       };
     };
   };
-  home.persistence."/nix/persist/home/tippy" = {
-    directories = [
-      ".local/share/TelegramDesktop"
-      ".thunderbird"
-    ];
-  };
 }
