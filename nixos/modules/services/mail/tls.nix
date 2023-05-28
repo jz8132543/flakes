@@ -1,5 +1,4 @@
-{ config, ... }:
-{
+{config, ...}: {
   services.traefik = {
     staticConfigOptions = {
       entryPoints = {
@@ -12,25 +11,25 @@
         routers = {
           imap = {
             rule = "HostSNI(`${config.networking.fqdn}`)";
-            entryPoints = [ "imap" ];
+            entryPoints = ["imap"];
             service = "imap";
             tls.certResolver = "zerossl";
           };
           submission = {
             rule = "HostSNI(`${config.networking.fqdn}`)";
-            entryPoints = [ "submission" ];
+            entryPoints = ["submission"];
             service = "submission";
             tls.certResolver = "zerossl";
           };
         };
         services = {
           imap.loadBalancer = {
-            proxyProtocol = { };
-            servers = [{ address = "127.0.0.1:8143"; }];
+            proxyProtocol = {};
+            servers = [{address = "127.0.0.1:8143";}];
           };
           submission.loadBalancer = {
-            proxyProtocol = { };
-            servers = [{ address = "127.0.0.1:587"; }];
+            proxyProtocol = {};
+            servers = [{address = "127.0.0.1:587";}];
           };
         };
       };

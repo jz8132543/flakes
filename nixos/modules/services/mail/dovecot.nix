@@ -1,15 +1,17 @@
-{ config, pkgs, ... }:
-let
+{
+  config,
+  pkgs,
+  ...
+}: let
   cfg = config.services.dovecot2;
   maildir = "/var/vmail";
-in
-{
+in {
   systemd.tmpfiles.rules = [
     "d ${maildir} 0700 ${cfg.mailUser} ${cfg.mailGroup} -"
   ];
   services.dovecot2 = {
     enable = true;
-    modules = [ pkgs.dovecot_pigeonhole ];
+    modules = [pkgs.dovecot_pigeonhole];
     mailUser = "dovemail";
     mailGroup = "dovemail";
     mailLocation = "maildir:/var/vmail/%d/%n/Maildir";
@@ -100,7 +102,7 @@ in
       }
     '';
   };
-  sops.secrets."mail/ldap" = { };
+  sops.secrets."mail/ldap" = {};
   sops.templates."dovecot-ldap" = {
     content = ''
       uris = ldap://sso.dora.im:3389

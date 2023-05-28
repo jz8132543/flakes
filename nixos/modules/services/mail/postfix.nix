@@ -1,9 +1,12 @@
-{ config, lib, pkgs, ... }:
-let
-  mkKeyVal = opt: val: [ "-o" (opt + "=" + val) ];
-  mkOpts = opts: lib.concatLists (lib.mapAttrsToList mkKeyVal opts);
-in
 {
+  config,
+  lib,
+  pkgs,
+  ...
+}: let
+  mkKeyVal = opt: val: ["-o" (opt + "=" + val)];
+  mkOpts = opts: lib.concatLists (lib.mapAttrsToList mkKeyVal opts);
+in {
   sops.secrets = {
     dkim = {
       owner = "rspamd";
@@ -24,25 +27,25 @@ in
     config = {
       smtp_tls_security_level = "may";
 
-      smtpd_tls_chain_files = [ "/tmp/selfsigned.key" "/tmp/selfsigned.crt" ];
+      smtpd_tls_chain_files = ["/tmp/selfsigned.key" "/tmp/selfsigned.crt"];
       smtpd_tls_security_level = "may";
-      smtpd_relay_restrictions = [ "permit_sasl_authenticated" "defer_unauth_destination" ];
+      smtpd_relay_restrictions = ["permit_sasl_authenticated" "defer_unauth_destination"];
 
       virtual_transport = "lmtp:unix:/run/dovecot2/lmtp";
-      virtual_mailbox_domains = [ "dora.im" ];
+      virtual_mailbox_domains = ["dora.im"];
 
       lmtp_destination_recipient_limit = "1";
       recipient_delimiter = "+";
       disable_vrfy_command = true;
 
       milter_default_action = "accept";
-      smtpd_milters = [ "unix:/run/rspamd/postfix.sock" ];
-      non_smtpd_milters = [ "unix:/run/rspamd/postfix.sock" ];
-      internal_mail_filter_classes = [ "bounce" ];
+      smtpd_milters = ["unix:/run/rspamd/postfix.sock"];
+      non_smtpd_milters = ["unix:/run/rspamd/postfix.sock"];
+      internal_mail_filter_classes = ["bounce"];
     };
     masterConfig = {
       lmtp = {
-        args = [ "flags=O" ];
+        args = ["flags=O"];
       };
       "127.0.0.1:submission" = {
         type = "inet";
@@ -68,13 +71,15 @@ in
     enable = true;
     workers = {
       controller = {
-        bindSockets = [ "localhost:11334" ];
+        bindSockets = ["localhost:11334"];
       };
       rspamd_proxy = {
-        bindSockets = [{
-          mode = "0666";
-          socket = "/run/rspamd/postfix.sock";
-        }];
+        bindSockets = [
+          {
+            mode = "0666";
+            socket = "/run/rspamd/postfix.sock";
+          }
+        ];
       };
     };
     locals = {
@@ -102,7 +107,7 @@ in
   };
 
   services.telegraf.extraConfig.inputs = {
-    prometheus.urls = [ "http://localhost:11334/metrics" ];
+    prometheus.urls = ["http://localhost:11334/metrics"];
   };
 
   boot.kernel.sysctl."vm.overcommit_memory" = 1;
@@ -111,5 +116,4 @@ in
     enable = true;
     port = 16380;
   };
-
 }

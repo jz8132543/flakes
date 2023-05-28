@@ -103,13 +103,36 @@ in {
       efiSupport = lib.mkDefault true;
       efiInstallAsRemovable = lib.mkDefault true;
     };
-    initrd.postDeviceCommands = pkgs.lib.mkBefore ''
-      mkdir -p /mnt
-      mount /dev/disk/by-partlabel/NIXOS /mnt
-      chattr -i /mnt/rootfs/var/empty
-      rm -rf /mnt/rootfs/*
-      btrfs subvolume delete -C /mnt/rootfs
-      btrfs subvolume create /mnt/rootfs
-    '';
+    initrd.kernelModules = ["dm-snapshot" "tpm_tis" "dm_mod" "dm-crypt"];
+    initrd.supportedFilesystems = ["btrfs"];
+    initrd.systemd = {
+      enable = true;
+      services.rollback = {
+        description = "Rollback BTRFS root subvolume to a pristine state";
+        unitConfig.DefaultDependencies = "no";
+        serviceConfig.Type = "oneshot";
+
+        wantedBy = ["initrd.target"];
+        before = ["sysroot.mount"];
+        requires = ["dev-disk-by\\x2dpartlabel-NIXOS.device"];
+        after = ["dev-disk-by\\x2dpartlabel-NIXOS.device"];
+
+        script = ''
+          mkdir -p /mnt
+          mount -t btrfs /dev/disk/by-partlabel/NIXOS /mnt
+          btrfs subvolume list -o /mnt/rootfs |
+            cut -f9 -d' ' |
+            while read subvolume; do
+              echo "deleting /$subvolume subvolume..."
+              btrfs subvolume delete "/mnt/$subvolume"
+            done &&
+            echo "deleting /rootfs subvolume..." &&
+            btrfs subvolume delete /mnt/rootfs
+          echo "restoring blank /rootfs subvolume..."
+          btrfs subvolume create /mnt/rootfs
+          umount /mnt
+        '';
+      };
+    };
   };
 }
