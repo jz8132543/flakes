@@ -2,12 +2,21 @@
   description = "Flamework";
 
   inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nur.url = "github:nix-community/NUR";
+    nixos-hardware.url = "github:nixos/nixos-hardware";
+    impermanence.url = "github:nix-community/impermanence";
+    flake-utils.url = "github:numtide/flake-utils";
+    blank.url = "github:divnix/blank";
+    systems.url = "github:nix-systems/default";
+    flake-compat = {
+      url = "github:edolstra/flake-compat";
+      flake = false;
+    };
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    impermanence.url = "github:nix-community/impermanence";
     haumea = {
       url = "github:nix-community/haumea";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -19,6 +28,7 @@
     sops-nix = {
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "nixpkgs";
     };
     disko = {
       url = "github:nix-community/disko";
@@ -28,18 +38,70 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixos-hardware.url = "github:nixos/nixos-hardware";
-    nur.url = "github:nix-community/NUR";
-    linyinfeng.url = "github:linyinfeng/nur-packages";
-    devshell.url = "github:numtide/devshell";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
-    nixos-generators.url = "github:nix-community/nixos-generators";
-    deploy-rs.url = "github:serokell/deploy-rs";
-    nixago.url = "github:nix-community/nixago";
+    nvfetcher = {
+      url = "github:berberman/nvfetcher";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-compat.follows = "flake-compat";
+    };
+    gitignore-nix = {
+      url = "github:hercules-ci/gitignore.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.systems.follows = "systems";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pre-commit-hooks-nix = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "nixpkgs";
+      inputs.gitignore.follows = "gitignore-nix";
+    };
+    nixos-generators = {
+      url = "github:nix-community/nixos-generators";
+      inputs.nixlib.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    deploy-rs = {
+      url = "github:serokell/deploy-rs";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.utils.follows = "flake-utils";
+    };
+    nixago = {
+      url = "github:nix-community/nixago";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixago-exts.follows = "nixago-exts";
+    };
+    nixago-exts = {
+      url = "github:nix-community/nixago-extensions";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixago.follows = "nixago";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    linyinfeng = {
+      url = "github:linyinfeng/nur-packages";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixos-stable.follows = "blank";
+      inputs.devshell.follows = "devshell";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+      inputs.nvfetcher.follows = "nvfetcher";
+      inputs.flake-compat.follows = "flake-compat";
     };
   };
 

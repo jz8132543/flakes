@@ -99,6 +99,8 @@ in {
       Type = "forking";
       User = "postgres";
       Group = "postgres";
+      Restart = "on-failure";
+      RestartSec = "3";
     };
     script = ''
       repmgrd -f /etc/repmgr.conf --pid-file /run/postgresql/repmgrd.pid
