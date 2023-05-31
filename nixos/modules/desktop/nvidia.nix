@@ -3,22 +3,26 @@
   lib,
   config,
   ...
-}: {
-  # nixpkgs.config.allowUnfreePredicate = pkg:
-  #   builtins.elem (pkgs.lib.getName pkg) [
-  #     "nvidia-x11"
-  #   ];
+}: let
+  CUDA_PATH = pkgs.cudaPackages.cudatoolkit.outPath;
+  CUDA_LDPATH = "${
+    lib.concatStringsSep ":" [
+      "/run/opengl-drivers/lib"
+      "/run/opengl-drivers-32/lib"
+      "${pkgs.cudaPackages.cudatoolkit}/lib"
+      "${pkgs.cudaPackages.cudnn}/lib"
+    ]
+  }:${
+    lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib pkgs.cudaPackages.cudatoolkit.lib]
+  }";
+in {
+  # nixpkgs.config.cudaSupport = true;
   services.xserver.videoDrivers = ["nvidia"];
   systemd.services.nvidia-control-devices = {
     wantedBy = [
       "multi-user.target"
     ];
   };
-  # boot = {
-  #   kernelParams = [ "nvidia-drm.modeset=1" ];
-  #   kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
-  #   # blacklistedKernelModules = ["nouveau"];
-  # };
   hardware.nvidia = {
     modesetting.enable = true;
     # package = config.boot.kernelPackages.nvidiaPackages.production;
@@ -34,12 +38,6 @@
       finegrained = true;
     };
   };
-  # environment.systemPackages = with pkgs; [
-  #   glxinfo
-  #   vulkan-tools
-  #   glmark2
-  #   nvidia-vaapi-driver
-  # ];
   nix.settings = {
     substituters = [
       "https://cuda-maintainers.cachix.org"
@@ -48,4 +46,26 @@
       "cuda-maintainers.cachix.org-1:0dq3bujKpuEPMCX6U4WylrUDZ9JyUG0VpVZa7CNfq5E="
     ];
   };
+  # CUDA
+  environment.systemPackages = with pkgs; [
+    cudaPackages.cudatoolkit
+    cudaPackages.cudnn
+    nvidia-docker
+    docker-compose
+  ];
+  virtualisation.docker = {
+    enable = true;
+    enableNvidia = true;
+    # dockerCompat = true;
+  };
+  # virtualisation.oci-containers.backend = "podman";
+  environment.variables = {
+    _CUDA_PATH = CUDA_PATH;
+    _CUDA_LDPATH = CUDA_LDPATH;
+  };
+  systemd.services.docker.environment.CUDA_PATH = CUDA_PATH;
+  systemd.services.docker.environment.LD_LIBRARY_PATH = CUDA_LDPATH;
+  users.groups.docker.members = config.users.groups.wheel.members;
+  # systemd.user.services.podman.environment.CUDA_PATH = CUDA_PATH;
+  # systemd.user.services.podman.environment.LD_LIBRARY_PATH = CUDA_LDPATH;
 }
