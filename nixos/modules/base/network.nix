@@ -4,7 +4,6 @@
     domain = "dora.im";
     search = ["dora.im"];
     firewall.enable = true;
-    firewall.checkReversePath = false;
   };
 
   boot = {
