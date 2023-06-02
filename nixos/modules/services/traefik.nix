@@ -3,6 +3,8 @@
   config,
   ...
 }: {
+  config.networking.firewall.allowedTCPPorts = [80 443];
+  config.networking.firewall.allowedUDPPorts = [443];
   config.sops.secrets."traefik/cloudflare" = {};
   config.services.traefik = {
     enable = true;

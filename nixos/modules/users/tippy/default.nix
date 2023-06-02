@@ -6,6 +6,7 @@
   name = "tippy";
   homeDirectory = "/home/${name}";
 in {
+  users.mutableUsers = true;
   users.users.${name} = {
     isNormalUser = true;
     shell = pkgs.zsh;

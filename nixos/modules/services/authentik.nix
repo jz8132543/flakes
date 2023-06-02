@@ -28,6 +28,7 @@
     extraOptions = ["--network=host"];
   };
 in {
+  networking.firewall.allowedTCPPorts = [3389 6636];
   sops.secrets = {
     "authentik/secret-key" = {};
     "authentik/AUTHENTIK_TOKEN" = {};

@@ -9,7 +9,7 @@
     deployLib = inputs.deploy-rs.lib.${system};
   in {
     hostname = "${name}.ts.dora.im";
-    sshOpts = ["-p" "22"];
+    sshOpts = ["-p" "1022"];
     # currently only a single profile system
     profilesOrder = ["system"];
     profiles.system = {

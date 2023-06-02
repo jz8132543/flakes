@@ -1,4 +1,5 @@
 {config, ...}: {
+  networking.firewall.allowedUDPPorts = [25 465 993];
   services.traefik = {
     staticConfigOptions = {
       entryPoints = {

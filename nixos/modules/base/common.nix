@@ -1,7 +1,11 @@
-{...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   time.timeZone = "Asia/Shanghai";
 
-  users.mutableUsers = true;
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
   documentation = {
     nixos.enable = false;
