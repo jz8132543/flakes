@@ -14,9 +14,8 @@
     ];
     extraConfig = ''
       set-environment -g COLORTERM "truecolor"
-      set -g prefix ^a
+      set -g prefix ^b
       set-option -gw xterm-keys on
-      unbind ^b
       bind a send-prefix
       unbind '"'
       bind - splitw -v # 分割成上下两个窗口
@@ -140,7 +139,6 @@
       bind-key -n C-Tab next-window
       bind-key -n C-S-Tab previous-window
 
-      set-option -g default-shell "/usr/bin/bash"
       set -g default-terminal "tmux-256color"
       #For more compatibility
       #set -g default-terminal "xterm-color"
