@@ -1,16 +1,21 @@
 {
-  pkgs,
   lib,
-  path,
+  config,
   ...
 }: {
   services.openssh = {
     enable = true;
-    settings.PermitRootLogin = "prohibit-password";
-    ports = [22];
+    settings = {
+      PermitRootLogin = "yes";
+      # PermitRootLogin = lib.mkForce "no";
+      PasswordAuthentication = lib.mkForce false;
+      KbdInteractiveAuthentication = false;
+    };
+    ports = [config.ports.ssh];
+    openFirewall = true;
     extraConfig = ''
-      ClientAliveInterval 30
-      ClientAliveCountMax 60
+      ClientAliveInterval 15
+      ClientAliveCountMax 4
     '';
     hostKeys = [
       {
@@ -28,6 +33,17 @@
     #   hostCertificate = "/etc/ssh/ssh_host_ed25519_key-cert.pub";
     #   userCAKey = "/etc/ssh/CA_User_key.pub";
     # };
+  };
+
+  services.fail2ban = {
+    enable = true;
+    maxretry = 5;
+    ignoreIP = [
+      "127.0.0.0/8"
+      "10.0.0.0/8"
+      "100.64.0.0/10"
+      "192.168.0.0/16"
+    ];
   };
 
   # programs.ssh.package = pkgs.openssh_hpn;

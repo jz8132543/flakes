@@ -29,7 +29,7 @@
       smtp-tls = 465;
       ipsec-ike = 500;
       smtp-starttls = 587;
-      ssh = 2222;
+      ssh = 1022;
       pastebin = 3000;
       vaultwarden-http = 3010;
       vaultwarden-websocket = 3011;

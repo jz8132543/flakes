@@ -22,6 +22,7 @@
       fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
       batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
       rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
+      rsync = "${pkgs.rsync}/bin/rsync -arvzP";
     };
     initExtraBeforeCompInit = ''
       zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=*'

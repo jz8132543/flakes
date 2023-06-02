@@ -1,18 +1,35 @@
-{...}: {
+{osConfig, ...}: {
   programs = {
     ssh = {
       enable = true;
       userKnownHostsFile = "/dev/null";
-      serverAliveInterval = 30;
-      serverAliveCountMax = 60;
-      compression = true;
-      extraConfig = ''
-        CanonicalizeHostname yes
-        CanonicalDomains dora.im
-        StrictHostKeyChecking no
-        LogLevel ERROR
-      '';
+      serverAliveInterval = 15;
+      serverAliveCountMax = 4;
+      compression = false;
+      controlMaster = "yes";
+      controlPersist = "yes";
+      extraOptionOverrides = {
+        "StrictHostKeyChecking" = "no";
+        "LogLevel" = "ERROR";
+        "CanonicalizeHostname" = "yes";
+        "CanonicalDomains" = "ts.dora.im dora.im";
+        "CanonicalizeMaxDots" = "0";
+      };
+      # extraConfig = ''
+      #   CanonicalizeHostname yes
+      #   CanonicalDomains dora.im
+      #   StrictHostKeyChecking no
+      #   LogLevel ERROR
+      # '';
       matchBlocks = {
+        "canonical" = {
+          match = "canonical final Host *.ts.dora.im,*.dora.im";
+          port = osConfig.ports.ssh;
+        };
+        # "canonical_false" = {
+        #   match = "!canonical final";
+        #   port = 22;
+        # };
         "github.com" = {
           user = "git";
           hostname = "ssh.github.com";
