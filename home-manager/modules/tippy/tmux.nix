@@ -163,18 +163,8 @@
       #bind C-v run "tmux set-buffer \"$(wl-paste)\"; tmux paste-buffer"
       bind C-v run "tmux set-buffer \"$(autoclipboard paste)\"; tmux paste-buffer"
 
-      new -s work "exec bash -i -c 'sleep .5; ds; bash'"
-      splitw -v -p 50 -t 0 "exec bash -i -c 'sleep .5; sudo journalctl -fb; bash'"
-      splitw -h -p 50 -t 0
-      splitw -h -p 50 -t 2
-      neww
-      splitw -v -p 50 -t 0
-      splitw -h -p 50 -t 0
-      splitw -h -p 50 -t 2
-      selectp -t 0
-      selectw -t 1
-      selectp -t 1
-
+      set -g renumber-windows on
+      new-session -s main
     '';
   };
 }
