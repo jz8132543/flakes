@@ -95,6 +95,12 @@ in {
       neededForBoot = true;
     };
   };
+  services.btrfs.autoScrub = {
+    enable = true;
+    fileSystems = [
+      config.fileSystems."/nix".device
+    ];
+  };
 
   boot = {
     loader.grub = {
