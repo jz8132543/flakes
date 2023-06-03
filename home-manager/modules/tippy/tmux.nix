@@ -13,6 +13,7 @@
       # tmuxPlugins.tmux-fzf
     ];
     extraConfig = ''
+      # source: https://github.com/felixonmars/dotfiles/blob/master/.tmux.conf
       set-environment -g COLORTERM "truecolor"
       set -g prefix ^b
       set-option -gw xterm-keys on
@@ -121,15 +122,15 @@
       bind-key -n M-7 select-window -t :7
       bind-key -n M-8 select-window -t :8
       bind-key -n M-9 select-window -t :9
-      bind-key -n M-q select-window -t :3 \; send-keys M-1
-      bind-key -n M-w select-window -t :3 \; send-keys M-2
-      bind-key -n M-e select-window -t :3 \; send-keys M-3
-      bind-key -n M-r select-window -t :3 \; send-keys M-4
-      bind-key -n M-t select-window -t :3 \; send-keys M-5
-      bind-key -n M-y select-window -t :3 \; send-keys M-6
-      bind-key -n M-u select-window -t :3 \; send-keys M-7
-      bind-key -n M-i select-window -t :3 \; send-keys M-8
-      bind-key -n M-o select-window -t :3 \; send-keys M-9
+      bind-key -n M-q select-window -t :1 \; send-keys M-1
+      bind-key -n M-w select-window -t :1 \; send-keys M-2
+      bind-key -n M-e select-window -t :1 \; send-keys M-3
+      bind-key -n M-r select-window -t :1 \; send-keys M-4
+      bind-key -n M-t select-window -t :1 \; send-keys M-5
+      bind-key -n M-y select-window -t :1 \; send-keys M-6
+      bind-key -n M-u select-window -t :1 \; send-keys M-7
+      bind-key -n M-i select-window -t :1 \; send-keys M-8
+      bind-key -n M-o select-window -t :1 \; send-keys M-9
 
       bind-key -n C-q send-prefix
 

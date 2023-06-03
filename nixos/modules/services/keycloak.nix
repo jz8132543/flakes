@@ -31,7 +31,7 @@
       ldap_user_dn = "i";
     };
   };
-  systemd.services.lldap.serviceConfig.Restart = "on-failure";
+  systemd.services.lldap.serviceConfig.Restart = "always";
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       keycloak = {

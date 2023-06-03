@@ -112,7 +112,6 @@ in {
       auth_bind = yes
       pass_filter = (&(objectClass=person)(uid=%n))
       user_filter = (&(objectClass=person)(uid=%n))
-      user_attrs = \
       iterate_attrs = =user=%{ldap:uid}
       iterate_filter = (objectClass=person)
     '';
