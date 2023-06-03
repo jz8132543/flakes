@@ -8,10 +8,26 @@
   mkOpts = opts: lib.concatLists (lib.mapAttrsToList mkKeyVal opts);
 in {
   sops.secrets = {
+    "mail/ldap" = {};
     dkim = {
       owner = "rspamd";
       path = "/var/lib/rspamd/dkim.key";
     };
+  };
+
+  sops.templates."postfix-sender-maps" = {
+    content = ''
+      server_host = ldap://ldap.dora.im:${toString config.ports.ldap}
+      version = 3
+      bind = yes
+      bind_dn = uid=mail,ou=people,dc=dora,dc=im
+      bind_pw = ${config.sops.placeholder."mail/ldap"}
+      search_base = ou=people,dc=dora,dc=im
+      query_filter = (mail=%s)
+      result_attribute = uid
+      domain = dora.im
+      result_format = %s@dora.im
+    '';
   };
 
   systemd.services.postfix.serviceConfig = {
@@ -57,7 +73,8 @@ in {
           broken_sasl_auth_clients = "yes";
           smtpd_sasl_type = "dovecot";
           smtpd_sasl_path = "/run/dovecot2/auth-postfix";
-          # smtpd_sender_login_maps = "hash:/etc/postfix/senders";
+          smtpd_sender_login_maps = "ldap:${config.sops.templates."postfix-sender-maps".path}";
+          # local_recipient_maps = "ldap:${ldapSenderMap}";
           smtpd_client_restrictions = "permit_sasl_authenticated,reject";
           smtpd_sender_restrictions = "reject_sender_login_mismatch";
           smtpd_recipient_restrictions = "reject_non_fqdn_recipient,reject_unknown_recipient_domain,permit_sasl_authenticated,reject";

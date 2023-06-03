@@ -104,15 +104,17 @@ in {
   sops.secrets."mail/ldap" = {};
   sops.templates."dovecot-ldap" = {
     content = ''
-      uris = ldap://sso.dora.im:${toString config.ports.ldap}
+      uris = ldap://ldap.dora.im:${toString config.ports.ldap}
       dn = uid=mail,ou=people,dc=dora,dc=im
       dnpass = ${config.sops.placeholder."mail/ldap"}
       base = ou=people,dc=dora,dc=im
       auth_bind_userdn = uid=%n,ou=people,dc=dora,dc=im
       auth_bind = yes
-      pass_filter = (&(objectClass=person)(uid=%n))
+      # user_attrs = uid=uid
       user_filter = (&(objectClass=person)(uid=%n))
-      iterate_attrs = =user=%{ldap:uid}
+      # pass_attrs = uid=uid,userPassword=password
+      pass_filter = (&(objectClass=person)(uid=%n))
+      iterate_attrs = =user=%{ldap:uid}@dora.im
       iterate_filter = (objectClass=person)
     '';
     path = "/etc/dovecot/dovecot-ldap.conf.ext";
