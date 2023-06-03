@@ -147,7 +147,7 @@
 
       #set-option -g mouse-resize-pane on
       #set-option -g mouse-select-window on
-      #set-option -g set-clipboard on
+      set-option -g set-clipboard on
       #set-option -g mouse-select-pane on
 
       bind-key u capture-pane \; save-buffer /tmp/tmux-buffer \; run-shell "$TERMINAL -e 'cat /tmp/tmux-buffer | urlview'"
