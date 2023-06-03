@@ -14,7 +14,7 @@
       nixosModules.services.postgres
       nixosModules.services.vaultwarden
       nixosModules.services.matrix
-      nixosModules.services.authentik
+      nixosModules.services.keycloak
       # nixosModules.services.derp
     ];
 }

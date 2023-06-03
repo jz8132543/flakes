@@ -4,7 +4,7 @@
   ...
 }: let
   cfg = config.services.dovecot2;
-  maildir = "/var/vmail";
+  maildir = "/var/spool/mail";
 in {
   systemd.tmpfiles.rules = [
     "d ${maildir} 0700 ${cfg.mailUser} ${cfg.mailGroup} -"
@@ -14,7 +14,6 @@ in {
     modules = [pkgs.dovecot_pigeonhole];
     mailUser = "dovemail";
     mailGroup = "dovemail";
-    mailLocation = "maildir:/var/vmail/%d/%n/Maildir";
     enableImap = true;
     enableLmtp = true;
     sieveScripts = {
@@ -73,29 +72,29 @@ in {
         mail_plugins = $mail_plugins sieve
       }
 
-      # namespace inbox {
-      #   inbox = yes
-      #   mailbox Drafts {
-      #     auto = subscribe
-      #     special_use = \Drafts
-      #   }
-      #   mailbox Sent {
-      #     auto = subscribe
-      #     special_use = \Sent
-      #   }
-      #   mailbox Trash {
-      #     auto = subscribe
-      #     special_use = \Trash
-      #   }
-      #   mailbox Junk {
-      #     auto = subscribe
-      #     special_use = \Junk
-      #   }
-      #   mailbox Archive {
-      #     auto = subscribe
-      #     special_use = \Archive
-      #   }
-      # }
+      namespace inbox {
+        inbox = yes
+        mailbox Drafts {
+          auto = subscribe
+          special_use = \Drafts
+        }
+        mailbox Sent {
+          auto = subscribe
+          special_use = \Sent
+        }
+        mailbox Trash {
+          auto = subscribe
+          special_use = \Trash
+        }
+        mailbox Junk {
+          auto = subscribe
+          special_use = \Junk
+        }
+        mailbox Archive {
+          auto = subscribe
+          special_use = \Archive
+        }
+      }
 
       plugin {
         sieve_after = /var/lib/dovecot/sieve/after
@@ -105,28 +104,17 @@ in {
   sops.secrets."mail/ldap" = {};
   sops.templates."dovecot-ldap" = {
     content = ''
-      uris = ldap://sso.dora.im:3389
-      dn = cn=mail,ou=server,dc=dora,dc=im
+      uris = ldap://sso.dora.im:${toString config.ports.ldap}
+      dn = uid=mail,ou=people,dc=dora,dc=im
       dnpass = ${config.sops.placeholder."mail/ldap"}
-      base = dc=dora,dc=im
-      auth_bind_userdn = cn=%n,ou=server,dc=dora,dc=im
+      base = ou=people,dc=dora,dc=im
+      auth_bind_userdn = uid=%n,ou=people,dc=dora,dc=im
       auth_bind = yes
-      pass_filter = (&(objectClass=user)(cn=%n))
-      user_filter = (&(objectClass=user)(cn=%n))
+      pass_filter = (&(objectClass=person)(uid=%n))
+      user_filter = (&(objectClass=person)(uid=%n))
       user_attrs = \
-      quota=quota_rule=*:bytes=%$, \
-      =home=/var/vmail/%d/%n/, \
-      =mail=maildir:/var/vmail/%d/%n/Maildir
-      iterate_attrs = =user=%{ldap:cn}
-      iterate_filter = (objectClass=user)
-      # pass_attrs =
-      # =proxy=y,
-      # =proxy_timeout=10,
-      # =user=%{ldap:mailRoutingAddress},
-      # =password=%{ldap:userPassword}
-      # pass_filter = (mailRoutingAddress=%u)
-      # iterate_attrs = mailRoutingAddress=user
-      # iterate_filter = (objectClass= messageStoreRecipient)
+      iterate_attrs = =user=%{ldap:uid}
+      iterate_filter = (objectClass=person)
     '';
     path = "/etc/dovecot/dovecot-ldap.conf.ext";
   };
