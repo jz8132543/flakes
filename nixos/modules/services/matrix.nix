@@ -15,12 +15,13 @@ in
   lib.mkMerge [
     # matrix-synapse
     {
-      sops.secrets."matrix/mail" = {};
-      sops.secrets."matrix/signing-key" = {owner = "matrix-synapse";};
-      sops.secrets."b2/keyID" = {};
-      sops.secrets."b2/applicationKey" = {};
-      sops.secrets."oidc/id" = {};
-      sops.secrets."oidc/secret" = {};
+      sops.secrets = {
+        "matrix/mail" = {};
+        "matrix/signing-key" = {owner = "matrix-synapse";};
+        "matrix/b2-keyID" = {};
+        "matrix/b2-applicationKey" = {};
+        "matrix/oidc-secret" = {};
+      };
       services.matrix-synapse = {
         enable = true;
         withJemalloc = true;
@@ -96,12 +97,11 @@ in
           };
           oidc_providers = [
             {
-              idp_id = "authentik";
-              idp_name = "authentik";
-              idp_icon = "mxc://authelia.com/cKlrTPsGvlpKxAYeHWJsdVHI";
-              issuer = "https://sso.dora.im/application/o/matrix/";
-              client_id = config.sops.placeholder."oidc/id";
-              client_secret = config.sops.placeholder."oidc/secret";
+              idp_id = "keycloak";
+              idp_name = "keycloak";
+              issuer = "https://sso.dora.im/realms/users";
+              client_id = "synapse";
+              client_secret = config.sops.placeholder."matrix/oidc-secret";
               scopes = ["openid" "profile" "email"];
               allow_existing_users = true;
               user_mapping_provider.config = {
@@ -123,8 +123,8 @@ in
                 bucket = config.lib.self.data.matrix.media.name;
                 region_name = config.lib.self.data.matrix.media.region;
                 endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
-                access_key_id = config.sops.placeholder."b2/keyID";
-                secret_access_key = config.sops.placeholder."b2/applicationKey";
+                access_key_id = config.sops.placeholder."matrix/b2-keyID";
+                secret_access_key = config.sops.placeholder."matrix/b2-applicationKey";
               };
             }
           ];

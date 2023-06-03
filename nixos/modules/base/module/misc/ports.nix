@@ -97,6 +97,7 @@
       keycloak = 3260;
       lldap = 17170;
       ldap = 3890;
+      mta-sts = 8097;
     };
   };
 }
