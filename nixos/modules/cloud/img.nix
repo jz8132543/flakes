@@ -22,7 +22,7 @@ with pkgs; let
     ]
   );
 in {
-  system.build.image = vmTools.runInLinuxVM (runCommand "image"
+  system.build.image = vmTools.runInLinuxVM (runCommand "${config.system.name}"
     {
       memSize = 4096;
       preVM = ''
@@ -33,14 +33,13 @@ in {
     } ''
       export PATH=${tools}:$PATH
       set -x
-      parted -l
       # Run disko-create
       ${config.system.build.formatScript}
       # Run disko-mount
       ${config.system.build.mountScript}
       # Install NixOS
       export NIX_STATE_DIR=$TMPDIR/state
-      nix-store --load-db < ${closureInfo}/registration
+      nix-store --load-db < ${db}/registration
       nixos-install --root /mnt --system ${toplevel} --no-channel-copy --no-root-passwd --substituters ""
     '');
 }

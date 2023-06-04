@@ -18,6 +18,10 @@
       key = "age1el947fqp59jsxm2gqfhfu3hy4a0wknefx858msef67n6j9u44dkqw558he";
       owned = true;
     };
+    ams0 = {
+      key = "age1c39ctjhlvqhvhtumms20nqkkercudners0msdeqlq2juh84ux4gsyu2prq";
+      owned = true;
+    };
     dfw0 = {
       key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
       owned = true;
