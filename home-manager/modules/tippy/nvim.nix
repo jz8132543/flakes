@@ -1,12 +1,7 @@
-{
-  pkgs,
-  lib,
-  inputs,
-  ...
-}: {
+{pkgs, ...}: {
   programs.neovim = {
     enable = true;
-    # package = pkgs.neovim-nightly;
+    package = pkgs.neovim-nightly;
     vimAlias = true;
     vimdiffAlias = true;
   };
@@ -15,7 +10,10 @@
     directories = [
       ".local/share/nvim"
       ".config/nvim"
-      ".config/coc"
+      # ".config/coc"
     ];
   };
+  home.packages = with pkgs; [
+    unzip
+  ];
 }

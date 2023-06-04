@@ -9,13 +9,18 @@
     alacritty = {
       enable = true;
       settings = {
-        # import = [ ./alacritty.yml ];
-        font = {size = 14.0;};
         shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = ["new-session" "-t" "main"];
         };
-        window.opacity = 0.8;
+        font = {
+          size = 15.0;
+        };
+        window = {
+          opacity = 0.8;
+          decorations = "none";
+        };
+        env.TERM = "xterm-256color";
       };
     };
   };

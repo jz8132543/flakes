@@ -21,6 +21,8 @@
         home-manager = {
           sharedModules = commonHmModules;
           extraSpecialArgs = hmSpecialArgs;
+          useGlobalPkgs = true;
+          useUserPackages = true;
         };
         system.configurationRevision =
           if self ? rev
@@ -62,6 +64,8 @@
         ++ [
           ({lib, ...}: {
             networking.hostName = lib.mkDefault name;
+            # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
+            nixpkgs.system = system;
           })
         ];
     };

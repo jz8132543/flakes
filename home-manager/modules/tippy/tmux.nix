@@ -5,16 +5,9 @@
     escapeTime = 10;
     shell = "${pkgs.zsh}/bin/zsh";
     keyMode = "vi";
-    terminal = "screen-256color";
-    plugins = with pkgs; [
-      # tmuxPlugins.better-mouse-mode
-      # tmuxPlugins.vim-tmux-navigator
-      # tmuxPlugins.gruvbox
-      # tmuxPlugins.tmux-fzf
-    ];
+    terminal = "tmux-256color";
     extraConfig = ''
       # source: https://github.com/felixonmars/dotfiles/blob/master/.tmux.conf
-      set-environment -g COLORTERM "truecolor"
       set -g prefix ^b
       set-option -gw xterm-keys on
       bind a send-prefix
@@ -61,7 +54,7 @@
       setw -g automatic-rename
 
       unbind r
-      bind r source-file ~/.tmux.conf
+      bind r source-file ~/.config/tmux/tmux.conf
 
       set -g history-limit 50000
 
@@ -140,11 +133,11 @@
       bind-key -n C-Tab next-window
       bind-key -n C-S-Tab previous-window
 
-      set -g default-terminal "tmux-256color"
       #For more compatibility
       #set -g default-terminal "xterm-color"
       #set -as terminal-features ",xterm-256color:RGB"
-      set -ga terminal-overrides ",xterm-256color*:Tc"
+      #set -ga terminal-overrides ",alacritty:Tc"
+      set -as terminal-overrides ",xterm-256color:RGB"
 
       #set-option -g mouse-resize-pane on
       #set-option -g mouse-select-window on
@@ -164,6 +157,7 @@
       #bind C-v run "tmux set-buffer \"$(wl-paste)\"; tmux paste-buffer"
       bind C-v run "tmux set-buffer \"$(autoclipboard paste)\"; tmux paste-buffer"
 
+      set -g status-position top
       set -g renumber-windows on
       new-session -s main
     '';
