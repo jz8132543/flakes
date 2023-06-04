@@ -4,7 +4,7 @@
   ...
 }: let
   cfg = config.services.dovecot2;
-  maildir = "/var/spool/mail";
+  maildir = "/var/lib/mail";
 in {
   systemd.tmpfiles.rules = [
     "d ${maildir} 0700 ${cfg.mailUser} ${cfg.mailGroup} -"

@@ -60,7 +60,4 @@
   };
   systemd.services.headscale.serviceConfig.TimeoutStopSec = "5s";
   environment.systemPackages = [config.services.headscale.package];
-  environment.persistence."/nix/persist" = {
-    directories = ["/var/lib/headscale"];
-  };
 }

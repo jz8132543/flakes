@@ -30,7 +30,7 @@
       #bind @ command-prompt "splitw -h 'exec perldoc -f %%'"
       #set -g status-right "#[fg=green]#(uptime|sed -e's/.*up\s*\(.*min\).*/\1/')#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
       #set -g status-right "#[fg=green]#(uptime|cut -d ' ' -f 4-7|cut -d ',' -f 1-2)#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
-      set -g status-right "#[fg=green]#(date)#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
+      set -g status-right "#[fg=green]#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
       #set -g status-right "#[fg=green]#(date) #[default]#(rainbarf)#[default]"
       set -g status-bg black
       set -g status-fg yellow
