@@ -1,17 +1,11 @@
-{
-  nixosConfig,
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   programs = {
     alacritty = {
       enable = true;
       settings = {
         shell = {
-          program = "${pkgs.tmux}/bin/tmux a";
-          args = ["new-session" "-t" "main"];
+          program = "${pkgs.tmux}/bin/tmux";
+          args = ["a"];
         };
         font = {
           size = 15.0;
