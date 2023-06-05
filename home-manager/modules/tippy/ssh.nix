@@ -7,7 +7,8 @@
       serverAliveCountMax = 4;
       compression = false;
       controlMaster = "auto";
-      controlPersist = "10m";
+      # https://github.com/NixOS/nixpkgs/issues/168322
+      # controlPersist = "10m";
       extraOptionOverrides = {
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";

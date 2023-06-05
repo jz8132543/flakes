@@ -10,7 +10,7 @@
       enable = true;
       settings = {
         shell = {
-          program = "${pkgs.tmux}/bin/tmux";
+          program = "${pkgs.tmux}/bin/tmux a";
           args = ["new-session" "-t" "main"];
         };
         font = {
