@@ -50,5 +50,8 @@
     nmap
     colmena
     deploy-rs
+    # tools
+    nix-output-monitor
+    nix-tree
   ];
 }

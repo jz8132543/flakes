@@ -15,6 +15,5 @@
       nixosModules.services.vaultwarden
       nixosModules.services.matrix
       nixosModules.services.keycloak
-      # nixosModules.services.derp
     ];
 }

@@ -9,6 +9,10 @@
       port = 8085;
       address = "127.0.0.1";
       settings = {
+        server_url = "https://headscale.dora.im";
+        metrics_listen_addr = "localhost:8095";
+        # grpc_listen_addr = "localhost:50443";
+        # grpc_allow_insecure = true;
         dns_config = {
           override_local_dns = true;
           base_domain = "dora.im";
@@ -18,8 +22,6 @@
             "9.9.9.9"
           ];
         };
-        server_url = "https://headscale.dora.im";
-        metrics_listen_addr = "localhost:8095";
         logtail = {
           enabled = false;
         };
@@ -30,7 +32,10 @@
           "100.64.0.0/10"
           "fd7a:115c:a1e0::/48"
         ];
-        derp.paths = ["/var/lib/headscale/map.json"];
+        derp = {
+          paths = ["/var/lib/headscale/map.yaml"];
+          urls = [""];
+        };
       };
     };
   };

@@ -5,6 +5,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.derp
       nixosModules.services.proxy
     ];
 }

@@ -46,6 +46,14 @@
       alias -g ......='../../../../..'
     '';
   };
+  home.packages = with pkgs; [
+    exa
+    bottom
+    bat
+    fzf
+    ripgrep
+    rsync
+  ];
   home.persistence."/nix/persist/home/tippy" = {
     directories = [
       ".local/share/zsh"
