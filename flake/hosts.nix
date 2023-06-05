@@ -68,6 +68,7 @@
             nixpkgs.system = system;
           })
         ];
+      extraModules = [inputs.colmena.nixosModules.deploymentOptions];
     };
   };
 in {
