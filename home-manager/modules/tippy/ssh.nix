@@ -12,7 +12,7 @@
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
         "CanonicalizeHostname" = "yes";
-        "CanonicalDomains" = "ts.dora.im dora.im";
+        "CanonicalDomains" = "dora.im ts.dora.im";
         "CanonicalizeMaxDots" = "0";
       };
       matchBlocks = {
@@ -33,7 +33,7 @@
           # forwardX11 = true;
         };
         "canonical" = {
-          match = "canonical final Host *.ts.dora.im,*.dora.im";
+          match = "canonical final Host *.dora.im,*.ts.dora.im";
           port = osConfig.ports.ssh;
         };
       };

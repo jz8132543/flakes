@@ -3,7 +3,7 @@
   networking.firewall.allowedUDPPorts = [8443 8444];
   systemd.services.sing-box = {
     wantedBy = ["multi-user.target"];
-    after = ["network.target"];
+    after = ["network.target" "traefik.service"];
     serviceConfig = {
       DynamicUser = true;
       Restart = "always";

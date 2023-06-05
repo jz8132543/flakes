@@ -8,8 +8,8 @@
     inherit (cfg.pkgs.stdenv.hostPlatform) system;
     deployLib = inputs.deploy-rs.lib.${system};
   in {
-    hostname = "${name}.ts.dora.im";
-    sshOpts = ["-p" "1022"];
+    hostname = "${name}";
+    # sshOpts = ["-p" "1022"];
     # currently only a single profile system
     profilesOrder = ["system"];
     profiles.system = {
