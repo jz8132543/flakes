@@ -19,7 +19,7 @@
       owned = true;
     };
     ams0 = {
-      key = "age1c39ctjhlvqhvhtumms20nqkkercudners0msdeqlq2juh84ux4gsyu2prq";
+      key = "age16rc6cs8fhplzwh938d3zxq8pke7pgxerzms0dgkdgq7he99c3ccs4emnhd";
       owned = true;
     };
     dfw0 = {
