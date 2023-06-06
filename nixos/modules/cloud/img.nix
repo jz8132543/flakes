@@ -47,6 +47,7 @@ in {
       wantedBy = ["multi-user.target"];
       serviceConfig.Type = "oneshot";
       script = ''
+        udevadm trigger
         id=`udevadm info --query all --name=/dev/disk/by-partlabel/NIXOS | sed -n 's/R: //p'`
         disk=`${pkgs.util-linux}/bin/lsblk -no pkname /dev/disk/by-partlabel/NIXOS`
         ${pkgs.gptfdisk}/bin/sgdisk -e -d ''${id} -n ''${id}:0:0 -c ''${id}:NIXOS -p /dev/''${disk}
