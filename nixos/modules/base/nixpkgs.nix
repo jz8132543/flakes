@@ -7,6 +7,9 @@
     tailscale-derp = final.tailscale.overrideAttrs (old: {
       subPackages = old.subPackages ++ ["cmd/derper"];
     });
+    tailscale-derpprobe = final.tailscale.overrideAttrs (old: {
+      subPackages = old.subPackages ++ ["cmd/derpprobe"];
+    });
   };
 in {
   nixpkgs = {

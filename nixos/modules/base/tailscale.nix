@@ -1,4 +1,8 @@
-{config, ...}: let
+{
+  config,
+  lib,
+  ...
+}: let
   interfaceName = "tailscale0";
 in {
   services.tailscale.enable = true;

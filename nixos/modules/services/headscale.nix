@@ -1,6 +1,6 @@
 {
   config,
-  lib,
+  pkgs,
   ...
 }: {
   services = {
@@ -33,7 +33,7 @@
           "fd7a:115c:a1e0::/48"
         ];
         derp = {
-          paths = ["/var/lib/headscale/map.yaml"];
+          paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [""];
         };
       };
@@ -63,6 +63,16 @@
       };
     };
   };
-  systemd.services.headscale.serviceConfig.TimeoutStopSec = "5s";
-  environment.systemPackages = [config.services.headscale.package];
+  systemd.services.headscale.serviceConfig = {
+    TimeoutStopSec = "5s";
+    LoadCredential = [
+      "map.yaml:/etc/headscale/map.yaml"
+    ];
+  };
+  environment.systemPackages = [config.services.headscale.package pkgs.tailscale-derpprobe];
+  environment.persistence."/nix/persist" = {
+    directories = [
+      "/etc/headscale"
+    ];
+  };
 }
