@@ -42,18 +42,18 @@ in {
       nix-store --load-db < ${db}/registration
       nixos-install --root /mnt --system ${toplevel} --no-channel-copy --no-root-passwd --substituters ""
     '');
-  systemd.services = {
-    "resize-part" = {
-      wantedBy = ["multi-user.target"];
-      serviceConfig.Type = "oneshot";
-      script = ''
-        udevadm trigger
-        id=`udevadm info --query all --name=/dev/disk/by-partlabel/NIXOS | sed -n 's/R: //p'`
-        disk=`${pkgs.util-linux}/bin/lsblk -no pkname /dev/disk/by-partlabel/NIXOS`
-        ${pkgs.gptfdisk}/bin/sgdisk -e -d ''${id} -n ''${id}:0:0 -c ''${id}:NIXOS -p /dev/''${disk}
-        ${pkgs.util-linux}/bin/partx -u /dev/''${disk}
-        ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max /nix
-      '';
-    };
-  };
+  # systemd.services = {
+  #   "resize-part" = {
+  #     wantedBy = ["multi-user.target"];
+  #     serviceConfig.Type = "oneshot";
+  #     script = ''
+  #       udevadm trigger
+  #       id=`udevadm info --query all --name=/dev/disk/by-partlabel/NIXOS | sed -n 's/R: //p'`
+  #       disk=`${pkgs.util-linux}/bin/lsblk -no pkname /dev/disk/by-partlabel/NIXOS`
+  #       ${pkgs.gptfdisk}/bin/sgdisk -e -d ''${id} -n ''${id}:0:0 -c ''${id}:NIXOS -p /dev/''${disk}
+  #       ${pkgs.util-linux}/bin/partx -u /dev/''${disk}
+  #       ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max /nix
+  #     '';
+  #   };
+  # };
 }
