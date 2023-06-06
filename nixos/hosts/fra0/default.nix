@@ -12,6 +12,7 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.headscale
+      nixosModules.services.derp
       nixosModules.services.postgres
       nixosModules.services.vaultwarden
       nixosModules.services.matrix

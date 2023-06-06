@@ -9,7 +9,6 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.services.postgres
     ];
 
   # microsoft-surface.ipts.enable = true;
