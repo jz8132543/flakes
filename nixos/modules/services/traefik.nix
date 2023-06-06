@@ -67,5 +67,5 @@
       };
     };
   };
-  config.systemd.services.traefik.serviceConfig.EnvironmentFile = config.sops.secrets."traefik/cloudflare".path;
+  config.systemd.services.traefik.serviceConfig.EnvironmentFile = [config.sops.secrets."traefik/cloudflare".path];
 }

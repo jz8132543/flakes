@@ -7,12 +7,11 @@
     serviceConfig = {
       DynamicUser = true;
       Restart = "always";
-      ExecStart = "${pkgs.sing-box}/bin/sing-box run -c \${CREDENTIALS_DIRECTORY}/config.json";
-      LoadCredential = [
-        "config.json:/etc/sing-box/config.json"
-      ];
+      ExecStart = "${pkgs.sing-box}/bin/sing-box run -C /etc/sing-box";
     };
   };
+  environment.etc."sing-box/geoip.db".source = "${pkgs.sing-geoip}/share/sing-box/geoip.db";
+  environment.etc."sing-box/geosite.db".source = "${pkgs.sing-geosite}/share/sing-box/geosite.db";
   # systemd.services.xray = {
   #   description = "xray Daemon";
   #   after = ["network.target"];
