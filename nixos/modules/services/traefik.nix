@@ -54,7 +54,7 @@
       http = {
         routers = {
           ping = {
-            rule = "Host(`${config.networking.fqdn}`) && Path(`/`)";
+            rule = "Host(`${config.networking.fqdn}`) && Path(`/ping`)";
             entryPoints = ["https"];
             service = "ping@internal";
           };

@@ -17,7 +17,7 @@
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       derp = {
-        rule = "Host(`derp.${config.networking.fqdn}`)";
+        rule = "Host(`${config.networking.fqdn}`)";
         entryPoints = ["https"];
         service = "derp";
       };
