@@ -65,10 +65,25 @@
       inputs.nixpkgs-stable.follows = "nixpkgs";
       inputs.gitignore.follows = "gitignore-nix";
     };
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixlib.follows = "nixpkgs";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-compat.follows = "flake-compat";
+    };
+    attic = {
+      url = "github:zhaofengli/attic";
+      inputs.crane.follows = "crane";
+      inputs.flake-compat.follows = "flake-compat";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "nixpkgs";
     };
     deploy-rs = {
       url = "github:serokell/deploy-rs";

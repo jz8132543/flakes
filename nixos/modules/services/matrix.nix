@@ -18,9 +18,9 @@ in
       sops.secrets = {
         "matrix/mail" = {};
         "matrix/signing-key" = {owner = "matrix-synapse";};
-        "matrix/b2-keyID" = {};
-        "matrix/b2-applicationKey" = {};
         "matrix/oidc-secret" = {};
+        "b2/keyID" = {};
+        "b2/applicationKey" = {};
       };
       services.matrix-synapse = {
         enable = true;
@@ -123,8 +123,8 @@ in
                 bucket = config.lib.self.data.matrix.media.name;
                 region_name = config.lib.self.data.matrix.media.region;
                 endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
-                access_key_id = config.sops.placeholder."matrix/b2-keyID";
-                secret_access_key = config.sops.placeholder."matrix/b2-applicationKey";
+                access_key_id = config.sops.placeholder."b2/keyID";
+                secret_access_key = config.sops.placeholder."b2/applicationKey";
               };
             }
           ];

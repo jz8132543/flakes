@@ -16,5 +16,11 @@
       "name": "matrix-doraim",
       "region": "eu-central-003"
     }
+  },
+  "attic": {
+    "host": "s3.eu-central-003.backblazeb2.com",
+    "name": "cache-doraim",
+    "region": "eu-central-003"
   }
 }
+

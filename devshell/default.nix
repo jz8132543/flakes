@@ -14,10 +14,6 @@
           category = "development";
         }
         {
-          package = inputs'.nixos-generators.packages.nixos-generate;
-          category = "deploy";
-        }
-        {
           package = pkgs.sops;
           category = "secrets";
         }
