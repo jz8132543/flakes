@@ -50,7 +50,7 @@ in {
   environment.systemPackages = with pkgs; [
     cudaPackages.cudatoolkit
     cudaPackages.cudnn
-    nvidia-docker
+    # nvidia-docker
     docker-compose
   ];
   virtualisation.docker = {

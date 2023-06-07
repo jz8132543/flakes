@@ -13,6 +13,7 @@
       ".local/share/TelegramDesktop"
       ".thunderbird"
       ".config/clash-verge"
+      ".local/share/anime-game-launcher"
     ];
   };
 }

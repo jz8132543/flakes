@@ -109,6 +109,10 @@
       inputs.nvfetcher.follows = "nvfetcher";
       inputs.flake-compat.follows = "flake-compat";
     };
+    aagl-gtk-on-nix = {
+      url = "github:ezKEa/aagl-gtk-on-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}:
