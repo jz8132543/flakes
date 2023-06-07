@@ -5,20 +5,17 @@
 }: {
   fonts = {
     fonts = with pkgs; [
-      maple-mono
-      maple-mono-NF
-      maple-mono-SC-NF
-
-      material-symbols
       noto-fonts
       noto-fonts-cjk
       noto-fonts-emoji
+      material-symbols
 
       source-serif
       source-han-serif
       source-sans
       source-han-sans
       source-code-pro
+      (nerdfonts.override {fonts = ["JetBrainsMono"];})
     ];
 
     fontconfig = {
@@ -52,7 +49,7 @@
           "Noto Serif CJK SC"
         ];
         emoji = lib.mkBefore ["Noto Color Emoji"];
-        monospace = lib.mkBefore ["Maple Mono NF"];
+        monospace = lib.mkBefore ["JetBrainsMono Nerd Font"];
       };
     };
   };
