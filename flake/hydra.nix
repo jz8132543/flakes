@@ -12,5 +12,5 @@
     lib.fold lib.recursiveUpdate {}
     (lib.mapAttrsToList getHostToplevel self.nixosConfigurations);
 in {
-  hydraJobs = hostToplevels;
+  flake.hydraJobs = hostToplevels;
 }
