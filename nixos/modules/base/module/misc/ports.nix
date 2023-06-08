@@ -26,9 +26,7 @@
       bgp = 179;
       https = 443;
       https-alternative = 8443;
-      smtp-tls = 465;
       ipsec-ike = 500;
-      smtp-starttls = 587;
       ssh = 1022;
       pastebin = 3000;
       vaultwarden-http = 3010;
@@ -99,6 +97,8 @@
       ldap = 3890;
       mta-sts = 8097;
       derp = 3478;
+      smtp = 465;
+      imap = 993;
     };
   };
 }
