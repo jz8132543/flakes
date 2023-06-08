@@ -51,6 +51,15 @@ in {
           }
         ];
       }
+      {
+        path_regex = "^secrets/terraform-inputs\.yaml$";
+        key_groups = [
+          {
+            pgp = [main];
+            age = yubikeyKeys ++ ownedHostKeys;
+          }
+        ];
+      }
     ]
     ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
 }

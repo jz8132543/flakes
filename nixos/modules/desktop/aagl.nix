@@ -1,9 +1,18 @@
-{inputs, ...}: {
+{
+  inputs,
+  pkgs,
+  ...
+}: {
   imports = [
     inputs.aagl-gtk-on-nix.nixosModules.default
   ];
 
-  programs.an-anime-game-launcher.enable = true;
+  programs.anime-game-launcher.enable = true;
+
+  environment.systemPackages = with pkgs; [
+    dxvk
+    proton-caller
+  ];
 
   nix.settings = {
     substituters = ["https://ezkea.cachix.org"];
