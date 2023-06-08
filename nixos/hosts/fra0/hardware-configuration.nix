@@ -13,6 +13,12 @@
   boot.kernelModules = ["kvm-amd"];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   utils.disk = "/dev/sda";
+  swapDevices = [
+    {
+      device = "/nix/swapfile";
+      size = 8192;
+    }
+  ];
   networking = {
     # useDHCP = false;
     # useNetworkd = true;
