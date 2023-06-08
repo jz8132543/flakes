@@ -20,8 +20,8 @@
       rocketPort = config.ports.vaultwarden-http;
       smtpHost = "smtp.dora.im";
       smtpFrom = "vault@dora.im";
-      smtpPort = config.ports.smtp-starttls;
-      smtpSecurity = "starttls";
+      smtpPort = config.ports.smtp;
+      smtpSecurity = "force_tls";
       smtpUsername = "vault@dora.im";
     };
     environmentFile = config.sops.templates."vaultwarden-env".path;
