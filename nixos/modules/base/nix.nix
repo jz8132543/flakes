@@ -14,6 +14,7 @@
       auto-allocate-uids = true;
       use-cgroups = true;
       auto-optimise-store = true;
+      warn-dirty = false;
     };
   };
 }

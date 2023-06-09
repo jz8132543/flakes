@@ -15,7 +15,7 @@ in {
     {
       services.hydra = {
         enable = true;
-        # package = pkgs.hydra-master;
+        package = pkgs.hydra-master;
         listenHost = "127.0.0.1";
         port = config.ports.hydra;
         hydraURL = "https://hydra.dora.im";
@@ -30,9 +30,13 @@ in {
           Include "${config.sops.templates."hydra-extra-config".path}"
 
           <githubstatus>
-            jobs = .*
+            jobs = misc:flakes:.*
             excludeBuildFromContext = 1
+            useShortContext = 1
           </githubstatus>
+          <dynamicruncommand>
+            enable = 1
+          </dynamicruncommand>
           <runcommand>
             command = "${hydra-hook}"
           </runcommand>

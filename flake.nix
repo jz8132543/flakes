@@ -143,6 +143,12 @@
       inputs.flake-utils-plus.follows = "flake-utils-plus";
       inputs.poetry2nix.follows = "poetry2nix";
     };
+    hydra.url = "github:nixos/hydra";
+    terrasops = {
+      url = "github:NickCao/terrasops";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}:

@@ -52,7 +52,7 @@ in {
         ];
       }
       {
-        path_regex = "^secrets/terraform-inputs\.yaml$";
+        path_regex = "^secrets/terraform-inputs\.json$";
         key_groups = [
           {
             pgp = [main];
