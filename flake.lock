@@ -328,6 +328,26 @@
         "type": "github"
       }
     },
+    "flake-utils-plus": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ]
+      },
+      "locked": {
+        "lastModified": 1657226504,
+        "narHash": "sha256-GIYNjuq4mJlFgqKsZ+YrgzWm0IpA4axA3MCrdKYj7gs=",
+        "owner": "gytis-ivaskevicius",
+        "repo": "flake-utils-plus",
+        "rev": "2bf0f91643c2e5ae38c1b26893ac2927ac9bd82a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "gytis-ivaskevicius",
+        "repo": "flake-utils-plus",
+        "type": "github"
+      }
+    },
     "flake-utils_2": {
       "inputs": {
         "systems": "systems"
@@ -671,6 +691,32 @@
         "type": "github"
       }
     },
+    "nix-gc-s3": {
+      "inputs": {
+        "flake-utils-plus": [
+          "flake-utils-plus"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "poetry2nix": [
+          "poetry2nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1667183681,
+        "narHash": "sha256-XNUoxK26fHnBFYpyXQAUO0/ToEtMZ1IZfQX42Uh3qQU=",
+        "owner": "linyinfeng",
+        "repo": "nix-gc-s3",
+        "rev": "98c7f880dc07a7040459c2252f4911af39dc1a3f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "linyinfeng",
+        "repo": "nix-gc-s3",
+        "type": "github"
+      }
+    },
     "nixago": {
       "inputs": {
         "flake-utils": [
@@ -845,6 +891,29 @@
         "type": "github"
       }
     },
+    "poetry2nix": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1686140708,
+        "narHash": "sha256-CKTahDFlhx07OQb4Afj+4/cNaxIWfxb8VGUlllUgoPY=",
+        "owner": "nix-community",
+        "repo": "poetry2nix",
+        "rev": "d91e2dd14caf4d09240bedf69a778c88f356ebda",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "poetry2nix",
+        "type": "github"
+      }
+    },
     "pre-commit-hooks-nix": {
       "inputs": {
         "flake-compat": "flake-compat_4",
@@ -917,6 +986,7 @@
         "flake-compat": "flake-compat_3",
         "flake-parts": "flake-parts",
         "flake-utils": "flake-utils_2",
+        "flake-utils-plus": "flake-utils-plus",
         "gitignore-nix": "gitignore-nix",
         "grub2-themes": "grub2-themes",
         "haumea": "haumea",
@@ -924,12 +994,14 @@
         "impermanence": "impermanence",
         "linyinfeng": "linyinfeng",
         "neovim-nightly-overlay": "neovim-nightly-overlay",
+        "nix-gc-s3": "nix-gc-s3",
         "nixago": "nixago",
         "nixago-exts": "nixago-exts",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
         "nur": "nur",
         "nvfetcher": "nvfetcher",
+        "poetry2nix": "poetry2nix",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix_2",
         "rust-overlay": "rust-overlay",
         "sops-nix": "sops-nix",

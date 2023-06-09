@@ -103,6 +103,15 @@
       inputs.nixago.follows = "nixago";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    flake-utils-plus = {
+      url = "github:gytis-ivaskevicius/flake-utils-plus";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+    poetry2nix = {
+      url = "github:nix-community/poetry2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
     neovim-nightly-overlay = {
       url = "github:nix-community/neovim-nightly-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -127,6 +136,12 @@
     aagl-gtk-on-nix = {
       url = "github:ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-gc-s3 = {
+      url = "github:linyinfeng/nix-gc-s3";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils-plus.follows = "flake-utils-plus";
+      inputs.poetry2nix.follows = "poetry2nix";
     };
   };
 

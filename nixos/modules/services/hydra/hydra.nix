@@ -3,7 +3,14 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  hydra-hook = pkgs.substituteAll {
+    src = ./hook.sh;
+    isExecutable = true;
+    inherit (pkgs.stdenvNoCC) shell;
+    inherit (pkgs) jq systemd postgresql;
+  };
+in {
   config = lib.mkMerge [
     {
       services.hydra = {
@@ -23,19 +30,20 @@
           Include "${config.sops.templates."hydra-extra-config".path}"
 
           <githubstatus>
-            jobs = flakes:.*
+            jobs = .*
             excludeBuildFromContext = 1
-            useShortContext = 1
           </githubstatus>
+          <runcommand>
+            command = "${hydra-hook}"
+          </runcommand>
         '';
       };
       # allow evaluator and queue-runner to access nix-access-tokens
-      # systemd.services.hydra-evaluator.serviceConfig.SupplementaryGroups = [config.users.groups.nix-access-tokens.name];
-      # systemd.services.hydra-queue-runner.serviceConfig.SupplementaryGroups = [
-      #   config.users.groups.nix-access-tokens.name
-      #   config.users.groups.nixbuild.name
-      #   config.users.groups.hydra-builder-client.name
-      # ];
+      systemd.services.hydra-evaluator.serviceConfig.SupplementaryGroups = [config.users.groups.nix-access-tokens.name];
+      systemd.services.hydra-queue-runner.serviceConfig.SupplementaryGroups = [
+        config.users.groups.nix-access-tokens.name
+        config.users.groups.hydra-builder-client.name
+      ];
       sops.templates."hydra-extra-config" = {
         group = "hydra";
         mode = "440";

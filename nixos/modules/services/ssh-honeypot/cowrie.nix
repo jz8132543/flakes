@@ -80,13 +80,13 @@ in {
     wantedBy = ["multi-user.target"];
   };
   sops.secrets = {
-    "cowrie/token" = {};
-    "cowrie/chatid" = {};
+    "tg-send/token" = {};
+    "tg-send/id" = {};
   };
   sops.templates."cowrie-extra-env".content = ''
     COWRIE_OUTPUT_TELEGRAM_ENABLED=true
-    COWRIE_OUTPUT_TELEGRAM_BOT_TOKEN=${config.sops.placeholder."cowrie/token"}
-    COWRIE_OUTPUT_TELEGRAM_CHAT_ID=${config.sops.placeholder."cowrie/chatid"}
+    COWRIE_OUTPUT_TELEGRAM_BOT_TOKEN=${config.sops.placeholder."tg-send/token"}
+    COWRIE_OUTPUT_TELEGRAM_CHAT_ID=${config.sops.placeholder."tg-send/id"}
   '';
   networking.firewall.allowedTCPPorts = [port];
 }

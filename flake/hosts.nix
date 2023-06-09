@@ -41,7 +41,7 @@
     ];
 
   nixosSpecialArgs = {
-    inherit inputs self nixosModules;
+    inherit inputs self nixosModules getSystem;
   };
 
   hmSpecialArgs = {

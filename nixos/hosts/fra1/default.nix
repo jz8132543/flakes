@@ -12,5 +12,6 @@
       nixosModules.services.traefik
       nixosModules.services.postgres
       nixosModules.services.derp
+      nixosModules.services.hydra.hydra-builder-server
     ];
 }
