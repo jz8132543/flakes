@@ -16,7 +16,7 @@ in {
     neededForUsers = true; # needed for /etc
   };
   environment.etc.${keyFile} = {
-    mode = "440";
+    mode = "444";
     user = config.users.users.hydra-builder-client.name;
     group = config.users.groups.hydra-builder-client.name;
     source = config.sops.secrets."hydra/builder_private_key".path;

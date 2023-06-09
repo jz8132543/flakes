@@ -64,6 +64,7 @@ in {
         "https://github.com/" # for nix-index-database
         "https://gitlab.com/" # for home-manager nmd source
         "https://git.sr.ht/" # for home-manager nmd source
+        "https://git.github.com/" # for github api
       ];
       sops.secrets = {
         "hydra/cache-dora-im" = {};
@@ -77,6 +78,7 @@ in {
       services.hydra.extraConfig = ''
         email_notification = 1
       '';
+      systemd.services.hydra-init.after = ["tailscaled.service" "postgresql.service"];
       systemd.services.hydra-notify.serviceConfig.EnvironmentFile = config.sops.templates."hydra-email".path;
       sops.templates."hydra-email".content = ''
         EMAIL_SENDER_TRANSPORT=SMTP

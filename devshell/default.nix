@@ -1,4 +1,4 @@
-{ inputs,...}: {
+{inputs, ...}: {
   imports = [
     # ./terraform
   ];
@@ -26,6 +26,8 @@
         nodePackages.vscode-json-languageserver
         terraform-ls
         tflint
+        nodePackages.bash-language-server
+        shfmt
         # secrets
         sops
         age
