@@ -64,7 +64,7 @@ in {
         "https://github.com/" # for nix-index-database
         "https://gitlab.com/" # for home-manager nmd source
         "https://git.sr.ht/" # for home-manager nmd source
-        "https://git.github.com/" # for github api
+        "https://" # for github api
       ];
       sops.secrets = {
         "hydra/cache-dora-im" = {};
