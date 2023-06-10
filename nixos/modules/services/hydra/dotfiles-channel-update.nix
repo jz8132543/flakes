@@ -71,7 +71,7 @@
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.systemd1.manage-units" &&
-          RegExp('dotfiles-channel-update@.+\.service|copy-cache-li7g-com@.+\.service').test(action.lookup("unit")) === true &&
+          RegExp('dotfiles-channel-update@.+\.service|copy-cache-dora-im@.+\.service').test(action.lookup("unit")) === true &&
           subject.isInGroup("hydra")) {
         return polkit.Result.YES;
       }
