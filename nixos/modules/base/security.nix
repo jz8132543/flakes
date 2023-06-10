@@ -4,4 +4,5 @@
     enable = true;
     # execWheelOnly = true;
   };
+  security.polkit.enable = true;
 }
