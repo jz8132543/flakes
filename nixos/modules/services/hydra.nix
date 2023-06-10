@@ -80,6 +80,15 @@ in {
     }
 
     {
+      services = {
+        nix-serve = {
+          enable = true;
+          secretKeyFile = config.sops.secrets."hydra/cache-dora-im".path;
+        };
+      };
+    }
+
+    {
       # email notifications
       services.hydra.extraConfig = ''
         email_notification = 1
@@ -105,11 +114,20 @@ in {
             entryPoints = ["https"];
             service = "hydra";
           };
+          nix-serve = {
+            rule = "Host(`cache.dora.im`)";
+            entryPoints = ["https"];
+            service = "nix-serve";
+          };
         };
         services = {
           hydra.loadBalancer = {
             passHostHeader = true;
             servers = [{url = "http://localhost:${toString config.ports.hydra}";}];
+          };
+          nix-serve.loadBalancer = {
+            passHostHeader = true;
+            servers = [{url = "http://localhost:${toString config.services.nix-serve.port}";}];
           };
         };
       };
