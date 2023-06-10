@@ -9,7 +9,6 @@
         Port 1022
         HashKnownHosts no
         UserKnownHostsFile /dev/null
-
     '';
   };
 }

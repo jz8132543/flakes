@@ -3,14 +3,7 @@
   lib,
   pkgs,
   ...
-}: let
-  hydra-hook = pkgs.substituteAll {
-    src = ./hook.sh;
-    isExecutable = true;
-    inherit (pkgs.stdenvNoCC) shell;
-    inherit (pkgs) jq systemd postgresql;
-  };
-in {
+}: {
   config = lib.mkMerge [
     {
       services.hydra = {
@@ -37,9 +30,6 @@ in {
           <dynamicruncommand>
             enable = 1
           </dynamicruncommand>
-          <runcommand>
-            command = "${hydra-hook}"
-          </runcommand>
         '';
       };
       # allow evaluator and queue-runner to access nix-access-tokens
@@ -84,7 +74,7 @@ in {
         EMAIL_SENDER_TRANSPORT=SMTP
         EMAIL_SENDER_TRANSPORT_sasl_username=hydra@dora.im
         EMAIL_SENDER_TRANSPORT_sasl_password=${config.sops.placeholder."hydra/mail"}
-        EMAIL_SENDER_TRANSPORT_host=smtp.ts.li7g.com
+        EMAIL_SENDER_TRANSPORT_host=${config.lib.self.data.mail.smtp};
         EMAIL_SENDER_TRANSPORT_port=${toString config.ports.smtp}
         EMAIL_SENDER_TRANSPORT_ssl=on
       '';

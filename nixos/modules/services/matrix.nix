@@ -89,7 +89,7 @@ in
         owner = "matrix-synapse";
         content = builtins.toJSON {
           email = {
-            smtp_host = "smtp.dora.im";
+            smtp_host = "${config.lib.self.data.mail.smtp}";
             smtp_user = "matrix@dora.im";
             notif_from = "matrix@dora.im";
             force_tls = true;

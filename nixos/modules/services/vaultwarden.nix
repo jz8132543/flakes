@@ -18,7 +18,7 @@
       websocketPort = config.ports.vaultwarden-websocket;
       rocketAddress = "127.0.0.1";
       rocketPort = config.ports.vaultwarden-http;
-      smtpHost = "smtp.dora.im";
+      smtpHost = "${config.lib.self.data.mail.smtp}";
       smtpFrom = "vault@dora.im";
       smtpPort = config.ports.smtp;
       smtpSecurity = "force_tls";

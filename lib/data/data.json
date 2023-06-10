@@ -16,15 +16,10 @@
   },
   "matrix": {
     "media": {
-      "host": "s3.dora.im",
+      "host": "s3.eu-central-003.backblazeb2.com",
       "name": "matrix-doraim",
       "region": "eu-central-003"
     }
-  },
-  "attic": {
-    "host": "s3.dora.im",
-    "name": "cache-doraim",
-    "region": "eu-central-003"
   },
   "hydra": {
     "builder_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im"
