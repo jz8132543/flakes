@@ -33,11 +33,11 @@
         '';
       };
       # allow evaluator and queue-runner to access nix-access-tokens
-      systemd.services.hydra-evaluator.serviceConfig.SupplementaryGroups = [config.users.groups.nix-access-tokens.name];
-      systemd.services.hydra-queue-runner.serviceConfig.SupplementaryGroups = [
-        config.users.groups.nix-access-tokens.name
-        config.users.groups.hydra-builder-client.name
-      ];
+      # systemd.services.hydra-evaluator.serviceConfig.SupplementaryGroups = [config.users.groups.nix-access-tokens.name];
+      # systemd.services.hydra-queue-runner.serviceConfig.SupplementaryGroups = [
+      #   config.users.groups.nix-access-tokens.name
+      #   config.users.groups.hydra-builder-client.name
+      # ];
       sops.templates."hydra-extra-config" = {
         group = "hydra";
         mode = "440";

@@ -17,16 +17,16 @@ in {
   };
   environment.etc.${keyFile} = {
     mode = "444";
-    user = config.users.users.hydra-builder-client.name;
-    group = config.users.groups.hydra-builder-client.name;
+    # user = config.users.users.hydra-builder-client.name;
+    # group = config.users.groups.hydra-builder-client.name;
     source = config.sops.secrets."hydra/builder_private_key".path;
   };
-  users.users.hydra-builder-client = {
-    uid = config.ids.uids.hydra-builder-client;
-    isSystemUser = true;
-    group = config.users.groups.hydra-builder-client.name;
-  };
-  users.groups.hydra-builder-client = {
-    gid = config.ids.gids.hydra-builder-client;
-  };
+  # users.users.hydra-builder-client = {
+  #   uid = config.ids.uids.hydra-builder-client;
+  #   isSystemUser = true;
+  #   group = config.users.groups.hydra-builder-client.name;
+  # };
+  # users.groups.hydra-builder-client = {
+  #   gid = config.ids.gids.hydra-builder-client;
+  # };
 }
