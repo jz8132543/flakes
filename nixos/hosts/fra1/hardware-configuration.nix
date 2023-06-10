@@ -1,7 +1,5 @@
 {
-  config,
   lib,
-  pkgs,
   modulesPath,
   ...
 }: {
@@ -16,7 +14,7 @@
   swapDevices = [
     {
       device = "/nix/swapfile";
-      size = 8192;
+      size = 4096;
     }
   ];
   networking = {
