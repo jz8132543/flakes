@@ -17,8 +17,8 @@ echo "event = $event"
 expected=$(
   jq --sort-keys . <<EOF
 {
-  "project": "dotfiles",
-  "jobset": "main",
+  "project": "misc",
+  "jobset": "flakes",
   "buildStatus": 0,
   "event": "buildFinished"
 }
