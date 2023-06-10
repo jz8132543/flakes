@@ -75,7 +75,6 @@ in {
       };
       environment.etc.${machineFile}.text = ''
         nix-ssh@fra0  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
-        nix-ssh@fra1  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
       '';
     }
 
