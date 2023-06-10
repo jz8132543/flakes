@@ -1,4 +1,8 @@
-{inputs, ...}: {
+{
+  inputs,
+  config,
+  ...
+}: {
   nix = {
     nrBuildUsers = 0;
     optimise.automatic = true;
@@ -16,5 +20,15 @@
       auto-optimise-store = true;
       warn-dirty = false;
     };
+    sshServe = {
+      enable = true;
+      keys = [
+        config.lib.self.data.ssh.i
+        config.lib.self.data.ssh.hydra
+      ];
+      protocol = "ssh";
+      write = true;
+    };
+    settings.trusted-users = ["nix-ssh"];
   };
 }

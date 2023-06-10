@@ -8,7 +8,6 @@
     ++ nixosModules.users.tippy.all
     ++ nixosModules.services.mail.all
     ++ nixosModules.services.ssh-honeypot.all
-    ++ nixosModules.services.hydra.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -18,5 +17,6 @@
       nixosModules.services.vaultwarden
       nixosModules.services.matrix
       nixosModules.services.keycloak
+      nixosModules.services.hydra
     ];
 }

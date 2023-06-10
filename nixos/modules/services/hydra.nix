@@ -3,7 +3,12 @@
   lib,
   pkgs,
   ...
-}: {
+}: let
+  hydraUser = config.users.users.hydra.name;
+  hydraGroup = config.users.users.hydra.group;
+  keyFile = "nix-build-machines/hydra-builder/key";
+  machineFile = "nix-build-machines/hydra-builder/machines";
+in {
   config = lib.mkMerge [
     {
       services.hydra = {
@@ -32,12 +37,10 @@
           </dynamicruncommand>
         '';
       };
-      # allow evaluator and queue-runner to access nix-access-tokens
-      # systemd.services.hydra-evaluator.serviceConfig.SupplementaryGroups = [config.users.groups.nix-access-tokens.name];
-      # systemd.services.hydra-queue-runner.serviceConfig.SupplementaryGroups = [
-      #   config.users.groups.nix-access-tokens.name
-      #   config.users.groups.hydra-builder-client.name
-      # ];
+      users.users = {
+        hydra-queue-runner.extraGroups = [hydraGroup];
+        hydra-www.extraGroups = [hydraGroup];
+      };
       sops.templates."hydra-extra-config" = {
         group = "hydra";
         mode = "440";
@@ -47,20 +50,33 @@
           </github_authorization>
         '';
       };
-      nix.settings.secret-key-files = [
-        "${config.sops.secrets."hydra/cache-dora-im".path}"
-      ];
-      nix.settings.allowed-uris = [
-        "https://github.com/" # for nix-index-database
-        "https://gitlab.com/" # for home-manager nmd source
-        "https://git.sr.ht/" # for home-manager nmd source
-        "https://" # for github api
-      ];
+      nix.settings.secret-key-files = ["${config.sops.secrets."hydra/cache-dora-im".path}"];
+      nix.settings.allowed-uris = ["http://" "https://"];
       sops.secrets = {
-        "hydra/cache-dora-im" = {};
-        "hydra/github-token" = {};
+        "hydra/cache-dora-im" = {
+          owner = hydraUser;
+          group = hydraGroup;
+          mode = "0440";
+        };
+        "hydra/github-token" = {
+          owner = hydraUser;
+          group = hydraGroup;
+          mode = "0440";
+        };
+        "hydra/builder_private_key" = {
+          neededForUsers = true;
+        };
       };
-      nix.settings.trusted-users = ["@hydra"];
+      environment.etc.${keyFile} = {
+        mode = "440";
+        user = hydraUser;
+        group = hydraGroup;
+        source = config.sops.secrets."hydra/builder_private_key".path;
+      };
+      environment.etc.${machineFile}.text = ''
+        nix-ssh@fra0  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
+        nix-ssh@fra1  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
+      '';
     }
 
     {
@@ -96,6 +112,21 @@
             servers = [{url = "http://localhost:${toString config.ports.hydra}";}];
           };
         };
+      };
+    }
+
+    {
+      programs.ssh = {
+        extraConfig = ''
+          CanonicalDomains dora.im ts.dora.im
+          CanonicalizeHostname yes
+          LogLevel ERROR
+          StrictHostKeyChecking no
+          Match canonical final Host *.dora.im,*.ts.dora.im
+            Port 1022
+            HashKnownHosts no
+            UserKnownHostsFile /dev/null
+        '';
       };
     }
   ];

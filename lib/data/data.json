@@ -21,7 +21,8 @@
       "region": "eu-central-003"
     }
   },
-  "hydra": {
-    "builder_public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im"
+  "ssh": {
+    "hydra": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im",
+    "i": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im"
   }
 }
