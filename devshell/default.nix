@@ -36,12 +36,7 @@
         age-plugin-yubikey
         # infrastructure
         nvfetcher
-        (terraform.withPlugins (p: [
-          p.sops
-          p.hydra
-          p.cloudflare
-          inputs.nixpkgs-terraform-providers-bin.legacyPackages.x86_64-linux.providers.Backblaze.b2
-        ]))
+        terraform
       ];
     };
   };

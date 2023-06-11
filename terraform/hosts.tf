@@ -72,6 +72,15 @@ locals {
   }
 }
 
+locals {
+  all_host_indices = flatten([for name, cfg in local.hosts : cfg.host_indices])
+}
+
+data "assert_test" "host_indices_collision" {
+  test  = length(local.all_host_indices) == length(toset(local.all_host_indices))
+  throw = "host indices collision"
+}
+
 module "hosts" {
   source = "./modules/host"
 

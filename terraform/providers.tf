@@ -1,7 +1,4 @@
 terraform {
-  # backend "http" {
-  #   address = "http://127.0.0.1:5000"
-  # }
   backend "local" {
     path = "terraform.tfstate"
   }
@@ -14,6 +11,12 @@ terraform {
     }
     cloudflare = {
       source = "cloudflare/cloudflare"
+    }
+    b2 = {
+      source = "Backblaze/b2"
+    }
+    assert = {
+      source = "bwoznicki/assert"
     }
   }
 }

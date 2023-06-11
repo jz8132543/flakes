@@ -1,28 +1,146 @@
 {
-  "hosts": {
-    "fra0": {
-      "id": "1"
-    },
-    "fra1": {
-      "id": "2"
-    },
-    "dfw0": {
-      "id": "10"
-    }
-  },
-  "mail": {
-    "smtp": "fra0.dora.im",
-    "imap": "fra0.dora.im"
-  },
   "matrix": {
     "media": {
-      "host": "s3.eu-central-003.backblazeb2.com",
-      "name": "matrix-doraim",
-      "region": "eu-central-003"
+      "host": "https://s3.eu-central-003.backblazeb2.com",
+      "name": "doraim-synapse-media",
+      "region": {
+        "sensitive": false,
+        "type": "string",
+        "value": "eu-central-003"
+      }
     }
   },
   "ssh": {
     "hydra": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im",
     "i": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im"
+  },
+  "mail": {
+    "smtp": "fra0.dora.im",
+    "imap": "fra0.dora.im"
+  },
+  "hosts": {
+    "ams0": {
+      "dn42_addresses_v4": [
+        "172.23.224.99"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:3::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:3::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        3
+      ]
+    },
+    "dfw0": {
+      "dn42_addresses_v4": [
+        "172.23.224.100"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:4::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:4::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        4
+      ]
+    },
+    "fra0": {
+      "dn42_addresses_v4": [
+        "172.23.224.97"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:1::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:1::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        1
+      ]
+    },
+    "fra1": {
+      "dn42_addresses_v4": [
+        "172.23.224.98"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:2::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:2::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        2
+      ]
+    },
+    "surface": {
+      "dn42_addresses_v4": [
+        "172.23.224.126"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:1e::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:1e::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        30
+      ]
+    }
+  },
+  "service_cname_mappings": {
+    "cache": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "headscale": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "hydra": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "imap": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "ldap": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "m": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "smtp": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "sso": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "vault": {
+      "on": "fra0",
+      "proxy": false
+    }
   }
 }

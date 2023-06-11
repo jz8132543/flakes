@@ -1,0 +1,38 @@
+{
+    "matrix": {
+        "media": {
+            "host": .b2_s3_api_url.value,
+            "name": .b2_synapse_media_bucket_name.value,
+            "region": .b2_s3_region
+        }
+    },
+    "ssh": {
+        "hydra": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im",
+        "i": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im"
+    },
+    "mail": {
+        "smtp": "fra0.dora.im",
+        "imap": "fra0.dora.im"
+    },
+    "hosts": .hosts.value | map_values(
+        with_entries(
+            select(
+                .key == "wireguard_public_key" or
+                .key == "syncthing_device_id" or
+                .key == "ssh_host_rsa_key_pub" or
+                .key == "ssh_host_ed25519_key_pub" or
+                .key == "host_indices" or
+                .key == "dn42_addresses_v4" or
+                .key == "dn42_v6_prefixes" or
+                .key == "dn42_addresses_v6" or
+                .key == "as198764_addresses_v6" or
+                .key == "endpoints" or
+                .key == "endpoints_v4" or
+                .key == "endpoints_v6" or
+                .key == "ike_cert_pem"
+            )
+        )
+    ),
+
+    "service_cname_mappings": .service_cname_mappings.value
+}

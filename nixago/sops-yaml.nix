@@ -60,6 +60,24 @@ in {
           }
         ];
       }
+      {
+        path_regex = "^secrets/terraform-outputs\.yaml$";
+        key_groups = [
+          {
+            pgp = [main];
+            age = yubikeyKeys ++ ownedHostKeys;
+          }
+        ];
+      }
+      {
+        path_regex = "terraform.(tfstate|plan)$";
+        key_groups = [
+          {
+            pgp = [main];
+            age = yubikeyKeys ++ ownedHostKeys;
+          }
+        ];
+      }
     ]
     ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
 }

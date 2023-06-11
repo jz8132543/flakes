@@ -7,6 +7,7 @@ set -e
 source "@common@"
 export PATH="@sops@/bin:$PATH"
 export PATH="@terraform@/bin:$PATH"
+export PATH="@zerotierone@/bin:$PATH"
 export PATH="@minio-client@/bin:$PATH"
 export PATH="@syncthing@/bin:$PATH"
 export PATH="@jq@/bin:$PATH"
