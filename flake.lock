@@ -814,6 +814,26 @@
         "type": "github"
       }
     },
+    "nixpkgs-terraform-providers-bin": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1686444949,
+        "narHash": "sha256-kLu0sbE610PPU4uDAVpPnxMZ5DxHq5rlz6+jSKq+Pog=",
+        "owner": "nix-community",
+        "repo": "nixpkgs-terraform-providers-bin",
+        "rev": "550c9a5c4325fa6d5dd6db726be7899586c0e095",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs-terraform-providers-bin",
+        "type": "github"
+      }
+    },
     "nixpkgs_2": {
       "locked": {
         "lastModified": 1680213900,
@@ -969,6 +989,7 @@
         "nixago-exts": "nixago-exts",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_3",
+        "nixpkgs-terraform-providers-bin": "nixpkgs-terraform-providers-bin",
         "nur": "nur",
         "nvfetcher": "nvfetcher",
         "poetry2nix": "poetry2nix",
@@ -976,7 +997,6 @@
         "rust-overlay": "rust-overlay",
         "sops-nix": "sops-nix",
         "systems": "systems_2",
-        "terrasops": "terrasops",
         "treefmt-nix": "treefmt-nix"
       }
     },
@@ -1069,29 +1089,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "terrasops": {
-      "inputs": {
-        "flake-utils": [
-          "flake-utils"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1680936383,
-        "narHash": "sha256-lI0QzgsCsyTM/QlzjHL3gyobq8IBMG5+XAPxJAbKVUo=",
-        "owner": "NickCao",
-        "repo": "terrasops",
-        "rev": "91329dcb1c38c2a1b128f778780cabcbe102fdcc",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NickCao",
-        "repo": "terrasops",
         "type": "github"
       }
     },

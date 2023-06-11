@@ -1,6 +1,6 @@
 {inputs, ...}: {
   imports = [
-    # ./terraform
+    ./terraform
   ];
   perSystem = {
     inputs',
@@ -26,7 +26,8 @@
         nodePackages.vscode-json-languageserver
         terraform-ls
         tflint
-        nodePackages.bash-language-server
+        efm-langserver
+        shellcheck
         shfmt
         # secrets
         sops
@@ -34,9 +35,13 @@
         ssh-to-age
         age-plugin-yubikey
         # infrastructure
-        inputs.terrasops.packages.x86_64-linux.default
         nvfetcher
-        (terraform.withPlugins (ps: with ps; [sops hydra]))
+        (terraform.withPlugins (p: [
+          p.sops
+          p.hydra
+          p.cloudflare
+          inputs.nixpkgs-terraform-providers-bin.legacyPackages.x86_64-linux.providers.Backblaze.b2
+        ]))
       ];
     };
   };

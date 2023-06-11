@@ -2,3 +2,11 @@ result*
 .direnv
 /.sops.yaml
 .pre-commit-config.yaml
+
+terraform/terraform.tfstate
+terraform.tfstate.*.backup
+terraform.tfstate.backup
+terraform.plan
+terraform/moon
+.terraform.tfstate.lock.info
+.terraform

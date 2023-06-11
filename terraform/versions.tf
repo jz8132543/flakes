@@ -12,5 +12,8 @@ terraform {
     hydra = {
       source = "DeterminateSystems/hydra"
     }
+    cloudflare = {
+      source = "cloudflare/cloudflare"
+    }
   }
 }

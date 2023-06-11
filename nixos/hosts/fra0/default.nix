@@ -18,5 +18,6 @@
       nixosModules.services.matrix
       nixosModules.services.keycloak
       nixosModules.services.hydra
+      nixosModules.services.prometheus
     ];
 }
