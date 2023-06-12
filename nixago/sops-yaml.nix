@@ -1,5 +1,5 @@
 {lib}: let
-  main = "23232A6D050ACE46DF02D72B84A772A8519FC163";
+  main = "84A772A8519FC163";
   yubikeys = {
     # TODO https://github.com/mozilla/sops/issues/1103
     # yubikey5 = "age1yubikey1qda6pkn5cf75zrx6kx4wdx287dlege8eucuhnr9zjl94dzsg56afwtma6nz";
