@@ -246,3 +246,11 @@ resource "cloudflare_record" "dora_hkg3_v6" {
   value   = "2a0e:aa07:4000::1:cd9b:d26"
   zone_id = cloudflare_zone.im_dora.id
 }
+resource "cloudflare_record" "dora_lax0_v6" {
+  name    = "lax0"
+  proxied = false
+  ttl     = 1
+  type    = "AAAA"
+  value   = "2607:f130:0:ea:ff:ff:3a2c:61e0"
+  zone_id = cloudflare_zone.im_dora.id
+}
