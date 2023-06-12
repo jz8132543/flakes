@@ -15,7 +15,7 @@
       source-sans
       source-han-sans
       source-code-pro
-      (nerdfonts.override {fonts = ["JetBrainsMono"];})
+      (nerdfonts.override {fonts = ["JetBrainsMono" "RobotoMono"];})
     ];
 
     fontconfig = {
