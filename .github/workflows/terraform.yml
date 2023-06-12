@@ -27,6 +27,11 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
         extra_nix_config: |
           experimental-features = nix-command flakes
+    - name: Setup cachix
+      uses: cachix/cachix-action@master
+      with:
+        name: dora
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: Cache terraform
       uses: actions/cache@main
       with:
@@ -79,6 +84,11 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
         extra_nix_config: |
           experimental-features = nix-command flakes
+    - name: Setup cachix
+      uses: cachix/cachix-action@master
+      with:
+        name: dora
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
     - name: Cache terraform
       uses: actions/cache@main
       with:
@@ -119,3 +129,32 @@ jobs:
           git commit --message "Terraform apply"
           git push
         fi
+
+  cachix:
+    runs-on: ubuntu-latest
+    environment: infrastructure
+    needs: [ plan ]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+    - name: Install nix
+      uses: cachix/install-nix-action@master
+      with:
+        install_url: https://github.com/numtide/nix-unstable-installer/releases/latest/download/install
+        nix_path: nixpkgs=channel:nixos-unstable
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+    - name: Setup cachix
+      uses: cachix/cachix-action@master
+      with:
+        name: dora
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - name: Cache terraform
+      uses: actions/cache@main
+      with:
+        path: terraform/.terraform/providers
+        key: ${{ runner.os }}-terraform-providers-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+    - name: Update cachix
+      run: |
+        nix develop --profile dev-profile
+        cachix push mycache dev-profile
