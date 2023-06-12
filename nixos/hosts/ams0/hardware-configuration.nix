@@ -10,4 +10,10 @@
   boot.initrd.availableKernelModules = ["ata_piix" "virtio_pci" "virtio_scsi"];
   # utils.disk = "/dev/sda";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  swapDevices = [
+    {
+      device = "/nix/persist/swapfile";
+      size = 2048;
+    }
+  ];
 }
