@@ -27,6 +27,7 @@
     enableVteIntegration = true;
     enableAutosuggestions = true;
     enableCompletion = true;
+    enableSyntaxHighlighting = true;
     autocd = true;
 
     shellAliases = {
@@ -40,14 +41,23 @@
       rsync = "${pkgs.rsync}/bin/rsync -arvzP";
     };
     initExtraBeforeCompInit = ''
-      # zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=*'
       zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
-      zstyle ':completion:*:default' list-colors ''${(s.:.)LS_COLORS}
+      export LS_COLORS="$(vivid generate molokai)"
+      zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
+      # speed https://coderwall.com/p/9fksra/speed-up-your-zsh-completions
+      zstyle ':completion:*' accept-exact '*(N)'
+      zstyle ':completion:*' use-cache on
+      zstyle ':completion:*' cache-path ~/.local/share/zsh/cache
+      # menu if nb items > 2
+      zstyle ':completion:*' menu select=2
+      # preview directory's content with exa when completing cd
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
+      # don't show fzf unless there are more than 4 items
+      zstyle ':fzf-tab:*' ignore false 4
     '';
     initExtra = ''
       source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
       source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-      source ${pkgs.zsh-fast-syntax-highlighting}/share/zsh/site-functions/fast-syntax-highlighting.plugin.zsh
 
       bindkey -v
       bindkey -M vicmd '^[[1;5C' emacs-forward-word
@@ -56,6 +66,8 @@
       bindkey -M viins '^[[1;5D' emacs-backward-word
 
       WORDCHARS=''${WORDCHARS//[\/&.;_-]}
+      autoload -U select-word-style
+      select-word-style bash
       bindkey '^W' backward-kill-word
       alias -g ...='../..'
       alias -g ....='../../..'
@@ -70,6 +82,7 @@
     fzf
     ripgrep
     rsync
+    vivid
   ];
   home.persistence."/nix/persist/home/tippy" = {
     directories = [
