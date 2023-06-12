@@ -1,8 +1,23 @@
 {pkgs, ...}: {
   programs.starship = {
     enable = true;
+    enableBashIntegration = true;
+    enableZshIntegration = true;
+    enableFishIntegration = true;
   };
-  programs.zoxide.enable = true;
+  programs.fzf = {
+    enable = true;
+    enableBashIntegration = true;
+    enableZshIntegration = true;
+    enableFishIntegration = true;
+    tmux.enableShellIntegration = true;
+  };
+  programs.zoxide = {
+    enable = true;
+    enableBashIntegration = true;
+    enableZshIntegration = true;
+    enableFishIntegration = true;
+  };
   programs.zsh = {
     enable = true;
     history.path = "$HOME/.local/share/zsh/zsh_history";
@@ -25,7 +40,9 @@
       rsync = "${pkgs.rsync}/bin/rsync -arvzP";
     };
     initExtraBeforeCompInit = ''
-      zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=*'
+      # zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=*'
+      zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
+      zstyle ':completion:*:default' list-colors ''${(s.:.)LS_COLORS}
     '';
     initExtra = ''
       source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
