@@ -156,14 +156,6 @@ resource "cloudflare_record" "dora_lax0" {
   value   = "23.234.207.154"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_lax1" {
-  name    = "lax1"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  value   = "72.26.100.77"
-  zone_id = cloudflare_zone.im_dora.id
-}
 resource "cloudflare_record" "dora_lax2" {
   name    = "lax2"
   proxied = false

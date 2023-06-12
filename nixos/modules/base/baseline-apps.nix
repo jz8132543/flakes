@@ -51,9 +51,9 @@
     colmena
     deploy-rs
     # tools
-    nix-output-monitor
-    nix-tree
     yq-go
     fd
+    nix-output-monitor
+    nix-tree
   ];
 }
