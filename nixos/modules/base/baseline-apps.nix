@@ -53,5 +53,7 @@
     # tools
     nix-output-monitor
     nix-tree
+    yq-go
+    fd
   ];
 }
