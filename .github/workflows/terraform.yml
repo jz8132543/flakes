@@ -59,6 +59,7 @@ jobs:
     - name: Encrypt plan
       if: steps.plan.outputs.diff == 'true'
       run: |
+        gpg --recv-keys 23232A6D050ACE46DF02D72B84A772A8519FC163
         nix develop --command bash -c "sops --encrypt terraform/terraform.plan > secrets/terraform.plan"
     - name: Upload plan
       if: steps.plan.outputs.diff == 'true'
