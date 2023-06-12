@@ -5,6 +5,7 @@
     # yubikey5 = "age1yubikey1qda6pkn5cf75zrx6kx4wdx287dlege8eucuhnr9zjl94dzsg56afwtma6nz";
   };
   yubikeyKeys = lib.attrValues yubikeys;
+  github = "age170nax8h00thyfumectwsrz2vk2l39k80urwzghez84acppq97fushqjtrd";
   hosts = {
     surface = {
       key = "age1934xpm9at83g823dzwm3wxj64apvrx40wcv8ms2p9gvgxdxwsp3s0rvpyc";
@@ -35,7 +36,7 @@
     key_groups = [
       {
         pgp = [main];
-        age = [key];
+        age = [key github];
       }
     ];
   };
@@ -47,7 +48,16 @@ in {
         key_groups = [
           {
             pgp = [main];
-            age = yubikeyKeys ++ ownedHostKeys;
+            age = yubikeyKeys ++ allHostKeys ++ [github];
+          }
+        ];
+      }
+      {
+        path_regex = "^secrets/(terraform/)?infrastructure\.yaml$";
+        key_groups = [
+          {
+            pgp = [main];
+            age = yubikeyKeys ++ allHostKeys ++ [github];
           }
         ];
       }
@@ -56,7 +66,7 @@ in {
         key_groups = [
           {
             pgp = [main];
-            age = yubikeyKeys ++ ownedHostKeys;
+            age = yubikeyKeys ++ [github];
           }
         ];
       }
@@ -65,7 +75,7 @@ in {
         key_groups = [
           {
             pgp = [main];
-            age = yubikeyKeys ++ ownedHostKeys;
+            age = yubikeyKeys ++ [github];
           }
         ];
       }
@@ -74,7 +84,16 @@ in {
         key_groups = [
           {
             pgp = [main];
-            age = yubikeyKeys ++ ownedHostKeys;
+            age = yubikeyKeys ++ [github];
+          }
+        ];
+      }
+      {
+        path_regex = "^/tmp/encrypt.*$";
+        key_groups = [
+          {
+            pgp = [main];
+            age = yubikeyKeys ++ [github];
           }
         ];
       }
