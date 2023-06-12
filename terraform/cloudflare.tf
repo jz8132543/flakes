@@ -121,6 +121,16 @@ resource "cloudflare_record" "dora_spf" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
+resource "cloudflare_record" "dora_mx_fra0" {
+  name     = "dora.im"
+  proxied  = false
+  ttl      = 1
+  type     = "MX"
+  value    = "fra0.dora.im"
+  priority = 1
+  zone_id  = cloudflare_zone.im_dora.id
+}
+
 # Machines
 
 resource "cloudflare_record" "dora_postgres" {
