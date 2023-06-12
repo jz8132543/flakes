@@ -14,7 +14,6 @@
               rime-ice
             ];
         })
-        fcitx5-mozc
       ];
     };
   };

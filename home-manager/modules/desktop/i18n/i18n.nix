@@ -37,8 +37,8 @@ in {
   # persist
   home.persistence."/nix/persist/home/tippy" = {
     directories = [
-      ".config/fcitx5"
-      ".config/mozc"
+      # ".config/fcitx5"
+      # ".config/mozc"
     ];
   };
 }
