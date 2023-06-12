@@ -1,11 +1,8 @@
 {...}: {
   programs.kitty = {
     enable = true;
-    font = {
-      name = "JetbrainMono Nerd Font";
-      size = 15;
-    };
     extraConfig = ''
+      font_size 15
       background_opacity 0.6
       hide_window_decorations yes
       strip_trailing_spaces smart

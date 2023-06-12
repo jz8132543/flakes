@@ -15,7 +15,10 @@
       source-sans
       source-han-sans
       source-code-pro
-      (nerdfonts.override {fonts = ["JetBrainsMono" "RobotoMono"];})
+      sarasa-gothic
+      powerline-fonts
+      font-awesome
+      (nerdfonts.override {fonts = ["JetBrainsMono" "FiraCode"];})
     ];
 
     fontconfig = {
@@ -49,7 +52,7 @@
           "Noto Serif CJK SC"
         ];
         emoji = lib.mkBefore ["Noto Color Emoji"];
-        monospace = lib.mkBefore ["JetBrainsMono Nerd Font"];
+        monospace = lib.mkBefore ["JetBrainsMono Nerd Font" "Sarasa Mono Slab SC"];
       };
     };
   };
