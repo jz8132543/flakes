@@ -48,7 +48,7 @@
       };
     };
   };
-  home.persistence."/nix/persist/home/tippy" = {
+  home.global-persistence = {
     directories = [
       ".mozilla"
     ];

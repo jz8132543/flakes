@@ -9,4 +9,5 @@ lib.makeExtensible (self: {
   flattenTree = import ./flatten-tree.nix {inherit lib;};
   rakeLeaves = import ./rake-leaves.nix {inherit inputs lib;};
   rake = import ./rake.nix {inherit inputs lib;};
+  path = builtins.toPath ./..;
 })

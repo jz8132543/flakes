@@ -8,7 +8,7 @@
     mkdir -p $out
     "${pkgs.jq}/bin/jq" -s ".[0] * .[1]" \
       "${pkgs.element-web}/config.json" \
-      ${./synapse/mixin-config.json} \
+      ${/${config.lib.self.path}/conf/synapse/mixin-config.json} \
       > $out/config.json
   '';
 in

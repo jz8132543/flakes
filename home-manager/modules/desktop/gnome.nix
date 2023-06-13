@@ -129,7 +129,7 @@ in {
     }
   ];
 
-  home.persistence."/nix/persist/home/tippy" = {
+  home.global-persistence = {
     directories = [
       # ".config/dconf"
       ".config/goa-1.0" # gnome accounts

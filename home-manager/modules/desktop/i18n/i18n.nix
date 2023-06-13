@@ -35,7 +35,7 @@ in {
     recursive = true;
   };
   # persist
-  home.persistence."/nix/persist/home/tippy" = {
+  home.global-persistence = {
     directories = [
       # ".config/fcitx5"
       # ".config/mozc"

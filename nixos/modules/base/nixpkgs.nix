@@ -1,10 +1,13 @@
 {
   inputs,
   getSystem,
+  config,
   lib,
   ...
 }: let
   packages = [
+    (import "${config.lib.self.path}/pkgs").overlay
+    # ${/${config.lib.self.path}/pkgs/default.nix}.overlays
     inputs.sops-nix.overlays.default
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default

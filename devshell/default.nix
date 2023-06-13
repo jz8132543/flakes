@@ -29,6 +29,8 @@
         efm-langserver
         shellcheck
         shfmt
+        taplo
+
         # secrets
         sops
         age

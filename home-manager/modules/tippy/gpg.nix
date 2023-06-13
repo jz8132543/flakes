@@ -4,7 +4,7 @@
     pinentryFlavor = "curses";
   };
   programs.gpg = {enable = true;};
-  home.persistence."/nix/persist/home/tippy" = {
+  home.global-persistence = {
     directories = [
       ".gnupg"
     ];

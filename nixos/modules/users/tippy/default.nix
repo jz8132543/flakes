@@ -19,6 +19,7 @@ in {
     neededForUsers = true;
   };
 
+  environment.global-persistence.user.users = [name];
   home-manager.users.${name} = {
     hmModules,
     osConfig,
@@ -31,14 +32,13 @@ in {
         then hmModules.desktop.all
         else []
       );
-    home.persistence."/nix/persist${homeDirectory}" = {
+    home.global-persistence = {
+      enable = true;
+      home = homeDirectory;
       directories = [
         "source"
         ".local/share/direnv"
       ];
-      files = [
-      ];
-      allowOther = true;
     };
   };
 }

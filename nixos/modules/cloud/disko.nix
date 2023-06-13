@@ -103,14 +103,15 @@ in {
   };
 
   boot = {
-    loader.grub = {
-      enable = true;
-      device = "${config.utils.disk}";
-      efiSupport = lib.mkDefault true;
-      efiInstallAsRemovable = lib.mkDefault true;
+    loader = {
+      timeout = 2;
+      grub = {
+        enable = true;
+        device = "${config.utils.disk}";
+        efiSupport = lib.mkDefault true;
+        efiInstallAsRemovable = lib.mkDefault true;
+      };
     };
-    initrd.kernelModules = ["dm-snapshot" "tpm_tis" "dm_mod" "dm-crypt"];
-    initrd.supportedFilesystems = ["btrfs"];
     initrd.systemd = {
       enable = true;
       services.rollback = {

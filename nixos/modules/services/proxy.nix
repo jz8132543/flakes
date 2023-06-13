@@ -22,7 +22,7 @@
   #     ExecStart = "${pkgs.xray}/bin/xray -config \${CREDENTIALS_DIRECTORY}/config.json";
   #   };
   # };
-  environment.persistence."/nix/persist" = {
+  environment.global-persistence = {
     directories = [
       "/etc/sing-box"
       # "/etc/xray"

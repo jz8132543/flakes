@@ -8,7 +8,7 @@
     thunderbird
     neovide
   ];
-  home.persistence."/nix/persist/home/tippy" = {
+  home.global-persistence = {
     directories = [
       ".local/share/TelegramDesktop"
       ".thunderbird"

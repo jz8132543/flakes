@@ -1,9 +1,7 @@
 {inputs, ...}: {
-  imports = [
-    inputs.impermanence.nixosModules.impermanence
-  ];
-  environment.persistence."/nix/persist" = {
-    # hideMounts = true;
+  environment.global-persistence = {
+    enable = true;
+    root = "/nix/persist";
     directories = [
       # service state directory
       "/var/lib"

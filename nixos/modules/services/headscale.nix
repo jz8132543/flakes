@@ -70,7 +70,7 @@
     ];
   };
   environment.systemPackages = [config.services.headscale.package pkgs.tailscale-derpprobe];
-  environment.persistence."/nix/persist" = {
+  environment.global-persistence = {
     directories = [
       "/etc/headscale"
     ];
