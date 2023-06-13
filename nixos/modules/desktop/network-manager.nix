@@ -7,7 +7,7 @@
     enable = true;
     enableFccUnlock = true;
     # dns = "dnsmasq";
-    firewallBackend = "nftable";
+    firewallBackend = "nftables";
     connectionConfig = {
       "ipv4.dns-search" = "dora.im";
       "ipv6.dns-search" = "dora.im";
