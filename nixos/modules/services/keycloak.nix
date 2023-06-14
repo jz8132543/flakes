@@ -1,12 +1,7 @@
-{
-  config,
-  pkgs,
-  ...
-}: {
+{config, ...}: {
   networking.firewall.allowedTCPPorts = [config.ports.ldap];
   services.keycloak = {
     enable = true;
-    initialAdminPassword = "qwe";
     database = {
       type = "postgresql";
       host = "postgres.dora.im";

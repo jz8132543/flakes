@@ -7,6 +7,7 @@
       "/var/lib"
       "/var/db"
       "/var/log"
+      "/var/backup"
     ];
     files = [
       # systemd machine-id
