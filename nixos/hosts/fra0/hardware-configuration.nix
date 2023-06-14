@@ -1,7 +1,5 @@
 {
-  config,
   lib,
-  pkgs,
   modulesPath,
   ...
 }: {
@@ -15,7 +13,7 @@
   utils.disk = "/dev/sda";
   swapDevices = [
     {
-      device = "/nix/persist/swapfile";
+      device = "/persist/swapfile";
       size = 8192;
     }
   ];

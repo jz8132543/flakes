@@ -1,9 +1,7 @@
 {
-  self,
   inputs,
   lib,
   config,
-  pkgs,
   ...
 }: let
   mountOptions = {mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];};
@@ -49,11 +47,7 @@ in {
               extraArgs = ["-f"];
               subvolumes = {
                 "/nix" = mountOptions;
-                "/persist" =
-                  mountOptions
-                  // {
-                    mountpoint = "/nix/persist";
-                  };
+                "/persist" = mountOptions;
                 "/rootfs" =
                   mountOptions
                   // {
@@ -90,7 +84,7 @@ in {
       device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
     };
 
-    "/nix/persist" = {
+    "/persist" = {
       device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
       neededForBoot = true;
     };

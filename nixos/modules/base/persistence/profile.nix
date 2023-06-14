@@ -1,7 +1,7 @@
 {inputs, ...}: {
   environment.global-persistence = {
     enable = true;
-    root = "/nix/persist";
+    root = "/persist";
     directories = [
       # service state directory
       "/var/lib"
