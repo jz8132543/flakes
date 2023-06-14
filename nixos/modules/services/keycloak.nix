@@ -1,4 +1,8 @@
-{config, ...}: {
+{
+  config,
+  lib,
+  ...
+}: {
   networking.firewall.allowedTCPPorts = [config.ports.ldap];
   services.keycloak = {
     enable = true;
@@ -50,5 +54,9 @@
         servers = [{url = "http://localhost:${toString config.ports.lldap}";}];
       };
     };
+  };
+  systemd.services.keycloak = {
+    after = ["postgresql.service" "tailscaled.service"];
+    serviceConfig.Restart = lib.mkForce "always";
   };
 }

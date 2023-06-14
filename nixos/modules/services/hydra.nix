@@ -130,6 +130,9 @@ in {
           };
         };
       };
+      systemd.services."hydra-init" = {
+        after = ["postgresql.service" "tailscaled.service"];
+      };
     }
 
     {

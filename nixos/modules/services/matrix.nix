@@ -133,6 +133,10 @@ in
       environment.systemPackages = [
         config.nur.repos.linyinfeng.synapse-s3-storage-provider
       ];
+      systemd.services."matrix-synapse" = {
+        after = ["postgresql.service" "tailscaled.service"];
+        serviceConfig.Restart = lib.mkForce "always";
+      };
     }
     # reverse proxy
     {

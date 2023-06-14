@@ -54,4 +54,8 @@
       };
     };
   };
+  systemd.services.vaultwarden = {
+    after = ["postgresql.service" "tailscaled.service"];
+    serviceConfig.Restart = lib.mkForce "always";
+  };
 }

@@ -1,8 +1,4 @@
-{
-  config,
-  lib,
-  ...
-}: let
+{config, ...}: let
   interfaceName = "tailscale0";
 in {
   services.tailscale.enable = true;
@@ -12,5 +8,11 @@ in {
     config.services.tailscale.port
   ];
 
-  systemd.services.tailscaled.serviceConfig.TimeoutStopSec = "5s";
+  systemd.services.tailscaled = {
+    before = ["network.target"];
+    serviceConfig = {
+      Restart = "always";
+      TimeoutStopSec = "5s";
+    };
+  };
 }
