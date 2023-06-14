@@ -9,7 +9,6 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.postgres
       nixosModules.services.derp
     ];
 }

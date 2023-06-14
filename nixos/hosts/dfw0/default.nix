@@ -6,7 +6,6 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.derp
-      nixosModules.services.postgres
       nixosModules.services.proxy
     ];
 }
