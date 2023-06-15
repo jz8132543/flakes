@@ -5,4 +5,5 @@
     # execWheelOnly = true;
   };
   security.polkit.enable = true;
+  boot.blacklistedKernelModules = ["virtio_balloon"];
 }

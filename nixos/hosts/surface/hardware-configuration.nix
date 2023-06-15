@@ -1,8 +1,6 @@
 {
   config,
   lib,
-  pkgs,
-  modulesPath,
   inputs,
   ...
 }: {
@@ -39,7 +37,6 @@
           }
         '';
       };
-
       grub2-theme = {
         enable = true;
         theme = "whitesur";

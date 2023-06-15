@@ -13,7 +13,7 @@
   utils.disk = "/dev/sda";
   swapDevices = [
     {
-      device = "/persist/swapfile";
+      device = "/swap/swapfile";
       size = 4096;
     }
   ];

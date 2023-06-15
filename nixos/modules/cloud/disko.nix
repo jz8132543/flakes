@@ -34,7 +34,7 @@ in {
             content = {
               type = "filesystem";
               format = "vfat";
-              mountpoint = "/boot";
+              mountpoint = "/boot/efi";
             };
           }
           {
@@ -48,6 +48,8 @@ in {
               subvolumes = {
                 "/nix" = mountOptions;
                 "/persist" = mountOptions;
+                "/boot" = mountOptions;
+                "/swap" = mountOptions;
                 "/rootfs" =
                   mountOptions
                   // {
@@ -72,8 +74,16 @@ in {
     #   fsType = "tmpfs";
     #   options = ["defaults" "mode=755"];
     # };
-    "/boot" = {
+    # "/boot" = {
+    #   device = lib.mkForce "/dev/disk/by-partlabel/EFI";
+    # };
+
+    "/boot/efi" = {
       device = lib.mkForce "/dev/disk/by-partlabel/EFI";
+    };
+
+    "/boot" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
     };
 
     "/" = {
@@ -88,6 +98,10 @@ in {
       device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
       neededForBoot = true;
     };
+
+    "/swap" = {
+      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
+    };
   };
   services.btrfs.autoScrub = {
     enable = true;
@@ -99,6 +113,7 @@ in {
   boot = {
     loader = {
       timeout = 2;
+      efi.efiSysMountPoint = "/boot/efi";
       grub = {
         enable = true;
         device = "${config.utils.disk}";
