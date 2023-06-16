@@ -10,6 +10,17 @@
       }
     }
   },
+  "pleroma": {
+    "media": {
+      "host": "https://s3.eu-central-003.backblazeb2.com",
+      "name": null,
+      "region": {
+        "sensitive": false,
+        "type": "string",
+        "value": "eu-central-003"
+      }
+    }
+  },
   "ssh": {
     "hydra": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIApxwe4sUX3UF8nJSyV6U4YqjNqyya8w6hN0OkXmQDyJ hydra@dora.im",
     "i": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im"
@@ -66,6 +77,10 @@
     }
   },
   "service_cname_mappings": {
+    "admin.m": {
+      "on": "fra0",
+      "proxy": false
+    },
     "cache": {
       "on": "fra0",
       "proxy": false
@@ -99,6 +114,10 @@
       "proxy": false
     },
     "vault": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "zone": {
       "on": "fra0",
       "proxy": false
     }
