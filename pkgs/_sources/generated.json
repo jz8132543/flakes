@@ -1,0 +1,17 @@
+{
+    "soapbox": {
+        "cargoLocks": null,
+        "date": null,
+        "extract": null,
+        "name": "soapbox",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-AdW6JK7JkIKLZ8X+N9STeOHqmGNUdhcXyC9jsQPTa9o=",
+            "type": "url",
+            "url": "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/v3.2.0/download?job=build-production"
+        },
+        "version": "v3.2.0"
+    }
+}

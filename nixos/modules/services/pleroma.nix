@@ -8,21 +8,22 @@ with lib; let
   wrapFile = name: path: (pkgs.runCommand name {inherit path;} ''
     cp -r "$path" "$out"
   '');
+  keycloak_url = "https://sso.dora.im";
+  blocklist = lib.importTOML ./blocklist.toml;
 in {
-  astral.custom-nginx-errors.virtualHosts = ["fedi.astrid.tech"];
-
   services.akkoma = {
     enable = true;
     extraStatic = {
-      "static/terms-of-service.html" =
-        wrapFile "terms-of-service.html" ./terms-of-service.html;
-      "favicon.png" = wrapFile "favicon.png" ./favicon.png;
-      "robots.txt" = wrapFile "robots.txt" ./robots.txt;
+      # "static/terms-of-service.html" =
+      #   wrapFile "terms-of-service.html" ./terms-of-service.html;
+      # "favicon.png" = wrapFile "favicon.png" ./favicon.png;
+      # "robots.txt" = wrapFile "robots.txt" ./robots.txt;
     };
-
     frontends = {
       primary = {
-        package = patched-akkoma-fe;
+        # package = pkgs.soapbox;
+        # name = "soapbox";
+        package = pkgs.akkoma-frontends.akkoma-fe;
         name = "akkoma-fe";
         ref = "stable";
       };
@@ -37,7 +38,9 @@ in {
       inherit ((pkgs.formats.elixirConf {}).lib) mkRaw mkMap;
     in {
       # ":pleroma"."Pleroma.Web.Endpoint".url.host = "zone.${config.networking.domain}";
-      ":pleroma"."Pleroma.Web.Endpoint".http.ip = "localhost";
+      ":pleroma"."Pleroma.Web.Endpoint".url.host = "zone.dora.im";
+      ":pleroma"."Pleroma.Web.Endpoint".http.ip = "127.0.0.1";
+      ":pleroma"."Pleroma.Web.WebFinger".domain = "dora.im";
       ":pleroma".":media_proxy".enabled = false;
       ":pleroma".":instance" = {
         name = "Akkoma";
@@ -85,14 +88,6 @@ in {
         host = config.lib.self.data.pleroma.media.host;
       };
 
-      # Automated moderation settings
-      # Borrowed from https://github.com/chaossocial/about/blob/master/blocked_instances.md
-      ":pleroma".":mrf_simple" = {
-        media_nsfw = mkMap blocklist.media_nsfw;
-        reject = mkMap blocklist.reject;
-        followers_only = mkMap blocklist.followers_only;
-      };
-
       # Less outgoing retries to improve performance
       ":pleroma".":workers".retries = {
         federator_incoming = 5;
@@ -103,7 +98,36 @@ in {
       ":connections_pool".":max_connections" = 500;
       ":pleroma".":http".pool_size = 150;
       ":pools".":federation".max_connections = 300;
+
+      # OIDC
+      ":ueberauth"."Ueberauth.Strategy.Keycloak.OAuth" = {
+        "client_id" = "pleroma";
+        "client_secret" = config.sops.secrets."pleroma/oidc-secret".path;
+        "site" = "${keycloak_url}";
+        "authorize_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/auth";
+        "token_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/token";
+        "userinfo_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/userinfo";
+        "token_method" = ":post";
+      };
+      # ":ueberauth"."Ueberauth"."providers" = mkRaw "[keycloak: {Ueberauth.Strategy.Keycloak, [uid_field: :email]}]";
+      ":ueberauth"."Ueberauth"."providers" = map mkRaw [
+        "keycloak: {Ueberauth.Strategy.Keycloak, [uid_field: :email]}"
+      ];
     };
+  };
+
+  sops.secrets = {
+    "pleroma/oidc-secret" = {};
+  };
+
+  sops.secrets."b2_pleroma_media_key_id" = {
+    sopsFile = config.sops-file.get "terraform/common.yaml";
+    restartUnits = ["akkoma.service"];
+  };
+
+  sops.secrets."b2_pleroma_media_access_key" = {
+    sopsFile = config.sops-file.get "terraform/common.yaml";
+    restartUnits = ["akkoma.service"];
   };
 
   # Auto-prune objects in the database.
@@ -122,6 +146,11 @@ in {
       User = "akkoma";
     };
   };
+  systemd.services.akkoma = {
+    after = ["postgresql.service" "tailscaled.service"];
+    serviceConfig.Restart = lib.mkForce "always";
+    environment.OAUTH_CONSUMER_STRATEGIES = "keycloak:ueberauth_keycloak_strategy";
+  };
 
   services.traefik.dynamicConfigOptions.http = {
     routers = {
@@ -134,7 +163,13 @@ in {
     services = {
       akkoma.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.vaultwarden-http}";}];
+        servers = [
+          {
+            url = "http://localhost:${
+              toString config.services.akkoma.config.":pleroma"."Pleroma.Web.Endpoint".http.port
+            }";
+          }
+        ];
       };
     };
   };
