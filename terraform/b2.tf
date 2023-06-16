@@ -87,7 +87,7 @@ output "b2_synapse_media_access_key" {
 
 # pleroma
 resource "b2_bucket" "pleroma_media" {
-  bucket_name = "doraim-synapse-media"
+  bucket_name = "doraim-pleroma-media"
   bucket_type = "allPrivate"
 
   # keep only the last version of the file
@@ -98,8 +98,8 @@ resource "b2_bucket" "pleroma_media" {
   }
 }
 resource "b2_application_key" "pleroma_media" {
-  key_name  = "synapse-media"
-  bucket_id = b2_bucket.synapse_media.id
+  key_name  = "pleroma-media"
+  bucket_id = b2_bucket.pleroma_media.id
   capabilities = [
     "deleteFiles",
     "listAllBucketNames",
@@ -114,14 +114,14 @@ resource "b2_application_key" "pleroma_media" {
   ]
 }
 output "b2_pleroma_media_bucket_name" {
-  value     = b2_bucket.synapse_media.bucket_name
+  value     = b2_bucket.pleroma_media.bucket_name
   sensitive = false
 }
 output "b2_pleroma_media_key_id" {
-  value     = b2_application_key.synapse_media.application_key_id
+  value     = b2_application_key.pleroma_media.application_key_id
   sensitive = false
 }
 output "b2_pleroma_media_access_key" {
-  value     = b2_application_key.synapse_media.application_key
+  value     = b2_application_key.pleroma_media.application_key
   sensitive = true
 }
