@@ -35,10 +35,7 @@ in {
     recursive = true;
   };
   # persist
-  home.global-persistence = {
-    directories = [
-      # ".config/fcitx5"
-      # ".config/mozc"
-    ];
-  };
+  home.global-persistence.directories = [
+    rimeConfig
+  ];
 }
