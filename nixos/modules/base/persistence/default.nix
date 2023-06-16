@@ -45,9 +45,9 @@
   usersCfg = lib.listToAttrs (map userCfg cfg.user.users);
 in
   with lib; {
-  imports = [
-    inputs.impermanence.nixosModules.impermanence
-  ];
+    imports = [
+      inputs.impermanence.nixosModules.impermanence
+    ];
     options.environment.global-persistence = {
       enable = lib.mkOption {
         type = types.bool;
