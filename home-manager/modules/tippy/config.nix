@@ -12,5 +12,6 @@ in {
     duf
     sops
     home-manager
+    nixd
   ];
 }

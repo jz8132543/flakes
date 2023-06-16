@@ -64,8 +64,9 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
-    m = { on = "fra0", proxy = false }
-    # admin.m   = { on = "fra0", proxy = false }
+    m         = { on = "fra0", proxy = false }
+    zone      = { on = "fra0", proxy = false }
+    "admin.m" = { on = "fra0", proxy = false }
     cache     = { on = "fra0", proxy = false }
     headscale = { on = "fra0", proxy = false }
     hydra     = { on = "fra0", proxy = false }

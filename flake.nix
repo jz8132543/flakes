@@ -148,6 +148,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     hydra.url = "github:nixos/hydra";
+    nixd = {
+      url = "github:nix-community/nixd";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}:

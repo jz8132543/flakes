@@ -11,6 +11,7 @@
     inputs.sops-nix.overlays.default
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default
+    inputs.nixd.overlays.default
     (
       final: prev: let
         inherit (prev.stdenv.hostPlatform) system;

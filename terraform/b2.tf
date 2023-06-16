@@ -84,3 +84,44 @@ output "b2_synapse_media_access_key" {
   value     = b2_application_key.synapse_media.application_key
   sensitive = true
 }
+
+# pleroma
+resource "b2_bucket" "pleroma_media" {
+  bucket_name = "doraim-synapse-media"
+  bucket_type = "allPrivate"
+
+  # keep only the last version of the file
+  lifecycle_rules {
+    file_name_prefix              = ""
+    days_from_uploading_to_hiding = null
+    days_from_hiding_to_deleting  = 1
+  }
+}
+resource "b2_application_key" "pleroma_media" {
+  key_name  = "synapse-media"
+  bucket_id = b2_bucket.synapse_media.id
+  capabilities = [
+    "deleteFiles",
+    "listAllBucketNames",
+    "listBuckets",
+    "listFiles",
+    "readBucketEncryption",
+    "readBuckets",
+    "readFiles",
+    "shareFiles",
+    "writeBucketEncryption",
+    "writeFiles"
+  ]
+}
+output "b2_pleroma_media_bucket_name" {
+  value     = b2_bucket.synapse_media.bucket_name
+  sensitive = false
+}
+output "b2_pleroma_media_key_id" {
+  value     = b2_application_key.synapse_media.application_key_id
+  sensitive = false
+}
+output "b2_pleroma_media_access_key" {
+  value     = b2_application_key.synapse_media.application_key
+  sensitive = true
+}
