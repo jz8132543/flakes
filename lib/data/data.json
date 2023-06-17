@@ -13,7 +13,7 @@
   "pleroma": {
     "media": {
       "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": null,
+      "name": "doraim-pleroma-media",
       "region": {
         "sensitive": false,
         "type": "string",

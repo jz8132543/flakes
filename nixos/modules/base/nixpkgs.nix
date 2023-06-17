@@ -7,7 +7,6 @@
 }: let
   packages = [
     (import "${config.lib.self.path}/pkgs").overlay
-    # ${/${config.lib.self.path}/pkgs/default.nix}.overlays
     inputs.sops-nix.overlays.default
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default
@@ -28,9 +27,6 @@
   lateFixes = final: prev: {
     tailscale-derp = final.tailscale.overrideAttrs (old: {
       subPackages = old.subPackages ++ ["cmd/derper"];
-    });
-    tailscale-derpprobe = final.tailscale.overrideAttrs (old: {
-      subPackages = old.subPackages ++ ["cmd/derpprobe"];
     });
   };
 in {

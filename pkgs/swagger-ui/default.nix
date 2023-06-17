@@ -10,6 +10,6 @@ stdenv.mkDerivation {
   installPhase = ''
     mkdir -p $out
     unzip $src
-    mv static/* $out
+    mv dist/* $out
   '';
 }

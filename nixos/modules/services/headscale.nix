@@ -69,7 +69,7 @@
       "map.yaml:/etc/headscale/map.yaml"
     ];
   };
-  environment.systemPackages = [config.services.headscale.package pkgs.tailscale-derpprobe];
+  environment.systemPackages = [config.services.headscale.package];
   environment.global-persistence = {
     directories = [
       "/etc/headscale"

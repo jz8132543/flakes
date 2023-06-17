@@ -3,121 +3,119 @@
   lib,
   config,
   ...
-}:
-with lib; let
-  wrapFile = name: path: (pkgs.runCommand name {inherit path;} ''
-    cp -r "$path" "$out"
-  '');
-  keycloak_url = "https://sso.dora.im";
-  blocklist = lib.importTOML ./blocklist.toml;
+}: let
+  akkconfig = ''
+    import Config
+    config :pleroma, :instance,
+      allow_relay: true,
+      cleanup_attachments: true,
+      description: "Doraemon's akkoma server",
+      email: "i@dora.im",
+      healthcheck: true,
+      invites_enabled: true,
+      limit: 69420,
+      limit_to_local_content: :unauthenticated,
+      max_account_fields: 100,
+      max_pinned_statuses: 10,
+      name: "Akkoma",
+      notify_email: "i@dora.im",
+      registrations_open: false,
+      remote_limit: 100_000,
+      static_dir: "${pkgs.pleroma-static}"
+    config :pleroma, Pleroma.Repo,
+      adapter: Ecto.Adapters.Postgres,
+      database: "pleroma",
+      hostname: "postgres.dora.im",
+      username: "pleroma"
+    config :pleroma, :frontend_configurations,
+      pleroma_fe: %{
+        loginMethod: "token"
+      },
+      masto_fe: %{
+        showInstanceSpecificPanel: true
+      }
+    config :pleroma, :frontends,
+      primary: %{"name" => "akkoma-fe", "ref" => "stable"},
+      admin: %{"name" => "admin-fe", "ref" => "stable"},
+      mastodon: %{"name" => "mastodon-fe", "ref" => "stable"},
+      swagger: %{"name" => "swagger-ui", "ref" => "stable"}
+
+    config :logger,
+      backends: [ {ExSyslogger, :ex_syslogger}, :console ],
+      level: :debug
+
+    config :logger, :ex_syslogger,
+      level: :debug,
+      ident: "pleroma",
+      format: "$metadata[$level] $message"
+
+    config :logger, :console,
+      level: :debug,
+      format: "\n$time $metadata[$level] $message\n",
+      metadata: [:request_id]
+
+    config :pleroma, configurable_from_database: false
+    config :pleroma, :media_proxy, enabled: false
+    config :pleroma, :mrf, policies: [Pleroma.Web.ActivityPub.MRF.SimplePolicy], transparency: false
+    config :pleroma, Pleroma.Web.WebFinger, domain: "dora.im"
+  '';
 in {
-  services.akkoma = {
+  services.pleroma = {
     enable = true;
-    extraStatic = {
-      # "static/terms-of-service.html" =
-      #   wrapFile "terms-of-service.html" ./terms-of-service.html;
-      # "favicon.png" = wrapFile "favicon.png" ./favicon.png;
-      # "robots.txt" = wrapFile "robots.txt" ./robots.txt;
-    };
-    frontends = {
-      primary = {
-        # package = pkgs.soapbox;
-        # name = "soapbox";
-        package = pkgs.akkoma-frontends.akkoma-fe;
-        name = "akkoma-fe";
-        ref = "stable";
-      };
-      admin = {
-        package = pkgs.akkoma-frontends.admin-fe;
-        name = "admin-fe";
-        ref = "stable";
-      };
-    };
+    package = pkgs.akkoma;
+    user = "akkoma";
+    group = "akkoma";
 
-    config = let
-      inherit ((pkgs.formats.elixirConf {}).lib) mkRaw mkMap;
-    in {
-      # ":pleroma"."Pleroma.Web.Endpoint".url.host = "zone.${config.networking.domain}";
-      ":pleroma"."Pleroma.Web.Endpoint".url.host = "zone.dora.im";
-      ":pleroma"."Pleroma.Web.Endpoint".http.ip = "127.0.0.1";
-      ":pleroma"."Pleroma.Web.WebFinger".domain = "dora.im";
-      ":pleroma".":media_proxy".enabled = false;
-      ":pleroma".":instance" = {
-        name = "Akkoma";
-        description = "Doraemon's akkoma server";
-        email = "i@dora.im";
-        notify_email = "i@dora.im";
+    configs = [akkconfig];
+    secretConfigFile = config.sops.templates."akkoma".path;
+  };
 
-        registrations_open = false;
-        invites_enabled = true;
-
-        limit = 69420;
-        remote_limit = 100000;
-        max_pinned_statuses = 10;
-        max_account_fields = 100;
-
-        limit_to_local_content = mkRaw ":unauthenticated";
-        healthcheck = true;
-        cleanup_attachments = true;
-        allow_relay = true;
-      };
-      ":pleroma".":mrf" = {
-        policies = map mkRaw ["Pleroma.Web.ActivityPub.MRF.SimplePolicy"];
-        transparency = false;
-      };
-
-      ":pleroma"."Pleroma.Repo" = {
-        adapter = mkRaw "Ecto.Adapters.Postgres";
-        hostname = "postgres.dora.im";
-        username = "pleroma";
-        database = "pleroma";
-
-        prepare = mkRaw ":named";
-        parameters.plan_cache_mode = "force_custom_plan";
-      };
-
-      # S3 setup
-      ":pleroma"."Pleroma.Upload" = {
-        uploader = mkRaw "Pleroma.Uploaders.S3";
-        proxy_remote = true;
-      };
-      ":pleroma"."Pleroma.Uploaders.S3".bucket = config.lib.self.data.pleroma.media.name;
-      ":ex_aws".":s3" = {
-        access_key_id._secret = config.sops.secrets."b2_pleroma_media_key_id".path;
-        secret_access_key._secret = config.sops.secrets."b2_pleroma_media_access_key".path;
-        host = config.lib.self.data.pleroma.media.host;
-      };
-
-      # Less outgoing retries to improve performance
-      ":pleroma".":workers".retries = {
-        federator_incoming = 5;
-        federator_outgoing = 2;
-      };
-
-      # Biggify the pools and pray it works
-      ":connections_pool".":max_connections" = 500;
-      ":pleroma".":http".pool_size = 150;
-      ":pools".":federation".max_connections = 300;
-
-      # OIDC
-      ":ueberauth"."Ueberauth.Strategy.Keycloak.OAuth" = {
-        "client_id" = "pleroma";
-        "client_secret" = config.sops.secrets."pleroma/oidc-secret".path;
-        "site" = "${keycloak_url}";
-        "authorize_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/auth";
-        "token_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/token";
-        "userinfo_url" = "${keycloak_url}/auth/realms/users/protocol/openid-connect/userinfo";
-        "token_method" = ":post";
-      };
-      # ":ueberauth"."Ueberauth"."providers" = mkRaw "[keycloak: {Ueberauth.Strategy.Keycloak, [uid_field: :email]}]";
-      ":ueberauth"."Ueberauth"."providers" = map mkRaw [
-        "keycloak: {Ueberauth.Strategy.Keycloak, [uid_field: :email]}"
-      ];
-    };
+  sops.templates."akkoma" = {
+    owner = config.services.pleroma.user;
+    content = ''
+      import Config
+      # keycloak
+      keycloak_url = "https://sso.dora.im/"
+      config :ueberauth, Ueberauth.Strategy.Keycloak.OAuth,
+        client_id: "pleroma",
+        client_secret: "${config.sops.placeholder."pleroma/oidc-secret"}",
+        site: keycloak_url,
+        authorize_url: "#{keycloak_url}/realms/users/protocol/openid-connect/auth",
+        token_url: "#{keycloak_url}/realms/users/protocol/openid-connect/token",
+        userinfo_url: "#{keycloak_url}/realms/users/protocol/openid-connect/userinfo",
+        token_method: :post
+      config :ueberauth, Ueberauth,
+        providers: [
+          keycloak: {Ueberauth.Strategy.Keycloak, [default_scope: "openid profile email"]}
+        ]
+      config :pleroma, :auth, oauth_consumer_strategies: ["keycloak:ueberauth_keycloak_strategy", "keycloak"]
+      # s3
+      config :pleroma, Pleroma.Upload, proxy_remote: true, uploader: Pleroma.Uploaders.S3
+      config :pleroma, Pleroma.Uploaders.S3, bucket: "${config.lib.self.data.pleroma.media.name}"
+      config :ex_aws, :s3,
+        access_key_id: "${config.sops.placeholder."b2_pleroma_media_key_id"}",
+        host: "${config.lib.self.data.pleroma.media.host}",
+        secret_access_key: "${config.sops.placeholder."b2_pleroma_media_access_key"}"
+      # Configure web push notifications
+      config :web_push_encryption, :vapid_details,
+        subject: "mailto:i@dora.im",
+        public_key: "${config.sops.placeholder."pleroma/PUSH_PUBLIC_KEY"}",
+        private_key: "${config.sops.placeholder."pleroma/PUSH_PRIVATE_KEY"}"
+      config :pleroma, Pleroma.Web.Endpoint,
+        http: [ip: {127, 0, 0, 1}, port: 4000],
+        url: [host: "zone.dora.im", port: 443, scheme: "https"],
+        secret_key_base: "${config.sops.placeholder."pleroma/SECRET_KEY"}",
+        signing_salt: "${config.sops.placeholder."pleroma/SIGNING_SALT"}",
+        extra_cookie_attrs: ["SameSite=Lax"]
+    '';
   };
 
   sops.secrets = {
     "pleroma/oidc-secret" = {};
+    "pleroma/PUSH_PUBLIC_KEY" = {};
+    "pleroma/PUSH_PRIVATE_KEY" = {};
+    "pleroma/SECRET_KEY" = {};
+    "pleroma/SIGNING_SALT" = {};
   };
 
   sops.secrets."b2_pleroma_media_key_id" = {
@@ -130,46 +128,35 @@ in {
     restartUnits = ["akkoma.service"];
   };
 
-  # Auto-prune objects in the database.
-  systemd.timers.akkoma-prune-objects = {
-    wantedBy = ["multi-user.service"];
-    timerConfig.OnCalendar = "*-*-* 00:00:00";
-  };
-  systemd.services.akkoma-prune-objects = {
-    requisite = ["akkoma.service"];
-    path = with pkgs; [akkoma];
-    script = ''
-      pleroma_ctl database prune_objects
-    '';
-    serviceConfig = {
-      Type = "oneshot";
-      User = "akkoma";
-    };
-  };
-  systemd.services.akkoma = {
+  systemd.services.pleroma = {
     after = ["postgresql.service" "tailscaled.service"];
     serviceConfig.Restart = lib.mkForce "always";
-    environment.OAUTH_CONSUMER_STRATEGIES = "keycloak:ueberauth_keycloak_strategy";
+    # https://github.com/NixOS/nixpkgs/issues/170805
+    environment.RELEASE_COOKIE = "/var/lib/pleroma/.cookie";
+    # serviceConfig.ExecStartPre = let
+    #   preScript = pkgs.writers.writeBashBin "pleromaStartPre" ''
+    #     if [ ! -f /var/lib/pleroma/.cookie ]
+    #     then
+    #       echo "Creating cookie file"
+    #       dd if=/dev/urandom bs=1 count=16 | hexdump -e '16/1 "%02x"' > /var/lib/pleroma/.cookie
+    #     fi
+    #     # ${config.services.pleroma.package}/bin/pleroma_ctl migrate
+    #   '';
+    # in "${preScript}/bin/pleromaStartPre";
   };
 
   services.traefik.dynamicConfigOptions.http = {
     routers = {
-      akkoma = {
+      pleroma = {
         rule = "Host(`zone.dora.im`)";
         entryPoints = ["https"];
-        service = "akkoma";
+        service = "pleroma";
       };
     };
     services = {
-      akkoma.loadBalancer = {
+      pleroma.loadBalancer = {
         passHostHeader = true;
-        servers = [
-          {
-            url = "http://localhost:${
-              toString config.services.akkoma.config.":pleroma"."Pleroma.Web.Endpoint".http.port
-            }";
-          }
-        ];
+        servers = [{url = "http://localhost:4000";}];
       };
     };
   };

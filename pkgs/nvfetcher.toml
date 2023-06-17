@@ -1,3 +1,15 @@
 [soapbox]
 fetch.url = "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/$ver/download?job=build-production"
 src.github_tag = "soapbox-pub/soapbox"
+[masto-fe]
+fetch.url = "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/akkoma/masto-fe.zip"
+src.git = "https://akkoma.dev/AkkomaGang/masto-fe"
+[swagger-ui]
+fetch.url = "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/swagger-ui.zip"
+src.git = "https://github.com/swagger-api/swagger-ui"
+[fedibird-fe]
+fetch.url = "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/akkoma/fedibird-fe.zip"
+src.git = "https://akkoma.dev/AkkomaGang/fedibird-fe"
+[pleroma-fe]
+fetch.url = "https://akkoma-updates.s3-website.fr-par.scw.cloud/frontend/stable/akkoma-fe.zip"
+src.git = "https://akkoma.dev/AkkomaGang/pleroma-fe"

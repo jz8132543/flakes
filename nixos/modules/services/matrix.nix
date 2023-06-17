@@ -19,9 +19,9 @@ in
         "matrix/mail" = {};
         "matrix/signing-key" = {owner = "matrix-synapse";};
         "matrix/oidc-secret" = {};
-        "b2/keyID" = {};
-        "b2/applicationKey" = {};
       };
+      sops.secrets."b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
+      sops.secrets."b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
       services.matrix-synapse = {
         enable = true;
         withJemalloc = true;
@@ -123,8 +123,8 @@ in
                 bucket = config.lib.self.data.matrix.media.name;
                 region_name = config.lib.self.data.matrix.media.region;
                 endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
-                access_key_id = config.sops.placeholder."b2/keyID";
-                secret_access_key = config.sops.placeholder."b2/applicationKey";
+                access_key_id = config.sops.placeholder."b2_synapse_media_key_id";
+                secret_access_key = config.sops.placeholder."b2_synapse_media_access_key";
               };
             }
           ];
