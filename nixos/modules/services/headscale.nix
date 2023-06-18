@@ -34,7 +34,7 @@
         ];
         derp = {
           paths = ["/run/credentials/headscale.service/map.yaml"];
-          urls = [""];
+          urls = [];
         };
       };
     };
