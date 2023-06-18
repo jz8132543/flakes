@@ -1,8 +1,4 @@
-{
-  self,
-  nixosModules,
-  ...
-}: {
+{nixosModules, ...}: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -10,5 +6,11 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.derp
+      nixosModules.services.postgres
+      nixosModules.services.vaultwarden
+      nixosModules.services.matrix
+      nixosModules.services.keycloak
+      nixosModules.services.prometheus
+      nixosModules.services.mastodon
     ];
 }

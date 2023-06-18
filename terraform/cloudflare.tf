@@ -64,18 +64,17 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
-    m         = { on = "fra0", proxy = false }
-    zone      = { on = "fra0", proxy = false }
-    "admin.m" = { on = "fra0", proxy = false }
-    cache     = { on = "fra0", proxy = false }
     headscale = { on = "fra0", proxy = false }
+    cache     = { on = "fra0", proxy = false }
     hydra     = { on = "fra0", proxy = false }
-    ldap      = { on = "fra0", proxy = false }
-    sso       = { on = "fra0", proxy = false }
-    vault     = { on = "fra0", proxy = false }
     imap      = { on = "fra0", proxy = false }
     smtp      = { on = "fra0", proxy = false }
-    p         = { on = "fra0.ts", proxy = false }
+    m         = { on = "fra1", proxy = false }
+    zone      = { on = "fra1", proxy = false }
+    "admin.m" = { on = "fra1", proxy = false }
+    ldap      = { on = "fra1", proxy = false }
+    sso       = { on = "fra1", proxy = false }
+    vault     = { on = "fra1", proxy = false }
   }
 }
 output "service_cname_mappings" {
@@ -140,7 +139,7 @@ resource "cloudflare_record" "dora_postgres" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "100.64.0.1"
+  value   = "100.64.0.3"
   zone_id = cloudflare_zone.im_dora.id
 }
 

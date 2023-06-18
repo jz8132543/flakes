@@ -118,7 +118,7 @@
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "fra0",
+      "on": "fra1",
       "proxy": false
     },
     "cache": {
@@ -138,15 +138,11 @@
       "proxy": false
     },
     "ldap": {
-      "on": "fra0",
+      "on": "fra1",
       "proxy": false
     },
     "m": {
-      "on": "fra0",
-      "proxy": false
-    },
-    "p": {
-      "on": "fra0.ts",
+      "on": "fra1",
       "proxy": false
     },
     "smtp": {
@@ -154,15 +150,15 @@
       "proxy": false
     },
     "sso": {
-      "on": "fra0",
+      "on": "fra1",
       "proxy": false
     },
     "vault": {
-      "on": "fra0",
+      "on": "fra1",
       "proxy": false
     },
     "zone": {
-      "on": "fra0",
+      "on": "fra1",
       "proxy": false
     }
   }

@@ -8,12 +8,6 @@
       nixosModules.services.traefik
       nixosModules.services.headscale
       nixosModules.services.derp
-      nixosModules.services.postgres
-      nixosModules.services.vaultwarden
-      nixosModules.services.matrix
-      nixosModules.services.keycloak
       nixosModules.services.hydra
-      nixosModules.services.prometheus
-      nixosModules.services.mastodon
     ];
 }
