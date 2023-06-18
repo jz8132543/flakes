@@ -97,7 +97,7 @@
     services = {
       mastodon.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://${config.services.mastodon.extraConfig.WEB_DOMAIN}:${toString config.ports.nginx}";}];
+        servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
       };
     };
   };

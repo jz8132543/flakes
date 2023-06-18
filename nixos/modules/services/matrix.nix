@@ -166,11 +166,11 @@ in
           };
           element.loadBalancer = {
             passHostHeader = true;
-            servers = [{url = "http://m.dora.im:${toString config.ports.nginx}";}];
+            servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
           };
           matrix-admin.loadBalancer = {
             passHostHeader = true;
-            servers = [{url = "http://admin.m.dora.im:${toString config.ports.nginx}";}];
+            servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
           };
         };
       };
