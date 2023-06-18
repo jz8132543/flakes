@@ -85,9 +85,9 @@ output "b2_synapse_media_access_key" {
   sensitive = true
 }
 
-# pleroma
-resource "b2_bucket" "pleroma_media" {
-  bucket_name = "doraim-pleroma-media"
+# mastodon
+resource "b2_bucket" "mastodon_media" {
+  bucket_name = "doraim-mastodon-media"
   bucket_type = "allPrivate"
 
   # keep only the last version of the file
@@ -97,9 +97,9 @@ resource "b2_bucket" "pleroma_media" {
     days_from_hiding_to_deleting  = 1
   }
 }
-resource "b2_application_key" "pleroma_media" {
-  key_name  = "pleroma-media"
-  bucket_id = b2_bucket.pleroma_media.id
+resource "b2_application_key" "mastodon_media" {
+  key_name  = "mastodon-media"
+  bucket_id = b2_bucket.mastodon_media.id
   capabilities = [
     "deleteFiles",
     "listAllBucketNames",
@@ -113,15 +113,15 @@ resource "b2_application_key" "pleroma_media" {
     "writeFiles"
   ]
 }
-output "b2_pleroma_media_bucket_name" {
-  value     = b2_bucket.pleroma_media.bucket_name
+output "b2_mastodon_media_bucket_name" {
+  value     = b2_bucket.mastodon_media.bucket_name
   sensitive = false
 }
-output "b2_pleroma_media_key_id" {
-  value     = b2_application_key.pleroma_media.application_key_id
+output "b2_mastodon_media_key_id" {
+  value     = b2_bucket.mastodon_media.bucket_name
   sensitive = false
 }
-output "b2_pleroma_media_access_key" {
-  value     = b2_application_key.pleroma_media.application_key
+output "b2_mastodon_media_access_key" {
+  value     = b2_bucket.mastodon_media.bucket_name
   sensitive = true
 }

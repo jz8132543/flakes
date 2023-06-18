@@ -13,6 +13,8 @@
       entryPoints = {
         http = {
           address = ":80";
+          forwardedHeaders.insecure = true;
+          proxyProtocol.insecure = true;
           http.redirections.entryPoint = {
             to = "https";
             scheme = "https";
@@ -21,6 +23,8 @@
         };
         https = {
           address = ":443";
+          forwardedHeaders.insecure = true;
+          proxyProtocol.insecure = true;
           http.tls.certResolver = "zerossl";
           http3 = {};
         };

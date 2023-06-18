@@ -14,6 +14,6 @@
       nixosModules.services.keycloak
       nixosModules.services.hydra
       nixosModules.services.prometheus
-      nixosModules.services.pleroma
+      nixosModules.services.mastodon
     ];
 }

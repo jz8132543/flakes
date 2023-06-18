@@ -10,10 +10,10 @@
       }
     }
   },
-  "pleroma": {
+  "mastodon": {
     "media": {
       "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": "doraim-pleroma-media",
+      "name": "doraim-mastodon-media",
       "region": {
         "sensitive": false,
         "type": "string",

@@ -6,10 +6,10 @@
             "region": .b2_s3_region
         }
     },
-    "pleroma": {
+    "mastodon": {
         "media": {
             "host": .b2_s3_api_url.value,
-            "name": .b2_pleroma_media_bucket_name.value,
+            "name": .b2_mastodon_media_bucket_name.value,
             "region": .b2_s3_region
         }
     },
