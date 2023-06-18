@@ -7,6 +7,7 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.postgres
+      nixosModules.services.doraim
       nixosModules.services.vaultwarden
       nixosModules.services.matrix
       nixosModules.services.keycloak

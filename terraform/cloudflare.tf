@@ -93,6 +93,16 @@ resource "cloudflare_record" "general_cname" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
+# ROOT record
+resource "cloudflare_record" "dora" {
+  name    = "dora.im"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  value   = "fra1.dora.im"
+  zone_id = cloudflare_zone.im_dora.id
+}
+
 # smtp records for sending
 
 resource "cloudflare_record" "dora_dkim" {
@@ -130,6 +140,22 @@ resource "cloudflare_record" "dora_mx_fra0" {
   value    = "fra0.dora.im"
   priority = 1
   zone_id  = cloudflare_zone.im_dora.id
+}
+
+# matrix SRV record
+resource "cloudflare_record" "_matrix_tcp" {
+  name    = "_matrix._tcp"
+  type    = "SRV"
+  zone_id = cloudflare_zone.im_dora.id
+  data {
+    service  = "_matrix"
+    proto    = "_tcp"
+    name     = cloudflare_zone.im_dora.zone
+    priority = 10
+    weight   = 5
+    port     = 443
+    target   = "m.dora.im"
+  }
 }
 
 # Machines
