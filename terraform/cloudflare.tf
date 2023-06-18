@@ -75,6 +75,7 @@ locals {
     vault     = { on = "fra0", proxy = false }
     imap      = { on = "fra0", proxy = false }
     smtp      = { on = "fra0", proxy = false }
+    p         = { on = "fra0.ts", proxy = false }
   }
 }
 output "service_cname_mappings" {
