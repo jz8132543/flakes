@@ -103,6 +103,16 @@ resource "cloudflare_record" "dora" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
+# b2
+resource "cloudflare_record" "dora_b2" {
+  name    = "b2"
+  proxied = true
+  ttl     = 1
+  type    = "CNAME"
+  value   = module.b2_download_url.host
+  zone_id = cloudflare_zone.im_dora.id
+}
+
 # smtp records for sending
 
 resource "cloudflare_record" "dora_dkim" {

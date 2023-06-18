@@ -88,13 +88,27 @@ output "b2_synapse_media_access_key" {
 # mastodon
 resource "b2_bucket" "mastodon_media" {
   bucket_name = "doraim-mastodon-media"
-  bucket_type = "allPrivate"
+  bucket_type = "allPublic"
 
   # keep only the last version of the file
   lifecycle_rules {
     file_name_prefix              = ""
     days_from_uploading_to_hiding = null
     days_from_hiding_to_deleting  = 1
+  }
+
+  cors_rules {
+    cors_rule_name = "allow-media-on-dora-im"
+    allowed_operations = [
+      "s3_head",
+      "b2_download_file_by_id",
+      "b2_download_file_by_name",
+      "s3_get"
+    ]
+    allowed_origins = [
+      "https://*.dora.im"
+    ]
+    max_age_seconds = 86400
   }
 }
 resource "b2_application_key" "mastodon_media" {
@@ -118,10 +132,10 @@ output "b2_mastodon_media_bucket_name" {
   sensitive = false
 }
 output "b2_mastodon_media_key_id" {
-  value     = b2_bucket.mastodon_media.bucket_name
+  value     = b2_application_key.mastodon_media.application_key_id
   sensitive = false
 }
 output "b2_mastodon_media_access_key" {
-  value     = b2_bucket.mastodon_media.bucket_name
+  value     = b2_application_key.mastodon_media.application_key
   sensitive = true
 }

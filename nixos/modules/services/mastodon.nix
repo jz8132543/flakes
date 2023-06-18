@@ -30,8 +30,9 @@
       OIDC_CLIENT_ID = "mastodon";
       S3_ENABLED = "true";
       S3_BUCKET = config.lib.self.data.mastodon.media.name;
-      S3_HOSTNAME = config.lib.self.data.mastodon.media.host;
+      S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
       S3_REGION = config.lib.self.data.mastodon.media.region.value;
+      S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
     };
     extraEnvFiles = [config.sops.templates."mastodon-env".path];
   };
