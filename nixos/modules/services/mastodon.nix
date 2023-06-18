@@ -33,6 +33,7 @@
       S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
       S3_REGION = config.lib.self.data.mastodon.media.region.value;
       S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
+      DEEPL_PLAN = "free";
     };
     extraEnvFiles = [config.sops.templates."mastodon-env".path];
   };
@@ -42,15 +43,17 @@
       OIDC_CLIENT_SECRET=${config.sops.placeholder."mastodon/oidc-secret"}
       AWS_ACCESS_KEY_ID=${config.sops.placeholder."b2_mastodon_media_key_id"}
       AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."b2_mastodon_media_access_key"}
+      DEEPL_API_KEY = ${config.sops.placeholder."mastodon/deepl"}
     '';
   };
   sops.secrets = {
-    "mastodon/oidc-secret" = {owner = config.services.mastodon.user;};
     "mastodon/mail" = {owner = config.services.mastodon.user;};
     "mastodon/VAPID_PUBLIC_KEY" = {owner = config.services.mastodon.user;};
     "mastodon/VAPID_PRIVATE_KEY" = {owner = config.services.mastodon.user;};
     "mastodon/SECRET_KEY_BASE" = {owner = config.services.mastodon.user;};
     "mastodon/OTP_SECRET" = {owner = config.services.mastodon.user;};
+    "mastodon/oidc-secret" = {owner = config.services.mastodon.user;};
+    "mastodon/deepl" = {owner = config.services.mastodon.user;};
   };
   sops.secrets."b2_mastodon_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
   sops.secrets."b2_mastodon_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
