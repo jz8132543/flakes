@@ -1,3 +1,6 @@
+[tuic]
+fetch.github = "EAimTY/tuic"
+src.git = "https://github.com/EAimTY/tuic"
 [soapbox]
 fetch.url = "https://gitlab.com/soapbox-pub/soapbox/-/jobs/artifacts/$ver/download?job=build-production"
 src.github_tag = "soapbox-pub/soapbox"
