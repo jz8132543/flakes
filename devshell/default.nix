@@ -30,6 +30,7 @@
         shellcheck
         shfmt
         taplo
+        pre-commit
 
         # secrets
         sops
