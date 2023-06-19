@@ -20,4 +20,10 @@
       icon = "steam";
     })
   ];
+  environment.global-persistence.user = {
+    directories = [
+      ".steam"
+      ".local/share/Steam"
+    ];
+  };
 }

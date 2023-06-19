@@ -55,19 +55,24 @@ in {
       };
       "org/gnome/desktop/input-sources" = {
         sources = mkArray (type.tupleOf [type.string type.string]) [
-          (mkTuple [(mkString "xkb") (mkString "us")])
+          # (mkTuple [(mkString "xkb") (mkString "us")])
           (mkTuple [(mkString "ibus") (mkString "rime")])
         ];
       };
       "org/gnome/shell/extensions/customize-ibus" = {
         input-indicator-only-on-toggle = true;
+        use-candidate-opacity = true;
         candidate-opacity = mkUint32 210;
         use-custom-font = true;
         custom-font = "sans-serif 10";
         enable-custom-theme = true;
         enable-custom-theme-dark = true;
-        custom-theme = "${osConfig.lib.self.path}/config/ibus/snow-storm-light.css";
-        custom-theme-dark = "${osConfig.lib.self.path}/config/ibus/polar-night-dark.css";
+        custom-theme = "${osConfig.lib.self.path}/conf/ibus/snow-storm-light.css";
+        # custom-theme-dark = "${osConfig.lib.self.path}/conf/ibus/snow-storm-light.css";
+        custom-theme-dark = "${osConfig.lib.self.path}/conf/ibus/polar-night-dark.css";
+      };
+      "desktop/ibus/general" = {
+        use-system-keyboard-layout = true;
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";

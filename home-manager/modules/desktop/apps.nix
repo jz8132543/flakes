@@ -12,10 +12,7 @@
     directories = [
       ".local/share/TelegramDesktop"
       ".thunderbird"
-      ".config/clash-verge"
       ".local/share/anime-game-launcher"
-      ".steam"
-      ".local/share/Steam"
     ];
   };
 }
