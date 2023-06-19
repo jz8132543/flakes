@@ -60,9 +60,14 @@ in {
         ];
       };
       "org/gnome/shell/extensions/customize-ibus" = {
+        input-indicator-only-on-toggle = true;
+        candidate-opacity = mkUint32 210;
         use-custom-font = true;
         custom-font = "sans-serif 10";
-        input-indicator-only-on-toggle = true;
+        enable-custom-theme = true;
+        enable-custom-theme-dark = true;
+        custom-theme = "${osConfig.lib.self.path}/config/ibus/snow-storm-light.css";
+        custom-theme-dark = "${osConfig.lib.self.path}/config/ibus/polar-night-dark.css";
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";
