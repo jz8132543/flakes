@@ -11,6 +11,7 @@
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default
     inputs.nixd.overlays.default
+    inputs.clash-meta.overlay
     (
       final: prev: let
         inherit (prev.stdenv.hostPlatform) system;

@@ -133,10 +133,6 @@
       inputs.nvfetcher.follows = "nvfetcher";
       inputs.flake-compat.follows = "flake-compat";
     };
-    aagl-gtk-on-nix = {
-      url = "github:ezKEa/aagl-gtk-on-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nix-gc-s3 = {
       url = "github:linyinfeng/nix-gc-s3";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -153,6 +149,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
+    clash-meta.url = "github:MetaCubeX/Clash.Meta/Alpha";
   };
 
   outputs = inputs @ {flake-parts, ...}:

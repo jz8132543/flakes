@@ -3,7 +3,4 @@ patch:
     - erase/^xx$/
     - derive/([ei])n$/$1ng/ # en => eng, in => ing
     - derive/([ei])ng$/$1n/ # eng => en, ing => in
-  switches:
-    - name: ascii_mode
-      reset: 1
 

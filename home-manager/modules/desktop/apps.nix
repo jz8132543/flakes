@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   home.packages = with pkgs; [
     tdesktop
     thunderbird
@@ -12,7 +8,6 @@
     directories = [
       ".local/share/TelegramDesktop"
       ".thunderbird"
-      ".local/share/anime-game-launcher"
     ];
   };
 }
