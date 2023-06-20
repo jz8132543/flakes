@@ -17,6 +17,7 @@
       in
         {
           nix-gc-s3 = inputs'.nix-gc-s3.packages.nix-gc-s3;
+          tuic = inputs'.latest.legacyPackages.tuic;
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
           hydra-master = inputs'.hydra.packages.default;

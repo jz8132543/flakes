@@ -527,6 +527,22 @@
         "type": "github"
       }
     },
+    "latest": {
+      "locked": {
+        "lastModified": 1687267959,
+        "narHash": "sha256-mkayqzxiVjO0c/OYXnahvG5TdHKBQODDMlEkt4ogHyk=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "2fd2dc90b0344da41ddc83c31e032fae3141832a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "master",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "linyinfeng": {
       "inputs": {
         "devshell": [
@@ -1007,6 +1023,7 @@
         "home-manager": "home-manager",
         "hydra": "hydra",
         "impermanence": "impermanence",
+        "latest": "latest",
         "linyinfeng": "linyinfeng",
         "neovim-nightly-overlay": "neovim-nightly-overlay",
         "nix-gc-s3": "nix-gc-s3",
