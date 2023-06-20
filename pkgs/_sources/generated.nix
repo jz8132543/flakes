@@ -11,6 +11,7 @@
       fetchSubmodules = false;
       sha256 = "sha256-OCRJojQDcE3FqZHTdqCiKfxXh7kFXSaOe7eJlUILxVs=";
     };
+    vendorSha256 = "sha256-lMeJ3z/iTHIbJI5kTzkQjNPMv5tGMJK/+PM36BUlpjE=";
     date = "2023-06-19";
   };
   clash-verge = {

@@ -6,4 +6,4 @@ fetch.url = "https://github.com/zzzgydi/clash-verge/releases/download/v$ver/clas
 src.git = "https://github.com/MetaCubeX/Clash.Meta"
 src.branch = "Alpha"
 fetch.github = "MetaCubeX/Clash.Meta"
-git.fetchSubmodules = true
+passthru = { vendorSha256 = "sha256-lMeJ3z/iTHIbJI5kTzkQjNPMv5tGMJK/+PM36BUlpjE=" }
