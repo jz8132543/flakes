@@ -10,6 +10,9 @@
       tunMode = true;
     };
   };
+  # environment.systemPackages = with pkgs; [
+  #   clash-meta
+  # ];
   environment.global-persistence.user = {
     directories = [
       ".config/clash-verge"

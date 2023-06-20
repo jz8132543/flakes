@@ -6,12 +6,10 @@
   ...
 }: let
   packages = [
-    (import "${config.lib.self.path}/pkgs").overlay
     inputs.sops-nix.overlays.default
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default
     inputs.nixd.overlays.default
-    inputs.clash-meta.overlay
     (
       final: prev: let
         inherit (prev.stdenv.hostPlatform) system;
@@ -19,6 +17,7 @@
       in
         {
           nix-gc-s3 = inputs'.nix-gc-s3.packages.nix-gc-s3;
+          clash-meta = inputs'.clash-meta.packages.default;
         }
         // lib.optionalAttrs (system == "x86_64-linux") {
           hydra-master = inputs'.hydra.packages.default;
@@ -30,11 +29,14 @@
       subPackages = old.subPackages ++ ["cmd/derper"];
     });
   };
+  lastePackages = [
+    (import "${config.lib.self.path}/pkgs").overlay
+  ];
 in {
   nixpkgs = {
     config = {
       allowUnfree = true;
     };
-    overlays = packages ++ [lateFixes];
+    overlays = packages ++ [lateFixes] ++ lastePackages;
   };
 }

@@ -1,1 +1,9 @@
-
+[clash-verge]
+src.github = "zzzgydi/clash-verge"
+src.prefix = "v"
+fetch.url = "https://github.com/zzzgydi/clash-verge/releases/download/v$ver/clash-verge_$ver_amd64.deb"
+[clash-meta]
+src.git = "https://github.com/MetaCubeX/Clash.Meta"
+src.branch = "Alpha"
+fetch.github = "MetaCubeX/Clash.Meta"
+git.fetchSubmodules = true
