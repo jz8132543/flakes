@@ -26,7 +26,7 @@
         config.lib.self.data.ssh.i
         config.lib.self.data.ssh.hydra
       ];
-      protocol = "ssh";
+      protocol = "ssh-ng";
       write = true;
     };
     settings.trusted-users = ["nix-ssh"];
