@@ -69,6 +69,8 @@
       autoload -U select-word-style
       select-word-style bash
       bindkey '^W' backward-kill-word
+      bindkey "^[[A" history-beginning-search-backward
+      bindkey "^[[B" history-beginning-search-forward
       alias -g ...='../..'
       alias -g ....='../../..'
       alias -g .....='../../../..'
