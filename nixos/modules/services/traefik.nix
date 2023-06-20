@@ -5,7 +5,6 @@
 }: {
   config.networking.firewall.allowedTCPPorts = [80 443];
   config.networking.firewall.allowedUDPPorts = [443];
-  config.sops.secrets."traefik/cloudflare" = {};
   config.services.traefik = {
     enable = true;
     staticConfigOptions = {
@@ -71,5 +70,9 @@
       };
     };
   };
-  config.systemd.services.traefik.serviceConfig.EnvironmentFile = [config.sops.secrets."traefik/cloudflare".path];
+  config.systemd.services.traefik.serviceConfig.EnvironmentFile = [config.sops.templates."traefik-env".path];
+  config.sops.secrets."traefik/cloudflare_token" = {};
+  config.sops.templates.traefik-env.content = ''
+    CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
+  '';
 }

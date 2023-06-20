@@ -7,5 +7,6 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.proxy
+      nixosModules.services.tuic
     ];
 }
