@@ -34,6 +34,7 @@
       #set -g status-right "#[fg=green]#(date) #[default]#(rainbarf)#[default]"
       set -g status-bg black
       set -g status-fg yellow
+      set -g status-style bg=colour0
       setw -g mode-keys vi
       #setw -g mode-mouse off
       #set -g mouse-select-pane on
