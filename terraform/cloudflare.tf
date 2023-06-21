@@ -229,20 +229,12 @@ resource "cloudflare_record" "dora_nue0" {
   value   = "45.142.176.126"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_sha0" {
-  name    = "sha0"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  value   = "121.5.154.19"
-  zone_id = cloudflare_zone.im_dora.id
-}
 resource "cloudflare_record" "dora_tyo1" {
   name    = "tyo1"
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "54.178.2.135"
+  value   = "54.178.0.117"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo3" {
