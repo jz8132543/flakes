@@ -7,7 +7,7 @@
 
 spawn nix repl
 
-  send ":lf .\n"
+  send ":lf ..\n"
 
   send ":a builtins\n"
 
