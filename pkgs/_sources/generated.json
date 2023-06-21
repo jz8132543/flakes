@@ -1,7 +1,7 @@
 {
   "clash-meta": {
     "cargoLocks": null,
-    "date": "2023-06-19",
+    "date": "2023-06-21",
     "extract": null,
     "name": "clash-meta",
     "passthru": {
@@ -15,25 +15,30 @@
       "name": null,
       "owner": "MetaCubeX",
       "repo": "Clash.Meta",
-      "rev": "ad7508f2035e93f179d7989ee65add6e41a1e731",
-      "sha256": "sha256-OCRJojQDcE3FqZHTdqCiKfxXh7kFXSaOe7eJlUILxVs=",
+      "rev": "919daf0dbb7cf3b50b725384f8d6102f317426fe",
+      "sha256": "sha256-b4p7chID+QU6/i6gUrS2C+wGzdsB/QBLTQgJEpvL600=",
       "type": "github"
     },
-    "version": "ad7508f2035e93f179d7989ee65add6e41a1e731"
+    "version": "919daf0dbb7cf3b50b725384f8d6102f317426fe"
   },
-  "clash-verge": {
+  "kitty-catppuccin": {
     "cargoLocks": null,
-    "date": null,
+    "date": "2023-06-09",
     "extract": null,
-    "name": "clash-verge",
+    "name": "kitty-catppuccin",
     "passthru": null,
     "pinned": false,
     "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
       "name": null,
-      "sha256": "sha256-46+7P9WH85fC3m+5LQHpvZX2ggeH6djoO53fQxQJdYk=",
-      "type": "url",
-      "url": "https://github.com/zzzgydi/clash-verge/releases/download/v1.3.2/clash-verge_1.3.2_amd64.deb"
+      "owner": "catppuccin",
+      "repo": "kitty",
+      "rev": "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda",
+      "sha256": "sha256-uZSx+fuzcW//5/FtW98q7G4xRRjJjD5aQMbvJ4cs94U=",
+      "type": "github"
     },
-    "version": "1.3.2"
+    "version": "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda"
   }
 }

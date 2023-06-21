@@ -1,7 +1,4 @@
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   perSystem = {config, ...}: {
     nixago.configs = [
       {
