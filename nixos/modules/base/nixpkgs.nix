@@ -10,6 +10,7 @@
     inputs.neovim-nightly-overlay.overlay
     inputs.attic.overlays.default
     inputs.nixd.overlays.default
+    inputs.alejandra.overlay
     (
       final: prev: let
         inherit (prev.stdenv.hostPlatform) system;

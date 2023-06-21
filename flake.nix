@@ -150,6 +150,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
+    alejandra = {
+      url = "github:kamadorueda/alejandra";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     clash-meta.url = "github:MetaCubeX/Clash.Meta/Alpha";
   };
 

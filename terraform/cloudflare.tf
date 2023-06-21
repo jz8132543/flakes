@@ -75,6 +75,7 @@ locals {
     ldap      = { on = "fra1", proxy = false }
     sso       = { on = "fra1", proxy = false }
     vault     = { on = "fra1", proxy = false }
+    "mta-sts" = { on = "fra1", proxy = false }
   }
 }
 output "service_cname_mappings" {
@@ -113,7 +114,23 @@ resource "cloudflare_record" "dora_b2" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-# smtp records for sending
+# matrix SRV record
+resource "cloudflare_record" "_matrix_tcp" {
+  name    = "_matrix._tcp"
+  type    = "SRV"
+  zone_id = cloudflare_zone.im_dora.id
+  data {
+    service  = "_matrix"
+    proto    = "_tcp"
+    name     = cloudflare_zone.im_dora.zone
+    priority = 10
+    weight   = 5
+    port     = 443
+    target   = "m.dora.im"
+  }
+}
+
+# mail
 
 resource "cloudflare_record" "dora_dkim" {
   name    = "default._domainkey"
@@ -142,6 +159,15 @@ resource "cloudflare_record" "dora_spf" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
+resource "cloudflare_record" "dora_mta_sts" {
+  name    = "_mta-sts"
+  proxied = false
+  ttl     = 1
+  type    = "TXT"
+  value   = "v=STSv1; id=2022621T010102"
+  zone_id = cloudflare_zone.im_dora.id
+}
+
 resource "cloudflare_record" "dora_mx_fra0" {
   name     = "dora.im"
   proxied  = false
@@ -150,22 +176,6 @@ resource "cloudflare_record" "dora_mx_fra0" {
   value    = "fra0.dora.im"
   priority = 1
   zone_id  = cloudflare_zone.im_dora.id
-}
-
-# matrix SRV record
-resource "cloudflare_record" "_matrix_tcp" {
-  name    = "_matrix._tcp"
-  type    = "SRV"
-  zone_id = cloudflare_zone.im_dora.id
-  data {
-    service  = "_matrix"
-    proto    = "_tcp"
-    name     = cloudflare_zone.im_dora.zone
-    priority = 10
-    weight   = 5
-    port     = 443
-    target   = "m.dora.im"
-  }
 }
 
 # Machines

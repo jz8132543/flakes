@@ -10,3 +10,5 @@ terraform.plan
 terraform/moon
 .terraform.tfstate.lock.info
 .terraform
+
+/.nixd.json

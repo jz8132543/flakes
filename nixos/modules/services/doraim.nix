@@ -1,8 +1,12 @@
-{config, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       doraim = {
-        rule = "Host(`dora.im`)";
+        rule = "Host(`dora.im`) || Host(`mta-sts.dora.im`)";
         entryPoints = ["https"];
         service = "doraim";
       };
@@ -37,5 +41,11 @@
         return 301 https://zone.dora.im$request_uri;
       '';
     };
+    virtualHosts."mta-sts.dora.im".locations."=/.well-known/mta-sts.txt".alias = pkgs.writeText "mta-sts.txt" ''
+      version: STSv1
+      mode: enforce
+      mx: *.dora.im
+      max_age: 86400
+    '';
   };
 }

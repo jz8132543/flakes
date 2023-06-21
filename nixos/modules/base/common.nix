@@ -12,4 +12,8 @@
     man.generateCaches = false;
   };
   programs.command-not-found.enable = false;
+  services.journald.extraConfig = ''
+    SystemMaxUse=100M
+    SystemKeepFree=1G
+  '';
 }
