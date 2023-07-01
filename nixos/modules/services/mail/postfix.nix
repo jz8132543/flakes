@@ -1,12 +1,14 @@
 {
   config,
   lib,
-  pkgs,
+  nixosModules,
   ...
 }: let
   mkKeyVal = opt: val: ["-o" (opt + "=" + val)];
   mkOpts = opts: lib.concatLists (lib.mapAttrsToList mkKeyVal opts);
 in {
+  imports = [nixosModules.services.acme];
+  networking.firewall.allowedTCPPorts = [25 465 993];
   sops.secrets = {
     "mail/ldap" = {};
     dkim = {
@@ -17,7 +19,7 @@ in {
 
   sops.templates."postfix-sender-maps" = {
     content = ''
-      server_host = ldap://ldap.dora.im:${toString config.ports.ldap}
+      server_host = ldaps://ldap.dora.im:${toString config.ports.ldaps}
       version = 3
       bind = yes
       bind_dn = uid=mail,ou=people,dc=dora,dc=im
@@ -30,23 +32,28 @@ in {
     '';
   };
 
-  systemd.services.postfix.serviceConfig = {
-    PrivateTmp = true;
-    ExecStartPre = ''
-      ${pkgs.openssl}/bin/openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout /tmp/selfsigned.key -out /tmp/selfsigned.crt -batch
-    '';
-  };
-
   services.postfix = {
     enable = true;
     hostname = config.networking.fqdn;
     config = {
-      smtp_tls_security_level = "may";
-
-      smtpd_tls_chain_files = ["/tmp/selfsigned.key" "/tmp/selfsigned.crt"];
+      smtpd_use_tls = "yes";
+      smtp_tls_note_starttls_offer = "yes";
       smtpd_tls_security_level = "may";
-      smtpd_relay_restrictions = ["permit_sasl_authenticated" "defer_unauth_destination"];
+      smtpd_tls_auth_only = "yes";
+      smtp_dns_support_level = "dnssec";
+      smtp_tls_security_level = "dane";
+      smtpd_tls_cert_file = "${config.security.acme.certs."main".directory}/full.pem";
+      smtpd_tls_key_file = "${config.security.acme.certs."main".directory}/key.pem";
+      smtpd_tls_CAfile = "${config.security.acme.certs."main".directory}/fullchain.pem";
+      smtpd_tls_dh512_param_file = config.security.dhparams.params.postfix512.path;
+      smtpd_tls_dh1024_param_file = config.security.dhparams.params.postfix2048.path;
+      smtpd_tls_session_cache_database = ''btree:''${data_directory}/smtpd_scache'';
+      smtpd_tls_mandatory_protocols = "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1";
+      smtpd_tls_protocols = "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1";
+      smtpd_tls_mandatory_ciphers = "medium";
+      tls_medium_cipherlist = "AES128+EECDH:AES128+EDH";
 
+      smtpd_relay_restrictions = ["permit_sasl_authenticated" "defer_unauth_destination"];
       virtual_transport = "lmtp:unix:/run/dovecot2/lmtp";
       virtual_mailbox_domains = ["dora.im"];
 
@@ -63,12 +70,13 @@ in {
       lmtp = {
         args = ["flags=O"];
       };
-      "127.0.0.1:submission" = {
+      "465" = {
         type = "inet";
         private = false;
         command = "smtpd";
         args = mkOpts {
           smtpd_tls_security_level = "none";
+          smtpd_tls_wrappermode = "yes";
           smtpd_sasl_auth_enable = "yes";
           broken_sasl_auth_clients = "yes";
           smtpd_sasl_type = "dovecot";
@@ -78,7 +86,6 @@ in {
           smtpd_client_restrictions = "permit_sasl_authenticated,reject";
           smtpd_sender_restrictions = "reject_sender_login_mismatch";
           smtpd_recipient_restrictions = "reject_non_fqdn_recipient,reject_unknown_recipient_domain,permit_sasl_authenticated,reject";
-          smtpd_upstream_proxy_protocol = "haproxy";
         };
       };
     };
@@ -132,5 +139,10 @@ in {
   services.redis.servers.rspamd = {
     enable = true;
     port = 16380;
+  };
+  security.dhparams = {
+    enable = true;
+    params.postfix512.bits = 512;
+    params.postfix2048.bits = 1024;
   };
 }

@@ -26,10 +26,9 @@ in {
       '';
     };
     configFile = pkgs.writeText "dovecot.conf" ''
-      listen = 127.0.0.1
-      haproxy_trusted_networks = 127.0.0.1/8
+      # listen = 0.0.0.0
+      # haproxy_trusted_networks = 127.0.0.1/8
       protocols = imap lmtp
-      ssl = no
       base_dir = /run/dovecot2
 
       default_internal_user  = ${cfg.user}
@@ -51,12 +50,10 @@ in {
         driver = ldap
       }
       service imap-login {
-        inet_listener imap {
-          port    = 8143
-          haproxy = yes
-        }
+        client_limit = 1000
+        service_count = 0
         inet_listener imaps {
-          port = 0
+          port = 993
         }
       }
 
@@ -99,12 +96,20 @@ in {
       plugin {
         sieve_after = /var/lib/dovecot/sieve/after
       }
+
+      ssl = yes
+      ssl_cert = <${config.security.acme.certs."main".directory}/full.pem
+      ssl_key = <${config.security.acme.certs."main".directory}/key.pem
+      ssl_min_protocol = TLSv1.2
+      ssl_cipher_list = EECDH+AESGCM:EDH+AESGCM
+      ssl_prefer_server_ciphers = yes
+      ssl_dh=<${config.security.dhparams.params.dovecot2.path}
     '';
   };
   sops.secrets."mail/ldap" = {};
   sops.templates."dovecot-ldap" = {
     content = ''
-      uris = ldap://ldap.dora.im:${toString config.ports.ldap}
+      uris = ldaps://ldap.dora.im:${toString config.ports.ldaps}
       dn = uid=mail,ou=people,dc=dora,dc=im
       dnpass = ${config.sops.placeholder."mail/ldap"}
       base = ou=people,dc=dora,dc=im
@@ -118,5 +123,9 @@ in {
       iterate_filter = (objectClass=person)
     '';
     path = "/etc/dovecot/dovecot-ldap.conf.ext";
+  };
+  security.dhparams = {
+    enable = true;
+    params.dovecot2 = {};
   };
 }

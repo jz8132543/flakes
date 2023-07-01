@@ -40,6 +40,31 @@
       locations."/.well-known/webfinger".extraConfig = ''
         return 301 https://zone.dora.im$request_uri;
       '';
+      locations."=/.well-known/autoconfig/mail/config-v1.1.xml".alias = pkgs.writeText "config-v1.1.xml" ''
+        <?xml version="1.0" encoding="UTF-8"?>
+
+        <clientConfig version="1.1">
+          <emailProvider id="dora.im">
+            <domain>dora.im</domain>
+            <displayName>Doraemon Mail</displayName>
+            <displayShortName>Doraemon</displayShortName>
+            <incomingServer type="imap">
+              <hostname>mail.dora.im</hostname>
+              <port>993</port>
+              <socketType>SSL</socketType>
+              <authentication>password-cleartext</authentication>
+              <username>%EMAILADDRESS%</username>
+            </incomingServer>
+            <outgoingServer type="smtp">
+              <hostname>mail.dora.im</hostname>
+              <port>465</port>
+              <socketType>SSL</socketType>
+              <authentication>password-cleartext</authentication>
+              <username>%EMAILADDRESS%</username>
+            </outgoingServer>
+          </emailProvider>
+        </clientConfig>
+      '';
     };
     virtualHosts."mta-sts.dora.im".locations."=/.well-known/mta-sts.txt".alias = pkgs.writeText "mta-sts.txt" ''
       version: STSv1

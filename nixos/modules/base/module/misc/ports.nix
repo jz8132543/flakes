@@ -94,7 +94,8 @@
       nginx = 8080;
       keycloak = 3260;
       lldap = 17170;
-      ldap = 3890;
+      ldap = 389;
+      ldaps = 636;
       mta-sts = 8097;
       derp = 3478;
       smtp = 465;

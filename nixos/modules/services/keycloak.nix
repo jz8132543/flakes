@@ -1,8 +1,10 @@
 {
   config,
   lib,
+  nixosModules,
   ...
 }: {
+  imports = [nixosModules.services.acme];
   networking.firewall.allowedTCPPorts = [config.ports.ldap];
   services.keycloak = {
     enable = true;
@@ -28,9 +30,18 @@
       ldap_base_dn = "dc=dora,dc=im";
       database_url = "postgresql://lldap@postgres.dora.im/lldap";
       ldap_user_dn = "i";
+      ldaps_options = {
+        enabled = true;
+        port = config.ports.ldaps;
+        cert_file = "${config.security.acme.certs."main".directory}/full.pem";
+        key_file = "${config.security.acme.certs."main".directory}/key.pem";
+      };
     };
   };
-  systemd.services.lldap.serviceConfig.Restart = "always";
+  systemd.services.lldap.serviceConfig = {
+    User = lib.mkForce "acme";
+    Restart = "always";
+  };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       keycloak = {

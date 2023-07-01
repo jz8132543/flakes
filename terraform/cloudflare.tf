@@ -67,8 +67,7 @@ locals {
     headscale = { on = "fra0", proxy = false }
     cache     = { on = "fra0", proxy = false }
     hydra     = { on = "fra0", proxy = false }
-    imap      = { on = "fra0", proxy = false }
-    smtp      = { on = "fra0", proxy = false }
+    mail      = { on = "fra0", proxy = false }
     m         = { on = "fra1", proxy = false }
     zone      = { on = "fra1", proxy = false }
     "admin.m" = { on = "fra1", proxy = false }
@@ -155,7 +154,7 @@ resource "cloudflare_record" "dora_spf" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  value   = "v=spf1 a mx include:fra0.dora.im ~all"
+  value   = "v=spf1 mx mx:dora.im -all"
   zone_id = cloudflare_zone.im_dora.id
 }
 
