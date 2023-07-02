@@ -27,24 +27,6 @@ output "b2_s3_region" {
   value = regex("^s3.([a-z0-9\\-]+).backblazeb2.com$", module.b2_s3_api_url.host)[0]
 }
 
-resource "b2_application_key" "manage" {
-  # key for data management
-  key_name = "manage"
-  # read and write to all buckets
-  capabilities = [
-    "deleteFiles",
-    "listAllBucketNames",
-    "listBuckets",
-    "listFiles",
-    "readBucketEncryption",
-    "readBuckets",
-    "readFiles",
-    "shareFiles",
-    "writeBucketEncryption",
-    "writeFiles"
-  ]
-}
-
 resource "b2_bucket" "synapse_media" {
   bucket_name = "doraim-synapse-media"
   bucket_type = "allPrivate"

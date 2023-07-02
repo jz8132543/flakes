@@ -132,6 +132,8 @@ in {
       };
       systemd.services."hydra-init" = {
         after = ["postgresql.service" "tailscaled.service"];
+        serviceConfig.Restart = lib.mkForce "on-failure";
+        serviceConfig.Type = lib.mkForce "simple";
       };
     }
 
