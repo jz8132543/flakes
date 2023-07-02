@@ -39,7 +39,8 @@
     };
   };
   systemd.services.lldap.serviceConfig = {
-    User = lib.mkForce "acme";
+    AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+    SupplementaryGroups = ["acme"];
     Restart = "always";
   };
   services.traefik.dynamicConfigOptions.http = {

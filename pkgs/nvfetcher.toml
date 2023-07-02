@@ -2,7 +2,7 @@
 src.git = "https://github.com/MetaCubeX/Clash.Meta"
 src.branch = "Alpha"
 fetch.github = "MetaCubeX/Clash.Meta"
-passthru = { vendorSha256 = "sha256-lMeJ3z/iTHIbJI5kTzkQjNPMv5tGMJK/+PM36BUlpjE=" }
+passthru = { vendorSha256 = "sha256-VtbQp47wkAtI57DId/W8D4HM9pd2Ctsi3qyxliR+Fwg=" }
 [kitty-catppuccin]
 fetch.github = "catppuccin/kitty"
 src.git = "https://github.com/catppuccin/kitty"

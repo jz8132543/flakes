@@ -15,7 +15,7 @@
       fetchSubmodules = false;
       sha256 = "sha256-sjCUdD6PyjNz5QFXEQWgB0RkiAzlPm6v2eUfTew5Cu8=";
     };
-    vendorSha256 = "sha256-lMeJ3z/iTHIbJI5kTzkQjNPMv5tGMJK/+PM36BUlpjE=";
+    vendorSha256 = "sha256-VtbQp47wkAtI57DId/W8D4HM9pd2Ctsi3qyxliR+Fwg=";
     date = "2023-07-02";
   };
   kitty-catppuccin = {
