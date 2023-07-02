@@ -123,8 +123,8 @@ jobs:
         if [ -z "$(git status --porcelain)" ]; then
           echo "repository is clean, skip commit and push"
         else
-          git config --global user.email "i@dora.im"
-          git config --global user.name "jz8132543"
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add --all
           git commit --message "Terraform apply"
           git push
