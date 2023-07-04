@@ -27,6 +27,10 @@
       key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
       owned = true;
     };
+    dfw1 = {
+      key = "age1pjtlq295c5gul5naxthwu5j2a85kc5090kuyp9c3e3rvdvefyq9ql9uujg";
+      owned = true;
+    };
   };
   ownedHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) (lib.filterAttrs (_: cfg: cfg.owned) hosts);
   allHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) hosts;

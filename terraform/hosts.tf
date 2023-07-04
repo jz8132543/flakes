@@ -72,7 +72,7 @@ locals {
         aaaa = {
           proxied = false
           type    = "AAAA"
-          value   = "2001:41d0:700:508f::2872"
+          value   = "2606:fc40:0:b38::1"
         }
       }
       ddns_records = {}
