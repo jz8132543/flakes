@@ -1,5 +1,4 @@
 {
-  config,
   self,
   inputs,
   lib,
@@ -98,6 +97,10 @@ in {
     })
     (mkHost {
       name = "dfw0";
+      system = "x86_64-linux";
+    })
+    (mkHost {
+      name = "dfw1";
       system = "x86_64-linux";
     })
   ];

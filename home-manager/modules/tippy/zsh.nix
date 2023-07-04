@@ -58,7 +58,7 @@
     initExtra = ''
       source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
       source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
-      source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+      # source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 
       bindkey -v
       bindkey -M vicmd '^[[1;5C' emacs-forward-word
@@ -70,8 +70,10 @@
       autoload -U select-word-style
       select-word-style bash
       bindkey '^W' backward-kill-word
-      bindkey "^[[A" history-substring-search-up
-      bindkey "^[[B" history-substring-search-down
+      # bindkey "^[[A" history-substring-search-up
+      # bindkey "^[[B" history-substring-search-down
+      bindkey '^[[A' up-line-or-search
+      bindkey '^[[B' down-line-or-search
       alias -g ...='../..'
       alias -g ....='../../..'
       alias -g .....='../../../..'
@@ -80,15 +82,7 @@
       do
         setopt $option
       done <<-EOF
-      AUTO_CD
-      AUTO_LIST
-      AUTO_MENU
-      AUTO_PARAM_SLASH
-      AUTO_PUSHD
-      APPEND_HISTORY
       ALWAYS_TO_END
-      COMPLETE_IN_WORD
-      CORRECT
       EXTENDED_HISTORY
       HIST_EXPIRE_DUPS_FIRST
       HIST_FCNTL_LOCK
@@ -98,12 +92,6 @@
       HIST_REDUCE_BLANKS
       HIST_SAVE_NO_DUPS
       HIST_VERIFY
-      INC_APPEND_HISTORY
-      INTERACTIVE_COMMENTS
-      NO_NOMATCH
-      PUSHD_IGNORE_DUPS
-      PUSHD_TO_HOME
-      PUSHD_SILENT
       SHARE_HISTORY
       EOF
     '';
