@@ -31,49 +31,106 @@
   },
   "hosts": {
     "ams0": {
-      "dn42_addresses_v4": ["172.23.224.99"],
-      "dn42_addresses_v6": ["fd72:db83:badd:3::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:3::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.99"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:3::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:3::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [3]
+      "host_indices": [
+        3
+      ]
     },
     "dfw0": {
-      "dn42_addresses_v4": ["172.23.224.100"],
-      "dn42_addresses_v6": ["fd72:db83:badd:4::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:4::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.100"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:4::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:4::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [4]
+      "host_indices": [
+        4
+      ]
+    },
+    "dfw1": {
+      "dn42_addresses_v4": [
+        "172.23.224.101"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:5::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:5::/64"
+      ],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [
+        5
+      ]
     },
     "fra0": {
-      "dn42_addresses_v4": ["172.23.224.97"],
-      "dn42_addresses_v6": ["fd72:db83:badd:1::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:1::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.97"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:1::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:1::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [1]
+      "host_indices": [
+        1
+      ]
     },
     "fra1": {
-      "dn42_addresses_v4": ["172.23.224.98"],
-      "dn42_addresses_v6": ["fd72:db83:badd:2::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:2::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.98"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:2::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:2::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [2]
+      "host_indices": [
+        2
+      ]
     },
     "surface": {
-      "dn42_addresses_v4": ["172.23.224.126"],
-      "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:1e::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.126"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:1e::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:1e::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [30]
+      "host_indices": [
+        30
+      ]
     }
   },
   "service_cname_mappings": {
