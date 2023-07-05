@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   hydraUser = config.users.users.hydra.name;
@@ -13,7 +12,6 @@ in {
     {
       services.hydra = {
         enable = true;
-        package = pkgs.hydra-master;
         listenHost = "127.0.0.1";
         port = config.ports.hydra;
         hydraURL = "https://hydra.dora.im";
