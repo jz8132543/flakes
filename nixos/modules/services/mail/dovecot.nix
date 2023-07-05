@@ -109,7 +109,7 @@ in {
   sops.secrets."mail/ldap" = {};
   sops.templates."dovecot-ldap" = {
     content = ''
-      uris = ldaps://ldap.dora.im:${toString config.ports.ldaps}
+      uris = ${config.lib.self.data.ldap}
       dn = uid=mail,ou=people,dc=dora,dc=im
       dnpass = ${config.sops.placeholder."mail/ldap"}
       base = ou=people,dc=dora,dc=im

@@ -33,15 +33,26 @@
       ldaps_options = {
         enabled = true;
         port = config.ports.ldaps;
-        cert_file = "${config.security.acme.certs."main".directory}/full.pem";
+        cert_file = "${config.security.acme.certs."main".directory}/cert.pem";
         key_file = "${config.security.acme.certs."main".directory}/key.pem";
       };
+      environment = {
+        LLDAP_JWT_SECRET_FILE = config.sops.secrets."lldap/jwt_secret".path;
+      };
+      verbose = true;
     };
   };
   systemd.services.lldap.serviceConfig = {
     AmbientCapabilities = "CAP_NET_BIND_SERVICE";
     SupplementaryGroups = ["acme"];
     Restart = "always";
+    LoadCredential = [
+      "jwt-secret:${config.sops.secrets."lldap/jwt_secret".path}"
+    ];
+  };
+  sops.secrets."lldap/jwt_secret" = {
+    group = config.systemd.services.lldap.serviceConfig.Group;
+    mode = "0440";
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {

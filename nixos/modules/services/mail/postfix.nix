@@ -19,7 +19,7 @@ in {
 
   sops.templates."postfix-sender-maps" = {
     content = ''
-      server_host = ldaps://ldap.dora.im:${toString config.ports.ldaps}
+      server_host = ${config.lib.self.data.ldap}
       version = 3
       bind = yes
       bind_dn = uid=mail,ou=people,dc=dora,dc=im

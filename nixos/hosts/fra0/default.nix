@@ -9,5 +9,6 @@
       nixosModules.services.headscale
       nixosModules.services.derp
       nixosModules.services.hydra
+      nixosModules.services.sogo
     ];
 }

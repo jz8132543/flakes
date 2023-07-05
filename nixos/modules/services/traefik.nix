@@ -1,8 +1,4 @@
-{
-  lib,
-  config,
-  ...
-}: {
+{config, ...}: {
   config.networking.firewall.allowedTCPPorts = [80 443];
   config.networking.firewall.allowedUDPPorts = [443];
   config.services.traefik = {
@@ -34,8 +30,8 @@
         storage = "/var/lib/traefik/acme.json";
         keyType = "EC256";
         eab = {
-          kid = "s5QsCWwCNdhUcJAUR1TfNA";
-          hmacEncoded = "kcZnLYZstFNSf1HQQyaBhXWWikJRIxf3pVhgEg_21CiiaF36A4ADzUpt5KpwOzPuOpRCBkNd9oXrhsSirRm2lw";
+          kid = "{{ env `KID` }}";
+          hmacEncoded = "{{ env `HMAC` }}";
         };
         dnsChallenge = {provider = "cloudflare";};
       };
@@ -48,6 +44,7 @@
           manualRouting = true;
         };
       };
+      api = {};
     };
     dynamicConfigOptions = {
       tls.options.default = {
@@ -66,13 +63,34 @@
             entryPoints = ["https"];
             service = "prometheus@internal";
           };
+          api = {
+            rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/debug`) || PathPrefix(`/dashboard`))";
+            entrypoints = ["https"];
+            service = "api@internal";
+            middlewares = "auth";
+          };
+        };
+        middlewares = {
+          # https://tool.oschina.net/htpasswd
+          auth.basicauth = {
+            users = "{{ env `TRAEFIK_AUTH` }}";
+            removeheader = true;
+          };
         };
       };
     };
   };
   config.systemd.services.traefik.serviceConfig.EnvironmentFile = [config.sops.templates."traefik-env".path];
-  config.sops.secrets."traefik/cloudflare_token" = {};
+  config.sops.secrets = {
+    "traefik/cloudflare_token" = {};
+    "traefik/KID" = {};
+    "traefik/HMAC" = {};
+    "traefik/TRAEFIK_AUTH" = {};
+  };
   config.sops.templates.traefik-env.content = ''
     CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
+    TRAEFIK_AUTH=${config.sops.placeholder."traefik/TRAEFIK_AUTH"}
+    KID=${config.sops.placeholder."traefik/KID"}
+    HMAC=${config.sops.placeholder."traefik/HMAC"}
   '';
 }

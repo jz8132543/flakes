@@ -29,6 +29,8 @@
     "smtp": "fra0.dora.im",
     "imap": "fra0.dora.im"
   },
+  "ldap": "ldap://ldap.dora.im:389",
+  "database": "postgres.dora.im",
   "hosts": {
     "ams0": {
       "dn42_addresses_v4": ["172.23.224.99"],
