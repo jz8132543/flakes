@@ -74,7 +74,8 @@ locals {
     ldap          = { on = "fra1", proxy = false }
     sso           = { on = "fra1", proxy = false }
     vault         = { on = "fra1", proxy = false }
-    "mta-sts"     = { on = "fra1", proxy = false }
+    mta-sts       = { on = "fra1", proxy = false }
+    cloud         = { on = "fra0", proxy = false }
     minio         = { on = "dfw1", proxy = false }
     minio-console = { on = "dfw1", proxy = false }
   }

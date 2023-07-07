@@ -10,5 +10,6 @@
       nixosModules.services.derp
       nixosModules.services.hydra
       nixosModules.services.sogo
+      nixosModules.services.ocis
     ];
 }

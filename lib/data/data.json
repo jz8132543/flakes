@@ -96,6 +96,10 @@
       "on": "fra0",
       "proxy": false
     },
+    "cloud": {
+      "on": "fra0",
+      "proxy": false
+    },
     "headscale": {
       "on": "fra0",
       "proxy": false
