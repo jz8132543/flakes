@@ -41,6 +41,7 @@
     tcpdump
     wireguard-tools
     openssl
+    gptfdisk
     lsof
     vim
     dig
