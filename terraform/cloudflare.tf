@@ -68,16 +68,16 @@ locals {
     cache         = { on = "fra0", proxy = false }
     hydra         = { on = "fra0", proxy = false }
     mail          = { on = "fra0", proxy = false }
-    m             = { on = "fra1", proxy = false }
-    zone          = { on = "fra1", proxy = false }
-    "admin.m"     = { on = "fra1", proxy = false }
-    ldap          = { on = "fra1", proxy = false }
-    sso           = { on = "fra1", proxy = false }
-    vault         = { on = "fra1", proxy = false }
-    mta-sts       = { on = "fra1", proxy = false }
-    cloud         = { on = "fra0", proxy = false }
-    minio         = { on = "dfw1", proxy = false }
-    minio-console = { on = "dfw1", proxy = false }
+    m             = { on = "fra2", proxy = false }
+    zone          = { on = "fra2", proxy = false }
+    "admin.m"     = { on = "fra2", proxy = false }
+    ldap          = { on = "fra2", proxy = false }
+    sso           = { on = "fra2", proxy = false }
+    vault         = { on = "fra2", proxy = false }
+    mta-sts       = { on = "fra2", proxy = false }
+    box           = { on = "dfw2", proxy = false }
+    minio         = { on = "dfw2", proxy = false }
+    minio-console = { on = "dfw2", proxy = false }
   }
 }
 output "service_cname_mappings" {
@@ -102,7 +102,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "fra1.dora.im"
+  value   = "fra2.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -187,7 +187,7 @@ resource "cloudflare_record" "dora_postgres" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "100.64.0.3"
+  value   = "100.64.0.8"
   zone_id = cloudflare_zone.im_dora.id
 }
 

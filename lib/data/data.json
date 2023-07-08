@@ -77,6 +77,15 @@
       "endpoints_v6": [],
       "host_indices": [2]
     },
+    "fra2": {
+      "dn42_addresses_v4": ["172.23.224.102"],
+      "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:6::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [6]
+    },
     "surface": {
       "dn42_addresses_v4": ["172.23.224.126"],
       "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],
@@ -89,14 +98,14 @@
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "fra1",
+      "on": "fra2",
+      "proxy": false
+    },
+    "box": {
+      "on": "dfw2",
       "proxy": false
     },
     "cache": {
-      "on": "fra0",
-      "proxy": false
-    },
-    "cloud": {
       "on": "fra0",
       "proxy": false
     },
@@ -109,11 +118,11 @@
       "proxy": false
     },
     "ldap": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     },
     "m": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     },
     "mail": {
@@ -121,27 +130,27 @@
       "proxy": false
     },
     "minio": {
-      "on": "dfw1",
+      "on": "dfw2",
       "proxy": false
     },
     "minio-console": {
-      "on": "dfw1",
+      "on": "dfw2",
       "proxy": false
     },
     "mta-sts": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     },
     "sso": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     },
     "vault": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     },
     "zone": {
-      "on": "fra1",
+      "on": "fra2",
       "proxy": false
     }
   }

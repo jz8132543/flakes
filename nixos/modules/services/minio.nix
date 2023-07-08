@@ -8,8 +8,8 @@
     listenAddress = "127.0.0.1:${toString config.ports.minio}";
     consoleAddress = "127.0.0.1:${toString config.ports.minio-console}";
     rootCredentialsFile = config.sops.templates."minio-root-credentials".path;
-    dataDir = ["/mnt/minio/data"];
-    configDir = "/mnt/minio/config";
+    # dataDir = ["/mnt/minio/data"];
+    # configDir = "/mnt/minio/config";
   };
   sops.secrets."minio/user" = {
     restartUnits = ["minio.service"];

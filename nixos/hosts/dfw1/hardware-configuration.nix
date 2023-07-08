@@ -26,10 +26,10 @@
       interface = "eth0";
     };
   };
-  fileSystems = {
-    "/mnt/minio" = {
-      fsType = "xfs";
-      device = lib.mkForce "/dev/disk/by-partlabel/MINIO";
-    };
-  };
+  # fileSystems = {
+  #   "/mnt/minio" = {
+  #     fsType = "xfs";
+  #     device = lib.mkForce "/dev/disk/by-partlabel/MINIO";
+  #   };
+  # };
 }
