@@ -13,5 +13,6 @@
       nixosModules.services.keycloak
       nixosModules.services.prometheus
       nixosModules.services.mastodon
+      nixosModules.services.seafile
     ];
 }

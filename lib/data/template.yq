@@ -18,8 +18,8 @@
         "i": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJHUUFSNsaiMVMRtDl+Oq/7I2yViZAENbApEeCsbLJnq i@dora.im"
     },
     "mail": {
-        "smtp": "fra0.dora.im",
-        "imap": "fra0.dora.im"
+        "smtp": "mail.dora.im",
+        "imap": "mail.dora.im"
     },
     "ldap": "ldap://ldap.dora.im:389",
     "database": "postgres.dora.im",

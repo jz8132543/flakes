@@ -31,7 +31,7 @@
         keyType = "EC256";
         eab = {
           kid = "{{ env `KID` }}";
-          hmacEncoded = "{{ env `HMAC` }}";
+          hmacEncoded = "{{ env `` }}";
         };
         dnsChallenge = {provider = "cloudflare";};
       };
@@ -84,13 +84,13 @@
   config.sops.secrets = {
     "traefik/cloudflare_token" = {};
     "traefik/KID" = {};
-    "traefik/HMAC" = {};
+    "traefik/hmacEncoded" = {};
     "traefik/TRAEFIK_AUTH" = {};
   };
   config.sops.templates.traefik-env.content = ''
     CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
     TRAEFIK_AUTH=${config.sops.placeholder."traefik/TRAEFIK_AUTH"}
     KID=${config.sops.placeholder."traefik/KID"}
-    HMAC=${config.sops.placeholder."traefik/HMAC"}
+    HMAC=${config.sops.placeholder."traefik/hmacEncoded"}
   '';
 }

@@ -51,8 +51,8 @@
     ];
   };
   sops.secrets."lldap/jwt_secret" = {
-    group = config.systemd.services.lldap.serviceConfig.Group;
-    mode = "0440";
+    # group = config.systemd.services.lldap.serviceConfig.Group;
+    # mode = "0440";
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
