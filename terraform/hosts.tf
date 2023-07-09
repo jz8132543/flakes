@@ -85,7 +85,7 @@ locals {
         a = {
           proxied = false
           type    = "A"
-          value   = "92.222.239.79"
+          value   = "92.222.239.55"
         }
         aaaa = {
           proxied = false

@@ -22,7 +22,7 @@
       useDHCP = false;
       ipv4.addresses = [
         {
-          address = "92.222.239.79";
+          address = "92.222.239.55";
           prefixLength = 25;
         }
       ];
