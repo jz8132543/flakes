@@ -64,19 +64,21 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
-    headscale     = { on = "fra0", proxy = false }
-    cache         = { on = "fra0", proxy = false }
-    hydra         = { on = "fra0", proxy = false }
-    mail          = { on = "fra0", proxy = false }
-    m             = { on = "fra2", proxy = false }
-    zone          = { on = "fra2", proxy = false }
-    "admin.m"     = { on = "fra2", proxy = false }
-    ldap          = { on = "fra2", proxy = false }
-    sso           = { on = "fra2", proxy = false }
-    vault         = { on = "fra2", proxy = false }
-    mta-sts       = { on = "fra2", proxy = false }
-    box           = { on = "fra2", proxy = false }
-    searx         = { on = "fra2", proxy = false }
+    headscale = { on = "fra0", proxy = false }
+    cache     = { on = "fra0", proxy = false }
+    hydra     = { on = "fra0", proxy = false }
+    mail      = { on = "fra0", proxy = false }
+
+    m         = { on = "fra2", proxy = true }
+    zone      = { on = "fra2", proxy = true }
+    "admin.m" = { on = "fra2", proxy = true }
+    sso       = { on = "fra2", proxy = true }
+    vault     = { on = "fra2", proxy = true }
+    box       = { on = "fra2", proxy = true }
+    searx     = { on = "fra2", proxy = true }
+    ldap      = { on = "fra2", proxy = false }
+    mta-sts   = { on = "fra2", proxy = false }
+
     minio         = { on = "dfw2", proxy = false }
     minio-console = { on = "dfw2", proxy = false }
   }
