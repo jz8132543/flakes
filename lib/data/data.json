@@ -141,6 +141,10 @@
       "on": "fra2",
       "proxy": false
     },
+    "searx": {
+      "on": "fra2",
+      "proxy": false
+    },
     "sso": {
       "on": "fra2",
       "proxy": false

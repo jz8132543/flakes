@@ -36,23 +36,33 @@
         cert_file = "${config.security.acme.certs."main".directory}/cert.pem";
         key_file = "${config.security.acme.certs."main".directory}/key.pem";
       };
-      environment = {
-        LLDAP_JWT_SECRET_FILE = config.sops.secrets."lldap/jwt_secret".path;
-      };
       verbose = true;
     };
   };
-  systemd.services.lldap.serviceConfig = {
-    AmbientCapabilities = "CAP_NET_BIND_SERVICE";
-    SupplementaryGroups = ["acme"];
-    Restart = "always";
-    LoadCredential = [
-      "jwt-secret:${config.sops.secrets."lldap/jwt_secret".path}"
+  systemd.services.lldap = {
+    serviceConfig = {
+      AmbientCapabilities = "CAP_NET_BIND_SERVICE";
+      SupplementaryGroups = ["acme"];
+      Restart = "always";
+      EnvironmentFile = config.sops.templates."lldap-env".path;
+      LoadCredential = [
+        "jwt-secret:${config.sops.secrets."lldap/jwt_secret".path}"
+      ];
+    };
+    restartTriggers = [
+      config.sops.templates."lldap-env".file
     ];
   };
-  sops.secrets."lldap/jwt_secret" = {
-    # group = config.systemd.services.lldap.serviceConfig.Group;
-    # mode = "0440";
+  sops.templates."lldap-env" = {
+    mode = "0444";
+    content = ''
+      # LLDAP_JWT_SECRET_FILE=/run/credentials/lldap.service/jwt-secret
+      LLDAP_SERVER_KEY_SEED=${config.sops.placeholder."lldap/LLDAP_SERVER_KEY_SEED"}
+    '';
+  };
+  sops.secrets = {
+    "lldap/LLDAP_SERVER_KEY_SEED" = {};
+    "lldap/jwt_secret" = {mode = "0444";};
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {

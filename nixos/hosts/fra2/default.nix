@@ -14,5 +14,6 @@
       nixosModules.services.prometheus
       nixosModules.services.mastodon
       nixosModules.services.seafile
+      nixosModules.services.searx
     ];
 }

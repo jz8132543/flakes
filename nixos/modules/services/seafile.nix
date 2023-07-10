@@ -1,4 +1,24 @@
-{config, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: let
+  settingsFormat = pkgs.formats.ini {};
+  seafdavSettings = {
+    WEBDAV = {
+      enabled = true;
+      port = config.ports.seafile-dav;
+      fastcgi = false;
+      share_name = "/dav";
+    };
+  };
+  seafdavConf = settingsFormat.generate "seafdav.conf" seafdavSettings;
+  cfg = config.services.seafile;
+  seafRoot = "/var/lib/seafile"; # hardcode it due to dynamicuser
+  ccnetDir = "${seafRoot}/ccnet";
+  dataDir = "${seafRoot}/data";
+  seahubDir = "${seafRoot}/seahub";
+in {
   services.seafile = {
     enable = true;
     adminEmail = "i@dora.im";
@@ -56,6 +76,7 @@
       SERVER_EMAIL = EMAIL_HOST_USER
     '';
   };
+  environment.etc."seafile/conf/seafdav.conf".source = seafdavConf;
   sops.secrets = {
     "seafile/oidc-secret" = {};
     "seafile/password" = {};
@@ -89,7 +110,6 @@
       };
     };
   };
-
   systemd.services.seahub = {
     serviceConfig.EnvironmentFile = config.sops.templates."seafile-env".path;
     restartTriggers = [

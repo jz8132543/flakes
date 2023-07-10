@@ -35,7 +35,6 @@
       loki = 3030;
       grafana = 3040;
       alertmanager = 3050;
-      seafile-file-server = 3060;
       hydra = 3070;
       nix-serve = 3080;
       matrix = 3090;
@@ -101,7 +100,9 @@
       smtp = 465;
       imap = 993;
       sogo = 20001;
-      ocis = 9200;
+      seafile-file-server = 3060;
+      seafile-dav = 3061;
+      searx = 8888;
     };
   };
 }

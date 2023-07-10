@@ -76,6 +76,7 @@ locals {
     vault         = { on = "fra2", proxy = false }
     mta-sts       = { on = "fra2", proxy = false }
     box           = { on = "fra2", proxy = false }
+    searx         = { on = "fra2", proxy = false }
     minio         = { on = "dfw2", proxy = false }
     minio-console = { on = "dfw2", proxy = false }
   }
