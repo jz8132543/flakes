@@ -5,9 +5,7 @@
   nixosModules,
   ...
 }: {
-  imports = [
-    nixosModules.services.restic
-  ];
+  imports = [nixosModules.services.restic];
   networking.firewall.allowedTCPPorts = [5432];
   services.postgresql = {
     enable = true;

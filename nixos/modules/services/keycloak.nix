@@ -4,7 +4,8 @@
   nixosModules,
   ...
 }: {
-  imports = [nixosModules.services.acme];
+  imports = [nixosModules.services.acme nixosModules.services.restic];
+
   networking.firewall.allowedTCPPorts = [config.ports.ldap];
   services.keycloak = {
     enable = true;
