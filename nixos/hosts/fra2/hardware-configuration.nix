@@ -23,7 +23,7 @@
       ipv4.addresses = [
         {
           address = "92.222.239.55";
-          prefixLength = 25;
+          prefixLength = 32;
         }
       ];
       ipv6.addresses = [
@@ -32,14 +32,26 @@
           prefixLength = 72;
         }
       ];
+      ipv4.routes = [
+        {
+          address = "0.0.0.0";
+          prefixLength = 0;
+          via = "192.168.0.1";
+          options.onlink = "";
+        }
+      ];
+      ipv6.routes = [
+        {
+          address = "::";
+          prefixLength = 0;
+          via = "2001:41d0:308:4800::2";
+          options.onlink = "";
+        }
+      ];
     };
-    defaultGateway = {
-      address = "92.222.239.126";
-      interface = "eth0";
-    };
-    defaultGateway6 = {
-      address = "2001:41d0:308:4800::2";
-      interface = "eth0";
-    };
+    # defaultGateway6 = {
+    #   address = "";
+    #   interface = "eth0";
+    # };
   };
 }

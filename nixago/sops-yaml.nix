@@ -20,7 +20,7 @@
       owned = true;
     };
     fra2 = {
-      key = "age1w2fa90slwm8k8ee5tmenvcfz6h96e958k8z42tup2c2smjmduv0ss8x7lf";
+      key = "age1kjfx92325ugxqr5f5vdtxc0j6qdx5pcfsdu4m5tr8620u0a5742qgjazdy";
       owned = true;
     };
     ams0 = {
