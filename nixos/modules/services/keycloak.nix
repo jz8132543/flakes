@@ -92,4 +92,11 @@
     after = ["postgresql.service" "tailscaled.service"];
     serviceConfig.Restart = lib.mkForce "always";
   };
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/lldap/server_key"
+  ];
+  systemd.services."restic-backups-borgbase" = {
+    requires = ["lldap.service"];
+    after = ["lldap.service"];
+  };
 }

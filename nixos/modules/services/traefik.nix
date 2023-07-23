@@ -25,14 +25,14 @@
         };
       };
       certificatesResolvers.zerossl.acme = {
-        caServer = "https://acme.zerossl.com/v2/DV90";
+        # caServer = "https://acme.zerossl.com/v2/DV90";
         email = "blackhole@dora.im";
         storage = "/var/lib/traefik/acme.json";
         keyType = "EC256";
-        eab = {
-          kid = "{{ env `KID` }}";
-          hmacEncoded = "{{ env `` }}";
-        };
+        # eab = {
+        #   kid = "{{ env `KID` }}";
+        #   hmacEncoded = "{{ env `HMAC` }}";
+        # };
         dnsChallenge = {provider = "cloudflare";};
       };
       ping = {
@@ -91,6 +91,6 @@
     CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
     TRAEFIK_AUTH=${config.sops.placeholder."traefik/TRAEFIK_AUTH"}
     KID=${config.sops.placeholder."traefik/KID"}
-    HMAC=${config.sops.placeholder."traefik/hmacEncoded"}
+    HMAC='${config.sops.placeholder."traefik/hmacEncoded"}'
   '';
 }
