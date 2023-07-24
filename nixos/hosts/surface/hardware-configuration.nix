@@ -21,8 +21,10 @@
       options kvm ignore_msrs=1
     '';
     loader = {
+      efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
         device = lib.mkForce "nodev";
+        efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
         gfxmodeEfi = lib.mkForce "1600x1200";
