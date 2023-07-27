@@ -33,6 +33,10 @@ in {
   nixpkgs = {
     config = {
       allowUnfree = true;
+      permittedInsecurePackages = [
+        "openssl-1.1.1u"
+        "electron-19.0.7"
+      ];
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;
   };
