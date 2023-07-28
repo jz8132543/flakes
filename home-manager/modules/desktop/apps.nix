@@ -16,6 +16,7 @@
     directories = [
       ".local/share/TelegramDesktop"
       ".thunderbird"
+      ".config/weixin"
     ];
   };
 }
