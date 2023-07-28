@@ -4,7 +4,6 @@
   config,
   ...
 }: let
-  mountOptions = {mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];};
 in {
   imports = [
     inputs.disko.nixosModules.disko
@@ -46,15 +45,26 @@ in {
               type = "btrfs";
               extraArgs = ["-f"];
               subvolumes = {
-                "/nix" = mountOptions;
-                "/persist" = mountOptions;
-                "/boot" = mountOptions;
-                "/swap" = mountOptions;
-                "/rootfs" =
-                  mountOptions
-                  // {
-                    mountpoint = "/";
-                  };
+                "/nix" = {
+                  mountpoint = "/nix";
+                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                };
+                "/persist" = {
+                  mountpoint = "/persist";
+                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                };
+                "/boot" = {
+                  mountpoint = "/boot";
+                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                };
+                "/swap" = {
+                  mountpoint = "/swap";
+                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                };
+                "/rootfs" = {
+                  mountpoint = "/";
+                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                };
               };
             };
           }
