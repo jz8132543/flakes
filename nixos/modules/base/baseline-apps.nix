@@ -33,7 +33,7 @@
   };
 
   environment.systemPackages = with pkgs; [
-    nixVersions.unstable
+    # nixVersions.unstable
     curlFull
     wget
     neofetch
