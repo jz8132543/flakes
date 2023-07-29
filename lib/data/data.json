@@ -68,15 +68,6 @@
       "endpoints_v6": [],
       "host_indices": [1]
     },
-    "fra1": {
-      "dn42_addresses_v4": ["172.23.224.98"],
-      "dn42_addresses_v6": ["fd72:db83:badd:2::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:2::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [2]
-    },
     "fra2": {
       "dn42_addresses_v4": ["172.23.224.102"],
       "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
