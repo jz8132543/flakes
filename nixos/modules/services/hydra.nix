@@ -5,7 +5,8 @@
 }: let
   hydraUser = config.users.users.hydra.name;
   hydraGroup = config.users.users.hydra.group;
-  keyFile = "nix-build-machines/hydra-builder/key";
+  # keyFile = "nix-build-machines/hydra-builder/key";
+  keyFile = config.sops.secrets."hydra/builder_private_key".path;
   machineFile = "nix-build-machines/hydra-builder/machines";
 in {
   config = lib.mkMerge [
@@ -62,20 +63,20 @@ in {
           mode = "0440";
         };
         "hydra/builder_private_key" = {
-          owner = "hydra-queue-runner";
+          owner = hydraUser;
           group = hydraGroup;
-          mode = "0400";
+          mode = "0440";
         };
       };
-      environment.etc.${keyFile} = {
-        mode = "0400";
-        user = "hydra-queue-runner";
-        group = hydraGroup;
-        source = config.sops.secrets."hydra/builder_private_key".path;
-      };
+      # environment.etc.${keyFile} = {
+      #   mode = "0400";
+      #   user = "hydra-queue-runner";
+      #   group = hydraGroup;
+      #   source = config.sops.secrets."hydra/builder_private_key".path;
+      # };
       environment.etc.${machineFile}.text = ''
-        nix-ssh@fra0  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
-        nix-ssh@fra1  x86_64-linux,i686-linux /etc/${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
+        nix-ssh@fra0  x86_64-linux,i686-linux ${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
+        nix-ssh@fra1  x86_64-linux,i686-linux ${keyFile} 4 1 kvm,nixos-test,benchmark,big-parallel
       '';
     }
 
