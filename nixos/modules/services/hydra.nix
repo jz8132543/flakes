@@ -62,11 +62,14 @@ in {
           mode = "0440";
         };
         "hydra/builder_private_key" = {
-          neededForUsers = true;
+          owner = hydraUser;
+          group = hydraGroup;
+          mode = "0400";
+          # neededForUsers = true;
         };
       };
       environment.etc.${keyFile} = {
-        mode = "440";
+        mode = "0400";
         user = hydraUser;
         group = hydraGroup;
         source = config.sops.secrets."hydra/builder_private_key".path;
