@@ -88,10 +88,6 @@ in {
       system = "x86_64-linux";
     })
     (mkHost {
-      name = "fra1";
-      system = "x86_64-linux";
-    })
-    (mkHost {
       name = "fra2";
       system = "x86_64-linux";
     })
