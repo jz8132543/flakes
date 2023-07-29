@@ -68,7 +68,7 @@
       "endpoints_v6": [],
       "host_indices": [1]
     },
-    "fra2": {
+    "fra1": {
       "dn42_addresses_v4": ["172.23.224.102"],
       "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
       "dn42_v6_prefixes": ["fd72:db83:badd:6::/64"],
@@ -89,11 +89,11 @@
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "box": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "cache": {
@@ -109,11 +109,11 @@
       "proxy": false
     },
     "ldap": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": false
     },
     "m": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "mail": {
@@ -129,23 +129,23 @@
       "proxy": false
     },
     "mta-sts": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": false
     },
     "searx": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "sso": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "vault": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     },
     "zone": {
-      "on": "fra2",
+      "on": "fra1",
       "proxy": true
     }
   }
