@@ -69,15 +69,15 @@ locals {
     hydra     = { on = "fra0", proxy = false }
     mail      = { on = "fra0", proxy = false }
 
-    m         = { on = "fra2", proxy = true }
-    zone      = { on = "fra2", proxy = true }
-    "admin.m" = { on = "fra2", proxy = true }
-    sso       = { on = "fra2", proxy = true }
-    vault     = { on = "fra2", proxy = true }
-    box       = { on = "fra2", proxy = true }
-    searx     = { on = "fra2", proxy = true }
-    ldap      = { on = "fra2", proxy = false }
-    mta-sts   = { on = "fra2", proxy = false }
+    m         = { on = "fra1", proxy = true }
+    zone      = { on = "fra1", proxy = true }
+    "admin.m" = { on = "fra1", proxy = true }
+    sso       = { on = "fra1", proxy = true }
+    vault     = { on = "fra1", proxy = true }
+    box       = { on = "fra1", proxy = true }
+    searx     = { on = "fra1", proxy = true }
+    ldap      = { on = "fra1", proxy = false }
+    mta-sts   = { on = "fra1", proxy = false }
 
     minio         = { on = "dfw2", proxy = false }
     minio-console = { on = "dfw2", proxy = false }
@@ -105,7 +105,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "fra2.dora.im"
+  value   = "fra1.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 

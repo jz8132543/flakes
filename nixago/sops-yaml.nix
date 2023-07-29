@@ -15,7 +15,7 @@
       key = "age15f7j88sget6mun9tgfc4e0qdptev982jcxfaf0js2ky52t00vsaqhywj8m";
       owned = true;
     };
-    fra2 = {
+    fra1 = {
       key = "age1d84jdx8f6y4t750pdv6erycwvfu5kg46x7lxpghgz3gtc2g7c90sv8zgap";
       owned = true;
     };

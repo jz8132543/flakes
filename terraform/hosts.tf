@@ -62,7 +62,7 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
-    fra2 = {
+    fra1 = {
       records = {
         a = {
           proxied = false
