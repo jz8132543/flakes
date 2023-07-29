@@ -1,8 +1,4 @@
-{
-  self,
-  nixosModules,
-  ...
-}: {
+{nixosModules, ...}: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -11,6 +7,9 @@
       ./hardware-configuration.nix
     ];
 
-  # microsoft-surface.ipts.enable = true;
-  microsoft-surface.kernelVersion = "6.1.18";
+  microsoft-surface = {
+    kernelVersion = "6.1.18";
+    surface-control.enable = true;
+    ipts.enable = true;
+  };
 }
