@@ -17,4 +17,7 @@
       "mitigations=off"
     ];
   };
+  systemd.extraConfig = ''
+    DefaultTimeoutStopSec = 20s
+  '';
 }
