@@ -71,10 +71,14 @@
       autoload -U select-word-style
       select-word-style bash
       bindkey '^W' backward-kill-word
-      # bindkey "^[[A" history-substring-search-up
-      # bindkey "^[[B" history-substring-search-down
-      bindkey '^[[A' up-line-or-search
-      bindkey '^[[B' down-line-or-search
+
+      autoload -U up-line-or-beginning-search
+      autoload -U down-line-or-beginning-search
+      zle -N up-line-or-beginning-search
+      zle -N down-line-or-beginning-search
+      bindkey "$key[Up]" up-line-or-beginning-search
+      bindkey "$key[Down]" down-line-or-beginning-search
+
       alias -g ...='../..'
       alias -g ....='../../..'
       alias -g .....='../../../..'
