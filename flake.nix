@@ -10,6 +10,10 @@
     flake-utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
     systems.url = "github:nix-systems/default";
+    nix-index-database = {
+      url = "github:Mic92/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;

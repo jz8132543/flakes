@@ -51,7 +51,6 @@
     nmap
     colmena
     deploy-rs
-    comma
     # tools
     yq-go
     fd

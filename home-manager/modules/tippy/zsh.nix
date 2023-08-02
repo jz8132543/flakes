@@ -110,7 +110,7 @@
   home.global-persistence = {
     directories = [
       ".local/share/zsh"
-      ".cache/nix-index"
+      # ".cache/nix-index"
     ];
   };
 }
