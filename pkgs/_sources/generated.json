@@ -1,11 +1,11 @@
 {
   "clash-meta": {
     "cargoLocks": null,
-    "date": "2023-07-20",
+    "date": "2023-08-01",
     "extract": null,
     "name": "clash-meta",
     "passthru": {
-      "vendorSha256": "sha256-r/a//APa6M7E765yJArtKiD/MZDpEAsFwviFbhXixH4="
+      "vendorSha256": "sha256-XRCHW2KSuO4x5figh3A39sVgZMm/JMgPVRKaZUqSeTc="
     },
     "pinned": false,
     "src": {
@@ -15,11 +15,11 @@
       "name": null,
       "owner": "MetaCubeX",
       "repo": "Clash.Meta",
-      "rev": "76328271776388ba2c1e34f6b8bc67e074e39aa3",
-      "sha256": "sha256-2X9Yls5Usj9MUEZGU67txIJ/Ce/mkZwau9kpwquBb1M=",
+      "rev": "b0fed73236f74bbaf031437aedead5dde824f18b",
+      "sha256": "sha256-7mWOH15GPc8QGWakA83y6oT2lumUutR3Ivrx3gKDcY0=",
       "type": "github"
     },
-    "version": "76328271776388ba2c1e34f6b8bc67e074e39aa3"
+    "version": "b0fed73236f74bbaf031437aedead5dde824f18b"
   },
   "kitty-catppuccin": {
     "cargoLocks": null,
