@@ -58,6 +58,7 @@
     initExtra = ''
       source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
       source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+      source ${pkgs.nix-index}/etc/profile.d/command-not-found.sh
       # source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 
       bindkey -v
@@ -104,10 +105,12 @@
     ripgrep
     rsync
     vivid
+    nix-index
   ];
   home.global-persistence = {
     directories = [
       ".local/share/zsh"
+      ".cache/nix-index"
     ];
   };
 }

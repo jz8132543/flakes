@@ -52,7 +52,6 @@
     colmena
     deploy-rs
     comma
-    nix-index
     # tools
     yq-go
     fd
