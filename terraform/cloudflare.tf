@@ -239,7 +239,7 @@ resource "cloudflare_record" "dora_tyo1" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "54.95.182.60"
+  value   = "13.115.26.191"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo3" {
