@@ -7,16 +7,16 @@
 }: {
   clash-meta = {
     pname = "clash-meta";
-    version = "b0fed73236f74bbaf031437aedead5dde824f18b";
+    version = "191243a1d2a8252c76092e65864e338f5e93db62";
     src = fetchFromGitHub {
       owner = "MetaCubeX";
       repo = "Clash.Meta";
-      rev = "b0fed73236f74bbaf031437aedead5dde824f18b";
+      rev = "191243a1d2a8252c76092e65864e338f5e93db62";
       fetchSubmodules = false;
-      sha256 = "sha256-7mWOH15GPc8QGWakA83y6oT2lumUutR3Ivrx3gKDcY0=";
+      sha256 = "sha256-yX6VeUxTv5DB+M9RFInQg4YL8+aqYUIXMwN3EayKlQQ=";
     };
     vendorSha256 = "sha256-XRCHW2KSuO4x5figh3A39sVgZMm/JMgPVRKaZUqSeTc=";
-    date = "2023-08-01";
+    date = "2023-08-03";
   };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";

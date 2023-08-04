@@ -102,6 +102,7 @@
       sogo = 20001;
       seafile-file-server = 3060;
       seafile-dav = 3061;
+      morty = 3001;
       searx = 8888;
     };
   };

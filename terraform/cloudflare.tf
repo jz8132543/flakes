@@ -76,11 +76,13 @@ locals {
     vault     = { on = "fra1", proxy = true }
     box       = { on = "fra1", proxy = true }
     searx     = { on = "fra1", proxy = true }
+    morty     = { on = "fra1", proxy = true }
     ldap      = { on = "fra1", proxy = false }
     mta-sts   = { on = "fra1", proxy = false }
 
     minio         = { on = "dfw2", proxy = false }
     minio-console = { on = "dfw2", proxy = false }
+
   }
 }
 output "service_cname_mappings" {

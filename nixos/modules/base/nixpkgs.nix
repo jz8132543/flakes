@@ -2,7 +2,6 @@
   inputs,
   getSystem,
   config,
-  lib,
   ...
 }: let
   packages = [
@@ -34,7 +33,7 @@ in {
     config = {
       allowUnfree = true;
       permittedInsecurePackages = [
-        "openssl-1.1.1u"
+        "openssl-1.1.1v"
         "electron-19.0.7"
       ];
     };
