@@ -83,6 +83,7 @@ in {
   services.morty = {
     enable = true;
     port = config.ports.morty;
+    timeout = 10;
   };
 
   services.traefik.dynamicConfigOptions.http = {

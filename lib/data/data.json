@@ -129,16 +129,16 @@
       "proxy": false
     },
     "morty": {
-      "on": "fra1",
-      "proxy": true
+      "on": "ams0",
+      "proxy": false
     },
     "mta-sts": {
       "on": "fra1",
       "proxy": false
     },
     "searx": {
-      "on": "fra1",
-      "proxy": true
+      "on": "ams0",
+      "proxy": false
     },
     "sso": {
       "on": "fra1",

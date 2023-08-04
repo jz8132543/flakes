@@ -8,5 +8,6 @@
       nixosModules.services.derp
       nixosModules.services.proxy
       nixosModules.services.tuic
+      nixosModules.services.searx
     ];
 }

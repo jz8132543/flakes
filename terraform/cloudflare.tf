@@ -75,8 +75,8 @@ locals {
     sso       = { on = "fra1", proxy = true }
     vault     = { on = "fra1", proxy = true }
     box       = { on = "fra1", proxy = true }
-    searx     = { on = "fra1", proxy = true }
-    morty     = { on = "fra1", proxy = true }
+    searx     = { on = "ams0", proxy = false }
+    morty     = { on = "ams0", proxy = false }
     ldap      = { on = "fra1", proxy = false }
     mta-sts   = { on = "fra1", proxy = false }
 
