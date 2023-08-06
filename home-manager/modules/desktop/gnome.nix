@@ -1,7 +1,6 @@
 {
   pkgs,
   lib,
-  osConfig,
   ...
 }: let
   extensionPkgs = with pkgs.gnomeExtensions; [
