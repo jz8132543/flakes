@@ -4,6 +4,8 @@
     domain = "dora.im";
     search = ["dora.im"];
     firewall.enable = true;
+    dhcpcd.extraConfig = "nohook resolv.conf";
+    networkmanager.dns = "none";
   };
 
   boot = {
