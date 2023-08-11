@@ -2,10 +2,11 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }: {
   imports = [
-    inputs.grub2-themes.nixosModules.default
+    # inputs.grub2-themes.nixosModules.default
   ];
   boot = {
     initrd = {
@@ -23,6 +24,7 @@
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
+        theme = pkgs.nixos-grub2-theme;
         device = lib.mkForce "nodev";
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
@@ -39,10 +41,10 @@
           }
         '';
       };
-      grub2-theme = {
-        enable = true;
-        theme = "whitesur";
-      };
+      # grub2-theme = {
+      #   enable = true;
+      #   theme = "whitesur";
+      # };
     };
   };
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

@@ -23,7 +23,8 @@
         # development
         nil
         alejandra
-        nodePackages.vscode-json-languageserver
+        # nodePackages.vscode-json-languageserver
+        vscode-langservers-extracted
         terraform-ls
         tflint
         efm-langserver

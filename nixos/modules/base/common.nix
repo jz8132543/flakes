@@ -11,6 +11,8 @@
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
 
+  services.bpftune.enable = true;
+
   documentation = {
     nixos.enable = false;
     man.generateCaches = false;

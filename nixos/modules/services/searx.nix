@@ -33,7 +33,7 @@ in {
       search = {
         safe_search = 0;
         autocomplete = "google"; # Existing autocomplete backends: "dbpedia", "duckduckgo", "google", "startpage", "swisscows", "qwant", "wikipedia" - leave blank to turn it off by default
-        default_lang = "en";
+        # default_lang = "en";
       };
       server = {
         base_url = "https://${url}";

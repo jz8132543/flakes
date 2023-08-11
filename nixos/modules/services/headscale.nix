@@ -6,19 +6,19 @@
   services = {
     headscale = {
       enable = true;
-      port = 8085;
-      address = "127.0.0.1";
+      port = config.ports.headscale;
       settings = {
         server_url = "https://headscale.dora.im";
-        metrics_listen_addr = "localhost:8095";
-        # grpc_listen_addr = "localhost:50443";
-        # grpc_allow_insecure = true;
+        metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
+        grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
+        grpc_allow_insecure = true;
         dns_config = {
           override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
           domains = ["dora.im" "ts.dora.im"];
           nameservers = [
+            "1.1.1.1"
             "9.9.9.9"
           ];
         };
@@ -51,6 +51,11 @@
         entryPoints = ["https"];
         service = "headscale_metrics";
       };
+      headscale_grpc = {
+        rule = "Host(`headscale.dora.im`) && PathPrefix(`/headscale`)";
+        entryPoints = ["https"];
+        service = "headscale_grpc";
+      };
     };
     services = {
       headscale.loadBalancer = {
@@ -60,6 +65,10 @@
       headscale_metrics.loadBalancer = {
         passHostHeader = true;
         servers = [{url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics";}];
+      };
+      headscale_grpc.loadBalancer = {
+        passHostHeader = true;
+        servers = [{url = "https://${toString config.services.headscale.settings.grpc_listen_addr}";}];
       };
     };
   };

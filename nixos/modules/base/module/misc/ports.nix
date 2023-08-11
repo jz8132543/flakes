@@ -104,6 +104,9 @@
       seafile-dav = 3061;
       morty = 3001;
       searx = 8888;
+      headscale = 8085;
+      headscale_metrics = 8095;
+      headscale_grpc = 50443;
     };
   };
 }

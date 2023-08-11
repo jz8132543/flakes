@@ -45,6 +45,10 @@
         };
       };
       api = {};
+      serversTransport = {
+        # Disable backend certificate verification.
+        insecureSkipVerify = true;
+      };
     };
     dynamicConfigOptions = {
       tls.options.default = {
