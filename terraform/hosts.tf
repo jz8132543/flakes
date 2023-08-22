@@ -62,24 +62,6 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
-    fra1 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "92.222.239.55"
-        }
-        aaaa = {
-          proxied = false
-          type    = "AAAA"
-          value   = "2001:41d0:308:4800:d00::a"
-        }
-      }
-      ddns_records = {}
-      host_indices = [6]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
     surface = {
       records      = {}
       ddns_records = {}

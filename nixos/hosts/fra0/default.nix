@@ -10,5 +10,14 @@
       nixosModules.services.derp
       nixosModules.services.hydra
       nixosModules.services.sogo
+      nixosModules.services.postgres
+      nixosModules.services.doraim
+      nixosModules.services.vaultwarden
+      nixosModules.services.matrix
+      nixosModules.services.keycloak
+      nixosModules.services.prometheus
+      nixosModules.services.mastodon
+      # nixosModules.services.seafile
+      nixosModules.services.searx
     ];
 }

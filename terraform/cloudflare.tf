@@ -64,25 +64,22 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
-    headscale = { on = "fra0", proxy = false }
-    cache     = { on = "fra0", proxy = false }
-    hydra     = { on = "fra0", proxy = false }
-    mail      = { on = "fra0", proxy = false }
-
-    m         = { on = "fra1", proxy = true }
-    zone      = { on = "fra1", proxy = true }
-    "admin.m" = { on = "fra1", proxy = true }
-    sso       = { on = "fra1", proxy = true }
-    vault     = { on = "fra1", proxy = true }
-    box       = { on = "fra1", proxy = true }
-    searx     = { on = "ams0", proxy = false }
-    morty     = { on = "ams0", proxy = false }
-    ldap      = { on = "fra1", proxy = false }
-    mta-sts   = { on = "fra1", proxy = false }
-
+    headscale     = { on = "fra0", proxy = false }
+    cache         = { on = "fra0", proxy = false }
+    hydra         = { on = "fra0", proxy = false }
+    mail          = { on = "fra0", proxy = false }
+    ldap          = { on = "fra0", proxy = false }
+    mta-sts       = { on = "fra0", proxy = false }
+    m             = { on = "fra0", proxy = true }
+    zone          = { on = "fra0", proxy = true }
+    "admin.m"     = { on = "fra0", proxy = true }
+    sso           = { on = "fra0", proxy = true }
+    vault         = { on = "fra0", proxy = true }
+    box           = { on = "fra0", proxy = true }
+    searx         = { on = "ams0", proxy = false }
+    morty         = { on = "ams0", proxy = false }
     minio         = { on = "dfw2", proxy = false }
     minio-console = { on = "dfw2", proxy = false }
-
   }
 }
 output "service_cname_mappings" {
@@ -107,7 +104,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "fra1.dora.im"
+  value   = "fra0.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -192,7 +189,7 @@ resource "cloudflare_record" "dora_postgres" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "100.64.0.8"
+  value   = "100.64.0.1"
   zone_id = cloudflare_zone.im_dora.id
 }
 

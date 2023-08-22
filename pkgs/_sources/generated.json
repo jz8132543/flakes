@@ -1,7 +1,7 @@
 {
   "clash-meta": {
     "cargoLocks": null,
-    "date": "2023-08-09",
+    "date": "2023-08-16",
     "extract": null,
     "name": "clash-meta",
     "passthru": {
@@ -15,11 +15,11 @@
       "name": null,
       "owner": "MetaCubeX",
       "repo": "Clash.Meta",
-      "rev": "3093fc4f33fc58251406b35c83d451be65dcb795",
-      "sha256": "sha256-wHOAbx/cYeI/iStKrDSB/zP5nxh+UY7NbmMmjAMicQw=",
+      "rev": "574efb4526bd518c12236840238c39041fec286d",
+      "sha256": "sha256-JwqQ8Gz9ZyRihkfGep7jaffXGoblKLxhoAuE8XM4luo=",
       "type": "github"
     },
-    "version": "3093fc4f33fc58251406b35c83d451be65dcb795"
+    "version": "574efb4526bd518c12236840238c39041fec286d"
   },
   "kitty-catppuccin": {
     "cargoLocks": null,
