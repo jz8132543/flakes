@@ -8,7 +8,6 @@
   targets = [
     "hydra.dora.im"
     "fra0.dora.im"
-    "fra1.dora.im"
     "ams0.dora.im"
     "dfw0.dora.im"
   ];

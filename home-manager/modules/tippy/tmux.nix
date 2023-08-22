@@ -1,4 +1,20 @@
-{pkgs, ...}: {
+{pkgs, ...}: let
+  # https://github.com/finaldie/final_dev_env/blob/master/tmux
+  remote_hostname = pkgs.writeText "hostname.sh" ''
+    #!/usr/bin/env bash
+    pane_tty=`tmux display -p "#{pane_tty}" | cut -d "/" -f3,4`
+    target_host=`ps -af | awk -v ptty=$pane_tty '{if ($6 == ptty) print $0}' | grep -v grep | grep -oP "ssh [a-zA-Z0-9.@\-]+" | grep -vP "\ \-\w" | cut -d " " -f2 | grep -oP "(?=@*)[\w\d.\-]*" | tail -1`
+    # echo "tty: $pane_tty , host: $target_host"
+    echo $target_host
+  '';
+  nw_ttl = pkgs.writeText "nw_ttl.sh" ''
+    #!/usr/bin/env bash
+    target_host=`bash ${remote_hostname}`
+    # echo "tty: $pane_tty , host: $target_host"
+    ping -c 1 $target_host | tail -1 | cut -d "/" -f5
+    # (ping -c 1 #(ps -af | grep "`tmux display -p \"#{pane_tty}\" | cut -d \"/\" -f3,4` " | grep -v grep | grep -oP "ssh [a-zA-Z0-9.@\-]+" | cut -d " " -f2 | grep -oP "(?=@*)[\w\d.\-]*" | tail -1) | tail -1 | cut -d "/" -f5)
+  '';
+in {
   programs.tmux = {
     enable = true;
     baseIndex = 1;
@@ -28,13 +44,16 @@
       bind-key -n C-k clear-history
       bind m command-prompt "splitw -h 'exec man %%'"
       #bind @ command-prompt "splitw -h 'exec perldoc -f %%'"
+
       #set -g status-right "#[fg=green]#(uptime|sed -e's/.*up\s*\(.*min\).*/\1/')#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
       #set -g status-right "#[fg=green]#(uptime|cut -d ' ' -f 4-7|cut -d ',' -f 1-2)#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
-      set -g status-right "#[fg=green]#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
+      set -g status-right "#[fg=green]#[default] #[fg=green]#(bash ${remote_hostname} | cut -d "." -f1)#[default] #[fg=green]#(bash ${nw_ttl} | cut -d "." -f1)#[default] • #[fg=green]#(hostname | cut -d "." -f1)#[default]"
+      #set -g status-right "#[fg=green]#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
       #set -g status-right "#[fg=green]#(date) #[default]#(rainbarf)#[default]"
       set -g status-bg black
       set -g status-fg yellow
       set -g status-style bg=colour0
+
       setw -g mode-keys vi
       #setw -g mode-mouse off
       #set -g mouse-select-pane on
