@@ -1,4 +1,8 @@
-{config, ...}: {
+{
+  config,
+  lib,
+  ...
+}: {
   services.mastodon = {
     enable = true;
     localDomain = "dora.im";
@@ -90,6 +94,10 @@
   systemd.services.nginx.serviceConfig.SupplementaryGroups = [
     config.services.mastodon.group
   ];
+  systemd.services.mastodon-init-db = {
+    after = ["postgresql.service" "tailscaled.service"];
+    serviceConfig.Restart = lib.mkForce "always";
+  };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       mastodon = {
