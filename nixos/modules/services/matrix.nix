@@ -104,6 +104,7 @@ in
               client_secret = config.sops.placeholder."matrix/oidc-secret";
               scopes = ["openid" "profile" "email"];
               allow_existing_users = true;
+              backchannel_logout_enabled = true;
               user_mapping_provider.config = {
                 confirm_localpart = true;
                 localpart_template = "{{ user.preferred_username }}";

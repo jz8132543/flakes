@@ -34,7 +34,7 @@ in {
       allowUnfree = true;
       permittedInsecurePackages = [
         "openssl-1.1.1v"
-        "electron-19.0.7"
+        "electron-19.1.9"
       ];
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;

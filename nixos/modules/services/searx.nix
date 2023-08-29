@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   url = "searx.${config.networking.domain}";
@@ -12,7 +13,7 @@ in {
   '';
   services.searx = {
     enable = true;
-    # package = pkgs.searxng;
+    package = pkgs.searxng;
     environmentFile = config.sops.templates.searx-env.path;
     # services.searx.runInUwsgi = true;
     # services.searx.uwsgiConfig = let
@@ -65,6 +66,7 @@ in {
         "duckduckgo images".disabled = false;
         "fdroid".disabled = false;
         "gitlab".disabled = false;
+        "google".disabled = false;
         "google play apps".disabled = false;
         "nyaa".disabled = false;
         "openrepos".disabled = false;

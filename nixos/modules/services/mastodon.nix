@@ -96,7 +96,6 @@
   ];
   systemd.services.mastodon-init-db = {
     after = ["postgresql.service" "tailscaled.service"];
-    serviceConfig.Restart = lib.mkForce "always";
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
