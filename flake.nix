@@ -138,12 +138,6 @@
       inputs.nvfetcher.follows = "nvfetcher";
       inputs.flake-compat.follows = "flake-compat";
     };
-    nix-gc-s3 = {
-      url = "github:linyinfeng/nix-gc-s3";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils-plus.follows = "flake-utils-plus";
-      inputs.poetry2nix.follows = "poetry2nix";
-    };
     nixpkgs-terraform-providers-bin = {
       url = "github:nix-community/nixpkgs-terraform-providers-bin";
       inputs.nixpkgs.follows = "nixpkgs";

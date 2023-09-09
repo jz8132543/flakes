@@ -10,6 +10,7 @@
     inputs.attic.overlays.default
     inputs.nixd.overlays.default
     inputs.alejandra.overlay
+    inputs.nvfetcher.overlays.default
     (
       final: prev: let
         inherit (prev.stdenv.hostPlatform) system;

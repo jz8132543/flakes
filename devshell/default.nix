@@ -40,6 +40,7 @@
         age-plugin-yubikey
         # infrastructure
         # nvfetcher
+        inputs'.nvfetcher.packages.default
         terraform
       ];
     };
