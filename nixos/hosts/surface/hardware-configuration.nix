@@ -6,7 +6,7 @@
   ...
 }: {
   imports = [
-    # inputs.grub2-themes.nixosModules.default
+    inputs.grub2-themes.nixosModules.default
   ];
   boot = {
     initrd = {
@@ -24,11 +24,12 @@
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
-        theme = pkgs.nixos-grub2-theme;
+        # theme = pkgs.nixos-grub2-theme;
         device = lib.mkForce "nodev";
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
+        default = 1;
         gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
           menuentry "Windows" {
@@ -41,10 +42,10 @@
           }
         '';
       };
-      # grub2-theme = {
-      #   enable = true;
-      #   theme = "whitesur";
-      # };
+      grub2-theme = {
+        enable = true;
+        theme = "whitesur";
+      };
     };
   };
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

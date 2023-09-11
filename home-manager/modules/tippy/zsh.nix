@@ -31,8 +31,8 @@
     autocd = true;
 
     shellAliases = {
-      ls = "${pkgs.exa}/bin/exa --icons";
-      tree = "${pkgs.exa}/bin/exa --tree --icons";
+      ls = "${pkgs.eza}/bin/eza --icons";
+      tree = "${pkgs.eza}/bin/eza --tree --icons";
       top = "${pkgs.bottom}/bin/btm";
       cat = "${pkgs.bat}/bin/bat --style=plain";
       fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
@@ -50,8 +50,8 @@
       zstyle ':completion:*' cache-path ~/.local/share/zsh/cache
       # menu if nb items > 2
       zstyle ':completion:*' menu select=2
-      # preview directory's content with exa when completing cd
-      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1 --color=always $realpath'
+      # preview directory's content with eza when completing cd
+      zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
       # don't show fzf unless there are more than 4 items
       zstyle ':fzf-tab:*' ignore false 4
     '';
@@ -102,7 +102,7 @@
     '';
   };
   home.packages = with pkgs; [
-    exa
+    eza
     bottom
     bat
     fzf
