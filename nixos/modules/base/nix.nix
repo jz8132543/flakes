@@ -29,7 +29,7 @@
       protocol = "ssh";
       write = true;
     };
-    settings.trusted-users = ["nix-ssh"];
+    # settings.trusted-users = ["nix-ssh"];
     distributedBuilds = true;
     extraOptions = ''
       builders-use-substitutes = true

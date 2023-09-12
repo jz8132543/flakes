@@ -13,7 +13,7 @@
       nixosModules.services.postgres
       nixosModules.services.doraim
       nixosModules.services.vaultwarden
-      nixosModules.services.matrix
+      # nixosModules.services.matrix
       nixosModules.services.keycloak
       nixosModules.services.prometheus
       nixosModules.services.mastodon
