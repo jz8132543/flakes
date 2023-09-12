@@ -14,8 +14,8 @@
     ports = [config.ports.ssh];
     openFirewall = true;
     extraConfig = ''
-      ClientAliveInterval 15
-      ClientAliveCountMax 4
+      ClientAliveInterval 3
+      ClientAliveCountMax 6
     '';
     hostKeys = [
       {

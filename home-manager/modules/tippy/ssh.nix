@@ -3,8 +3,8 @@
     ssh = {
       enable = true;
       userKnownHostsFile = "/dev/null";
-      serverAliveInterval = 15;
-      serverAliveCountMax = 4;
+      serverAliveInterval = 3;
+      serverAliveCountMax = 6;
       compression = false;
       controlMaster = "auto";
       # https://github.com/NixOS/nixpkgs/issues/168322
