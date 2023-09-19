@@ -5,7 +5,6 @@
 
   networking.networkmanager = {
     enable = true;
-    enableFccUnlock = true;
     # dns = "dnsmasq";
     firewallBackend = "nftables";
     connectionConfig = {
