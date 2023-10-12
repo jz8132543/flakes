@@ -2,6 +2,7 @@
   inputs,
   getSystem,
   config,
+  lib,
   ...
 }: let
   packages = [
@@ -36,6 +37,10 @@ in {
         "openssl-1.1.1w"
         "electron-19.1.9"
       ];
+      allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+        "terraform"
+      ];
+
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;
   };

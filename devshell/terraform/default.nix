@@ -73,7 +73,7 @@
       {
         category = "infrastructure";
         name = "terraform-wrapper";
-        help = pkgs.terraform.meta.description;
+        help = pkgs.opentofu.meta.description;
         command = ''
           ${terraformWrapper} "$@"
         '';
