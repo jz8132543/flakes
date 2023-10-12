@@ -4,14 +4,15 @@
   ];
   perSystem = {
     inputs',
-    pkgs ? (import <nixpkgs> {
+    ...
+  }: let
+    pkgs = (import <nixpkgs> {
       config.allowUnfree = true;
       config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
         "terraform"
       ];
-    }),
-    ...
-  }: {
+    });
+  in{
     devshells.default = {
       commands = [
         {

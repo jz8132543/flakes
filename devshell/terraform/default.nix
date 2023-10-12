@@ -1,13 +1,13 @@
 {lib,...}: {
   perSystem = {
-    pkgs ? (import <nixpkgs> {
+    ...
+ }: let
+    pkgs = (import <nixpkgs> {
       config.allowUnfree = true;
       config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
         "terraform"
       ];
-    }),
-    ...
- }: let
+    });
     common = pkgs.substituteAll {
       src = ./common.sh;
       isExecutable = true;
