@@ -1,10 +1,15 @@
-{inputs, ...}: {
+{inputs, lib, ...}: {
   imports = [
     ./terraform
   ];
   perSystem = {
     inputs',
-    pkgs,
+    pkgs ? (import <nixpkgs> {
+      config.allowUnfree = true;
+      config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+        "terraform"
+      ];
+    }),
     ...
   }: {
     devshells.default = {
