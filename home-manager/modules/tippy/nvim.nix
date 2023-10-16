@@ -36,7 +36,7 @@
       /vendor
     '';
     "nvim" = {
-      source = config.lib.file.mkOutOfStoreSymlink ../../source/nvim;
+      source = config.lib.file.mkOutOfStoreSymlink "/home/${baseNameOf ./.}/source/nvim";
       recursive = true;
     };
   };
@@ -44,7 +44,7 @@
   home.global-persistence = {
     directories = [
       ".local/share/nvim"
-      ".config/nvim"
+      # ".config/nvim"
       # ".config/coc"
     ];
   };
