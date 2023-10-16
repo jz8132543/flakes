@@ -18,6 +18,10 @@
       in {
         nix-gc-s3 = inputs'.nix-gc-s3.packages.nix-gc-s3;
         tuic = inputs'.latest.legacyPackages.tuic;
+        nix-index-with-db = inputs'.nix-index-database.packages.nix-index-with-db;
+        comma = prev.comma.override {
+          nix-index-unwrapped = final.nix-index-with-db;
+        };
       }
     )
   ];
@@ -37,10 +41,6 @@ in {
         "openssl-1.1.1w"
         "electron-19.1.9"
       ];
-      allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
-        "terraform"
-      ];
-
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;
   };

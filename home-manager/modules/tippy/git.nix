@@ -3,6 +3,7 @@
     enable = true;
     package = pkgs.gitFull;
     lfs.enable = true;
+    delta.enable = true;
     extraConfig = {
       user.name = "jz8132543";
       user.email = "i@dora.im";

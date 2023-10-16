@@ -7,6 +7,7 @@
       serverAliveCountMax = 6;
       compression = false;
       controlMaster = "auto";
+      forwardAgent = true;
       # https://github.com/NixOS/nixpkgs/issues/168322
       # controlPersist = "10m";
       extraOptionOverrides = {
