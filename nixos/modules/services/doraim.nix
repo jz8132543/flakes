@@ -73,4 +73,18 @@
       max_age: 86400
     '';
   };
+  # vlmcsd
+  networking.firewall.allowedTCPPorts = [1688];
+  systemd.services.vlmcsd = {
+    description = "vlmcsd server";
+    after = ["network.target"];
+    wantedBy = ["multi-user.target"];
+    serviceConfig = {
+      # Type = "forking";
+      Restart = "always";
+      RestartSec = "3";
+      ExecStart = "${config.nur.repos.linyinfeng.vlmcsd}/bin/vlmcsd -D -v";
+      DynamicUser = true;
+    };
+  };
 }
