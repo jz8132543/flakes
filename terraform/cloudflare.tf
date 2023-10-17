@@ -222,7 +222,7 @@ resource "cloudflare_record" "dora_lax2" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "198.52.97.195"
+  value   = "74.48.170.226"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_nue0" {
