@@ -18,6 +18,7 @@
       ".local/share/TelegramDesktop"
       ".thunderbird"
       ".config/weixin"
+      ".local/share/Kingsoft"
     ];
   };
 }
