@@ -78,9 +78,12 @@ in {
 
     {
       services = {
-        nix-serve = {
+        harmonia = {
           enable = true;
-          secretKeyFile = config.sops.secrets."hydra/cache-dora-im".path;
+          signKeyPath = config.sops.secrets."hydra/cache-dora-im".path;
+          settings = {
+            bind = "127.0.0.1:5000";
+          };
         };
       };
     }
@@ -111,10 +114,10 @@ in {
             entryPoints = ["https"];
             service = "hydra";
           };
-          nix-serve = {
+          harmonia = {
             rule = "Host(`cache.dora.im`)";
             entryPoints = ["https"];
-            service = "nix-serve";
+            service = "harmonia";
           };
         };
         services = {
@@ -122,9 +125,9 @@ in {
             passHostHeader = true;
             servers = [{url = "http://localhost:${toString config.ports.hydra}";}];
           };
-          nix-serve.loadBalancer = {
+          harmonia.loadBalancer = {
             passHostHeader = true;
-            servers = [{url = "http://localhost:${toString config.services.nix-serve.port}";}];
+            servers = [{url = "http://${config.services.harmonia.settings.bind}";}];
           };
         };
       };
