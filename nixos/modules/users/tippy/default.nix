@@ -3,14 +3,14 @@
   pkgs,
   ...
 }: let
-  name = "tippy";
+  name = "${baseNameOf ./.}";
   homeDirectory = "/home/${name}";
 in {
   users.mutableUsers = true;
   users.users.${name} = {
     isNormalUser = true;
     shell = pkgs.zsh;
-    extraGroups = ["wheel"];
+    extraGroups = ["wheel" "cdrom"];
     openssh.authorizedKeys.keys = [config.lib.self.data.ssh.i];
     hashedPassword = "$6$0gRnTBQjBv9ipXZz$AEBVrBbWXgzZ0IICD1HVWeCwqELFe85.ePsOOdkvFM1E6/sKvQUUesvXhQN519Ud33RsqA3h5z.4luO8Jk4Ls/";
   };
