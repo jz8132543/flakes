@@ -26,6 +26,9 @@
         powerline-fonts
         sarasa-gothic
         (nerdfonts.override {fonts = ["JetBrainsMono" "FiraCode"];})
+
+        vistafonts
+        corefonts
       ]
       ++ (with config.nur.repos.rewine; [
         ttf-ms-win10

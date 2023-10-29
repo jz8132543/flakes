@@ -7,6 +7,7 @@
     tdesktop
     thunderbird
     brasero
+    k3b
     neovide
     okular
     wpsoffice
