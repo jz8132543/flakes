@@ -36,7 +36,7 @@
       grafana = 3040;
       alertmanager = 3050;
       hydra = 3070;
-      nix-serve = 3080;
+      harmonia = 5000;
       matrix = 3090;
       matrix-manhole = 3091;
       mautrix-telegram-appservice = 3100;
