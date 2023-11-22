@@ -8,9 +8,19 @@
     appindicator
     dash-to-dock
     clipboard-history
+    upower-battery
+    alphabetical-app-grid
+    caffeine
+    # fcitx5
     kimpanel
   ];
-  inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 type;
+  gtkThemes = pkgs.symlinkJoin {
+    name = "gtk-themes";
+    paths = with pkgs; [
+      adw-gtk3
+    ];
+  };
+  inherit (lib.hm.gvariant) mkTuple mkUint32;
 in {
   home.packages =
     extensionPkgs
@@ -25,8 +35,14 @@ in {
   # Remove initial setup dialog
   home.file.".config/gnome-initial-setup-done".text = "yes";
 
+  # themes
+  home.file.".local/share/themes".source = "${gtkThemes}/share/themes";
+
   dconf.settings = lib.mkMerge [
     {
+      # "org/gnome/mutter" = {
+      #   experimental-features = ["scale-monitor-framebuffer"];
+      # };
       # Do not sleep when ac power connected
       "org/gnome/settings-daemon/plugins/power" = {
         sleep-inactive-ac-type = "nothing";
@@ -42,10 +58,12 @@ in {
           "chromium-browser.desktop"
           "gnome-system-monitor.desktop"
           "code.desktop"
+          "steam-hidpi.desktop"
         ];
         welcome-dialog-last-shown-version = "43.1";
       };
       "org/gnome/desktop/interface" = {
+        gtk-theme = "adw-gtk3";
         clock-show-weekday = true;
         show-battery-percentage = true;
         locate-pointer = true;
@@ -115,25 +133,19 @@ in {
     }
   ];
 
+  home.activation.allowGdmReadFace = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
+  '';
+
+  # gsconnect association
+  xdg.mimeApps.associations.added = {
+    "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+    "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+  };
+
   home.global-persistence = {
     directories = [
-      # ".config/dconf"
-      ".config/goa-1.0" # gnome accounts
-      ".config/gnome-boxes"
-      ".local/share/keyrings"
-      ".local/share/applications"
-      ".local/share/Trash"
-      ".local/share/webkitgtk" # gnome accounts
-      ".local/share/backgrounds"
-      ".local/share/gnome-boxes"
-      ".local/share/icc" # user icc files
-      ".cache/tracker3"
-      ".cache/thumbnails"
       ".config/gsconnect"
-    ];
-    files = [
-      ".face"
-      ".config/monitors.xml"
     ];
   };
 }

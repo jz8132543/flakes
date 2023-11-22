@@ -6,8 +6,6 @@
   home.packages = with pkgs; [
     tdesktop
     thunderbird
-    brasero
-    k3b
     neovide
     okular
     wpsoffice

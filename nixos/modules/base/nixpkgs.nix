@@ -40,6 +40,7 @@ in {
       permittedInsecurePackages = [
         "openssl-1.1.1w"
         "electron-19.1.9"
+        "electron-24.8.6"
       ];
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;

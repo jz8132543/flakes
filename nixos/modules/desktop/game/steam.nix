@@ -6,8 +6,9 @@
     dedicatedServer.openFirewall = true;
   };
   environment.systemPackages = [
+    pkgs.steam-run
     (pkgs.makeDesktopItem {
-      name = "stream-hidpi";
+      name = "steam-hidpi";
       desktopName = "Steam (HiDPI)";
       exec = "env GDK_SCALE=\"2\" steam %U";
       categories = [
