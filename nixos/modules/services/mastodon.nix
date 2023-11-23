@@ -8,6 +8,7 @@
     localDomain = "dora.im";
     # enableUnixSocket = false;
     mediaAutoRemove.olderThanDays = 3;
+    streamingProcesses = 3;
     vapidPublicKeyFile = config.sops.secrets."mastodon/VAPID_PUBLIC_KEY".path;
     vapidPrivateKeyFile = config.sops.secrets."mastodon/VAPID_PRIVATE_KEY".path;
     secretKeyBaseFile = config.sops.secrets."mastodon/SECRET_KEY_BASE".path;
