@@ -15,6 +15,10 @@
       key = "age15f7j88sget6mun9tgfc4e0qdptev982jcxfaf0js2ky52t00vsaqhywj8m";
       owned = true;
     };
+    fra1 = {
+      key = "age14x2wz4k3xr7u0sgx5hl5wjejynjh4pkw59ccsfqvw9vrctyy54qsqvfrw4";
+      owned = true;
+    };
     ams0 = {
       key = "age16rc6cs8fhplzwh938d3zxq8pke7pgxerzms0dgkdgq7he99c3ccs4emnhd";
       owned = true;
