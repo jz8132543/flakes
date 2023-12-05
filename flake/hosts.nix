@@ -103,5 +103,9 @@ in {
       name = "dfw1";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "vmware";
+      system = "x86_64-linux";
+    })
   ];
 }
