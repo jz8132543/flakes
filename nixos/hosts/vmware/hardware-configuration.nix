@@ -12,7 +12,14 @@
       };
     };
   };
-  virtualisation.vmware.guest.enable = true;
+  swapDevices = [
+    {
+      device = "/swap/swapfile";
+      size = 16384;
+    }
+  ];
+
   utils.disk = "/dev/sda";
+  virtualisation.vmware.guest.enable = true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
