@@ -10,7 +10,6 @@
     ++ [
       ./hardware-configuration.nix
     ];
-
   environment.systemPackages = with pkgs; [
     refind
     efibootmgr

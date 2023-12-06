@@ -84,6 +84,10 @@ in {
       ];
     })
     (mkHost {
+      name = "arx8";
+      system = "x86_64-linux";
+    })
+    (mkHost {
       name = "fra0";
       system = "x86_64-linux";
     })
@@ -101,10 +105,6 @@ in {
     })
     (mkHost {
       name = "dfw1";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "vmware";
       system = "x86_64-linux";
     })
   ];
