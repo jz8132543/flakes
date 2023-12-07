@@ -14,33 +14,26 @@ in {
       type = "disk";
       device = "${config.utils.disk}";
       content = {
-        type = "table";
-        format = "gpt";
-        partitions = [
-          {
-            name = "bios_grub";
-            start = "0";
-            end = "1MiB";
-            part-type = "primary";
-            flags = ["bios_grub"];
-          }
-          {
-            name = "EFI";
+        type = "gpt";
+        partitions = {
+          bios = {
+            size = "1M";
+            type = "EF02";
+          };
+          EFI = {
+            label = "EFI";
             start = "1MiB";
             end = "200MiB";
-            fs-type = "fat32";
-            bootable = true;
+            type = "ef02";
             content = {
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot/efi";
             };
-          }
-          {
-            name = "NIXOS";
-            start = "210M";
-            end = "100%";
-            part-type = "primary";
+          };
+          NIXOS = {
+            label = "NIXOS";
+            size = "100%";
             content = {
               type = "btrfs";
               extraArgs = ["-f"];
@@ -67,8 +60,8 @@ in {
                 };
               };
             };
-          }
-        ];
+          };
+        };
       };
     };
     # nodev = {
@@ -79,40 +72,8 @@ in {
     # };
   };
 
-  fileSystems = {
-    # "/" = {
-    #   fsType = "tmpfs";
-    #   options = ["defaults" "mode=755"];
-    # };
-    # "/boot" = {
-    #   device = lib.mkForce "/dev/disk/by-partlabel/EFI";
-    # };
+  fileSystems."/persist".neededForBoot = true;
 
-    "/boot/efi" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/EFI";
-    };
-
-    "/boot" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
-    };
-
-    "/" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
-    };
-
-    "/nix" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
-    };
-
-    "/persist" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
-      neededForBoot = true;
-    };
-
-    "/swap" = {
-      device = lib.mkForce "/dev/disk/by-partlabel/NIXOS";
-    };
-  };
   services.btrfs.autoScrub = {
     enable = true;
     fileSystems = [

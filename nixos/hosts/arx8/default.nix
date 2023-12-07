@@ -11,6 +11,7 @@
       ./hardware-configuration.nix
     ];
   environment.systemPackages = with pkgs; [
+    lenovo-legion
     refind
     efibootmgr
   ];

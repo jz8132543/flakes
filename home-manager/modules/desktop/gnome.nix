@@ -45,7 +45,14 @@ in {
       # };
       # Do not sleep when ac power connected
       "org/gnome/settings-daemon/plugins/power" = {
+        power-button-action = "nothing";
         sleep-inactive-ac-type = "nothing";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
+        binding = lib.hm.gvariant.mkString "NEXT";
+        # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
+        command = lib.hm.gvariant.mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
+        name = lib.hm.gvariant.mkString "Power off monitor";
       };
       "org/gnome/shell" = {
         disable-user-extensions = false;
@@ -63,6 +70,9 @@ in {
         welcome-dialog-last-shown-version = "43.1";
       };
       "org/gnome/desktop/interface" = {
+        scaling-factor = lib.hm.gvariant.mkUint32 2;
+        text-scaling-factor = lib.hm.gvariant.mkDouble 0.75;
+
         gtk-theme = "adw-gtk3";
         clock-show-weekday = true;
         show-battery-percentage = true;

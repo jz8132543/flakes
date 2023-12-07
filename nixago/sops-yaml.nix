@@ -11,8 +11,8 @@
       key = "age1934xpm9at83g823dzwm3wxj64apvrx40wcv8ms2p9gvgxdxwsp3s0rvpyc";
       owned = true;
     };
-    vmware = {
-      key = "age1usgse67dhelp4897fk2h4w96jsl6qpgzhukngdryua8nv0m0fyms8ktw2v";
+    arx8 = {
+      key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
       owned = true;
     };
     fra0 = {
