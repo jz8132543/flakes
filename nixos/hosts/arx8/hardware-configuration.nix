@@ -6,11 +6,12 @@
 }: {
   imports = [
     inputs.grub2-themes.nixosModules.default
-    inputs.nixos-hardware.nixosModules.common-hidpi
-    inputs.nixos-hardware.nixosModules.common-cpu-amd
     inputs.nixos-hardware.nixosModules.common-pc-laptop
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
-    inputs.nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
+    inputs.nixos-hardware.nixosModules.common-cpu-amd
+    inputs.nixos-hardware.nixosModules.common-cpu-amd-pstate
+    inputs.nixos-hardware.nixosModules.common-gpu-nvidia
+    inputs.nixos-hardware.nixosModules.common-gpu-amd
   ];
   boot = {
     initrd = {
@@ -18,7 +19,8 @@
       kernelModules = ["nvidia"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module config.boot.kernelPackages.nvidia_x11];
-    kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
+    # kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
+    # kernelModules = ["kvm-amd" "nvidia"];
     # kernelParams = ["modeset=1" "fbdev=1"];
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
@@ -52,20 +54,20 @@
       size = 8192;
     }
   ];
-  services.xserver = {
-    videoDrivers = ["nvidia"];
-    dpi = 189;
-  };
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
   utils.disk = "/dev/nvme0n1";
   # Cooling management
   services.thermald.enable = lib.mkDefault true;
-  # √(2560² + 1600²) px / 16 in ≃ 189 dpi
   hardware = {
+    amdgpu.loadInInitrd = false;
     nvidia = {
       modesetting.enable = true;
       powerManagement.enable = true;
       nvidiaSettings = true;
+      prime = {
+        amdgpuBusId = "PCI:8:0:0";
+        nvidiaBusId = "PCI:1:0:0";
+      };
     };
   };
   # services.autorandr = {

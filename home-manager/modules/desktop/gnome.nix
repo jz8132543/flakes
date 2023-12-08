@@ -11,6 +11,7 @@
     upower-battery
     alphabetical-app-grid
     caffeine
+    customize-ibus
     # fcitx5
     kimpanel
   ];
@@ -20,12 +21,13 @@
       adw-gtk3
     ];
   };
-  inherit (lib.hm.gvariant) mkTuple mkUint32;
+  inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 mkDouble type;
 in {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
+      capitaine-cursors
     ]);
 
   programs.chromium.extensions = [
@@ -49,17 +51,21 @@ in {
         sleep-inactive-ac-type = "nothing";
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
-        binding = lib.hm.gvariant.mkString "NEXT";
+        binding = mkString "NEXT";
         # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
-        command = lib.hm.gvariant.mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
-        name = lib.hm.gvariant.mkString "Power off monitor";
+        command = mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
+        name = mkString "Power off monitor";
+      };
+      "org/gnome/desktop/wm/keybindings" = {
+        # switch-input-source = mkArray (type.string) [mkString "Shift_L" mkString "Shift_R"];
+        # switch-input-source = ["Shift_L" "Shift_R"];
       };
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
         disabled-extensions = [];
         favorite-apps = lib.mkBefore [
-          "com.raggesilver.BlackBox.desktop"
+          "org.gnome.Console.desktop"
           "org.gnome.Nautilus.desktop"
           "firefox.desktop"
           "chromium-browser.desktop"
@@ -70,14 +76,28 @@ in {
         welcome-dialog-last-shown-version = "43.1";
       };
       "org/gnome/desktop/interface" = {
-        scaling-factor = lib.hm.gvariant.mkUint32 2;
-        text-scaling-factor = lib.hm.gvariant.mkDouble 0.75;
+        scaling-factor = mkUint32 2;
+        text-scaling-factor = mkDouble 0.75;
 
         gtk-theme = "adw-gtk3";
+        cursor-theme = "capitaine-cursors";
+        cursor-size = 24;
         clock-show-weekday = true;
         show-battery-percentage = true;
         locate-pointer = true;
         enable-hot-corners = false;
+      };
+      "org/gnome/desktop/input-sources" = {
+        sources = mkArray (type.tupleOf [type.string type.string]) [
+          (mkTuple [(mkString "xkb") (mkString "us")])
+          (mkTuple [(mkString "ibus") (mkString "rime")])
+        ];
+      };
+      "org/gnome/shell/extensions/customize-ibus" = {
+        use-custom-font = true;
+        custom-font = "sans-serif 10";
+        input-indicator-only-on-toggle = true;
+        custom-theme = "/home/tippy/.config/ibus/rime/theme.css";
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";

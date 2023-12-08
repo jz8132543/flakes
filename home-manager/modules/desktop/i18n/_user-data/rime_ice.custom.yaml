@@ -1,6 +1,6 @@
 patch:
+  translator/dictionary: my
   speller/algebra:
     - erase/^xx$/
     - derive/([ei])n$/$1ng/ # en => eng, in => ing
     - derive/([ei])ng$/$1n/ # eng => en, ing => in
-

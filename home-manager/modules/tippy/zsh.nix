@@ -33,7 +33,7 @@
     shellAliases = {
       ls = "${pkgs.eza}/bin/eza --icons";
       tree = "${pkgs.eza}/bin/eza --tree --icons";
-      top = "${pkgs.bottom}/bin/btm";
+      top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
       cat = "${pkgs.bat}/bin/bat --style=plain";
       fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
       batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
