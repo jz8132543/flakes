@@ -11,7 +11,7 @@
     inputs.nixos-hardware.nixosModules.common-cpu-amd
     inputs.nixos-hardware.nixosModules.common-cpu-amd-pstate
     inputs.nixos-hardware.nixosModules.common-gpu-nvidia
-    inputs.nixos-hardware.nixosModules.common-gpu-amd
+    # inputs.nixos-hardware.nixosModules.common-gpu-amd
   ];
   boot = {
     initrd = {
@@ -59,7 +59,7 @@
   # Cooling management
   services.thermald.enable = lib.mkDefault true;
   hardware = {
-    amdgpu.loadInInitrd = false;
+    # amdgpu.loadInInitrd = false;
     nvidia = {
       modesetting.enable = true;
       powerManagement.enable = true;
@@ -70,26 +70,26 @@
       };
     };
   };
-  # services.autorandr = {
-  #   enable = true;
-  #   profiles = {
-  #     default = {
-  #       fingerprint.eDP-1 = "eDP-1 --CONNECTED-BUT-EDID-UNAVAILABLE--eDP-1";
-  #       config = {
-  #         eDP-1 = {
-  #           enable = true;
-  #           primary = true;
-  #           position = "0x0";
-  #           mode = "2560x1600";
-  #           #gamma = "1.0:0.909:0.833";
-  #           rate = "60.00";
-  #           scale = {
-  #             x = 0.5;
-  #             y = 0.5;
-  #           };
-  #         };
-  #       };
-  #     };
-  #   };
-  # };
+  services.autorandr = {
+    enable = true;
+    profiles = {
+      default = {
+        fingerprint.eDP-1 = "eDP-2 --CONNECTED-BUT-EDID-UNAVAILABLE--eDP-2";
+        config = {
+          eDP-1 = {
+            enable = true;
+            primary = true;
+            position = "0x0";
+            mode = "2560x1600";
+            #gamma = "1.0:0.909:0.833";
+            rate = "60.00";
+            scale = {
+              x = 0.5;
+              y = 0.5;
+            };
+          };
+        };
+      };
+    };
+  };
 }

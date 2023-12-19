@@ -10,7 +10,7 @@
     (pkgs.makeDesktopItem {
       name = "steam-hidpi";
       desktopName = "Steam (HiDPI)";
-      exec = "env GDK_SCALE=\"2\" steam %U";
+      exec = "env GDK_SCALE=\"1.5\" steam %U";
       categories = [
         "Game"
       ];

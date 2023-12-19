@@ -98,6 +98,7 @@ in {
         custom-font = "sans-serif 10";
         input-indicator-only-on-toggle = true;
         custom-theme = "/home/tippy/.config/ibus/rime/theme.css";
+        enable-custom-theme = true;
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";
