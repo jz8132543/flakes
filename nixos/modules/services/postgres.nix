@@ -10,7 +10,7 @@
   services.postgresql = {
     enable = true;
     enableTCPIP = true;
-    package = pkgs.postgresql_15;
+    package = pkgs.postgresql_16;
     logLinePrefix = "user=%u,db=%d,app=%a,client=%h ";
     authentication = lib.mkForce ''
       local all all                           trust

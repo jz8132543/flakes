@@ -38,6 +38,7 @@ in {
   nixpkgs = {
     config = {
       allowUnfree = true;
+      binary-caches-parallel-connections = 16;
       permittedInsecurePackages = [
         "openssl-1.1.1w"
         "electron-19.1.9"
