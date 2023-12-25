@@ -87,10 +87,6 @@
       "on": "dfw0",
       "proxy": false
     },
-    "m": {
-      "on": "dfw0",
-      "proxy": true
-    },
     "mail": {
       "on": "ams0",
       "proxy": false
@@ -105,6 +101,10 @@
     },
     "searx": {
       "on": "ams0",
+      "proxy": false
+    },
+    "sso": {
+      "on": "dfw0",
       "proxy": false
     },
     "vault": {

@@ -10,7 +10,7 @@
       nixosModules.services.proxy
       nixosModules.services.tuic
       nixosModules.services.sogo
-      nixosModules.services.lldap
+      nixosModules.services.keycloak
       nixosModules.services.postgres
       nixosModules.services.doraim
       nixosModules.services.vaultwarden

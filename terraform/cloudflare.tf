@@ -64,11 +64,11 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
+    vault     = { on = "dfw0", proxy = true }
     headscale = { on = "dfw0", proxy = false }
     ldap      = { on = "dfw0", proxy = false }
+    sso       = { on = "dfw0", proxy = false }
     mta-sts   = { on = "dfw0", proxy = false }
-    m         = { on = "dfw0", proxy = true }
-    vault     = { on = "dfw0", proxy = true }
     mail      = { on = "ams0", proxy = false }
     searx     = { on = "ams0", proxy = false }
     morty     = { on = "ams0", proxy = false }
@@ -96,7 +96,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "fra0.dora.im"
+  value   = "dfw0.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -164,12 +164,12 @@ resource "cloudflare_record" "dora_mta_sts" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_mx_fra0" {
+resource "cloudflare_record" "dora_mx_ams0" {
   name     = "dora.im"
   proxied  = false
   ttl      = 1
   type     = "MX"
-  value    = "fra0.dora.im"
+  value    = "ams0.dora.im"
   priority = 1
   zone_id  = cloudflare_zone.im_dora.id
 }
