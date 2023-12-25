@@ -8,97 +8,95 @@
  *   Common
  */
 
-
- .candidate-popup-content {
-    margin: 0;
-    border-radius: 0.2em;
-    border-width: 1px;
-    padding: 0;
-    box-shadow: none;
+.candidate-popup-content {
+  margin: 0;
+  border-radius: 0.2em;
+  border-width: 1px;
+  padding: 0;
+  box-shadow: none;
 }
 
 .candidate-popup-text {
-    border-width: 0;
-    border-bottom-width: 1px;
-    padding: 0;
+  border-width: 0;
+  border-bottom-width: 1px;
+  padding: 0;
 }
 
 .candidate-box {
-    transition-duration: 100ms;
-    border-radius: 0;
-    padding: 0.5em;
+  transition-duration: 100ms;
+  border-radius: 0;
+  padding: 0.5em;
 }
 
-.candidate-page-button:insensitive{
-    color: rgba(0, 0, 0, 0.2) !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
-    box-shadow: none;
+.candidate-page-button:insensitive {
+  color: rgba(0, 0, 0, 0.2) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none;
 }
 
 .candidate-page-button:hover,
 .candidate-page-button:active {
-    color: rgba(0, 0, 0, 1) !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
-    box-shadow: none;
+  color: rgba(0, 0, 0, 1) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none;
 }
 
 .candidate-page-button {
-    color: rgba(0, 0, 0, 0.6) !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
-    min-width: 28px !important;
-    min-height: 28px !important;
-    box-shadow: none;
+  color: rgba(0, 0, 0, 0.6) !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  min-width: 28px !important;
+  min-height: 28px !important;
+  box-shadow: none;
 }
 
 .candidate-popup-boxpointer {
-    -arrow-background-color: rgba(255, 255, 255, 1);
-    -arrow-border-radius: 0.2em;
-    -arrow-border-width: 0px;
-    -arrow-base: 0px;
-    /* Fix border */
-    -arrow-border-color: transparent;
-    background: none;
-    border-image: none;
+  -arrow-background-color: rgba(255, 255, 255, 1);
+  -arrow-border-radius: 0.2em;
+  -arrow-border-width: 0px;
+  -arrow-base: 0px;
+  /* Fix border */
+  -arrow-border-color: transparent;
+  background: none;
+  border-image: none;
 }
 
 /*
  *   Text
  */
 
-
 .candidate-popup-content {
-    color: rgba(0, 0, 0, 0.95);
-    background-color: transparent;
+  color: rgba(0, 0, 0, 0.95);
+  background-color: transparent;
 }
 
 .candidate-box:selected {
-    color: rgba(0, 0, 0, 1);
+  color: rgba(0, 0, 0, 1);
 }
 
-.candidate-box, .candidate-index {
-    color: rgba(0, 0, 0, 0.6);
+.candidate-box,
+.candidate-index {
+  color: rgba(0, 0, 0, 0.6);
 }
 
 /*
  *   Colors
  */
 
-
 /*
  *  #99C1F1
  */
 .candidate-popup-content,
 .candidate-popup-text {
-     border-color: rgba(153, 193, 241, 0.95);
- }
- 
+  border-color: rgba(153, 193, 241, 0.95);
+}
+
 .candidate-box:hover {
-     background-color: rgba(153, 193, 241, 0.6);
- }
- 
+  background-color: rgba(153, 193, 241, 0.6);
+}
+
 .candidate-box:selected {
-     background-color: rgba(153, 193, 241, 0.95);
- }
+  background-color: rgba(153, 193, 241, 0.95);
+}

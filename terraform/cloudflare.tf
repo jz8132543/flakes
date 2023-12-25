@@ -64,22 +64,14 @@ resource "cloudflare_record" "im_dora" {
 
 locals {
   service_cname_mappings = {
-    headscale     = { on = "fra0", proxy = false }
-    cache         = { on = "fra0", proxy = false }
-    hydra         = { on = "fra0", proxy = false }
-    mail          = { on = "fra0", proxy = false }
-    ldap          = { on = "fra0", proxy = false }
-    mta-sts       = { on = "fra0", proxy = false }
-    m             = { on = "fra0", proxy = true }
-    zone          = { on = "fra0", proxy = true }
-    "admin.m"     = { on = "fra0", proxy = true }
-    sso           = { on = "fra0", proxy = true }
-    vault         = { on = "fra0", proxy = true }
-    box           = { on = "fra0", proxy = true }
-    searx         = { on = "ams0", proxy = false }
-    morty         = { on = "ams0", proxy = false }
-    minio         = { on = "dfw2", proxy = false }
-    minio-console = { on = "dfw2", proxy = false }
+    headscale = { on = "dfw0", proxy = false }
+    ldap      = { on = "dfw0", proxy = false }
+    mta-sts   = { on = "dfw0", proxy = false }
+    m         = { on = "dfw0", proxy = true }
+    vault     = { on = "dfw0", proxy = true }
+    mail      = { on = "ams0", proxy = false }
+    searx     = { on = "ams0", proxy = false }
+    morty     = { on = "ams0", proxy = false }
   }
 }
 output "service_cname_mappings" {
@@ -214,7 +206,7 @@ resource "cloudflare_record" "dora_lax0" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "23.234.207.154"
+  value   = "74.48.188.251"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_lax2" {
@@ -238,7 +230,7 @@ resource "cloudflare_record" "dora_tyo1" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "54.199.117.119"
+  value   = "54.248.91.93"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo3" {

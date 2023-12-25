@@ -79,44 +79,20 @@
     }
   },
   "service_cname_mappings": {
-    "admin.m": {
-      "on": "fra0",
-      "proxy": true
-    },
-    "box": {
-      "on": "fra0",
-      "proxy": true
-    },
-    "cache": {
-      "on": "fra0",
-      "proxy": false
-    },
     "headscale": {
-      "on": "fra0",
-      "proxy": false
-    },
-    "hydra": {
-      "on": "fra0",
+      "on": "dfw0",
       "proxy": false
     },
     "ldap": {
-      "on": "fra0",
+      "on": "dfw0",
       "proxy": false
     },
     "m": {
-      "on": "fra0",
+      "on": "dfw0",
       "proxy": true
     },
     "mail": {
-      "on": "fra0",
-      "proxy": false
-    },
-    "minio": {
-      "on": "dfw2",
-      "proxy": false
-    },
-    "minio-console": {
-      "on": "dfw2",
+      "on": "ams0",
       "proxy": false
     },
     "morty": {
@@ -124,23 +100,15 @@
       "proxy": false
     },
     "mta-sts": {
-      "on": "fra0",
+      "on": "dfw0",
       "proxy": false
     },
     "searx": {
       "on": "ams0",
       "proxy": false
     },
-    "sso": {
-      "on": "fra0",
-      "proxy": true
-    },
     "vault": {
-      "on": "fra0",
-      "proxy": true
-    },
-    "zone": {
-      "on": "fra0",
+      "on": "dfw0",
       "proxy": true
     }
   }
