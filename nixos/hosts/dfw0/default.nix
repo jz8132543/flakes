@@ -9,7 +9,6 @@
       nixosModules.services.derp
       nixosModules.services.proxy
       nixosModules.services.tuic
-      nixosModules.services.sogo
       nixosModules.services.keycloak
       nixosModules.services.postgres
       nixosModules.services.doraim

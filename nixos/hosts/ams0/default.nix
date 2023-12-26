@@ -1,4 +1,8 @@
-{nixosModules, ...}: {
+{
+  nixosModules,
+  lib,
+  ...
+}: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -10,5 +14,7 @@
       nixosModules.services.proxy
       nixosModules.services.tuic
       nixosModules.services.searx
+      nixosModules.services.sogo
     ];
+  nix.gc.options = lib.mkForce "-d";
 }
