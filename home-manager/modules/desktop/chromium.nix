@@ -12,7 +12,7 @@
       "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
       "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
       "cjpalhdlnbpafiamejdnhcphjbkeiagm" # uBlock Origin
-      "dbepggeogbaibhgnhhndojpepiihcmeb" # Vimium
+      # "dbepggeogbaibhgnhhndojpepiihcmeb" # Vimium
     ];
   };
   home.global-persistence = {
