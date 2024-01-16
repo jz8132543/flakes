@@ -84,6 +84,7 @@
       syncthing-transfer-yinfeng = 3231;
       plex = 32400;
       vlmcsd = 40044;
+      qrcp = 3270;
       tailscale = 41641;
       wireguard = 51820;
       authentik = 9001;
@@ -107,6 +108,7 @@
       headscale = 8085;
       headscale_metrics = 8095;
       headscale_grpc = 50443;
+      alist = 5244;
     };
   };
 }

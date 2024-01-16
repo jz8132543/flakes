@@ -1,7 +1,22 @@
 {
+  "alist": {
+    "cargoLocks": null,
+    "date": null,
+    "extract": null,
+    "name": "alist",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-Nj0xWRtR9uQjPlRaZjEq9hBjL+o/RY3sAMMo/QTguPU=",
+      "type": "url",
+      "url": "https://github.com/alist-org/alist/releases/download/v3.30.0/alist-linux-musl-amd64.tar.gz"
+    },
+    "version": "v3.30.0"
+  },
   "clash-meta": {
     "cargoLocks": null,
-    "date": "2023-09-09",
+    "date": "2024-01-13",
     "extract": null,
     "name": "clash-meta",
     "passthru": {
@@ -15,15 +30,15 @@
       "name": null,
       "owner": "MetaCubeX",
       "repo": "Clash.Meta",
-      "rev": "f241e1f81a53ffed8283c2fd1ab360ca40083318",
-      "sha256": "sha256-wpO7i1QUuVvNnCZ1YzD5sbF97nJmX2rNM4czvyapuEE=",
+      "rev": "edf318bae04c013c9c0c762b2cca234157b126d3",
+      "sha256": "sha256-XmsBt+QxKZZih2SxxYIkb8Yg/xwSYeV1H12yfuA7pEw=",
       "type": "github"
     },
-    "version": "f241e1f81a53ffed8283c2fd1ab360ca40083318"
+    "version": "edf318bae04c013c9c0c762b2cca234157b126d3"
   },
   "kitty-catppuccin": {
     "cargoLocks": null,
-    "date": "2023-06-09",
+    "date": "2024-01-10",
     "extract": null,
     "name": "kitty-catppuccin",
     "passthru": null,
@@ -35,10 +50,10 @@
       "name": null,
       "owner": "catppuccin",
       "repo": "kitty",
-      "rev": "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda",
-      "sha256": "sha256-uZSx+fuzcW//5/FtW98q7G4xRRjJjD5aQMbvJ4cs94U=",
+      "rev": "d7d61716a83cd135344cbb353af9d197c5d7cec1",
+      "sha256": "sha256-mRFa+40fuJCUrR1o4zMi7AlgjRtFmii4fNsQyD8hIjM=",
       "type": "github"
     },
-    "version": "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda"
+    "version": "d7d61716a83cd135344cbb353af9d197c5d7cec1"
   }
 }

@@ -79,6 +79,10 @@
     }
   },
   "service_cname_mappings": {
+    "alist": {
+      "on": "dfw0",
+      "proxy": false
+    },
     "headscale": {
       "on": "dfw0",
       "proxy": false

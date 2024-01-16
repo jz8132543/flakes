@@ -5,29 +5,37 @@
   fetchFromGitHub,
   dockerTools,
 }: {
+  alist = {
+    pname = "alist";
+    version = "v3.30.0";
+    src = fetchurl {
+      url = "https://github.com/alist-org/alist/releases/download/v3.30.0/alist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-Nj0xWRtR9uQjPlRaZjEq9hBjL+o/RY3sAMMo/QTguPU=";
+    };
+  };
   clash-meta = {
     pname = "clash-meta";
-    version = "f241e1f81a53ffed8283c2fd1ab360ca40083318";
+    version = "edf318bae04c013c9c0c762b2cca234157b126d3";
     src = fetchFromGitHub {
       owner = "MetaCubeX";
       repo = "Clash.Meta";
-      rev = "f241e1f81a53ffed8283c2fd1ab360ca40083318";
+      rev = "edf318bae04c013c9c0c762b2cca234157b126d3";
       fetchSubmodules = false;
-      sha256 = "sha256-wpO7i1QUuVvNnCZ1YzD5sbF97nJmX2rNM4czvyapuEE=";
+      sha256 = "sha256-XmsBt+QxKZZih2SxxYIkb8Yg/xwSYeV1H12yfuA7pEw=";
     };
     vendorSha256 = "sha256-My/fwa8BgaJcSGKcyyzUExVE0M2fk7rMZtOBW7V5edQ=";
-    date = "2023-09-09";
+    date = "2024-01-13";
   };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";
-    version = "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda";
+    version = "d7d61716a83cd135344cbb353af9d197c5d7cec1";
     src = fetchFromGitHub {
       owner = "catppuccin";
       repo = "kitty";
-      rev = "4820b3ef3f4968cf3084b2239ce7d1e99ea04dda";
+      rev = "d7d61716a83cd135344cbb353af9d197c5d7cec1";
       fetchSubmodules = false;
-      sha256 = "sha256-uZSx+fuzcW//5/FtW98q7G4xRRjJjD5aQMbvJ4cs94U=";
+      sha256 = "sha256-mRFa+40fuJCUrR1o4zMi7AlgjRtFmii4fNsQyD8hIjM=";
     };
-    date = "2023-06-09";
+    date = "2024-01-10";
   };
 }

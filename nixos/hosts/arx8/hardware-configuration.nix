@@ -19,6 +19,7 @@
       kernelModules = ["nvidia"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module config.boot.kernelPackages.nvidia_x11];
+    kernelParams = ["pcie_aspm=off"];
     # kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
     # kernelModules = ["kvm-amd" "nvidia"];
     # kernelParams = ["modeset=1" "fbdev=1"];

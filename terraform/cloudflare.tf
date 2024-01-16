@@ -68,6 +68,7 @@ locals {
     headscale = { on = "dfw0", proxy = false }
     ldap      = { on = "dfw0", proxy = false }
     sso       = { on = "dfw0", proxy = false }
+    alist     = { on = "dfw0", proxy = false }
     mta-sts   = { on = "dfw0", proxy = false }
     mail      = { on = "ams0", proxy = false }
     searx     = { on = "ams0", proxy = false }

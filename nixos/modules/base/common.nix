@@ -16,8 +16,10 @@
     man.generateCaches = false;
   };
   programs.command-not-found.enable = false;
-  programs.nix-index.enable = true;
-  programs.nix-index-database.comma.enable = true;
+  programs.nix-index = {
+    enable = true;
+    package = pkgs.nix-index-with-db;
+  };
   services.journald.extraConfig = ''
     SystemMaxUse=100M
     SystemKeepFree=1G
