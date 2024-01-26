@@ -6,7 +6,7 @@
   users = {
     users.alist = {
       isSystemUser = true;
-      createHome = true;
+      createHome = false;
       home = "/var/lib/alist";
       group = "alist";
       description = "alist service";
@@ -14,6 +14,9 @@
 
     groups.alist = {};
   };
+  systemd.tmpfiles.rules = [
+    "d '${config.users.users.alist.home}/temp/aria2' 0777 aria2 aria2 - -"
+  ];
 
   systemd.services.alist = {
     description = "alist service";

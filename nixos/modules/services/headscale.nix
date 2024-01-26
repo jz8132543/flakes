@@ -1,8 +1,4 @@
-{
-  config,
-  pkgs,
-  ...
-}: {
+{config, ...}: {
   services = {
     headscale = {
       enable = true;
@@ -79,6 +75,9 @@
     ];
   };
   environment.systemPackages = [config.services.headscale.package];
+  services.restic.backups.borgbase.paths = [
+    "/etc/headscale/map.yaml"
+  ];
   environment.global-persistence = {
     directories = [
       "/etc/headscale"

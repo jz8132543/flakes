@@ -2,16 +2,12 @@
   config,
   lib,
   osConfig,
-  inputs,
   ...
 }: let
   cfg = config.home.global-persistence;
   sysCfg = osConfig.environment.global-persistence;
 in
   with lib; {
-    # imports = [
-    #   inputs.impermanence.nixosModules.home-manager.impermanence
-    # ];
     options.home.global-persistence = {
       enable = lib.mkOption {
         type = types.bool;

@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  osConfig,
   ...
 }: let
   extensionPkgs = with pkgs.gnomeExtensions; [
@@ -177,6 +178,7 @@ in {
   home.global-persistence = {
     directories = [
       ".config/gsconnect"
+      ".cache/gsconnect"
     ];
   };
 }
