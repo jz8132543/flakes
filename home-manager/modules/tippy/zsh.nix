@@ -31,8 +31,8 @@
     autocd = true;
 
     shellAliases = {
-      ls = "${pkgs.eza}/bin/eza --icons";
-      tree = "${pkgs.eza}/bin/eza --tree --icons";
+      ls = "${pkgs.eza}/bin/eza --icons=auto";
+      tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
       top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
       cat = "${pkgs.bat}/bin/bat --style=plain";
       fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";

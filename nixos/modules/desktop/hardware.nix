@@ -1,4 +1,4 @@
-{pkgs, ...}: {
+{...}: {
   hardware = {
     opengl = {
       enable = true;
@@ -19,6 +19,11 @@
       # };
       xkbOptions = "caps:swapescape,caps:escape";
     };
+    # Ignore auto hibernate
+    logind.extraConfig = ''
+      LidSwitchIgnoreInhibited=yes
+      HandleLidSwitch=ignore
+    '';
     # pipewire = {
     #   enable = true;
     #   audio.enable = true;

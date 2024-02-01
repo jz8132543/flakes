@@ -141,11 +141,11 @@ in {
     {
       programs.ssh = {
         extraConfig = ''
-          CanonicalDomains dora.im ts.dora.im
+          CanonicalDomains dora.im ts.dora.im users.dora.im
           CanonicalizeHostname yes
           LogLevel ERROR
           StrictHostKeyChecking no
-          Match canonical final Host *.dora.im,*.ts.dora.im
+          Match canonical final Host *.dora.im,*.ts.dora.im,*.users.dora.im
             Port 1022
             HashKnownHosts no
             UserKnownHostsFile /dev/null

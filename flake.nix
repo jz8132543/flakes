@@ -56,7 +56,6 @@
     devshell = {
       url = "github:numtide/devshell";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.systems.follows = "systems";
     };
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";

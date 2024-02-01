@@ -95,5 +95,9 @@ in {
       name = "dfw0";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "qemu";
+      system = "x86_64-linux";
+    })
   ];
 }

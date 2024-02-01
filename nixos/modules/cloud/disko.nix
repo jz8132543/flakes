@@ -3,8 +3,7 @@
   lib,
   config,
   ...
-}: let
-in {
+}: {
   imports = [
     inputs.disko.nixosModules.disko
   ];
@@ -16,15 +15,17 @@ in {
       content = {
         type = "gpt";
         partitions = {
-          bios = {
-            size = "1M";
+          BIOS = {
+            label = "BIOS";
             type = "EF02";
+            start = "0";
+            end = "+1M";
           };
           EFI = {
             label = "EFI";
-            start = "1MiB";
-            end = "200MiB";
-            type = "ef02";
+            start = "4096";
+            end = "+200M";
+            type = "EF00";
             content = {
               type = "filesystem";
               format = "vfat";
@@ -33,7 +34,7 @@ in {
           };
           NIXOS = {
             label = "NIXOS";
-            size = "100%";
+            end = "-0";
             content = {
               type = "btrfs";
               extraArgs = ["-f"];

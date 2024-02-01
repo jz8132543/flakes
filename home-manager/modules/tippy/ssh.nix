@@ -14,7 +14,7 @@
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
         "CanonicalizeHostname" = "yes";
-        "CanonicalDomains" = "dora.im ts.dora.im";
+        "CanonicalDomains" = "dora.im ts.dora.im users.dora.im";
         "CanonicalizeMaxDots" = "0";
       };
       matchBlocks = {
@@ -31,7 +31,7 @@
         "*" = {
           user = "tippy";
           checkHostIP = false;
-          # forwardAgent = true;
+          forwardAgent = true;
           # forwardX11 = true;
         };
         "canonical" = {

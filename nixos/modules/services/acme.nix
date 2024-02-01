@@ -13,6 +13,7 @@
     domain = "*.dora.im";
     extraDomainNames = [
       "*.ts.dora.im"
+      "*.users.dora.im"
     ];
   };
   sops.secrets = {

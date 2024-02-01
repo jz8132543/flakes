@@ -41,6 +41,10 @@ in {
   # themes
   home.file.".local/share/themes".source = "${gtkThemes}/share/themes";
 
+  home.link = {
+    ".config/systemd/user/gnome-session.target.wants/gnome-remote-desktop.service".target = "/etc/systemd/user/gnome-remote-desktop.service";
+  };
+
   dconf.settings = lib.mkMerge [
     {
       # "org/gnome/mutter" = {
@@ -162,6 +166,13 @@ in {
         theme-dark = "Tomorrow Night";
         show-menu-button = false;
       };
+      "org/gnome/desktop/remote-desktop/rdp" = {
+        enable = true;
+        screen-share-mode = "extend";
+        view-only = false;
+        tls-cert = "${osConfig.security.acme.certs."main".directory}/fullchain.pem";
+        tls-key = "${osConfig.security.acme.certs."main".directory}/key.pem";
+      };
     }
   ];
 
@@ -179,6 +190,7 @@ in {
     directories = [
       ".config/gsconnect"
       ".cache/gsconnect"
+      ".config/dconf"
     ];
   };
 }

@@ -12,7 +12,7 @@
           override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
-          domains = ["dora.im" "ts.dora.im"];
+          domains = ["dora.im" "ts.dora.im" "users.dora.im"];
           nameservers = [
             "1.1.1.1"
             "9.9.9.9"

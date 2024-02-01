@@ -10,7 +10,7 @@ in {
   users.users.${name} = {
     isNormalUser = true;
     shell = pkgs.zsh;
-    extraGroups = ["wheel" "cdrom"];
+    extraGroups = ["wheel" "cdrom" "libvirtd" "acme"];
     openssh.authorizedKeys.keys = [config.lib.self.data.ssh.i];
     hashedPassword = "$6$0gRnTBQjBv9ipXZz$AEBVrBbWXgzZ0IICD1HVWeCwqELFe85.ePsOOdkvFM1E6/sKvQUUesvXhQN519Ud33RsqA3h5z.4luO8Jk4Ls/";
   };
@@ -19,6 +19,7 @@ in {
     neededForUsers = true;
   };
 
+  nix.settings.trusted-users = [name];
   environment.global-persistence.user.users = [name];
   home-manager.users.${name} = {
     hmModules,

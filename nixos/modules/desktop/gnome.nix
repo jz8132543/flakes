@@ -1,8 +1,11 @@
 {
   pkgs,
   lib,
+  nixosModules,
   ...
 }: {
+  imports = [nixosModules.services.acme];
+
   # firewall fot GSConnect
   networking.firewall.allowedTCPPorts = lib.range 1714 1764;
   networking.firewall.allowedUDPPorts = lib.range 1714 1764;
@@ -26,9 +29,19 @@
     gnome.gnome-sound-recorder
     gnome.gnome-power-manager
     gnome.gnome-tweaks
-    gnome.gnome-remote-desktop
     gnome.polari
+    gnome.gnome-session
   ];
+  # services.gnome.gnome-remote-desktop.enable = true;
+  # services.xrdp = {
+  #   enable = true;
+  #   openFirewall = true;
+  #   defaultWindowManager = "${pkgs.gnome.gnome-session}/bin/gnome-session";
+  # };
 
   services.gnome.gnome-browser-connector.enable = true;
+  systemd.targets.sleep.enable = false;
+  systemd.targets.suspend.enable = false;
+  systemd.targets.hibernate.enable = false;
+  systemd.targets.hybrid-sleep.enable = false;
 }
