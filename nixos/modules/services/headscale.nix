@@ -17,6 +17,13 @@
             "1.1.1.1"
             "9.9.9.9"
           ];
+          extra_records = [
+            {
+              name = "m.dora.im";
+              type = "A";
+              value = "100.64.0.2";
+            }
+          ];
         };
         logtail = {
           enabled = false;
@@ -32,6 +39,7 @@
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
         };
+        acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
       };
     };
   };
@@ -72,11 +80,13 @@
     TimeoutStopSec = "5s";
     LoadCredential = [
       "map.yaml:/etc/headscale/map.yaml"
+      "acl.yaml:/etc/headscale/acl.yaml"
     ];
   };
   environment.systemPackages = [config.services.headscale.package];
   services.restic.backups.borgbase.paths = [
     "/etc/headscale/map.yaml"
+    "/etc/headscale/acl.yaml"
   ];
   environment.global-persistence = {
     directories = [
