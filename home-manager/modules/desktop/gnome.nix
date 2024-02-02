@@ -13,6 +13,7 @@
     alphabetical-app-grid
     caffeine
     customize-ibus
+    allow-locked-remote-desktop
     # fcitx5
     kimpanel
   ];

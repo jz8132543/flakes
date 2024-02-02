@@ -29,7 +29,7 @@
         device = lib.mkForce "nodev";
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
-        default = 1;
+        default = 0;
         gfxmodeEfi = lib.mkForce "1280x800";
         extraEntries = ''
           menuentry "Windows" {

@@ -9,8 +9,8 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.networking.nix-binary-cache-mirror
     ];
+  # environment.isCN = true;
   environment.systemPackages = with pkgs; [
     lenovo-legion
     refind

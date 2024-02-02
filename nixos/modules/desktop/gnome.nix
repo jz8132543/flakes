@@ -31,8 +31,9 @@
     gnome.gnome-tweaks
     gnome.polari
     gnome.gnome-session
+    gnomeExtensions.allow-locked-remote-desktop
   ];
-  # services.gnome.gnome-remote-desktop.enable = true;
+  services.gnome.gnome-remote-desktop.enable = true;
   # services.xrdp = {
   #   enable = true;
   #   openFirewall = true;

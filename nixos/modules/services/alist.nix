@@ -30,7 +30,10 @@
       AmbientCapabilities = "cap_net_bind_service";
     };
   };
-  services.aria2.enable = true;
+  services.aria2 = {
+    enable = true;
+    rpcSecretFile = pkgs.writeText "secret" "aria2rpc";
+  };
   sops.templates."alist-config" = {
     mode = "0644";
     owner = "alist";

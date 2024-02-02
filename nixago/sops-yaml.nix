@@ -15,12 +15,8 @@
       key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
       owned = true;
     };
-    fra0 = {
-      key = "age15f7j88sget6mun9tgfc4e0qdptev982jcxfaf0js2ky52t00vsaqhywj8m";
-      owned = true;
-    };
-    fra1 = {
-      key = "age14x2wz4k3xr7u0sgx5hl5wjejynjh4pkw59ccsfqvw9vrctyy54qsqvfrw4";
+    shg0 = {
+      key = "age17vuvvc4ep0h47mkl0ltulz3aj09tqe58fjcnqmslh26x84cwz4ws7rujrp";
       owned = true;
     };
     ams0 = {
@@ -29,10 +25,6 @@
     };
     dfw0 = {
       key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
-      owned = true;
-    };
-    dfw1 = {
-      key = "age1pjtlq295c5gul5naxthwu5j2a85kc5090kuyp9c3e3rvdvefyq9ql9uujg";
       owned = true;
     };
   };
