@@ -9,7 +9,7 @@
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
         dns_config = {
-          override_local_dns = true;
+          # override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
           domains = ["dora.im" "ts.dora.im" "users.dora.im"];
@@ -39,7 +39,7 @@
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
         };
-        acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
+        # acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
       };
     };
   };

@@ -1,5 +1,6 @@
 {
   config,
+  PG ? config.lib.self.data.database,
   pkgs,
   lib,
   ...
@@ -40,7 +41,7 @@ in
               # local database
               user = "synapse";
               database = "synapse";
-              host = "postgres.dora.im";
+              host = PG;
             };
           };
 

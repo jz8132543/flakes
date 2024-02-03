@@ -1,6 +1,8 @@
 {
   pkgs,
+  lib,
   config,
+  PG ? config.lib.self.data.database,
   ...
 }: {
   users = {
@@ -32,8 +34,14 @@
   };
   services.aria2 = {
     enable = true;
-    rpcSecretFile = pkgs.writeText "secret" "aria2rpc";
+    rpcSecretFile = "/run/credentials/aria2.service/rpcSecretFile";
   };
+  systemd.services.aria2.serviceConfig = {
+    LoadCredential = lib.mkForce [
+      "rpcSecretFile:${pkgs.writeText "secret1" "aria2rpc"}"
+    ];
+  };
+
   sops.templates."alist-config" = {
     mode = "0644";
     owner = "alist";
@@ -43,7 +51,7 @@
       jwt_secret = "${config.sops.placeholder."alist/JWT"}";
       database = {
         type = "postgres";
-        host = config.lib.self.data.database;
+        host = PG;
         port = 5432;
         user = "alist";
         password = "";

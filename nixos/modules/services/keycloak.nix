@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  PG ? config.lib.self.data.database,
   nixosModules,
   ...
 }: {
@@ -11,7 +12,7 @@
     enable = true;
     database = {
       type = "postgresql";
-      host = "postgres.dora.im";
+      host = PG;
       useSSL = false;
       passwordFile = "/dev/null";
     };
@@ -29,7 +30,7 @@
       http_port = config.ports.lldap;
       ldap_port = config.ports.ldap;
       ldap_base_dn = "dc=dora,dc=im";
-      database_url = "postgresql://lldap@postgres.dora.im/lldap";
+      database_url = "postgresql://lldap@${PG}/lldap";
       ldap_user_dn = "i";
       ldaps_options = {
         enabled = true;

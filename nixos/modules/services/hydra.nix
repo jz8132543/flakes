@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  PG ? config.lib.self.data.database,
   ...
 }: let
   hydraUser = config.users.users.hydra.name;
@@ -17,7 +18,7 @@ in {
         hydraURL = "https://hydra.dora.im";
         notificationSender = "hydra@dora.im";
         useSubstitutes = true;
-        dbi = "dbi:Pg:dbname=hydra;host=postgres.dora.im;user=hydra;";
+        dbi = "dbi:Pg:dbname=hydra;host=${PG};user=hydra;";
         buildMachinesFiles = [
           "/etc/nix/machines"
           "/etc/nix-build-machines/hydra-builder/machines"

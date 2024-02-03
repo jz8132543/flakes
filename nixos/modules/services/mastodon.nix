@@ -1,6 +1,6 @@
 {
   config,
-  lib,
+  PG ? config.lib.self.data.database,
   ...
 }: {
   services.mastodon = {
@@ -21,7 +21,7 @@
     };
     extraConfig = {
       WEB_DOMAIN = "zone.dora.im";
-      DB_HOST = "postgres.dora.im";
+      DB_HOST = PG;
       DB_PORT = "5432";
       OMNIAUTH_ONLY = "true";
       OIDC_ENABLED = "true";

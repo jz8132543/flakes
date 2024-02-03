@@ -1,11 +1,12 @@
 {
   config,
   lib,
+  PG ? config.lib.self.data.database,
   ...
 }: {
   services.lemmy = {
     enable = true;
-    database.host = "postgres.dora.im";
+    database.host = PG;
     settings = {
       hostname = "lemmy.${config.networking.domain}";
       federation.enabled = true;

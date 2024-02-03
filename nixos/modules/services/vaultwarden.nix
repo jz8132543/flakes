@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  PG ? config.lib.self.data.database,
   ...
 }: {
   sops.secrets."vaultwarden/ADMIN_TOKEN" = {};
@@ -10,7 +11,7 @@
     dbBackend = "postgresql";
     config = {
       domain = "https://vault.dora.im";
-      databaseUrl = "postgresql://vaultwarden@postgres.dora.im/vaultwarden";
+      databaseUrl = "postgresql://vaultwarden@${PG}/vaultwarden";
       signupsAllowed = false;
       emergencyAccessAllowed = false;
       websocketEnabled = true;

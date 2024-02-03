@@ -2,6 +2,7 @@
   pkgs,
   lib,
   config,
+  PG ? config.lib.self.data.database,
   ...
 }: let
   akkconfig = ''
@@ -25,7 +26,7 @@
     config :pleroma, Pleroma.Repo,
       adapter: Ecto.Adapters.Postgres,
       database: "pleroma",
-      hostname: "postgres.dora.im",
+      hostname: "${PG}",
       username: "pleroma"
     config :pleroma, :frontend_configurations,
       pleroma_fe: %{
