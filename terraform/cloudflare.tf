@@ -177,14 +177,14 @@ resource "cloudflare_record" "dora_mx_ams0" {
 
 # Machines
 
-# resource "cloudflare_record" "dora_wildcard" {
-#   name    = "*"
-#   proxied = false
-#   ttl     = 1
-#   type    = "A"
-#   value   = "127.0.0.1"
-#   zone_id = cloudflare_zone.im_dora.id
-# }
+resource "cloudflare_record" "dora_matrix" {
+  name    = "m"
+  proxied = false
+  ttl     = 1
+  type    = "A"
+  value   = "100.64.0.2"
+  zone_id = cloudflare_zone.im_dora.id
+}
 
 resource "cloudflare_record" "dora_tippy" {
   name    = "tippy"

@@ -133,7 +133,7 @@ in
           #     };
           #   }
           # ];
-          registration_shared_secret = config.sops.placeholder."matrix/registration_shared_secret";
+          # registration_shared_secret = config.sops.placeholder."matrix/registration_shared_secret";
         };
       };
       environment.systemPackages = [
