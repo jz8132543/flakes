@@ -13,7 +13,7 @@
     alphabetical-app-grid
     caffeine
     customize-ibus
-    allow-locked-remote-desktop
+    # allow-locked-remote-desktop
     # fcitx5
     kimpanel
   ];
@@ -167,13 +167,13 @@ in {
         theme-dark = "Tomorrow Night";
         show-menu-button = false;
       };
-      "org/gnome/desktop/remote-desktop/rdp" = {
-        enable = true;
-        screen-share-mode = "extend";
-        view-only = false;
-        tls-cert = "${osConfig.security.acme.certs."main".directory}/fullchain.pem";
-        tls-key = "${osConfig.security.acme.certs."main".directory}/key.pem";
-      };
+      # "org/gnome/desktop/remote-desktop/rdp" = {
+      #   enable = true;
+      #   screen-share-mode = "extend";
+      #   view-only = false;
+      #   tls-cert = "${osConfig.security.acme.certs."main".directory}/fullchain.pem";
+      #   tls-key = "${osConfig.security.acme.certs."main".directory}/key.pem";
+      # };
     }
   ];
 
@@ -186,6 +186,17 @@ in {
     "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
     "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
   };
+
+  ## Create startwm.sh for XRDP
+  home.file."startwm.sh".text = ''
+    #!/usr/bin/env bash
+    export DESKTOP_SESSION="gnome"
+    export GDMSESSION="gnome"
+    export XDG_CURRENT_DESKTOP="GNOME"
+    export XDG_SESSION_DESKTOP="gnome"
+    dbus-run-session -- gnome-shell
+  '';
+  home.file."startwm.sh".executable = true;
 
   home.global-persistence = {
     directories = [

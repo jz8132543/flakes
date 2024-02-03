@@ -18,7 +18,7 @@
 in {
   # nixpkgs.config.cudaSupport = true;
   nix.settings = {
-    substituters = [
+    substituters = lib.mkForce [
       "https://cuda-maintainers.cachix.org"
     ];
     trusted-public-keys = [

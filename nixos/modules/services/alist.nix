@@ -1,8 +1,7 @@
-{
+{PG ? "postgres.dora.im", ...}: {
   pkgs,
   lib,
   config,
-  PG ? config.lib.self.data.database,
   ...
 }: {
   users = {

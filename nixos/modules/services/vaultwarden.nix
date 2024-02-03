@@ -1,7 +1,6 @@
-{
+{PG ? "postgres.dora.im", ...}: {
   config,
   lib,
-  PG ? config.lib.self.data.database,
   ...
 }: {
   sops.secrets."vaultwarden/ADMIN_TOKEN" = {};

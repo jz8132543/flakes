@@ -20,6 +20,7 @@
   services.xserver.displayManager.gdm.autoSuspend = false;
 
   environment.systemPackages = with pkgs; [
+    weston
     kooha
     pulseaudio
     wl-clipboard
@@ -31,14 +32,14 @@
     gnome.gnome-tweaks
     gnome.polari
     gnome.gnome-session
-    gnomeExtensions.allow-locked-remote-desktop
+    # gnomeExtensions.allow-locked-remote-desktop
   ];
-  services.gnome.gnome-remote-desktop.enable = true;
-  # services.xrdp = {
-  #   enable = true;
-  #   openFirewall = true;
-  #   defaultWindowManager = "${pkgs.gnome.gnome-session}/bin/gnome-session";
-  # };
+  # services.gnome.gnome-remote-desktop.enable = true;
+  services.xrdp = {
+    enable = true;
+    openFirewall = true;
+    defaultWindowManager = "${pkgs.gnome.gnome-session}/bin/gnome-session";
+  };
 
   services.gnome.gnome-browser-connector.enable = true;
   systemd.targets.sleep.enable = false;

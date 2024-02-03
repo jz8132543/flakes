@@ -17,7 +17,7 @@
       #   tapping = true;
       #   tappingDragLock = false;
       # };
-      xkbOptions = "caps:swapescape,caps:escape";
+      xkb.options = "caps:swapescape,caps:escape";
     };
     # Ignore auto hibernate
     logind.extraConfig = ''

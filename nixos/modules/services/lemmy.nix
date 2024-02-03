@@ -1,7 +1,6 @@
-{
+{PG ? "postgres.dora.im", ...}: {
   config,
   lib,
-  PG ? config.lib.self.data.database,
   ...
 }: {
   services.lemmy = {

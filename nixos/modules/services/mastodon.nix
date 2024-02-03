@@ -1,8 +1,4 @@
-{
-  config,
-  PG ? config.lib.self.data.database,
-  ...
-}: {
+{PG ? "postgres.dora.im", ...}: {config, ...}: {
   services.mastodon = {
     enable = true;
     localDomain = "dora.im";

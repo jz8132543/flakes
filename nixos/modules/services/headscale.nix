@@ -23,6 +23,11 @@
               type = "A";
               value = "100.64.0.2";
             }
+            {
+              name = "postgres.dora.im";
+              type = "A";
+              value = "100.64.0.1";
+            }
           ];
         };
         logtail = {

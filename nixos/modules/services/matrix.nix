@@ -1,6 +1,5 @@
-{
+{PG ? "postgres.dora.im", ...}: {
   config,
-  PG ? config.lib.self.data.database,
   pkgs,
   lib,
   ...
@@ -26,9 +25,11 @@ in
       services.matrix-synapse = {
         enable = true;
         withJemalloc = true;
-        plugins = [
-          config.nur.repos.linyinfeng.synapse-s3-storage-provider
-        ];
+        # plugins = with pkgs.python3.pkgs;
+        #   [authlib]
+        #   ++ [
+        #     #   config.nur.repos.linyinfeng.synapse-s3-storage-provider
+        #   ];
         settings = {
           server_name = "dora.im";
           public_baseurl = "https://m.dora.im";
@@ -61,7 +62,7 @@ in
           media_retention = {
             # no retention for local media to keep stickers
             # local_media_lifetime = "180d";
-            remote_media_lifetime = "14d";
+            # remote_media_lifetime = "14d";
           };
 
           listeners = [
@@ -77,6 +78,24 @@ in
                   names = ["client" "federation"];
                 }
               ];
+            }
+          ];
+          oidc_providers = [
+            {
+              idp_id = "keycloak";
+              idp_name = "keycloak";
+              issuer = "https://sso.dora.im/realms/users";
+              client_id = "synapse";
+              client_secret = config.sops.secrets."matrix/oidc-secret".path;
+              scopes = ["openid" "profile" "email"];
+              allow_existing_users = true;
+              backchannel_logout_enabled = true;
+              user_mapping_provider.config = {
+                confirm_localpart = true;
+                localpart_template = "{{ user.preferred_username }}";
+                display_name_template = "{{ user.name }}";
+                email_template = "{{ user.email }}";
+              };
             }
           ];
         };
@@ -96,24 +115,6 @@ in
             force_tls = true;
             smtp_pass = config.sops.placeholder."matrix/mail";
           };
-          oidc_providers = [
-            {
-              idp_id = "keycloak";
-              idp_name = "keycloak";
-              issuer = "https://sso.dora.im/realms/users";
-              client_id = "synapse";
-              client_secret = config.sops.placeholder."matrix/oidc-secret";
-              scopes = ["openid" "profile" "email"];
-              allow_existing_users = true;
-              backchannel_logout_enabled = true;
-              user_mapping_provider.config = {
-                confirm_localpart = true;
-                localpart_template = "{{ user.preferred_username }}";
-                display_name_template = "{{ user.name }}";
-                email_template = "{{ user.email }}";
-              };
-            }
-          ];
           media_storage_providers = [
             # as backup of all local media
             {

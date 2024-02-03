@@ -9,10 +9,13 @@
       nixosModules.services.derp
       nixosModules.services.proxy
       nixosModules.services.tuic
-      nixosModules.services.keycloak
       nixosModules.services.postgres
       nixosModules.services.doraim
-      nixosModules.services.vaultwarden
-      nixosModules.services.alist
+      (import nixosModules.services.keycloak {})
+      (import nixosModules.services.vaultwarden {})
+      (import nixosModules.services.alist {})
+      # nixosModules.services.keycloak
+      # nixosModules.services.vaultwarden
+      # nixosModules.services.alist
     ];
 }

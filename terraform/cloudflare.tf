@@ -177,12 +177,12 @@ resource "cloudflare_record" "dora_mx_ams0" {
 
 # Machines
 
-resource "cloudflare_record" "dora_postgres" {
-  name    = "postgres"
+resource "cloudflare_record" "dora_wildcard" {
+  name    = "*"
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "100.64.0.1"
+  value   = "127.0.0.1"
   zone_id = cloudflare_zone.im_dora.id
 }
 
