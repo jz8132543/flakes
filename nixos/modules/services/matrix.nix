@@ -19,6 +19,7 @@ in
         "matrix/mail" = {};
         "matrix/signing-key" = {owner = "matrix-synapse";};
         "matrix/oidc-secret" = {};
+        "matrix/registration_shared_secret" = {};
       };
       sops.secrets."b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
       sops.secrets."b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
@@ -35,6 +36,7 @@ in
           public_baseurl = "https://m.dora.im";
           admin_contact = "mailto:i@dora.im";
           signing_key_path = config.sops.secrets."matrix/signing-key".path;
+          serve_server_wellknown = true;
 
           database = {
             name = "psycopg2";
@@ -115,22 +117,23 @@ in
             force_tls = true;
             smtp_pass = config.sops.placeholder."matrix/mail";
           };
-          media_storage_providers = [
-            # as backup of all local media
-            {
-              module = "s3_storage_provider.S3StorageProviderBackend";
-              store_local = true;
-              store_remote = true;
-              store_synchronous = true;
-              config = {
-                bucket = config.lib.self.data.matrix.media.name;
-                region_name = config.lib.self.data.matrix.media.region;
-                endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
-                access_key_id = config.sops.placeholder."b2_synapse_media_key_id";
-                secret_access_key = config.sops.placeholder."b2_synapse_media_access_key";
-              };
-            }
-          ];
+          # media_storage_providers = [
+          #   # as backup of all local media
+          #   {
+          #     module = "s3_storage_provider.S3StorageProviderBackend";
+          #     store_local = true;
+          #     store_remote = true;
+          #     store_synchronous = true;
+          #     config = {
+          #       bucket = config.lib.self.data.matrix.media.name;
+          #       region_name = config.lib.self.data.matrix.media.region;
+          #       endpoint_url = "https://${config.lib.self.data.matrix.media.host}";
+          #       access_key_id = config.sops.placeholder."b2_synapse_media_key_id";
+          #       secret_access_key = config.sops.placeholder."b2_synapse_media_access_key";
+          #     };
+          #   }
+          # ];
+          registration_shared_secret = config.sops.placeholder."matrix/registration_shared_secret";
         };
       };
       environment.systemPackages = [
@@ -146,7 +149,7 @@ in
       services.traefik.dynamicConfigOptions.http = {
         routers = {
           matrix = {
-            rule = "Host(`m.dora.im`) && (PathPrefix(`/_matrix`) || PathPrefix(`/_synapse`))";
+            rule = "Host(`m.dora.im`) && (PathPrefix(`/_matrix`) || PathPrefix(`/_synapse`) || PathPrefix(`/.well-known`))";
             entryPoints = ["https"];
             service = "matrix";
             priority = 99;

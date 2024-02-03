@@ -44,7 +44,7 @@
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
         };
-        # acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
+        acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
       };
     };
   };

@@ -1,4 +1,10 @@
-{config, ...}: {
+{
+  config,
+  nixosModules,
+  ...
+}: {
+  imports = [nixosModules.services.acme];
+  config.users.users.traefik.extraGroups = ["acme"];
   config.networking.firewall.allowedTCPPorts = [80 443];
   config.networking.firewall.allowedUDPPorts = [443];
   config.services.traefik = {
@@ -20,7 +26,10 @@
           address = ":443";
           forwardedHeaders.insecure = true;
           proxyProtocol.insecure = true;
-          http.tls.certResolver = "zerossl";
+          http.tls =
+            if config.environment.isCN
+            then true
+            else {certResolver = "zerossl";};
           http3 = {};
         };
       };
@@ -51,6 +60,15 @@
       };
     };
     dynamicConfigOptions = {
+      tls.certificates =
+        if config.environment.isCN
+        then [
+          {
+            certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
+            keyFile = "${config.security.acme.certs."main".directory}/key.pem";
+          }
+        ]
+        else [];
       tls.options.default = {
         minVersion = "VersionTLS13";
         sniStrict = true;
