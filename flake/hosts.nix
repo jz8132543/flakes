@@ -96,7 +96,7 @@ in {
       system = "x86_64-linux";
     })
     (mkHost {
-      name = "shg0";
+      name = "isk";
       system = "x86_64-linux";
     })
   ];

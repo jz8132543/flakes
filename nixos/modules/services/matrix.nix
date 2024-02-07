@@ -20,6 +20,11 @@ in
         "matrix/signing-key" = {owner = "matrix-synapse";};
         "matrix/oidc-secret" = {};
         "matrix/registration_shared_secret" = {};
+        "matrix/turn_shared_secret" = {
+          mode = "0440";
+          owner = "matrix-synapse";
+          group = "acme";
+        };
       };
       sops.secrets."b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
       sops.secrets."b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
@@ -100,13 +105,20 @@ in
               };
             }
           ];
+          turn_uris = [
+            "turns:shg0.dora.im?transport=udp"
+            "turns:shg0.dora.im?transport=tcp"
+            "turns:tippy.dora.im?transport=udp"
+            "turns:tippy.dora.im?transport=tcp"
+          ];
+          turn_user_lifetime = "1h";
+          turn_allow_guests = false;
         };
         extraConfigFiles = [
           # configurations with secrets
           config.sops.templates."synapse-extra-config".path
         ];
       };
-
       sops.templates."synapse-extra-config" = {
         owner = "matrix-synapse";
         content = builtins.toJSON {
@@ -134,6 +146,7 @@ in
           #   }
           # ];
           # registration_shared_secret = config.sops.placeholder."matrix/registration_shared_secret";
+          turn_shared_secret = config.sops.placeholder."matrix/turn_shared_secret";
         };
       };
       environment.systemPackages = [
@@ -143,6 +156,33 @@ in
         after = ["postgresql.service" "tailscaled.service"];
         serviceConfig.Restart = lib.mkForce "always";
       };
+    }
+    #STUN
+    {
+      services.coturn = {
+        enable = true;
+        use-auth-secret = true;
+        static-auth-secret-file = config.sops.secrets."matrix/turn_shared_secret".path;
+        realm = "${config.networking.fqdn}";
+        min-port = 49152;
+        max-port = 49262;
+        no-cli = true;
+        cert = "${config.security.acme.certs."main".directory}/fullchain.pem";
+        pkey = "${config.security.acme.certs."main".directory}/key.pem";
+        no-tcp-relay = true;
+        extraConfig = ''
+          listening-ip=0.0.0.0
+          userdb=/var/lib/coturn/turnserver.db
+          no-tlsv1
+          no-tlsv1_1
+          no-rfc5780
+          no-stun-backward-compatibility
+          response-origin-only-with-rfc5780
+          no-multicast-peers
+        '';
+      };
+      systemd.services.coturn.serviceConfig.StateDirectory = "coturn";
+      systemd.services.coturn.serviceConfig.Group = lib.mkForce "acme";
     }
     # reverse proxy
     {

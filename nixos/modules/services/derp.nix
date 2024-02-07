@@ -1,13 +1,22 @@
 {
   config,
   pkgs,
+  nixosModules,
   ...
 }: {
+  imports = [nixosModules.services.acme];
   systemd.services.derper = {
     serviceConfig = {
       Restart = "always";
       DynamicUser = true;
-      ExecStart = "${pkgs.tailscale-derp}/bin/derper -a ':${toString config.ports.derp}' --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
+      ExecStart =
+        if !config.environment.isCN
+        then "${pkgs.tailscale-derp}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients"
+        else "${pkgs.tailscale-derp}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} -http-port='-1' --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -certdir '$CREDENTIALS_DIRECTORY' -certmode manual -verify-clients";
+      LoadCredential = [
+        "${config.networking.fqdn}.crt:${config.security.acme.certs."main".directory}/full.pem"
+        "${config.networking.fqdn}.key:${config.security.acme.certs."main".directory}/key.pem"
+      ];
     };
     restartIfChanged = true;
     after = ["network-online.target"];

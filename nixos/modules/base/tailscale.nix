@@ -7,7 +7,7 @@ in {
   };
   networking.networkmanager.unmanaged = [interfaceName];
   networking.firewall.checkReversePath = false;
-  networking.firewall.trustedInterfaces = ["tailscale0"];
+  # networking.firewall.trustedInterfaces = ["tailscale0"];
   networking.firewall.allowedUDPPorts = [
     config.services.tailscale.port
   ];

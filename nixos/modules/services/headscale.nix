@@ -9,7 +9,7 @@
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
         dns_config = {
-          # override_local_dns = true;
+          override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
           domains = ["dora.im" "ts.dora.im" "users.dora.im"];
@@ -20,6 +20,11 @@
           extra_records = [
             {
               name = "m.dora.im";
+              type = "A";
+              value = "100.64.0.2";
+            }
+            {
+              name = "m-admin.dora.im";
               type = "A";
               value = "100.64.0.2";
             }
