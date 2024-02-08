@@ -15,8 +15,8 @@
       key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
       owned = true;
     };
-    shg0 = {
-      key = "age17vuvvc4ep0h47mkl0ltulz3aj09tqe58fjcnqmslh26x84cwz4ws7rujrp";
+    isk = {
+      key = "age1uy5aqnm948p6zd2jy9enw5rppemgxcdfswgvf3qv7d2y05zfla5sqwzhhs";
       owned = true;
     };
     ams0 = {
