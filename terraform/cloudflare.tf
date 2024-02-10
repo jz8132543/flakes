@@ -70,6 +70,8 @@ locals {
     sso       = { on = "dfw0", proxy = false }
     alist     = { on = "dfw0", proxy = false }
     mta-sts   = { on = "dfw0", proxy = false }
+    atuin     = { on = "dfw0", proxy = false }
+    ntfy      = { on = "dfw0", proxy = false }
     mail      = { on = "ams0", proxy = false }
     searx     = { on = "ams0", proxy = false }
     morty     = { on = "ams0", proxy = false }

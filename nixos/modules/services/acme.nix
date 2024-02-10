@@ -11,10 +11,7 @@
   };
   security.acme.certs."main" = {
     domain = "*.dora.im";
-    extraDomainNames = [
-      "*.ts.dora.im"
-      "*.users.dora.im"
-    ];
+    extraDomainNames = ["dora.im"];
   };
   sops.secrets = {
     "traefik/cloudflare_token" = {};

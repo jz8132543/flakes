@@ -17,6 +17,7 @@
   };
   systemd.tmpfiles.rules = [
     "d '${config.users.users.alist.home}/temp/aria2' 0777 aria2 aria2 - -"
+    "f '/var/lib/aria2/aria2.conf' 0666 aria2 aria2"
   ];
 
   systemd.services.alist = {

@@ -83,6 +83,10 @@
       "on": "dfw0",
       "proxy": false
     },
+    "atuin": {
+      "on": "dfw0",
+      "proxy": false
+    },
     "headscale": {
       "on": "dfw0",
       "proxy": false
@@ -100,6 +104,10 @@
       "proxy": false
     },
     "mta-sts": {
+      "on": "dfw0",
+      "proxy": false
+    },
+    "ntfy": {
       "on": "dfw0",
       "proxy": false
     },

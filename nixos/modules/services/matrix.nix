@@ -60,8 +60,9 @@ in
           dynamic_thumbnails = true;
           allow_public_rooms_over_federation = true;
 
-          enable_registration = true;
-          registration_requires_token = true;
+          enable_registration = false;
+          password_config.enabled = false;
+          # registration_requires_token = true;
           registrations_require_3pid = [
             "email"
           ];
@@ -113,6 +114,18 @@ in
           ];
           turn_user_lifetime = "1h";
           turn_allow_guests = false;
+          experimental_features = {
+            # Room summary api
+            msc3266_enabled = true;
+            # Removing account data
+            msc3391_enabled = true;
+            # Thread notifications
+            msc3773_enabled = true;
+            # Remotely toggle push notifications for another client
+            msc3881_enabled = true;
+            # Remotely silence local notifications
+            msc3890_enabled = true;
+          };
         };
         extraConfigFiles = [
           # configurations with secrets

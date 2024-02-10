@@ -1,4 +1,13 @@
 {pkgs, ...}: {
+  programs.atuin = {
+    enable = true;
+    settings = {
+      auto_sync = true;
+      sync_frequency = "5m";
+      sync_address = "https://atuin.dora.im";
+    };
+    flags = ["--disable-up-arrow"];
+  };
   programs.starship = {
     enable = true;
     enableBashIntegration = true;
@@ -114,6 +123,8 @@
   home.global-persistence = {
     directories = [
       ".local/share/zsh"
+      # Atuin
+      "~/.local/share/atuin"
       # ".cache/nix-index"
     ];
   };

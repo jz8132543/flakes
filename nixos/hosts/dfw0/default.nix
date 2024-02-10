@@ -11,9 +11,11 @@
       nixosModules.services.tuic
       nixosModules.services.postgres
       nixosModules.services.doraim
+      nixosModules.services.ntfy
       (import nixosModules.services.keycloak {})
       (import nixosModules.services.vaultwarden {})
       (import nixosModules.services.alist {})
+      (import nixosModules.services.atuin {})
       # nixosModules.services.keycloak
       # nixosModules.services.vaultwarden
       # nixosModules.services.alist

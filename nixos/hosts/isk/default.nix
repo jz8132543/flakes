@@ -8,11 +8,11 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
+      ./_steam
       nixosModules.services.traefik
       nixosModules.services.postgres
-      # nixosModules.services.derp
       (import nixosModules.services.matrix {PG = "127.0.0.1";})
     ];
-  environment.isCN = true;
-  # networking.firewall.enable = lib.mkForce false;
+  environment.isNAT = true;
+  networking.firewall.enable = lib.mkForce false;
 }

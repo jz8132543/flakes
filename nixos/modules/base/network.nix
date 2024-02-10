@@ -27,6 +27,10 @@
         "net.ipv4.tcp_slow_start_after_idle" = 0;
         "net.ipv4.tcp_syncookies" = 1;
         "net.ipv4.tcp_tw_reuse" = 1;
+
+        # tailscale
+        "net.ipv4.ip_forward" = 1;
+        "net.ipv6.conf.all.forwarding" = 1;
       };
     };
   };

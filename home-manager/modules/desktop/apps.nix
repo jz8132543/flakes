@@ -13,6 +13,7 @@
     config.nur.repos.xddxdd.baidupcs-go
     # config.nur.repos.xddxdd.wechat-uos
     remmina
+    element-desktop
   ];
   dconf.settings = {
     "org/virt-manager/virt-manager/connections" = {

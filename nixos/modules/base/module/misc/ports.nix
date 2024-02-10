@@ -110,6 +110,8 @@
       headscale_metrics = 8095;
       headscale_grpc = 50443;
       alist = 5244;
+      atuin = 3310;
+      ntfy = 1161;
     };
   };
 }

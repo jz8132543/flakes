@@ -27,7 +27,7 @@
           forwardedHeaders.insecure = true;
           proxyProtocol.insecure = true;
           http.tls =
-            if config.environment.isCN
+            if config.environment.isNAT
             then true
             else {certResolver = "zerossl";};
           http3 = {};
@@ -61,7 +61,7 @@
     };
     dynamicConfigOptions = {
       tls.certificates =
-        if config.environment.isCN
+        if config.environment.isNAT
         then [
           {
             certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
