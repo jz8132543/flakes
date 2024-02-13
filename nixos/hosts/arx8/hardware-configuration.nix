@@ -2,26 +2,56 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
-}: {
+}: let
+  nvidia_x11 = config.hardware.nvidia.package;
+  cfg = config.lun.nvidia-gpu-standalone;
+  module = nvidia_x11.bin;
+in {
   imports = [
     inputs.grub2-themes.nixosModules.default
     inputs.nixos-hardware.nixosModules.common-pc-laptop
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
     inputs.nixos-hardware.nixosModules.common-cpu-amd
     inputs.nixos-hardware.nixosModules.common-cpu-amd-pstate
-    inputs.nixos-hardware.nixosModules.common-gpu-nvidia
+    inputs.nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
     # inputs.nixos-hardware.nixosModules.common-gpu-amd
   ];
+  boot.extraModulePackages = [module config.boot.kernelPackages.lenovo-legion-module];
+  hardware.firmware = [nvidia_x11.firmware];
+  hardware.opengl.extraPackages = [nvidia_x11.out];
+  hardware.opengl.extraPackages32 = [nvidia_x11.lib32];
+  services.acpid.enable = true;
+  services.udev.extraRules = ''
+    KERNEL=="nvidia", RUN+="${pkgs.runtimeShell} -c 'mknod -m 666 /dev/nvidiactl c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) 255'"
+    KERNEL=="nvidia", RUN+="${pkgs.runtimeShell} -c 'for i in $$(cat /proc/driver/nvidia/gpus/*/information | grep Minor | cut -d \  -f 4); do mknod -m 666 /dev/nvidia$${i} c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) $${i}; done'"
+    KERNEL=="nvidia_modeset", RUN+="${pkgs.runtimeShell} -c 'mknod -m 666 /dev/nvidia-modeset c $$(grep nvidia-frontend /proc/devices | cut -d \  -f 1) 254'"
+    KERNEL=="nvidia_uvm", RUN+="${pkgs.runtimeShell} -c 'mknod -m 666 /dev/nvidia-uvm c $$(grep nvidia-uvm /proc/devices | cut -d \  -f 1) 0'"
+    KERNEL=="nvidia_uvm", RUN+="${pkgs.runtimeShell} -c 'mknod -m 666 /dev/nvidia-uvm-tools c $$(grep nvidia-uvm /proc/devices | cut -d \  -f 1) 1'"
+  '';
   boot = {
     initrd = {
       availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
-      kernelModules = ["nvidia"];
+      kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
+      # kernelModules = ["nvidia"];
     };
-    extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module config.boot.kernelPackages.nvidia_x11];
-    # kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
-    # kernelModules = ["kvm-amd" "nvidia"];
-    # kernelParams = ["modeset=1" "fbdev=1"];
+    # extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module config.boot.kernelPackages.nvidia_x11];
+    kernelModules = ["kvm-amd" "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm"];
+    kernelParams = [
+      "nvidia_drm.modeset=1"
+      # "fbdev=1"
+      "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+      "nvidia.NVreg_DynamicPowerManagement=2"
+      "nvidia.NVreg_OpenRmEnableUnsupportedGpus=1"
+      "amd_iommu=pgtbl_v2"
+      "iommu=pt"
+      "acpi=copy_dsdt"
+      "tsc=reliable"
+      "clocksource=tsc"
+      "acpi.prefer_microsoft_guid=1"
+      "s2idle.prefer_microsoft_guid=1"
+    ];
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
@@ -62,12 +92,12 @@
     # amdgpu.loadInInitrd = false;
     nvidia = {
       modesetting.enable = true;
-      powerManagement.enable = true;
+      # powerManagement.enable = true;
       nvidiaSettings = true;
-      prime = {
-        amdgpuBusId = "PCI:8:0:0";
-        nvidiaBusId = "PCI:1:0:0";
-      };
+      # prime = {
+      #   amdgpuBusId = "PCI:8:0:0";
+      #   nvidiaBusId = "PCI:1:0:0";
+      # };
     };
   };
   services.autorandr = {

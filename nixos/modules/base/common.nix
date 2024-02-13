@@ -9,8 +9,6 @@
   ];
   time.timeZone = "Asia/Shanghai";
 
-  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
-
   documentation = {
     nixos.enable = false;
     man.generateCaches = false;
@@ -20,6 +18,16 @@
     enable = true;
     package = pkgs.nix-index-with-db;
   };
+
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
+  security.rtkit.enable = true;
+  services.dbus.implementation = "broker";
+  services.bpftune.enable = true;
+  services.earlyoom.enable = true;
+  boot.kernel.sysctl = {
+    "kernel.sysrq" = 1;
+  };
+
   services.journald.extraConfig = ''
     SystemMaxUse=100M
     SystemKeepFree=1G

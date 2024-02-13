@@ -31,6 +31,7 @@
       ".thunderbird"
       ".config/weixin"
       ".local/share/Kingsoft"
+      ".config/Element"
     ];
   };
 }
