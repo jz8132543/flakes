@@ -1,50 +1,59 @@
 {
   pkgs,
   lib,
-  osConfig,
+  config,
   ...
 }: let
   extensionPkgs = with pkgs.gnomeExtensions; [
-    gsconnect
+    # gsconnect
     appindicator
     dash-to-dock
     clipboard-history
     upower-battery
     alphabetical-app-grid
     caffeine
+    user-themes
     customize-ibus
-    # allow-locked-remote-desktop
     # fcitx5
     kimpanel
   ];
-  gtkThemes = pkgs.symlinkJoin {
-    name = "gtk-themes";
-    paths = with pkgs; [
-      adw-gtk3
-    ];
+  toTitle = str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
+  catppuccin = {
+    variant = "mocha";
+    accent = "blue";
+    size = "compact";
   };
+  # gtkThemes = pkgs.symlinkJoin {
+  #   name = "gtk-themes";
+  #   paths = with pkgs; [
+  #     adw-gtk3
+  #   ];
+  # };
   inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 mkDouble type;
 in {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
-      capitaine-cursors
+      catppuccin-kvantum
+      (catppuccin-gtk.override
+        {
+          variant = catppuccin.variant;
+          accents = [catppuccin.accent];
+          tweaks = ["float"];
+          size = catppuccin.size;
+        })
     ]);
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
-    "jfnifeihccihocjbfcfhicmmgpjicaec" # GSConnect
+    # "jfnifeihccihocjbfcfhicmmgpjicaec" # GSConnect
   ];
   # Remove initial setup dialog
   home.file.".config/gnome-initial-setup-done".text = "yes";
 
   # themes
-  home.file.".local/share/themes".source = "${gtkThemes}/share/themes";
-
-  home.link = {
-    ".config/systemd/user/gnome-session.target.wants/gnome-remote-desktop.service".target = "/etc/systemd/user/gnome-remote-desktop.service";
-  };
+  # home.file.".local/share/themes".source = "${gtkThemes}/share/themes";
 
   dconf.settings = lib.mkMerge [
     {
@@ -82,12 +91,12 @@ in {
         welcome-dialog-last-shown-version = "43.1";
       };
       "org/gnome/desktop/interface" = {
-        scaling-factor = mkUint32 2;
-        text-scaling-factor = mkDouble 0.75;
+        # scaling-factor = mkUint32 2;
+        # text-scaling-factor = mkDouble 1.5;
 
-        gtk-theme = "adw-gtk3";
-        cursor-theme = "capitaine-cursors";
-        cursor-size = 24;
+        # gtk-theme = "adw-gtk3";
+        # cursor-theme = "capitaine-cursors";
+        cursor-size = 36 * config.wayland.dpi / 96;
         clock-show-weekday = true;
         show-battery-percentage = true;
         locate-pointer = true;
@@ -95,7 +104,7 @@ in {
       };
       "org/gnome/desktop/input-sources" = {
         sources = mkArray (type.tupleOf [type.string type.string]) [
-          (mkTuple [(mkString "xkb") (mkString "us")])
+          # (mkTuple [(mkString "xkb") (mkString "us")])
           (mkTuple [(mkString "ibus") (mkString "rime")])
         ];
       };
@@ -128,7 +137,7 @@ in {
       "org/gnome/shell/extensions/dash-to-dock" = {
         apply-custom-theme = true;
         custom-theme-shrink = true;
-        dash-max-icon-size = 32;
+        dash-max-icon-size = 48 * config.wayland.dpi / 96;
         show-mounts = false;
         click-action = "focus-or-appspread";
         scroll-action = "switch-workspace";
@@ -136,8 +145,11 @@ in {
         show-dock-urgent-notify = false;
         show-trash = false;
       };
-      "org/gnome/shell/extensions/gsconnect" = {
-        show-indicators = true;
+      # "org/gnome/shell/extensions/gsconnect" = {
+      #   show-indicators = true;
+      # };
+      "org/gnome/shell/extensions/user-theme" = {
+        name = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}-Dark";
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -146,15 +158,15 @@ in {
         show-warning = false;
       };
       "org/gnome/desktop/background" = {
-        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.webp";
-        picture-uri-dark = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-d.webp";
+        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.png";
+        picture-uri-dark = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-d.png";
         primary-color = "#26a269";
         secondary-color = "#000000";
         color-shading-type = "solid";
         picture-options = "zoom";
       };
       "org/gnome/desktop/screensaver" = {
-        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.webp";
+        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.png";
         primary-color = "#26a269";
         secondary-color = "#000000";
         color-shading-type = "solid";
@@ -167,13 +179,6 @@ in {
         theme-dark = "Tomorrow Night";
         show-menu-button = false;
       };
-      # "org/gnome/desktop/remote-desktop/rdp" = {
-      #   enable = true;
-      #   screen-share-mode = "extend";
-      #   view-only = false;
-      #   tls-cert = "${osConfig.security.acme.certs."main".directory}/fullchain.pem";
-      #   tls-key = "${osConfig.security.acme.certs."main".directory}/key.pem";
-      # };
     }
   ];
 
@@ -182,9 +187,48 @@ in {
   '';
 
   # gsconnect association
-  xdg.mimeApps.associations.added = {
-    "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
-    "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+  # xdg.mimeApps.associations.added = {
+  #   "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+  #   "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+  # };
+
+  # home.sessionVariables = {
+  #   GDK_BACKEND = "wayland";
+  #   CLUTTER_BACKEND = "wayland";
+  #   QT_QPA_PLATFORM = "wayland-egl";
+  #   QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+  #   MOZ_ENABLE_WAYLAND = "1";
+  #   MOZ_USE_XINPUT2 = "1";
+  #   SDL_VIDEODRIVER = "wayland";
+  #   QT_STYLE_OVERRIDE = lib.mkForce "gtk";
+  #   _JAVA_AWT_WM_NONREPARENTING = "1";
+  # };
+
+  gtk = {
+    enable = true;
+    theme = {
+      name = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}-Dark";
+      package = pkgs.catppuccin-gtk;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    cursorTheme = {
+      name = "capitaine-cursors-white";
+      package = pkgs.capitaine-cursors;
+    };
+  };
+  qt = {
+    enable = true;
+    #platformTheme = "qtct";
+    style.name = "kvantum";
+  };
+  home.sessionVariables = {
+    QT_STYLE_OVERRIDE = lib.mkDefault "kvantum";
+  };
+  xdg.configFile."Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
+    General.theme = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}";
   };
 
   ## Create startwm.sh for XRDP
@@ -198,11 +242,17 @@ in {
   '';
   home.file."startwm.sh".executable = true;
 
+  services.kdeconnect = {
+    enable = true;
+    indicator = true;
+  };
+
   home.global-persistence = {
     directories = [
-      ".config/gsconnect"
-      ".cache/gsconnect"
-      ".config/dconf"
+      # ".config/gsconnect"
+      # ".cache/gsconnect"
+      # ".config/dconf"
+      ".config/kdeconnect"
     ];
   };
 }

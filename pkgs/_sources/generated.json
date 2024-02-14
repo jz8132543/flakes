@@ -1,4 +1,24 @@
 {
+  "alacritty-catppuccin": {
+    "cargoLocks": null,
+    "date": "2024-01-16",
+    "extract": null,
+    "name": "alacritty-catppuccin",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "catppuccin",
+      "repo": "alacritty",
+      "rev": "f2da554ee63690712274971dd9ce0217895f5ee0",
+      "sha256": "sha256-ypYaxlsDjI++6YNcE+TxBSnlUXKKuAMmLQ4H74T/eLw=",
+      "type": "github"
+    },
+    "version": "f2da554ee63690712274971dd9ce0217895f5ee0"
+  },
   "alist": {
     "cargoLocks": null,
     "date": null,

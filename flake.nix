@@ -107,10 +107,6 @@
       inputs.flake-parts.follows = "flake-parts";
       inputs.flake-compat.follows = "flake-compat";
     };
-    grub2-themes = {
-      url = "github:vinceliuice/grub2-themes";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     linyinfeng = {
       url = "github:linyinfeng/nur-packages";
       inputs.flake-parts.follows = "flake-parts";
@@ -140,6 +136,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.pre-commit-hooks.follows = "pre-commit-hooks-nix";
       inputs.flake-compat.follows = "flake-compat";
+    };
+    # Themes
+    grub2-themes = {
+      url = "github:vinceliuice/grub2-themes";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 

@@ -22,6 +22,9 @@ in {
     shell = "${pkgs.zsh}/bin/zsh";
     keyMode = "vi";
     terminal = "tmux-256color";
+    plugins = with pkgs; [
+      tmuxPlugins.catppuccin
+    ];
     extraConfig = ''
       # source: https://github.com/felixonmars/dotfiles/blob/master/.tmux.conf
       set -g prefix ^b
@@ -50,9 +53,9 @@ in {
       set -g status-right "#[fg=green]#[default] #[fg=green]#(bash ${remote_hostname} | cut -d "." -f1)#[default] #[fg=green]#(bash ${nw_ttl} | cut -d "." -f1)#[default] • #[fg=green]#(hostname | cut -d "." -f1)#[default]"
       #set -g status-right "#[fg=green]#[default] • #[fg=green]#(cut -d ' ' -f 1-3 /proc/loadavg)#[default]"
       #set -g status-right "#[fg=green]#(date) #[default]#(rainbarf)#[default]"
-      set -g status-bg black
-      set -g status-fg yellow
-      set -g status-style bg=colour0
+      # set -g status-bg black
+      # set -g status-fg yellow
+      # set -g status-style bg=colour0
 
       setw -g mode-keys vi
       #setw -g mode-mouse off
@@ -179,6 +182,7 @@ in {
 
       set -g status-position top
       set -g renumber-windows on
+      set -g allow-passthrough on
       new-session -s main
     '';
   };

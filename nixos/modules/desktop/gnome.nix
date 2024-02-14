@@ -12,12 +12,17 @@
 
   services.xserver = {
     enable = true;
-    displayManager.gdm.enable = true;
+    displayManager = {
+      gdm = {
+        enable = true;
+        autoSuspend = false;
+      };
+      setupCommands = ''
+        ${pkgs.numlockx}/bin/numlockx on
+      '';
+    };
     desktopManager.gnome.enable = true;
   };
-
-  # prevent gdm auto suspend before login
-  services.xserver.displayManager.gdm.autoSuspend = false;
 
   environment.systemPackages = with pkgs; [
     weston
@@ -40,10 +45,13 @@
     openFirewall = true;
     defaultWindowManager = "${pkgs.gnome.gnome-session}/bin/gnome-session";
   };
-
+  services.fprintd.enable = true;
   services.gnome.gnome-browser-connector.enable = true;
-  systemd.targets.sleep.enable = false;
-  systemd.targets.suspend.enable = false;
-  systemd.targets.hibernate.enable = false;
-  systemd.targets.hybrid-sleep.enable = false;
+
+  systemd.targets = {
+    sleep.enable = false;
+    suspend.enable = false;
+    hibernate.enable = false;
+    hybrid-sleep.enable = false;
+  };
 }

@@ -1,6 +1,9 @@
 [kitty-catppuccin]
 fetch.github = "catppuccin/kitty"
 src.git = "https://github.com/catppuccin/kitty"
+[alacritty-catppuccin]
+fetch.github = "catppuccin/alacritty"
+src.git = "https://github.com/catppuccin/alacritty"
 [alist]
 src.github = "alist-org/alist"
 fetch.url = "https://github.com/alist-org/alist/releases/download/$ver/alist-linux-musl-amd64.tar.gz"

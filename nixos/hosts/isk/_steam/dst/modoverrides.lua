@@ -14,5 +14,7 @@ return {
     --# Combined Status
     ["workshop-376333686"] = { enabled = true },
     --# Global Positions
-    ["workshop-378160973"] = { enabled = true }
+    ["workshop-378160973"] = { enabled = true },
+    --# Demon sword Muramasa
+    ["workshop-1842087172"] = { enabled = true }
 }

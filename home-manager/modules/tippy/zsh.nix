@@ -124,7 +124,7 @@
     directories = [
       ".local/share/zsh"
       # Atuin
-      "~/.local/share/atuin"
+      ".local/share/atuin"
       # ".cache/nix-index"
     ];
   };

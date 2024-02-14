@@ -5,6 +5,18 @@
   fetchFromGitHub,
   dockerTools,
 }: {
+  alacritty-catppuccin = {
+    pname = "alacritty-catppuccin";
+    version = "f2da554ee63690712274971dd9ce0217895f5ee0";
+    src = fetchFromGitHub {
+      owner = "catppuccin";
+      repo = "alacritty";
+      rev = "f2da554ee63690712274971dd9ce0217895f5ee0";
+      fetchSubmodules = false;
+      sha256 = "sha256-ypYaxlsDjI++6YNcE+TxBSnlUXKKuAMmLQ4H74T/eLw=";
+    };
+    date = "2024-01-16";
+  };
   alist = {
     pname = "alist";
     version = "v3.30.0";
