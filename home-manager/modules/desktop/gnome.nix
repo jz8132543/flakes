@@ -28,6 +28,11 @@ in {
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
+      (catppuccin-kvantum.override
+        {
+          accent = toTitle config.home.catppuccin.accent;
+          variant = toTitle config.home.catppuccin.variant;
+        })
       orchis-theme
     ]);
 
@@ -188,15 +193,15 @@ in {
   };
   qt = {
     enable = true;
-    platformTheme = "gtk";
-    style.name = "adwaita-light";
-    style.package = pkgs.adwaita-qt;
+    #platformTheme = "qtct";
+    style.name = "kvantum";
   };
   home.sessionVariables = {
     QT_STYLE_OVERRIDE = lib.mkDefault "kvantum";
+    XCURSOR_THEME = config.dconf.settings."org/gnome/desktop/interface".cursor-theme;
   };
   xdg.configFile."Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
-    General.theme = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
+    General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
   };
 
   ## Create startwm.sh for XRDP

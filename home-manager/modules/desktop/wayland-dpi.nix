@@ -37,6 +37,7 @@ in {
       SDL_VIDEODRIVER = "wayland";
       QT_STYLE_OVERRIDE = lib.mkForce "gtk";
       _JAVA_AWT_WM_NONREPARENTING = "1";
+      XCURSOR_SIZE = 36 * cfg / default;
     };
   };
 }

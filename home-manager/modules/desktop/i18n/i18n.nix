@@ -36,5 +36,7 @@ in {
 
   home.global-persistence.directories = [
     rimeConfig
+    ".config/ibus"
+    ".cache/ibus"
   ];
 }

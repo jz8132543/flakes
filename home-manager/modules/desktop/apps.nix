@@ -14,6 +14,7 @@
     # config.nur.repos.xddxdd.wechat-uos
     remmina
     element-desktop
+    rustdesk
   ];
   dconf.settings = {
     "org/virt-manager/virt-manager/connections" = {

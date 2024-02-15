@@ -14,6 +14,7 @@
       nixosModules.services.proxy
       nixosModules.services.tuic
       nixosModules.services.searx
+      nixosModules.services.rustdesk
       # nixosModules.services.sogo
     ];
   nix.gc.options = lib.mkForce "-d";
