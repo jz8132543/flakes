@@ -15,9 +15,9 @@
   ];
   services.acpid.enable = true;
   boot = {
+    kernelPackages = lib.mkForce pkgs.linuxPackages;
     initrd = {
       availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
-      # kernelModules = ["nvidia"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module];
     kernelModules = ["kvm-amd" "nvidia_uvm"];
@@ -69,10 +69,11 @@
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
     # amdgpu.loadInInitrd = false;
     nvidia = {
-      package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
-      # package = config.boot.kernelPackages.nvidiaPackages.beta;
+      # package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
+      package = config.boot.kernelPackages.nvidiaPackages.beta;
       modesetting.enable = true;
       nvidiaSettings = true;
+      open = true;
       prime = {
         sync.enable = true;
         amdgpuBusId = "PCI:8:0:0";

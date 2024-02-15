@@ -227,5 +227,8 @@ in {
       # ".config/dconf"
       ".config/kdeconnect"
     ];
+    files = [
+      ".config/monitors.xml"
+    ];
   };
 }
