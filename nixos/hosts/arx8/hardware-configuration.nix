@@ -17,7 +17,7 @@
   boot = {
     initrd = {
       availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
-      kernelModules = ["nvidia"];
+      # kernelModules = ["nvidia"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module];
     kernelModules = ["kvm-amd" "nvidia_uvm"];
@@ -70,7 +70,7 @@
     # amdgpu.loadInInitrd = false;
     nvidia = {
       package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
-      # package = config.boot.kernelPackages.nvidiaPackages.production;
+      # package = config.boot.kernelPackages.nvidiaPackages.beta;
       modesetting.enable = true;
       nvidiaSettings = true;
       prime = {

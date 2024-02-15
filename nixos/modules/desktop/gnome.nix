@@ -17,9 +17,6 @@
         enable = true;
         autoSuspend = false;
       };
-      setupCommands = ''
-        ${pkgs.numlockx}/bin/numlockx on
-      '';
     };
     desktopManager.gnome.enable = true;
   };

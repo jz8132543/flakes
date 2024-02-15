@@ -18,31 +18,17 @@
     kimpanel
   ];
   toTitle = str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
-  catppuccin = {
-    variant = "mocha";
-    accent = "blue";
-    size = "compact";
+  orchis-theme = pkgs.orchis-theme.override {
+    tweaks = [config.home.catppuccin.tweak];
+    withWallpapers = true;
   };
-  # gtkThemes = pkgs.symlinkJoin {
-  #   name = "gtk-themes";
-  #   paths = with pkgs; [
-  #     adw-gtk3
-  #   ];
-  # };
   inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 mkDouble type;
 in {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
-      catppuccin-kvantum
-      (catppuccin-gtk.override
-        {
-          variant = catppuccin.variant;
-          accents = [catppuccin.accent];
-          tweaks = ["float"];
-          size = catppuccin.size;
-        })
+      orchis-theme
     ]);
 
   programs.chromium.extensions = [
@@ -52,14 +38,8 @@ in {
   # Remove initial setup dialog
   home.file.".config/gnome-initial-setup-done".text = "yes";
 
-  # themes
-  # home.file.".local/share/themes".source = "${gtkThemes}/share/themes";
-
   dconf.settings = lib.mkMerge [
     {
-      # "org/gnome/mutter" = {
-      #   experimental-features = ["scale-monitor-framebuffer"];
-      # };
       # Do not sleep when ac power connected
       "org/gnome/settings-daemon/plugins/power" = {
         power-button-action = "nothing";
@@ -70,10 +50,6 @@ in {
         # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
         command = mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
         name = mkString "Power off monitor";
-      };
-      "org/gnome/desktop/wm/keybindings" = {
-        # switch-input-source = mkArray (type.string) [mkString "Shift_L" mkString "Shift_R"];
-        # switch-input-source = ["Shift_L" "Shift_R"];
       };
       "org/gnome/shell" = {
         disable-user-extensions = false;
@@ -102,10 +78,13 @@ in {
         locate-pointer = true;
         enable-hot-corners = false;
       };
+      "org/gnome/desktop/peripherals/keyboard" = {
+        numlock-state = true;
+      };
       "org/gnome/desktop/input-sources" = {
         sources = mkArray (type.tupleOf [type.string type.string]) [
-          # (mkTuple [(mkString "xkb") (mkString "us")])
           (mkTuple [(mkString "ibus") (mkString "rime")])
+          # (mkTuple [(mkString "xkb") (mkString "us")])
         ];
       };
       "org/gnome/shell/extensions/customize-ibus" = {
@@ -149,7 +128,7 @@ in {
       #   show-indicators = true;
       # };
       "org/gnome/shell/extensions/user-theme" = {
-        name = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}-Dark";
+        name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -158,15 +137,15 @@ in {
         show-warning = false;
       };
       "org/gnome/desktop/background" = {
-        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.png";
-        picture-uri-dark = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-d.png";
+        picture-uri = "file://${pkgs.wallpaper}/wallpaper.jpg";
+        picture-uri-dark = "file://${pkgs.wallpaper}/wallpaper.jpg";
         primary-color = "#26a269";
         secondary-color = "#000000";
         color-shading-type = "solid";
         picture-options = "zoom";
       };
       "org/gnome/desktop/screensaver" = {
-        picture-uri = "file://${pkgs.gnome.gnome-backgrounds}/share/backgrounds/gnome/symbolic-l.png";
+        picture-uri = "file://${pkgs.wallpaper}/wallpaper.jpg";
         primary-color = "#26a269";
         secondary-color = "#000000";
         color-shading-type = "solid";
@@ -174,7 +153,7 @@ in {
       };
       "com/raggesilver/BlackBox" = {
         terminal-padding = mkTuple [(mkUint32 5) (mkUint32 5) (mkUint32 5) (mkUint32 5)];
-        font = "monospace 10";
+        font = "monospace ${toString (10 * config.wayland.dpi / 96)}";
         theme-light = "Tomorrow";
         theme-dark = "Tomorrow Night";
         show-menu-button = false;
@@ -192,23 +171,11 @@ in {
   #   "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
   # };
 
-  # home.sessionVariables = {
-  #   GDK_BACKEND = "wayland";
-  #   CLUTTER_BACKEND = "wayland";
-  #   QT_QPA_PLATFORM = "wayland-egl";
-  #   QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-  #   MOZ_ENABLE_WAYLAND = "1";
-  #   MOZ_USE_XINPUT2 = "1";
-  #   SDL_VIDEODRIVER = "wayland";
-  #   QT_STYLE_OVERRIDE = lib.mkForce "gtk";
-  #   _JAVA_AWT_WM_NONREPARENTING = "1";
-  # };
-
   gtk = {
     enable = true;
     theme = {
-      name = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}-Dark";
-      package = pkgs.catppuccin-gtk;
+      name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
+      package = orchis-theme;
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -221,14 +188,15 @@ in {
   };
   qt = {
     enable = true;
-    #platformTheme = "qtct";
-    style.name = "kvantum";
+    platformTheme = "gtk";
+    style.name = "adwaita-light";
+    style.package = pkgs.adwaita-qt;
   };
   home.sessionVariables = {
     QT_STYLE_OVERRIDE = lib.mkDefault "kvantum";
   };
   xdg.configFile."Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
-    General.theme = "Catppuccin-${toTitle catppuccin.variant}-${toTitle catppuccin.size}-${toTitle catppuccin.accent}";
+    General.theme = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
   };
 
   ## Create startwm.sh for XRDP

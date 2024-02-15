@@ -37,4 +37,16 @@
     };
     date = "2024-01-10";
   };
+  wallpaper = {
+    pname = "wallpaper";
+    version = "b35e93c849510402b2c6a13b0662d366712f8380";
+    src = fetchFromGitHub {
+      owner = "NickCao";
+      repo = "flakes";
+      rev = "b35e93c849510402b2c6a13b0662d366712f8380";
+      fetchSubmodules = false;
+      sha256 = "sha256-nlDWwW/xi710rLppPNq6dQD/wTeiKGN2N5sZh6itH9I=";
+    };
+    date = "2024-02-10";
+  };
 }

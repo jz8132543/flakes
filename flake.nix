@@ -137,6 +137,7 @@
       inputs.pre-commit-hooks.follows = "pre-commit-hooks-nix";
       inputs.flake-compat.follows = "flake-compat";
     };
+    xremap-flake.url = "github:xremap/nix-flake";
     # Themes
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";

@@ -1,4 +1,5 @@
-{...}: {
+{inputs, ...}: {
+  imports = [inputs.xremap-flake.nixosModules.default];
   hardware = {
     opengl = {
       enable = true;
@@ -17,8 +18,18 @@
       #   tapping = true;
       #   tappingDragLock = false;
       # };
-      xkb.options = "caps:swapescape,caps:escape";
+      # xkb.options = "caps:swapescape,caps:escape";
     };
+    xremap.config.modmap = [
+      {
+        name = "Global";
+        remap = {"CapsLock" = "Esc";}; # globally remap CapsLock to Esc
+      }
+      {
+        name = "Global";
+        remap = {"ESC" = "CapsLock";}; # globally remap CapsLock to Esc
+      }
+    ];
     # Ignore auto hibernate
     logind.extraConfig = ''
       LidSwitchIgnoreInhibited=yes
