@@ -45,7 +45,5 @@
     # };
   };
   security.rtkit.enable = true;
-  console.font = "latarcyrheb-sun32";
-  console.earlySetup = true;
   boot.supportedFilesystems = ["ntfs"];
 }
