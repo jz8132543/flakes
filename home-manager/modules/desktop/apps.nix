@@ -15,6 +15,7 @@
     remmina
     element-desktop
     rustdesk
+    linux-wifi-hotspot
   ];
   dconf.settings = {
     "org/virt-manager/virt-manager/connections" = {

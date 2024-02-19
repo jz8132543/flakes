@@ -25,9 +25,9 @@ in
           owner = "matrix-synapse";
           group = "acme";
         };
+        "b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
+        "b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
       };
-      sops.secrets."b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
-      sops.secrets."b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
       services.matrix-synapse = {
         enable = true;
         withJemalloc = true;
@@ -213,7 +213,7 @@ in
             service = "element";
           };
           matrix-admin = {
-            rule = "Host(`admin.m.dora.im`)";
+            rule = "Host(`m-admin.dora.im`)";
             entryPoints = ["https"];
             service = "matrix-admin";
           };
@@ -244,7 +244,7 @@ in
             root = element-web-config;
           };
         };
-        virtualHosts."admin.m.*" = {
+        virtualHosts."m-admin.*" = {
           locations."/" = {
             root = pkgs.synapse-admin;
           };
