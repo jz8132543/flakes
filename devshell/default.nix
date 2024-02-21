@@ -47,8 +47,7 @@
         ssh-to-age
         age-plugin-yubikey
         # infrastructure
-        # nvfetcher
-        inputs'.nvfetcher.packages.default
+        nvfetcher
         terraform
       ];
     };
