@@ -5,17 +5,17 @@
   ...
 }: let
   extensionPkgs = with pkgs.gnomeExtensions; [
-    # gsconnect
+    gsconnect
     appindicator
     dash-to-dock
     clipboard-history
     upower-battery
     alphabetical-app-grid
-    caffeine
+    # caffeine
     user-themes
     customize-ibus
     # fcitx5
-    kimpanel
+    # kimpanel
   ];
   toTitle = str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
   orchis-theme = pkgs.orchis-theme.override {
@@ -38,7 +38,7 @@ in {
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
-    # "jfnifeihccihocjbfcfhicmmgpjicaec" # GSConnect
+    "jfnifeihccihocjbfcfhicmmgpjicaec" # GSConnect
   ];
   # Remove initial setup dialog
   home.file.".config/gnome-initial-setup-done".text = "yes";
@@ -129,9 +129,9 @@ in {
         show-dock-urgent-notify = false;
         show-trash = false;
       };
-      # "org/gnome/shell/extensions/gsconnect" = {
-      #   show-indicators = true;
-      # };
+      "org/gnome/shell/extensions/gsconnect" = {
+        show-indicators = true;
+      };
       "org/gnome/shell/extensions/user-theme" = {
         name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
       };
@@ -171,10 +171,10 @@ in {
   '';
 
   # gsconnect association
-  # xdg.mimeApps.associations.added = {
-  #   "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
-  #   "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
-  # };
+  xdg.mimeApps.associations.added = {
+    "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+    "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+  };
 
   gtk = {
     enable = true;
@@ -215,17 +215,11 @@ in {
   '';
   home.file."startwm.sh".executable = true;
 
-  services.kdeconnect = {
-    enable = true;
-    indicator = true;
-  };
-
   home.global-persistence = {
     directories = [
-      # ".config/gsconnect"
-      # ".cache/gsconnect"
-      # ".config/dconf"
-      ".config/kdeconnect"
+      ".config/gsconnect"
+      ".cache/gsconnect"
+      ".config/dconf"
     ];
   };
 }
