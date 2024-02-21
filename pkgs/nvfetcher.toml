@@ -4,9 +4,9 @@ src.git = "https://github.com/catppuccin/kitty"
 [alacritty-catppuccin]
 fetch.github = "catppuccin/alacritty"
 src.git = "https://github.com/catppuccin/alacritty"
-[wallpaper]
-fetch.github = "NickCao/flakes"
-src.git = "https://github.com/NickCao/flakes"
+# [wallpaper]
+# fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
+# src.manual = "latest"
 [alist]
 src.github = "alist-org/alist"
 fetch.url = "https://github.com/alist-org/alist/releases/download/$ver/alist-linux-musl-amd64.tar.gz"

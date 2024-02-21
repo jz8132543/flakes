@@ -14,5 +14,6 @@
       (import nixosModules.services.matrix {PG = "127.0.0.1";})
     ];
   environment.isNAT = true;
-  networking.firewall.enable = lib.mkForce false;
+  environment.isCN = true;
+  # networking.firewall.enable = lib.mkForce false;
 }
