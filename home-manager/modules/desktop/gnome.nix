@@ -245,8 +245,14 @@ in {
     Install = {WantedBy = ["graphical-session.target"];};
     Service = {
       Type = "simple";
-      ExecStart = "${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf";
-      ExecStop = "${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf";
+      ExecStart = toString (pkgs.writeScript "gsconnect-dconf-start" ''
+        #! ${pkgs.runtimeShell} -el
+        ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
+      '');
+      ExecStop = toString (pkgs.writeScript "gsconnect-dconf-stop" ''
+        #! ${pkgs.runtimeShell} -el
+        ${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
+      '');
       Restart = "on-failure";
       RestartSec = 1;
       TimeoutStopSec = 10;
