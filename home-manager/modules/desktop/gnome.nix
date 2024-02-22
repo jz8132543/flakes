@@ -74,6 +74,13 @@ in {
         ];
         welcome-dialog-last-shown-version = "43.1";
       };
+      "org/gnome/mutter" = {
+        # Active Screen Edges
+        # Drag windows against screen edges to resize them
+        edge-tiling = true;
+        dynamic-workspaces = true;
+        center-new-windows = true;
+      };
       "org/gnome/desktop/interface" = {
         # scaling-factor = mkUint32 2;
         # text-scaling-factor = mkDouble 1.5;
@@ -99,8 +106,6 @@ in {
         use-custom-font = true;
         custom-font = "sans-serif 10";
         input-indicator-only-on-toggle = true;
-        custom-theme = "/home/tippy/.config/ibus/rime/theme.css";
-        enable-custom-theme = true;
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";
@@ -200,7 +205,7 @@ in {
   qt = {
     enable = true;
     # platformTheme = "gnome";
-    #platformTheme = "qtct";
+    # platformTheme = "qtct";
     style = {
       name = "kvantum";
       package = catppuccin-kvantum;
@@ -233,7 +238,6 @@ in {
     directories = [
       ".config/gsconnect"
       ".cache/gsconnect"
-      # ".config/dconf"
     ];
   };
   systemd.user.services.gsconnect-dconf = {
