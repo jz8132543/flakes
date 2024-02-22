@@ -30,14 +30,15 @@ in {
       GDK_BACKEND = "wayland";
       CLUTTER_BACKEND = "wayland";
       QT_QPA_PLATFORM = "wayland-egl";
-      QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
-      MOZ_ENABLE_WAYLAND = "1";
-      MOZ_USE_XINPUT2 = "1";
-      QT_WAYLAND_FORCE_DPI = cfg;
+      # QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
+      # MOZ_ENABLE_WAYLAND = "1";
+      # MOZ_USE_XINPUT2 = "1";
+      # QT_WAYLAND_FORCE_DPI = cfg;
       SDL_VIDEODRIVER = "wayland";
-      QT_STYLE_OVERRIDE = lib.mkForce "gtk";
+      # QT_STYLE_OVERRIDE = lib.mkDefault "gtk";
       _JAVA_AWT_WM_NONREPARENTING = "1";
       XCURSOR_SIZE = 36 * cfg / default;
+      QT_SCALE_FACTOR = cfg * 1.0 / default;
     };
   };
 }

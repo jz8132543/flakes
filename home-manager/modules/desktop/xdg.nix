@@ -1,10 +1,4 @@
-{
-  nixosConfig,
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{config, ...}: {
   xdg = {
     enable = true;
     userDirs = {

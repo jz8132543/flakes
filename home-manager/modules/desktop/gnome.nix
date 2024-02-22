@@ -22,17 +22,20 @@
     tweaks = [config.home.catppuccin.tweak];
     withWallpapers = true;
   };
+  catppuccin-kvantum =
+    pkgs.catppuccin-kvantum.override
+    {
+      accent = toTitle config.home.catppuccin.accent;
+      variant = toTitle config.home.catppuccin.variant;
+    };
   inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 mkDouble type;
 in {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
-      (catppuccin-kvantum.override
-        {
-          accent = toTitle config.home.catppuccin.accent;
-          variant = toTitle config.home.catppuccin.variant;
-        })
+      dolphin
+      k3b
       orchis-theme
     ]);
 
@@ -131,6 +134,9 @@ in {
       };
       "org/gnome/shell/extensions/gsconnect" = {
         show-indicators = true;
+        webbrowser-integration = true;
+        nautilus-integration = true;
+        show-battery = true;
       };
       "org/gnome/shell/extensions/user-theme" = {
         name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
@@ -193,15 +199,23 @@ in {
   };
   qt = {
     enable = true;
+    # platformTheme = "gnome";
     #platformTheme = "qtct";
-    style.name = "kvantum";
+    style = {
+      name = "kvantum";
+      package = catppuccin-kvantum;
+    };
   };
   home.sessionVariables = {
-    QT_STYLE_OVERRIDE = lib.mkDefault "kvantum";
+    QT_STYLE_OVERRIDE = lib.mkForce "kvantum";
     XCURSOR_THEME = config.dconf.settings."org/gnome/desktop/interface".cursor-theme;
   };
-  xdg.configFile."Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
-    General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
+  xdg.configFile = {
+    "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
+      General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
+    };
+    "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}/share/Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
+    # "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}";
   };
 
   ## Create startwm.sh for XRDP
@@ -219,7 +233,24 @@ in {
     directories = [
       ".config/gsconnect"
       ".cache/gsconnect"
-      ".config/dconf"
+      # ".config/dconf"
     ];
+  };
+  systemd.user.services.gsconnect-dconf = {
+    Unit = {
+      Description = "gsconnect-dconf";
+      Wants = ["graphical-session.target"];
+      After = ["graphical-session.target"];
+    };
+    Install = {WantedBy = ["graphical-session.target"];};
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf";
+      ExecStop = "${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf";
+      Restart = "on-failure";
+      RestartSec = 1;
+      TimeoutStopSec = 10;
+      RemainAfterExit = "yes";
+    };
   };
 }
