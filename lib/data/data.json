@@ -68,6 +68,15 @@
       "endpoints_v6": [],
       "host_indices": [1]
     },
+    "isk": {
+      "dn42_addresses_v4": ["172.23.224.102"],
+      "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:6::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [6]
+    },
     "surface": {
       "dn42_addresses_v4": ["172.23.224.126"],
       "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],

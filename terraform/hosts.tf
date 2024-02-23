@@ -62,6 +62,24 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    isk = {
+      records = {}
+      ddns_records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "127.0.0.1"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "::1"
+        }
+      }
+      host_indices = [6]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     surface = {
       records      = {}
       ddns_records = {}
