@@ -19,11 +19,20 @@
   };
   alist = {
     pname = "alist";
-    version = "v3.30.0";
+    version = "v3.31.0";
     src = fetchurl {
-      url = "https://github.com/alist-org/alist/releases/download/v3.30.0/alist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-Nj0xWRtR9uQjPlRaZjEq9hBjL+o/RY3sAMMo/QTguPU=";
+      url = "https://github.com/alist-org/alist/releases/download/v3.31.0/alist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-7J4mZcryqkErAfSRZMWjaK+wALa9Xe1w9RsUy9xOmsU=";
     };
+  };
+  clash-webui-yacd-meta = {
+    pname = "clash-webui-yacd-meta";
+    version = "b66b1d0393bd284b7a40329f95eae3746bb102be";
+    src = fetchurl {
+      url = "https://github.com/MetaCubeX/Yacd-meta/archive/b66b1d0393bd284b7a40329f95eae3746bb102be.zip";
+      sha256 = "sha256-S6gLic5TeCkYDQsKmasr4/H5+ca8hP5qTzpVDXZHzdY=";
+    };
+    date = "2023-12-29";
   };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";

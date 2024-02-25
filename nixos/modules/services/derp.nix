@@ -10,7 +10,7 @@
       Restart = "always";
       DynamicUser = true;
       ExecStart =
-        if !config.environment.isCN
+        if !config.environment.isNAT
         then "${pkgs.tailscale-derp}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients"
         else "${pkgs.tailscale-derp}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} -http-port='-1' --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -certdir '$CREDENTIALS_DIRECTORY' -certmode manual -verify-clients";
       LoadCredential = [
@@ -35,7 +35,10 @@
     services = {
       derp.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.derp}";}];
+        servers =
+          if !config.environment.isNAT
+          then [{url = "http://localhost:${toString config.ports.derp}";}]
+          else [{url = "https://localhost:${toString config.ports.derp}";}];
       };
     };
   };
@@ -56,6 +59,6 @@
   #   after = ["derper.service"];
   #   requiredBy = ["derper.service"];
   # };
-  networking.firewall.allowedTCPPorts = [3478];
-  networking.firewall.allowedUDPPorts = [3478];
+  networking.firewall.allowedTCPPorts = [config.ports.derp-stun];
+  networking.firewall.allowedUDPPorts = [config.ports.derp-stun];
 }

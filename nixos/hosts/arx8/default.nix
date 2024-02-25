@@ -16,6 +16,7 @@
     refind
     efibootmgr
   ];
+  services.dnscrypt-proxy2.enable = true;
   services.create_ap = {
     enable = true;
     settings = {

@@ -53,12 +53,20 @@ resource "cloudflare_zone_settings_override" "im_dora" {
 
 # CNAME records
 
-resource "cloudflare_record" "im_dora" {
+resource "cloudflare_record" "dora_shg0" {
   name    = "shg0"
   proxied = false
   ttl     = 1
   type    = "CNAME"
   value   = "home.sots.eu.org"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_record" "dora_subscription" {
+  name    = "subscription"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  value   = "cname.vercel-dns.com."
   zone_id = cloudflare_zone.im_dora.id
 }
 

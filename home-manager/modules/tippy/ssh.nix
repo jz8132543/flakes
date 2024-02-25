@@ -16,6 +16,8 @@
         "CanonicalizeHostname" = "yes";
         "CanonicalDomains" = "dora.im ts.dora.im users.dora.im";
         "CanonicalizeMaxDots" = "0";
+        # fix kde connection for android
+        "HostKeyAlgorithms " = "+ssh-rsa";
       };
       matchBlocks = {
         "github.com" = {

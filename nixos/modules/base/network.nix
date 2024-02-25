@@ -1,11 +1,11 @@
-{...}: {
+{lib, ...}: {
   networking = {
-    nameservers = ["1.1.1.1" "1.0.0.1"];
+    nameservers = lib.mkDefault ["1.1.1.1" "1.0.0.1"];
     domain = "dora.im";
     search = ["dora.im"];
     firewall.enable = true;
     dhcpcd.extraConfig = "nohook resolv.conf";
-    networkmanager.dns = "none";
+    networkmanager.dns = lib.mkDefault "none";
   };
 
   boot = {

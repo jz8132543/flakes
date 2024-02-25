@@ -15,7 +15,9 @@
       nixosModules.services.derp
       (import nixosModules.services.matrix {PG = "127.0.0.1";})
     ];
-  environment.isNAT = true;
+  # environment.isNAT = true;
   environment.isCN = true;
   networking.firewall.enable = lib.mkForce false;
+
+  ports.derp-stun = lib.mkForce 3440;
 }

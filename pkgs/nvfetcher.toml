@@ -10,3 +10,7 @@ src.git = "https://github.com/catppuccin/alacritty"
 [alist]
 src.github = "alist-org/alist"
 fetch.url = "https://github.com/alist-org/alist/releases/download/$ver/alist-linux-musl-amd64.tar.gz"
+[clash-webui-yacd-meta]
+src.git = "https://github.com/MetaCubeX/Yacd-meta"
+src.branch = "gh-pages"
+fetch.url = "https://github.com/MetaCubeX/Yacd-meta/archive/$ver.zip"
