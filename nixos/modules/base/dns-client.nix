@@ -8,7 +8,8 @@ in {
   networking =
     if cfg.enable
     then {
-      nameservers = ["127.0.0.2" "127.0.0.55"];
+      # nameservers = ["127.0.0.2" "127.0.0.55"];
+      nameservers = ["127.0.0.55"];
       # resolvconf.enable = lib.mkForce false;
       dhcpcd.extraConfig = "nohook resolv.conf";
       networkmanager.dns = lib.mkForce "none";
@@ -67,7 +68,24 @@ in {
       };
     };
   };
-  # systemd.services.dnscrypt-proxy2.serviceConfig = {
-  #   StateDirectory = "dnscrypt-proxy";
-  # };
+  # Add polkit rule to allow systemd-resolved to change DNS config
+  security.polkit.extraConfig = ''
+    polkit.addRule(function(action, subject) {
+        if (subject.isInGroup("systemd-resolve") && (
+            action.id == "org.freedesktop.resolve1.register-service" ||
+            action.id == "org.freedesktop.resolve1.revert" ||
+            action.id == "org.freedesktop.resolve1.set-default-route" ||
+            action.id == "org.freedesktop.resolve1.set-dns-over-tls" ||
+            action.id == "org.freedesktop.resolve1.set-dns-servers" ||
+            action.id == "org.freedesktop.resolve1.set-dnssec" ||
+            action.id == "org.freedesktop.resolve1.set-dnssec-negative-trust-anchors" ||
+            action.id == "org.freedesktop.resolve1.set-domains" ||
+            action.id == "org.freedesktop.resolve1.set-llmnr" ||
+            action.id == "org.freedesktop.resolve1.set-mdns" ||
+            action.id == "org.freedesktop.resolve1.unregister-service"
+        )) {
+            return polkit.Result.YES;
+        }
+    });
+  '';
 }
