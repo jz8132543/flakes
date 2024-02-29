@@ -97,7 +97,7 @@
       ldap = 389;
       ldaps = 636;
       mta-sts = 8097;
-      derp = 3441;
+      derp = 3340;
       derp-stun = 3478;
       smtp = 465;
       imap = 993;

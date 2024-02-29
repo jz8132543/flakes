@@ -29,7 +29,7 @@
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
-        default = 1;
+        default = 0;
         gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
           menuentry "Windows" {
@@ -46,6 +46,27 @@
         enable = true;
         theme = "whitesur";
       };
+    };
+  };
+  services.xserver.videoDrivers = ["nvidia"];
+  systemd.services.nvidia-control-devices = {
+    wantedBy = [
+      "multi-user.target"
+    ];
+  };
+  hardware.nvidia = {
+    modesetting.enable = true;
+    # package = config.boot.kernelPackages.nvidiaPackages.production;
+    nvidiaSettings = true;
+    nvidiaPersistenced = true;
+    prime = {
+      offload.enable = true;
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:2:0:0";
+    };
+    powerManagement = {
+      enable = true;
+      finegrained = true;
     };
   };
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

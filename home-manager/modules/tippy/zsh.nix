@@ -62,7 +62,7 @@ in
           };
         };
       };
-      bottom = {settings = {} // builtins.fromTOML (builtins.readFile "${catppuccin}/bottom/${flavor}.toml");};
+      # bottom = {settings = {} // builtins.fromTOML (builtins.readFile "${catppuccin}/bottom/${flavor}.toml");};
       zsh = {
         enable = true;
         history.path = "$HOME/.local/share/zsh/zsh_history";

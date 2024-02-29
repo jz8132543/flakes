@@ -42,7 +42,7 @@ in {
         doh_servers = true;
         odoh_servers = true;
         require_nolog = true;
-        bootstrap_resolvers = ["1.0.0.1:53" "1.1.1.1:53" "9.9.9.9:53"];
+        bootstrap_resolvers = ["1.1.1.1:53" "1.0.0.1:53" "9.9.9.9:53" "119.29.29.29:53" "223.5.5.5:53"];
         cache = true;
 
         sources.public-resolvers = {
@@ -58,10 +58,10 @@ in {
         server_names = [
           "cloudflare"
           "google"
-          "quad9-doh-ip4-port443-filter-pri"
           "quad9-doh-ip4-port5053-filter-pri"
-          "quad9-doh-ip6-port443-filter-pri"
+          "quad9-doh-ip4-port443-filter-pri"
           "quad9-doh-ip6-port5053-filter-pri"
+          "quad9-doh-ip6-port443-filter-pri"
           #"cloudflare-security-ipv6"
           #"doh-crypto-sx"
         ];

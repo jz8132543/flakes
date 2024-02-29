@@ -6,8 +6,9 @@
   interfaceName = "tailscale0";
 in {
   services.tailscale = {
-    openFirewall = true;
     enable = true;
+    openFirewall = true;
+    # useRoutingFeatures = "both";
   };
   networking.networkmanager.unmanaged = [interfaceName];
   networking.firewall.checkReversePath = false;

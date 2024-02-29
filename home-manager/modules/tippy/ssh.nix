@@ -1,4 +1,9 @@
-{osConfig, ...}: {
+{
+  osConfig,
+  lib,
+  ...
+}:
+with lib.strings; {
   programs = {
     ssh = {
       enable = true;
@@ -14,7 +19,7 @@
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
         "CanonicalizeHostname" = "yes";
-        "CanonicalDomains" = "dora.im ts.dora.im users.dora.im";
+        "CanonicalDomains" = concatStringsSep " " osConfig.networking.search;
         "CanonicalizeMaxDots" = "0";
         # fix kde connection for android
         "HostKeyAlgorithms " = "+ssh-rsa";
@@ -37,7 +42,7 @@
           # forwardX11 = true;
         };
         "canonical" = {
-          match = "canonical final Host *.dora.im,*.ts.dora.im";
+          match = concatStrings ["canonical final Host " (concatMapStringsSep "," (x: concatStrings ["*." x]) osConfig.networking.search)];
           port = osConfig.ports.ssh;
         };
       };

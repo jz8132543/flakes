@@ -86,7 +86,7 @@
             service = "prometheus@internal";
           };
           api = {
-            rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/debug`) || PathPrefix(`/dashboard`))";
+            rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
             entrypoints = ["https"];
             service = "api@internal";
             middlewares = "auth";

@@ -139,13 +139,13 @@ in {
     }
 
     {
-      programs.ssh = {
+      programs.ssh = with lib.strings; {
         extraConfig = ''
-          CanonicalDomains dora.im ts.dora.im users.dora.im
+          CanonicalDomains ${concatStringsSep " " config.networking.search}
           CanonicalizeHostname yes
           LogLevel ERROR
           StrictHostKeyChecking no
-          Match canonical final Host *.dora.im,*.ts.dora.im,*.users.dora.im
+          Match canonical final Host ${concatMapStringsSep "," (x: concatStrings ["*." x]) osConfig.networking.search}
             Port 1022
             HashKnownHosts no
             UserKnownHostsFile /dev/null
