@@ -69,5 +69,6 @@
       finegrained = true;
     };
   };
+  utils.disk = "/dev/nvme0n1";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }
