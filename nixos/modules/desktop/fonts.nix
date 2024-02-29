@@ -3,7 +3,8 @@
   lib,
   config,
   ...
-}: {
+}:
+with config.nur.repos.xddxdd; {
   fonts.fontDir.enable = true;
 
   fonts.packages = with pkgs;
@@ -14,26 +15,27 @@
           "FiraMono"
           "Noto"
           "Terminus"
+          "Ubuntu"
+          "UbuntuMono"
           "JetBrainsMono"
         ];
       })
 
-      jetbrains-mono
       corefonts
       fira-code
       fira-code-symbols
       font-awesome
-      config.nur.repos.xddxdd.kaixinsong-fonts
+      kaixinsong-fonts
       hanazono
-      config.nur.repos.xddxdd.hoyo-glyphs
+      hanyi-wenhei
+      hoyo-glyphs
       liberation_ttf
       noto-fonts
       noto-fonts-cjk-sans
       noto-fonts-cjk-serif
-      noto-fonts-emoji
       noto-fonts-emoji-blob-bin
       noto-fonts-extra
-      config.nur.repos.xddxdd.plangothic-fonts--allideo
+      plangothic-fonts--allideo
       source-code-pro
       source-han-code-jp
       source-han-mono
@@ -44,13 +46,12 @@
       source-serif
       source-serif-pro
       terminus_font_ttf
+      ubuntu_font_family
       vistafonts
       vistafonts-chs
       vistafonts-cht
       wqy_microhei
       wqy_zenhei
-      powerline-fonts
-      sarasa-gothic
     ];
 
   # https://keqingrong.cn/blog/2019-10-01-how-to-display-all-chinese-characters-on-the-computer/
@@ -69,13 +70,10 @@
     ];
   in {
     defaultFonts = rec {
-      emoji = ["Blobmoji" "Noto Color Emoji"];
+      emoji = ["Blobmoji"];
       serif = ["Noto Serif" "Source Han Serif SC"] ++ emoji ++ serifFallback;
-      sansSerif = ["Source Han Sans SC"] ++ emoji ++ sansFallback;
-      monospace = ["JetBrainsMono Nerd Font" "Sarasa Mono Slab SC" "Noto Sans Mono CJK SC"] ++ emoji ++ sansFallback;
-      # serif = lib.mkBefore ["Noto Serif" "Source Han Serif SC"] ++ serifFallback;
-      # sansSerif = lib.mkBefore ["JetBrains Nerd Font" "Source Han Sans SC"] ++ sansFallback;
-      # monospace = lib.mkBefore ["JetBrainsMono Nerd Font" "Noto Sans Mono CJK SC"] ++ sansFallback;
+      sansSerif = ["Source Han Sans SC" "Ubuntu"] ++ emoji ++ sansFallback;
+      monospace = ["JetBrainsMono Nerd Font" "Ubuntu Mono" "Noto Sans Mono CJK SC"] ++ emoji ++ sansFallback;
     };
   };
 }
