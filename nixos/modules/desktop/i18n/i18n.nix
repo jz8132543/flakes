@@ -10,7 +10,7 @@ in {
     ibus.engines = with pkgs.ibus-engines; [
       ((rime.override
           {
-            librime = config.nur.repos.xddxdd.lantianCustomized--librime-with-plugins;
+            librime = config.nur.repos.xddxdd.lantianCustomized.librime-with-plugins;
             rimeDataPkgs = with config.nur.repos.xddxdd; [
               pkgs.rime-data
               rime-dict

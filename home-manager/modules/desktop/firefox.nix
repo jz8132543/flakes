@@ -31,6 +31,10 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
         };
+        "aria2-integration" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/aria2-integration/latest.xpi";
+        };
       };
     };
   };

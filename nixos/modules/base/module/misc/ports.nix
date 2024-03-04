@@ -57,7 +57,6 @@
       oranc = 3190;
       hledger-web = 3200;
       syncthing = 3210;
-      syncthing-yinfeng = 3211;
       syncthing-discovery = 3220;
       syncthing-transfer = 3230;
       gortr = 3240;

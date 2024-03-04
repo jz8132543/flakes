@@ -2,8 +2,10 @@
   pkgs,
   lib,
   config,
+  nixosModules,
   ...
 }: {
+  imports = [nixosModules.services.aria2];
   users = {
     users.alist = {
       isSystemUser = true;
@@ -17,7 +19,6 @@
   };
   systemd.tmpfiles.rules = [
     "d '${config.users.users.alist.home}/temp/aria2' 0777 aria2 aria2 - -"
-    "f '/var/lib/aria2/aria2.conf' 0666 aria2 aria2"
   ];
 
   systemd.services.alist = {
@@ -31,15 +32,6 @@
       ExecStart = "${pkgs.alist}/bin/alist server --data /var/lib/alist";
       AmbientCapabilities = "cap_net_bind_service";
     };
-  };
-  services.aria2 = {
-    enable = true;
-    rpcSecretFile = "/run/credentials/aria2.service/rpcSecretFile";
-  };
-  systemd.services.aria2.serviceConfig = {
-    LoadCredential = lib.mkForce [
-      "rpcSecretFile:${pkgs.writeText "secret1" "aria2rpc"}"
-    ];
   };
 
   sops.templates."alist-config" = {

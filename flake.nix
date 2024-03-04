@@ -134,6 +134,17 @@
       inputs.flake-compat.follows = "flake-compat";
     };
     xremap-flake.url = "github:xremap/nix-flake";
+    headscale = {
+      url = "github:juanfont/headscale";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
+    tailscale = {
+      url = "github:tailscale/tailscale";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-compat.follows = "flake-compat";
+    };
     # Themes
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";

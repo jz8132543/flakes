@@ -35,7 +35,7 @@ with config.nur.repos.xddxdd; {
       noto-fonts-cjk-serif
       noto-fonts-emoji-blob-bin
       noto-fonts-extra
-      plangothic-fonts--allideo
+      plangothic-fonts.allideo
       source-code-pro
       source-han-code-jp
       source-han-mono

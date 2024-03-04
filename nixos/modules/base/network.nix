@@ -1,9 +1,10 @@
 {lib, ...}: {
   networking = {
+    nftables.enable = true;
+    firewall.enable = true;
     nameservers = lib.mkDefault ["1.1.1.1" "1.0.0.1"];
     domain = "dora.im";
-    search = ["dora.im" "ts.dora.im" "users.dora.im"];
-    firewall.enable = true;
+    search = ["ts.dora.im" "users.dora.im"];
     dhcpcd.extraConfig = "nohook resolv.conf";
     networkmanager.dns = lib.mkDefault "none";
   };

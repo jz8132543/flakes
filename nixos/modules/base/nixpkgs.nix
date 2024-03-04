@@ -16,10 +16,12 @@
       in {
         nix-gc-s3 = inputs'.nix-gc-s3.packages.nix-gc-s3;
         nix-index-with-db = inputs'.nix-index-database.packages.nix-index-with-db;
+        headscale = inputs'.headscale.packages.headscale;
         comma = prev.comma.override {
           nix-index-unwrapped = final.nix-index-with-db;
         };
-        tailscale = prev.tailscale.overrideAttrs (old: {
+        # tailscale = prev.tailscale.overrideAttrs (old: {
+        tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
           subPackages = old.subPackages ++ ["cmd/derper"] ++ ["cmd/derpprobe"];
         });
       }

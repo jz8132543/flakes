@@ -1,23 +1,5 @@
 locals {
   hosts = {
-    fra0 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "109.71.253.195"
-        }
-        aaaa = {
-          proxied = false
-          type    = "AAAA"
-          value   = "2a0e:6a80:3:1e3::"
-        }
-      }
-      ddns_records = {}
-      host_indices = [1]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
     ams0 = {
       records = {
         a = {
@@ -77,6 +59,19 @@ locals {
         }
       }
       host_indices = [6]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
+    "15isk" = {
+      records = {}
+      ddns_records = {
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "::1"
+        }
+      }
+      host_indices = [7]
       endpoints_v4 = []
       endpoints_v6 = []
     }

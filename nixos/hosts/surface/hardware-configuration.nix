@@ -29,7 +29,7 @@
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
-        default = 0;
+        default = 1;
         gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
           menuentry "Windows" {

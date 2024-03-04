@@ -32,6 +32,15 @@
   "ldap": "ldap://ldap.dora.im:389",
   "database": "postgres.dora.im",
   "hosts": {
+    "15isk": {
+      "dn42_addresses_v4": ["172.23.224.103"],
+      "dn42_addresses_v6": ["fd72:db83:badd:7::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:7::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [7]
+    },
     "ams0": {
       "dn42_addresses_v4": ["172.23.224.99"],
       "dn42_addresses_v6": ["fd72:db83:badd:3::1"],
@@ -58,15 +67,6 @@
       "endpoints_v4": [],
       "endpoints_v6": [],
       "host_indices": [5]
-    },
-    "fra0": {
-      "dn42_addresses_v4": ["172.23.224.97"],
-      "dn42_addresses_v6": ["fd72:db83:badd:1::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:1::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [1]
     },
     "isk": {
       "dn42_addresses_v4": ["172.23.224.102"],

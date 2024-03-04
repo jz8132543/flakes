@@ -1,6 +1,7 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }: let
   interfaceName = "tailscale0";
@@ -10,12 +11,38 @@ in {
     openFirewall = true;
     # useRoutingFeatures = "both";
   };
-  networking.networkmanager.unmanaged = [interfaceName];
-  networking.firewall.checkReversePath = false;
-  # networking.firewall.trustedInterfaces = ["tailscale0"];
-  networking.firewall.allowedUDPPorts = [
-    config.services.tailscale.port
-  ];
+  networking = {
+    networkmanager.unmanaged = [interfaceName];
+    firewall = {
+      checkReversePath = false;
+      trustedInterfaces = ["tailscale0"];
+      allowedUDPPorts = [
+        config.services.tailscale.port
+      ];
+    };
+  };
+  # TODO: tailscale cannot connect to some derp when firewall is enabled
+  networking.firewall.enable = lib.mkForce false;
+
+  # systemd.services.tailscale-setup = {
+  #   script = ''
+  #     sleep 10
+  #
+  #     if tailscale status; then
+  #       echo "tailscale already up, skip"
+  #     else
+  #       echo "tailscale down, login using auth key"
+  #       tailscale up --auth-key "file:${config.sops.secrets."tailscale_tailnet_key".path}"
+  #     fi
+  #   '';
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     RemainAfterExit = true;
+  #   };
+  #   path = [config.services.tailscale.package];
+  #   after = ["tailscaled.service"];
+  #   requiredBy = ["tailscaled.service"];
+  # };
 
   services.networkd-dispatcher = {
     enable = true;

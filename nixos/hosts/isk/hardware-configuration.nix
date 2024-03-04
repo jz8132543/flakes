@@ -1,8 +1,11 @@
 {
   lib,
   modulesPath,
+  pkgs,
   ...
-}: {
+}: let
+  netdev = "enp6s18";
+in {
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
@@ -10,7 +13,7 @@
   boot.kernelModules = ["kvm-intel"];
   utils.disk = "/dev/sda";
   networking = {
-    interfaces.enp6s18 = {
+    interfaces.${netdev} = {
       useDHCP = true;
       ipv4.addresses = [
         {
@@ -21,8 +24,11 @@
     };
     defaultGateway = {
       address = "192.168.1.1";
-      interface = "enp6s18";
+      interface = netdev;
     };
+    localCommands = ''
+      ${pkgs.ethtool}/bin/ethtool -K ${netdev} tx-checksumming off
+    '';
   };
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

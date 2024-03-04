@@ -7,22 +7,22 @@
 }: {
   alacritty-catppuccin = {
     pname = "alacritty-catppuccin";
-    version = "f2da554ee63690712274971dd9ce0217895f5ee0";
+    version = "071d73effddac392d5b9b8cd5b4b527a6cf289f9";
     src = fetchFromGitHub {
       owner = "catppuccin";
       repo = "alacritty";
-      rev = "f2da554ee63690712274971dd9ce0217895f5ee0";
+      rev = "071d73effddac392d5b9b8cd5b4b527a6cf289f9";
       fetchSubmodules = false;
-      sha256 = "sha256-ypYaxlsDjI++6YNcE+TxBSnlUXKKuAMmLQ4H74T/eLw=";
+      sha256 = "sha256-HiIYxTlif5Lbl9BAvPsnXp8WAexL8YuohMDd/eCJVQ8=";
     };
-    date = "2024-01-16";
+    date = "2024-02-26";
   };
   alist = {
     pname = "alist";
-    version = "v3.31.0";
+    version = "v3.32.0";
     src = fetchurl {
-      url = "https://github.com/alist-org/alist/releases/download/v3.31.0/alist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-7J4mZcryqkErAfSRZMWjaK+wALa9Xe1w9RsUy9xOmsU=";
+      url = "https://github.com/alist-org/alist/releases/download/v3.32.0/alist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-F1sHnayBlVjO9FLEsNihPXrC37x06/Oqj7nXJBKkQdE=";
     };
   };
   clash-webui-yacd-meta = {
@@ -45,5 +45,13 @@
       sha256 = "sha256-mRFa+40fuJCUrR1o4zMi7AlgjRtFmii4fNsQyD8hIjM=";
     };
     date = "2024-01-10";
+  };
+  trackerslist = {
+    pname = "trackerslist";
+    version = "latest";
+    src = fetchurl {
+      url = "https://cf.trackerslist.com/best_aria2.txt";
+      sha256 = "sha256-dCDoycwpdcSSfIEa5lGFGZzwzwAvcu1If0Sr0YXCFoI=";
+    };
   };
 }

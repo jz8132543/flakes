@@ -16,7 +16,7 @@ in {
     mailGroup = "dovemail";
     enableImap = true;
     enableLmtp = true;
-    sieveScripts = {
+    sieve.scripts = {
       after = builtins.toFile "after.sieve" ''
         require "fileinto";
         if header :is "X-Spam" "Yes" {

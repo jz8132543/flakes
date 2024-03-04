@@ -46,6 +46,7 @@
     vim
     dig
     whois
+    netcat-openbsd
     expect
     iperf
     nmap

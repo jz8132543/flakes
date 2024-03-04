@@ -63,6 +63,7 @@ in {
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
         disabled-extensions = [];
+        last-selected-power-profile = "performance";
         favorite-apps = lib.mkBefore [
           "org.gnome.Console.desktop"
           "org.gnome.Nautilus.desktop"

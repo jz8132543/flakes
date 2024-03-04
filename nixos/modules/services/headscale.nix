@@ -8,6 +8,10 @@
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
+        database = {
+          type = "sqlite3";
+          sqlite.path = "/var/lib/headscale/db.sqlite";
+        };
         dns_config = {
           override_local_dns = true;
           base_domain = "dora.im";
@@ -41,10 +45,10 @@
         log = {
           level = "warn";
         };
-        ip_prefixes = [
-          "100.64.0.0/10"
-          "fd7a:115c:a1e0::/48"
-        ];
+        prefixes = {
+          v4 = "100.64.0.0/10";
+          v6 = "fd7a:115c:a1e0::/48";
+        };
         derp = {
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
@@ -97,6 +101,7 @@
   services.restic.backups.borgbase.paths = [
     "/etc/headscale/map.yaml"
     "/etc/headscale/acl.yaml"
+    "/var/lib/headscale"
   ];
   environment.global-persistence = {
     directories = [
