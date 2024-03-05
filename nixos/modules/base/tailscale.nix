@@ -22,7 +22,20 @@ in {
     };
   };
   # TODO: tailscale cannot connect to some derp when firewall is enabled
-  networking.firewall.enable = lib.mkForce false;
+  networking.firewall = {
+    allowedUDPPortRanges = [
+      {
+        from = 0;
+        to = 65535;
+      }
+    ];
+    allowedTCPPortRanges = [
+      {
+        from = 0;
+        to = 65535;
+      }
+    ];
+  };
 
   # systemd.services.tailscale-setup = {
   #   script = ''
