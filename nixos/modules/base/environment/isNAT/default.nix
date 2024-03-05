@@ -28,21 +28,22 @@ in
           The port of http alt
         '';
       };
-    };
-    # Traefik
-    options = {
-      services.traefik.dynamicConfigOptions.http.routers = mkOption {
-        type = types.attrsOf types.submodule {
-          options.entryPoints = mkOption {
-            type = types.listOf types.str;
-            default = ["https-alt"];
-          };
+      services.traefik.dynamicConfigOptions.http.routers =
+        # if config.environment.isNAT
+        # then
+        mkOption {
+          type = types.attrsOf (types.submodule ({config, ...}: {
+            freeformType = types.attrsOf types.list;
+            config.entryPoints = ["https-alt"];
+            options.entryPoints = mkOption {
+              type = types.listOf types.str;
+              default = ["https-alt"];
+            };
+          }));
         };
-      };
-      # lib.concatMapAttrs (name: _: {
-      #   ${name}.entryPoints = ["https" "https-alt"];
-      # })
-      # // config.services.traefik.dynamicConfigOptions.http.routers;
+      # else {};
+    };
+    config = {
       networking.firewall.allowedTCPPorts = with config.environment; [AltHTTPS AltHTTP];
       networking.firewall.allowedUDPPorts = with config.environment; [AltHTTPS];
     };
