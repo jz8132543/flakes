@@ -16,7 +16,7 @@
           override_local_dns = true;
           base_domain = "dora.im";
           magic_dns = true;
-          domains = config.networking.search;
+          domains = config.environment.domains;
           nameservers = [
             "1.1.1.1"
             "9.9.9.9"

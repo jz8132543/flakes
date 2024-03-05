@@ -1,10 +1,49 @@
-{lib, ...}:
-with lib; {
-  options.environment.isNAT = lib.mkOption {
-    type = types.bool;
-    default = false;
-    description = ''
-      Whether to enable NAT mode.
-    '';
-  };
-}
+{
+  lib,
+  config,
+  ...
+}: let
+  cfg = config.services.traefik.dynamicConfigOptions.http.routers;
+in
+  with lib; {
+    options.environment = {
+      isNAT = mkOption {
+        type = types.bool;
+        default = false;
+        description = ''
+          Whether to enable NAT mode.
+        '';
+      };
+      AltHTTPS = mkOption {
+        type = types.int;
+        default = 8443;
+        description = ''
+          The port of https alt
+        '';
+      };
+      AltHTTP = mkOption {
+        type = types.int;
+        default = 8080;
+        description = ''
+          The port of http alt
+        '';
+      };
+    };
+    # Traefik
+    options = {
+      services.traefik.dynamicConfigOptions.http.routers = mkOption {
+        type = types.attrsOf types.submodule {
+          options.entryPoints = mkOption {
+            type = types.listOf types.str;
+            default = ["https-alt"];
+          };
+        };
+      };
+      # lib.concatMapAttrs (name: _: {
+      #   ${name}.entryPoints = ["https" "https-alt"];
+      # })
+      # // config.services.traefik.dynamicConfigOptions.http.routers;
+      networking.firewall.allowedTCPPorts = with config.environment; [AltHTTPS AltHTTP];
+      networking.firewall.allowedUDPPorts = with config.environment; [AltHTTPS];
+    };
+  }

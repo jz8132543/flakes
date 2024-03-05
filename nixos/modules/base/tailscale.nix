@@ -1,7 +1,6 @@
 {
   config,
   pkgs,
-  lib,
   ...
 }: let
   interfaceName = "tailscale0";
@@ -9,12 +8,12 @@ in {
   services.tailscale = {
     enable = true;
     openFirewall = true;
-    # useRoutingFeatures = "both";
+    useRoutingFeatures = "both";
   };
   networking = {
     networkmanager.unmanaged = [interfaceName];
     firewall = {
-      checkReversePath = false;
+      # checkReversePath = false;
       trustedInterfaces = ["tailscale0"];
       allowedUDPPorts = [
         config.services.tailscale.port

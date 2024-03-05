@@ -26,10 +26,20 @@
           address = ":443";
           forwardedHeaders.insecure = true;
           proxyProtocol.insecure = true;
-          http.tls =
-            if config.environment.isNAT
-            then true
-            else {certResolver = "zerossl";};
+          http.tls = "zerossl";
+          # if config.environment.isNAT
+          # then true
+          # else {certResolver = "zerossl";};
+          http3 = {};
+        };
+        https-alt = {
+          address = ":${toString config.environment.altHTTPS}";
+          forwardedHeaders.insecure = true;
+          proxyProtocol.insecure = true;
+          http.tls = "zerossl";
+          # if config.environment.isNAT
+          # then true
+          # else {certResolver = "zerossl";};
           http3 = {};
         };
       };

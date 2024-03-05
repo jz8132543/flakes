@@ -145,7 +145,7 @@ in {
           CanonicalizeHostname yes
           LogLevel ERROR
           StrictHostKeyChecking no
-          Match canonical final Host ${concatMapStringsSep "," (x: concatStrings ["*." x]) osConfig.networking.search}
+          Match canonical final Host ${concatMapStringsSep "," (x: concatStrings ["*." x]) osConfig.environment.domains}
             Port 1022
             HashKnownHosts no
             UserKnownHostsFile /dev/null

@@ -4,7 +4,8 @@
     firewall.enable = true;
     nameservers = lib.mkDefault ["1.1.1.1" "1.0.0.1"];
     domain = "dora.im";
-    search = ["ts.dora.im" "users.dora.im"];
+    search = ["dora.im"];
+    # search = ["ts.dora.im" "users.dora.im"];
     dhcpcd.extraConfig = "nohook resolv.conf";
     networkmanager.dns = lib.mkDefault "none";
   };

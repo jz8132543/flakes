@@ -19,7 +19,7 @@ with lib.strings; {
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
         "CanonicalizeHostname" = "yes";
-        "CanonicalDomains" = concatStringsSep " " ([osConfig.networking.domain] ++ osConfig.networking.search);
+        "CanonicalDomains" = concatStringsSep " " ([osConfig.networking.domain] ++ osConfig.environment.domains);
         "CanonicalizeMaxDots" = "0";
         # fix kde connection for android
         "HostKeyAlgorithms " = "+ssh-rsa";
@@ -42,7 +42,7 @@ with lib.strings; {
           forwardX11 = true;
         };
         "canonical" = {
-          match = concatStrings ["canonical final Host " (concatMapStringsSep "," (x: concatStrings ["*." x]) ([osConfig.networking.domain] ++ osConfig.networking.search))];
+          match = concatStrings ["canonical final Host " (concatMapStringsSep "," (x: concatStrings ["*." x]) ([osConfig.networking.domain] ++ osConfig.environment.domains))];
           port = osConfig.ports.ssh;
         };
       };
