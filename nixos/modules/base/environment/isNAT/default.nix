@@ -49,8 +49,8 @@ in
       # if config.environment.isNAT
       # then
       mkOption {
-        type = types.jsonValue (types.submodule ({config, ...}: {
-          freeformType = types.jsonValue types.list;
+        type = types.attrsOf (types.submodule ({config, ...}: {
+          freeformType = types.attrsOf types.jsonValue;
           config.entryPoints = ["https-alt"];
           options.entryPoints = mkOption {
             type = types.listOf types.str;
