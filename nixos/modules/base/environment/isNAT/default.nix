@@ -4,22 +4,6 @@
   ...
 }: let
   cfg = config.services.traefik.dynamicConfigOptions.http.routers;
-  jsonValue = with lib.types; let
-    valueType =
-      nullOr (oneOf [
-        bool
-        int
-        float
-        str
-        (lazyAttrsOf valueType)
-        (listOf valueType)
-      ])
-      // {
-        description = "JSON value";
-        emptyValue.value = {};
-      };
-  in
-    valueType;
 in
   with lib; {
     options.environment = {
@@ -44,22 +28,32 @@ in
           The port of http alt
         '';
       };
+      services.traefik.dynamicConfigOptions.type = mkForce types.attrset;
     };
-    options.services.traefik.dynamicConfigOptions.http.routers =
+    config = {
+      # services.traefik.dynamicConfigOptions.http.routers = attrsets.updateManyAttrsByPath [
+      #   lists.forEach
+      #   (attrsets.mapAttrsToList (name: value: name) cfg)
+      #   (x: {
+      #     path = [x "entryPoints"];
+      #     update = old: old ++ ["https-alt"];
+      #   })
+      # ];
       # if config.environment.isNAT
       # then
-      mkOption {
-        type = types.attrsOf (types.submodule ({config, ...}: {
-          freeformType = types.attrsOf types.jsonValue;
-          config.entryPoints = ["https-alt"];
-          options.entryPoints = mkOption {
-            type = types.listOf types.str;
-            default = ["https-alt"];
-          };
-        }));
-      };
-    # else {};
-    config = {
+      networking.nftables.ruleset = ''
+        table ip nat {
+          chain prerouting {
+            type nat hook prerouting priority 0; policy accept;
+            tcp dport ${config.environment.AltHTTP} redirect to 80
+            tcp dport ${config.environment.AltHTTPS} redirect to 443
+          }
+
+          chain postrouting {
+            type nat hook postrouting priority 0; policy accept;
+          }
+        }
+      '';
       networking.firewall.allowedTCPPorts = with config.environment; [AltHTTPS AltHTTP];
       networking.firewall.allowedUDPPorts = with config.environment; [AltHTTPS];
     };
