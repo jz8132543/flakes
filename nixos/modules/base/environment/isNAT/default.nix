@@ -14,21 +14,20 @@ in
           Whether to enable NAT mode.
         '';
       };
-      AltHTTPS = mkOption {
+      altHTTPS = mkOption {
         type = types.int;
         default = 8443;
         description = ''
           The port of https alt
         '';
       };
-      AltHTTP = mkOption {
+      altHTTP = mkOption {
         type = types.int;
         default = 8080;
         description = ''
           The port of http alt
         '';
       };
-      services.traefik.dynamicConfigOptions.type = mkForce types.attrset;
     };
     config = {
       # services.traefik.dynamicConfigOptions.http.routers = attrsets.updateManyAttrsByPath [
@@ -45,8 +44,8 @@ in
         table ip nat {
           chain prerouting {
             type nat hook prerouting priority 0; policy accept;
-            tcp dport ${config.environment.AltHTTP} redirect to 80
-            tcp dport ${config.environment.AltHTTPS} redirect to 443
+            tcp dport ${toString config.environment.altHTTP} redirect to 80
+            tcp dport ${toString config.environment.altHTTPS} redirect to 443
           }
 
           chain postrouting {
@@ -54,7 +53,7 @@ in
           }
         }
       '';
-      networking.firewall.allowedTCPPorts = with config.environment; [AltHTTPS AltHTTP];
-      networking.firewall.allowedUDPPorts = with config.environment; [AltHTTPS];
+      networking.firewall.allowedTCPPorts = with config.environment; [altHTTPS altHTTP];
+      networking.firewall.allowedUDPPorts = with config.environment; [altHTTPS];
     };
   }
