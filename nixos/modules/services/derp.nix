@@ -29,7 +29,7 @@
     routers = {
       derp = {
         rule = "Host(`${config.networking.fqdn}`)";
-        entryPoints = ["https"];
+        # entryPoints = ["https"];
         service = "derp";
       };
     };
