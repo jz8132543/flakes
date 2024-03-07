@@ -15,6 +15,5 @@
       (import nixosModules.services.keycloak {})
       (import nixosModules.services.vaultwarden {})
       (import nixosModules.services.alist {})
-      (import nixosModules.services.atuin {})
     ];
 }

@@ -10,15 +10,6 @@
 in
   with config.home.catppuccin; {
     programs = {
-      atuin = {
-        enable = true;
-        settings = {
-          auto_sync = true;
-          sync_frequency = "5m";
-          sync_address = "https://atuin.dora.im";
-        };
-        flags = ["--disable-up-arrow"];
-      };
       starship = {
         enable = true;
         enableBashIntegration = true;
@@ -71,9 +62,9 @@ in
 
         enableVteIntegration = true;
         enableAutosuggestions = true;
-        enableCompletion = true;
         syntaxHighlighting.enable = true;
         autocd = true;
+        enableCompletion = true;
 
         shellAliases = {
           # ls = "${pkgs.eza}/bin/eza --icons=auto";
@@ -104,7 +95,7 @@ in
           source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
           source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
           source ${pkgs.nix-index}/etc/profile.d/command-not-found.sh
-          # source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh
+          source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh
 
           bindkey -v
           bindkey -M vicmd '^[[1;5C' emacs-forward-word
@@ -160,8 +151,6 @@ in
     home.global-persistence = {
       directories = [
         ".local/share/zsh"
-        # Atuin
-        ".local/share/atuin"
         # ".cache/nix-index"
       ];
     };

@@ -1,4 +1,8 @@
-{PG ? "postgres.dora.im", ...}: {config, ...}: let
+{PG ? "postgres.dora.im", ...}: {
+  config,
+  lib,
+  ...
+}: let
   cfg = config.services.atuin;
 in {
   services.atuin = {
@@ -22,5 +26,9 @@ in {
         servers = [{url = "http://localhost:${toString cfg.port}";}];
       };
     };
+  };
+  systemd.services."atuin" = {
+    after = ["postgresql.service" "tailscaled.service"];
+    serviceConfig.Restart = lib.mkForce "always";
   };
 }
