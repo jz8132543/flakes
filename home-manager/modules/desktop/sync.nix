@@ -19,6 +19,6 @@
     ".local/share/syncthing"
   ];
   # rime
-  home.file.".local/share/syncthing/rime/global".source = "${(lib.lists.last osConfig.i18n.inputMethod.ibus.engines).outPath}/share/rime-data";
+  home.file.".local/share/syncthing/rime/global".source = "${(lib.lists.last osConfig.i18n.inputMethod.ibus.engines).outPath}/data";
   home.file.".local/share/syncthing/rime/user".source = config.lib.file.mkOutOfStoreSymlink "${config.xdg.configHome}/ibus/rime";
 }

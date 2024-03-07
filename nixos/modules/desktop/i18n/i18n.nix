@@ -32,6 +32,9 @@ in {
                 echo "rime_deployer --compile "$F" $out/share/rime-data $out/share/rime-data $out/share/rime-data/build" >> parallel.lst
               done
               parallel -j$(nproc) < parallel.lst || true
+
+              mkdir $out/data
+              cp -rL $out/share/rime-data/* $out/data/
             '';
         }))
     ];
