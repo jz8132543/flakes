@@ -26,10 +26,10 @@
           address = ":443";
           forwardedHeaders.insecure = true;
           proxyProtocol.insecure = true;
-          http.tls.certResolver = "zerossl";
-          # if config.environment.isNAT
-          # then true
-          # else {certResolver = "zerossl";};
+          http.tls =
+            if config.environment.isNAT
+            then true
+            else {certResolver = "zerossl";};
           http3 = {};
         };
       };
@@ -38,10 +38,6 @@
         email = "blackhole@dora.im";
         storage = "/var/lib/traefik/acme.json";
         keyType = "EC256";
-        # eab = {
-        #   kid = "{{ env `KID` }}";
-        #   hmacEncoded = "{{ env `HMAC` }}";
-        # };
         dnsChallenge = {provider = "cloudflare";};
       };
       ping = {
@@ -55,7 +51,6 @@
       };
       api = {};
       serversTransport = {
-        # Disable backend certificate verification.
         insecureSkipVerify = true;
       };
     };

@@ -252,7 +252,7 @@ in {
       Type = "simple";
       ExecStart = toString (pkgs.writeScript "gsconnect-dconf-start" ''
         #! ${pkgs.runtimeShell} -el
-        ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
+        ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf || true
       '');
       ExecStop = toString (pkgs.writeScript "gsconnect-dconf-stop" ''
         #! ${pkgs.runtimeShell} -el

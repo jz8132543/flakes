@@ -36,10 +36,10 @@
     services = {
       derp.loadBalancer = {
         passHostHeader = true;
-        servers =
-          if !config.environment.isNAT
-          then [{url = "http://localhost:${toString config.ports.derp}";}]
-          else [{url = "https://localhost:${toString config.ports.derp}";}];
+        servers = [{url = "http://localhost:${toString config.ports.derp}";}];
+        # if !config.environment.isNAT
+        # then [{url = "http://localhost:${toString config.ports.derp}";}]
+        # else [{url = "https://localhost:${toString config.ports.derp}";}];
       };
     };
   };
