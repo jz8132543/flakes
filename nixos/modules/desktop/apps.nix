@@ -6,11 +6,11 @@
 }: {
   imports = [nixosModules.services.aria2];
   programs = {
-    clash-verge = {
-      enable = true;
-      autoStart = true;
-      tunMode = true;
-    };
+    # clash-verge = {
+    #   enable = true;
+    #   autoStart = true;
+    #   tunMode = true;
+    # };
   };
   environment.systemPackages = with pkgs; [
     qrcp

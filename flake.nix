@@ -32,6 +32,14 @@
       url = "github:nix-community/haumea";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    naersk = {
+      url = "github:nix-community/naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    fenix = {
+      url = "github:nix-community/fenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     colmena = {
       url = "github:zhaofengli/colmena";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -144,6 +152,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
       inputs.flake-compat.follows = "flake-compat";
+    };
+    clash2sing-box = {
+      url = "github:oluceps/clash2sing-box";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.naersk.follows = "naersk";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.fenix.follows = "fenix";
     };
     # Themes
     grub2-themes = {
