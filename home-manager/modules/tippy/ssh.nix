@@ -39,7 +39,7 @@ with lib.strings; {
           user = "tippy";
           checkHostIP = false;
           forwardAgent = true;
-          forwardX11 = true;
+          # forwardX11 = true;
         };
         "canonical" = {
           match = concatStrings ["canonical final Host " (concatMapStringsSep "," (x: concatStrings ["*." x]) ([osConfig.networking.domain] ++ osConfig.environment.domains))];

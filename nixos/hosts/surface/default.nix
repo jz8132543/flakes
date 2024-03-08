@@ -31,8 +31,9 @@
     };
   };
 
+  environment.isCN = true;
+
   environment.systemPackages = with pkgs; [
-    refind
     efibootmgr
   ];
 }

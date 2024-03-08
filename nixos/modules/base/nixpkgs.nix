@@ -21,8 +21,8 @@
         comma = prev.comma.override {
           nix-index-unwrapped = final.nix-index-with-db;
         };
-        # tailscale = prev.tailscale.overrideAttrs (old: {
-        tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
+        tailscale = prev.tailscale.overrideAttrs (old: {
+          # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
           subPackages = old.subPackages ++ ["cmd/derper"] ++ ["cmd/derpprobe"];
         });
       }
