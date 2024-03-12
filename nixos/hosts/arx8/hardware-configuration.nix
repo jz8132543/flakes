@@ -20,11 +20,11 @@
       availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module];
-    kernelModules = ["kvm-amd" "nvidia" "nvidia_uvm" "nvidia_modeset" "nvidia_drm" "mt7921e" "r8169"];
+    kernelModules = ["kvm-amd" "nvidia" "nvidia_uvm" "nvidia_modeset" "nvidia_drm"];
     kernelParams = [
-      "nvidia_drm.modeset=1"
       "fbdev=1"
       "acpi=copy_dsdt"
+      "nvidia_drm.modeset=1"
       "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
       "nvidia.NVreg_DynamicPowerManagement=2"
       "nvidia.NVreg_OpenRmEnableUnsupportedGpus=1"

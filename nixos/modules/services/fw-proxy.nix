@@ -46,7 +46,7 @@ in
           })
         profiles);
         externalController = {
-          expose = true;
+          expose = lib.mkDefault false;
           virtualHost = "${hostName}.*";
           location = "/sing-box/";
           secretFile = config.sops.secrets."fw_proxy_external_controller_secret".path;

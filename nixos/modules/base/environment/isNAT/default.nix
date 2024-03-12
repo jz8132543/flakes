@@ -31,9 +31,15 @@ with lib; {
     if config.environment.isNAT
     then {
       nftables.ruleset = ''
-        table ip nat {
+        table inet nat {
           chain prerouting {
             type nat hook prerouting priority 0; policy accept;
+            tcp dport ${toString config.environment.altHTTP} redirect to 80
+            tcp dport ${toString config.environment.altHTTPS} redirect to 443
+            udp dport ${toString config.environment.altHTTPS} redirect to 443
+          }
+          chain output {
+            type nat hook output priority 0; policy accept;
             tcp dport ${toString config.environment.altHTTP} redirect to 80
             tcp dport ${toString config.environment.altHTTPS} redirect to 443
             udp dport ${toString config.environment.altHTTPS} redirect to 443

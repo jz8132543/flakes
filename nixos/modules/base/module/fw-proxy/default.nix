@@ -684,5 +684,10 @@ in
         in {
           networking.firewall.interfaces = ifCfgs;
         }))
+      {
+        systemd.services.nix-daemon.environment =
+          lib.mkIf (config.networking.fw-proxy.enable)
+          config.networking.fw-proxy.environment;
+      }
     ]);
   }
