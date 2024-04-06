@@ -9,7 +9,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.services.fw-proxy
+      # nixosModules.services.fw-proxy
     ];
 
   microsoft-surface = {

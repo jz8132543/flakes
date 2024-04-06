@@ -36,7 +36,7 @@ in
       };
       eza = {
         enable = true;
-        enableAliases = true;
+        enableZshIntegration = true;
         git = true;
         icons = true;
       };
@@ -61,7 +61,7 @@ in
         defaultKeymap = "emacs";
 
         enableVteIntegration = true;
-        enableAutosuggestions = true;
+        autosuggestion.enable = true;
         syntaxHighlighting.enable = true;
         autocd = true;
         enableCompletion = true;

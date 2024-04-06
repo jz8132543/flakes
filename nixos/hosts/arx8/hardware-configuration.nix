@@ -3,7 +3,9 @@
   lib,
   inputs,
   ...
-}: {
+}: let
+  MONITOR = "eDP-1";
+in {
   imports = [
     ./edid
     ./monitors.nix
@@ -13,21 +15,22 @@
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
     inputs.nixos-hardware.nixosModules.common-cpu-amd
     inputs.nixos-hardware.nixosModules.common-cpu-amd-pstate
-    inputs.nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
+    # inputs.nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
   ];
   boot = {
     initrd = {
       availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
     };
     extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module];
-    kernelModules = ["kvm-amd" "nvidia" "nvidia_uvm" "nvidia_modeset" "nvidia_drm"];
+    kernelModules = ["kvm-amd"];
     kernelParams = [
-      "fbdev=1"
+      # "fbdev=1"
       "acpi=copy_dsdt"
-      "nvidia_drm.modeset=1"
-      "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
-      "nvidia.NVreg_DynamicPowerManagement=2"
-      "nvidia.NVreg_OpenRmEnableUnsupportedGpus=1"
+      "video=${MONITOR}:2560x1600@240"
+      # "nvidia_drm.modeset=1"
+      # "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
+      # "nvidia.NVreg_DynamicPowerManagement=2"
+      # "nvidia.NVreg_OpenRmEnableUnsupportedGpus=1"
     ];
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
@@ -70,10 +73,10 @@
     };
   };
   hardware = {
+    # enableAllFirmware = true;
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
     nvidia = {
-      package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
-      # package = config.boot.kernelPackages.nvidiaPackages.beta;
+      # package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
       modesetting.enable = true;
       nvidiaPersistenced = true;
       nvidiaSettings = true;
@@ -86,6 +89,10 @@
       };
     };
   };
-  home-manager.users.tippy.wayland.dpi = 144;
+  environment.sessionVariables = {
+    __GL_SYNC_DISPLAY_DEVICE = MONITOR;
+    VDPAU_NVIDIA_SYNC_DISPLAY_DEVICE = MONITOR;
+  };
+  # home-manager.users.tippy.wayland.dpi = 144;
   utils.disk = "/dev/nvme0n1";
 }

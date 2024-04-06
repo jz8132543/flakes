@@ -19,7 +19,7 @@
     package = pkgs.nix-index-with-db;
   };
 
-  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
+  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
   security.rtkit.enable = true;
   services.dbus.implementation = "broker";
   services.bpftune.enable = true;

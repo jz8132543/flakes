@@ -74,9 +74,9 @@ in {
       ExecStop = stopScript;
       CPUQuota = "300%"; # at most 1.5 core (2 cores in total)
     };
-    environment =
-      lib.mkIf (config.networking.fw-proxy.enable)
-      config.networking.fw-proxy.environment;
+    # environment =
+    #   lib.mkIf (config.networking.fw-proxy.enable)
+    #   config.networking.fw-proxy.environment;
     wantedBy = ["multi-user.target"];
   };
   networking.firewall.allowedUDPPorts = [

@@ -1,5 +1,6 @@
 {
   config,
+  osConfig,
   pkgs,
   ...
 }: {
@@ -10,6 +11,10 @@
       ".cache/nix"
     ];
   };
+  home.sessionVariables =
+    if osConfig.networking.fw-proxy.enable
+    then osConfig.networking.fw-proxy.environment
+    else {};
 
   home.packages = with pkgs; [
     duf

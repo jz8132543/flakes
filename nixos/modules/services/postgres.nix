@@ -11,7 +11,6 @@
     enable = true;
     enableTCPIP = true;
     package = pkgs.postgresql_16;
-    logLinePrefix = "user=%u,db=%d,app=%a,client=%h ";
     authentication = lib.mkForce ''
       local all all                           trust
       host all all 127.0.0.1/32               trust
@@ -30,6 +29,7 @@
       archive_mode = "on";
       archive_command = "/run/current-system/sw/bin/true";
       wal_log_hints = "on";
+      log_line_prefix = "user=%u,db=%d,app=%a,client=%h";
     };
   };
 

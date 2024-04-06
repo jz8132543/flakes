@@ -15,7 +15,6 @@
   environment.systemPackages = with pkgs; [
     qrcp
     # LSP
-    nil
     alejandra
     vscode-langservers-extracted
     sumneko-lua-language-server
@@ -26,6 +25,15 @@
     shfmt
     taplo
     yaml-language-server
+    # nix
+    nil
+    nix-doc
+    nix-melt
+    nix-output-monitor
+    nix-top
+    nix-tree
+    nurl
+    manix
   ];
   environment.shellAliases = {
     qrcp = "qrcp --port ${toString config.ports.qrcp}";

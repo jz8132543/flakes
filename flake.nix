@@ -42,7 +42,9 @@
     };
     colmena = {
       url = "github:zhaofengli/colmena";
+      inputs.stable.follows = "nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
     };
     sops-nix = {
       url = "github:Mic92/sops-nix";

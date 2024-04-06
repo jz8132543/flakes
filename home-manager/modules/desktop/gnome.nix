@@ -11,6 +11,7 @@
     clipboard-history
     upower-battery
     alphabetical-app-grid
+    system-monitor-next
     # caffeine
     user-themes
     customize-ibus
@@ -81,9 +82,10 @@ in {
         edge-tiling = true;
         dynamic-workspaces = true;
         center-new-windows = true;
+        experimental-features = ["scale-monitor-framebuffer"];
       };
       "org/gnome/desktop/interface" = {
-        # scaling-factor = mkUint32 2;
+        scaling-factor = mkDouble 1.5;
         # text-scaling-factor = mkDouble 1.5;
 
         # gtk-theme = "adw-gtk3";
@@ -107,6 +109,9 @@ in {
         use-custom-font = true;
         custom-font = "sans-serif 10";
         input-indicator-only-on-toggle = true;
+      };
+      "org/gnome/shell/extensions/system-monitor" = {
+        memory-display = false;
       };
       "org/gnome/desktop/wm/preferences" = {
         action-middle-click-titlebar = "lower";
@@ -215,6 +220,13 @@ in {
   home.sessionVariables = {
     QT_STYLE_OVERRIDE = lib.mkForce "kvantum";
     XCURSOR_THEME = config.dconf.settings."org/gnome/desktop/interface".cursor-theme;
+    # Wayland variables
+    CLUTTER_BACKEND = "wayland";
+    ELECTRON_OZONE_PLATFORM_HINT = "wayland";
+    MOZ_ENABLE_WAYLAND = "1";
+    NIXOS_OZONE_WL = "1";
+    QT_QPA_PLATFORM = "wayland;xcb";
+    WLR_NO_HARDWARE_CURSORS = "1";
   };
   xdg.configFile = {
     "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {

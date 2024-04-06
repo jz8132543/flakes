@@ -44,6 +44,8 @@
   };
   services.fprintd.enable = true;
   services.gnome.gnome-browser-connector.enable = true;
+  services.gnome.sushi.enable = true;
+  services.gvfs.enable = true;
 
   systemd.targets = {
     sleep.enable = false;

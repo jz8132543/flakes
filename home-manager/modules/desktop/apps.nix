@@ -13,7 +13,6 @@
     # config.nur.repos.xddxdd.wechat-uos
     remmina
     element-desktop
-    rustdesk
     linux-wifi-hotspot
   ];
   dconf.settings = {
@@ -33,6 +32,9 @@
       ".config/weixin"
       ".local/share/Kingsoft"
       ".config/Element"
+    ];
+    files = [
+      ".config/monitors.xml"
     ];
   };
 }

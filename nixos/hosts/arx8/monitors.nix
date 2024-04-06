@@ -1,13 +1,13 @@
 {pkgs, ...}: {
   systemd.tmpfiles.rules = [
-    "L+ /run/gdm/.config/monitors.xml - - - - ${pkgs.writeText "gdm-monitors.xml" ''
+    "f+ /run/gdm/.config/monitors.xml - gdm gdm - ${pkgs.writeText "gdm-monitors.xml" ''
       <!-- this should all be copied from your ~/.config/monitors.xml -->
       <monitors version="2">
         <configuration>
           <logicalmonitor>
             <x>0</x>
             <y>0</y>
-            <scale>2</scale>
+            <scale>1.5</scale>
             <primary>yes</primary>
             <monitor>
               <monitorspec>

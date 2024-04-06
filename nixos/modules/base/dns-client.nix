@@ -38,11 +38,14 @@ in {
         listen_addresses = ["127.0.0.55:53"];
         ipv4_servers = true;
         ipv6_servers = true;
+        dnscrypt_servers = true;
         require_dnssec = true;
         doh_servers = true;
         odoh_servers = true;
         require_nolog = true;
+        ignore_system_dns = true;
         bootstrap_resolvers = ["1.1.1.1:53" "1.0.0.1:53" "9.9.9.9:53" "119.29.29.29:53" "223.5.5.5:53"];
+        # fallback_resolvers = ["1.1.1.1:53" "1.0.0.1:53" "119.29.29.29:53" "223.5.5.5:53"];
         cache = true;
 
         sources.public-resolvers = {
@@ -62,8 +65,9 @@ in {
           "quad9-doh-ip4-port443-filter-pri"
           "quad9-doh-ip6-port5053-filter-pri"
           "quad9-doh-ip6-port443-filter-pri"
-          #"cloudflare-security-ipv6"
-          #"doh-crypto-sx"
+          # "cloudflare-security-ipv6"
+          # "doh-crypto-sx"
+          # "alidns-doh"
         ];
       };
     };

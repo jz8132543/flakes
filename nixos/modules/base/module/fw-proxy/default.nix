@@ -393,8 +393,10 @@ in
         in {
           HTTP_PROXY = proxyUrl;
           HTTPS_PROXY = proxyUrl;
+          ALL_PROXY = proxyUrl;
           http_proxy = proxyUrl;
           https_proxy = proxyUrl;
+          all_proxy = proxyUrl;
           NO_PROXY = cfg.noProxy;
           no_proxy = cfg.noProxy;
         };
@@ -684,10 +686,10 @@ in
         in {
           networking.firewall.interfaces = ifCfgs;
         }))
-      {
-        systemd.services.nix-daemon.environment =
-          lib.mkIf (config.networking.fw-proxy.enable)
-          config.networking.fw-proxy.environment;
-      }
+      # {
+      #   systemd.services.nix-daemon.environment =
+      #     lib.mkIf (config.networking.fw-proxy.enable)
+      #     config.networking.fw-proxy.environment;
+      # }
     ]);
   }

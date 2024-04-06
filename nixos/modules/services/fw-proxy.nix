@@ -63,7 +63,7 @@ in
         service = "main";
       };
 
-      systemd.services.nix-daemon.environment = cfg.environment;
+      # systemd.services.nix-daemon.environment = cfg.environment;
     }
     {
       sops.secrets = lib.listToAttrs (lib.lists.map (p:

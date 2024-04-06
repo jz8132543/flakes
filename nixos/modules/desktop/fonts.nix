@@ -27,7 +27,6 @@ with config.nur.repos.xddxdd; {
       font-awesome
       kaixinsong-fonts
       hanazono
-      hanyi-wenhei
       hoyo-glyphs
       liberation_ttf
       noto-fonts
