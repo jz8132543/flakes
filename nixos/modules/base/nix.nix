@@ -12,7 +12,7 @@
     };
     settings = {
       nix-path = ["nixpkgs=${inputs.nixpkgs}"];
-      experimental-features = ["nix-command" "flakes" "auto-allocate-uids" "cgroups" "repl-flake"];
+      experimental-features = ["nix-command" "flakes" "auto-allocate-uids" "cgroups"];
       system-features = ["nixos-test" "benchmark" "big-parallel" "kvm"];
       auto-allocate-uids = true;
       use-cgroups = true;

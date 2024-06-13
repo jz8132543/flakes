@@ -21,7 +21,7 @@
   toTitle = str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
   orchis-theme = pkgs.orchis-theme.override {
     tweaks = [config.home.catppuccin.tweak];
-    withWallpapers = true;
+    # withWallpapers = true;
   };
   catppuccin-kvantum =
     pkgs.catppuccin-kvantum.override

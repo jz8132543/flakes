@@ -5,6 +5,7 @@
 }: {
   home.packages = with pkgs; [
     tdesktop
+    ffmpeg
     thunderbird
     neovide
     okular

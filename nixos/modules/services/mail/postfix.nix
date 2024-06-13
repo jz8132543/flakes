@@ -134,7 +134,7 @@ in {
     prometheus.urls = ["http://localhost:11334/metrics"];
   };
 
-  boot.kernel.sysctl."vm.overcommit_memory" = 1;
+  boot.kernel.sysctl."vm.overcommit_memory" = lib.mkForce 1;
 
   services.redis.servers.rspamd = {
     enable = true;

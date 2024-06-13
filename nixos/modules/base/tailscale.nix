@@ -72,6 +72,7 @@ in {
 
   systemd.services.tailscaled = {
     before = ["network.target"];
+    after = ["dnscrypt-proxy2.service" "systemd-resolved.service"];
     serviceConfig = {
       Restart = "always";
       TimeoutStopSec = "5s";
