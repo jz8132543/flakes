@@ -1,10 +1,12 @@
 {
   config,
   pkgs,
+  nixosModules,
   ...
 }: let
   interfaceName = "tailscale0";
 in {
+  imports = [nixosModules.services.restic];
   services.tailscale = {
     enable = true;
     openFirewall = true;
@@ -78,4 +80,7 @@ in {
       TimeoutStopSec = "5s";
     };
   };
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/tailscale/tailscaled.state"
+  ];
 }

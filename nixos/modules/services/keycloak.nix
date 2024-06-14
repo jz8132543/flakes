@@ -94,7 +94,7 @@
     serviceConfig.Restart = lib.mkForce "always";
   };
   services.restic.backups.borgbase.paths = [
-    "/var/lib/lldap/server_key"
+    "/var/lib/lldap/"
   ];
   systemd.services."restic-backups-borgbase" = {
     requires = ["lldap.service"];
