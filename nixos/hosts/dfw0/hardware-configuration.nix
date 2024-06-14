@@ -11,4 +11,18 @@
   boot.kernelModules = ["kvm-intel"];
   # utils.disk = "/dev/vdb";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  networking = {
+    # useDHCP = false;
+    # useNetworkd = true;
+    interfaces.ens17 = {
+      useDHCP = false;
+      ipv4.addresses = [
+        {
+          address = "154.40.40.139";
+          prefixLength = 25;
+        }
+      ];
+    };
+    defaultGateway = "154.40.40.254";
+  };
 }

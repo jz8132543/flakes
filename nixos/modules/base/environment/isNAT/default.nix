@@ -59,6 +59,9 @@ with lib; {
         firewall.allowedUDPPorts = with config.environment; [altHTTPS];
       }
       else {};
-    services.traefik.staticConfigOptions.entryPoints.https.address = lib.mkForce ":${toString config.environment.altHTTPS}";
+    services.traefik.staticConfigOptions.entryPoints.https =
+      if config.environment.isNAT
+      then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}
+      else {};
   };
 }

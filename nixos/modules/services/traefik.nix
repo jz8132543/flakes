@@ -10,7 +10,6 @@
   config.services.traefik = {
     enable = true;
     staticConfigOptions = {
-      experimental.http3 = true;
       entryPoints = {
         http = {
           address = ":80";
@@ -29,7 +28,7 @@
           http.tls =
             if config.environment.isNAT
             then true
-            else {certResolver = "zerossl";};
+            else {certresolver = "zerossl";};
           http3 = {};
         };
       };
