@@ -54,6 +54,10 @@ in {
         power-button-action = "nothing";
         sleep-inactive-ac-type = "nothing";
       };
+      "org.gnome.desktop.wm.keybindings" = {
+        switch-to-workspace-right = ["<Control><Super>Right"];
+        switch-to-workspace-left = ["<Control><Super>Left"];
+      };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
         binding = mkString "NEXT";
         # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
