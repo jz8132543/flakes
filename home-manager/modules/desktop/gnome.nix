@@ -54,7 +54,7 @@ in {
         power-button-action = "nothing";
         sleep-inactive-ac-type = "nothing";
       };
-      "org.gnome.desktop.wm.keybindings" = {
+      "org/gnome/desktops/wm/keybindings" = {
         switch-to-workspace-right = ["<Control><Super>Right"];
         switch-to-workspace-left = ["<Control><Super>Left"];
       };

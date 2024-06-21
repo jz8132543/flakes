@@ -26,9 +26,9 @@ in {
       address = "192.168.1.1";
       interface = netdev;
     };
-    localCommands = ''
-      ${pkgs.ethtool}/bin/ethtool -K ${netdev} tx-checksumming off
-    '';
+    # localCommands = ''
+    #   ${pkgs.ethtool}/bin/ethtool -K ${netdev} tx-checksumming off
+    # '';
   };
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }
