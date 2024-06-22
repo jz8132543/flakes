@@ -41,15 +41,14 @@ with lib; {
               tcp dport 443 redirect to ${toString config.environment.altHTTPS}
               udp dport 443 redirect to ${toString config.environment.altHTTPS}
             }
-            chain output {
-              type nat hook output priority 0; policy accept;
-              tcp dport ${toString config.environment.altHTTP} redirect to 80
-              # tcp dport ${toString config.environment.altHTTPS} redirect to 443
-              # udp dport ${toString config.environment.altHTTPS} redirect to 443
-              tcp dport 443 redirect to ${toString config.environment.altHTTPS}
-              udp dport 443 redirect to ${toString config.environment.altHTTPS}
-            }
-
+            # chain output {
+            #   type nat hook output priority 0; policy accept;
+            #   tcp dport ${toString config.environment.altHTTP} redirect to 80
+            #   # tcp dport ${toString config.environment.altHTTPS} redirect to 443
+            #   # udp dport ${toString config.environment.altHTTPS} redirect to 443
+            #   tcp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
+            #   udp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
+            # }
             chain postrouting {
               type nat hook postrouting priority 0; policy accept;
             }
@@ -59,6 +58,7 @@ with lib; {
         firewall.allowedUDPPorts = with config.environment; [altHTTPS];
       }
       else {};
+    # {};
     services.traefik.staticConfigOptions.entryPoints.https =
       if config.environment.isNAT
       then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}

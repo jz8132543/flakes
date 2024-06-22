@@ -16,16 +16,16 @@
     lenovo-legion
     efibootmgr
   ];
-  services.create_ap = {
-    enable = true;
-    settings = {
-      INTERNET_IFACE = "wlp4s0";
-      WIFI_IFACE = "wlp4s0";
-      SSID = "ARX8";
-      PASSPHRASE = "qwertyut";
-      # HIDDEN = 1;
-      IEEE80211AX = 1;
-      FREQ_BAND = 5;
-    };
-  };
+  # services.create_ap = {
+  #   enable = true;
+  #   settings = {
+  #     INTERNET_IFACE = "wlp4s0";
+  #     WIFI_IFACE = "wlp4s0";
+  #     SSID = "ARX8";
+  #     PASSPHRASE = "qwertyut";
+  #     # HIDDEN = 1;
+  #     IEEE80211AX = 1;
+  #     FREQ_BAND = 5;
+  #   };
+  # };
 }
