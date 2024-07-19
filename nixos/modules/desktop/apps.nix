@@ -30,7 +30,6 @@
     nix-doc
     nix-melt
     nix-output-monitor
-    nix-top
     nix-tree
     nurl
     manix

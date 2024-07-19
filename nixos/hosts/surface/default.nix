@@ -14,7 +14,7 @@
 
   microsoft-surface = {
     # kernelVersion = "6.4.12";
-    surface-control.enable = true;
+    # surface-control.enable = true;
     # ipts.enable = true;
   };
 

@@ -28,40 +28,55 @@ with lib; {
     };
   };
   config = {
-    networking =
+    # networking =
+    #   if config.environment.isNAT
+    #   then {
+    #     nftables.ruleset = ''
+    #       table inet nat {
+    #         chain prerouting {
+    #           type nat hook prerouting priority 0; policy accept;
+    #           tcp dport ${toString config.environment.altHTTP} redirect to 80
+    #           # tcp dport ${toString config.environment.altHTTPS} redirect to 443
+    #           # udp dport ${toString config.environment.altHTTPS} redirect to 443
+    #           tcp dport 443 redirect to ${toString config.environment.altHTTPS}
+    #           udp dport 443 redirect to ${toString config.environment.altHTTPS}
+    #         }
+    #         # chain output {
+    #         #   type nat hook output priority 0; policy accept;
+    #         #   tcp dport ${toString config.environment.altHTTP} redirect to 80
+    #         #   # tcp dport ${toString config.environment.altHTTPS} redirect to 443
+    #         #   # udp dport ${toString config.environment.altHTTPS} redirect to 443
+    #         #   tcp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
+    #         #   udp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
+    #         # }
+    #         chain postrouting {
+    #           type nat hook postrouting priority 0; policy accept;
+    #         }
+    #       }
+    #     '';
+    #     firewall.allowedTCPPorts = with config.environment; [altHTTPS altHTTP];
+    #     firewall.allowedUDPPorts = with config.environment; [altHTTPS];
+    #   }
+    #   else {};
+    # services.traefik.staticConfigOptions.entryPoints.https =
+    #   if config.environment.isNAT
+    #   then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}
+    #   else {};
+    services.traefik.staticConfigOptions.entryPoints =
       if config.environment.isNAT
       then {
-        nftables.ruleset = ''
-          table inet nat {
-            chain prerouting {
-              type nat hook prerouting priority 0; policy accept;
-              tcp dport ${toString config.environment.altHTTP} redirect to 80
-              # tcp dport ${toString config.environment.altHTTPS} redirect to 443
-              # udp dport ${toString config.environment.altHTTPS} redirect to 443
-              tcp dport 443 redirect to ${toString config.environment.altHTTPS}
-              udp dport 443 redirect to ${toString config.environment.altHTTPS}
-            }
-            # chain output {
-            #   type nat hook output priority 0; policy accept;
-            #   tcp dport ${toString config.environment.altHTTP} redirect to 80
-            #   # tcp dport ${toString config.environment.altHTTPS} redirect to 443
-            #   # udp dport ${toString config.environment.altHTTPS} redirect to 443
-            #   tcp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
-            #   udp dport 443 daddr 127.0.0.1 redirect to ${toString config.environment.altHTTPS}
-            # }
-            chain postrouting {
-              type nat hook postrouting priority 0; policy accept;
-            }
-          }
-        '';
-        firewall.allowedTCPPorts = with config.environment; [altHTTPS altHTTP];
-        firewall.allowedUDPPorts = with config.environment; [altHTTPS];
+        NAT = {
+          address = ":8443";
+          forwardedHeaders.insecure = true;
+          proxyProtocol.insecure = true;
+          http.tls =
+            if config.environment.isNAT
+            then true
+            else {certresolver = "zerossl";};
+          # http3 = {};
+          # asDefault = true;
+        };
       }
-      else {};
-    # {};
-    services.traefik.staticConfigOptions.entryPoints.https =
-      if config.environment.isNAT
-      then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}
       else {};
   };
 }

@@ -20,6 +20,7 @@
             scheme = "https";
             permanent = false;
           };
+          # asDefault = true;
         };
         https = {
           address = ":443";
@@ -30,6 +31,7 @@
             then true
             else {certresolver = "zerossl";};
           http3 = {};
+          # asDefault = true;
         };
       };
       certificatesResolvers.zerossl.acme = {
@@ -71,17 +73,17 @@
         routers = {
           ping = {
             rule = "Host(`${config.networking.fqdn}`) && Path(`/ping`)";
-            entryPoints = ["https"];
+            # entryPoints = ["https"];
             service = "ping@internal";
           };
           traefik = {
             rule = "Host(`${config.networking.fqdn}`) && Path(`/traefik`)";
-            entryPoints = ["https"];
+            # entryPoints = ["https"];
             service = "prometheus@internal";
           };
           api = {
             rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
-            entrypoints = ["https"];
+            # entrypoints = ["https"];
             service = "api@internal";
             middlewares = "auth";
           };
