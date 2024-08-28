@@ -7,24 +7,24 @@ jobs:
   img:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@main
-    - name: Install nix
-      uses: cachix/install-nix-action@master
-      with:
-        install_url: https://github.com/numtide/nix-unstable-installer/releases/latest/download/install
-        nix_path: nixpkgs=channel:nixos-unstable
-        extra_nix_config: |
-          experimental-features = nix-command flakes
-          system-features = kvm big-parallel
-    - name: Setup cachix
-      uses: cachix/cachix-action@master
-      with:
-        name: dora
-        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-    - name: Set swap space
-      uses: pierotofy/set-swap-space@master
-      with:
-        swap-size-gb: 10
-    - name: build img
-      run: cachix watch-exec dora nix build .#nixosConfigurations.ewr0.config.system.build.image
+      - name: Checkout
+        uses: actions/checkout@main
+      - name: Install nix
+        uses: cachix/install-nix-action@master
+        with:
+          install_url: https://github.com/numtide/nix-unstable-installer/releases/latest/download/install
+          nix_path: nixpkgs=channel:nixos-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            system-features = kvm big-parallel
+      - name: Setup cachix
+        uses: cachix/cachix-action@master
+        with:
+          name: dora
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Set swap space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
+      - name: build img
+        run: cachix watch-exec dora nix build .#nixosConfigurations.ewr0.config.system.build.image

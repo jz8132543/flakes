@@ -4,7 +4,7 @@
       enable = true;
       port = config.ports.headscale;
       settings = {
-        server_url = "https://headscale.dora.im";
+        server_url = "https://hs.dora.im";
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
@@ -12,12 +12,12 @@
           type = "sqlite3";
           sqlite.path = "/var/lib/headscale/db.sqlite";
         };
-        dns_config = {
+        dns = {
           override_local_dns = true;
-          base_domain = "dora.im";
+          base_domain = "t.dora.im";
           magic_dns = true;
           domains = config.environment.domains;
-          nameservers = [
+          nameservers.global = [
             "1.1.1.1"
             "9.9.9.9"
           ];
@@ -53,7 +53,7 @@
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
         };
-        acl_policy_path = "/run/credentials/headscale.service/acl.yaml";
+        policy.path = "/run/credentials/headscale.service/acl.yaml";
       };
     };
   };

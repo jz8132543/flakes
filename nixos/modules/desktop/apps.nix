@@ -28,7 +28,7 @@
     # nix
     nil
     nix-doc
-    nix-melt
+    # nix-melt
     nix-output-monitor
     nix-tree
     nurl

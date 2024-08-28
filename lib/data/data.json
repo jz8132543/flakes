@@ -96,7 +96,7 @@
       "on": "dfw0",
       "proxy": false
     },
-    "headscale": {
+    "hs": {
       "on": "dfw0",
       "proxy": false
     },

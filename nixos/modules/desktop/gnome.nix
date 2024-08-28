@@ -31,8 +31,8 @@
     gnome.dconf-editor
     gnome.gnome-sound-recorder
     gnome.gnome-power-manager
-    gnome.gnome-tweaks
-    gnome.polari
+    gnome-tweaks
+    polari
     gnome.gnome-session
     # gnomeExtensions.allow-locked-remote-desktop
   ];
