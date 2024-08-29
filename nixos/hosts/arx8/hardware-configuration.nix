@@ -96,4 +96,5 @@ in {
   };
   # home-manager.users.tippy.wayland.dpi = 144;
   utils.disk = "/dev/nvme0n1";
+  nix.gc.automatic = lib.mkForce false;
 }

@@ -73,7 +73,7 @@ resource "cloudflare_record" "dora_subscription" {
 locals {
   service_cname_mappings = {
     vault   = { on = "dfw0", proxy = true }
-    hs      = { on = "dfw0", proxy = false }
+    ts      = { on = "dfw0", proxy = false }
     ldap    = { on = "dfw0", proxy = false }
     sso     = { on = "dfw0", proxy = false }
     alist   = { on = "dfw0", proxy = false }

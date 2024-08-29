@@ -1,10 +1,14 @@
-{config, ...}: {
+{
+  config,
+  pkgs,
+  ...
+}: {
   services = {
     headscale = {
       enable = true;
       port = config.ports.headscale;
       settings = {
-        server_url = "https://hs.dora.im";
+        server_url = "https://ts.dora.im";
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
@@ -14,7 +18,7 @@
         };
         dns = {
           override_local_dns = true;
-          base_domain = "t.dora.im";
+          base_domain = "mag";
           magic_dns = true;
           domains = config.environment.domains;
           nameservers.global = [
@@ -53,24 +57,24 @@
           paths = ["/run/credentials/headscale.service/map.yaml"];
           urls = [];
         };
-        policy.path = "/run/credentials/headscale.service/acl.yaml";
+        policy.path = "/run/credentials/headscale.service/acl.json";
       };
     };
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       headscale = {
-        rule = "Host(`headscale.dora.im`) && PathPrefix(`/`)";
+        rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
         entryPoints = ["https"];
         service = "headscale";
       };
-      headscale_metrics = {
-        rule = "Host(`headscale.dora.im`) && PathPrefix(`/metrics`)";
-        entryPoints = ["https"];
-        service = "headscale_metrics";
-      };
+      # headscale_metrics = {
+      #   rule = "Host(`ts.dora.im`) && PathPrefix(`/metrics`)";
+      #   entryPoints = ["https"];
+      #   service = "headscale_metrics";
+      # };
       headscale_grpc = {
-        rule = "Host(`headscale.dora.im`) && PathPrefix(`/headscale`)";
+        rule = "Host(`ts.dora.im`) && PathPrefix(`/headscale.`)";
         entryPoints = ["https"];
         service = "headscale_grpc";
       };
@@ -79,11 +83,12 @@
       headscale.loadBalancer = {
         passHostHeader = true;
         servers = [{url = "http://localhost:${toString config.services.headscale.port}";}];
+        # servers = [{url = "http://localhost:${toString config.ports.headscale_metrics}";}];
       };
-      headscale_metrics.loadBalancer = {
-        passHostHeader = true;
-        servers = [{url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics";}];
-      };
+      # headscale_metrics.loadBalancer = {
+      #   passHostHeader = true;
+      #   servers = [{url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics";}];
+      # };
       headscale_grpc.loadBalancer = {
         passHostHeader = true;
         servers = [{url = "https://${toString config.services.headscale.settings.grpc_listen_addr}";}];
@@ -94,13 +99,16 @@
     TimeoutStopSec = "5s";
     LoadCredential = [
       "map.yaml:/etc/headscale/map.yaml"
-      "acl.yaml:/etc/headscale/acl.yaml"
+      "acl.json:/etc/headscale/acl.json"
     ];
   };
-  environment.systemPackages = [config.services.headscale.package];
+  environment.systemPackages = [
+    config.services.headscale.package
+    pkgs.sqlite
+  ];
   services.restic.backups.borgbase.paths = [
     "/etc/headscale/map.yaml"
-    "/etc/headscale/acl.yaml"
+    "/etc/headscale/acl.json"
     "/var/lib/headscale"
   ];
   environment.global-persistence = {

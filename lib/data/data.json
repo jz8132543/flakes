@@ -96,10 +96,6 @@
       "on": "dfw0",
       "proxy": false
     },
-    "hs": {
-      "on": "dfw0",
-      "proxy": false
-    },
     "ldap": {
       "on": "dfw0",
       "proxy": false
@@ -125,6 +121,10 @@
       "proxy": false
     },
     "sso": {
+      "on": "dfw0",
+      "proxy": false
+    },
+    "ts": {
       "on": "dfw0",
       "proxy": false
     },
