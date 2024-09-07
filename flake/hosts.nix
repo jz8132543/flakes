@@ -96,6 +96,10 @@ in {
       system = "x86_64-linux";
     })
     (mkHost {
+      name = "hkg2";
+      system = "x86_64-linux";
+    })
+    (mkHost {
       name = "fra1";
       system = "x86_64-linux";
     })

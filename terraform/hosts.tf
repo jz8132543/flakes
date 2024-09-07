@@ -62,6 +62,19 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    hkg2 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "123.254.105.134"
+        }
+      }
+      ddns_records = {}
+      host_indices = [5]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     isk = {
       records = {}
       ddns_records = {
