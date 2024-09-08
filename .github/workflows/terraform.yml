@@ -39,7 +39,7 @@ jobs:
           key: ${{ runner.os }}-terraform-providers-${{ hashFiles('terraform/.terraform.lock.hcl') }}
       - name: Terraform init
         run: |
-          nix develop --command terraform-init
+          nix develop ./flakes --command terraform-init
       - name: Terraform plan
         id: plan
         run: |
