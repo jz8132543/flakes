@@ -4,7 +4,7 @@
   ...
 }: {
   imports = [
-    ./terraform
+    ./terraform.nix
   ];
   perSystem = {inputs', ...}: let
     pkgs = import <nixpkgs> {
