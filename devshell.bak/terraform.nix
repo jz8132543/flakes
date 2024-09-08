@@ -1,10 +1,9 @@
-{ pkgs, ... }:
-let
+{pkgs, ...}: let
   common = builtins.readFile ./common.sh;
 
   encryptTo = pkgs.writeShellApplication {
     name = "encrypt-to";
-    runtimeInputs = with pkgs; [ sops ];
+    runtimeInputs = with pkgs; [sops];
     text = ''
       ${common}
 
@@ -45,7 +44,7 @@ let
 
   terraformInit = pkgs.writeShellApplication {
     name = "terraform-init";
-    runtimeInputs = with pkgs; [ terraform ];
+    runtimeInputs = with pkgs; [terraform];
     text = ''
       terraform -chdir="$(realpath "$TERRAFORM_DIR")" init "$@"
     '';
@@ -180,8 +179,7 @@ let
       done
     '';
   };
-in
-{
+in {
   devshells.default = {
     env = [
       {
@@ -207,6 +205,10 @@ in
       {
         name = "SECRETS_EXTRACT_DIR";
         eval = "\${SECRETS_EXTRACT_DIR:-$(realpath \"$DOTFILES_DIR/secrets\")}";
+      }
+      {
+        name = "SOPS_AGE_KEY_FILE";
+        eval = "/var/lib/sops-nix/key";
       }
     ];
     commands = [

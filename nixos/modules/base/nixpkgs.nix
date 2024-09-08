@@ -2,6 +2,7 @@
   inputs,
   getSystem,
   config,
+  lib,
   ...
 }: let
   packages = [
@@ -46,6 +47,7 @@ in {
         "electron-24.8.6"
         "nix-2.16.2"
       ];
+      allowUnfreePackages = ["terraform"];
     };
     overlays = packages ++ [lateFixes] ++ lastePackages;
   };
