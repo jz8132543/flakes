@@ -26,14 +26,15 @@
     kooha
     pulseaudio
     wl-clipboard
-    gnome.gnome-boxes
-    gnome.devhelp
-    gnome.dconf-editor
-    gnome.gnome-sound-recorder
-    gnome.gnome-power-manager
+    gnome-power-manager
     gnome-tweaks
     polari
+    # TEST
     gnome.gnome-session
+    gnome-boxes
+    devhelp
+    dconf-editor
+    gnome-sound-recorder
     # gnomeExtensions.allow-locked-remote-desktop
   ];
   # services.gnome.gnome-remote-desktop.enable = true;

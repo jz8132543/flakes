@@ -19,7 +19,7 @@
       key = "age1uy5aqnm948p6zd2jy9enw5rppemgxcdfswgvf3qv7d2y05zfla5sqwzhhs";
       owned = true;
     };
-    hkg2 = {
+    hkg4 = {
       key = "age16rc6cs8fhplzwh938d3zxq8pke7pgxerzms0dgkdgq7he99c3ccs4emnhd";
       owned = true;
     };

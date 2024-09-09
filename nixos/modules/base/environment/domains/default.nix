@@ -2,7 +2,7 @@
 with lib; {
   options.environment.domains = lib.mkOption {
     type = types.listOf types.str;
-    default = ["ts.dora.im" "users.dora.im"];
+    default = ["mag"];
     description = ''
       tailscale search domains.
     '';

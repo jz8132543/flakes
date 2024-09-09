@@ -58,11 +58,11 @@ locals {
         }
       }
       ddns_records = {}
-      host_indices = [5]
+      host_indices = [6]
       endpoints_v4 = []
       endpoints_v6 = []
     }
-    hkg2 = {
+    hkg4 = {
       records = {
         a = {
           proxied = false
@@ -71,7 +71,7 @@ locals {
         }
       }
       ddns_records = {}
-      host_indices = [5]
+      host_indices = [7]
       endpoints_v4 = []
       endpoints_v6 = []
     }
@@ -89,7 +89,7 @@ locals {
           value   = "::1"
         }
       }
-      host_indices = [6]
+      host_indices = [8]
       endpoints_v4 = []
       endpoints_v6 = []
     }
@@ -102,7 +102,7 @@ locals {
           value   = "::1"
         }
       }
-      host_indices = [7]
+      host_indices = [9]
       endpoints_v4 = []
       endpoints_v6 = []
     }
