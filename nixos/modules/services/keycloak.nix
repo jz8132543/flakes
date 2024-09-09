@@ -45,7 +45,7 @@
       AmbientCapabilities = "CAP_NET_BIND_SERVICE";
       SupplementaryGroups = ["acme"];
       Restart = "always";
-      EnvironmentFile = config.sops.templates."lldap-env".path;
+      # EnvironmentFile = config.sops.templates."lldap-env".path;
       LoadCredential = [
         "jwt-secret:${config.sops.secrets."lldap/jwt_secret".path}"
       ];
@@ -58,7 +58,9 @@
     mode = "0444";
     content = ''
       # LLDAP_JWT_SECRET_FILE=/run/credentials/lldap.service/jwt-secret
-      LLDAP_SERVER_KEY_SEED=${config.sops.placeholder."lldap/LLDAP_SERVER_KEY_SEED"}
+      # LLDAP_SERVER_KEY_SEED=${config.sops.placeholder."lldap/LLDAP_SERVER_KEY_SEED"}
+      LLDAP_FORCE_UPDATE_PRIVATE_KEY=true
+      LLDAP_FORCE_LDAP_USER_PASS_RESET=true
     '';
   };
   sops.secrets = {
@@ -94,10 +96,10 @@
     serviceConfig.Restart = lib.mkForce "always";
   };
   services.restic.backups.borgbase.paths = [
-    "/var/lib/lldap/"
+    "/var/lib/private/lldap/"
   ];
   systemd.services."restic-backups-borgbase" = {
-    requires = ["lldap.service"];
+    # requires = ["lldap.service"];
     after = ["lldap.service"];
   };
 }

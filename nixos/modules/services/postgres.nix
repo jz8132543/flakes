@@ -43,7 +43,7 @@
     config.services.postgresqlBackup.location
   ];
   systemd.services."restic-backups-borgbase" = {
-    requires = ["postgresqlBackup.service"];
+    # requires = ["postgresqlBackup.service"];
     after = ["postgresqlBackup.service"];
   };
 }
