@@ -194,7 +194,8 @@ in
       }
       {
         name = "SECRETS_DIR";
-        eval = "\${SECRETS_DIR:-$(realpath \"$PRJ_ROOT/../infrastructure-secrets\")}";
+        # eval = "\${SECRETS_DIR:-$(realpath \"$PRJ_ROOT/../infrastructure-secrets\")}";
+        eval = "\${SECRETS_DIR:-$(realpath \"$PRJ_ROOT/secrets\")}";
       }
       {
         name = "TF_VAR_terraform_input_path";
