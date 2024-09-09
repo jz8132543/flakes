@@ -33,89 +33,153 @@
   "database": "postgres.dora.im",
   "hosts": {
     "15isk": {
-      "dn42_addresses_v4": ["172.23.224.105"],
-      "dn42_addresses_v6": ["fd72:db83:badd:9::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:9::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.105"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:9::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:9::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [9]
+      "host_indices": [
+        9
+      ]
     },
     "ams0": {
-      "dn42_addresses_v4": ["172.23.224.99"],
-      "dn42_addresses_v6": ["fd72:db83:badd:3::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:3::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.99"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:3::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:3::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [3]
+      "host_indices": [
+        3
+      ]
     },
     "dfw0": {
-      "dn42_addresses_v4": ["172.23.224.100"],
-      "dn42_addresses_v6": ["fd72:db83:badd:4::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:4::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.100"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:4::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:4::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [4]
+      "host_indices": [
+        4
+      ]
     },
     "dfw1": {
-      "dn42_addresses_v4": ["172.23.224.101"],
-      "dn42_addresses_v6": ["fd72:db83:badd:5::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:5::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.101"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:5::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:5::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [5]
+      "host_indices": [
+        5
+      ]
     },
     "fra1": {
-      "dn42_addresses_v4": ["172.23.224.102"],
-      "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:6::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.102"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:6::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:6::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [6]
+      "host_indices": [
+        6
+      ]
     },
     "hkg4": {
-      "dn42_addresses_v4": ["172.23.224.103"],
-      "dn42_addresses_v6": ["fd72:db83:badd:7::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:7::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.103"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:7::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:7::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [7]
+      "host_indices": [
+        7
+      ]
     },
     "isk": {
-      "dn42_addresses_v4": ["172.23.224.104"],
-      "dn42_addresses_v6": ["fd72:db83:badd:8::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:8::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.104"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:8::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:8::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [8]
+      "host_indices": [
+        8
+      ]
     },
     "surface": {
-      "dn42_addresses_v4": ["172.23.224.126"],
-      "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:1e::/64"],
+      "dn42_addresses_v4": [
+        "172.23.224.126"
+      ],
+      "dn42_addresses_v6": [
+        "fd72:db83:badd:1e::1"
+      ],
+      "dn42_v6_prefixes": [
+        "fd72:db83:badd:1e::/64"
+      ],
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [30]
+      "host_indices": [
+        30
+      ]
     }
   },
   "service_cname_mappings": {
     "alist": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "atuin": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "ldap": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "mail": {
@@ -127,11 +191,11 @@
       "proxy": false
     },
     "mta-sts": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "ntfy": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "searx": {
@@ -139,15 +203,15 @@
       "proxy": false
     },
     "sso": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "ts": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     },
     "vault": {
-      "on": "dfw0",
+      "on": "fra1",
       "proxy": false
     }
   }
