@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ ... }:
+{
   # security.protectKernelImage = true;
   # security.sudo = {
   #   enable = true;
@@ -11,5 +12,5 @@
   };
   # security.pki.certificateFiles = ["${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"];
   security.polkit.enable = true;
-  boot.blacklistedKernelModules = ["virtio_balloon"];
+  boot.blacklistedKernelModules = [ "virtio_balloon" ];
 }

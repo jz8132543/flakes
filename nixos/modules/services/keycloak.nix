@@ -1,12 +1,20 @@
-{PG ? "postgres.dora.im", ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{
   config,
   lib,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.acme nixosModules.services.restic];
+}:
+{
+  imports = [
+    nixosModules.services.acme
+    nixosModules.services.restic
+  ];
 
-  networking.firewall.allowedTCPPorts = [config.ports.ldap];
+  networking.firewall.allowedTCPPorts = [ config.ports.ldap ];
   services.keycloak = {
     enable = true;
     database = {
@@ -43,7 +51,7 @@
   systemd.services.lldap = {
     serviceConfig = {
       AmbientCapabilities = "CAP_NET_BIND_SERVICE";
-      SupplementaryGroups = ["acme"];
+      SupplementaryGroups = [ "acme" ];
       Restart = "always";
       # EnvironmentFile = config.sops.templates."lldap-env".path;
       LoadCredential = [
@@ -64,35 +72,40 @@
     '';
   };
   sops.secrets = {
-    "lldap/LLDAP_SERVER_KEY_SEED" = {};
-    "lldap/jwt_secret" = {mode = "0444";};
+    "lldap/LLDAP_SERVER_KEY_SEED" = { };
+    "lldap/jwt_secret" = {
+      mode = "0444";
+    };
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       keycloak = {
         rule = "Host(`sso.dora.im`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "keycloak";
       };
       lldap = {
         rule = "Host(`ldap.dora.im`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "lldap";
       };
     };
     services = {
       keycloak.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.keycloak}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.keycloak}"; } ];
       };
       lldap.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.lldap}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.lldap}"; } ];
       };
     };
   };
   systemd.services.keycloak = {
-    after = ["postgresql.service" "tailscaled.service"];
+    after = [
+      "postgresql.service"
+      "tailscaled.service"
+    ];
     serviceConfig.Restart = lib.mkForce "always";
   };
   services.restic.backups.borgbase.paths = [
@@ -100,6 +113,6 @@
   ];
   systemd.services."restic-backups-borgbase" = {
     # requires = ["lldap.service"];
-    after = ["lldap.service"];
+    after = [ "lldap.service" ];
   };
 }

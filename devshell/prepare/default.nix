@@ -1,4 +1,8 @@
-{ pkgs, flake-lib, ... }:
+{
+  pkgs,
+  flake-lib,
+  ...
+}:
 let
   common = builtins.readFile ../common.sh;
 

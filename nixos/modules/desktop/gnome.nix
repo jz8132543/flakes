@@ -3,8 +3,9 @@
   lib,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.acme];
+}:
+{
+  imports = [ nixosModules.services.acme ];
 
   # firewall fot GSConnect
   networking.firewall.allowedTCPPorts = lib.range 1714 1764;

@@ -1,4 +1,5 @@
-{nixosModules, ...}: {
+{ nixosModules, ... }:
+{
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all

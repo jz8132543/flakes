@@ -1,30 +1,38 @@
 {
   config,
-  lib,
   ...
-}: let
+}:
+let
   telegrafConfig = config.services.telegraf.extraConfig;
-in {
+in
+{
   services.telegraf = {
     enable = true;
     extraConfig = {
       inputs = {
-        cpu = {};
+        cpu = { };
         disk = {
-          ignore_fs = ["tmpfs" "devtmpfs" "devfs" "overlay" "aufs" "squashfs"];
+          ignore_fs = [
+            "tmpfs"
+            "devtmpfs"
+            "devfs"
+            "overlay"
+            "aufs"
+            "squashfs"
+          ];
         };
-        diskio = {};
-        mem = {};
-        net = {};
-        processes = {};
-        system = {};
-        systemd_units = {};
+        diskio = { };
+        mem = { };
+        net = { };
+        processes = { };
+        system = { };
+        systemd_units = { };
         dns_query = {
           servers = [
             "1.1.1.1"
             "1.0.0.1"
           ];
-          domains = ["dora.im"];
+          domains = [ "dora.im" ];
           record_type = "A";
           timeout = 5;
         };
@@ -43,10 +51,12 @@ in {
       http = {
         routers.telegraf = {
           rule = "Host(`${config.networking.fqdn}`) && Path(`${telegrafConfig.outputs.prometheus_client.path}`)";
-          entryPoints = ["https"];
+          entryPoints = [ "https" ];
           service = "telegraf";
         };
-        services.telegraf.loadBalancer.servers = [{url = "http://${telegrafConfig.outputs.prometheus_client.listen}";}];
+        services.telegraf.loadBalancer.servers = [
+          { url = "http://${telegrafConfig.outputs.prometheus_client.listen}"; }
+        ];
       };
     };
   };

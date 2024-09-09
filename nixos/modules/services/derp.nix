@@ -3,10 +3,11 @@
   pkgs,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.acme];
+}:
+{
+  imports = [ nixosModules.services.acme ];
   systemd.services.derper = {
-    path = [pkgs.iproute2];
+    path = [ pkgs.iproute2 ];
     serviceConfig = {
       Restart = "always";
       DynamicUser = true;
@@ -21,9 +22,9 @@
       ];
     };
     restartIfChanged = true;
-    after = ["network-online.target"];
-    wants = ["network-online.target"];
-    wantedBy = ["multi-user.target"];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
   };
 
   services.traefik.dynamicConfigOptions.http = {
@@ -37,7 +38,7 @@
     services = {
       derp.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.derp}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.derp}"; } ];
         # if !config.environment.isNAT
         # then [{url = "http://localhost:${toString config.ports.derp}";}]
         # else [{url = "https://localhost:${toString config.ports.derp}";}];
@@ -61,6 +62,6 @@
   #   after = ["derper.service"];
   #   requiredBy = ["derper.service"];
   # };
-  networking.firewall.allowedTCPPorts = [config.ports.derp];
-  networking.firewall.allowedUDPPorts = [config.ports.derp-stun];
+  networking.firewall.allowedTCPPorts = [ config.ports.derp ];
+  networking.firewall.allowedUDPPorts = [ config.ports.derp-stun ];
 }

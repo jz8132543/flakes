@@ -3,7 +3,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.networking.fw-proxy;
 
   mixedPort = cfg.ports.mixed;
@@ -12,7 +13,9 @@
   enableProxy = pkgs.writeShellApplication {
     name = "enable-proxy";
     text = ''
-      ${lib.concatMapStringsSep "\n" (env: ''export ${env.name}="${env.value}"'') (lib.attrsToList cfg.environment)}
+      ${lib.concatMapStringsSep "\n" (env: ''export ${env.name}="${env.value}"'') (
+        lib.attrsToList cfg.environment
+      )}
     '';
   };
   disableProxy = pkgs.writeShellApplication {
@@ -260,137 +263,142 @@
     ];
   };
 
-  profileOptions = {name, ...}: {
-    options = {
-      name = lib.mkOption {
-        type = with lib.types; str;
-        default = name;
-      };
-      urlFile = lib.mkOption {
-        type = with lib.types; path;
+  profileOptions =
+    { name, ... }:
+    {
+      options = {
+        name = lib.mkOption {
+          type = with lib.types; str;
+          default = name;
+        };
+        urlFile = lib.mkOption {
+          type = with lib.types; path;
+        };
       };
     };
-  };
 in
-  with lib; {
-    options.networking.fw-proxy = {
+with lib;
+{
+  options.networking.fw-proxy = {
+    enable = mkOption {
+      type = with types; bool;
+      default = false;
+    };
+    scripts = mkOption {
+      type = with types; package;
+      default = scripts;
+      readOnly = true;
+    };
+    tproxy = {
       enable = mkOption {
         type = with types; bool;
         default = false;
       };
-      scripts = mkOption {
-        type = with types; package;
-        default = scripts;
-        readOnly = true;
+      routingTable = mkOption {
+        type = with types; int;
+        default = 854;
       };
-      tproxy = {
-        enable = mkOption {
-          type = with types; bool;
-          default = false;
-        };
-        routingTable = mkOption {
-          type = with types; int;
-          default = 854;
-        };
-        fwmark = mkOption {
-          type = with types; int;
-          default = 854;
-        };
-        rulePriority = mkOption {
-          type = with types; int;
-          default = 26000;
-        };
-        # TODO wait for https://github.com/systemd/systemd/issues/31189
-        # currently can not contain '-'
-        nftTable = mkOption {
-          type = with types; str;
-          # tproxy is a keyword in nft
-          default = "fwtproxy";
-        };
-        nftSet = mkOption {
-          type = with types; str;
-          default = "cgroup:inet:${cfg.tproxy.nftTable}:cgroups";
-        };
-        # TODO wait for https://github.com/systemd/systemd/issues/31189
-        # currently can not contain '-'
-        bypassNftSet = mkOption {
-          type = with types; str;
-          default = "cgroup:inet:${cfg.tproxy.nftTable}:bypass";
-        };
-        maxCgroupLevel = mkOption {
-          type = with types; int;
-          default = 6;
-        };
-        extraFilterRules = mkOption {
-          type = with types; lines;
-          default = "";
-        };
+      fwmark = mkOption {
+        type = with types; int;
+        default = 854;
       };
-      configPreprocessing = mkOption {
+      rulePriority = mkOption {
+        type = with types; int;
+        default = 26000;
+      };
+      # TODO wait for https://github.com/systemd/systemd/issues/31189
+      # currently can not contain '-'
+      nftTable = mkOption {
+        type = with types; str;
+        # tproxy is a keyword in nft
+        default = "fwtproxy";
+      };
+      nftSet = mkOption {
+        type = with types; str;
+        default = "cgroup:inet:${cfg.tproxy.nftTable}:cgroups";
+      };
+      # TODO wait for https://github.com/systemd/systemd/issues/31189
+      # currently can not contain '-'
+      bypassNftSet = mkOption {
+        type = with types; str;
+        default = "cgroup:inet:${cfg.tproxy.nftTable}:bypass";
+      };
+      maxCgroupLevel = mkOption {
+        type = with types; int;
+        default = 6;
+      };
+      extraFilterRules = mkOption {
         type = with types; lines;
         default = "";
       };
-      downloadedConfigPreprocessing = mkOption {
-        type = with types; lines;
-        default = "";
+    };
+    configPreprocessing = mkOption {
+      type = with types; lines;
+      default = "";
+    };
+    downloadedConfigPreprocessing = mkOption {
+      type = with types; lines;
+      default = "";
+    };
+    mixinConfig = mkOption {
+      type = with types; attrs;
+    };
+    ports = {
+      mixed = mkOption {
+        type = with types; port;
       };
-      mixinConfig = mkOption {
-        type = with types; attrs;
+      tproxy = mkOption {
+        type = with types; port;
       };
-      ports = {
-        mixed = mkOption {
-          type = with types; port;
-        };
-        tproxy = mkOption {
-          type = with types; port;
-        };
-        controller = mkOption {
-          type = with types; port;
-        };
+      controller = mkOption {
+        type = with types; port;
       };
-      profiles = mkOption {
-        type = with types; attrsOf (submodule profileOptions);
-        default = {};
+    };
+    profiles = mkOption {
+      type = with types; attrsOf (submodule profileOptions);
+      default = { };
+    };
+    externalController = {
+      expose = mkOption {
+        type = with types; bool;
       };
-      externalController = {
-        expose = mkOption {
-          type = with types; bool;
-        };
-        virtualHost = mkOption {
-          type = with types; str;
-          default = "localhost";
-        };
-        location = mkOption {
-          type = with types; str;
-          default = "/";
-        };
-        secretFile = mkOption {
-          type = with types; path;
-        };
+      virtualHost = mkOption {
+        type = with types; str;
+        default = "localhost";
       };
-      noProxyPattern = mkOption {
-        type = with types; listOf str;
-        default = [
-          "localhost"
-          "127.0.0.0/8"
-          "::1"
-          "10.0.0.0/8"
-          "192.168.0.0/16"
-          "172.16.0.0/12"
-        ];
+      location = mkOption {
+        type = with types; str;
+        default = "/";
       };
-      noProxy = mkOption {
-        type = types.str;
-        default = lib.concatStringsSep "," cfg.noProxyPattern;
+      secretFile = mkOption {
+        type = with types; path;
       };
-      environment = mkOption {
-        type = with types; attrsOf str;
-        description = ''
-          Proxy environment.
-        '';
-        default = let
+    };
+    noProxyPattern = mkOption {
+      type = with types; listOf str;
+      default = [
+        "localhost"
+        "127.0.0.0/8"
+        "::1"
+        "10.0.0.0/8"
+        "192.168.0.0/16"
+        "172.16.0.0/12"
+      ];
+    };
+    noProxy = mkOption {
+      type = types.str;
+      default = lib.concatStringsSep "," cfg.noProxyPattern;
+    };
+    environment = mkOption {
+      type = with types; attrsOf str;
+      description = ''
+        Proxy environment.
+      '';
+      default =
+        let
           proxyUrl = "http://localhost:${toString mixedPort}";
-        in {
+        in
+        {
           HTTP_PROXY = proxyUrl;
           HTTPS_PROXY = proxyUrl;
           ALL_PROXY = proxyUrl;
@@ -400,15 +408,17 @@ in
           NO_PROXY = cfg.noProxy;
           no_proxy = cfg.noProxy;
         };
-      };
-      environmentContainter = mkOption {
-        type = with types; attrsOf str;
-        description = ''
-          Proxy environment for containers.
-        '';
-        default = let
+    };
+    environmentContainter = mkOption {
+      type = with types; attrsOf str;
+      description = ''
+        Proxy environment for containers.
+      '';
+      default =
+        let
           proxyUrl = "http://host.containers.internal:${toString mixedPort}";
-        in {
+        in
+        {
           HTTP_PROXY = proxyUrl;
           HTTPS_PROXY = proxyUrl;
           http_proxy = proxyUrl;
@@ -416,280 +426,298 @@ in
           NO_PROXY = cfg.noProxy;
           no_proxy = cfg.noProxy;
         };
-      };
-      stringEnvironment = mkOption {
-        type = with types; listOf str;
+    };
+    stringEnvironment = mkOption {
+      type = with types; listOf str;
+      description = ''
+        Proxy environment in strings.
+      '';
+      default = map (
+        key:
+        let
+          value = lib.getAttr key cfg.environment;
+        in
+        "${key}=${value}"
+      ) (lib.attrNames cfg.environment);
+    };
+    auto-update = {
+      enable = mkEnableOption "fw-proxy subscription auto-update";
+      service = mkOption {
+        type = with types; str;
         description = ''
-          Proxy environment in strings.
+          Service used in auto update.
         '';
-        default =
-          map
-          (
-            key: let
-              value = lib.getAttr key cfg.environment;
-            in "${key}=${value}"
-          )
-          (lib.attrNames cfg.environment);
-      };
-      auto-update = {
-        enable = mkEnableOption "fw-proxy subscription auto-update";
-        service = mkOption {
-          type = with types; str;
-          description = ''
-            Service used in auto update.
-          '';
-        };
       };
     };
+  };
 
-    config = mkIf (cfg.enable) (mkMerge [
-      {
-        networking.fw-proxy.mixinConfig = let
+  config = mkIf cfg.enable (mkMerge [
+    {
+      networking.fw-proxy.mixinConfig =
+        let
           commonOptions = {
             listen = "::";
             tcp_fast_open = true;
             udp_fragment = true;
             sniff = true;
           };
-        in {
+        in
+        {
           inbounds = [
-            (commonOptions
+            (
+              commonOptions
               // {
                 type = "mixed";
                 tag = "mixed-in";
                 listen_port = cfg.ports.mixed;
-              })
-            (commonOptions
+              }
+            )
+            (
+              commonOptions
               // {
                 type = "tproxy";
                 tag = "tproxy-in";
                 listen_port = cfg.ports.tproxy;
-              })
+              }
+            )
           ];
           experimental.clash_api.external_controller = "127.0.0.1:${toString cfg.ports.controller}";
         };
-        environment.global-persistence.directories = [
-          "/etc/sing-box"
-        ];
-      }
+      environment.global-persistence.directories = [
+        "/etc/sing-box"
+      ];
+    }
 
-      {
-        systemd.packages = with pkgs; [sing-box];
-        systemd.services.sing-box = {
-          serviceConfig = {
-            DynamicUser = true;
+    {
+      systemd.packages = with pkgs; [ sing-box ];
+      systemd.services.sing-box = {
+        serviceConfig = {
+          DynamicUser = true;
 
-            ExecStartPre = [
-              "+${pkgs.coreutils}/bin/chown sing-box:sing-box $CONFIGURATION_DIRECTORY"
-              "+${pkgs.coreutils}/bin/chmod 0700              $CONFIGURATION_DIRECTORY"
-            ];
-            ConfigurationDirectory = "sing-box";
-            ConfigurationDirectoryMode = "700";
+          ExecStartPre = [
+            "+${pkgs.coreutils}/bin/chown sing-box:sing-box $CONFIGURATION_DIRECTORY"
+            "+${pkgs.coreutils}/bin/chmod 0700              $CONFIGURATION_DIRECTORY"
+          ];
+          ConfigurationDirectory = "sing-box";
+          ConfigurationDirectoryMode = "700";
 
-            StateDirectory = "sing-box";
-            NFTSet = [cfg.tproxy.bypassNftSet];
-          };
-          after = ["nftables.service"];
-          requires = ["nftables.service"];
-          wantedBy = ["multi-user.target"];
+          StateDirectory = "sing-box";
+          NFTSet = [ cfg.tproxy.bypassNftSet ];
         };
+        after = [ "nftables.service" ];
+        requires = [ "nftables.service" ];
+        wantedBy = [ "multi-user.target" ];
+      };
 
-        environment.systemPackages = [
-          scripts
-        ];
-        security.sudo-rs.extraConfig = ''
-          Defaults env_keep += "HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY"
-          Defaults env_keep += "http_proxy https_proxy ftp_proxy all_proxy no_proxy"
-        '';
-      }
+      environment.systemPackages = [
+        scripts
+      ];
+      security.sudo-rs.extraConfig = ''
+        Defaults env_keep += "HTTP_PROXY HTTPS_PROXY FTP_PROXY ALL_PROXY NO_PROXY"
+        Defaults env_keep += "http_proxy https_proxy ftp_proxy all_proxy no_proxy"
+      '';
+    }
 
-      (mkIf (cfg.externalController.expose) {
-        services.nginx.enable = true;
-        services.nginx.virtualHosts.${cfg.externalController.virtualHost} = {
-          locations = {
-            "${cfg.externalController.location}" = {
-              proxyPass = "http://${cfg.mixinConfig.experimental.clash_api.external_controller}/";
-              proxyWebsockets = true;
+    (mkIf cfg.externalController.expose {
+      services.nginx.enable = true;
+      services.nginx.virtualHosts.${cfg.externalController.virtualHost} = {
+        locations = {
+          "${cfg.externalController.location}" = {
+            proxyPass = "http://${cfg.mixinConfig.experimental.clash_api.external_controller}/";
+            proxyWebsockets = true;
+          };
+        };
+      };
+    })
+
+    (mkIf cfg.tproxy.enable {
+      # networking.routerBasics.enable = true;
+      systemd.network.config.routeTables = {
+        fw-tproxy = cfg.tproxy.routingTable;
+      };
+      systemd.network.networks."80-fw-tproxy" = {
+        matchConfig = {
+          Name = "lo";
+        };
+        routes = [
+          {
+            routeConfig = {
+              Destination = "0.0.0.0/0";
+              Type = "local";
+              Table = cfg.tproxy.routingTable;
             };
-          };
-        };
-      })
-
-      (mkIf (cfg.tproxy.enable) {
-        # networking.routerBasics.enable = true;
-        systemd.network.config.routeTables = {
-          fw-tproxy = cfg.tproxy.routingTable;
-        };
-        systemd.network.networks."80-fw-tproxy" = {
-          matchConfig = {
-            Name = "lo";
-          };
-          routes = [
-            {
-              routeConfig = {
-                Destination = "0.0.0.0/0";
-                Type = "local";
-                Table = cfg.tproxy.routingTable;
-              };
+          }
+          {
+            routeConfig = {
+              Destination = "::/0";
+              Type = "local";
+              Table = cfg.tproxy.routingTable;
+            };
+          }
+        ];
+        routingPolicyRules = [
+          {
+            routingPolicyRuleConfig = {
+              Family = "both";
+              FirewallMark = cfg.tproxy.fwmark;
+              Priority = config.routingPolicyPriorities.fw-proxy;
+              Table = cfg.tproxy.routingTable;
+            };
+          }
+        ];
+      };
+      networking.nftables.tables."${cfg.tproxy.nftTable}" = {
+        family = "inet";
+        content = ''
+          set reserved-ip {
+            typeof ip daddr
+            flags interval
+            elements = {
+              10.0.0.0/8,        # private
+              100.64.0.0/10,     # private
+              127.0.0.0/8,       # loopback
+              169.254.0.0/16,    # link-local
+              172.16.0.0/12,     # private
+              192.0.0.0/24,      # private
+              192.168.0.0/16,    # private
+              198.18.0.0/15,     # private
+              224.0.0.0/4,       # multicast
+              255.255.255.255/32 # limited broadcast
             }
-            {
-              routeConfig = {
-                Destination = "::/0";
-                Type = "local";
-                Table = cfg.tproxy.routingTable;
-              };
+          }
+
+          set reserved-ip6 {
+            typeof ip6 daddr
+            flags interval
+            elements = {
+              ::1/128,  # loopback
+              fc00::/7, # private
+              fe80::/10 # link-local
             }
-          ];
-          routingPolicyRules = [
-            {
-              routingPolicyRuleConfig = {
-                Family = "both";
-                FirewallMark = cfg.tproxy.fwmark;
-                Priority = config.routingPolicyPriorities.fw-proxy;
-                Table = cfg.tproxy.routingTable;
-              };
-            }
-          ];
-        };
-        networking.nftables.tables."${cfg.tproxy.nftTable}" = {
-          family = "inet";
-          content = ''
-            set reserved-ip {
-              typeof ip daddr
-              flags interval
-              elements = {
-                10.0.0.0/8,        # private
-                100.64.0.0/10,     # private
-                127.0.0.0/8,       # loopback
-                169.254.0.0/16,    # link-local
-                172.16.0.0/12,     # private
-                192.0.0.0/24,      # private
-                192.168.0.0/16,    # private
-                198.18.0.0/15,     # private
-                224.0.0.0/4,       # multicast
-                255.255.255.255/32 # limited broadcast
-              }
-            }
+          }
 
-            set reserved-ip6 {
-              typeof ip6 daddr
-              flags interval
-              elements = {
-                ::1/128,  # loopback
-                fc00::/7, # private
-                fe80::/10 # link-local
-              }
-            }
+          set proxied-interfaces {
+            typeof iif
+            counter
+          }
 
-            set proxied-interfaces {
-              typeof iif
-              counter
-            }
+          set cgroups {
+            type cgroupsv2
+            counter
+          }
 
-            set cgroups {
-              type cgroupsv2
-              counter
-            }
+          set bypass {
+            type cgroupsv2
+            counter
+          }
 
-            set bypass {
-              type cgroupsv2
-              counter
-            }
+          chain prerouting {
+            type filter hook prerouting priority mangle; policy accept;
 
-            chain prerouting {
-              type filter hook prerouting priority mangle; policy accept;
-
-              mark ${toString cfg.tproxy.fwmark} \
-                meta l4proto {tcp, udp} \
-                tproxy to :${toString tproxyPort} \
-                counter \
-                accept \
-                comment "tproxy and accept marked packets (marked by the output chain)"
-
-              jump filter
-
+            mark ${toString cfg.tproxy.fwmark} \
               meta l4proto {tcp, udp} \
-                iif @proxied-interfaces \
-                tproxy to :${toString tproxyPort} \
-                mark set ${toString cfg.tproxy.fwmark} \
-                counter
+              tproxy to :${toString tproxyPort} \
+              counter \
+              accept \
+              comment "tproxy and accept marked packets (marked by the output chain)"
+
+            jump filter
+
+            meta l4proto {tcp, udp} \
+              iif @proxied-interfaces \
+              tproxy to :${toString tproxyPort} \
+              mark set ${toString cfg.tproxy.fwmark} \
+              counter
+          }
+
+          chain output {
+            type route hook output priority mangle; policy accept;
+
+            comment "marked packets will be routed to lo"
+
+            socket cgroupv2 level 2 @bypass counter return comment "bypass packets of proxy service"
+
+            jump filter
+
+            ${
+              lib.concatMapStringsSep "\n" (
+                level:
+                "meta l4proto { tcp, udp } socket cgroupv2 level ${toString level} @cgroups meta mark set ${toString cfg.tproxy.fwmark}"
+              ) (lib.range 1 cfg.tproxy.maxCgroupLevel)
             }
+          }
 
-            chain output {
-              type route hook output priority mangle; policy accept;
+          chain filter {
+            fib daddr type local accept
+            ip  daddr @reserved-ip  accept
+            ip6 daddr @reserved-ip6 accept
 
-              comment "marked packets will be routed to lo"
-
-              socket cgroupv2 level 2 @bypass counter return comment "bypass packets of proxy service"
-
-              jump filter
-
-              ${lib.concatMapStringsSep "\n" (level: "meta l4proto { tcp, udp } socket cgroupv2 level ${toString level} @cgroups meta mark set ${toString cfg.tproxy.fwmark}")
-              (lib.range 1 cfg.tproxy.maxCgroupLevel)}
-            }
-
-            chain filter {
-              fib daddr type local accept
-              ip  daddr @reserved-ip  accept
-              ip6 daddr @reserved-ip6 accept
-
-              ${cfg.tproxy.extraFilterRules}
-            }
-          '';
-        };
-        networking.nftables.preCheckRuleset = ''
-          # Error: Could not process rule: Operation not supported
-          sed 's/^.*socket cgroupv2.*$//g' -i ruleset.conf
+            ${cfg.tproxy.extraFilterRules}
+          }
         '';
-        networking.firewall.extraInputRules = ''
-          meta mark ${toString cfg.tproxy.fwmark} counter accept
+      };
+      networking.nftables.preCheckRuleset = ''
+        # Error: Could not process rule: Operation not supported
+        sed 's/^.*socket cgroupv2.*$//g' -i ruleset.conf
+      '';
+      networking.firewall.extraInputRules = ''
+        meta mark ${toString cfg.tproxy.fwmark} counter accept
+      '';
+
+      passthru.fw-proxy-tproxy-scripts = scripts;
+    })
+
+    (mkIf cfg.auto-update.enable {
+      systemd.services.sing-box-auto-update = {
+        script = ''
+          "${scripts}/bin/update-sing-box" "${cfg.auto-update.service}"
         '';
-
-        passthru.fw-proxy-tproxy-scripts = scripts;
-      })
-
-      (mkIf cfg.auto-update.enable {
-        systemd.services.sing-box-auto-update = {
-          script = ''
-            "${scripts}/bin/update-sing-box" "${cfg.auto-update.service}"
-          '';
-          serviceConfig = {
-            Type = "oneshot";
-            Restart = "on-failure";
-            RestartSec = 30;
-          };
-          after = ["network-online.target" "sing-box.service"];
-          requires = ["network-online.target"];
+        serviceConfig = {
+          Type = "oneshot";
+          Restart = "on-failure";
+          RestartSec = 30;
         };
-        systemd.timers.sing-box-auto-update = {
-          timerConfig = {
-            OnCalendar = "03:30";
-          };
-          wantedBy = ["timers.target"];
+        after = [
+          "network-online.target"
+          "sing-box.service"
+        ];
+        requires = [ "network-online.target" ];
+      };
+      systemd.timers.sing-box-auto-update = {
+        timerConfig = {
+          OnCalendar = "03:30";
         };
-      })
+        wantedBy = [ "timers.target" ];
+      };
+    })
 
-      (mkIf (config.virtualisation.podman.enable)
-        (let
-          podmanInterface = config.virtualisation.podman.defaultNetwork.settings.network_interface;
-        in {
-          networking.firewall.interfaces.${podmanInterface}.allowedTCPPorts = lib.lists.map (i: i.listen_port) cfg.mixinConfig.inbounds;
-        }))
+    (mkIf config.virtualisation.podman.enable (
+      let
+        podmanInterface = config.virtualisation.podman.defaultNetwork.settings.network_interface;
+      in
+      {
+        networking.firewall.interfaces.${podmanInterface}.allowedTCPPorts = lib.lists.map (
+          i: i.listen_port
+        ) cfg.mixinConfig.inbounds;
+      }
+    ))
 
-      (mkIf (config.virtualisation.libvirtd.enable)
-        (let
-          libvirtdInterfaces = config.virtualisation.libvirtd.allowedBridges;
-          mkIfCfg = name: {
-            ${name}.allowedTCPPorts = lib.lists.map (i: i.listen_port) cfg.mixinConfig.inbounds;
-          };
-          ifCfgs = lib.mkMerge (lib.lists.map mkIfCfg libvirtdInterfaces);
-        in {
-          networking.firewall.interfaces = ifCfgs;
-        }))
-      # {
-      #   systemd.services.nix-daemon.environment =
-      #     lib.mkIf (config.networking.fw-proxy.enable)
-      #     config.networking.fw-proxy.environment;
-      # }
-    ]);
-  }
+    (mkIf config.virtualisation.libvirtd.enable (
+      let
+        libvirtdInterfaces = config.virtualisation.libvirtd.allowedBridges;
+        mkIfCfg = name: {
+          ${name}.allowedTCPPorts = lib.lists.map (i: i.listen_port) cfg.mixinConfig.inbounds;
+        };
+        ifCfgs = lib.mkMerge (lib.lists.map mkIfCfg libvirtdInterfaces);
+      in
+      {
+        networking.firewall.interfaces = ifCfgs;
+      }
+    ))
+    # {
+    #   systemd.services.nix-daemon.environment =
+    #     lib.mkIf (config.networking.fw-proxy.enable)
+    #     config.networking.fw-proxy.environment;
+    # }
+  ]);
+}

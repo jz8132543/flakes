@@ -2,8 +2,9 @@
   config,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.restic];
+}:
+{
+  imports = [ nixosModules.services.restic ];
 
   services.ntfy-sh = {
     enable = true;
@@ -21,7 +22,7 @@
     };
   };
 
-  systemd.services.ntfy-sh.serviceConfig.RuntimeDirectory = ["ntfy-sh"];
+  systemd.services.ntfy-sh.serviceConfig.RuntimeDirectory = [ "ntfy-sh" ];
   services.restic.backups.borgbase.paths = [
     config.services.ntfy-sh.settings.auth-file
   ];
@@ -30,14 +31,14 @@
     routers = {
       nfty = {
         rule = "Host(`ntfy.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "nfty";
       };
     };
     services = {
       nfty.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.ntfy}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.ntfy}"; } ];
       };
     };
   };

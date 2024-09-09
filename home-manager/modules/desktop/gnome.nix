@@ -3,7 +3,8 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   extensionPkgs = with pkgs.gnomeExtensions; [
     gsconnect
     appindicator
@@ -18,19 +19,26 @@
     # fcitx5
     # kimpanel
   ];
-  toTitle = str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
+  toTitle =
+    str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
   orchis-theme = pkgs.orchis-theme.override {
-    tweaks = [config.home.catppuccin.tweak];
+    tweaks = [ config.home.catppuccin.tweak ];
     # withWallpapers = true;
   };
-  catppuccin-kvantum =
-    pkgs.catppuccin-kvantum.override
-    {
-      accent = toTitle config.home.catppuccin.accent;
-      variant = toTitle config.home.catppuccin.variant;
-    };
-  inherit (lib.hm.gvariant) mkArray mkTuple mkString mkUint32 mkDouble type;
-in {
+  catppuccin-kvantum = pkgs.catppuccin-kvantum.override {
+    accent = toTitle config.home.catppuccin.accent;
+    variant = toTitle config.home.catppuccin.variant;
+  };
+  inherit (lib.hm.gvariant)
+    mkArray
+    mkTuple
+    mkString
+    mkUint32
+    mkDouble
+    type
+    ;
+in
+{
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
@@ -55,8 +63,8 @@ in {
         sleep-inactive-ac-type = "nothing";
       };
       "org/gnome/desktop/wm/keybindings" = {
-        switch-to-workspace-right = ["<Control><Super>Right"];
-        switch-to-workspace-left = ["<Control><Super>Left"];
+        switch-to-workspace-right = [ "<Control><Super>Right" ];
+        switch-to-workspace-left = [ "<Control><Super>Left" ];
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
         binding = mkString "NEXT";
@@ -67,7 +75,7 @@ in {
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
-        disabled-extensions = [];
+        disabled-extensions = [ ];
         last-selected-power-profile = "performance";
         favorite-apps = lib.mkBefore [
           "org.gnome.Console.desktop"
@@ -86,7 +94,7 @@ in {
         edge-tiling = true;
         dynamic-workspaces = true;
         center-new-windows = true;
-        experimental-features = ["scale-monitor-framebuffer"];
+        experimental-features = [ "scale-monitor-framebuffer" ];
       };
       "org/gnome/desktop/interface" = {
         scaling-factor = mkDouble 1.5;
@@ -104,10 +112,19 @@ in {
         numlock-state = true;
       };
       "org/gnome/desktop/input-sources" = {
-        sources = mkArray (type.tupleOf [type.string type.string]) [
-          (mkTuple [(mkString "ibus") (mkString "rime")])
-          # (mkTuple [(mkString "xkb") (mkString "us")])
-        ];
+        sources =
+          mkArray
+            (type.tupleOf [
+              type.string
+              type.string
+            ])
+            [
+              (mkTuple [
+                (mkString "ibus")
+                (mkString "rime")
+              ])
+              # (mkTuple [(mkString "xkb") (mkString "us")])
+            ];
       };
       "org/gnome/shell/extensions/customize-ibus" = {
         use-custom-font = true;
@@ -178,7 +195,12 @@ in {
         picture-options = "zoom";
       };
       "com/raggesilver/BlackBox" = {
-        terminal-padding = mkTuple [(mkUint32 5) (mkUint32 5) (mkUint32 5) (mkUint32 5)];
+        terminal-padding = mkTuple [
+          (mkUint32 5)
+          (mkUint32 5)
+          (mkUint32 5)
+          (mkUint32 5)
+        ];
         font = "monospace ${toString (10 * config.wayland.dpi / 96)}";
         theme-light = "Tomorrow";
         theme-dark = "Tomorrow Night";
@@ -187,7 +209,7 @@ in {
     }
   ];
 
-  home.activation.allowGdmReadFace = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.allowGdmReadFace = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
   '';
 
@@ -233,7 +255,7 @@ in {
     WLR_NO_HARDWARE_CURSORS = "1";
   };
   xdg.configFile = {
-    "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini {}).generate "kvantum.kvconfig" {
+    "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini { }).generate "kvantum.kvconfig" {
       General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
     };
     "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}/share/Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
@@ -260,20 +282,26 @@ in {
   systemd.user.services.gsconnect-dconf = {
     Unit = {
       Description = "gsconnect-dconf";
-      Wants = ["graphical-session.target"];
-      After = ["graphical-session.target"];
+      Wants = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
     };
-    Install = {WantedBy = ["graphical-session.target"];};
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
     Service = {
       Type = "simple";
-      ExecStart = toString (pkgs.writeScript "gsconnect-dconf-start" ''
-        #! ${pkgs.runtimeShell} -el
-        ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf || true
-      '');
-      ExecStop = toString (pkgs.writeScript "gsconnect-dconf-stop" ''
-        #! ${pkgs.runtimeShell} -el
-        ${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
-      '');
+      ExecStart = toString (
+        pkgs.writeScript "gsconnect-dconf-start" ''
+          #! ${pkgs.runtimeShell} -el
+          ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf || true
+        ''
+      );
+      ExecStop = toString (
+        pkgs.writeScript "gsconnect-dconf-stop" ''
+          #! ${pkgs.runtimeShell} -el
+          ${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
+        ''
+      );
       Restart = "on-failure";
       RestartSec = 1;
       TimeoutStopSec = 10;

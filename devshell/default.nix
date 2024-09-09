@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   imports = [
     ./terraform.nix
     ./boot-sd.nix
@@ -7,7 +8,7 @@
   ];
   nixpkgs.config = {
     allowUnfree = true;
-    allowUnfreePackages = ["terraform"];
+    allowUnfreePackages = [ "terraform" ];
   };
   devshells.default = {
     commands = [
@@ -35,6 +36,18 @@
         package = pkgs.ssh-to-age;
         category = "secrets";
       }
+    ];
+    packages = with pkgs; [
+      nil
+      alejandra
+      vscode-langservers-extracted
+      terraform-ls
+      tflint
+      efm-langserver
+      shellcheck
+      shfmt
+      taplo
+      nvfetcher
     ];
   };
 }

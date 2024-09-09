@@ -1,4 +1,5 @@
-{inputs, ...}: {
+{ ... }:
+{
   environment.global-persistence = {
     enable = true;
     root = "/persist";

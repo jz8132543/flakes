@@ -3,16 +3,33 @@
   lib,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     inputs.grub2-themes.nixosModules.default
   ];
   boot = {
     initrd = {
-      availableKernelModules = ["xhci_pci" "nvme" "usb_storage" "sd_mod"];
+      availableKernelModules = [
+        "xhci_pci"
+        "nvme"
+        "usb_storage"
+        "sd_mod"
+      ];
     };
-    kernelModules = ["kvm-intel" "vfio" "vfio_iommu_type1" "vfio_pci" "vfio_virqfd"];
-    kernelParams = ["intel_iommu=on" "iommu=pt" "mitigations=off" "nowatchdog"];
+    kernelModules = [
+      "kvm-intel"
+      "vfio"
+      "vfio_iommu_type1"
+      "vfio_pci"
+      "vfio_virqfd"
+    ];
+    kernelParams = [
+      "intel_iommu=on"
+      "iommu=pt"
+      "mitigations=off"
+      "nowatchdog"
+    ];
     extraModprobeConfig = ''
       options i915 enable_guc=2
       options i915 enable_fbc=1
@@ -47,7 +64,7 @@
       };
     };
   };
-  services.xserver.videoDrivers = ["nvidia"];
+  services.xserver.videoDrivers = [ "nvidia" ];
   systemd.services.nvidia-control-devices = {
     wantedBy = [
       "multi-user.target"

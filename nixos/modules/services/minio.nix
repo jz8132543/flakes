@@ -2,7 +2,8 @@
   config,
   pkgs,
   ...
-}: {
+}:
+{
   services.minio = {
     enable = true;
     listenAddress = "127.0.0.1:${toString config.ports.minio}";
@@ -12,10 +13,10 @@
     # configDir = "/mnt/minio/config";
   };
   sops.secrets."minio/user" = {
-    restartUnits = ["minio.service"];
+    restartUnits = [ "minio.service" ];
   };
   sops.secrets."minio/password" = {
-    restartUnits = ["minio.service"];
+    restartUnits = [ "minio.service" ];
   };
   sops.templates."minio-root-credentials".content = ''
     MINIO_ROOT_USER=${config.sops.placeholder."minio/user"}
@@ -25,25 +26,28 @@
     routers = {
       minio = {
         rule = "Host(`minio.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "minio";
       };
       minio-console = {
         rule = "Host(`minio-console.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "minio-console";
       };
     };
     services = {
       minio.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.minio}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.minio}"; } ];
       };
       minio-console.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.minio-console}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.minio-console}"; } ];
       };
     };
   };
-  environment.systemPackages = [config.services.minio.package pkgs.minio-client];
+  environment.systemPackages = [
+    config.services.minio.package
+    pkgs.minio-client
+  ];
 }

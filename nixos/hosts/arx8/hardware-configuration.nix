@@ -3,9 +3,11 @@
   lib,
   inputs,
   ...
-}: let
+}:
+let
   MONITOR = "eDP-1";
-in {
+in
+{
   imports = [
     ./edid
     ./monitors.nix
@@ -19,10 +21,16 @@ in {
   ];
   boot = {
     initrd = {
-      availableKernelModules = ["nvme" "xhci_pci" "usbhid" "usb_storage" "sd_mod"];
+      availableKernelModules = [
+        "nvme"
+        "xhci_pci"
+        "usbhid"
+        "usb_storage"
+        "sd_mod"
+      ];
     };
-    extraModulePackages = [config.boot.kernelPackages.lenovo-legion-module];
-    kernelModules = ["kvm-amd"];
+    extraModulePackages = [ config.boot.kernelPackages.lenovo-legion-module ];
+    kernelModules = [ "kvm-amd" ];
     kernelParams = [
       # "fbdev=1"
       "acpi=copy_dsdt"

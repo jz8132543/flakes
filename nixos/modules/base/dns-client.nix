@@ -2,40 +2,41 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.services.dnscrypt-proxy2;
-in {
+in
+{
   networking =
-    if cfg.enable
-    then {
-      # nameservers = ["127.0.0.2" "127.0.0.55"];
-      nameservers = ["127.0.0.55"];
-      # resolvconf.enable = lib.mkForce false;
-      dhcpcd.extraConfig = "nohook resolv.conf";
-      networkmanager.dns = lib.mkForce "none";
-      # resolvconf.useLocalResolver = true;
-    }
-    else {};
+    if cfg.enable then
+      {
+        # nameservers = ["127.0.0.2" "127.0.0.55"];
+        nameservers = [ "127.0.0.55" ];
+        # resolvconf.enable = lib.mkForce false;
+        dhcpcd.extraConfig = "nohook resolv.conf";
+        networkmanager.dns = lib.mkForce "none";
+        # resolvconf.useLocalResolver = true;
+      }
+    else
+      { };
   services = {
     resolved =
-      if cfg.enable
-      then {
-        enable = true;
-        dnssec = "allow-downgrade";
-        extraConfig = ''
-          MulticastDNS=true
-          DNSStubListener=no
-        '';
-        fallbackDns =
-          if config.services.tailscale.enable
-          then ["100.100.100.100"]
-          else [];
-      }
-      else {};
+      if cfg.enable then
+        {
+          enable = true;
+          dnssec = "allow-downgrade";
+          extraConfig = ''
+            MulticastDNS=true
+            DNSStubListener=no
+          '';
+          fallbackDns = if config.services.tailscale.enable then [ "100.100.100.100" ] else [ ];
+        }
+      else
+        { };
     dnscrypt-proxy2 = rec {
       enable = lib.mkDefault false;
       settings = {
-        listen_addresses = ["127.0.0.55:53"];
+        listen_addresses = [ "127.0.0.55:53" ];
         ipv4_servers = true;
         ipv6_servers = true;
         dnscrypt_servers = true;
@@ -44,11 +45,17 @@ in {
         odoh_servers = true;
         require_nolog = true;
         ignore_system_dns = true;
-        bootstrap_resolvers = ["1.1.1.1:53" "1.0.0.1:53" "9.9.9.9:53" "119.29.29.29:53" "223.5.5.5:53"];
+        bootstrap_resolvers = [
+          "1.1.1.1:53"
+          "1.0.0.1:53"
+          "9.9.9.9:53"
+          "119.29.29.29:53"
+          "223.5.5.5:53"
+        ];
         # fallback_resolvers = ["1.1.1.1:53" "1.0.0.1:53" "119.29.29.29:53" "223.5.5.5:53"];
         cache = true;
 
-        sources = {};
+        sources = { };
         # sources = {
         #   public-resolvers.urls = [];
         #   relays.urls = [];

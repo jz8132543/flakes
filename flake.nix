@@ -168,33 +168,32 @@
     };
   };
 
-  outputs = inputs @ {flake-parts, ...}:
-    flake-parts.lib.mkFlake {inherit inputs;}
-    (
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } (
       {
-        self,
         lib,
         ...
-      }: let
-        selfLib = import ./lib {inherit inputs lib;};
-      in {
+      }:
+      let
+        selfLib = import ./lib { inherit inputs lib; };
+      in
+      {
         debug = true;
         systems = [
           "x86_64-linux"
           "aarch64-linux"
         ];
         flake.lib = selfLib;
-        imports =
-          [
-            inputs.flake-parts.flakeModules.easyOverlay
-            inputs.devshell.flakeModule
-            inputs.treefmt-nix.flakeModule
-            inputs.pre-commit-hooks-nix.flakeModule
-            inputs.linyinfeng.flakeModules.nixpkgs
-            inputs.linyinfeng.flakeModules.passthru
-            inputs.linyinfeng.flakeModules.nixago
-          ]
-          ++ selfLib.buildModuleList ./flake;
+        imports = [
+          inputs.flake-parts.flakeModules.easyOverlay
+          inputs.devshell.flakeModule
+          inputs.treefmt-nix.flakeModule
+          inputs.pre-commit-hooks-nix.flakeModule
+          inputs.linyinfeng.flakeModules.nixpkgs
+          inputs.linyinfeng.flakeModules.passthru
+          inputs.linyinfeng.flakeModules.nixago
+        ] ++ selfLib.buildModuleList ./flake;
       }
     );
 }

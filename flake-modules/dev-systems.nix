@@ -3,16 +3,19 @@
   lib,
   flake-parts-lib,
   ...
-}: let
+}:
+let
   inherit (flake-parts-lib) mkPerSystemOption;
-in {
+in
+{
   options = {
     devSystems = lib.mkOption {
       type = with lib.types; listOf str;
       default = config.systems;
     };
     perSystem = mkPerSystemOption (
-      {system, ...}: {
+      { system, ... }:
+      {
         _file = ./dev-systems.nix;
         options.isDevSystem = lib.mkOption {
           type = lib.types.bool;

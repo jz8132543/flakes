@@ -2,8 +2,9 @@
   config,
   pkgs,
   ...
-}: let
-  settingsFormat = pkgs.formats.ini {};
+}:
+let
+  settingsFormat = pkgs.formats.ini { };
   seafdavSettings = {
     WEBDAV = {
       enabled = true;
@@ -12,13 +13,9 @@
       share_name = "/dav";
     };
   };
-  seafdavConf = settingsFormat.generate "seafdav.conf" seafdavSettings;
-  cfg = config.services.seafile;
-  seafRoot = "/var/lib/seafile"; # hardcode it due to dynamicuser
-  ccnetDir = "${seafRoot}/ccnet";
-  dataDir = "${seafRoot}/data";
-  seahubDir = "${seafRoot}/seahub";
-in {
+  seafdavConf = settingsFormat.generate "seafdav.conf" seafdavSettings; # hardcode it due to dynamicuser
+in
+{
   services.seafile = {
     enable = true;
     adminEmail = "i@dora.im";
@@ -78,9 +75,9 @@ in {
   };
   environment.etc."seafile/conf/seafdav.conf".source = seafdavConf;
   sops.secrets = {
-    "seafile/oidc-secret" = {};
-    "seafile/password" = {};
-    "seafile/mail" = {};
+    "seafile/oidc-secret" = { };
+    "seafile/password" = { };
+    "seafile/mail" = { };
   };
 
   services.nginx = {
@@ -99,14 +96,14 @@ in {
     routers = {
       seafile = {
         rule = "Host(`box.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "seafile";
       };
     };
     services = {
       seafile.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
       };
     };
   };

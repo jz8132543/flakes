@@ -2,16 +2,18 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.services.dovecot2;
   maildir = "/var/lib/mail";
-in {
+in
+{
   systemd.tmpfiles.rules = [
     "d ${maildir} 0700 ${cfg.mailUser} ${cfg.mailGroup} -"
   ];
   services.dovecot2 = {
     enable = true;
-    modules = [pkgs.dovecot_pigeonhole];
+    modules = [ pkgs.dovecot_pigeonhole ];
     mailUser = "dovemail";
     mailGroup = "dovemail";
     enableImap = true;
@@ -106,7 +108,7 @@ in {
       ssl_dh=<${config.security.dhparams.params.dovecot2.path}
     '';
   };
-  sops.secrets."mail/ldap" = {};
+  sops.secrets."mail/ldap" = { };
   sops.templates."dovecot-ldap" = {
     content = ''
       uris = ${config.lib.self.data.ldap}
@@ -126,6 +128,6 @@ in {
   };
   security.dhparams = {
     enable = true;
-    params.dovecot2 = {};
+    params.dovecot2 = { };
   };
 }

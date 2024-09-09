@@ -3,7 +3,8 @@
   config,
   ...
 }:
-with lib; {
+with lib;
+{
   options.environment = {
     isNAT = mkOption {
       type = types.bool;
@@ -63,20 +64,18 @@ with lib; {
     #   then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}
     #   else {};
     services.traefik.staticConfigOptions.entryPoints =
-      if config.environment.isNAT
-      then {
-        NAT = {
-          address = ":8443";
-          forwardedHeaders.insecure = true;
-          proxyProtocol.insecure = true;
-          http.tls =
-            if config.environment.isNAT
-            then true
-            else {certresolver = "zerossl";};
-          # http3 = {};
-          # asDefault = true;
-        };
-      }
-      else {};
+      if config.environment.isNAT then
+        {
+          NAT = {
+            address = ":8443";
+            forwardedHeaders.insecure = true;
+            proxyProtocol.insecure = true;
+            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+            # http3 = {};
+            # asDefault = true;
+          };
+        }
+      else
+        { };
   };
 }

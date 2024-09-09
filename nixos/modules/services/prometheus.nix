@@ -1,9 +1,9 @@
 {
   config,
-  pkgs,
   nixosModules,
   ...
-}: let
+}:
+let
   cfg = config.services.prometheus;
   targets = [
     "hydra.dora.im"
@@ -11,7 +11,8 @@
     "ams0.dora.im"
     "dfw0.dora.im"
   ];
-in {
+in
+{
   imports = [
     nixosModules.services.telegraf
   ];
@@ -29,13 +30,13 @@ in {
       {
         job_name = "metrics";
         scheme = "https";
-        static_configs = [{inherit targets;}];
+        static_configs = [ { inherit targets; } ];
       }
       {
         job_name = "traefik";
         scheme = "https";
         metrics_path = "/traefik";
-        static_configs = [{inherit targets;}];
+        static_configs = [ { inherit targets; } ];
       }
     ];
     rules = [
@@ -98,7 +99,7 @@ in {
       {
         static_configs = [
           {
-            targets = ["127.0.0.1:8009"];
+            targets = [ "127.0.0.1:8009" ];
           }
         ];
       }
@@ -111,7 +112,7 @@ in {
         routers = {
           prometheus = {
             rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/prom`)";
-            entryPoints = ["https"];
+            entryPoints = [ "https" ];
             service = "prometheus";
           };
         };

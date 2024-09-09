@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   # Git (Global)
   programs.git = {
     enable = true;

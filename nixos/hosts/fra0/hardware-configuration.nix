@@ -2,13 +2,19 @@
   lib,
   modulesPath,
   ...
-}: {
+}:
+{
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
 
-  boot.initrd.availableKernelModules = ["ata_piix" "virtio_pci" "virtio_scsi" "sr_mod"];
-  boot.kernelModules = ["kvm-amd"];
+  boot.initrd.availableKernelModules = [
+    "ata_piix"
+    "virtio_pci"
+    "virtio_scsi"
+    "sr_mod"
+  ];
+  boot.kernelModules = [ "kvm-amd" ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   utils.disk = "/dev/sda";
   swapDevices = [

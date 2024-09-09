@@ -3,11 +3,13 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   url = "searx.${config.networking.domain}";
   morty_url = "morty.${config.networking.domain}";
-in {
-  sops.secrets."searx/SEARX_SECRET_KEY" = {};
+in
+{
+  sops.secrets."searx/SEARX_SECRET_KEY" = { };
   sops.templates.searx-env.content = ''
     SEARX_SECRET_KEY=${config.sops.placeholder."searx/SEARX_SECRET_KEY"}
   '';
@@ -53,33 +55,38 @@ in {
       result_proxy = {
         url = "https://morty.${config.networking.domain}/";
       };
-      engines = lib.mapAttrsToList (name: value:
-        {
-          inherit name;
-        }
-        // value) {
-        "bitbucket".disabled = false;
-        "ccc-tv".disabled = false;
-        "ddg definitions".disabled = false;
-        "erowid".disabled = false;
-        "duckduckgo".disabled = false;
-        "duckduckgo images".disabled = false;
-        "fdroid".disabled = false;
-        "gitlab".disabled = false;
-        "google".disabled = false;
-        "google play apps".disabled = false;
-        "nyaa".disabled = false;
-        "openrepos".disabled = false;
-        "qwant".disabled = false;
-        "reddit".disabled = false;
-        "searchcode code".disabled = false;
-        "framalibre".disabled = false;
-        "wikibooks".disabled = false;
-        "wikinews".disabled = false;
-        "wikiquote".disabled = false;
-        "wikisource".disabled = false;
-        "wiktionary".disabled = false;
-      };
+      engines =
+        lib.mapAttrsToList
+          (
+            name: value:
+            {
+              inherit name;
+            }
+            // value
+          )
+          {
+            "bitbucket".disabled = false;
+            "ccc-tv".disabled = false;
+            "ddg definitions".disabled = false;
+            "erowid".disabled = false;
+            "duckduckgo".disabled = false;
+            "duckduckgo images".disabled = false;
+            "fdroid".disabled = false;
+            "gitlab".disabled = false;
+            "google".disabled = false;
+            "google play apps".disabled = false;
+            "nyaa".disabled = false;
+            "openrepos".disabled = false;
+            "qwant".disabled = false;
+            "reddit".disabled = false;
+            "searchcode code".disabled = false;
+            "framalibre".disabled = false;
+            "wikibooks".disabled = false;
+            "wikinews".disabled = false;
+            "wikiquote".disabled = false;
+            "wikisource".disabled = false;
+            "wiktionary".disabled = false;
+          };
     };
   };
   services.morty = {
@@ -92,23 +99,23 @@ in {
     routers = {
       searx = {
         rule = "Host(`${url}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "searx";
       };
       morty = {
         rule = "Host(`${morty_url}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "morty";
       };
     };
     services = {
       searx.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.searx}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.searx}"; } ];
       };
       morty.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.morty}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.morty}"; } ];
       };
     };
   };

@@ -3,30 +3,39 @@
   config,
   nixosModules,
   ...
-}: let
+}:
+let
   certDir = config.security.acme.certs."main".directory;
-in {
-  imports = [nixosModules.services.acme];
+in
+{
+  imports = [ nixosModules.services.acme ];
   sops.secrets = {
-    "traefik/cloudflare_token" = {};
-    "traefik/KID" = {};
-    "traefik/HMAC" = {};
+    "traefik/cloudflare_token" = { };
+    "traefik/KID" = { };
+    "traefik/HMAC" = { };
   };
-  networking.firewall.allowedTCPPorts = [8445];
-  networking.firewall.allowedUDPPorts = [8445];
+  networking.firewall.allowedTCPPorts = [ 8445 ];
+  networking.firewall.allowedUDPPorts = [ 8445 ];
   systemd.services.tuic = {
-    wantedBy = ["multi-user.target"];
-    after = ["network.target"];
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
     serviceConfig = {
       Restart = "always";
       User = "acme";
       ExecStart = "${pkgs.tuic}/bin/tuic-server -c ${config.sops.templates."tuic-config".path}";
-      AmbientCapabilities = ["CAP_NET_ADMIN" "CAP_NET_BIND_SERVICE"];
+      AmbientCapabilities = [
+        "CAP_NET_ADMIN"
+        "CAP_NET_BIND_SERVICE"
+      ];
     };
   };
   sops.secrets = {
-    "proxy/uuid" = {restartUnits = ["tuic.service"];};
-    "proxy/passwd" = {restartUnits = ["tuic.service"];};
+    "proxy/uuid" = {
+      restartUnits = [ "tuic.service" ];
+    };
+    "proxy/passwd" = {
+      restartUnits = [ "tuic.service" ];
+    };
   };
   sops.templates.tuic-config = {
     owner = "acme";
@@ -39,7 +48,10 @@ in {
       private_key = "${certDir}/key.pem";
       congestion_control = "new_reno";
       zero_rtt_handshake = true;
-      alpn = ["h3" "spdy/3.1"];
+      alpn = [
+        "h3"
+        "spdy/3.1"
+      ];
       log_level = "info";
     };
   };

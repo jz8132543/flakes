@@ -2,15 +2,16 @@
   pkgs,
   config,
   ...
-}: {
+}:
+{
   programs = {
     alacritty = {
       enable = true;
       settings = {
-        import = ["${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml"];
+        import = [ "${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml" ];
         shell = {
           program = "${pkgs.tmux}/bin/tmux";
-          args = ["a"];
+          args = [ "a" ];
         };
         font = {
           normal.family = "JetBrainsMono Nerd Font Mono";

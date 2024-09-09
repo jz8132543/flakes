@@ -2,9 +2,11 @@
   config,
   pkgs,
   ...
-}: let
+}:
+let
   gameHome = "/home/steam";
-in {
+in
+{
   imports = [
     ./dst
   ];
@@ -24,7 +26,7 @@ in {
   users.groups.steam = {
     gid = config.ids.gids.steam;
   };
-  environment.global-persistence.user.users = ["steam"];
+  environment.global-persistence.user.users = [ "steam" ];
   home-manager.users.steam = {
     home.global-persistence = {
       enable = true;
@@ -36,5 +38,5 @@ in {
       "Steam"
     ];
   };
-  nix.settings.allowed-users = ["steam"];
+  nix.settings.allowed-users = [ "steam" ];
 }

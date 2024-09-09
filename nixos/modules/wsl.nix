@@ -4,7 +4,8 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   CUDA_PATH = pkgs.cudaPackages.cudatoolkit.outPath;
   WSL_MAGIC = "/usr/lib/wsl/lib";
   CUDA_LDPATH = "${
@@ -16,9 +17,13 @@
       "${pkgs.cudaPackages.cudnn}/lib"
     ]
   }:${
-    lib.makeLibraryPath [pkgs.stdenv.cc.cc.lib pkgs.cudaPackages.cudatoolkit.lib]
+    lib.makeLibraryPath [
+      pkgs.stdenv.cc.cc.lib
+      pkgs.cudaPackages.cudatoolkit.lib
+    ]
   }";
-in {
+in
+{
   imports = [
     self.inputs.nixos-wsl.nixosModules.wsl
   ];
@@ -47,7 +52,7 @@ in {
     enableNvidia = true;
   };
 
-  services.xserver.videoDrivers = ["nvidia"];
+  services.xserver.videoDrivers = [ "nvidia" ];
   systemd.services.docker.serviceConfig.EnvironmentFile = "/etc/default/docker";
   systemd.services.docker.environment.CUDA_PATH = CUDA_PATH;
   systemd.services.docker.environment.LD_LIBRARY_PATH = CUDA_LDPATH;

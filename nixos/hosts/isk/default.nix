@@ -2,7 +2,8 @@
   nixosModules,
   lib,
   ...
-}: {
+}:
+{
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -13,7 +14,7 @@
       nixosModules.services.traefik
       nixosModules.services.postgres
       nixosModules.services.derp
-      (import nixosModules.services.matrix {PG = "127.0.0.1";})
+      (import nixosModules.services.matrix { PG = "127.0.0.1"; })
     ];
   services.qemuGuest.enable = true;
 

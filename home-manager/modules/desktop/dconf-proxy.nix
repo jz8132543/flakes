@@ -2,12 +2,14 @@
   lib,
   osConfig,
   ...
-}: let
+}:
+let
   proxy = {
     host = "localhost";
     port = osConfig.networking.fw-proxy.ports.mixed;
   };
-in {
+in
+{
   dconf.settings = lib.mkIf (osConfig.networking.fw-proxy.enable && osConfig.programs.dconf.enable) {
     "system/proxy" = {
       mode = "manual";

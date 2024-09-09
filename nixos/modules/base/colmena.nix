@@ -2,7 +2,8 @@
   config,
   lib,
   ...
-}: {
+}:
+{
   deployment = {
     allowLocalDeployment = true;
     targetHost = config.networking.hostName;

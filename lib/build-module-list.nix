@@ -1,7 +1,8 @@
 {
   self,
   lib,
-}: let
+}:
+let
   inherit (self) flattenTree rakeLeaves;
 in
-  dir: lib.attrValues (flattenTree (rakeLeaves dir))
+dir: lib.attrValues (flattenTree (rakeLeaves dir))

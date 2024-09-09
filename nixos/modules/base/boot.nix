@@ -1,4 +1,5 @@
-{lib, ...}: {
+{ lib, ... }:
+{
   hardware.enableRedistributableFirmware = lib.mkDefault true;
 
   boot = {

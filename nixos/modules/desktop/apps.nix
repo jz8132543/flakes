@@ -3,8 +3,9 @@
   pkgs,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.aria2];
+}:
+{
+  imports = [ nixosModules.services.aria2 ];
   programs = {
     # clash-verge = {
     #   enable = true;

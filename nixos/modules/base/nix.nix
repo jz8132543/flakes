@@ -2,7 +2,8 @@
   inputs,
   config,
   ...
-}: {
+}:
+{
   nix = {
     optimise.automatic = true;
     gc = {
@@ -11,9 +12,19 @@
       options = "--delete-older-than 7d";
     };
     settings = {
-      nix-path = ["nixpkgs=${inputs.nixpkgs}"];
-      experimental-features = ["nix-command" "flakes" "auto-allocate-uids" "cgroups"];
-      system-features = ["nixos-test" "benchmark" "big-parallel" "kvm"];
+      nix-path = [ "nixpkgs=${inputs.nixpkgs}" ];
+      experimental-features = [
+        "nix-command"
+        "flakes"
+        "auto-allocate-uids"
+        "cgroups"
+      ];
+      system-features = [
+        "nixos-test"
+        "benchmark"
+        "big-parallel"
+        "kvm"
+      ];
       auto-allocate-uids = true;
       use-cgroups = true;
       auto-optimise-store = true;

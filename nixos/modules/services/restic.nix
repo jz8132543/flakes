@@ -2,7 +2,8 @@
   config,
   lib,
   ...
-}: {
+}:
+{
   config = {
     services.restic.backups.borgbase = {
       initialize = true;
@@ -19,10 +20,10 @@
     };
 
     sops.secrets."restic/RESTIC_PASSWORD" = {
-      restartUnits = ["restic-backups-borgbase.service"];
+      restartUnits = [ "restic-backups-borgbase.service" ];
     };
     sops.secrets."restic/RESTIC_REPOSITORY" = {
-      restartUnits = ["restic-backups-borgbase.service"];
+      restartUnits = [ "restic-backups-borgbase.service" ];
     };
   };
 }

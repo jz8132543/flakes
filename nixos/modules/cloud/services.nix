@@ -2,7 +2,8 @@
   config,
   pkgs,
   ...
-}: {
+}:
+{
   services.btrfs.autoScrub = {
     enable = true;
     fileSystems = [
@@ -11,7 +12,7 @@
   };
   systemd.timers = {
     btrfsBalance = {
-      wantedBy = ["timers.target"];
+      wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "daily";
         AccuracySec = "1d";

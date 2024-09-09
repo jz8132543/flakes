@@ -1,13 +1,19 @@
-{PG ? "postgres.dora.im", ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{
   config,
   lib,
   ...
-}: let
+}:
+let
   hydraUser = config.users.users.hydra.name;
   hydraGroup = config.users.users.hydra.group;
   keyFile = "nix-build-machines/hydra-builder/key";
   machineFile = "nix-build-machines/hydra-builder/machines";
-in {
+in
+{
   config = lib.mkMerge [
     {
       services.hydra = {
@@ -17,7 +23,7 @@ in {
         hydraURL = "https://hydra.dora.im";
         notificationSender = "hydra@dora.im";
         useSubstitutes = true;
-        extraEnv = lib.mkIf (config.networking.fw-proxy.enable) config.networking.fw-proxy.environment;
+        extraEnv = lib.mkIf config.networking.fw-proxy.enable config.networking.fw-proxy.environment;
         dbi = "dbi:Pg:dbname=hydra;host=${PG};user=hydra;";
         buildMachinesFiles = [
           "/etc/nix/machines"
@@ -37,8 +43,8 @@ in {
         '';
       };
       users.users = {
-        hydra-queue-runner.extraGroups = [hydraGroup];
-        hydra-www.extraGroups = [hydraGroup];
+        hydra-queue-runner.extraGroups = [ hydraGroup ];
+        hydra-www.extraGroups = [ hydraGroup ];
       };
       sops.templates."hydra-extra-config" = {
         group = "hydra";
@@ -49,8 +55,11 @@ in {
           </github_authorization>
         '';
       };
-      nix.settings.secret-key-files = ["${config.sops.secrets."hydra/cache-dora-im".path}"];
-      nix.settings.allowed-uris = ["http://" "https://"];
+      nix.settings.secret-key-files = [ "${config.sops.secrets."hydra/cache-dora-im".path}" ];
+      nix.settings.allowed-uris = [
+        "http://"
+        "https://"
+      ];
       sops.secrets = {
         "hydra/cache-dora-im" = {
           owner = hydraUser;
@@ -94,8 +103,12 @@ in {
       services.hydra.extraConfig = ''
         email_notification = 1
       '';
-      systemd.services.hydra-init.after = ["tailscaled.service" "postgresql.service"];
-      systemd.services.hydra-notify.serviceConfig.EnvironmentFile = config.sops.templates."hydra-email".path;
+      systemd.services.hydra-init.after = [
+        "tailscaled.service"
+        "postgresql.service"
+      ];
+      systemd.services.hydra-notify.serviceConfig.EnvironmentFile =
+        config.sops.templates."hydra-email".path;
       sops.templates."hydra-email".content = ''
         EMAIL_SENDER_TRANSPORT=SMTP
         EMAIL_SENDER_TRANSPORT_sasl_username=hydra@dora.im
@@ -104,7 +117,7 @@ in {
         EMAIL_SENDER_TRANSPORT_port=${toString config.ports.smtp}
         EMAIL_SENDER_TRANSPORT_ssl=on
       '';
-      sops.secrets."hydra/mail" = {};
+      sops.secrets."hydra/mail" = { };
     }
 
     {
@@ -112,28 +125,31 @@ in {
         routers = {
           hydra = {
             rule = "Host(`hydra.dora.im`)";
-            entryPoints = ["https"];
+            entryPoints = [ "https" ];
             service = "hydra";
           };
           harmonia = {
             rule = "Host(`cache.dora.im`)";
-            entryPoints = ["https"];
+            entryPoints = [ "https" ];
             service = "harmonia";
           };
         };
         services = {
           hydra.loadBalancer = {
             passHostHeader = true;
-            servers = [{url = "http://localhost:${toString config.ports.hydra}";}];
+            servers = [ { url = "http://localhost:${toString config.ports.hydra}"; } ];
           };
           harmonia.loadBalancer = {
             passHostHeader = true;
-            servers = [{url = "http://${config.services.harmonia.settings.bind}";}];
+            servers = [ { url = "http://${config.services.harmonia.settings.bind}"; } ];
           };
         };
       };
       systemd.services."hydra-init" = {
-        after = ["postgresql.service" "tailscaled.service"];
+        after = [
+          "postgresql.service"
+          "tailscaled.service"
+        ];
         serviceConfig.Restart = lib.mkForce "on-failure";
         serviceConfig.Type = lib.mkForce "simple";
       };
@@ -146,7 +162,15 @@ in {
           CanonicalizeHostname yes
           LogLevel ERROR
           StrictHostKeyChecking no
-          Match canonical final Host ${concatMapStringsSep "," (x: concatStrings ["*." x]) osConfig.environment.domains}
+          Match canonical final Host ${
+            concatMapStringsSep "," (
+              x:
+              concatStrings [
+                "*."
+                x
+              ]
+            ) osConfig.environment.domains
+          }
             Port 1022
             HashKnownHosts no
             UserKnownHostsFile /dev/null

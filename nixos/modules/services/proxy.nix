@@ -1,9 +1,19 @@
-{pkgs, ...}: {
-  networking.firewall.allowedTCPPorts = [8443 8444];
-  networking.firewall.allowedUDPPorts = [8443 8444];
+{ pkgs, ... }:
+{
+  networking.firewall.allowedTCPPorts = [
+    8443
+    8444
+  ];
+  networking.firewall.allowedUDPPorts = [
+    8443
+    8444
+  ];
   systemd.services.xray = {
-    wantedBy = ["multi-user.target"];
-    after = ["network.target" "traefik.service"];
+    wantedBy = [ "multi-user.target" ];
+    after = [
+      "network.target"
+      "traefik.service"
+    ];
     serviceConfig = {
       DynamicUser = true;
       Restart = "always";

@@ -1,4 +1,5 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   # https://github.com/finaldie/final_dev_env/blob/master/tmux
   remote_hostname = pkgs.writeText "hostname.sh" ''
     #!/usr/bin/env bash
@@ -14,7 +15,8 @@
     ping -c 1 $target_host | tail -1 | cut -d "/" -f5
     # (ping -c 1 #(ps -af | grep "`tmux display -p \"#{pane_tty}\" | cut -d \"/\" -f3,4` " | grep -v grep | grep -oP "ssh [a-zA-Z0-9.@\-]+" | cut -d " " -f2 | grep -oP "(?=@*)[\w\d.\-]*" | tail -1) | tail -1 | cut -d "/" -f5)
   '';
-in {
+in
+{
   programs.tmux = {
     enable = true;
     baseIndex = 1;

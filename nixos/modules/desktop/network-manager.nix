@@ -1,5 +1,9 @@
-{pkgs, ...}: {
-  environment.systemPackages = with pkgs; [iw iwd];
+{ pkgs, ... }:
+{
+  environment.systemPackages = with pkgs; [
+    iw
+    iwd
+  ];
 
   networking.networkmanager = {
     enable = true;

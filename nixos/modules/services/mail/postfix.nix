@@ -3,14 +3,23 @@
   lib,
   nixosModules,
   ...
-}: let
-  mkKeyVal = opt: val: ["-o" (opt + "=" + val)];
+}:
+let
+  mkKeyVal = opt: val: [
+    "-o"
+    (opt + "=" + val)
+  ];
   mkOpts = opts: lib.concatLists (lib.mapAttrsToList mkKeyVal opts);
-in {
-  imports = [nixosModules.services.acme];
-  networking.firewall.allowedTCPPorts = [25 465 993];
+in
+{
+  imports = [ nixosModules.services.acme ];
+  networking.firewall.allowedTCPPorts = [
+    25
+    465
+    993
+  ];
   sops.secrets = {
-    "mail/ldap" = {};
+    "mail/ldap" = { };
     dkim = {
       owner = "rspamd";
       path = "/var/lib/rspamd/dkim.key";
@@ -53,22 +62,25 @@ in {
       smtpd_tls_mandatory_ciphers = "medium";
       tls_medium_cipherlist = "AES128+EECDH:AES128+EDH";
 
-      smtpd_relay_restrictions = ["permit_sasl_authenticated" "defer_unauth_destination"];
+      smtpd_relay_restrictions = [
+        "permit_sasl_authenticated"
+        "defer_unauth_destination"
+      ];
       virtual_transport = "lmtp:unix:/run/dovecot2/lmtp";
-      virtual_mailbox_domains = ["dora.im"];
+      virtual_mailbox_domains = [ "dora.im" ];
 
       lmtp_destination_recipient_limit = "1";
       recipient_delimiter = "+";
       disable_vrfy_command = true;
 
       milter_default_action = "accept";
-      smtpd_milters = ["unix:/run/rspamd/postfix.sock"];
-      non_smtpd_milters = ["unix:/run/rspamd/postfix.sock"];
-      internal_mail_filter_classes = ["bounce"];
+      smtpd_milters = [ "unix:/run/rspamd/postfix.sock" ];
+      non_smtpd_milters = [ "unix:/run/rspamd/postfix.sock" ];
+      internal_mail_filter_classes = [ "bounce" ];
     };
     masterConfig = {
       lmtp = {
-        args = ["flags=O"];
+        args = [ "flags=O" ];
       };
       "465" = {
         type = "inet";
@@ -95,7 +107,7 @@ in {
     enable = true;
     workers = {
       controller = {
-        bindSockets = ["localhost:11334"];
+        bindSockets = [ "localhost:11334" ];
       };
       rspamd_proxy = {
         bindSockets = [
@@ -131,7 +143,7 @@ in {
   };
 
   services.telegraf.extraConfig.inputs = {
-    prometheus.urls = ["http://localhost:11334/metrics"];
+    prometheus.urls = [ "http://localhost:11334/metrics" ];
   };
 
   boot.kernel.sysctl."vm.overcommit_memory" = lib.mkForce 1;

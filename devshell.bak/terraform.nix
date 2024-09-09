@@ -1,9 +1,10 @@
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   common = builtins.readFile ./common.sh;
 
   encryptTo = pkgs.writeShellApplication {
     name = "encrypt-to";
-    runtimeInputs = with pkgs; [sops];
+    runtimeInputs = with pkgs; [ sops ];
     text = ''
       ${common}
 
@@ -44,7 +45,7 @@
 
   terraformInit = pkgs.writeShellApplication {
     name = "terraform-init";
-    runtimeInputs = with pkgs; [terraform];
+    runtimeInputs = with pkgs; [ terraform ];
     text = ''
       terraform -chdir="$(realpath "$TERRAFORM_DIR")" init "$@"
     '';
@@ -179,7 +180,8 @@
       done
     '';
   };
-in {
+in
+{
   devshells.default = {
     env = [
       {

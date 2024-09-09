@@ -3,13 +3,15 @@
   pkgs,
   lib,
   ...
-}: let
+}:
+let
   hosts = lib.attrNames config.lib.self.data.hosts;
   hostsSpecs = lib.lists.map (h: "root@${h}") hosts;
   hostsFile = pkgs.writeText "pssh-hosts" ''
     ${lib.concatStringsSep "\n" hostsSpecs}
   '';
-in {
+in
+{
   home.packages = with pkgs; [
     pssh
   ];

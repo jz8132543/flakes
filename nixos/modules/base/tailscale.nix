@@ -3,20 +3,22 @@
   pkgs,
   nixosModules,
   ...
-}: let
+}:
+let
   interfaceName = "tailscale0";
-in {
-  imports = [nixosModules.services.restic];
+in
+{
+  imports = [ nixosModules.services.restic ];
   services.tailscale = {
     enable = true;
     openFirewall = true;
     useRoutingFeatures = "both";
   };
   networking = {
-    networkmanager.unmanaged = [interfaceName];
+    networkmanager.unmanaged = [ interfaceName ];
     firewall = {
       # checkReversePath = false;
-      trustedInterfaces = ["tailscale0"];
+      trustedInterfaces = [ "tailscale0" ];
       allowedUDPPorts = [
         config.services.tailscale.port
       ];
@@ -62,7 +64,7 @@ in {
     enable = true;
     rules = {
       "tailscale" = {
-        onState = ["routable"];
+        onState = [ "routable" ];
         script = ''
           #!${pkgs.runtimeShell}
           netdev=$(${pkgs.iproute2}/bin/ip route show 0/0 | ${pkgs.coreutils}/bin/cut -f5 -d' ' || echo eth0)
@@ -73,8 +75,11 @@ in {
   };
 
   systemd.services.tailscaled = {
-    before = ["network.target"];
-    after = ["dnscrypt-proxy2.service" "systemd-resolved.service"];
+    before = [ "network.target" ];
+    after = [
+      "dnscrypt-proxy2.service"
+      "systemd-resolved.service"
+    ];
     serviceConfig = {
       Restart = "always";
       TimeoutStopSec = "5s";

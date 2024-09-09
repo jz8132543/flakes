@@ -4,10 +4,12 @@
   config,
   ...
 }:
-with config.nur.repos.xddxdd; {
+with config.nur.repos.xddxdd;
+{
   fonts.fontDir.enable = true;
 
-  fonts.packages = with pkgs;
+  fonts.packages =
+    with pkgs;
     lib.mkForce [
       (nerdfonts.override {
         fonts = [
@@ -54,25 +56,37 @@ with config.nur.repos.xddxdd; {
     ];
 
   # https://keqingrong.cn/blog/2019-10-01-how-to-display-all-chinese-characters-on-the-computer/
-  fonts.fontconfig = let
-    sansFallback = [
-      "Plangothic P1"
-      "Plangothic P2"
-      "HanaMinA"
-      "HanaMinB"
-    ];
-    serifFallback = [
-      "HanaMinA"
-      "HanaMinB"
-      "Plangothic P1"
-      "Plangothic P2"
-    ];
-  in {
-    defaultFonts = rec {
-      emoji = ["Blobmoji"];
-      serif = ["Noto Serif" "Source Han Serif SC"] ++ emoji ++ serifFallback;
-      sansSerif = ["Source Han Sans SC" "Ubuntu"] ++ emoji ++ sansFallback;
-      monospace = ["JetBrainsMono Nerd Font" "Ubuntu Mono" "Noto Sans Mono CJK SC"] ++ emoji ++ sansFallback;
+  fonts.fontconfig =
+    let
+      sansFallback = [
+        "Plangothic P1"
+        "Plangothic P2"
+        "HanaMinA"
+        "HanaMinB"
+      ];
+      serifFallback = [
+        "HanaMinA"
+        "HanaMinB"
+        "Plangothic P1"
+        "Plangothic P2"
+      ];
+    in
+    {
+      defaultFonts = rec {
+        emoji = [ "Blobmoji" ];
+        serif = [
+          "Noto Serif"
+          "Source Han Serif SC"
+        ] ++ emoji ++ serifFallback;
+        sansSerif = [
+          "Source Han Sans SC"
+          "Ubuntu"
+        ] ++ emoji ++ sansFallback;
+        monospace = [
+          "JetBrainsMono Nerd Font"
+          "Ubuntu Mono"
+          "Noto Sans Mono CJK SC"
+        ] ++ emoji ++ sansFallback;
+      };
     };
-  };
 }

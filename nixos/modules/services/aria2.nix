@@ -2,7 +2,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   services.aria2 = {
     enable = true;
     rpcSecretFile = "/run/credentials/aria2.service/rpcSecretFile";

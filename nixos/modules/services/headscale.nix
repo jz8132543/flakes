@@ -2,7 +2,8 @@
   config,
   pkgs,
   ...
-}: {
+}:
+{
   services = {
     headscale = {
       enable = true;
@@ -20,7 +21,7 @@
           override_local_dns = true;
           base_domain = "mag";
           magic_dns = true;
-          domains = config.environment.domains;
+          inherit (config.environment) domains;
           nameservers.global = [
             "1.1.1.1"
             "9.9.9.9"
@@ -54,8 +55,8 @@
           v6 = "fd7a:115c:a1e0::/48";
         };
         derp = {
-          paths = ["/run/credentials/headscale.service/map.yaml"];
-          urls = [];
+          paths = [ "/run/credentials/headscale.service/map.yaml" ];
+          urls = [ ];
         };
         policy.path = "/run/credentials/headscale.service/acl.json";
       };
@@ -65,7 +66,7 @@
     routers = {
       headscale = {
         rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "headscale";
       };
       # headscale_metrics = {
@@ -75,14 +76,14 @@
       # };
       headscale_grpc = {
         rule = "Host(`ts.dora.im`) && PathPrefix(`/headscale.`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "headscale_grpc";
       };
     };
     services = {
       headscale.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.services.headscale.port}";}];
+        servers = [ { url = "http://localhost:${toString config.services.headscale.port}"; } ];
         # servers = [{url = "http://localhost:${toString config.ports.headscale_metrics}";}];
       };
       # headscale_metrics.loadBalancer = {
@@ -91,7 +92,7 @@
       # };
       headscale_grpc.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "https://${toString config.services.headscale.settings.grpc_listen_addr}";}];
+        servers = [ { url = "https://${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
       };
     };
   };

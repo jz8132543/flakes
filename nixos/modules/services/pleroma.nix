@@ -1,9 +1,14 @@
-{PG ? "postgres.dora.im", ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{
   pkgs,
   lib,
   config,
   ...
-}: let
+}:
+let
   akkconfig = ''
     import Config
     config :pleroma, :instance,
@@ -59,14 +64,15 @@
     config :pleroma, :mrf, policies: [Pleroma.Web.ActivityPub.MRF.SimplePolicy], transparency: false
     config :pleroma, Pleroma.Web.WebFinger, domain: "dora.im"
   '';
-in {
+in
+{
   services.pleroma = {
     enable = true;
     package = pkgs.akkoma;
     user = "akkoma";
     group = "akkoma";
 
-    configs = [akkconfig];
+    configs = [ akkconfig ];
     secretConfigFile = config.sops.templates."akkoma".path;
   };
 
@@ -111,25 +117,28 @@ in {
   };
 
   sops.secrets = {
-    "pleroma/oidc-secret" = {};
-    "pleroma/PUSH_PUBLIC_KEY" = {};
-    "pleroma/PUSH_PRIVATE_KEY" = {};
-    "pleroma/SECRET_KEY" = {};
-    "pleroma/SIGNING_SALT" = {};
+    "pleroma/oidc-secret" = { };
+    "pleroma/PUSH_PUBLIC_KEY" = { };
+    "pleroma/PUSH_PRIVATE_KEY" = { };
+    "pleroma/SECRET_KEY" = { };
+    "pleroma/SIGNING_SALT" = { };
   };
 
   sops.secrets."b2_pleroma_media_key_id" = {
     sopsFile = config.sops-file.get "terraform/common.yaml";
-    restartUnits = ["akkoma.service"];
+    restartUnits = [ "akkoma.service" ];
   };
 
   sops.secrets."b2_pleroma_media_access_key" = {
     sopsFile = config.sops-file.get "terraform/common.yaml";
-    restartUnits = ["akkoma.service"];
+    restartUnits = [ "akkoma.service" ];
   };
 
   systemd.services.pleroma = {
-    after = ["postgresql.service" "tailscaled.service"];
+    after = [
+      "postgresql.service"
+      "tailscaled.service"
+    ];
     serviceConfig.Restart = lib.mkForce "always";
     # https://github.com/NixOS/nixpkgs/issues/170805
     environment.RELEASE_COOKIE = "/var/lib/pleroma/.cookie";
@@ -149,14 +158,14 @@ in {
     routers = {
       pleroma = {
         rule = "Host(`zone.dora.im`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "pleroma";
       };
     };
     services = {
       pleroma.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:4000";}];
+        servers = [ { url = "http://localhost:4000"; } ];
       };
     };
   };

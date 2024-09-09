@@ -3,7 +3,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   services.sogo = {
     enable = true;
     timezone = "Asia/Shanghai";
@@ -53,31 +54,41 @@
       LDAP_BINDPW = config.sops.secrets."mail/ldap".path;
     };
   };
-  systemd.services.sogo = let
-    services = ["openldap.service" "dovecot2.service" "postgresql.service" "memcached.service"];
-  in {
-    wants = lib.mkForce services;
-    after = lib.mkForce services;
-  };
+  systemd.services.sogo =
+    let
+      services = [
+        "openldap.service"
+        "dovecot2.service"
+        "postgresql.service"
+        "memcached.service"
+      ];
+    in
+    {
+      wants = lib.mkForce services;
+      after = lib.mkForce services;
+    };
   services.memcached = {
     enable = true;
     enableUnixSocket = true;
-    extraOptions = ["-a" "0770"];
+    extraOptions = [
+      "-a"
+      "0770"
+    ];
   };
-  users.users.sogo.extraGroups = ["memcached"];
-  sops.secrets."mail/ldap" = {};
+  users.users.sogo.extraGroups = [ "memcached" ];
+  sops.secrets."mail/ldap" = { };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       sogo = {
         rule = "Host(`${config.services.sogo.vhostName}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "sogo";
       };
     };
     services = {
       sogo.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
       };
     };
   };

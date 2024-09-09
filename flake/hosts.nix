@@ -4,73 +4,78 @@
   lib,
   getSystem,
   ...
-}: let
+}:
+let
   inherit (inputs.nixpkgs.lib) nixosSystem;
 
   nixosModules = self.lib.rake ../nixos/modules;
   hmModules = self.lib.rake ../home-manager/modules;
 
-  commonNixosModules =
-    nixosModules.base.all
-    ++ [
-      inputs.home-manager.nixosModules.home-manager
-      inputs.nur.nixosModules.nur
-      {
-        lib.self = self.lib;
-        home-manager = {
-          sharedModules = commonHmModules;
-          extraSpecialArgs = hmSpecialArgs;
-          useGlobalPkgs = true;
-          useUserPackages = true;
-        };
-        system.configurationRevision =
-          if self ? rev
-          then self.rev
-          else null;
-      }
-    ];
+  commonNixosModules = nixosModules.base.all ++ [
+    inputs.home-manager.nixosModules.home-manager
+    inputs.nur.nixosModules.nur
+    {
+      lib.self = self.lib;
+      home-manager = {
+        sharedModules = commonHmModules;
+        extraSpecialArgs = hmSpecialArgs;
+        useGlobalPkgs = true;
+        useUserPackages = true;
+      };
+      system.configurationRevision = self.rev or null;
+    }
+  ];
 
-  commonHmModules =
-    hmModules.base.all
-    ++ [
-      inputs.nur.hmModules.nur
-      {
-        lib.self = self.lib;
-      }
-    ];
+  commonHmModules = hmModules.base.all ++ [
+    inputs.nur.hmModules.nur
+    {
+      lib.self = self.lib;
+    }
+  ];
 
   nixosSpecialArgs = {
-    inherit inputs self nixosModules getSystem;
+    inherit
+      inputs
+      self
+      nixosModules
+      getSystem
+      ;
   };
 
   hmSpecialArgs = {
     inherit inputs self hmModules;
   };
 
-  mkHost = {
-    name,
-    configurationName ? name,
-    system,
-    extraModules ? [],
-  }: {
-    ${name} = nixosSystem {
-      inherit system;
-      specialArgs = nixosSpecialArgs;
-      modules =
-        commonNixosModules
-        ++ extraModules
-        ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
-        ++ [
-          ({lib, ...}: {
-            networking.hostName = lib.mkDefault name;
-            # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
-            nixpkgs.system = system;
-          })
-        ];
-      extraModules = [inputs.colmena.nixosModules.deploymentOptions];
+  mkHost =
+    {
+      name,
+      configurationName ? name,
+      system,
+      extraModules ? [ ],
+    }:
+    {
+      ${name} = nixosSystem {
+        inherit system;
+        specialArgs = nixosSpecialArgs;
+        modules =
+          commonNixosModules
+          ++ extraModules
+          ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
+          ++ [
+            (
+              { lib, ... }:
+              {
+                networking.hostName = lib.mkDefault name;
+                # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
+                nixpkgs.system = system;
+              }
+            )
+          ];
+        extraModules = [ inputs.colmena.nixosModules.deploymentOptions ];
+      };
     };
-  };
-in {
+in
+{
   passthru = {
     inherit nixosModules hmModules;
   };

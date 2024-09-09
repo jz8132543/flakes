@@ -2,7 +2,8 @@
   nixosModules,
   lib,
   ...
-}: {
+}:
+{
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all

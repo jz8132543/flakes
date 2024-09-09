@@ -4,7 +4,8 @@
   pkgs,
   inputs,
   ...
-}: {
+}:
+{
   imports = [
     inputs.nixos-hardware.nixosModules.common-hidpi
     inputs.nixos-hardware.nixosModules.common-gpu-nvidia-nonprime
@@ -39,7 +40,7 @@
       # "nvidia.NVreg_DynamicPowerManagement=2"
     ];
   };
-  services.xserver.videoDrivers = lib.mkDefault ["nvidia"];
+  services.xserver.videoDrivers = lib.mkDefault [ "nvidia" ];
   environment.sessionVariables = {
     __GL_GSYNC_ALLOWED = "1";
     # __GL_SYNC_DISPLAY_DEVICE = "HDMI-A-1";

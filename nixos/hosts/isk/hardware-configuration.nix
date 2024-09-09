@@ -3,14 +3,26 @@
   modulesPath,
   pkgs,
   ...
-}: let
+}:
+let
   netdev = "enp6s18";
-in {
+in
+{
   imports = [
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
-  boot.initrd.availableKernelModules = ["uhci_hcd" "ehci_pci" "ahci" "virtio_pci" "virtio_scsi" "sd_mod" "sr_mod" "e1000" "e1000e"];
-  boot.kernelModules = ["kvm-intel"];
+  boot.initrd.availableKernelModules = [
+    "uhci_hcd"
+    "ehci_pci"
+    "ahci"
+    "virtio_pci"
+    "virtio_scsi"
+    "sd_mod"
+    "sr_mod"
+    "e1000"
+    "e1000e"
+  ];
+  boot.kernelModules = [ "kvm-intel" ];
   utils.disk = "/dev/sda";
   networking = {
     interfaces.${netdev} = {

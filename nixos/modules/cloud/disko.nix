@@ -3,7 +3,8 @@
   lib,
   config,
   ...
-}: {
+}:
+{
   imports = [
     inputs.disko.nixosModules.disko
   ];
@@ -37,27 +38,62 @@
             end = "-0";
             content = {
               type = "btrfs";
-              extraArgs = ["-f"];
+              extraArgs = [ "-f" ];
               subvolumes = {
                 "/nix" = {
                   mountpoint = "/nix";
-                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                  mountOptions = [
+                    "discard"
+                    "noatime"
+                    "nodiratime"
+                    "ssd_spread"
+                    "compress-force=zstd"
+                    "space_cache=v2"
+                  ];
                 };
                 "/persist" = {
                   mountpoint = "/persist";
-                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                  mountOptions = [
+                    "discard"
+                    "noatime"
+                    "nodiratime"
+                    "ssd_spread"
+                    "compress-force=zstd"
+                    "space_cache=v2"
+                  ];
                 };
                 "/boot" = {
                   mountpoint = "/boot";
-                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                  mountOptions = [
+                    "discard"
+                    "noatime"
+                    "nodiratime"
+                    "ssd_spread"
+                    "compress-force=zstd"
+                    "space_cache=v2"
+                  ];
                 };
                 "/swap" = {
                   mountpoint = "/swap";
-                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                  mountOptions = [
+                    "discard"
+                    "noatime"
+                    "nodiratime"
+                    "ssd_spread"
+                    "compress-force=zstd"
+                    "space_cache=v2"
+                  ];
                 };
                 "/rootfs" = {
                   mountpoint = "/";
-                  mountOptions = ["discard" "noatime" "nodiratime" "ssd_spread" "compress-force=zstd" "space_cache=v2"];
+                  mountOptions = [
+                    "discard"
+                    "noatime"
+                    "nodiratime"
+                    "ssd_spread"
+                    "compress-force=zstd"
+                    "space_cache=v2"
+                  ];
                 };
               };
             };
@@ -100,10 +136,10 @@
         unitConfig.DefaultDependencies = "no";
         serviceConfig.Type = "oneshot";
 
-        wantedBy = ["initrd.target"];
-        before = ["sysroot.mount"];
-        requires = ["dev-disk-by\\x2dpartlabel-NIXOS.device"];
-        after = ["dev-disk-by\\x2dpartlabel-NIXOS.device"];
+        wantedBy = [ "initrd.target" ];
+        before = [ "sysroot.mount" ];
+        requires = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
+        after = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
 
         script = ''
           mkdir -p /mnt

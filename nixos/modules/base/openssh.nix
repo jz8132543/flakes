@@ -2,7 +2,8 @@
   lib,
   config,
   ...
-}: {
+}:
+{
   services.openssh = {
     enable = true;
     settings = {
@@ -11,7 +12,7 @@
       PasswordAuthentication = lib.mkForce false;
       KbdInteractiveAuthentication = false;
     };
-    ports = [config.ports.ssh];
+    ports = [ config.ports.ssh ];
     openFirewall = true;
     extraConfig = ''
       ClientAliveInterval 3

@@ -2,19 +2,20 @@
   config,
   pkgs,
   ...
-}: {
+}:
+{
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       doraim = {
         rule = "Host(`dora.im`) || Host(`mta-sts.dora.im`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "doraim";
       };
     };
     services = {
       doraim.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
       };
     };
   };
@@ -74,11 +75,11 @@
     '';
   };
   # vlmcsd
-  networking.firewall.allowedTCPPorts = [1688];
+  networking.firewall.allowedTCPPorts = [ 1688 ];
   systemd.services.vlmcsd = {
     description = "vlmcsd server";
-    after = ["network.target"];
-    wantedBy = ["multi-user.target"];
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       # Type = "forking";
       Restart = "always";

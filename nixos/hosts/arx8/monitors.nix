@@ -1,4 +1,5 @@
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   systemd.tmpfiles.rules = [
     "f+ /run/gdm/.config/monitors.xml - gdm gdm - ${pkgs.writeText "gdm-monitors.xml" ''
       <!-- this should all be copied from your ~/.config/monitors.xml -->

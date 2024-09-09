@@ -4,9 +4,10 @@
   lib,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.restic];
-  networking.firewall.allowedTCPPorts = [5432];
+}:
+{
+  imports = [ nixosModules.services.restic ];
+  networking.firewall.allowedTCPPorts = [ 5432 ];
   services.postgresql = {
     enable = true;
     enableTCPIP = true;
@@ -44,6 +45,6 @@
   ];
   systemd.services."restic-backups-borgbase" = {
     # requires = ["postgresqlBackup.service"];
-    after = ["postgresqlBackup.service"];
+    after = [ "postgresqlBackup.service" ];
   };
 }

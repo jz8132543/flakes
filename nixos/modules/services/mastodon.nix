@@ -1,4 +1,9 @@
-{PG ? "postgres.dora.im", ...}: {config, ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{ config, ... }:
+{
   services.mastodon = {
     enable = true;
     localDomain = "dora.im";
@@ -36,7 +41,7 @@
       S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
       DEEPL_PLAN = "free";
     };
-    extraEnvFiles = [config.sops.templates."mastodon-env".path];
+    extraEnvFiles = [ config.sops.templates."mastodon-env".path ];
   };
 
   sops.templates."mastodon-env" = {
@@ -48,13 +53,27 @@
     '';
   };
   sops.secrets = {
-    "mastodon/mail" = {owner = config.services.mastodon.user;};
-    "mastodon/VAPID_PUBLIC_KEY" = {owner = config.services.mastodon.user;};
-    "mastodon/VAPID_PRIVATE_KEY" = {owner = config.services.mastodon.user;};
-    "mastodon/SECRET_KEY_BASE" = {owner = config.services.mastodon.user;};
-    "mastodon/OTP_SECRET" = {owner = config.services.mastodon.user;};
-    "mastodon/oidc-secret" = {owner = config.services.mastodon.user;};
-    "mastodon/deepl" = {owner = config.services.mastodon.user;};
+    "mastodon/mail" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/VAPID_PUBLIC_KEY" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/VAPID_PRIVATE_KEY" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/SECRET_KEY_BASE" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/OTP_SECRET" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/oidc-secret" = {
+      owner = config.services.mastodon.user;
+    };
+    "mastodon/deepl" = {
+      owner = config.services.mastodon.user;
+    };
   };
   sops.secrets."b2_mastodon_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
   sops.secrets."b2_mastodon_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
@@ -92,20 +111,23 @@
     config.services.mastodon.group
   ];
   systemd.services.mastodon-init-db = {
-    after = ["postgresql.service" "tailscaled.service"];
+    after = [
+      "postgresql.service"
+      "tailscaled.service"
+    ];
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       mastodon = {
         rule = "Host(`${config.services.mastodon.extraConfig.WEB_DOMAIN}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "mastodon";
       };
     };
     services = {
       mastodon.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.nginx}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
       };
     };
   };

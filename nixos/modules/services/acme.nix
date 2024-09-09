@@ -1,4 +1,5 @@
-{config, ...}: {
+{ config, ... }:
+{
   security.acme = {
     acceptTerms = true;
     defaults = {
@@ -14,7 +15,7 @@
     # extraDomainNames = ["dora.im"];
   };
   sops.secrets = {
-    "traefik/cloudflare_token" = {};
+    "traefik/cloudflare_token" = { };
     # "traefik/KID" = {};
     # "traefik/HMAC" = {};
   };

@@ -1,4 +1,5 @@
-{lib}: let
+{ lib }:
+let
   main = "23232A6D050ACE46DF02D72B84A772A8519FC163";
   yubikeys = {
     # TODO https://github.com/mozilla/sops/issues/1103
@@ -28,75 +29,76 @@
       owned = true;
     };
   };
-  ownedHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) (lib.filterAttrs (_: cfg: cfg.owned) hosts);
   allHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) hosts;
 
   mkHostCreationRule = host: key: {
     path_regex = "^secrets/(terraform/)?hosts/${host}(\.plain)?\.yaml$";
     key_groups = [
       {
-        pgp = [main];
-        age = [key github];
+        pgp = [ main ];
+        age = [
+          key
+          github
+        ];
       }
     ];
   };
-in {
-  creation_rules =
-    [
-      {
-        path_regex = "^secrets/(terraform/)?common\.yaml$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ allHostKeys ++ [github];
-          }
-        ];
-      }
-      {
-        path_regex = "^secrets/(terraform/)?infrastructure\.yaml$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ allHostKeys ++ [github];
-          }
-        ];
-      }
-      {
-        path_regex = "^secrets/terraform-inputs\.yaml$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ [github];
-          }
-        ];
-      }
-      {
-        path_regex = "^secrets/terraform-outputs\.yaml$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ [github];
-          }
-        ];
-      }
-      {
-        path_regex = "terraform.(tfstate|plan)$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ [github];
-          }
-        ];
-      }
-      {
-        path_regex = "^/tmp/encrypt.*$";
-        key_groups = [
-          {
-            pgp = [main];
-            age = yubikeyKeys ++ [github];
-          }
-        ];
-      }
-    ]
-    ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
+in
+{
+  creation_rules = [
+    {
+      path_regex = "^secrets/(terraform/)?common\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ allHostKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "^secrets/(terraform/)?infrastructure\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ allHostKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "^secrets/terraform-inputs\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "^secrets/terraform-outputs\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "terraform.(tfstate|plan)$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "^/tmp/encrypt.*$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ [ github ];
+        }
+      ];
+    }
+  ] ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
 }

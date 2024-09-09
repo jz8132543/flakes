@@ -7,7 +7,7 @@
 stdenv.mkDerivation rec {
   inherit (source) pname version src;
 
-  nativeBuildInputs = [unzip];
+  nativeBuildInputs = [ unzip ];
   unpackPhase = ''
     unzip $src
   '';

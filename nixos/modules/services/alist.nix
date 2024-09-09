@@ -1,11 +1,15 @@
-{PG ? "postgres.dora.im", ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{
   pkgs,
-  lib,
   config,
   nixosModules,
   ...
-}: {
-  imports = [nixosModules.services.aria2];
+}:
+{
+  imports = [ nixosModules.services.aria2 ];
   users = {
     users.alist = {
       isSystemUser = true;
@@ -15,7 +19,7 @@
       description = "alist service";
     };
 
-    groups.alist = {};
+    groups.alist = { };
   };
   systemd.tmpfiles.rules = [
     "d '${config.users.users.alist.home}/temp/aria2' 0777 aria2 aria2 - -"
@@ -23,8 +27,8 @@
 
   systemd.services.alist = {
     description = "alist service";
-    wantedBy = ["multi-user.target"];
-    after = ["network.target"];
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
     serviceConfig = {
       User = "alist";
       Group = "alist";
@@ -54,20 +58,20 @@
       };
     };
   };
-  sops.secrets."alist/JWT" = {};
+  sops.secrets."alist/JWT" = { };
 
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       alist = {
         rule = "Host(`alist.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "alist";
       };
     };
     services = {
       alist.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString config.ports.alist}";}];
+        servers = [ { url = "http://localhost:${toString config.ports.alist}"; } ];
       };
     };
   };

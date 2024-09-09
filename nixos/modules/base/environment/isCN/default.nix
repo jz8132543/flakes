@@ -1,5 +1,6 @@
-{lib, ...}:
-with lib; {
+{ lib, ... }:
+with lib;
+{
   options.environment.isCN = lib.mkOption {
     type = types.bool;
     default = false;

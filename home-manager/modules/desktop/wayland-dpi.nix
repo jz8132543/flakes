@@ -6,11 +6,18 @@
   lib,
   config,
   ...
-}: let
-  inherit (lib) mkOption mkDefault mkIf types;
+}:
+let
+  inherit (lib)
+    mkOption
+    mkDefault
+    mkIf
+    types
+    ;
   cfg = config.wayland.dpi;
   default = 96;
-in {
+in
+{
   options = {
     wayland.dpi = mkOption {
       type = types.ints.positive;

@@ -1,10 +1,16 @@
-{PG ? "postgres.dora.im", ...}: {
+{
+  PG ? "postgres.dora.im",
+  ...
+}:
+{
   config,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.services.atuin;
-in {
+in
+{
   services.atuin = {
     enable = true;
     host = "127.0.0.1";
@@ -16,19 +22,22 @@ in {
     routers = {
       atuin = {
         rule = "Host(`atuin.${config.networking.domain}`)";
-        entryPoints = ["https"];
+        entryPoints = [ "https" ];
         service = "atuin";
       };
     };
     services = {
       atuin.loadBalancer = {
         passHostHeader = true;
-        servers = [{url = "http://localhost:${toString cfg.port}";}];
+        servers = [ { url = "http://localhost:${toString cfg.port}"; } ];
       };
     };
   };
   systemd.services."atuin" = {
-    after = ["postgresql.service" "tailscaled.service"];
+    after = [
+      "postgresql.service"
+      "tailscaled.service"
+    ];
     serviceConfig.Restart = lib.mkForce "always";
   };
 }

@@ -1,5 +1,6 @@
-{inputs, ...}: {
-  imports = [inputs.xremap-flake.nixosModules.default];
+{ inputs, ... }:
+{
+  imports = [ inputs.xremap-flake.nixosModules.default ];
   services = {
     xserver = {
       enable = true;
@@ -16,11 +17,15 @@
     xremap.config.modmap = [
       {
         name = "Global";
-        remap = {"CapsLock" = "Esc";}; # globally remap CapsLock to Esc
+        remap = {
+          "CapsLock" = "Esc";
+        }; # globally remap CapsLock to Esc
       }
       {
         name = "Global";
-        remap = {"ESC" = "CapsLock";}; # globally remap CapsLock to Esc
+        remap = {
+          "ESC" = "CapsLock";
+        }; # globally remap CapsLock to Esc
       }
     ];
     # Ignore auto hibernate
@@ -38,5 +43,5 @@
     # };
   };
   security.rtkit.enable = true;
-  boot.supportedFilesystems = ["ntfs"];
+  boot.supportedFilesystems = [ "ntfs" ];
 }

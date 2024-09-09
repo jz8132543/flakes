@@ -2,7 +2,8 @@
   pkgs,
   config,
   ...
-}: {
+}:
+{
   home.packages = with pkgs; [
     tdesktop
     ffmpeg
@@ -18,8 +19,11 @@
   ];
   dconf.settings = {
     "org/virt-manager/virt-manager/connections" = {
-      autoconnect = ["qemu+ssh://tippy@shg0:22/system"];
-      uris = ["qemu+ssh://tippy@shg0:22/system" "qemu:///system"];
+      autoconnect = [ "qemu+ssh://tippy@shg0:22/system" ];
+      uris = [
+        "qemu+ssh://tippy@shg0:22/system"
+        "qemu:///system"
+      ];
     };
     "org/virt-manager/virt-manager/vmlist-fields" = {
       disk-usage = true;

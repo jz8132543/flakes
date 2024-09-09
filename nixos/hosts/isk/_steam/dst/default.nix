@@ -1,9 +1,9 @@
 {
   config,
   pkgs,
-  lib,
   ...
-}: let
+}:
+let
   gameHome = config.users.users.steam.home;
   dstRoot = "Games/dst";
   dstAppDir = "${dstRoot}/app";
@@ -22,7 +22,8 @@
     while [ -f "${gameHome}/${dstRunnigIndicator}" ]; do sleep 1; done
     echo "shutdown done"
   '';
-in {
+in
+{
   home-manager.users.steam = {
     home.global-persistence.directories = [
       dstRoot
@@ -67,7 +68,11 @@ in {
       # delete running indicator
       rm "${gameHome}/${dstRunnigIndicator}"
     '';
-    path = with pkgs; [steamcmd steam-run socat];
+    path = with pkgs; [
+      steamcmd
+      steam-run
+      socat
+    ];
     serviceConfig = {
       User = "steam";
       Group = "steam";
@@ -77,7 +82,7 @@ in {
     # environment =
     #   lib.mkIf (config.networking.fw-proxy.enable)
     #   config.networking.fw-proxy.environment;
-    wantedBy = ["multi-user.target"];
+    wantedBy = [ "multi-user.target" ];
   };
   networking.firewall.allowedUDPPorts = [
     10999

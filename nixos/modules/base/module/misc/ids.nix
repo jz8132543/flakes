@@ -1,4 +1,5 @@
-{...}: {
+{ ... }:
+{
   ids.uids = {
     # human users
     tippy = 1000;
