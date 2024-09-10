@@ -36,7 +36,12 @@ in
       gnupg.sshKeyPaths = [ ];
       age = {
         sshKeyPaths = [ ];
-        keyFile = "/var/lib/sops-nix/key";
+        keyFile = lib.mkDefault (
+          if config.environment.global-persistence.enable then
+            "/persist/var/lib/sops-nix/key"
+          else
+            "/var/lib/sops-nix/key"
+        );
       };
     };
   };
