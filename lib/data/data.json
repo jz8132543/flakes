@@ -119,11 +119,11 @@
       "proxy": false
     },
     "mail": {
-      "on": "ams0",
+      "on": "fra1",
       "proxy": false
     },
     "morty": {
-      "on": "ams0",
+      "on": "hkg4",
       "proxy": false
     },
     "mta-sts": {
@@ -135,7 +135,7 @@
       "proxy": false
     },
     "searx": {
-      "on": "ams0",
+      "on": "hkg4",
       "proxy": false
     },
     "sso": {

@@ -15,10 +15,7 @@
     man.generateCaches = false;
   };
   programs.command-not-found.enable = false;
-  programs.nix-index = {
-    enable = true;
-    package = pkgs.nix-index-with-db;
-  };
+  programs.nix-index.enable = true;
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
   security.rtkit.enable = true;

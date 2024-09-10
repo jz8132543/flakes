@@ -1,8 +1,12 @@
 {
   pkgs,
+  inputs,
   ...
 }:
 {
+  imports = [
+    inputs.nix-index-database.hmModules.nix-index
+  ];
   home.sessionPath = [ "$HOME/.local/bin" ];
 
   # programs.home-manager.enable = true;

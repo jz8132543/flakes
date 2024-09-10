@@ -80,9 +80,9 @@ locals {
     mta-sts = { on = "fra1", proxy = false }
     atuin   = { on = "fra1", proxy = false }
     ntfy    = { on = "fra1", proxy = false }
-    mail    = { on = "ams0", proxy = false }
-    searx   = { on = "ams0", proxy = false }
-    morty   = { on = "ams0", proxy = false }
+    mail    = { on = "fra1", proxy = false }
+    searx   = { on = "hkg4", proxy = false }
+    morty   = { on = "hkg4", proxy = false }
   }
 }
 output "service_cname_mappings" {
@@ -175,12 +175,12 @@ resource "cloudflare_record" "dora_mta_sts" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_mx_ams0" {
+resource "cloudflare_record" "dora_mx_fra1" {
   name     = "dora.im"
   proxied  = false
   ttl      = 1
   type     = "MX"
-  value    = "ams0.dora.im"
+  value    = "fra1.dora.im"
   priority = 1
   zone_id  = cloudflare_zone.im_dora.id
 }
