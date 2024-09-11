@@ -47,7 +47,7 @@ in
         "openssl-1.1.1w"
         "electron-19.1.9"
         "electron-24.8.6"
-        "nix-2.16.2"
+        "nix-2.24.5"
       ];
       allowUnfreePackages = [ "terraform" ];
     };

@@ -47,7 +47,11 @@
       shellcheck
       shfmt
       taplo
+
+      terraform
       nvfetcher
+
+      ruby
     ];
   };
 }

@@ -1,14 +1,20 @@
 result*
 .direnv
-/.sops.yaml
+.vscode
+.history
+.data
+.sass-cache
 .pre-commit-config.yaml
-
-terraform/terraform.tfstate
-terraform.tfstate.*.backup
-terraform.tfstate.backup
+terraform.tfstate*
 terraform.plan
 terraform/moon
 .terraform.tfstate.lock.info
 .terraform
+prepare-host-notice*
+
+*.qcow2
+
+# nixago: ignore-linked-files
+/.sops.yaml
 
 /.nixd.json

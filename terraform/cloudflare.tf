@@ -58,7 +58,7 @@ resource "cloudflare_record" "dora_shg0" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "home.sots.eu.org"
+  content = "home.sots.eu.org"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_subscription" {
@@ -66,7 +66,7 @@ resource "cloudflare_record" "dora_subscription" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "cname.vercel-dns.com."
+  content = "cname.vercel-dns.com."
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -97,7 +97,7 @@ resource "cloudflare_record" "general_cname" {
   proxied = each.value.proxy
   ttl     = 1
   type    = "CNAME"
-  value   = "${each.value.on}.dora.im"
+  content = "${each.value.on}.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -107,7 +107,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "dfw0.dora.im"
+  content = "dfw0.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -117,7 +117,7 @@ resource "cloudflare_record" "dora_b2" {
   proxied = true
   ttl     = 1
   type    = "CNAME"
-  value   = module.b2_download_url.host
+  content = module.b2_download_url.host
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -144,7 +144,7 @@ resource "cloudflare_record" "dora_dkim" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  value   = "v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzuafKXbacHeSP/2YgMN9YntpX3e5OhU+48qRliq3HDiQu6yDoEF7jVrXsK6MPgFggv7qRG+DdGGAn6Ucwjb89RESnFSujLsrhyZO6GhGcuF8brp/VSJxSBTrdoz1IQQtBjSWjREeT1wITP7Pktol4jMvXc//FBBcSKJ85aNWxLfT3L+lJII+hAPShlaB8AsUGnu2I/l1ec6/Eet5RSqI2jnmsx2qKxGOhyc0FfrYZFdnSRDDxUNvbNZuTM8nGTmDm1YWLFBHr8Ugjju4cyXFm61ifDpXcFRed2Bb6tEW8m8a1tLkpQySF1REPvtgk0YCZ+2CbHZSQA5V0X1VfjEA2QIDAQAB"
+  content = "v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzuafKXbacHeSP/2YgMN9YntpX3e5OhU+48qRliq3HDiQu6yDoEF7jVrXsK6MPgFggv7qRG+DdGGAn6Ucwjb89RESnFSujLsrhyZO6GhGcuF8brp/VSJxSBTrdoz1IQQtBjSWjREeT1wITP7Pktol4jMvXc//FBBcSKJ85aNWxLfT3L+lJII+hAPShlaB8AsUGnu2I/l1ec6/Eet5RSqI2jnmsx2qKxGOhyc0FfrYZFdnSRDDxUNvbNZuTM8nGTmDm1YWLFBHr8Ugjju4cyXFm61ifDpXcFRed2Bb6tEW8m8a1tLkpQySF1REPvtgk0YCZ+2CbHZSQA5V0X1VfjEA2QIDAQAB"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -153,7 +153,7 @@ resource "cloudflare_record" "dora_dmarc" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  value   = "v=DMARC1; p=quarantine; ruf=mailto:i@dora.im"
+  content = "v=DMARC1; p=quarantine; ruf=mailto:i@dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -162,7 +162,7 @@ resource "cloudflare_record" "dora_spf" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  value   = "v=spf1 mx mx:dora.im -all"
+  content = "v=spf1 mx mx:dora.im -all"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -171,7 +171,7 @@ resource "cloudflare_record" "dora_mta_sts" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  value   = "v=STSv1; id=2022621T010102"
+  content = "v=STSv1; id=2022621T010102"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -180,7 +180,7 @@ resource "cloudflare_record" "dora_mx_fra1" {
   proxied  = false
   ttl      = 1
   type     = "MX"
-  value    = "fra1.dora.im"
+  content  = "fra1.dora.im"
   priority = 1
   zone_id  = cloudflare_zone.im_dora.id
 }
@@ -192,7 +192,7 @@ resource "cloudflare_record" "dora_matrix" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "100.64.0.2"
+  content = "100.64.0.2"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -201,7 +201,7 @@ resource "cloudflare_record" "dora_tippy" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "82.156.22.240"
+  content = "82.156.22.240"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo0" {
@@ -209,7 +209,7 @@ resource "cloudflare_record" "dora_tyo0" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "45.66.129.234"
+  content = "45.66.129.234"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_lax0" {
@@ -217,7 +217,7 @@ resource "cloudflare_record" "dora_lax0" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "74.48.188.251"
+  content = "74.48.188.251"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_lax2" {
@@ -225,7 +225,7 @@ resource "cloudflare_record" "dora_lax2" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "74.48.170.226"
+  content = "74.48.170.226"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_nue0" {
@@ -233,7 +233,7 @@ resource "cloudflare_record" "dora_nue0" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "45.142.176.126"
+  content = "45.142.176.126"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo1" {
@@ -241,7 +241,7 @@ resource "cloudflare_record" "dora_tyo1" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "54.248.91.93"
+  content = "54.248.91.93"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_tyo3" {
@@ -249,7 +249,7 @@ resource "cloudflare_record" "dora_tyo3" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "194.87.169.90"
+  content = "194.87.169.90"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_hkg0" {
@@ -257,7 +257,7 @@ resource "cloudflare_record" "dora_hkg0" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "20.187.90.38"
+  content = "20.187.90.38"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_hkg3" {
@@ -265,7 +265,7 @@ resource "cloudflare_record" "dora_hkg3" {
   proxied = false
   ttl     = 1
   type    = "A"
-  value   = "45.67.200.54"
+  content = "45.67.200.54"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_hkg2" {
@@ -273,7 +273,7 @@ resource "cloudflare_record" "dora_hkg2" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "chuyv.eastasia.cloudapp.azure.com"
+  content = "chuyv.eastasia.cloudapp.azure.com"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_icn0" {
@@ -281,7 +281,7 @@ resource "cloudflare_record" "dora_icn0" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  value   = "kr.onlynull.live"
+  content = "kr.onlynull.live"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_hkg3_v6" {
@@ -289,7 +289,7 @@ resource "cloudflare_record" "dora_hkg3_v6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  value   = "2a0e:aa07:4000::1:cd9b:d26"
+  content = "2a0e:aa07:4000::1:cd9b:d26"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_record" "dora_lax0_v6" {
@@ -297,6 +297,6 @@ resource "cloudflare_record" "dora_lax0_v6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  value   = "2607:f130:0:ea:ff:ff:3a2c:61e0"
+  content = "2607:f130:0:ea:ff:ff:3a2c:61e0"
   zone_id = cloudflare_zone.im_dora.id
 }

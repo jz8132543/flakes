@@ -89,7 +89,7 @@ in
       modesetting.enable = true;
       nvidiaPersistenced = true;
       nvidiaSettings = true;
-      # open = true;
+      open = false;
       prime = {
         offload.enable = false;
         sync.enable = true;

@@ -1,6 +1,7 @@
 {
   pkgs,
   config,
+  lib,
   ...
 }:
 let
@@ -8,7 +9,7 @@ let
 in
 {
   i18n.inputMethod = {
-    enabled = "ibus";
+    type = lib.mkDefault "ibus";
     ibus.engines = with pkgs.ibus-engines; [
       (
         (rime.override {
