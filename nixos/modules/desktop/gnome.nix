@@ -3,9 +3,8 @@
   lib,
   nixosModules,
   ...
-}:
-{
-  imports = [ nixosModules.services.acme ];
+}: {
+  imports = [nixosModules.services.acme];
 
   # firewall fot GSConnect
   networking.firewall.allowedTCPPorts = lib.range 1714 1764;
@@ -31,7 +30,7 @@
     gnome-tweaks
     polari
     # TEST
-    gnome.gnome-session
+    gnome-session
     gnome-boxes
     devhelp
     dconf-editor
@@ -42,7 +41,7 @@
   services.xrdp = {
     enable = true;
     openFirewall = true;
-    defaultWindowManager = "${pkgs.gnome.gnome-session}/bin/gnome-session";
+    defaultWindowManager = "${pkgs.gnome-session}/bin/gnome-session";
   };
   services.fprintd.enable = true;
   services.gnome.gnome-browser-connector.enable = true;
