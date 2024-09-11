@@ -75,6 +75,7 @@ in
           quad9-doh-ip6-port5053-filter-pri.stamp = "sdns://AgMAAAAAAAAADVsyNjIwOmZlOjpmZV0gKhX11qy258CQGt5Ou8dDsszUiQMrRuFkLwaTaDABJYoSZG5zLnF1YWQ5Lm5ldDo1MDUzCi9kbnMtcXVlcnk";
           quad9-doh-ip6-port443-filter-pri.stamp = "sdns://AgMAAAAAAAAADVsyNjIwOmZlOjpmZV0gKhX11qy258CQGt5Ou8dDsszUiQMrRuFkLwaTaDABJYoRZG5zLnF1YWQ5Lm5ldDo0NDMKL2Rucy1xdWVyeQ";
           iij.stamp = "sdns://AgcAAAAAAAAACjEwMy4yLjU3LjYAEXB1YmxpYy5kbnMuaWlqLmpwCi9kbnMtcXVlcnk";
+          cloudflare.stamp = "sdns://AgcAAAAAAAAABzEuMC4wLjEAEmRucy5jbG91ZGZsYXJlLmNvbQovZG5zLXF1ZXJ5";
         };
 
         # You can choose a specific set of servers from https://github.com/DNSCrypt/dnscrypt-resolvers/blob/master/v3/public-resolvers.md

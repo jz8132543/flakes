@@ -26,7 +26,7 @@ in
     };
   };
   config = {
-    sops-file.directory = lib.mkDefault ../../../secrets;
+    sops-file.directory = lib.mkDefault ../../../../secrets;
     sops-file.get = p: "${config.sops-file.directory}/${p}";
     sops-file.host = config.sops-file.get "hosts/${hostName}.yaml";
     sops-file.terraform = config.sops-file.get "terraform/hosts/${hostName}.yaml";
