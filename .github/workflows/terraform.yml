@@ -56,7 +56,7 @@ jobs:
         id: plan
         run: |
           mkdir logs
-          tree -L3 .
+          tree -L 3 .
           pwd
           set +e
           nix develop ./flakes --command terraform-wrapper plan -out="$PWD/terraform.plan" -detailed-exitcode \
