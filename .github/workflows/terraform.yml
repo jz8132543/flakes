@@ -138,7 +138,7 @@ jobs:
       - name: Setup cachix
         uses: cachix/cachix-action@master
         with:
-          name: Tippy
+          name: dora
           signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
       - name: Cache terraform
         uses: actions/cache@main
