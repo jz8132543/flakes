@@ -9,6 +9,7 @@ let
 in
 {
   i18n.inputMethod = {
+    enable = true;
     type = lib.mkDefault "ibus";
     ibus.engines = with pkgs.ibus-engines; [
       (
