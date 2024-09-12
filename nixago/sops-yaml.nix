@@ -47,25 +47,7 @@ in
 {
   creation_rules = [
     {
-      path_regex = "^secrets/(terraform/)?common\.yaml$";
-      key_groups = [
-        {
-          pgp = [ main ];
-          age = yubikeyKeys ++ allHostKeys ++ [ github ];
-        }
-      ];
-    }
-    {
-      path_regex = "^secrets/(terraform/)?infrastructure\.yaml$";
-      key_groups = [
-        {
-          pgp = [ main ];
-          age = yubikeyKeys ++ allHostKeys ++ [ github ];
-        }
-      ];
-    }
-    {
-      path_regex = "^secrets/terraform-inputs\.yaml$";
+      path_regex = "terraform-inputs\.yaml$";
       key_groups = [
         {
           pgp = [ main ];
@@ -74,7 +56,7 @@ in
       ];
     }
     {
-      path_regex = "^secrets/terraform-outputs\.yaml$";
+      path_regex = "terraform-outputs\.yaml$";
       key_groups = [
         {
           pgp = [ main ];
@@ -88,6 +70,24 @@ in
         {
           pgp = [ main ];
           age = yubikeyKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "secrets/(terraform/)?common\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ allHostKeys ++ [ github ];
+        }
+      ];
+    }
+    {
+      path_regex = "secrets/(terraform/)?infrastructure\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ allHostKeys ++ [ github ];
         }
       ];
     }
