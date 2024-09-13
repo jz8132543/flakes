@@ -13,7 +13,7 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.proxy
-      nixosModules.services.tuic
+      # nixosModules.services.tuic
       # nixosModules.services.searx
       # nixosModules.services.rustdesk
       # nixosModules.services.sogo
