@@ -1,5 +1,5 @@
 {
-  PG ? "postgres.dora.im",
+  PG ? "postgres.mag",
   ...
 }:
 {

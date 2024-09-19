@@ -28,17 +28,17 @@
           ];
           extra_records = [
             {
-              name = "m.dora.im";
+              name = "m.mag";
               type = "A";
               value = "100.64.0.2";
             }
             {
-              name = "m-admin.dora.im";
+              name = "m-admin.mag";
               type = "A";
               value = "100.64.0.2";
             }
             {
-              name = "postgres.dora.im";
+              name = "postgres.mag";
               type = "A";
               value = "100.64.0.1";
             }

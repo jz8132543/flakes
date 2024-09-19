@@ -22,7 +22,7 @@
         "imap": "mail.dora.im"
     },
     "ldap": "ldap://ldap.dora.im:389",
-    "database": "postgres.dora.im",
+    "database": "postgres.mag",
     "hosts": .hosts.value | map_values(
         with_entries(
             select(

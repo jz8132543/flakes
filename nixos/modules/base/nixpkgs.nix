@@ -2,7 +2,6 @@
   inputs,
   getSystem,
   config,
-  lib,
   ...
 }:
 let

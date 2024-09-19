@@ -30,7 +30,7 @@
     "imap": "mail.dora.im"
   },
   "ldap": "ldap://ldap.dora.im:389",
-  "database": "postgres.dora.im",
+  "database": "postgres.mag",
   "hosts": {
     "15isk": {
       "dn42_addresses_v4": ["172.23.224.105"],

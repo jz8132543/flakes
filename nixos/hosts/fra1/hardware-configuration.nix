@@ -46,4 +46,5 @@
     };
   };
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
+  nix.gc.automatic = lib.mkForce false;
 }
