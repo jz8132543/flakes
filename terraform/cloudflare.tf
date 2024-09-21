@@ -72,19 +72,19 @@ resource "cloudflare_record" "dora_subscription" {
 
 locals {
   service_cname_mappings = {
-    vault   = { on = "fra1", proxy = false }
-    ts      = { on = "fra1", proxy = false }
-    ldap    = { on = "fra1", proxy = false }
-    sso     = { on = "fra1", proxy = false }
-    alist   = { on = "fra1", proxy = false }
-    mta-sts = { on = "fra1", proxy = false }
-    atuin   = { on = "fra1", proxy = false }
-    ntfy    = { on = "fra1", proxy = false }
-    mail    = { on = "fra1", proxy = false }
-    m       = { on = "fra1", proxy = false }
-    admin.m = { on = "fra1", proxy = false }
-    searx   = { on = "hkg4", proxy = false }
-    morty   = { on = "hkg4", proxy = false }
+    vault     = { on = "fra1", proxy = false }
+    ts        = { on = "fra1", proxy = false }
+    ldap      = { on = "fra1", proxy = false }
+    sso       = { on = "fra1", proxy = false }
+    alist     = { on = "fra1", proxy = false }
+    mta-sts   = { on = "fra1", proxy = false }
+    atuin     = { on = "fra1", proxy = false }
+    ntfy      = { on = "fra1", proxy = false }
+    mail      = { on = "fra1", proxy = false }
+    m         = { on = "fra1", proxy = false }
+    "admin.m" = { on = "fra1", proxy = false }
+    searx     = { on = "hkg4", proxy = false }
+    morty     = { on = "hkg4", proxy = false }
   }
 }
 output "service_cname_mappings" {
