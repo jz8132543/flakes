@@ -81,6 +81,7 @@ locals {
     atuin     = { on = "fra1", proxy = false }
     ntfy      = { on = "fra1", proxy = false }
     mail      = { on = "fra1", proxy = false }
+    pb        = { on = "fra1", proxy = false }
     m         = { on = "fra1", proxy = false }
     "admin.m" = { on = "fra1", proxy = false }
     searx     = { on = "hkg4", proxy = false }
@@ -109,7 +110,7 @@ resource "cloudflare_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  content = "dfw0.dora.im"
+  content = "hkg4.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -188,15 +189,6 @@ resource "cloudflare_record" "dora_mx_fra1" {
 }
 
 # Machines
-
-resource "cloudflare_record" "dora_matrix" {
-  name    = "m"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  content = "100.64.0.2"
-  zone_id = cloudflare_zone.im_dora.id
-}
 
 resource "cloudflare_record" "dora_tippy" {
   name    = "tippy"

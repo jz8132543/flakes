@@ -161,6 +161,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.fenix.follows = "fenix";
     };
+    pastebin = {
+      url = "github:linyinfeng/pastebin";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
     # Themes
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";

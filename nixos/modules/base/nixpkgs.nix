@@ -7,6 +7,7 @@
 let
   packages = [
     inputs.sops-nix.overlays.default
+    inputs.pastebin.overlays.default
     # inputs.neovim-nightly-overlay.overlay
     # inputs.nixd.overlays.default
     # inputs.nvfetcher.overlays.default

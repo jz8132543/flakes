@@ -56,8 +56,6 @@ jobs:
         id: plan
         run: |
           mkdir logs
-          tree -L 3 .
-          pwd
           set +e
           nix develop ./flakes --command terraform-wrapper plan -out="$PWD/terraform.plan" -detailed-exitcode \
              > >(sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' | tee logs/terraform-plan.stdout.log) \
@@ -195,6 +193,7 @@ jobs:
             if [ -z "$(git status --porcelain)" ]; then
               echo "repository is clean, skip commit and push"
             else
+              git pull
               git config --global user.email "i@dora.im"
               git config --global user.name "jz832543"
               git add --all

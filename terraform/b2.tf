@@ -121,3 +121,58 @@ output "b2_mastodon_media_access_key" {
   value     = b2_application_key.mastodon_media.application_key
   sensitive = true
 }
+
+# pastebin
+resource "b2_bucket" "pastebin_media" {
+  bucket_name = "doraim-pastebin-media"
+  bucket_type = "allPublic"
+
+  # keep only the last version of the file
+  lifecycle_rules {
+    file_name_prefix              = ""
+    days_from_uploading_to_hiding = null
+    days_from_hiding_to_deleting  = 1
+  }
+
+  cors_rules {
+    cors_rule_name = "allow-media-on-dora-im"
+    allowed_operations = [
+      "s3_head",
+      "b2_download_file_by_id",
+      "b2_download_file_by_name",
+      "s3_get"
+    ]
+    allowed_origins = [
+      "https://*.dora.im"
+    ]
+    max_age_seconds = 86400
+  }
+}
+resource "b2_application_key" "pastebin_media" {
+  key_name  = "pastebin-media"
+  bucket_id = b2_bucket.pastebin_media.id
+  capabilities = [
+    "deleteFiles",
+    "listAllBucketNames",
+    "listBuckets",
+    "listFiles",
+    "readBucketEncryption",
+    "readBuckets",
+    "readFiles",
+    "shareFiles",
+    "writeBucketEncryption",
+    "writeFiles"
+  ]
+}
+output "b2_pastebin_media_bucket_name" {
+  value     = b2_bucket.pastebin_media.bucket_name
+  sensitive = false
+}
+output "b2_pastebin_media_key_id" {
+  value     = b2_application_key.pastebin_media.application_key_id
+  sensitive = false
+}
+output "b2_pastebin_media_access_key" {
+  value     = b2_application_key.pastebin_media.application_key
+  sensitive = true
+}

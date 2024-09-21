@@ -1590,6 +1590,32 @@
         "type": "github"
       }
     },
+    "pastebin": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1726849009,
+        "narHash": "sha256-a/mIijgBqUjVzcaFXyTRJHOnvCSpNx9E0gC0x3+l8qQ=",
+        "owner": "linyinfeng",
+        "repo": "pastebin",
+        "rev": "9e1c8014b9d97581ace4401e26a0111bb835b93b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "linyinfeng",
+        "repo": "pastebin",
+        "type": "github"
+      }
+    },
     "poetry2nix": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -1714,6 +1740,7 @@
         "nixpkgs-terraform-providers-bin": "nixpkgs-terraform-providers-bin",
         "nur": "nur",
         "nvfetcher": "nvfetcher",
+        "pastebin": "pastebin",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",
         "sops-nix": "sops-nix",
         "systems": "systems_3",
