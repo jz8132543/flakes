@@ -106,6 +106,10 @@
     }
   },
   "service_cname_mappings": {
+    "admin.m": {
+      "on": "fra1",
+      "proxy": false
+    },
     "alist": {
       "on": "fra1",
       "proxy": false
@@ -115,6 +119,10 @@
       "proxy": false
     },
     "ldap": {
+      "on": "fra1",
+      "proxy": false
+    },
+    "m": {
       "on": "fra1",
       "proxy": false
     },
