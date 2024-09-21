@@ -230,7 +230,7 @@ lib.mkMerge [
           service = "element";
         };
         matrix-admin = {
-          rule = "Host(`m-admin.dora.im`)";
+          rule = "Host(`admin.m.dora.im`)";
           entryPoints = [ "https" ];
           service = "matrix-admin";
         };
@@ -261,7 +261,7 @@ lib.mkMerge [
           root = element-web-config;
         };
       };
-      virtualHosts."m-admin.*" = {
+      virtualHosts."admin.m.*" = {
         locations."/" = {
           root = pkgs.synapse-admin;
         };

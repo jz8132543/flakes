@@ -13,6 +13,7 @@
       nixosModules.services.doraim
       nixosModules.services.ntfy
       nixosModules.services.sogo
+      nixosModules.services.matrix
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })
       (import nixosModules.services.alist { })

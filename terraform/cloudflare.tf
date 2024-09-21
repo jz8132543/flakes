@@ -81,6 +81,8 @@ locals {
     atuin   = { on = "fra1", proxy = false }
     ntfy    = { on = "fra1", proxy = false }
     mail    = { on = "fra1", proxy = false }
+    m       = { on = "fra1", proxy = false }
+    admin.m = { on = "fra1", proxy = false }
     searx   = { on = "hkg4", proxy = false }
     morty   = { on = "hkg4", proxy = false }
   }
