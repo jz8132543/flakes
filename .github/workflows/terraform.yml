@@ -91,20 +91,20 @@ jobs:
         with:
           name: logs-plan
           path: logs
-      - name: Notify
-        if: steps.plan.outputs.diff == 'true'
-        run: |
-          set -e
-          nix develop ./flakes --command sops exec-file infrastructure-secrets/terraform-outputs.yaml 'yq ".ntfy_sh_topic_secret.value" "{}" > ntfy-topic-secret'
-          stdout_log_url=$(curl -F "c=@logs/terraform-plan.stdout.log" https://pb.dora.im)
-          stderr_log_url=$(curl -F "c=@logs/terraform-plan.stderr.log" https://pb.dora.im)
-          curl \
-            --header "Title: Terraform" \
-            --header "Tags: terraform" \
-            --data "Terraform planned
-          stdout: $stdout_log_url
-          stderr: $stderr_log_url" \
-            "https://ntfy.sh/main-$(cat ntfy-topic-secret)"
+      # - name: Notify
+      #   if: steps.plan.outputs.diff == 'true'
+      #   run: |
+      #     set -e
+      #     nix develop ./flakes --command sops exec-file infrastructure-secrets/terraform-outputs.yaml 'yq ".ntfy_sh_topic_secret.value" "{}" > ntfy-topic-secret'
+      #     stdout_log_url=$(curl -F "c=@logs/terraform-plan.stdout.log" https://pb.dora.im)
+      #     stderr_log_url=$(curl -F "c=@logs/terraform-plan.stderr.log" https://pb.dora.im)
+      #     curl \
+      #       --header "Title: Terraform" \
+      #       --header "Tags: terraform" \
+      #       --data "Terraform planned
+      #     stdout: $stdout_log_url
+      #     stderr: $stderr_log_url" \
+      #       "https://ntfy.sh/main-$(cat ntfy-topic-secret)"
 
   apply:
     runs-on: ubuntu-latest
