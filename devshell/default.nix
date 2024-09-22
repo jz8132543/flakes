@@ -41,6 +41,7 @@
       nil
       alejandra
       vscode-langservers-extracted
+      yaml-language-server
       terraform-ls
       tflint
       efm-langserver
