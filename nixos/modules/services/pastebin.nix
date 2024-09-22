@@ -19,22 +19,30 @@
   # };
   systemd.services.pastebin = {
     script = ''
-      # export AWS_ACCESS_KEY_ID=$(cat "$CREDENTIALS_DIRECTORY/key-id")
-      # export AWS_SECRET_ACCESS_KEY=$(cat "$CREDENTIALS_DIRECTORY/access-key")
+      export AWS_ACCESS_KEY_ID=$(cat "$CREDENTIALS_DIRECTORY/key-id")
+      export AWS_SECRET_ACCESS_KEY=$(cat "$CREDENTIALS_DIRECTORY/access-key")
       ${pkgs.pastebin}/bin/pastebin \
-        # --endpoint-host minio.li7g.com \
-        # --bucket pastebin \
+        --endpoint-host s3.eu-central-003.backblazeb2.com \
+        --bucket doraim-pastebin-media \
         --addressing-style path \
         --port "${toString config.ports.pastebin}"
     '';
     serviceConfig = {
       DynamicUser = true;
-      # LoadCredential = [
-      #   "key-id:${config.sops.secrets."minio_pastebin_key_id".path}"
-      #   "access-key:${config.sops.secrets."minio_pastebin_access_key".path}"
-      # ];
+      LoadCredential = [
+        "key-id:${config.sops.secrets."b2_pastebin_media_key_id".path}"
+        "access-key:${config.sops.secrets."b2_pastebin_media_access_key".path}"
+      ];
     };
     wantedBy = [ "multi-user.target" ];
+  };
+  sops.secrets."b2_pastebin_media_access_key" = {
+    terraformOutput.enable = true;
+    restartUnits = [ "pastebin.service" ];
+  };
+  sops.secrets."b2_pastebin_media_key_id" = {
+    terraformOutput.enable = true;
+    restartUnits = [ "pastebin.service" ];
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {

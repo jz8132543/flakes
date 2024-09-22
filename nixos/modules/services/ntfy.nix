@@ -12,13 +12,13 @@
       base-url = "https://ntfy.${config.networking.domain}";
       listen-http = "127.0.0.1:${toString config.ports.ntfy}";
       behind-proxy = true;
-      cache-file = "/var/lib/ntfy-sh/cache.db";
-      auth-file = "/var/lib/ntfy-sh/auth.db";
+      # cache-file = "/var/lib/ntfy-sh/cache.db";
+      # auth-file = "/var/lib/ntfy-sh/auth.db";
       auth-default-access = "deny-all";
-      attachment-cache-dir = "/var/lib/ntfy-sh/attachments";
-      enable-login = true;
-      enable-reservations = true;
-      upstream-base-url = "https://ntfy.sh";
+      # attachment-cache-dir = "/var/lib/ntfy-sh/attachments";
+      # enable-login = true;
+      # enable-reservations = true;
+      # upstream-base-url = "https://ntfy.sh";
     };
   };
 

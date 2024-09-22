@@ -122,10 +122,6 @@
       "on": "fra1",
       "proxy": false
     },
-    "m": {
-      "on": "fra1",
-      "proxy": false
-    },
     "mail": {
       "on": "fra1",
       "proxy": false
@@ -139,6 +135,10 @@
       "proxy": false
     },
     "ntfy": {
+      "on": "fra1",
+      "proxy": false
+    },
+    "pb": {
       "on": "fra1",
       "proxy": false
     },

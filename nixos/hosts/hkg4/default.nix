@@ -10,6 +10,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.doraim
       nixosModules.services.derp
       nixosModules.services.proxy
       nixosModules.services.tuic

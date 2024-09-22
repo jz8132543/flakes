@@ -28,6 +28,15 @@ let
       key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
       owned = true;
     };
+    # TODO: delete
+    ams0 = {
+      key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
+      owned = true;
+    };
+    dfw0 = {
+      key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
+      owned = true;
+    };
   };
   allHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) hosts;
 

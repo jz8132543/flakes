@@ -82,7 +82,6 @@ locals {
     ntfy      = { on = "fra1", proxy = false }
     mail      = { on = "fra1", proxy = false }
     pb        = { on = "fra1", proxy = false }
-    m         = { on = "fra1", proxy = false }
     "admin.m" = { on = "fra1", proxy = false }
     searx     = { on = "hkg4", proxy = false }
     morty     = { on = "hkg4", proxy = false }
@@ -189,6 +188,24 @@ resource "cloudflare_record" "dora_mx_fra1" {
 }
 
 # Machines
+
+# RFC2782
+resource "cloudflare_record" "dora_matrix" {
+  name    = "m"
+  proxied = false
+  ttl     = 1
+  type    = "A"
+  content = "176.116.18.242"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_record" "dora_matrix_v6" {
+  name    = "m"
+  proxied = false
+  ttl     = 1
+  type    = "AAAA"
+  content = "2a04:e8c0:18:619::"
+  zone_id = cloudflare_zone.im_dora.id
+}
 
 resource "cloudflare_record" "dora_tippy" {
   name    = "tippy"
