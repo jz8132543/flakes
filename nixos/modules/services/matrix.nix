@@ -32,8 +32,8 @@ lib.mkMerge [
         owner = "matrix-synapse";
         group = "acme";
       };
-      "b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
-      "b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
+      # "b2_synapse_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
+      # "b2_synapse_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
     };
     services.matrix-synapse = {
       enable = true;
