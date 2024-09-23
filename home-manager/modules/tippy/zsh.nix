@@ -1,6 +1,7 @@
 {
   pkgs,
   config,
+  lib,
   ...
 }:
 let
@@ -8,6 +9,8 @@ let
     inherit (config.home.catppuccin) variant;
     inherit (config.home.catppuccin) accent;
   };
+  toTitle =
+    str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
 in
 with config.home.catppuccin;
 {
@@ -44,12 +47,13 @@ with config.home.catppuccin;
       enable = true;
       config = {
         pager = "less -FR";
+        # theme = "Catppuccin\ ${toTitle flavor}";
         theme = "catppuccin-${flavor}";
       };
       themes = {
         "catppuccin-${config.home.catppuccin.flavor}" = {
           src = catppuccin;
-          file = "bat/Catppuccin-${flavor}.tmTheme";
+          file = "bat/Catppuccin\ ${toTitle flavor}.tmTheme";
         };
       };
     };
