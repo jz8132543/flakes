@@ -146,6 +146,10 @@
       "on": "fra1",
       "proxy": false
     },
+    "perplexica-backend": {
+      "on": "hkg4",
+      "proxy": false
+    },
     "searx": {
       "on": "hkg4",
       "proxy": false

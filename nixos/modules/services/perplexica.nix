@@ -1,7 +1,15 @@
-{ config, ... }:
 {
+  config,
+  nixosModules,
+  ...
+}:
+{
+  imports = [
+    nixosModules.services.podman
+  ];
   virtualisation.oci-containers.containers = {
     perplexica-backend = {
+      hostname = "perplexica-backend";
       image = "elestio4test/perplexica-backend";
       autoStart = true;
       volumes = [
@@ -10,11 +18,14 @@
       ports = [ "127.0.0.1:${toString config.ports.perplexica-backend}:3001" ];
     };
     perplexica-frontend = {
+      hostname = "perplexica-backend";
       image = "elestio4test/perplexica-frontend";
       autoStart = true;
       labels = {
-        NEXT_PUBLIC_API_URL = "http://127.0.0.1:${toString config.ports.perplexica-backend}/api";
-        NEXT_PUBLIC_WS_URL = "ws://127.0.0.1:${toString config.ports.perplexica-backend}";
+        # NEXT_PUBLIC_API_URL = "http://127.0.0.1:${toString config.ports.perplexica-backend}/api";
+        # NEXT_PUBLIC_WS_URL = "ws://127.0.0.1:${toString config.ports.perplexica-backend}";
+        NEXT_PUBLIC_API_URL = "https://perplexica-backend.${config.networking.domain}/api";
+        NEXT_PUBLIC_WS_URL = "wss://perplexica-backend.${config.networking.domain}";
       };
       ports = [ "127.0.0.1:${toString config.ports.perplexica-frontend}:3000" ];
     };
@@ -38,16 +49,25 @@
   };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
-      perplexica = {
+      perplexica-frontend = {
         rule = "Host(`p.${config.networking.domain}`)";
         entryPoints = [ "https" ];
-        service = "perplexica";
+        service = "perplexica-frontend";
+      };
+      perplexica-backend = {
+        rule = "Host(`perplexica-backend.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "perplexica-backend";
       };
     };
     services = {
-      perplexica.loadBalancer = {
+      perplexica-frontend.loadBalancer = {
         passHostHeader = true;
         servers = [ { url = "http://localhost:${toString config.ports.perplexica-frontend}"; } ];
+      };
+      perplexica-backend.loadBalancer = {
+        passHostHeader = true;
+        servers = [ { url = "http://localhost:${toString config.ports.perplexica-backend}"; } ];
       };
     };
   };
