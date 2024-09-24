@@ -5,7 +5,10 @@
   ...
 }:
 {
-  imports = [ nixosModules.services.aria2 ];
+  imports = [
+    nixosModules.services.aria2
+    nixosModules.services.podman
+  ];
   services.mihomo = {
     enable = true;
     tunMode = true;

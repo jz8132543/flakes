@@ -30,6 +30,17 @@
           address = ":443";
           forwardedHeaders.insecure = true;
           proxyProtocol.insecure = true;
+          transport = {
+            # lifeCycle = {
+            #   requestAcceptGraceTimeout = 0;
+            #   graceTimeOut = 5;
+            # };
+            respondingTimeouts = {
+              readTimeout = 180;
+              writeTimeout = 180;
+              idleTimeout = 180;
+            };
+          };
           http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
           http3 = { };
           # asDefault = true;
@@ -74,6 +85,10 @@
         sniStrict = true;
       };
       http = {
+        middlewares.limit.buffering = {
+          maxRequestBodyBytes = 4 * 1024 * 1024;
+          maxResponseBodyBytes = 4 * 1024 * 1024;
+        };
         routers = {
           ping = {
             rule = "Host(`${config.networking.fqdn}`) && Path(`/ping`)";

@@ -85,6 +85,7 @@ locals {
     "admin.m" = { on = "fra1", proxy = false }
     searx     = { on = "hkg4", proxy = false }
     morty     = { on = "hkg4", proxy = false }
+    p         = { on = "hkg4", proxy = false }
   }
 }
 output "service_cname_mappings" {

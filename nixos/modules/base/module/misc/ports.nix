@@ -113,6 +113,8 @@
       alist = 5244;
       atuin = 3310;
       ntfy = 1161;
+      perplexica-frontend = 3002;
+      perplexica-backend = 3003;
     };
   };
 }

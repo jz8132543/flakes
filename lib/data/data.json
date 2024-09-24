@@ -138,6 +138,10 @@
       "on": "fra1",
       "proxy": false
     },
+    "p": {
+      "on": "hkg4",
+      "proxy": false
+    },
     "pb": {
       "on": "fra1",
       "proxy": false
