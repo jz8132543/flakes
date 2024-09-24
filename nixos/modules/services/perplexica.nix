@@ -10,7 +10,7 @@
   virtualisation.oci-containers.containers = {
     perplexica-backend = {
       hostname = "perplexica-backend";
-      image = "elestio4test/perplexica-backend";
+      image = "hajowieland/perplexica-backend";
       autoStart = true;
       volumes = [
         "${config.sops.templates.perplexica.path}:/home/perplexica/config.toml"
@@ -19,14 +19,17 @@
     };
     perplexica-frontend = {
       hostname = "perplexica-backend";
-      image = "elestio4test/perplexica-frontend";
+      image = "hajowieland/perplexica-frontend";
       autoStart = true;
-      labels = {
-        # NEXT_PUBLIC_API_URL = "http://127.0.0.1:${toString config.ports.perplexica-backend}/api";
-        # NEXT_PUBLIC_WS_URL = "ws://127.0.0.1:${toString config.ports.perplexica-backend}";
+      environment = {
         NEXT_PUBLIC_API_URL = "https://perplexica-backend.${config.networking.domain}/api";
         NEXT_PUBLIC_WS_URL = "wss://perplexica-backend.${config.networking.domain}";
       };
+      cmd = [
+        "/bin/sh"
+        "-c"
+        "yarn build; yarn start"
+      ];
       ports = [ "127.0.0.1:${toString config.ports.perplexica-frontend}:3000" ];
     };
   };
@@ -44,7 +47,7 @@
 
       [API_ENDPOINTS]
       SEARXNG = "${config.services.searx.settings.server.base_url}" # SearxNG API URL
-      OLLAMA = "" # Ollama API URL - http://host.docker.internal:11434
+      OLLAMA = "https://ollama.${config.networking.domain}" # Ollama API URL - http://host.docker.internal:11434
     '';
   };
   services.traefik.dynamicConfigOptions.http = {

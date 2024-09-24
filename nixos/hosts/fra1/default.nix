@@ -14,6 +14,7 @@
       nixosModules.services.ntfy
       nixosModules.services.sogo
       nixosModules.services.pastebin
+      nixosModules.services.ollama
       (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })

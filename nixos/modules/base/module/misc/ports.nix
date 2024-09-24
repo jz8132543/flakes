@@ -115,6 +115,8 @@
       ntfy = 1161;
       perplexica-frontend = 3002;
       perplexica-backend = 3003;
+      ollama-api = 11434;
+      ollama-ui = 11435;
     };
   };
 }

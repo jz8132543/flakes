@@ -37,6 +37,10 @@ in
         safe_search = 0;
         autocomplete = "google"; # Existing autocomplete backends: "dbpedia", "duckduckgo", "google", "startpage", "swisscows", "qwant", "wikipedia" - leave blank to turn it off by default
         default_lang = "zh-CN";
+        formats = [
+          "html"
+          "json"
+        ];
       };
       server = {
         base_url = "https://${url}";
