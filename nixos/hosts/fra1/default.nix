@@ -10,6 +10,7 @@
       nixosModules.services.headscale
       nixosModules.services.derp
       nixosModules.services.postgres
+      nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
       nixosModules.services.sogo

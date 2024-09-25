@@ -84,6 +84,8 @@ locals {
     pb                 = { on = "fra1", proxy = false }
     ollama             = { on = "fra1", proxy = false }
     ollama-ui          = { on = "fra1", proxy = false }
+    minio              = { on = "fra1", proxy = false }
+    minio-console      = { on = "fra1", proxy = false }
     "admin.m"          = { on = "fra1", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     morty              = { on = "hkg4", proxy = false }

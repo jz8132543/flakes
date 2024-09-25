@@ -126,6 +126,14 @@
       "on": "fra1",
       "proxy": false
     },
+    "minio": {
+      "on": "fra1",
+      "proxy": false
+    },
+    "minio-console": {
+      "on": "fra1",
+      "proxy": false
+    },
     "morty": {
       "on": "hkg4",
       "proxy": false

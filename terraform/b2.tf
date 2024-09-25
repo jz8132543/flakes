@@ -137,10 +137,15 @@ resource "b2_bucket" "pastebin_media" {
   cors_rules {
     cors_rule_name = "allow-media-on-dora-im"
     allowed_operations = [
-      "s3_head",
-      "b2_download_file_by_id",
       "b2_download_file_by_name",
-      "s3_get"
+      "b2_download_file_by_id",
+      "b2_upload_file",
+      "b2_upload_part",
+      "s3_delete",
+      "s3_get",
+      "s3_head",
+      "s3_post",
+      "s3_put"
     ]
     allowed_origins = [
       "https://*.dora.im"

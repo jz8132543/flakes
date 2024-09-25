@@ -53,6 +53,7 @@
       nvfetcher
 
       ruby
+      minio-client
     ];
   };
 }
