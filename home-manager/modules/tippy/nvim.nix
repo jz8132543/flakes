@@ -15,6 +15,15 @@
     withPython3 = false;
     defaultEditor = true;
     coc.enable = false;
+    extraLuaPackages =
+      p: with p; [
+        luarocks
+        magick
+      ];
+    extraPackages = with pkgs; [
+      clang
+      imagemagick
+    ];
   };
 
   home.sessionVariables = {
