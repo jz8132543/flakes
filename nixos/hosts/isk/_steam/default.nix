@@ -8,7 +8,7 @@ let
 in
 {
   imports = [
-    ./dst
+    # ./dst
   ];
 
   programs.steam.enable = true;

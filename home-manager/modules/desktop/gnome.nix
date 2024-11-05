@@ -44,7 +44,6 @@ in
     ++ (with pkgs; [
       blackbox-terminal
       dolphin
-      k3b
       orchis-theme
     ]);
 
