@@ -26,8 +26,8 @@ let
     # withWallpapers = true;
   };
   catppuccin-kvantum = pkgs.catppuccin-kvantum.override {
-    accent = toTitle config.home.catppuccin.accent;
-    variant = toTitle config.home.catppuccin.variant;
+    inherit (config.home.catppuccin) accent;
+    inherit (config.home.catppuccin) variant;
   };
   inherit (lib.hm.gvariant)
     mkArray

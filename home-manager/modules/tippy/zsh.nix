@@ -41,7 +41,7 @@ with config.home.catppuccin;
       enable = true;
       enableZshIntegration = true;
       git = true;
-      icons = true;
+      icons = "auto";
     };
     bat = {
       enable = true;

@@ -25,7 +25,7 @@
     };
     settings = {
       hostname = "sso.dora.im";
-      proxy = "edge";
+      proxy-headers = "edge";
       http-host = "127.0.0.1";
       http-port = config.ports.keycloak;
     };
