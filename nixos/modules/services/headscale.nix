@@ -9,6 +9,7 @@
       enable = true;
       port = config.ports.headscale;
       settings = {
+        # TODO
         server_url = "https://ts.dora.im";
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
