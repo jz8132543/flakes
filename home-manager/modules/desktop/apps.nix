@@ -8,7 +8,6 @@
     tdesktop
     ffmpeg
     thunderbird
-    neovide
     okular
     wpsoffice
     config.nur.repos.xddxdd.baidupcs-go
