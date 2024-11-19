@@ -11,7 +11,7 @@
     serviceConfig = {
       Restart = "always";
       DynamicUser = true;
-      ExecStart = "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
+      ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
       # ExecStart = "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev";
       # if !config.environment.isNAT
       # then "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev"
