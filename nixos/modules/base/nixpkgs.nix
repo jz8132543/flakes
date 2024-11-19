@@ -21,10 +21,10 @@ let
         inherit (inputs'.nix-gc-s3.packages) nix-gc-s3;
         # inherit (inputs'.headscale.packages) headscale;
         clash2sing-box = inputs'.clash2sing-box.packages.default;
-        tailscale = prev.tailscale.overrideAttrs (old: {
-          # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
-          subPackages = old.subPackages ++ [ "cmd/derper" ] ++ [ "cmd/derpprobe" ];
-        });
+        # tailscale = prev.tailscale.overrideAttrs (old: {
+        #   # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
+        #   subPackages = old.subPackages ++ [ "cmd/derper" ] ++ [ "cmd/derpprobe" ];
+        # });
       }
     )
   ];
