@@ -25,11 +25,15 @@ let
           # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
           # subPackages = old.subPackages ++ [ "cmd/derper" ] ++ [ "cmd/derpprobe" ];
           subPackages = [
-            # "cmd/tailscale"
+            "cmd/tailscale"
             "cmd/tailscaled"
             "cmd/derper"
             "cmd/stunc"
             "cmd/hello"
+          ];
+          postInstall = concatStrings [
+            "alias ln=echo\n"
+            old.postInstall
           ];
         });
       }
