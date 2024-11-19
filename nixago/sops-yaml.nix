@@ -25,7 +25,7 @@ let
       owned = true;
     };
     fra1 = {
-      key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
+      key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
       owned = true;
     };
     # TODO: delete
