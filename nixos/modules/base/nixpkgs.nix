@@ -2,6 +2,7 @@
   inputs,
   getSystem,
   config,
+  lib,
   ...
 }:
 let
@@ -31,7 +32,7 @@ let
             "cmd/stunc"
             "cmd/hello"
           ];
-          postInstall = concatStrings [
+          postInstall = lib.strings.concatStrings [
             "alias ln=echo\n"
             old.postInstall
           ];
