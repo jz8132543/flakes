@@ -25,7 +25,7 @@ let
           # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
           # subPackages = old.subPackages ++ [ "cmd/derper" ] ++ [ "cmd/derpprobe" ];
           subPackages = [
-            "cmd/tailscale"
+            # "cmd/tailscale"
             "cmd/tailscaled"
             "cmd/derper"
             "cmd/stunc"
