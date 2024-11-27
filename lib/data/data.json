@@ -118,6 +118,10 @@
       "on": "fra1",
       "proxy": false
     },
+    "jellyfin": {
+      "on": "fra1",
+      "proxy": false
+    },
     "ldap": {
       "on": "fra1",
       "proxy": false

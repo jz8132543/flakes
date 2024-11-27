@@ -1,4 +1,4 @@
-{ ... }:
+{ config, ... }:
 let
   portNumber = 8096;
 in
