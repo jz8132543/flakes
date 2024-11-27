@@ -87,6 +87,7 @@ locals {
     minio              = { on = "fra1", proxy = false }
     minio-console      = { on = "fra1", proxy = false }
     "admin.m"          = { on = "fra1", proxy = false }
+    jellyfin           = { on = "fra1", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     morty              = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
