@@ -146,6 +146,10 @@
       "on": "fra1",
       "proxy": false
     },
+    "murmur": {
+      "on": "fra1",
+      "proxy": false
+    },
     "ntfy": {
       "on": "fra1",
       "proxy": false

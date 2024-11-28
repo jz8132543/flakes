@@ -17,7 +17,7 @@
       nixosModules.services.pastebin
       nixosModules.services.ollama
       nixosModules.services.jellyfin
-      nixosModules.services.teamspeak
+      nixosModules.services.murmur
       (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })
