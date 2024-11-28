@@ -35,13 +35,28 @@ in
       # ExecStartPre = "/usr/bin/env mkdir -p /var/cache/jellyfin/mount-alist";
       ExecStart = ''
         ${pkgs.rclone}/bin/rclone \
-        --allow-other=true \
         --config=${config.sops.templates."mount-alist".path} \
-        --vfs-cache-mode writes \
-        --ignore-checksum \
+        --use-mmap \
+        --allow-non-empty \
+        --vfs-cache-mode=full \
+        --vfs-cache-max-age=1h \
+        --vfs-cache-max-size=5G \
+        --buffer-size=16M \
+        --dir-cache-time=5m \
+        --poll-interval=1m \
+        --vfs-read-ahead=128M \
+        --network-mode \
+        --tpslimit=10 \
+        --tpslimit-burst=10 \
+        --transfers=4 \
+        --vfs-read-chunk-size=5M \
+        --vfs-read-chunk-size-limit=50M \
+        --log-file=/var/log/rclone.log \
+        --allow-other=true \
+        --header=Referer: \
         mount alist: /mnt/alist -vv
       '';
-      ExecStop = "/bin/fusermount -u /mnt/alist";
+      ExecStop = "/run/wrappers/bin/fusermount -u /mnt/alist";
     };
     wantedBy = [ "default.target" ];
   };
