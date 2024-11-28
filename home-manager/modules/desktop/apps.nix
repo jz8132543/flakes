@@ -22,6 +22,8 @@
     logseq
     zotero
     libreoffice
+    teamspeak5_client
+    mumble
   ];
   programs = {
     # TODO
