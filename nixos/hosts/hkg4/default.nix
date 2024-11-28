@@ -17,6 +17,7 @@
       nixosModules.services.searx
       nixosModules.services.perplexica
       nixosModules.services.rustdesk
+      nixosModules.services.murmur
     ];
   nix.gc.options = lib.mkForce "-d";
 }

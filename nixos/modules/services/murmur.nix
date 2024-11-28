@@ -12,5 +12,6 @@
       welcometext = "<br />Welcome to <b>mumble.${config.networking.domain}</b>";
       sslCert = "${certDir}/cert.pem";
       sslKey = "${certDir}/key.pem";
+      group = "acme";
     };
 }
