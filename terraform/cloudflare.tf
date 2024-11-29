@@ -76,7 +76,6 @@ locals {
     ts                 = { on = "fra1", proxy = false }
     ldap               = { on = "fra1", proxy = false }
     sso                = { on = "fra1", proxy = false }
-    alist              = { on = "fra1", proxy = false }
     mta-sts            = { on = "fra1", proxy = false }
     atuin              = { on = "fra1", proxy = false }
     ntfy               = { on = "fra1", proxy = false }
@@ -88,6 +87,7 @@ locals {
     minio-console      = { on = "fra1", proxy = false }
     "admin.m"          = { on = "fra1", proxy = false }
     jellyfin           = { on = "fra1", proxy = false }
+    alist              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     morty              = { on = "hkg4", proxy = false }

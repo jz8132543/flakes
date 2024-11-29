@@ -18,6 +18,8 @@
       nixosModules.services.perplexica
       nixosModules.services.rustdesk
       nixosModules.services.murmur
+      nixosModules.services.teamspeak
+      (import nixosModules.services.alist { })
     ];
   nix.gc.options = lib.mkForce "-d";
 }
