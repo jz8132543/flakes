@@ -19,6 +19,7 @@
       nixosModules.services.rustdesk
       nixosModules.services.murmur
       nixosModules.services.teamspeak
+      nixosModules.services.jellyfin
       (import nixosModules.services.alist { })
     ];
   nix.gc.options = lib.mkForce "-d";

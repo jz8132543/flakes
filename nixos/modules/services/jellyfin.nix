@@ -1,6 +1,28 @@
-{ config, pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   portNumber = 8096;
+  preScript =
+    let
+      app = pkgs.writeShellApplication {
+        name = "preScript";
+        runtimeInputs = with pkgs; [
+          coreutils
+          util-linux
+        ];
+        text = ''
+          # /run/wrappers/bin/fusermount -u /mnt/alist || true
+          umount /mnt/alist || true
+          /usr/bin/env mkdir -p /mnt/alist || true
+          exit 0
+        '';
+      };
+    in
+    lib.getExe app;
 in
 {
   services.jellyfin.enable = true;
@@ -32,7 +54,7 @@ in
       User = "root";
       Type = "notify";
       Restart = "on-failure";
-      # ExecStartPre = "/usr/bin/env mkdir -p /var/cache/jellyfin/mount-alist";
+      ExecStartPre = preScript;
       ExecStart = ''
         ${pkgs.rclone}/bin/rclone \
         --config=${config.sops.templates."mount-alist".path} \
@@ -40,7 +62,7 @@ in
         --allow-non-empty \
         --vfs-cache-mode=full \
         --vfs-cache-max-age=1h \
-        --vfs-cache-max-size=5G \
+        --vfs-cache-max-size=500M \
         --buffer-size=16M \
         --dir-cache-time=5m \
         --poll-interval=1m \
@@ -49,14 +71,14 @@ in
         --tpslimit=10 \
         --tpslimit-burst=10 \
         --transfers=4 \
-        --vfs-read-chunk-size=5M \
-        --vfs-read-chunk-size-limit=50M \
+        --vfs-read-chunk-size=4M \
+        --vfs-read-chunk-size-limit=64M \
         --log-file=/var/log/rclone.log \
         --allow-other=true \
         --header=Referer: \
         mount alist: /mnt/alist -vv
       '';
-      ExecStop = "/run/wrappers/bin/fusermount -u /mnt/alist";
+      ExecStop = "/run/wrappers/bin/fusermount -u /mnt/alist || true";
     };
     wantedBy = [ "default.target" ];
   };
@@ -74,6 +96,11 @@ in
   sops.secrets = {
     "alist/app/username" = { };
     "alist/app/password-rclone" = { };
+  };
+  environment.global-persistence = {
+    directories = [
+      "/var/lib/jellyfin"
+    ];
   };
   systemd.packages = with pkgs; [ rclone ];
 }
