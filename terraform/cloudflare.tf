@@ -79,7 +79,6 @@ locals {
     mta-sts            = { on = "fra1", proxy = false }
     atuin              = { on = "fra1", proxy = false }
     ntfy               = { on = "fra1", proxy = false }
-    mail               = { on = "fra1", proxy = false }
     pb                 = { on = "fra1", proxy = false }
     ollama             = { on = "fra1", proxy = false }
     ollama-ui          = { on = "fra1", proxy = false }
@@ -149,12 +148,20 @@ resource "cloudflare_record" "_matrix_tcp" {
 
 # mail
 
+resource "cloudflare_record" "mail" {
+  name    = "mail"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "glacier.mxrouting.net"
+  zone_id = cloudflare_zone.im_dora.id
+}
 resource "cloudflare_record" "dora_dkim" {
-  name    = "default._domainkey"
+  name    = "x._domainkey"
   proxied = false
   ttl     = 1
   type    = "TXT"
-  content = "v=DKIM1; h=sha256; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzuafKXbacHeSP/2YgMN9YntpX3e5OhU+48qRliq3HDiQu6yDoEF7jVrXsK6MPgFggv7qRG+DdGGAn6Ucwjb89RESnFSujLsrhyZO6GhGcuF8brp/VSJxSBTrdoz1IQQtBjSWjREeT1wITP7Pktol4jMvXc//FBBcSKJ85aNWxLfT3L+lJII+hAPShlaB8AsUGnu2I/l1ec6/Eet5RSqI2jnmsx2qKxGOhyc0FfrYZFdnSRDDxUNvbNZuTM8nGTmDm1YWLFBHr8Ugjju4cyXFm61ifDpXcFRed2Bb6tEW8m8a1tLkpQySF1REPvtgk0YCZ+2CbHZSQA5V0X1VfjEA2QIDAQAB"
+  content = "v=DKIM1;k=rsa;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnsLpb6J3ymivQlMqzN4oKAxPNYWNpRvD8uM1e4lWlgl+jYl2lDEzB5nIewbH9HnQ6aWi0HVgku6jqllOR2Fqspc/DkSERA1gPeqfelP3V5+ligKNU8PG26G8X+9ibR11oG9Iz1bEXBJ6ws4aSADl+e5uCS3jzJydPxJEdYERXVQA0CiSi3FK3BWlUD3dxmE80qZwYW+pxqobO4gyozow8/C8sz19zy5igJLdM5TfhTaOC1mXxL33tSJwAPlpp8homAmMX0uecIVv/JUxs4ucgu6swMjYRSeuruq1e6APTi+f+0wvnZNEegB5xTvm7IcQ0z75wA+Uw6VE/4iFuov3lQIDAQAB"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -172,7 +179,7 @@ resource "cloudflare_record" "dora_spf" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  content = "v=spf1 mx mx:dora.im -all"
+  content = "v=spf1 include:mxlogin.com -all"
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -181,17 +188,25 @@ resource "cloudflare_record" "dora_mta_sts" {
   proxied = false
   ttl     = 1
   type    = "TXT"
-  content = "v=STSv1; id=2022621T010102"
+  content = "v=STSv1; id=20241201T010102"
   zone_id = cloudflare_zone.im_dora.id
 }
-
-resource "cloudflare_record" "dora_mx_fra1" {
+resource "cloudflare_record" "dora_mx_mxroute1" {
   name     = "dora.im"
   proxied  = false
   ttl      = 1
   type     = "MX"
-  content  = "fra1.dora.im"
-  priority = 1
+  content  = "glacier.mxrouting.net"
+  priority = 10
+  zone_id  = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_record" "dora_mx_mxroute2" {
+  name     = "dora.im"
+  proxied  = false
+  ttl      = 1
+  type     = "MX"
+  content  = "glacier-relay.mxrouting.net"
+  priority = 20
   zone_id  = cloudflare_zone.im_dora.id
 }
 

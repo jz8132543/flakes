@@ -126,10 +126,6 @@
       "on": "fra1",
       "proxy": false
     },
-    "mail": {
-      "on": "fra1",
-      "proxy": false
-    },
     "minio": {
       "on": "fra1",
       "proxy": false

@@ -50,14 +50,14 @@
             <displayName>Doraemon Mail</displayName>
             <displayShortName>Doraemon</displayShortName>
             <incomingServer type="imap">
-              <hostname>mail.dora.im</hostname>
+              <hostname>glacier.mxrouting.net</hostname>
               <port>993</port>
               <socketType>SSL</socketType>
               <authentication>password-cleartext</authentication>
               <username>%EMAILADDRESS%</username>
             </incomingServer>
             <outgoingServer type="smtp">
-              <hostname>mail.dora.im</hostname>
+              <hostname>glacier.mxrouting.net</hostname>
               <port>465</port>
               <socketType>SSL</socketType>
               <authentication>password-cleartext</authentication>
@@ -71,6 +71,7 @@
       version: STSv1
       mode: enforce
       mx: *.dora.im
+      mx: *.mxrouting.net
       max_age: 86400
     '';
   };
