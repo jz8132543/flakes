@@ -12,6 +12,7 @@
       nixosModules.services.traefik
       nixosModules.services.doraim
       nixosModules.services.derp
+      nixosModules.services.stun
       nixosModules.services.proxy
       nixosModules.services.tuic
       nixosModules.services.searx

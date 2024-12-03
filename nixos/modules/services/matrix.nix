@@ -121,10 +121,12 @@ lib.mkMerge [
           }
         ];
         turn_uris = [
-          "turns:shg0.dora.im?transport=udp"
-          "turns:shg0.dora.im?transport=tcp"
-          "turns:tippy.dora.im?transport=udp"
-          "turns:tippy.dora.im?transport=tcp"
+          "turns:hkg0.dora.im?transport=udp"
+          "turns:hkg0.dora.im?transport=tcp"
+          "turns:fra1.dora.im:3479?transport=udp"
+          "turns:fra1.dora.im:3479?transport=tcp"
+          "turns:hkg4.dora.im:3479?transport=udp"
+          "turns:hkg4.dora.im:3479?transport=tcp"
         ];
         turn_user_lifetime = "1h";
         turn_allow_guests = false;
@@ -190,33 +192,6 @@ lib.mkMerge [
       ];
       serviceConfig.Restart = lib.mkForce "always";
     };
-  }
-  #STUN
-  {
-    services.coturn = {
-      enable = true;
-      use-auth-secret = true;
-      static-auth-secret-file = config.sops.secrets."matrix/turn_shared_secret".path;
-      realm = "${config.networking.fqdn}";
-      min-port = 49152;
-      max-port = 49262;
-      no-cli = true;
-      cert = "${config.security.acme.certs."main".directory}/fullchain.pem";
-      pkey = "${config.security.acme.certs."main".directory}/key.pem";
-      no-tcp-relay = true;
-      extraConfig = ''
-        listening-ip=0.0.0.0
-        userdb=/var/lib/coturn/turnserver.db
-        no-tlsv1
-        no-tlsv1_1
-        no-rfc5780
-        no-stun-backward-compatibility
-        response-origin-only-with-rfc5780
-        no-multicast-peers
-      '';
-    };
-    systemd.services.coturn.serviceConfig.StateDirectory = "coturn";
-    systemd.services.coturn.serviceConfig.Group = lib.mkForce "acme";
   }
   # reverse proxy
   {

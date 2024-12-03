@@ -9,6 +9,7 @@
       nixosModules.services.traefik
       nixosModules.services.headscale
       nixosModules.services.derp
+      nixosModules.services.stun
       nixosModules.services.postgres
       nixosModules.services.minio
       nixosModules.services.doraim

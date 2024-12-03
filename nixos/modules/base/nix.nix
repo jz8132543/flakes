@@ -6,6 +6,7 @@
 {
   nix = {
     optimise.automatic = true;
+    channel.enable = false;
     gc = {
       automatic = true;
       # dates = "weekly"; # default: "03:15"
