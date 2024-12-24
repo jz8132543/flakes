@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   ...
 }:
 {
@@ -10,8 +9,8 @@
     thunderbird
     okular
     wpsoffice
-    config.nur.repos.xddxdd.baidupcs-go
-    # config.nur.repos.xddxdd.wechat-uos
+    nur.repos.xddxdd.baidupcs-go
+    # nur.repos.xddxdd.wechat-uos
     remmina
     element-desktop
     linux-wifi-hotspot

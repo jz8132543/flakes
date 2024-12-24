@@ -1,20 +1,29 @@
 {
   config,
   pkgs,
+  lib,
+  nixosModules,
   ...
 }:
 {
+  imports = [ nixosModules.services.derp ];
+  systemd.services.derper.serviceConfig.Environment =
+    lib.mkForce "HOSTNAME=ts.${config.networking.domain}";
   services = {
     headscale = {
       enable = true;
       port = config.ports.headscale;
+      # group = "acme";
       settings = {
         # TODO
-        server_url = "https://ts.dora.im";
+        server_url = "https://ts.${config.networking.domain}";
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
+        # tls_cert_path = "${config.security.acme.certs."main".directory}/full.pem";
+        # tls_key_path = "${config.security.acme.certs."main".directory}/key.pem";
         database = {
+          debug = true;
           type = "sqlite3";
           sqlite.path = "/var/lib/headscale/db.sqlite";
         };
@@ -58,6 +67,14 @@
         derp = {
           paths = [ "/run/credentials/headscale.service/map.yaml" ];
           urls = [ ];
+          # server = {
+          #   enabled = true;
+          #   region_id = 900;
+          #   hostname = "ts.${config.networking.domain}";
+          #   region_code = "HS";
+          #   region_name = "HeadScale";
+          #   stunonly = false;
+          # };
         };
         policy.path = "/run/credentials/headscale.service/acl.json";
       };
@@ -66,35 +83,41 @@
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       headscale = {
-        rule = "Host(`ts.dora.im`) && PathPrefix(`/`)";
+        # rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/`)";
+        rule = "Host(`ts.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         service = "headscale";
+        # priority = 500;
       };
       # headscale_metrics = {
-      #   rule = "Host(`ts.dora.im`) && PathPrefix(`/metrics`)";
+      #   rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/metrics`)";
       #   entryPoints = ["https"];
       #   service = "headscale_metrics";
       # };
-      headscale_grpc = {
-        rule = "Host(`ts.dora.im`) && PathPrefix(`/headscale.`)";
-        entryPoints = [ "https" ];
-        service = "headscale_grpc";
-      };
+      # headscale_grpc = {
+      #   rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/headscale.`)";
+      #   entryPoints = [ "https" ];
+      #   service = "headscale_grpc";
+      # };
     };
     services = {
       headscale.loadBalancer = {
         passHostHeader = true;
+        # servers = [
+        #   { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.port}"; }
+        # ];
+        # servers = [ { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.port}"; } ];
         servers = [ { url = "http://localhost:${toString config.services.headscale.port}"; } ];
-        # servers = [{url = "http://localhost:${toString config.ports.headscale_metrics}";}];
       };
       # headscale_metrics.loadBalancer = {
       #   passHostHeader = true;
       #   servers = [{url = "http://${toString config.services.headscale.settings.metrics_listen_addr}/metrics";}];
       # };
-      headscale_grpc.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "https://${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
-      };
+      # headscale_grpc.loadBalancer = {
+      #   passHostHeader = true;
+      #   servers = [ { url = "https://:${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
+      #   # servers = [ { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
+      # };
     };
   };
   systemd.services.headscale.serviceConfig = {

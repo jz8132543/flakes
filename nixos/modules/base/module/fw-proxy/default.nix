@@ -136,7 +136,7 @@ let
       external_controller_secrets=$(cat "${cfg.externalController.secretFile}")
       jq "
         .experimental.clash_api.secret = \"''${external_controller_secrets}\" |
-        .experimental.clash_api.external_ui = \"${config.nur.repos.linyinfeng.yacd}\"
+        .experimental.clash_api.external_ui = \"${pkgs.nur.repos.linyinfeng.yacd}\"
         " "$dir/config.json" | sponge "$dir/config.json"
 
       echo 'Restarting sing-box...'
@@ -639,12 +639,10 @@ with lib;
 
             jump filter
 
-            ${
-              lib.concatMapStringsSep "\n" (
-                level:
-                "meta l4proto { tcp, udp } socket cgroupv2 level ${toString level} @cgroups meta mark set ${toString cfg.tproxy.fwmark}"
-              ) (lib.range 1 cfg.tproxy.maxCgroupLevel)
-            }
+            ${lib.concatMapStringsSep "\n" (
+              level:
+              "meta l4proto { tcp, udp } socket cgroupv2 level ${toString level} @cgroups meta mark set ${toString cfg.tproxy.fwmark}"
+            ) (lib.range 1 cfg.tproxy.maxCgroupLevel)}
           }
 
           chain filter {

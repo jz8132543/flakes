@@ -257,7 +257,8 @@ in
     "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini { }).generate "kvantum.kvconfig" {
       General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
     };
-    "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}/share/Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
+    "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source =
+      "${catppuccin-kvantum.outPath}/share/Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
     # "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}";
   };
 

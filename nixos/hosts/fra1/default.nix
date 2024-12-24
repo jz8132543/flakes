@@ -8,7 +8,7 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.headscale
-      nixosModules.services.derp
+      # nixosModules.services.derp
       nixosModules.services.stun
       nixosModules.services.postgres
       nixosModules.services.minio
@@ -17,6 +17,7 @@
       nixosModules.services.sogo
       nixosModules.services.pastebin
       nixosModules.services.ollama
+      nixosModules.services.proxy
       # nixosModules.services.jellyfin
       (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })

@@ -151,9 +151,10 @@
         alias ${pkgs.sogo}/lib/GNUstep/SOGo/$1.SOGo/Resources/$2;
       '';
 
-      locations."~ ^/SOGo/so/ControlPanel/Products/[^/]*UI/Resources/.*\\.(jpg|png|gif|css|js)$".extraConfig = ''
-        alias ${pkgs.sogo}/lib/GNUstep/SOGo/$1.SOGo/Resources/$2;
-      '';
+      locations."~ ^/SOGo/so/ControlPanel/Products/[^/]*UI/Resources/.*\\.(jpg|png|gif|css|js)$".extraConfig =
+        ''
+          alias ${pkgs.sogo}/lib/GNUstep/SOGo/$1.SOGo/Resources/$2;
+        '';
     };
   };
 }

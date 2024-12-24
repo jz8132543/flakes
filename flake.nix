@@ -142,11 +142,11 @@
       inputs.flake-compat.follows = "flake-compat";
     };
     xremap-flake.url = "github:xremap/nix-flake";
-    # headscale = {
-    #   url = "github:juanfont/headscale";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    #   inputs.flake-utils.follows = "flake-utils";
-    # };
+    headscale = {
+      url = "github:juanfont/headscale";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
+    };
     tailscale = {
       url = "github:tailscale/tailscale";
       inputs.nixpkgs.follows = "nixpkgs";

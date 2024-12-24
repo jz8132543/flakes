@@ -1,10 +1,9 @@
 {
   pkgs,
   lib,
-  config,
   ...
 }:
-with config.nur.repos.xddxdd;
+with pkgs.nur.repos.xddxdd;
 {
   fonts.fontDir.enable = true;
 
@@ -74,19 +73,28 @@ with config.nur.repos.xddxdd;
     {
       defaultFonts = rec {
         emoji = [ "Blobmoji" ];
-        serif = [
-          "Noto Serif"
-          "Source Han Serif SC"
-        ] ++ emoji ++ serifFallback;
-        sansSerif = [
-          "Source Han Sans SC"
-          "Ubuntu"
-        ] ++ emoji ++ sansFallback;
-        monospace = [
-          "JetBrainsMono Nerd Font"
-          "Ubuntu Mono"
-          "Noto Sans Mono CJK SC"
-        ] ++ emoji ++ sansFallback;
+        serif =
+          [
+            "Noto Serif"
+            "Source Han Serif SC"
+          ]
+          ++ emoji
+          ++ serifFallback;
+        sansSerif =
+          [
+            "Source Han Sans SC"
+            "Ubuntu"
+          ]
+          ++ emoji
+          ++ sansFallback;
+        monospace =
+          [
+            "JetBrainsMono Nerd Font"
+            "Ubuntu Mono"
+            "Noto Sans Mono CJK SC"
+          ]
+          ++ emoji
+          ++ sansFallback;
       };
     };
 }

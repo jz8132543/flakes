@@ -41,7 +41,7 @@ lib.mkMerge [
       # plugins = with pkgs.python3.pkgs;
       #   [authlib]
       #   ++ [
-      #     #   config.nur.repos.linyinfeng.synapse-s3-storage-provider
+      #     #   pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
       #   ];
       settings = {
         server_name = "dora.im";
@@ -183,7 +183,7 @@ lib.mkMerge [
       };
     };
     environment.systemPackages = [
-      config.nur.repos.linyinfeng.synapse-s3-storage-provider
+      pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
     ];
     systemd.services."matrix-synapse" = {
       after = [

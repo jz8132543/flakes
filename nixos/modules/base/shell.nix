@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   ...
 }:
 {
@@ -18,7 +17,7 @@
       done
       autopair-fish
     ])
-    ++ (with config.nur.repos.linyinfeng.fishPlugins; [
+    ++ (with pkgs.nur.repos.linyinfeng.fishPlugins; [
       git
       bang-bang
       replay

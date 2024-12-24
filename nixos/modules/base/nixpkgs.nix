@@ -20,7 +20,7 @@ let
       in
       {
         inherit (inputs'.nix-gc-s3.packages) nix-gc-s3;
-        # inherit (inputs'.headscale.packages) headscale;
+        inherit (inputs'.headscale.packages) headscale;
         clash2sing-box = inputs'.clash2sing-box.packages.default;
         tailscale = prev.tailscale.overrideAttrs (old: {
           # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
@@ -39,10 +39,8 @@ let
       }
     )
   ];
-  lateFixes =
-    _final: _prev:
-    {
-    };
+  lateFixes = _final: _prev: {
+  };
   lastePackages = [
     (import "${config.lib.self.path}/pkgs").overlay
   ];

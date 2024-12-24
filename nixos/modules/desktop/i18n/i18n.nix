@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   lib,
   ...
 }:
@@ -14,8 +13,8 @@ in
     ibus.engines = with pkgs.ibus-engines; [
       (
         (rime.override {
-          librime = config.nur.repos.xddxdd.lantianCustomized.librime-with-plugins;
-          rimeDataPkgs = with config.nur.repos.xddxdd; [
+          librime = pkgs.nur.repos.xddxdd.lantianCustomized.librime-with-plugins;
+          rimeDataPkgs = with pkgs.nur.repos.xddxdd; [
             pkgs.rime-data
             rime-dict
             rime-aurora-pinyin

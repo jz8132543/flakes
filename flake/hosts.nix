@@ -13,7 +13,7 @@ let
 
   commonNixosModules = nixosModules.base.all ++ [
     inputs.home-manager.nixosModules.home-manager
-    inputs.nur.nixosModules.nur
+    inputs.nur.modules.nixos.default
     {
       lib.self = self.lib;
       home-manager = {
@@ -27,7 +27,7 @@ let
   ];
 
   commonHmModules = hmModules.base.all ++ [
-    inputs.nur.hmModules.nur
+    inputs.nur.modules.homeManager.default
     {
       lib.self = self.lib;
     }
