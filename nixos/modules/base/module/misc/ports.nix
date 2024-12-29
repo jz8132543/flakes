@@ -92,7 +92,7 @@
       authentik-ldap = 9000;
       authentik-metrics = 9301;
       authentik-ldap-metrics = 9300;
-      nginx = 8080;
+      nginx = 8081;
       keycloak = 3260;
       lldap = 17170;
       ldap = 389;

@@ -18,7 +18,8 @@
       nixosModules.services.pastebin
       nixosModules.services.ollama
       nixosModules.services.proxy
-      # nixosModules.services.jellyfin
+      nixosModules.services.jellyfin
+      nixosModules.services.syncthing
       (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })

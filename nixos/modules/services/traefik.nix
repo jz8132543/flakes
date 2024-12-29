@@ -64,7 +64,11 @@
           manualRouting = true;
         };
       };
-      api = { };
+      api = {
+        dashboard = true;
+        disableDashboardAd = true;
+        insecure = true;
+      };
       serversTransport = {
         insecureSkipVerify = true;
       };
@@ -113,8 +117,21 @@
             users = "{{ env `TRAEFIK_AUTH` }}";
             removeheader = true;
           };
+          strip-prefix = {
+            stripprefixregex.regex = "/[^/]+/";
+          };
         };
       };
+      # defaultConfig = {
+      #   enable = false;
+      #   value = {
+      #     http.middlewares = {
+      #       strip-prefix = {
+      #         stripprefixregex.regex = "/[^/]+/";
+      #       };
+      #     };
+      #   };
+      # };
     };
   };
   config.systemd.services.traefik.serviceConfig.EnvironmentFile = [
