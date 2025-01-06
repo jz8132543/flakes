@@ -21,5 +21,6 @@
   systemd.extraConfig = ''
     DefaultTimeoutStopSec = 20s
     DefaultStartLimitIntervalSec = 0
+    DefaultRestartSec = 10s
   '';
 }

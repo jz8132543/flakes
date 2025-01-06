@@ -74,7 +74,6 @@
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.flake-compat.follows = "flake-compat";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.nixpkgs-stable.follows = "nixpkgs";
       inputs.gitignore.follows = "gitignore-nix";
     };
     # rust-overlay = {
