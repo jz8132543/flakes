@@ -1,15 +1,16 @@
 {
   pkgs,
   config,
+  lib,
   ...
 }:
 {
   programs.neovim = {
     enable = true;
     # package = pkgs.neovim-nightly;
-    package = pkgs.neovim.override {
-      lua = pkgs.luajit;
-    };
+    # package = pkgs.neovim.override {
+    #   lua = pkgs.luajit;
+    # };
     viAlias = false;
     vimAlias = true;
     vimdiffAlias = true;
@@ -18,9 +19,9 @@
     withPython3 = false;
     defaultEditor = true;
     coc.enable = false;
-    plugins = [ pkgs.vimPlugins.nvim-treesitter.withAllGrammars ];
+    # plugins = [ pkgs.vimPlugins.nvim-treesitter.withAllGrammars ];
     extraPackages = with pkgs; [
-      luajitPackages.luarocks
+      # luajitPackages.luarocks
       # lsps
       nil
       nixd
@@ -62,9 +63,18 @@
       recursive = true;
     };
   };
-  xdg.dataFile."nvim/lazy/nvim-treesitter" = {
-    source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
+  xdg.dataFile."nvim/site/parser" = {
+    # source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
+    source =
+      let
+        parsersPath = pkgs.symlinkJoin {
+          name = "treesitter-parsers";
+          paths = pkgs.vimPlugins.nvim-treesitter.withAllGrammars.dependencies;
+        };
+      in
+      "${parsersPath}/parser";
     recursive = true;
+    force = true;
   };
   # home.file."./.local/share/nvim/my-local-lazy/nvim-treesitter/" = {
   #   recursive = true;
@@ -84,7 +94,7 @@
     gnumake
     luajitPackages.luarocks-nix
     gcc
-    rust-bin.stable.latest.minimal
+    rust-bin.nightly.latest.minimal
     # luarocks-nix
     # luajit
   ];

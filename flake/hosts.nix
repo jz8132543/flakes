@@ -21,6 +21,7 @@ let
         extraSpecialArgs = hmSpecialArgs;
         useGlobalPkgs = true;
         useUserPackages = true;
+        backupFileExtension = "backup";
       };
       system.configurationRevision = self.rev or null;
     }
