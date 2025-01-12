@@ -7,21 +7,22 @@
 {
   programs.neovim = {
     enable = true;
-    # package = pkgs.neovim-nightly;
-    # package = pkgs.neovim.override {
-    #   lua = pkgs.luajit;
-    # };
+    defaultEditor = true;
     viAlias = false;
     vimAlias = true;
     vimdiffAlias = true;
-    withNodeJs = false;
+    withNodeJs = true;
     withRuby = false;
     withPython3 = false;
-    defaultEditor = true;
     coc.enable = false;
-    # plugins = [ pkgs.vimPlugins.nvim-treesitter.withAllGrammars ];
     extraPackages = with pkgs; [
-      # luajitPackages.luarocks
+      (lua5_1.withPackages (
+        ps: with ps; [
+          luarocks
+          luv
+        ]
+      ))
+      imagemagick
     ];
   };
 
@@ -61,11 +62,11 @@
     recursive = true;
     force = true;
   };
-  xdg.dataFile."nvim/lazy/nvim-treesitter" = {
-    source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
-    recursive = true;
-    force = true;
-  };
+  # xdg.dataFile."nvim/lazy/nvim-treesitter" = {
+  #   source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
+  #   recursive = true;
+  #   force = true;
+  # };
 
   home.global-persistence = {
     directories = [
@@ -78,11 +79,8 @@
   home.packages = with pkgs; [
     unzip
     gnumake
-    luajitPackages.luarocks-nix
     gcc
     rust-bin.nightly.latest.minimal
-    # luarocks-nix
-    # luajit
     # lsps
     nil
     nixd
