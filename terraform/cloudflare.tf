@@ -334,3 +334,11 @@ resource "cloudflare_record" "dora_lax0_v6" {
   content = "2607:f130:0:ea:ff:ff:3a2c:61e0"
   zone_id = cloudflare_zone.im_dora.id
 }
+resource "cloudflare_record" "dora_fra2" {
+  name    = "fra2"
+  proxied = false
+  ttl     = 1
+  type    = "A"
+  content = "23.165.200.135"
+  zone_id = cloudflare_zone.im_dora.id
+}

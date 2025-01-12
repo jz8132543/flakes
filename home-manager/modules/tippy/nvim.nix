@@ -21,7 +21,6 @@
     plugins = [ pkgs.vimPlugins.nvim-treesitter.withAllGrammars ];
     extraPackages = with pkgs; [
       luajitPackages.luarocks
-      gcc
       # lsps
       nil
       nixd
@@ -63,9 +62,18 @@
       recursive = true;
     };
   };
+  xdg.dataFile."nvim/lazy/nvim-treesitter" = {
+    source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
+    recursive = true;
+  };
+  # home.file."./.local/share/nvim/my-local-lazy/nvim-treesitter/" = {
+  #   recursive = true;
+  #   source = pkgs.vimPlugins.nvim-treesitter.withAllGrammars;
+  # };
 
   home.global-persistence = {
     directories = [
+      ".cargo"
       ".local/share/nvim"
       # ".config/nvim"
       # ".config/coc"
@@ -74,6 +82,9 @@
   home.packages = with pkgs; [
     unzip
     gnumake
+    luajitPackages.luarocks-nix
+    gcc
+    rust-bin.stable.latest.minimal
     # luarocks-nix
     # luajit
   ];

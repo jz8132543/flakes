@@ -1,6 +1,7 @@
 {
   config,
   nixosModules,
+  lib,
   ...
 }:
 let
@@ -17,6 +18,8 @@ in
     overrideDevices = false;
     overrideFolders = false;
   };
+  # fix 'mkdir ***: Input/output error at /nix/store/sll7fxa3fgbrjacmn3hbqi2avjlqij2k-update-users-groups.pl line 237.'
+  users.users.syncthing.createHome = lib.mkForce false;
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       syncthing = {
