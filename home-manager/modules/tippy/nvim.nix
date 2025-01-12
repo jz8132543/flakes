@@ -22,20 +22,6 @@
     # plugins = [ pkgs.vimPlugins.nvim-treesitter.withAllGrammars ];
     extraPackages = with pkgs; [
       # luajitPackages.luarocks
-      # lsps
-      nil
-      nixd
-      lua-language-server
-      terraform-ls
-      nodePackages.vscode-langservers-extracted # css,eslint,html,json,markdown
-      nodePackages.typescript
-      nodePackages.typescript-language-server
-      nodePackages.bash-language-server
-      nodePackages.dockerfile-language-server-nodejs
-      # formatters
-      eslint_d
-      prettierd
-      nodePackages.prettier
     ];
   };
 
@@ -64,7 +50,6 @@
     };
   };
   xdg.dataFile."nvim/site/parser" = {
-    # source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
     source =
       let
         parsersPath = pkgs.symlinkJoin {
@@ -76,10 +61,11 @@
     recursive = true;
     force = true;
   };
-  # home.file."./.local/share/nvim/my-local-lazy/nvim-treesitter/" = {
-  #   recursive = true;
-  #   source = pkgs.vimPlugins.nvim-treesitter.withAllGrammars;
-  # };
+  xdg.dataFile."nvim/lazy/nvim-treesitter" = {
+    source = "${pkgs.vimPlugins.nvim-treesitter.withAllGrammars.outPath}";
+    recursive = true;
+    force = true;
+  };
 
   home.global-persistence = {
     directories = [
@@ -97,5 +83,19 @@
     rust-bin.nightly.latest.minimal
     # luarocks-nix
     # luajit
+    # lsps
+    nil
+    nixd
+    lua-language-server
+    terraform-ls
+    nodePackages.vscode-langservers-extracted # css,eslint,html,json,markdown
+    nodePackages.typescript
+    nodePackages.typescript-language-server
+    nodePackages.bash-language-server
+    nodePackages.dockerfile-language-server-nodejs
+    # formatters
+    eslint_d
+    prettierd
+    nodePackages.prettier
   ];
 }
