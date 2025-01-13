@@ -25,7 +25,7 @@ let
 in
 {
   systemd.services.mount-alist = {
-    after = [ "network-online.target" ];
+    requires = [ "network-online.target" ];
     serviceConfig = {
       User = "root";
       Type = "notify";

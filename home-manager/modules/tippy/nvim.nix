@@ -95,5 +95,7 @@
     eslint_d
     prettierd
     nodePackages.prettier
+    nixfmt
+    stylua
   ];
 }

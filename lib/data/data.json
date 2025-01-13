@@ -111,7 +111,7 @@
       "proxy": false
     },
     "alist": {
-      "on": "hkg4",
+      "on": "fra1",
       "proxy": false
     },
     "atuin": {
@@ -119,7 +119,7 @@
       "proxy": false
     },
     "jellyfin": {
-      "on": "hkg4",
+      "on": "fra1",
       "proxy": false
     },
     "ldap": {
