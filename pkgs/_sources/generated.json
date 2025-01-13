@@ -1,7 +1,7 @@
 {
   "alacritty-catppuccin": {
     "cargoLocks": null,
-    "date": "2024-02-26",
+    "date": "2024-10-28",
     "extract": null,
     "name": "alacritty-catppuccin",
     "passthru": null,
@@ -13,11 +13,11 @@
       "name": null,
       "owner": "catppuccin",
       "repo": "alacritty",
-      "rev": "071d73effddac392d5b9b8cd5b4b527a6cf289f9",
-      "sha256": "sha256-HiIYxTlif5Lbl9BAvPsnXp8WAexL8YuohMDd/eCJVQ8=",
+      "rev": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7",
+      "sha256": "sha256-H8bouVCS46h0DgQ+oYY8JitahQDj0V9p2cOoD4cQX+Q=",
       "type": "github"
     },
-    "version": "071d73effddac392d5b9b8cd5b4b527a6cf289f9"
+    "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
   },
   "alist": {
     "cargoLocks": null,
@@ -28,30 +28,30 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-F1sHnayBlVjO9FLEsNihPXrC37x06/Oqj7nXJBKkQdE=",
+      "sha256": "sha256-r1TtEQwqeKQXSchEc/A4lhyrIdKb+B/BEe3wwNubrTA=",
       "type": "url",
-      "url": "https://github.com/alist-org/alist/releases/download/v3.32.0/alist-linux-musl-amd64.tar.gz"
+      "url": "https://github.com/alist-org/alist/releases/download/v3.41.0/alist-linux-musl-amd64.tar.gz"
     },
-    "version": "v3.32.0"
+    "version": "v3.41.0"
   },
   "clash-webui-yacd-meta": {
     "cargoLocks": null,
-    "date": "2023-12-29",
+    "date": "2024-08-11",
     "extract": null,
     "name": "clash-webui-yacd-meta",
     "passthru": null,
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-S6gLic5TeCkYDQsKmasr4/H5+ca8hP5qTzpVDXZHzdY=",
+      "sha256": "sha256-3Mvl6KNXNxEWfAnznsWonEUSS5Okq0ChXhECsBAqcUU=",
       "type": "url",
-      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/b66b1d0393bd284b7a40329f95eae3746bb102be.zip"
+      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/8753c22b66388f07b64d72c60e5c479b63d15c5a.zip"
     },
-    "version": "b66b1d0393bd284b7a40329f95eae3746bb102be"
+    "version": "8753c22b66388f07b64d72c60e5c479b63d15c5a"
   },
   "kitty-catppuccin": {
     "cargoLocks": null,
-    "date": "2024-01-10",
+    "date": "2024-11-10",
     "extract": null,
     "name": "kitty-catppuccin",
     "passthru": null,
@@ -63,11 +63,11 @@
       "name": null,
       "owner": "catppuccin",
       "repo": "kitty",
-      "rev": "d7d61716a83cd135344cbb353af9d197c5d7cec1",
-      "sha256": "sha256-mRFa+40fuJCUrR1o4zMi7AlgjRtFmii4fNsQyD8hIjM=",
+      "rev": "b14e8385c827f2d41660b71c7fec1e92bdcf2676",
+      "sha256": "sha256-59ON7CzVgfZUo7F81qQZQ1r6kpcjR3OPvTl99gzDP8E=",
       "type": "github"
     },
-    "version": "d7d61716a83cd135344cbb353af9d197c5d7cec1"
+    "version": "b14e8385c827f2d41660b71c7fec1e92bdcf2676"
   },
   "trackerslist": {
     "cargoLocks": null,
@@ -78,7 +78,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-dCDoycwpdcSSfIEa5lGFGZzwzwAvcu1If0Sr0YXCFoI=",
+      "sha256": "sha256-iZFCjuW45y9pbzE8Q9QdoUuX5xxXbOY9lpakqJPpti0=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },

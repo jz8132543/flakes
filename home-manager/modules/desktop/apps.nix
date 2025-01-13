@@ -9,7 +9,7 @@
     thunderbird
     okular
     wpsoffice
-    nur.repos.xddxdd.baidupcs-go
+    # nur.repos.xddxdd.baidupcs-go
     # nur.repos.xddxdd.wechat-uos
     remmina
     element-desktop

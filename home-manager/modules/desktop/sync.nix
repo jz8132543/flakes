@@ -2,7 +2,6 @@
   config,
   osConfig,
   lib,
-  pkgs,
   ...
 }:
 {
@@ -10,7 +9,7 @@
     enable = true;
     tray = {
       enable = true;
-      package = pkgs.syncthingtray;
+      # package = pkgs.syncthingtray;
     };
     extraOptions = [
       # see https://docs.syncthing.net/users/syncthing.html
