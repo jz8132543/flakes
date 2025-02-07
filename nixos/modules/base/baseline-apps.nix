@@ -57,11 +57,13 @@
     nmap
     colmena
     deploy-rs
+    nixos-anywhere
     # tools
     yq-go
     fd
     nix-output-monitor
     nix-tree
+    age
     # # neovim
     # unzip
     # gnumake

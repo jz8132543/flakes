@@ -3,7 +3,7 @@
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
-    ++ nixosModules.services.mail.all
+    # ++ nixosModules.services.mail.all ++ [
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -14,12 +14,14 @@
       nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
-      nixosModules.services.sogo
+      # nixosModules.services.sogo
       nixosModules.services.pastebin
       nixosModules.services.ollama
       nixosModules.services.proxy
       nixosModules.services.jellyfin
       nixosModules.services.syncthing
+      # TEST
+      nixosModules.services.mysql
       (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })

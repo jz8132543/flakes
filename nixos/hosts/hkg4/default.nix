@@ -1,8 +1,4 @@
-{
-  nixosModules,
-  lib,
-  ...
-}:
+{ nixosModules, lib, ... }:
 {
   imports =
     nixosModules.cloud.all
@@ -14,7 +10,7 @@
       nixosModules.services.derp
       nixosModules.services.stun
       nixosModules.services.proxy
-      nixosModules.services.tuic
+      # nixosModules.services.tuic
       nixosModules.services.searx
       nixosModules.services.perplexica
       nixosModules.services.rustdesk

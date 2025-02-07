@@ -21,7 +21,7 @@ let
       owned = true;
     };
     hkg4 = {
-      key = "age16rc6cs8fhplzwh938d3zxq8pke7pgxerzms0dgkdgq7he99c3ccs4emnhd";
+      key = "age1rj5t5yfewlxwdgyt4ugwq9lfnxvpqgk9hvgfxsgrdm3ds5drv3vs0t7zx6";
       owned = true;
     };
     fra1 = {
@@ -41,7 +41,7 @@ let
   allHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) hosts;
 
   mkHostCreationRule = host: key: {
-    path_regex = "^secrets/(terraform/)?hosts/${host}(\.plain)?\.yaml$";
+    path_regex = "^secrets/(terraform/)?hosts/${host}(.plain)?.yaml$";
     key_groups = [
       {
         pgp = [ main ];
@@ -56,7 +56,7 @@ in
 {
   creation_rules = [
     {
-      path_regex = "terraform-inputs\.yaml$";
+      path_regex = "terraform-inputs.yaml$";
       key_groups = [
         {
           pgp = [ main ];
@@ -65,7 +65,7 @@ in
       ];
     }
     {
-      path_regex = "terraform-outputs\.yaml$";
+      path_regex = "terraform-outputs.yaml$";
       key_groups = [
         {
           pgp = [ main ];
@@ -83,7 +83,7 @@ in
       ];
     }
     {
-      path_regex = "secrets/(terraform/)?common\.yaml$";
+      path_regex = "secrets/(terraform/)?common.yaml$";
       key_groups = [
         {
           pgp = [ main ];
@@ -92,7 +92,7 @@ in
       ];
     }
     {
-      path_regex = "secrets/(terraform/)?infrastructure\.yaml$";
+      path_regex = "secrets/(terraform/)?infrastructure.yaml$";
       key_groups = [
         {
           pgp = [ main ];

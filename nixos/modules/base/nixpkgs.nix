@@ -32,9 +32,11 @@ let
             });
           };
         };
-        matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overridePythonAttrs { doCheck = false; }; # todo skip right tests
+        matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overridePythonAttrs {
+          doCheck = false;
+        }; # todo skip right tests
         inherit (inputs'.nix-gc-s3.packages) nix-gc-s3;
-        inherit (inputs'.headscale.packages) headscale;
+        # inherit (inputs'.headscale.packages) headscale;
         clash2sing-box = inputs'.clash2sing-box.packages.default;
         tailscale = prev.tailscale.overrideAttrs (old: {
           # tailscale = inputs'.tailscale.packages.tailscale.overrideAttrs (old: {
@@ -53,11 +55,8 @@ let
       }
     )
   ];
-  lateFixes = _final: _prev: {
-  };
-  lastePackages = [
-    (import "${config.lib.self.path}/pkgs").overlay
-  ];
+  lateFixes = _final: _prev: { };
+  lastePackages = [ (import "${config.lib.self.path}/pkgs").overlay ];
 in
 {
   nixpkgs = {

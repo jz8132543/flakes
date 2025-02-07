@@ -9,7 +9,6 @@
       # nixosModules.services.headscale
       nixosModules.services.derp
       nixosModules.services.proxy
-      nixosModules.services.tuic
       # nixosModules.services.postgres
       # nixosModules.services.doraim
       # nixosModules.services.ntfy
