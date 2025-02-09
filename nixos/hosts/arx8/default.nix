@@ -1,6 +1,7 @@
 {
   nixosModules,
   pkgs,
+  lib,
   ...
 }:
 {
@@ -17,6 +18,7 @@
     lenovo-legion
     efibootmgr
   ];
+  boot.kernelPackages = lib.mkForce pkgs.linuxPackages;
   # services.create_ap = {
   #   enable = true;
   #   settings = {
