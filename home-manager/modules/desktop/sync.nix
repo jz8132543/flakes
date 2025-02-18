@@ -6,10 +6,10 @@
 {
   services.syncthing = {
     enable = true;
-    tray = {
-      enable = true;
-      # package = pkgs.syncthingtray;
-    };
+    # tray = {
+    #   enable = true;
+    #   # package = pkgs.syncthingtray;
+    # };
     extraOptions = [
       # see https://docs.syncthing.net/users/syncthing.html
       "--config=${config.xdg.configHome}/syncthing"

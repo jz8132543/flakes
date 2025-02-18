@@ -15,9 +15,9 @@ let
     system-monitor-next
     # caffeine
     user-themes
-    customize-ibus
+    # customize-ibus
     # fcitx5
-    # kimpanel
+    kimpanel
   ];
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
@@ -34,7 +34,6 @@ let
     mkTuple
     mkString
     mkUint32
-    mkDouble
     type
     ;
 in
@@ -64,6 +63,9 @@ in
       "org/gnome/desktop/wm/keybindings" = {
         switch-to-workspace-right = [ "<Control><Super>Right" ];
         switch-to-workspace-left = [ "<Control><Super>Left" ];
+        # use fcitx5 for binding
+        switch-input-source = [ ];
+        switch-input-source-backward = [ ];
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
         binding = mkString "NEXT";
@@ -93,15 +95,19 @@ in
         edge-tiling = true;
         dynamic-workspaces = true;
         center-new-windows = true;
-        experimental-features = [ "scale-monitor-framebuffer" ];
+        experimental-features = [
+          "scale-monitor-framebuffer"
+          "variable-refresh-rate"
+          "xwayland-native-scaling"
+        ];
       };
       "org/gnome/desktop/interface" = {
-        scaling-factor = mkDouble 1.5;
+        # scaling-factor = 1.0 * config.wayland.dpi / 96;
         # text-scaling-factor = mkDouble 1.5;
 
         # gtk-theme = "adw-gtk3";
         # cursor-theme = "capitaine-cursors";
-        cursor-size = 36 * config.wayland.dpi / 96;
+        # cursor-size = 36 * config.wayland.dpi / 96;
         clock-show-weekday = true;
         show-battery-percentage = true;
         locate-pointer = true;
@@ -155,7 +161,7 @@ in
       "org/gnome/shell/extensions/dash-to-dock" = {
         apply-custom-theme = true;
         custom-theme-shrink = true;
-        dash-max-icon-size = 48 * config.wayland.dpi / 96;
+        # dash-max-icon-size = 48 * config.wayland.dpi / 96;
         show-mounts = false;
         click-action = "focus-or-appspread";
         scroll-action = "switch-workspace";
@@ -200,7 +206,7 @@ in
           (mkUint32 5)
           (mkUint32 5)
         ];
-        font = "monospace ${toString (10 * config.wayland.dpi / 96)}";
+        # font = "monospace ${toString (10 * config.wayland.dpi / 96)}";
         theme-light = "Tomorrow";
         theme-dark = "Tomorrow Night";
         show-menu-button = false;
@@ -250,7 +256,7 @@ in
     ELECTRON_OZONE_PLATFORM_HINT = "wayland";
     MOZ_ENABLE_WAYLAND = "1";
     NIXOS_OZONE_WL = "1";
-    QT_QPA_PLATFORM = "wayland;xcb";
+    # QT_QPA_PLATFORM = "wayland;xcb";
     WLR_NO_HARDWARE_CURSORS = "1";
   };
   xdg.configFile = {

@@ -10,7 +10,7 @@ in
 {
   imports = [
     ./edid
-    ./monitors.nix
+    # ./monitors.nix
     inputs.grub2-themes.nixosModules.default
     inputs.nixos-hardware.nixosModules.common-hidpi
     inputs.nixos-hardware.nixosModules.common-pc-laptop
@@ -102,7 +102,7 @@ in
     __GL_SYNC_DISPLAY_DEVICE = MONITOR;
     VDPAU_NVIDIA_SYNC_DISPLAY_DEVICE = MONITOR;
   };
-  # home-manager.users.tippy.wayland.dpi = 144;
+  home-manager.users.tippy.wayland.dpi = 144;
   utils.disk = "/dev/nvme0n1";
   nix.gc.automatic = lib.mkForce false;
 }
