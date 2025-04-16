@@ -7,7 +7,7 @@
     tdesktop
     ffmpeg
     thunderbird
-    okular
+    kdePackages.okular
     wpsoffice
     # nur.repos.xddxdd.baidupcs-go
     # nur.repos.xddxdd.wechat-uos

@@ -42,7 +42,7 @@ in
     extensionPkgs
     ++ (with pkgs; [
       blackbox-terminal
-      dolphin
+      kdePackages.dolphin
       orchis-theme
     ]);
 
