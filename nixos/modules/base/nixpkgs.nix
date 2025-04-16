@@ -52,6 +52,7 @@ let
             old.postInstall
           ];
         });
+        inherit (inputs'.release-2411.legacyPackages) open-webui;
       }
     )
   ];

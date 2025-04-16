@@ -3,7 +3,8 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    latest.url = "github:nixos/nixpkgs/master";
+    latest.url = "github:NixOS/nixpkgs/master";
+    release-2411.url = "github:NixOS/nixpkgs/release-24.11";
     nur.url = "github:nix-community/NUR";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     impermanence.url = "github:nix-community/impermanence";

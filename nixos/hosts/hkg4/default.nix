@@ -8,11 +8,11 @@
       nixosModules.services.traefik
       nixosModules.services.doraim
       nixosModules.services.derp
-      nixosModules.services.stun
+      # nixosModules.services.stun
       nixosModules.services.proxy
       # nixosModules.services.tuic
       nixosModules.services.searx
-      nixosModules.services.perplexica
+      # nixosModules.services.perplexica
       nixosModules.services.rustdesk
       nixosModules.services.murmur
       nixosModules.services.teamspeak
