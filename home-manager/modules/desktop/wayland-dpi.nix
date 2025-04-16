@@ -31,7 +31,8 @@ in
 
   config = mkIf (cfg != default) {
     dconf.enable = mkDefault true;
-    dconf.settings."org/gnome/desktop/interface".text-scaling-factor = cfg * 1.0 / default;
+    # dconf.settings."org/gnome/desktop/interface".text-scaling-factor = cfg * 1.0 / default;
+    dconf.settings."org/gnome/desktop/interface".scaling-factor = cfg * 1.0 / default;
     xresources.properties."Xft.dpi" = cfg;
     home.sessionVariables = {
       GDK_BACKEND = "wayland";
@@ -44,8 +45,8 @@ in
       SDL_VIDEODRIVER = "wayland";
       # QT_STYLE_OVERRIDE = lib.mkDefault "gtk";
       _JAVA_AWT_WM_NONREPARENTING = "1";
-      XCURSOR_SIZE = 36 * cfg / default;
-      QT_SCALE_FACTOR = cfg * 1.0 / default;
+      # XCURSOR_SIZE = 36 * cfg / default;
+      # QT_SCALE_FACTOR = cfg * 1.0 / default;
     };
   };
 }
