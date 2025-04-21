@@ -20,21 +20,21 @@ let
         inherit ((getSystem system).allModuleArgs) inputs';
       in
       {
-        python312 = prev.python312.override {
-          # deliberate typo. don't copy this into your config blindly
-          packageOverrides = _final: prev: {
-            pysaml2 = prev.pysaml2.overridePythonAttrs (orig: {
-              disabledTests = orig.disabledTests ++ [
-                "test_encrypted_response_6"
-                "test_validate_cert_chains"
-                "test_validate_with_root_cert"
-              ];
-            });
-          };
-        };
-        matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overridePythonAttrs {
-          doCheck = false;
-        }; # todo skip right tests
+        # python312 = prev.python312.override {
+        #   # deliberate typo. don't copy this into your config blindly
+        #   packageOverrides = _final: prev: {
+        #     pysaml2 = prev.pysaml2.overridePythonAttrs (orig: {
+        #       disabledTests = orig.disabledTests ++ [
+        #         "test_encrypted_response_6"
+        #         "test_validate_cert_chains"
+        #         "test_validate_with_root_cert"
+        #       ];
+        #     });
+        #   };
+        # };
+        # matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overridePythonAttrs {
+        #   doCheck = false;
+        # }; # todo skip right tests
         inherit (inputs'.nix-gc-s3.packages) nix-gc-s3;
         # inherit (inputs'.headscale.packages) headscale;
         clash2sing-box = inputs'.clash2sing-box.packages.default;
@@ -52,7 +52,7 @@ let
             old.postInstall
           ];
         });
-        inherit (inputs'.release-2411.legacyPackages) open-webui;
+        # inherit (inputs'.release-2411.legacyPackages) open-webui;
       }
     )
   ];
