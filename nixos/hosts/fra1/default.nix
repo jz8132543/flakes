@@ -16,7 +16,7 @@
       nixosModules.services.ntfy
       # nixosModules.services.sogo
       nixosModules.services.pastebin
-      nixosModules.services.ollama
+      # nixosModules.services.ollama
       nixosModules.services.proxy
       nixosModules.services.jellyfin
       nixosModules.services.syncthing
