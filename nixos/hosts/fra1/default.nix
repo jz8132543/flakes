@@ -20,6 +20,7 @@
       nixosModules.services.proxy
       nixosModules.services.jellyfin
       nixosModules.services.syncthing
+      nixosModules.services.reader
       # TEST
       nixosModules.services.mysql
       (import nixosModules.services.matrix { })

@@ -80,7 +80,7 @@ with config.home.catppuccin;
         rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
         rsync = "${pkgs.rsync}/bin/rsync -arvzP";
       };
-      initExtraBeforeCompInit = ''
+      initContent = lib.mkOrder 550 ''
         zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
         export LS_COLORS="$(vivid generate molokai)"
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
@@ -94,8 +94,7 @@ with config.home.catppuccin;
         zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
         # don't show fzf unless there are more than 4 items
         zstyle ':fzf-tab:*' ignore false 4
-      '';
-      initExtra = ''
+
         source ${pkgs.zsh-nix-shell}/share/zsh-nix-shell/nix-shell.plugin.zsh
         source ${pkgs.zsh-vi-mode}/share/zsh-vi-mode/zsh-vi-mode.plugin.zsh
         source ${pkgs.zsh-history-substring-search}/share/zsh-history-substring-search/zsh-history-substring-search.zsh

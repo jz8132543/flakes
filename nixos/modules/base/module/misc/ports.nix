@@ -117,6 +117,7 @@
       perplexica-backend = 3003;
       ollama-api = 11434;
       ollama-ui = 11435;
+      reader = 4396;
     };
   };
 }

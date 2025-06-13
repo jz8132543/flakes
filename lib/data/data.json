@@ -170,6 +170,10 @@
       "on": "hkg4",
       "proxy": false
     },
+    "reader": {
+      "on": "fra1",
+      "proxy": false
+    },
     "searx": {
       "on": "hkg4",
       "proxy": false
