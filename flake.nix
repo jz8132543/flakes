@@ -169,6 +169,7 @@
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    preservation.url = "github:nix-community/preservation";
   };
 
   outputs =
@@ -199,6 +200,7 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
+          inputs.preservation.nixosModules.preservation
         ] ++ selfLib.buildModuleList ./flake;
       }
     );
