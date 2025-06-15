@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -136,10 +137,13 @@ let
 in
 with lib;
 {
+  imports = [
+    inputs.preservation.nixosModules.preservation
+  ];
   options.environment.global-persistence = {
     enable = lib.mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = ''
         Whether to enable global persistence storage.
       '';
@@ -147,6 +151,7 @@ with lib;
 
     root = lib.mkOption {
       type = with types; nullOr str;
+      default = "/persist";
       description = ''
         The root of persistence storage.
       '';

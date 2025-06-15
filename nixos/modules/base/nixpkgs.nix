@@ -37,7 +37,8 @@ let
             old.postInstall
           ];
         });
-        # inherit (inputs'.release-2411.legacyPackages) open-webui;
+        # TODO: https://github.com/juanfont/headscale/issues/2630
+        inherit (inputs'.release-2505.legacyPackages) headscale traefik;
       }
     )
   ];

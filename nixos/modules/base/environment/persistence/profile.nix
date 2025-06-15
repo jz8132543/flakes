@@ -1,22 +1,21 @@
 { ... }:
 {
   environment.global-persistence = {
-    enable = true;
-    root = "/persist";
     directories = [
       # service state directory
       "/var/lib"
       "/var/db"
-      "/var/log"
-      "/var/backup"
     ];
     files = [
       # systemd machine-id
-      "/etc/machine-id"
-      "/etc/ssh/ssh_host_ed25519_key"
-      "/etc/ssh/ssh_host_ed25519_key.pub"
-      "/etc/ssh/ssh_host_rsa_key"
-      "/etc/ssh/ssh_host_rsa_key.pub"
+      # https://nix-community.github.io/preservation/examples.html#compatibility-with-systemds-conditionfirstboot
+      {
+        file = "/etc/machine-id";
+        inInitrd = true;
+      }
     ];
+    user.directories = [ ".local/share/nix" ];
   };
+
+  systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
 }

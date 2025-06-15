@@ -11,7 +11,7 @@
   services.postgresql = {
     enable = true;
     enableTCPIP = true;
-    package = pkgs.postgresql_16;
+    package = pkgs.postgresql_17;
     authentication = lib.mkForce ''
       local all all                           trust
       host all all 127.0.0.1/32               trust

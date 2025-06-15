@@ -18,14 +18,14 @@
       #   # "/usr/bin/apt update && /usr/bin/apt-get install -y -q apt-utils dialog && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && /usr/bin/apt-get install -y -q faketime && /usr/bin/faketime -f '-3600d' /usr/bin/tini -- java -jar /app/bin/reader.jar"
       #   "sed -i 's/focal/jammy/g' /etc/apt/sources.list && /usr/bin/apt update && apt upgrade -y && /usr/bin/apt-get install -y -q apt-utils dialog && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections && /usr/bin/apt-get install -y -q faketime && /usr/bin/faketime -f '-3600d' java -jar /app/bin/reader.jar"
       # ];
-      environment = {
-        "READER_APP_CACHECHAPTERCONTENT" = "true";
-        "READER_APP_SECURE" = "true";
-        "READER_APP_SECUREKEY" = "gui159";
-        "READER_APP_USERBOOKLIMIT" = "200";
-        "READER_APP_USERLIMIT" = "5";
-        "SPRING_PROFILES_ACTIVE" = "prod";
-      };
+      # environment = {
+      #   "READER_APP_CACHECHAPTERCONTENT" = "true";
+      #   "READER_APP_SECURE" = "true";
+      #   "READER_APP_SECUREKEY" = "gui159";
+      #   "READER_APP_USERBOOKLIMIT" = "200";
+      #   "READER_APP_USERLIMIT" = "5";
+      #   "SPRING_PROFILES_ACTIVE" = "prod";
+      # };
       environmentFiles = [ config.sops.templates."reader".path ];
       volumes = [
         # "/var/lib/reader/logs:/logs:rw"
