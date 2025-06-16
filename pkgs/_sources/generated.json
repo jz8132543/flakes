@@ -15,6 +15,7 @@
       "repo": "alacritty",
       "rev": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7",
       "sha256": "sha256-H8bouVCS46h0DgQ+oYY8JitahQDj0V9p2cOoD4cQX+Q=",
+      "sparseCheckout": [],
       "type": "github"
     },
     "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
@@ -28,26 +29,47 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-r1TtEQwqeKQXSchEc/A4lhyrIdKb+B/BEe3wwNubrTA=",
+      "sha256": "sha256-TlujZbX61EDoq+OcsLkbV2cU/3RrTmjXmkZWWPWs1lU=",
       "type": "url",
-      "url": "https://github.com/alist-org/alist/releases/download/v3.41.0/alist-linux-musl-amd64.tar.gz"
+      "url": "https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-linux-musl-amd64.tar.gz"
     },
-    "version": "v3.41.0"
+    "version": "beta"
   },
   "clash-webui-yacd-meta": {
     "cargoLocks": null,
-    "date": "2024-08-11",
+    "date": "2025-02-20",
     "extract": null,
     "name": "clash-webui-yacd-meta",
     "passthru": null,
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-3Mvl6KNXNxEWfAnznsWonEUSS5Okq0ChXhECsBAqcUU=",
+      "sha256": "sha256-1sSaPXpc1MKnwzj+DqHsKL/ZZw2C4RuyII43ME+Kxvo=",
       "type": "url",
-      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/8753c22b66388f07b64d72c60e5c479b63d15c5a.zip"
+      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/9746ca746061e803b89c8102c43e5d11ad001e69.zip"
     },
-    "version": "8753c22b66388f07b64d72c60e5c479b63d15c5a"
+    "version": "9746ca746061e803b89c8102c43e5d11ad001e69"
+  },
+  "ebook-sender-bot": {
+    "cargoLocks": null,
+    "date": "2024-12-28",
+    "extract": null,
+    "name": "ebook-sender-bot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "qcgzxw",
+      "repo": "ebook-sender-bot",
+      "rev": "380de137064e0c92bbb99a38cbbeab06f425c5b1",
+      "sha256": "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
   },
   "kitty-catppuccin": {
     "cargoLocks": null,
@@ -65,6 +87,7 @@
       "repo": "kitty",
       "rev": "b14e8385c827f2d41660b71c7fec1e92bdcf2676",
       "sha256": "sha256-59ON7CzVgfZUo7F81qQZQ1r6kpcjR3OPvTl99gzDP8E=",
+      "sparseCheckout": [],
       "type": "github"
     },
     "version": "b14e8385c827f2d41660b71c7fec1e92bdcf2676"
@@ -78,7 +101,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-iZFCjuW45y9pbzE8Q9QdoUuX5xxXbOY9lpakqJPpti0=",
+      "sha256": "sha256-WIdvmWi1RncogJ8O7fddXBBtZD9RGqu1t+4FL7fP6gI=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },

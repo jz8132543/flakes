@@ -2,6 +2,7 @@
 {
   fetchurl,
   fetchFromGitHub,
+  dockerTools,
 }:
 {
   alacritty-catppuccin = {
@@ -18,20 +19,32 @@
   };
   alist = {
     pname = "alist";
-    version = "v3.41.0";
+    version = "beta";
     src = fetchurl {
-      url = "https://github.com/alist-org/alist/releases/download/v3.41.0/alist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-r1TtEQwqeKQXSchEc/A4lhyrIdKb+B/BEe3wwNubrTA=";
+      url = "https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-TlujZbX61EDoq+OcsLkbV2cU/3RrTmjXmkZWWPWs1lU=";
     };
   };
   clash-webui-yacd-meta = {
     pname = "clash-webui-yacd-meta";
-    version = "8753c22b66388f07b64d72c60e5c479b63d15c5a";
+    version = "9746ca746061e803b89c8102c43e5d11ad001e69";
     src = fetchurl {
-      url = "https://github.com/MetaCubeX/Yacd-meta/archive/8753c22b66388f07b64d72c60e5c479b63d15c5a.zip";
-      sha256 = "sha256-3Mvl6KNXNxEWfAnznsWonEUSS5Okq0ChXhECsBAqcUU=";
+      url = "https://github.com/MetaCubeX/Yacd-meta/archive/9746ca746061e803b89c8102c43e5d11ad001e69.zip";
+      sha256 = "sha256-1sSaPXpc1MKnwzj+DqHsKL/ZZw2C4RuyII43ME+Kxvo=";
     };
-    date = "2024-08-11";
+    date = "2025-02-20";
+  };
+  ebook-sender-bot = {
+    pname = "ebook-sender-bot";
+    version = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
+    src = fetchFromGitHub {
+      owner = "qcgzxw";
+      repo = "ebook-sender-bot";
+      rev = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
+      fetchSubmodules = false;
+      sha256 = "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=";
+    };
+    date = "2024-12-28";
   };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";
@@ -50,7 +63,7 @@
     version = "latest";
     src = fetchurl {
       url = "https://cf.trackerslist.com/best_aria2.txt";
-      sha256 = "sha256-iZFCjuW45y9pbzE8Q9QdoUuX5xxXbOY9lpakqJPpti0=";
+      sha256 = "sha256-WIdvmWi1RncogJ8O7fddXBBtZD9RGqu1t+4FL7fP6gI=";
     };
   };
 }

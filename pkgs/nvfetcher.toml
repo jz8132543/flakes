@@ -5,8 +5,10 @@ src.git = "https://github.com/catppuccin/kitty"
 fetch.github = "catppuccin/alacritty"
 src.git = "https://github.com/catppuccin/alacritty"
 [alist]
-src.github = "alist-org/alist"
-fetch.url = "https://github.com/alist-org/alist/releases/download/$ver/alist-linux-musl-amd64.tar.gz"
+# src.github = "OpenListTeam/OpenList"
+# fetch.url = "https://github.com/alist-org/alist/releases/download/$ver/openlist-linux-musl-amd64.tar.gz"
+src.manual = "beta"
+fetch.url = "https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-linux-musl-amd64.tar.gz"
 [clash-webui-yacd-meta]
 src.git = "https://github.com/MetaCubeX/Yacd-meta"
 src.branch = "gh-pages"
@@ -14,6 +16,9 @@ fetch.url = "https://github.com/MetaCubeX/Yacd-meta/archive/$ver.zip"
 [trackerslist]
 fetch.url = "https://cf.trackerslist.com/best_aria2.txt"
 src.manual = "latest"
+[ebook-sender-bot]
+fetch.github = "qcgzxw/ebook-sender-bot"
+src.git = "https://github.com/qcgzxw/ebook-sender-bot"
 # [wallpaper]
 # fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 # src.manual = "latest"

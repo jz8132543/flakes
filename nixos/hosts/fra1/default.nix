@@ -21,6 +21,7 @@
       nixosModules.services.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
+      (import nixosModules.services.ebook-sender { })
       (import nixosModules.services.kindle-sender { })
       # TEST
       nixosModules.services.mysql

@@ -34,7 +34,7 @@
       User = "alist";
       Group = "alist";
       Restart = "on-failure";
-      ExecStart = "${pkgs.alist}/bin/alist server --data /var/lib/alist";
+      ExecStart = "${pkgs.alist}/bin/openlist server --data /var/lib/alist";
       AmbientCapabilities = "cap_net_bind_service";
     };
   };
