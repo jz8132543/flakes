@@ -30,10 +30,10 @@
       User = "ebook-sender";
       Group = "ebook-sender";
       Restart = "on-failure";
-      #ExecStart = "${pkgs.ebook-sender-bot}/bin/openlist server --data /var/lib/alist";
-      script = builtins.concatStringsSep " " [
-        "python3 ${pkgs.ebook-sender-bot}/main.py"
-      ];
+      ExecStart = "python3 ${pkgs.ebook-sender-bot}/main.py";
+      # script = builtins.concatStringsSep " " [
+      #   "python3 ${pkgs.ebook-sender-bot}/main.py"
+      # ];
       AmbientCapabilities = "cap_net_bind_service";
     };
   };
