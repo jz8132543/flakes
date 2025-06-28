@@ -80,7 +80,6 @@
     unzip
     gnumake
     gcc
-    rust-bin.nightly.latest.minimal
     # lsps
     nil
     nixd

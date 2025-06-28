@@ -19,7 +19,7 @@ let
       home-manager = {
         sharedModules = commonHmModules;
         extraSpecialArgs = hmSpecialArgs;
-        useGlobalPkgs = true;
+        # useGlobalPkgs = true;
         useUserPackages = true;
         backupFileExtension = "backup";
       };

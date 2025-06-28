@@ -72,7 +72,9 @@
   };
   sops.secrets = {
     "alist/JWT" = { };
-    "onlyoffice/jwtSecretFile" = { };
+    "onlyoffice/jwtSecretFile" = {
+      owner = "onlyoffice";
+    };
   };
 
   services.traefik.dynamicConfigOptions.http = {

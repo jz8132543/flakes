@@ -129,6 +129,11 @@
       url = "github:nix-community/nixpkgs-terraform-providers-bin";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixos-vscode-server = {
+      url = "github:nix-community/nixos-vscode-server";
+      inputs.flake-utils.follows = "flake-utils";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     # nixd = {
     #   url = "github:nix-community/nixd";
     #   inputs.nixpkgs.follows = "nixpkgs";

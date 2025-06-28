@@ -1322,6 +1322,29 @@
         "type": "github"
       }
     },
+    "nixos-vscode-server": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1750353031,
+        "narHash": "sha256-Bx7DOPLhkr8Z60U9Qw4l0OidzHoqLDKQH5rDV5ef59A=",
+        "owner": "nix-community",
+        "repo": "nixos-vscode-server",
+        "rev": "4ec4859b12129c0436b0a471ed1ea6dd8a317993",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixos-vscode-server",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1733212471,
@@ -1682,6 +1705,7 @@
         "nixago": "nixago",
         "nixago-exts": "nixago-exts",
         "nixos-hardware": "nixos-hardware",
+        "nixos-vscode-server": "nixos-vscode-server",
         "nixpkgs": "nixpkgs_3",
         "nixpkgs-terraform-providers-bin": "nixpkgs-terraform-providers-bin",
         "nur": "nur",

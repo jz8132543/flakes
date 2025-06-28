@@ -26,6 +26,10 @@
     mosh.enable = true;
     mtr.enable = true;
     traceroute.enable = true;
+    nix-ld = {
+      enable = true;
+      package = pkgs.nix-ld-rs;
+    };
     # neovim = {
     #   enable = true;
     #   defaultEditor = true;

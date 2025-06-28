@@ -119,6 +119,7 @@
       ollama-ui = 11435;
       reader = 4396;
       onlyoffice = 13444;
+      code = 4444;
     };
   };
 }

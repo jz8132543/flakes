@@ -14,6 +14,7 @@
       nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
+      nixosModules.services.vscode
       # nixosModules.services.sogo
       nixosModules.services.pastebin
       # nixosModules.services.ollama
