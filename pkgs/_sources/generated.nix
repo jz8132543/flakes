@@ -19,10 +19,10 @@
   };
   alist = {
     pname = "alist";
-    version = "beta";
+    version = "v4.0.4";
     src = fetchurl {
-      url = "https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-TlujZbX61EDoq+OcsLkbV2cU/3RrTmjXmkZWWPWs1lU=";
+      url = "https://github.com/OpenListTeam/OpenList/releases/download/v4.0.4/openlist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-t5JOhNhS4+gA3Jifc0l/JBNsM1qskISVVunpijuqcX8=";
     };
   };
   clash-webui-yacd-meta = {
@@ -63,7 +63,7 @@
     version = "latest";
     src = fetchurl {
       url = "https://cf.trackerslist.com/best_aria2.txt";
-      sha256 = "sha256-WIdvmWi1RncogJ8O7fddXBBtZD9RGqu1t+4FL7fP6gI=";
+      sha256 = "sha256-P97AJxDE8S4kYw5RPOXGe5vgRPaxew4XGL7gjvz8HX4=";
     };
   };
 }

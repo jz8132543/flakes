@@ -134,6 +134,10 @@
       # };
     };
   };
+  config.systemd.tmpfiles.rules = [
+    "d '/var/lib/traefik' 0770 traefik traefik - -"
+  ];
+
   config.systemd.services.traefik.serviceConfig.EnvironmentFile = [
     config.sops.templates."traefik-env".path
   ];
