@@ -150,6 +150,10 @@
       "on": "fra1",
       "proxy": false
     },
+    "office": {
+      "on": "fra1",
+      "proxy": false
+    },
     "ollama": {
       "on": "fra1",
       "proxy": false
