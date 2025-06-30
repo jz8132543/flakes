@@ -57,7 +57,10 @@ in
         "electron-27.3.11"
         "nix-2.24.5"
       ];
-      allowUnfreePackages = [ "terraform" ];
+      allowUnfreePackages = [
+        "terraform"
+        "vscode"
+      ];
     };
     overlays = packages ++ [ lateFixes ] ++ lastePackages;
   };
