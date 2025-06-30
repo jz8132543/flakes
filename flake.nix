@@ -175,6 +175,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     preservation.url = "github:nix-community/preservation";
+    lix = {
+      url = "git+https://git.lix.systems/lix-project/lix.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    lix-module = {
+      url = "git+https://git.lix.systems/lix-project/nixos-module.git";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.lix.follows = "lix";
+    };
   };
 
   outputs =
@@ -205,6 +214,7 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
+          inputs.lix-module.nixosModules.default
         ] ++ selfLib.buildModuleList ./flake;
       }
     );

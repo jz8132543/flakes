@@ -1,10 +1,12 @@
 {
   inputs,
   config,
+  pkgs,
   ...
 }:
 {
   nix = {
+    package = pkgs.lix;
     optimise.automatic = true;
     channel.enable = false;
     gc = {

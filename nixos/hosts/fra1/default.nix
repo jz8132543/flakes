@@ -19,7 +19,7 @@
       nixosModules.services.pastebin
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      nixosModules.services.jellyfin
+      # nixosModules.services.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
       # (import nixosModules.services.ebook-sender { })
@@ -30,5 +30,7 @@
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })
       (import nixosModules.services.alist { })
+      (import nixosModules.services.office { })
+      (import nixosModules.services.nextcloud { })
     ];
 }

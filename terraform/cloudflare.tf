@@ -88,6 +88,8 @@ locals {
     jellyfin           = { on = "fra1", proxy = false }
     alist              = { on = "fra1", proxy = false }
     office             = { on = "fra1", proxy = false }
+    code               = { on = "fra1", proxy = false }
+    cloud              = { on = "fra1", proxy = false }
     reader             = { on = "fra1", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     searx              = { on = "hkg4", proxy = false }

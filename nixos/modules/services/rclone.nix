@@ -59,7 +59,7 @@ in
     wantedBy = [ "default.target" ];
   };
   sops.templates."mount-alist" = {
-    owner = "jellyfin";
+    # owner = "jellyfin";
     content = ''
       [alist]
       type = webdav

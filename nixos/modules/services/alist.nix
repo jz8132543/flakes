@@ -38,17 +38,6 @@
       AmbientCapabilities = "cap_net_bind_service";
     };
   };
-  services.onlyoffice = {
-    enable = true;
-    hostname = "office.${config.networking.domain}";
-    port = config.ports.onlyoffice;
-
-    postgresHost = PG;
-    postgresName = "onlyoffice";
-    postgresUser = "onlyoffice";
-
-    jwtSecretFile = config.sops.secrets."onlyoffice/jwtSecretFile".path;
-  };
 
   sops.templates."alist-config" = {
     mode = "0644";
@@ -72,9 +61,6 @@
   };
   sops.secrets = {
     "alist/JWT" = { };
-    "onlyoffice/jwtSecretFile" = {
-      owner = "onlyoffice";
-    };
   };
 
   services.traefik.dynamicConfigOptions.http = {
@@ -84,20 +70,11 @@
         entryPoints = [ "https" ];
         service = "alist";
       };
-      office = {
-        rule = "Host(`office.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "office";
-      };
     };
     services = {
       alist.loadBalancer = {
         passHostHeader = true;
         servers = [ { url = "http://localhost:${toString config.ports.alist}"; } ];
-      };
-      office.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.onlyoffice}"; } ];
       };
     };
   };
