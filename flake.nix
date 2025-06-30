@@ -214,7 +214,7 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
-          inputs.lix-module.nixosModules.default
+          #inputs.lix-module.nixosModules.default
         ] ++ selfLib.buildModuleList ./flake;
       }
     );
