@@ -1,42 +1,16 @@
 locals {
   hosts = {
-    ams0 = {
+    vie0 = {
       records = {
         a = {
           proxied = false
           type    = "A"
-          value   = "104.255.66.184"
-        }
-      }
-      ddns_records = {}
-      host_indices = [3]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    dfw0 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "154.40.40.139"
-        }
-      }
-      ddns_records = {}
-      host_indices = [4]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    dfw1 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "172.99.148.201"
+          value   = "152.53.110.124"
         }
         aaaa = {
           proxied = false
           type    = "AAAA"
-          value   = "2606:fc40:0:b38::1"
+          value   = "2a0a:4cc0:80:38bf::"
         }
       }
       ddns_records = {}

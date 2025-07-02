@@ -184,6 +184,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.lix.follows = "lix";
     };
+    chinese-fonts-overlay.url = "github:brsvh/chinese-fonts-overlay";
   };
 
   outputs =

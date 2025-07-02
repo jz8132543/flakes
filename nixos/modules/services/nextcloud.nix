@@ -6,18 +6,59 @@
   config,
   pkgs,
   lib,
+  nixosModules,
   ...
 }:
 let
   cfg = config.services.nextcloud;
 in
 {
+  imports = [
+    (import nixosModules.services.office { })
+  ];
+  services.collabora-online.settings = {
+    remote_font_config.url = "https://${config.services.nextcloud.hostName}/apps/richdocuments/settings/fonts.json";
+    storage.wopi = {
+      "@allow" = true;
+      host = [ config.services.nextcloud.hostName ];
+    };
+  };
+  systemd.services.nextcloud-config-collabora =
+    let
+      inherit (config.services.nextcloud) occ;
+
+      wopi_url = "http://[::1]:${toString config.ports.office}";
+      public_wopi_url = "https://${config.services.collabora-online.settings.server_name}";
+      wopi_allowlist = lib.concatStringsSep "," [
+        "127.0.0.1"
+        "::1"
+      ];
+    in
+    {
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "nextcloud-setup.service"
+        "coolwsd.service"
+      ];
+      requires = [ "coolwsd.service" ];
+      script = ''
+        ${occ}/bin/nextcloud-occ config:app:set richdocuments wopi_url --value ${lib.escapeShellArg wopi_url}
+        ${occ}/bin/nextcloud-occ config:app:set richdocuments public_wopi_url --value ${lib.escapeShellArg public_wopi_url}
+        ${occ}/bin/nextcloud-occ config:app:set richdocuments wopi_allowlist --value ${lib.escapeShellArg wopi_allowlist}
+        ${occ}/bin/nextcloud-occ richdocuments:setup
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+      };
+    };
   services.nextcloud = {
     enable = true;
     hostName = "cloud.${config.networking.domain}";
     https = true;
     enableImagemagick = true;
-    database.createLocally = true;
+    appstoreEnable = true;
+    maxUploadSize = "10G";
+    configureRedis = true;
     config = {
       dbtype = "pgsql";
       dbhost = PG;
@@ -28,6 +69,9 @@ in
       #   "nextcloud.ts.li7g.com"
       #   "nextcloud.dn42.li7g.com"
       # ];
+      "overwrite.cli.url" = "https://${config.services.nextcloud.hostName}/";
+      "upgrade.disable-web" = true;
+      maintenance_window_start = 2;
       default_phone_region = "CN";
       mail_smtpmode = "smtp";
       mail_smtphost = "${config.environment.smtp_host}";
@@ -62,17 +106,61 @@ in
       # memories
       "memories.vod.disable" = false; # enable video transcoding
       "memories.vod.vaapi" = true;
+      ## oidc-login
+      # allow_user_to_change_display_name = false;
+      lost_password_link = "disabled";
+      oidc_login_provider_url = "https://sso.dora.im/realms/users";
+      oidc_login_client_id = "nextcloud";
+      oidc_login_auto_redirect = false;
+      oidc_login_end_session_redirect = false;
+      oidc_login_button_text = "Log in with KeyCloak";
+      oidc_login_hide_password_form = true;
+      oidc_login_use_id_token = true;
+      oidc_login_attributes = {
+        id = "preferred_username";
+        name = "name";
+        mail = "email";
+        groups = "groups";
+      };
+      oidc_login_default_group = "oidc";
+      oidc_login_use_external_storage = false;
+      oidc_login_scope = "openid profile email";
+      oidc_login_disable_registration = false;
+    };
+    phpOptions = {
+      "opcache.interned_strings_buffer" = "16";
+      "opcache.revalidate_freq" = "5";
+      "opcache.jit" = "1255";
+      "opcache.jit_buffer_size" = "128M";
     };
     secretFile = config.sops.templates."nextcloud-secret-config".path;
-    notify_push = {
-      enable = true;
-      bendDomainToLocalhost = true;
-      logLevel = "info";
+    # notify_push = {
+    #   enable = true;
+    #   bendDomainToLocalhost = true;
+    #   logLevel = "info";
+    # };
+    extraAppsEnable = true;
+    extraApps = with config.services.nextcloud.package.packages.apps; {
+      inherit
+        calendar
+        contacts
+        cookbook
+        cospend
+        deck
+        gpoddersync # podcasts sync service
+        # nextpod (see below)
+        notes
+        richdocuments # Collabora Online for Nextcloud - https://apps.nextcloud.com/apps/richdocuments
+        tasks
+        twofactor_webauthn
+        oidc_login
+        ;
     };
   };
   sops.templates."nextcloud-secret-config" = {
     content = builtins.toJSON {
       mail_smtppassword = config.sops.placeholder."nextcloud/mail_password";
+      oidc_login_client_secret = config.sops.placeholder."nextcloud/oidc-secret";
     };
     owner = "nextcloud";
   };
@@ -93,13 +181,15 @@ in
   sops.secrets."nextcloud/mail_password" = {
     restartUnits = [ "nextcloud-setup.service" ];
   };
+  sops.secrets."nextcloud/oidc-secret" = {
+    restartUnits = [ "nextcloud-setup.service" ];
+  };
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       nextcloud = {
         rule = "Host(`cloud.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         middlewares = [
-          "local@file"
           "nextcloud@file"
         ];
         service = "nextcloud";

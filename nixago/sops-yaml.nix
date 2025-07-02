@@ -33,8 +33,8 @@ let
       key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
       owned = true;
     };
-    dfw0 = {
-      key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
+    vie0 = {
+      key = "age1gn64hthcxqsvrzylccxg6lwh930z0450msk92n0d98s74463ya0qlwtm52";
       owned = true;
     };
   };

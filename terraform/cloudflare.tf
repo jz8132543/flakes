@@ -72,25 +72,25 @@ resource "cloudflare_record" "dora_subscription" {
 
 locals {
   service_cname_mappings = {
-    vault              = { on = "fra1", proxy = false }
-    ts                 = { on = "fra1", proxy = false }
-    ldap               = { on = "fra1", proxy = false }
-    sso                = { on = "fra1", proxy = false }
-    mta-sts            = { on = "fra1", proxy = false }
-    atuin              = { on = "fra1", proxy = false }
-    ntfy               = { on = "fra1", proxy = false }
-    pb                 = { on = "fra1", proxy = false }
-    ollama             = { on = "fra1", proxy = false }
-    ollama-ui          = { on = "fra1", proxy = false }
-    minio              = { on = "fra1", proxy = false }
-    minio-console      = { on = "fra1", proxy = false }
-    "admin.m"          = { on = "fra1", proxy = false }
-    jellyfin           = { on = "fra1", proxy = false }
-    alist              = { on = "fra1", proxy = false }
-    office             = { on = "fra1", proxy = false }
-    code               = { on = "fra1", proxy = false }
-    cloud              = { on = "fra1", proxy = false }
-    reader             = { on = "fra1", proxy = false }
+    vault              = { on = "vie0", proxy = false }
+    ts                 = { on = "vie0", proxy = false }
+    ldap               = { on = "vie0", proxy = false }
+    sso                = { on = "vie0", proxy = false }
+    mta-sts            = { on = "vie0", proxy = false }
+    atuin              = { on = "vie0", proxy = false }
+    ntfy               = { on = "vie0", proxy = false }
+    pb                 = { on = "vie0", proxy = false }
+    ollama             = { on = "vie0", proxy = false }
+    ollama-ui          = { on = "vie0", proxy = false }
+    minio              = { on = "vie0", proxy = false }
+    minio-console      = { on = "vie0", proxy = false }
+    "admin.m"          = { on = "vie0", proxy = false }
+    jellyfin           = { on = "vie0", proxy = false }
+    alist              = { on = "vie0", proxy = false }
+    office             = { on = "vie0", proxy = false }
+    code               = { on = "vie0", proxy = false }
+    cloud              = { on = "vie0", proxy = false }
+    reader             = { on = "vie0", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     morty              = { on = "hkg4", proxy = false }
