@@ -16,10 +16,6 @@ let
       key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
       owned = true;
     };
-    isk = {
-      key = "age1uy5aqnm948p6zd2jy9enw5rppemgxcdfswgvf3qv7d2y05zfla5sqwzhhs";
-      owned = true;
-    };
     hkg4 = {
       key = "age1rj5t5yfewlxwdgyt4ugwq9lfnxvpqgk9hvgfxsgrdm3ds5drv3vs0t7zx6";
       owned = true;
@@ -28,13 +24,8 @@ let
       key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
       owned = true;
     };
-    # TODO: delete
-    ams0 = {
-      key = "age1tvfl7y78hv2egs45nqtp7nlydqrrq2twjr47m2028lh68qtqwuxs9wxk3v";
-      owned = true;
-    };
     vie0 = {
-      key = "age1gn64hthcxqsvrzylccxg6lwh930z0450msk92n0d98s74463ya0qlwtm52";
+      key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
       owned = true;
     };
   };

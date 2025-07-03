@@ -10,7 +10,7 @@ locals {
         aaaa = {
           proxied = false
           type    = "AAAA"
-          value   = "2a0a:4cc0:80:38bf::"
+          value   = "2a0a:4cc0:80:38bf:49e:6dff:fe2a:26c4"
         }
       }
       ddns_records = {}
