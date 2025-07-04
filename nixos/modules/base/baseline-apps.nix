@@ -68,6 +68,7 @@
     nix-output-monitor
     nix-tree
     age
+    backblaze-b2
     # # neovim
     # unzip
     # gnumake

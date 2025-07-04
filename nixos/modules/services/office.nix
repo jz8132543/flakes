@@ -3,6 +3,7 @@
 }:
 {
   config,
+  pkgs,
   ...
 }:
 {
@@ -89,4 +90,50 @@
       };
     };
   };
+  fonts = {
+    enableDefaultPackages = true;
+    fontDir = {
+      enable = true;
+      decompressFonts = true;
+    };
+    packages = with pkgs; [
+      noto-fonts
+      noto-fonts-cjk-sans
+      noto-fonts-cjk-serif
+      noto-fonts-emoji
+      jetbrains-mono
+      nerd-fonts.jetbrains-mono
+      nerd-fonts.roboto-mono
+      windows-fonts
+      vista-fonts
+      # foundertypeFonts.combine
+      # (
+      #   font:
+      #   (lib.attrByPath [
+      #     "meta"
+      #     "license"
+      #     "shortName"
+      #   ] "unknown" font) == "foundertype-per-ula"
+      # )
+      # foundertypeFonts.fzlsk
+      # foundertypeFonts.fzxbsk
+      # foundertypeFonts.fzxh1k
+      # foundertypeFonts.fzy1k
+      # foundertypeFonts.fzy3k
+      # foundertypeFonts.fzy4k
+    ];
+    fontconfig.defaultFonts = pkgs.lib.mkForce {
+      serif = [
+        "Noto Serif"
+        "Noto Serif CJK SC"
+      ];
+      sansSerif = [
+        "Noto Sans"
+        "Noto Sans CJK SC"
+      ];
+      monospace = [ "JetBrains Mono" ];
+      emoji = [ "Noto Color Emoji" ];
+    };
+  };
+
 }

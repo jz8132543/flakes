@@ -1,42 +1,16 @@
 locals {
   hosts = {
-    ams0 = {
+    vie0 = {
       records = {
         a = {
           proxied = false
           type    = "A"
-          value   = "104.255.66.184"
-        }
-      }
-      ddns_records = {}
-      host_indices = [3]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    dfw0 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "154.40.40.139"
-        }
-      }
-      ddns_records = {}
-      host_indices = [4]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    dfw1 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "172.99.148.201"
+          value   = "152.53.110.124"
         }
         aaaa = {
           proxied = false
           type    = "AAAA"
-          value   = "2606:fc40:0:b38::1"
+          value   = "2a0a:4cc0:80:38bf:49e:6dff:fe2a:26c4"
         }
       }
       ddns_records = {}
@@ -136,15 +110,16 @@ module "hosts" {
     )
   }
 
-  name               = each.key
-  cloudflare_zone_id = cloudflare_zone.im_dora.id
-  records            = each.value.records
-  ddns_records       = each.value.ddns_records
-  host_indices       = each.value.host_indices
-  dn42_v4_cidr       = var.dn42_v4_cidr
-  dn42_v6_cidr       = var.dn42_v6_cidr
-  endpoints_v4       = each.value.endpoints_v4
-  endpoints_v6       = each.value.endpoints_v6
+  name                 = each.key
+  cloudflare_zone_id   = cloudflare_zone.im_dora.id
+  cloudflare_zone_name = cloudflare_zone.im_dora.name
+  records              = each.value.records
+  ddns_records         = each.value.ddns_records
+  host_indices         = each.value.host_indices
+  dn42_v4_cidr         = var.dn42_v4_cidr
+  dn42_v6_cidr         = var.dn42_v6_cidr
+  endpoints_v4         = each.value.endpoints_v4
+  endpoints_v6         = each.value.endpoints_v6
 }
 
 output "hosts" {

@@ -1,24 +1,16 @@
 {
   "matrix": {
     "media": {
-      "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": "doraim-synapse-media",
-      "region": {
-        "sensitive": false,
-        "type": "string",
-        "value": "eu-central-003"
-      }
+      "host": null,
+      "name": null,
+      "region": null
     }
   },
   "mastodon": {
     "media": {
-      "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": "doraim-mastodon-media",
-      "region": {
-        "sensitive": false,
-        "type": "string",
-        "value": "eu-central-003"
-      }
+      "host": null,
+      "name": null,
+      "region": null
     }
   },
   "ssh": {
@@ -40,33 +32,6 @@
       "endpoints_v4": [],
       "endpoints_v6": [],
       "host_indices": [9]
-    },
-    "ams0": {
-      "dn42_addresses_v4": ["172.23.224.99"],
-      "dn42_addresses_v6": ["fd72:db83:badd:3::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:3::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [3]
-    },
-    "dfw0": {
-      "dn42_addresses_v4": ["172.23.224.100"],
-      "dn42_addresses_v6": ["fd72:db83:badd:4::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:4::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [4]
-    },
-    "dfw1": {
-      "dn42_addresses_v4": ["172.23.224.101"],
-      "dn42_addresses_v6": ["fd72:db83:badd:5::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:5::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [5]
     },
     "fra1": {
       "dn42_addresses_v4": ["172.23.224.102"],
@@ -103,43 +68,52 @@
       "endpoints_v4": [],
       "endpoints_v6": [],
       "host_indices": [30]
+    },
+    "vie0": {
+      "dn42_addresses_v4": ["172.23.224.101"],
+      "dn42_addresses_v6": ["fd72:db83:badd:5::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:5::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [5]
     }
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "alist": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "atuin": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "cloud": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "code": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "jellyfin": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "ldap": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "minio": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "minio-console": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "morty": {
@@ -147,7 +121,7 @@
       "proxy": false
     },
     "mta-sts": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "murmur": {
@@ -155,19 +129,19 @@
       "proxy": false
     },
     "ntfy": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "office": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "ollama": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "ollama-ui": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "p": {
@@ -175,7 +149,7 @@
       "proxy": false
     },
     "pb": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "perplexica-backend": {
@@ -183,7 +157,7 @@
       "proxy": false
     },
     "reader": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "searx": {
@@ -191,15 +165,15 @@
       "proxy": false
     },
     "sso": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "ts": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     },
     "vault": {
-      "on": "fra1",
+      "on": "vie0",
       "proxy": false
     }
   }
