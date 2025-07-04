@@ -1,24 +1,16 @@
 {
   "matrix": {
     "media": {
-      "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": "doraim-synapse-media",
-      "region": {
-        "sensitive": false,
-        "type": "string",
-        "value": "eu-central-003"
-      }
+      "host": null,
+      "name": null,
+      "region": null
     }
   },
   "mastodon": {
     "media": {
-      "host": "https://s3.eu-central-003.backblazeb2.com",
-      "name": "doraim-mastodon-media",
-      "region": {
-        "sensitive": false,
-        "type": "string",
-        "value": "eu-central-003"
-      }
+      "host": null,
+      "name": null,
+      "region": null
     }
   },
   "ssh": {

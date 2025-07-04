@@ -21,6 +21,7 @@
   sops.templates."minio-root-credentials".content = ''
     MINIO_ROOT_USER=${config.sops.placeholder."minio/user"}
     MINIO_ROOT_PASSWORD=${config.sops.placeholder."minio/password"}
+    MINIO_UPDATE=off
   '';
   services.traefik.dynamicConfigOptions.http = {
     routers = {

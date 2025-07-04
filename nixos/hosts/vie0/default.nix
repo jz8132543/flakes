@@ -16,7 +16,6 @@
       nixosModules.services.ntfy
       nixosModules.services.vscode
       # nixosModules.services.sogo
-      nixosModules.services.pastebin
       # nixosModules.services.ollama
       nixosModules.services.proxy
       # nixosModules.services.jellyfin
@@ -26,11 +25,13 @@
       # (import nixosModules.services.kindle-sender { })
       # TEST
       nixosModules.services.mysql
-      (import nixosModules.services.matrix { })
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })
       (import nixosModules.services.alist { })
       (import nixosModules.services.office { })
       (import nixosModules.services.nextcloud { })
+      # TODO
+      # nixosModules.services.pastebin
+      # (import nixosModules.services.matrix { })
     ];
 }

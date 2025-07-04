@@ -110,15 +110,16 @@ module "hosts" {
     )
   }
 
-  name               = each.key
-  cloudflare_zone_id = cloudflare_zone.im_dora.id
-  records            = each.value.records
-  ddns_records       = each.value.ddns_records
-  host_indices       = each.value.host_indices
-  dn42_v4_cidr       = var.dn42_v4_cidr
-  dn42_v6_cidr       = var.dn42_v6_cidr
-  endpoints_v4       = each.value.endpoints_v4
-  endpoints_v6       = each.value.endpoints_v6
+  name                 = each.key
+  cloudflare_zone_id   = cloudflare_zone.im_dora.id
+  cloudflare_zone_name = cloudflare_zone.im_dora.name
+  records              = each.value.records
+  ddns_records         = each.value.ddns_records
+  host_indices         = each.value.host_indices
+  dn42_v4_cidr         = var.dn42_v4_cidr
+  dn42_v6_cidr         = var.dn42_v6_cidr
+  endpoints_v4         = each.value.endpoints_v4
+  endpoints_v6         = each.value.endpoints_v6
 }
 
 output "hosts" {

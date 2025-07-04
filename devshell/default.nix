@@ -51,6 +51,7 @@
 
       terraform
       nvfetcher
+      backblaze-b2
 
       ruby
       minio-client

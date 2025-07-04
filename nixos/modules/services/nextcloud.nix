@@ -62,6 +62,7 @@ in
     config = {
       dbtype = "pgsql";
       dbhost = PG;
+      adminuser = "root";
       adminpassFile = config.sops.secrets."password".path;
     };
     settings = {

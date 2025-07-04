@@ -38,35 +38,29 @@ locals {
 # Zones
 
 resource "cloudflare_zone" "im_dora" {
-  account_id = local.cloudflare_main_account_id
-  zone       = "dora.im"
+  name = "dora.im"
+  type = "full"
+  account = {
+    id = local.cloudflare_main_account_id
+  }
 }
 
-resource "cloudflare_zone_settings_override" "im_dora" {
-  zone_id = cloudflare_zone.im_dora.id
-  settings {
-    ssl = "strict"
-  }
+resource "cloudflare_zone_setting" "im_dora" {
+  zone_id    = cloudflare_zone.im_dora.id
+  setting_id = "ssl"
+  value      = "strict"
 }
 
 # ttl = 1 for automatic
 
 # CNAME records
 
-resource "cloudflare_record" "dora_shg0" {
-  name    = "shg0"
+resource "cloudflare_dns_record" "dora_shg0" {
+  name    = "shg0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "CNAME"
   content = "home.sots.eu.org"
-  zone_id = cloudflare_zone.im_dora.id
-}
-resource "cloudflare_record" "dora_subscription" {
-  name    = "subscription"
-  proxied = false
-  ttl     = 1
-  type    = "CNAME"
-  content = "cname.vercel-dns.com."
   zone_id = cloudflare_zone.im_dora.id
 }
 
@@ -103,10 +97,10 @@ output "service_cname_mappings" {
   sensitive = false
 }
 
-resource "cloudflare_record" "general_cname" {
+resource "cloudflare_dns_record" "general_cname" {
   for_each = local.service_cname_mappings
 
-  name    = each.key
+  name    = "${each.key}.${cloudflare_zone.im_dora.name}"
   proxied = each.value.proxy
   ttl     = 1
   type    = "CNAME"
@@ -115,7 +109,7 @@ resource "cloudflare_record" "general_cname" {
 }
 
 # ROOT record
-resource "cloudflare_record" "dora" {
+resource "cloudflare_dns_record" "dora" {
   name    = "dora.im"
   proxied = false
   ttl     = 1
@@ -125,24 +119,27 @@ resource "cloudflare_record" "dora" {
 }
 
 # b2
-resource "cloudflare_record" "dora_b2" {
-  name    = "b2"
-  proxied = true
-  ttl     = 1
-  type    = "CNAME"
-  content = module.b2_download_url.host
-  zone_id = cloudflare_zone.im_dora.id
-}
+# resource "cloudflare_dns_record" "dora_b2" {
+#   name    = "b2.${cloudflare_zone.im_dora.name}"
+#   proxied = true
+#   ttl     = 1
+#   type    = "CNAME"
+#   content = module.b2_download_url.host
+#   zone_id = cloudflare_zone.im_dora.id
+# }
 
 # matrix SRV record
-resource "cloudflare_record" "_matrix_tcp" {
-  name    = "_matrix._tcp"
-  type    = "SRV"
-  zone_id = cloudflare_zone.im_dora.id
-  data {
-    service  = "_matrix"
-    proto    = "_tcp"
-    name     = cloudflare_zone.im_dora.zone
+resource "cloudflare_dns_record" "_matrix_tcp" {
+  name     = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
+  type     = "SRV"
+  ttl      = 1
+  priority = 10
+  proxied  = false
+  zone_id  = cloudflare_zone.im_dora.id
+  data = {
+    # service = "_matrix"
+    # proto   = "_tcp"
+    # name     = cloudflare_zone.im_dora.zone
     priority = 10
     weight   = 5
     port     = 443
@@ -152,16 +149,16 @@ resource "cloudflare_record" "_matrix_tcp" {
 
 # mail
 
-resource "cloudflare_record" "mail" {
-  name    = "mail"
+resource "cloudflare_dns_record" "mail" {
+  name    = "mail.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "CNAME"
   content = "glacier.mxrouting.net"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_dkim" {
-  name    = "x._domainkey"
+resource "cloudflare_dns_record" "dora_dkim" {
+  name    = "x._domainkey.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "TXT"
@@ -169,8 +166,8 @@ resource "cloudflare_record" "dora_dkim" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_dmarc" {
-  name    = "_dmarc"
+resource "cloudflare_dns_record" "dora_dmarc" {
+  name    = "_dmarc.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "TXT"
@@ -178,7 +175,7 @@ resource "cloudflare_record" "dora_dmarc" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_spf" {
+resource "cloudflare_dns_record" "dora_spf" {
   name    = "dora.im"
   proxied = false
   ttl     = 1
@@ -187,15 +184,15 @@ resource "cloudflare_record" "dora_spf" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_mta_sts" {
-  name    = "_mta-sts"
+resource "cloudflare_dns_record" "dora_mta_sts" {
+  name    = "_mta-sts.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "TXT"
   content = "v=STSv1; id=20241201T010102"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_mx_mxroute1" {
+resource "cloudflare_dns_record" "dora_mx_mxroute1" {
   name     = "dora.im"
   proxied  = false
   ttl      = 1
@@ -204,7 +201,7 @@ resource "cloudflare_record" "dora_mx_mxroute1" {
   priority = 10
   zone_id  = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_mx_mxroute2" {
+resource "cloudflare_dns_record" "dora_mx_mxroute2" {
   name     = "dora.im"
   proxied  = false
   ttl      = 1
@@ -217,16 +214,16 @@ resource "cloudflare_record" "dora_mx_mxroute2" {
 # Machines
 
 # RFC2782
-resource "cloudflare_record" "dora_matrix" {
-  name    = "m"
+resource "cloudflare_dns_record" "dora_matrix" {
+  name    = "m.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "176.116.18.242"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_matrix_v6" {
-  name    = "m"
+resource "cloudflare_dns_record" "dora_matrix_v6" {
+  name    = "m.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "AAAA"
@@ -234,112 +231,112 @@ resource "cloudflare_record" "dora_matrix_v6" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_record" "dora_tippy" {
-  name    = "tippy"
+resource "cloudflare_dns_record" "dora_tippy" {
+  name    = "tippy.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "82.156.22.240"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_tyo0" {
-  name    = "tyo0"
+resource "cloudflare_dns_record" "dora_tyo0" {
+  name    = "tyo0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "45.66.129.234"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_lax0" {
-  name    = "lax0"
+resource "cloudflare_dns_record" "dora_lax0" {
+  name    = "lax0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "74.48.188.251"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_lax2" {
-  name    = "lax2"
+resource "cloudflare_dns_record" "dora_lax2" {
+  name    = "lax2.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "74.48.170.226"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_nue0" {
-  name    = "nue0"
+resource "cloudflare_dns_record" "dora_nue0" {
+  name    = "nue0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "45.142.176.126"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_tyo1" {
-  name    = "tyo1"
+resource "cloudflare_dns_record" "dora_tyo1" {
+  name    = "tyo1.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "54.248.91.93"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_tyo3" {
-  name    = "tyo3"
+resource "cloudflare_dns_record" "dora_tyo3" {
+  name    = "tyo3.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "194.87.169.90"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_hkg0" {
-  name    = "hkg0"
+resource "cloudflare_dns_record" "dora_hkg0" {
+  name    = "hkg0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "20.187.90.38"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_hkg3" {
-  name    = "hkg3"
+resource "cloudflare_dns_record" "dora_hkg3" {
+  name    = "hkg3.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "45.67.200.54"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_hkg2" {
-  name    = "hkg2"
+resource "cloudflare_dns_record" "dora_hkg2" {
+  name    = "hkg2.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "CNAME"
   content = "chuyv.eastasia.cloudapp.azure.com"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_icn0" {
-  name    = "icn0"
+resource "cloudflare_dns_record" "dora_icn0" {
+  name    = "icn0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "CNAME"
   content = "kr.onlynull.live"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_hkg3_v6" {
-  name    = "hkg3"
+resource "cloudflare_dns_record" "dora_hkg3_v6" {
+  name    = "hkg3.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "AAAA"
   content = "2a0e:aa07:4000::1:cd9b:d26"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_lax0_v6" {
-  name    = "lax0"
+resource "cloudflare_dns_record" "dora_lax0_v6" {
+  name    = "lax0.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "AAAA"
   content = "2607:f130:0:ea:ff:ff:3a2c:61e0"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_record" "dora_fra2" {
-  name    = "fra2"
+resource "cloudflare_dns_record" "dora_fra2" {
+  name    = "fra2.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
