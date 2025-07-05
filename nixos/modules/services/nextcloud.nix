@@ -16,6 +16,9 @@ in
   imports = [
     (import nixosModules.services.office { })
   ];
+  systemd.tmpfiles.rules = [
+    "d '${config.users.users.nextcloud.home}/' 0700 nextcloud nextcloud - -"
+  ];
   services.collabora-online.settings = {
     remote_font_config.url = "https://${config.services.nextcloud.hostName}/apps/richdocuments/settings/fonts.json";
     storage.wopi = {

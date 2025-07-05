@@ -9,6 +9,9 @@ let
 in
 {
   imports = [ nixosModules.services.rclone ];
+  systemd.tmpfiles.rules = [
+    "d '${config.services.syncthing.configDir}/' 0700 syncthing syncthing - -"
+  ];
   services.syncthing = {
     enable = true;
     guiAddress = "127.0.0.1:${toString config.ports.syncthing}";

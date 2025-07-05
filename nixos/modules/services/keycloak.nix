@@ -13,6 +13,9 @@
     nixosModules.services.acme
     nixosModules.services.restic
   ];
+  systemd.tmpfiles.rules = [
+    "d ' /var/lib/private/lldap/' 0700 lldap lldap - -"
+  ];
 
   networking.firewall.allowedTCPPorts = [ config.ports.ldap ];
   services.keycloak = {

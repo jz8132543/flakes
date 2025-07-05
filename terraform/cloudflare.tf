@@ -79,6 +79,7 @@ locals {
     minio              = { on = "vie0", proxy = false }
     minio-console      = { on = "vie0", proxy = false }
     "admin.m"          = { on = "vie0", proxy = false }
+    zone               = { on = "vie0", proxy = false }
     jellyfin           = { on = "vie0", proxy = false }
     alist              = { on = "vie0", proxy = false }
     office             = { on = "vie0", proxy = false }

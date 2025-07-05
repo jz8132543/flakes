@@ -175,6 +175,10 @@
     "vault": {
       "on": "vie0",
       "proxy": false
+    },
+    "zone": {
+      "on": "vie0",
+      "proxy": false
     }
   }
 }

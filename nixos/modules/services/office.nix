@@ -4,12 +4,35 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }:
+with lib;
+let
+  x11Fonts = pkgs.runCommand "X11-fonts" { preferLocalBuild = true; } ''
+    mkdir -p "$out"
+    font_regexp='.*\.\(ttf\|ttc\|otf\|pcf\|pfa\|pfb\|bdf\)\(\.gz\)?'
+    find ${toString config.fonts.packages} -regex "$font_regexp" \
+      -exec cp '{}' "$out" \;
+    cd "$out"
+    ${pkgs.gzip}/bin/gunzip -f *.gz
+    ${pkgs.xorg.mkfontscale}/bin/mkfontscale
+    ${pkgs.xorg.mkfontdir}/bin/mkfontdir
+    cat $(find ${pkgs.xorg.fontalias}/ -name fonts.alias) >fonts.alias
+  '';
+in
 {
+  system.activationScripts.mkFontsLink = {
+    deps = [ "binsh" ];
+    text = ''
+      mkdir -p /usr/share/fonts
+      cp -r ${x11Fonts} /usr/share/fonts/
+    '';
+  };
   services.collabora-online = {
     enable = true;
     port = config.ports.office; # default
+    # package = mkFHSEnv pkgs.collabora-online;
     settings = {
       # Rely on reverse proxy for SSL
       ssl = {
