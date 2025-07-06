@@ -62,6 +62,7 @@
     colmena
     deploy-rs
     nixos-anywhere
+    clang
     # tools
     yq-go
     fd

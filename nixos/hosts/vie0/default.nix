@@ -20,6 +20,7 @@
       # nixosModules.services.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
+      nixosModules.services.searx
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { })

@@ -86,9 +86,9 @@ locals {
     code               = { on = "vie0", proxy = false }
     cloud              = { on = "vie0", proxy = false }
     reader             = { on = "vie0", proxy = false }
+    searx              = { on = "vie0", proxy = false }
+    morty              = { on = "vie0", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
-    searx              = { on = "hkg4", proxy = false }
-    morty              = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }
   }
