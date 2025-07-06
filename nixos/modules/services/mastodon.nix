@@ -15,8 +15,8 @@
     secretKeyBaseFile = config.sops.secrets."mastodon/SECRET_KEY_BASE".path;
     otpSecretFile = config.sops.secrets."mastodon/OTP_SECRET".path;
     smtp = {
-      host = config.lib.self.data.mail.smtp;
-      port = config.ports.smtp;
+      host = config.environment.smtp_host;
+      port = config.environment.smtp_port;
       passwordFile = config.sops.secrets."mastodon/mail".path;
       fromAddress = "mastodon@dora.im";
     };
@@ -34,11 +34,11 @@
       OIDC_REDIRECT_URI = "https://${config.services.mastodon.extraConfig.WEB_DOMAIN}/auth/auth/openid_connect/callback";
       OIDC_SECURITY_ASSUME_EMAIL_IS_VERIFIED = "true";
       OIDC_CLIENT_ID = "mastodon";
-      S3_ENABLED = "true";
-      S3_BUCKET = config.lib.self.data.mastodon.media.name;
-      S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
-      S3_REGION = config.lib.self.data.mastodon.media.region.value;
-      S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
+      # S3_ENABLED = "true";
+      # S3_BUCKET = config.lib.self.data.mastodon.media.name;
+      # S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
+      # S3_REGION = config.lib.self.data.mastodon.media.region.value;
+      # S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
       DEEPL_PLAN = "free";
     };
     extraEnvFiles = [ config.sops.templates."mastodon-env".path ];
@@ -47,8 +47,6 @@
   sops.templates."mastodon-env" = {
     content = ''
       OIDC_CLIENT_SECRET=${config.sops.placeholder."mastodon/oidc-secret"}
-      AWS_ACCESS_KEY_ID=${config.sops.placeholder."b2_mastodon_media_key_id"}
-      AWS_SECRET_ACCESS_KEY=${config.sops.placeholder."b2_mastodon_media_access_key"}
       DEEPL_API_KEY = ${config.sops.placeholder."mastodon/deepl"}
     '';
   };
@@ -75,8 +73,6 @@
       owner = config.services.mastodon.user;
     };
   };
-  sops.secrets."b2_mastodon_media_key_id".sopsFile = config.sops-file.get "terraform/common.yaml";
-  sops.secrets."b2_mastodon_media_access_key".sopsFile = config.sops-file.get "terraform/common.yaml";
 
   services.nginx = {
     enable = true;

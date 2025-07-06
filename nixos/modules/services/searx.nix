@@ -35,9 +35,18 @@ in
       };
       search = {
         safe_search = 0;
-        autocomplete = "google"; # Existing autocomplete backends: "dbpedia", "duckduckgo", "google", "startpage", "swisscows", "qwant", "wikipedia" - leave blank to turn it off by default
         default_lang = "zh-CN";
+        autocomplete = "duckduckgo";
+        favicon_resolver = "duckduckgo";
+        suspend_on_unavailable = false;
+        result_extras = {
+          favicon = true; # Enable website icons
+          thumbnail = true; # Enable result thumbnails
+          thumbnail_proxy = true; # Use a proxy for thumbnails
+        };
         formats = [
+          "rss"
+          "csv"
           "html"
           "json"
         ];
@@ -50,47 +59,89 @@ in
         image_proxy = true;
         default_locale = "en";
       };
+      ui = {
+        default_theme = "simple";
+        query_in_title = true;
+        infinite_scroll = true;
+        engine_shortcuts = true; # Show engine icons
+        expand_results = true; # Show result thumbnails
+        theme_args = {
+          style = "auto"; # Supports dark/light mode
+        };
+      };
+      plugins =
+        let
+          mkPlugin = name: active: { ${name} = { inherit active; }; };
+          activePlugins = map (name: mkPlugin name true) [
+            "searx.plugins.calculator.SXNGPlugin"
+            "searx.plugins.hash_plugin.SXNGPlugin"
+            "searx.plugins.self_info.SXNGPlugin"
+            "searx.plugins.tracker_url_remover.SXNGPlugin"
+            "searx.plugins.unit_converter.SXNGPlugin"
+            "searx.plugins.ahmia_filter.SXNGPlugin"
+            "searx.plugins.hostnames.SXNGPlugin"
+            "searx.plugins.oa_doi_rewrite.SXNGPlugin"
+          ];
+          inactivePlugins = map (name: mkPlugin name false) [
+          ];
+        in
+        lib.foldr lib.mergeAttrs { } (activePlugins ++ inactivePlugins);
       outgoing = {
         # request_timeout = 10.0;
         useragent_suffix = "sx";
         pool_connections = 100;
-        pool_maxsize = 10;
+        pool_maxsize = 20;
+        request_timeout = 10.0;
+        max_request_timeout = 15.0;
       };
       result_proxy = {
         url = "https://morty.${config.networking.domain}/";
       };
-      engines =
-        lib.mapAttrsToList
-          (
-            name: value:
-            {
-              inherit name;
-            }
-            // value
-          )
-          {
-            "bitbucket".disabled = false;
-            "ccc-tv".disabled = false;
-            "ddg definitions".disabled = false;
-            "erowid".disabled = false;
-            "duckduckgo".disabled = false;
-            "duckduckgo images".disabled = false;
-            "fdroid".disabled = false;
-            "gitlab".disabled = false;
-            "google".disabled = false;
-            "google play apps".disabled = false;
-            "nyaa".disabled = false;
-            "openrepos".disabled = false;
-            "qwant".disabled = false;
-            "reddit".disabled = false;
-            "searchcode code".disabled = false;
-            "framalibre".disabled = false;
-            "wikibooks".disabled = false;
-            "wikinews".disabled = false;
-            "wikiquote".disabled = false;
-            "wikisource".disabled = false;
-            "wiktionary".disabled = false;
-          };
+      engines = [
+        {
+          name = "bing";
+          engine = "bing";
+          disabled = false;
+          timeout = 6.0;
+        }
+        {
+          name = "brave";
+          engine = "brave";
+          disabled = false;
+          timeout = 6.0;
+        }
+        {
+          name = "google";
+          engine = "google";
+          disabled = false;
+          timeout = 6.0;
+        }
+        {
+          name = "wikipedia";
+          engine = "wikipedia";
+          disabled = false;
+          timeout = 6.0;
+        }
+        {
+          name = "duckduckgo";
+          engine = "duckduckgo";
+          disabled = false;
+          timeout = 6.0;
+        }
+      ];
+      cache = {
+        cache_max_age = 1440; # Cache for 24 hours
+        cache_disabled_plugins = [ ];
+        cache_dir = "/var/cache/searxng";
+      };
+      privacy = {
+        preferences = {
+          disable_map_search = true;
+          disable_web_search = false;
+          disable_image_search = false;
+        };
+        http_header_anonymization = true;
+      };
     };
   };
   services.morty = {

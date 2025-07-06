@@ -79,15 +79,16 @@ locals {
     minio              = { on = "vie0", proxy = false }
     minio-console      = { on = "vie0", proxy = false }
     "admin.m"          = { on = "vie0", proxy = false }
+    zone               = { on = "vie0", proxy = false }
     jellyfin           = { on = "vie0", proxy = false }
     alist              = { on = "vie0", proxy = false }
     office             = { on = "vie0", proxy = false }
     code               = { on = "vie0", proxy = false }
     cloud              = { on = "vie0", proxy = false }
     reader             = { on = "vie0", proxy = false }
+    searx              = { on = "vie0", proxy = false }
+    morty              = { on = "vie0", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
-    searx              = { on = "hkg4", proxy = false }
-    morty              = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }
   }

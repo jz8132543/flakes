@@ -5,13 +5,13 @@
 }:
 {
   imports = [ nixosModules.services.acme ];
-  config.users.users.traefik.extraGroups = [ "acme" ];
-  config.networking.firewall.allowedTCPPorts = [
+  users.users.traefik.extraGroups = [ "acme" ];
+  networking.firewall.allowedTCPPorts = [
     80
     443
   ];
-  config.networking.firewall.allowedUDPPorts = [ 443 ];
-  config.services.traefik = {
+  networking.firewall.allowedUDPPorts = [ 443 ];
+  services.traefik = {
     enable = true;
     staticConfigOptions = {
       entryPoints = {
@@ -134,20 +134,21 @@
       # };
     };
   };
-  config.systemd.tmpfiles.rules = [
+  systemd.tmpfiles.rules = [
     "d '/var/lib/traefik' 0770 traefik traefik - -"
+    "f '/var/lib/traefik/acme.json' 0600 traefik traefik - -"
   ];
 
-  config.systemd.services.traefik.serviceConfig.EnvironmentFile = [
+  systemd.services.traefik.serviceConfig.EnvironmentFile = [
     config.sops.templates."traefik-env".path
   ];
-  config.sops.secrets = {
+  sops.secrets = {
     "traefik/cloudflare_token" = { };
     "traefik/KID" = { };
     "traefik/hmacEncoded" = { };
     "traefik/TRAEFIK_AUTH" = { };
   };
-  config.sops.templates.traefik-env.content = ''
+  sops.templates.traefik-env.content = ''
     CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
     TRAEFIK_AUTH=${config.sops.placeholder."traefik/TRAEFIK_AUTH"}
     KID=${config.sops.placeholder."traefik/KID"}

@@ -117,7 +117,7 @@
       "proxy": false
     },
     "morty": {
-      "on": "hkg4",
+      "on": "vie0",
       "proxy": false
     },
     "mta-sts": {
@@ -161,7 +161,7 @@
       "proxy": false
     },
     "searx": {
-      "on": "hkg4",
+      "on": "vie0",
       "proxy": false
     },
     "sso": {
@@ -173,6 +173,10 @@
       "proxy": false
     },
     "vault": {
+      "on": "vie0",
+      "proxy": false
+    },
+    "zone": {
       "on": "vie0",
       "proxy": false
     }
