@@ -23,6 +23,7 @@
     libreoffice
     teamspeak5_client
     mumble
+    wechat-uos
   ];
   programs = {
     # TODO

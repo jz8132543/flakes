@@ -15,6 +15,11 @@
       Requires = [ "graphical-session-pre.target" ];
     };
   };
+  home.file.".config/nixpkgs/config.nix".source = pkgs.writeText "pub" ''
+    {
+      allowUnfree = true;
+    }
+  '';
   # programs.home-manager.enable = true;
   # https://github.com/nix-community/home-manager/issues/3211
   home.packages = [ pkgs.home-manager ];

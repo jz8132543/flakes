@@ -11,15 +11,17 @@
   networking.firewall.allowedTCPPorts = lib.range 1714 1764;
   networking.firewall.allowedUDPPorts = lib.range 1714 1764;
 
-  services.xserver = {
-    enable = true;
-    displayManager = {
-      gdm = {
-        enable = true;
-        autoSuspend = false;
+  services = {
+    xserver = {
+      enable = true;
+      displayManager = {
+        gdm = {
+          enable = true;
+          autoSuspend = false;
+        };
       };
+      desktopManager.gnome.enable = true;
     };
-    desktopManager.gnome.enable = true;
   };
 
   environment.systemPackages = with pkgs; [
