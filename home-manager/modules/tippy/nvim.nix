@@ -45,10 +45,10 @@ in
       wget-log.*
       /vendor
     '';
-    # "nvim" = {
-    #   source = config.lib.file.mkOutOfStoreSymlink "/home/${baseNameOf ./.}/source/nvim";
-    #   recursive = true;
-    # };
+    "nvim" = {
+      source = config.lib.file.mkOutOfStoreSymlink "/home/${baseNameOf ./.}/source/nvim";
+      recursive = true;
+    };
   };
   home.file = {
     ".config/nvim-plugins".source =
