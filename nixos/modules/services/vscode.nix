@@ -44,4 +44,10 @@
       };
     };
   };
+  environment.global-persistence.user = {
+    directories = [
+      ".local/share/code-server"
+    ];
+  };
+
 }

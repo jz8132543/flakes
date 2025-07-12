@@ -3,6 +3,7 @@
   getSystem,
   config,
   lib,
+  self,
   ...
 }:
 let
@@ -41,6 +42,12 @@ let
         # TODO: https://github.com/juanfont/headscale/issues/2630
         inherit (inputs'.release-2505.legacyPackages) headscale traefik;
       }
+      // (self.lib.maybeAttrByPath "comma-with-db" inputs [
+        "nix-index-database"
+        "packages"
+        system
+        "comma-with-db"
+      ])
     )
   ];
   lateFixes = _final: _prev: { };

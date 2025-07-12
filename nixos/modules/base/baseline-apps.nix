@@ -26,6 +26,7 @@
     mosh.enable = true;
     mtr.enable = true;
     traceroute.enable = true;
+    nh.enable = true;
     nix-ld = {
       enable = true;
       package = pkgs.nix-ld-rs;

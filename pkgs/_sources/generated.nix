@@ -2,6 +2,7 @@
 {
   fetchurl,
   fetchFromGitHub,
+  dockerTools,
 }:
 {
   alacritty-catppuccin = {
@@ -18,10 +19,10 @@
   };
   alist = {
     pname = "alist";
-    version = "v4.0.4";
+    version = "v4.0.8";
     src = fetchurl {
-      url = "https://github.com/OpenListTeam/OpenList/releases/download/v4.0.4/openlist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-t5JOhNhS4+gA3Jifc0l/JBNsM1qskISVVunpijuqcX8=";
+      url = "https://github.com/OpenListTeam/OpenList/releases/download/v4.0.8/openlist-linux-musl-amd64.tar.gz";
+      sha256 = "sha256-RKXzbVcy2M5cn3zZYbsbsIIKoKMzHbe1F5nJcaZ7Jqc=";
     };
   };
   clash-webui-yacd-meta = {
@@ -62,7 +63,7 @@
     version = "latest";
     src = fetchurl {
       url = "https://cf.trackerslist.com/best_aria2.txt";
-      sha256 = "sha256-P97AJxDE8S4kYw5RPOXGe5vgRPaxew4XGL7gjvz8HX4=";
+      sha256 = "sha256-kk7Q8Kpn9CDDVYNdWVsGrTF807iKS5qiHBZ8OnJn9CI=";
     };
   };
 }

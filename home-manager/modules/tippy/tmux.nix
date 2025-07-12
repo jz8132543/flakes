@@ -21,7 +21,7 @@ in
     enable = true;
     baseIndex = 1;
     escapeTime = 10;
-    shell = "${pkgs.zsh}/bin/zsh";
+    shell = "${pkgs.fish}/bin/fish";
     keyMode = "vi";
     terminal = "tmux-256color";
     plugins = with pkgs; [
@@ -31,6 +31,7 @@ in
       # source: https://github.com/felixonmars/dotfiles/blob/master/.tmux.conf
       set -g prefix ^b
       set-option -gw xterm-keys on
+      set-option -g escape-time 0
       bind a send-prefix
       unbind '"'
       bind - splitw -v # 分割成上下两个窗口
@@ -69,6 +70,7 @@ in
 
       set -g terminal-overrides 'rxvt*:smcup@:rmcup@'
       set -g base-index 1
+      set -g pane-border-format "#{pane_index} #{pane_title}"
       #set -s escape-time 0
       setw -g aggressive-resize on
 

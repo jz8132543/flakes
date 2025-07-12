@@ -217,15 +217,16 @@ with lib;
       users = usersCfg;
     };
 
-    systemd.tmpfiles.settings."10-preservation" = userTmpFilesCfg // {
-      ${cfg.root} = {
-        d = {
-          user = "root";
-          group = "root";
-          mode = "0755";
-        };
-      };
-    };
+    systemd.tmpfiles.settings."10-preservation" = userTmpFilesCfg;
+    # systemd.tmpfiles.settings."10-preservation" = userTmpFilesCfg // {
+    #   ${cfg.root} = {
+    #     d = {
+    #       user = "root";
+    #       group = "root";
+    #       mode = "0755";
+    #     };
+    #   };
+    # };
 
     environment.systemPackages = [ cfg.persistMigrate ];
 

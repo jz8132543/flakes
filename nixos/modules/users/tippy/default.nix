@@ -11,7 +11,7 @@ in
   users.mutableUsers = true;
   users.users.${name} = {
     isNormalUser = true;
-    shell = pkgs.zsh;
+    shell = pkgs.fish;
     extraGroups = [
       "wheel"
       "networkmanager"
@@ -31,6 +31,8 @@ in
 
   nix.settings.trusted-users = [ name ];
   environment.global-persistence.user.users = [ name ];
+  programs.nh.flake = "${homeDirectory}/source/flakes";
+  environment.etc."nixos".source = "${homeDirectory}/source/flakes";
   home-manager.users.${name} =
     {
       hmModules,
@@ -49,4 +51,8 @@ in
         ];
       };
     };
+  systemd.tmpfiles.rules = [
+    # "A+ ${homeDirectory}/source - - - - group::rw,other::rw"
+    # "A+ ${homeDirectory}/source - - - - default:group::rw,default:other::rw"
+  ];
 }

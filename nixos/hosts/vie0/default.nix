@@ -17,7 +17,7 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      # nixosModules.services.jellyfin
+      nixosModules.services.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.searx

@@ -68,6 +68,8 @@
       ipsec-nat-traversal = 4500;
       babel = 6696;
       jellyfin = 8096;
+      jellyfin-auto-discovery-1 = 1900;
+      jellyfin-auto-discovery-2 = 7359;
       zerotier = 9993;
       dn42-mesh-min = 19000;
       # interval: no ports here

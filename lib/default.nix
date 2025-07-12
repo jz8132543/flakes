@@ -8,6 +8,7 @@ lib.makeExtensible (self: {
   buildModuleList = import ./build-module-list.nix { inherit self lib; };
   flattenTree = import ./flatten-tree.nix { inherit lib; };
   rakeLeaves = import ./rake-leaves.nix { inherit inputs lib; };
+  maybeAttrByPath = import ./maybe-attr-by-path.nix { inherit lib; };
   rake = import ./rake.nix { inherit inputs lib; };
   path = builtins.toPath ./..;
 })
