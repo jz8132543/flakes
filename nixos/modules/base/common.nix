@@ -1,21 +1,20 @@
 {
   pkgs,
   lib,
-  inputs,
   ...
 }:
 {
-  imports = [
-    inputs.nix-index-database.nixosModules.nix-index
-  ];
   time.timeZone = "Asia/Shanghai";
 
   documentation = {
     nixos.enable = false;
     man.generateCaches = false;
   };
+  programs.nix-index = {
+    enable = pkgs ? nix-index-with-db;
+    package = pkgs.nix-index-with-db;
+  };
   programs.command-not-found.enable = false;
-  programs.nix-index.enable = true;
 
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_zen;
   security.rtkit.enable = true;
@@ -24,6 +23,12 @@
   services.earlyoom.enable = true;
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;
+  };
+  systemd.oomd = {
+    enable = true;
+    enableSystemSlice = true;
+    enableRootSlice = true;
+    enableUserSlices = true;
   };
 
   services.journald.extraConfig = ''

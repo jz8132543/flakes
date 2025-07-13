@@ -9,7 +9,7 @@ let
   vscodeExtensionsPkgs = inputs.nix-vscode-extensions.extensions.${pkgs.system};
 in
 {
-  # https://github.com/alienzj/dotfiles/modules/editors/vscode.nix
+  # https://github.com/alienzj/dotfiles/blob/dev/modules/editors/vscode.nix
   imports = [ nixosModules.desktop.fonts ];
   services.code-server = {
     enable = true;
@@ -49,8 +49,8 @@ in
           formulahendry.code-runner
 
           # test
-          # hbenl.vscode-test-explorer
-          # ms-vscode.test-adapter-converter
+          hbenl.vscode-test-explorer
+          ms-vscode.test-adapter-converter
 
           # comments
           aaron-bond.better-comments
@@ -298,6 +298,8 @@ in
   environment.global-persistence.user = {
     directories = [
       ".local/share/code-server"
+      ".local/share/direnv"
+      ".vscode-server"
     ];
   };
 

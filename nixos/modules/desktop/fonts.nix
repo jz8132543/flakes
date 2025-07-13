@@ -25,6 +25,11 @@
       material-design-icons
       material-symbols
       font-awesome
+      # Steam
+      # source-han-serif
+      # source-han-sans
+      # wqy_zenhei
+      # wqy_microhei
       # foundertypeFonts.combine
       # (
       #   font:

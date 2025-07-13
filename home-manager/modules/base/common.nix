@@ -1,12 +1,8 @@
 {
   pkgs,
-  inputs,
   ...
 }:
 {
-  imports = [
-    inputs.nix-index-database.homeModules.nix-index
-  ];
   home.sessionPath = [ "$HOME/.local/bin" ];
   # TODO: https://github.com/nix-community/home-manager/issues/2064
   systemd.user.targets.tray = {

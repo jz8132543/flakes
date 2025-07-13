@@ -1,11 +1,12 @@
 {
   inputs,
   config,
+  pkgs,
   ...
 }:
 {
   nix = {
-    #package = pkgs.lix;
+    package = pkgs.lix;
     optimise.automatic = true;
     channel.enable = false;
     gc = {
@@ -31,6 +32,16 @@
       use-cgroups = true;
       auto-optimise-store = true;
       warn-dirty = false;
+      min-free = 1024 * 1024 * 1024; # bytes
+      sandbox = true;
+      keep-outputs = true;
+      keep-derivations = true;
+      fallback = true;
+      allowed-users = [ "@users" ];
+      trusted-users = [
+        "root"
+        "@wheel"
+      ];
     };
     sshServe = {
       enable = true;
