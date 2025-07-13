@@ -34,14 +34,6 @@
       url = "github:nix-community/haumea";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    naersk = {
-      url = "github:nix-community/naersk";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    fenix = {
-      url = "github:nix-community/fenix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     colmena = {
       url = "github:zhaofengli/colmena";
       inputs.stable.follows = "nixpkgs";
@@ -104,11 +96,6 @@
       url = "github:gytis-ivaskevicius/flake-utils-plus";
       inputs.flake-utils.follows = "flake-utils";
     };
-    # poetry2nix = {
-    #   url = "github:nix-community/poetry2nix";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    #   inputs.flake-utils.follows = "flake-utils";
-    # };
     neovim-nightly-overlay = {
       url = "github:nix-community/neovim-nightly-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -135,41 +122,7 @@
       inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    # nixd = {
-    #   url = "github:nix-community/nixd";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    #   inputs.flake-parts.follows = "flake-parts";
-    # };
-    devenv = {
-      url = "github:cachix/devenv/latest";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-compat.follows = "flake-compat";
-    };
     xremap-flake.url = "github:xremap/nix-flake";
-    headscale = {
-      url = "github:juanfont/headscale";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
-    tailscale = {
-      url = "github:tailscale/tailscale";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.flake-compat.follows = "flake-compat";
-    };
-    clash2sing-box = {
-      url = "github:oluceps/clash2sing-box";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.naersk.follows = "naersk";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.fenix.follows = "fenix";
-    };
-    pastebin = {
-      url = "github:linyinfeng/pastebin";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-      inputs.treefmt-nix.follows = "treefmt-nix";
-    };
     # Themes
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";
@@ -226,7 +179,6 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
-          #inputs.lix-module.nixosModules.default
         ] ++ selfLib.buildModuleList ./flake;
       }
     );
