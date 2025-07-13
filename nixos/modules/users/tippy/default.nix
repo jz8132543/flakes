@@ -46,13 +46,19 @@ in
         enable = true;
         home = homeDirectory;
         directories = [
-          "source"
+          # "source"
           ".local/share/direnv"
         ];
       };
     };
-  systemd.tmpfiles.rules = [
-    # "A+ ${homeDirectory}/source - - - - group::rw,other::rw"
-    # "A+ ${homeDirectory}/source - - - - default:group::rw,default:other::rw"
+  preservation.preserveAt.${config.environment.global-persistence.root}.users.${name}.directories = [
+    {
+      directory = "source";
+      mode = "0777";
+    }
   ];
+  # systemd.tmpfiles.rules = [
+  #   # "A+ ${homeDirectory}/source - - - - group::rw,other::rw"
+  #   # "A+ ${homeDirectory}/source - - - - default:group::rw,default:other::rw"
+  # ];
 }

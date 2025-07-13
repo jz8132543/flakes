@@ -2,7 +2,6 @@
 {
   fetchurl,
   fetchFromGitHub,
-  dockerTools,
 }:
 {
   alacritty-catppuccin = {

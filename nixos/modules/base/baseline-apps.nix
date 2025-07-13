@@ -63,7 +63,6 @@
     colmena
     deploy-rs
     nixos-anywhere
-    clang
     # tools
     yq-go
     fd
@@ -71,13 +70,28 @@
     nix-tree
     age
     backblaze-b2
-    # # neovim
-    # unzip
-    # gnumake
-    # luajit
-    # luaPackages.lua
-    # luajitPackages.luarocks
-    # luajitPackages.magick
-    # gcc
+    # neovim
+    unzip
+    gnumake
+    gcc
+    clang
+    direnv
+    # lsps
+    nil
+    nixd
+    lua-language-server
+    terraform-ls
+    nodePackages.vscode-langservers-extracted # css,eslint,html,json,markdown
+    nodePackages.typescript
+    nodePackages.typescript-language-server
+    nodePackages.bash-language-server
+    nodePackages.dockerfile-language-server-nodejs
+    # formatters
+    eslint_d
+    prettierd
+    nodePackages.prettier
+    nixfmt-rfc-style
+    stylua
+
   ];
 }

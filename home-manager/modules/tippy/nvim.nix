@@ -76,24 +76,5 @@ in
     ];
   };
   home.packages = with pkgs; [
-    unzip
-    gnumake
-    gcc
-    # lsps
-    nil
-    nixd
-    lua-language-server
-    terraform-ls
-    nodePackages.vscode-langservers-extracted # css,eslint,html,json,markdown
-    nodePackages.typescript
-    nodePackages.typescript-language-server
-    nodePackages.bash-language-server
-    nodePackages.dockerfile-language-server-nodejs
-    # formatters
-    eslint_d
-    prettierd
-    nodePackages.prettier
-    nixfmt-rfc-style
-    stylua
   ];
 }
