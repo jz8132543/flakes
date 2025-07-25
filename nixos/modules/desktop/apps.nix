@@ -48,6 +48,8 @@
     nix-tree
     nurl
     manix
+
+    mihomo-party
   ];
   environment.shellAliases = {
     qrcp = "qrcp --port ${toString config.ports.qrcp}";

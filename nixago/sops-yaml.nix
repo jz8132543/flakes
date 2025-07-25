@@ -100,6 +100,5 @@ in
         }
       ];
     }
-  ]
-  ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
+  ] ++ lib.mapAttrsToList (host: cfg: mkHostCreationRule host cfg.key) hosts;
 }

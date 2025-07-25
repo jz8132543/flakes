@@ -193,8 +193,7 @@ with config.home.catppuccin;
         golang.symbol = "[󰟓 ](blue)";
         package.disabled = true;
         palette = "catppuccin_${flavor}";
-      }
-      // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
+      } // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
     fzf = {
       enable = true;

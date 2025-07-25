@@ -5,6 +5,11 @@
   ...
 }:
 {
+  imports = [
+    # TODO switch to lixFromNixpkgs once 2.93.2 is available
+    inputs.lix-module.nixosModules.default
+    # inputs.lix-module.nixosModules.lixFromNixpkgs
+  ];
   nix = {
     package = pkgs.lix;
     optimise.automatic = true;
