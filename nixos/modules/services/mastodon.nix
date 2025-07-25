@@ -13,7 +13,7 @@
     vapidPublicKeyFile = config.sops.secrets."mastodon/VAPID_PUBLIC_KEY".path;
     vapidPrivateKeyFile = config.sops.secrets."mastodon/VAPID_PRIVATE_KEY".path;
     secretKeyBaseFile = config.sops.secrets."mastodon/SECRET_KEY_BASE".path;
-    otpSecretFile = config.sops.secrets."mastodon/OTP_SECRET".path;
+    # otpSecretFile = config.sops.secrets."mastodon/OTP_SECRET".path;
     smtp = {
       host = config.environment.smtp_host;
       port = config.environment.smtp_port;

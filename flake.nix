@@ -179,7 +179,8 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
-        ] ++ selfLib.buildModuleList ./flake;
+        ]
+        ++ selfLib.buildModuleList ./flake;
       }
     );
 }
