@@ -9,12 +9,9 @@
 let
   packages = [
     inputs.sops-nix.overlays.default
-    # inputs.pastebin.overlays.default
     inputs.neovim-nightly-overlay.overlays.default
     inputs.rust-overlay.overlays.default
     inputs.chinese-fonts-overlay.overlays.default
-    # inputs.nixd.overlays.default
-    # inputs.nvfetcher.overlays.default
     (
       _final: prev:
       let
@@ -39,8 +36,7 @@ let
             old.postInstall
           ];
         });
-        # TODO: https://github.com/juanfont/headscale/issues/2630
-        inherit (inputs'.release-2505.legacyPackages) headscale traefik;
+        inherit (inputs'.latest.legacyPackages) nextcloud;
       }
       // (self.lib.maybeAttrByPath "comma-with-db" inputs [
         "nix-index-database"

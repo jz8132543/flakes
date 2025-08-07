@@ -16,6 +16,7 @@
     hydra-builder-client = 405;
     # windows = 406;
     steam = 407;
+    nextcloud = 501;
   };
   ids.gids = {
     # service groups

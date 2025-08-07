@@ -122,6 +122,7 @@
       reader = 4396;
       office = 13444;
       code = 4444;
+      opencloud = 9200;
     };
   };
 }

@@ -1694,7 +1694,7 @@
         "type": "github"
       }
     },
-    "release-2411": {
+    "release": {
       "locked": {
         "lastModified": 1751290243,
         "narHash": "sha256-kNf+obkpJZWar7HZymXZbW+Rlk3HTEIMlpc6FCNz0Ds=",
@@ -1761,7 +1761,7 @@
         "nvfetcher": "nvfetcher",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",
         "preservation": "preservation",
-        "release-2411": "release-2411",
+        "release": "release",
         "release-2505": "release-2505",
         "rust-overlay": "rust-overlay",
         "sops-nix": "sops-nix",

@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     latest.url = "github:NixOS/nixpkgs/master";
     release-2505.url = "github:NixOS/nixpkgs/release-25.05";
-    release-2411.url = "github:NixOS/nixpkgs/release-24.11";
+    release.url = "github:NixOS/nixpkgs/release-24.11";
     nur.url = "github:nix-community/NUR";
     nixos-hardware.url = "github:nixos/nixos-hardware";
     impermanence.url = "github:nix-community/impermanence";
@@ -179,7 +179,8 @@
           inputs.linyinfeng.flakeModules.nixpkgs
           inputs.linyinfeng.flakeModules.passthru
           inputs.linyinfeng.flakeModules.nixago
-        ] ++ selfLib.buildModuleList ./flake;
+        ]
+        ++ selfLib.buildModuleList ./flake;
       }
     );
 }

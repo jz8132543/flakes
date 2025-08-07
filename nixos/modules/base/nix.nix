@@ -11,7 +11,7 @@
     # inputs.lix-module.nixosModules.lixFromNixpkgs
   ];
   nix = {
-    package = pkgs.lix;
+    package = pkgs.lixPackageSets.git.lix;
     optimise.automatic = true;
     channel.enable = false;
     gc = {
@@ -20,7 +20,11 @@
       options = "--delete-older-than 7d";
     };
     settings = {
-      nix-path = [ "nixpkgs=${inputs.nixpkgs}" ];
+      nix-path = [
+        "nixpkgs=${inputs.nixpkgs}"
+        "nixpkgs-master=${inputs.latest.outPath}"
+        "nixpkgs-stable=${inputs.release.outPath}"
+      ];
       experimental-features = [
         "nix-command"
         "flakes"

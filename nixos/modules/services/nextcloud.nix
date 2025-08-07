@@ -27,6 +27,17 @@ in
       host = [ config.services.nextcloud.hostName ];
     };
   };
+  systemd.services.nextcloud-setup = {
+    after = [
+      "postgresql.service"
+      "tailscaled.service"
+    ];
+    serviceConfig.Restart = lib.mkForce "on-failure";
+  };
+  users.users.nextcloud.uid = config.ids.uids.nextcloud;
+  systemd.services.nextcloud-setup.serviceConfig = {
+    RequiresMountsFor = [ "/var/lib/nextcloud" ];
+  };
   systemd.services.nextcloud-config-collabora =
     let
       inherit (config.services.nextcloud) occ;
@@ -63,6 +74,7 @@ in
     appstoreEnable = true;
     maxUploadSize = "10G";
     configureRedis = true;
+    database.createLocally = true;
     config = {
       dbtype = "pgsql";
       dbhost = PG;
