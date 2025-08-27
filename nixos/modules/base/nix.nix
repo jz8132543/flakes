@@ -20,6 +20,7 @@
       options = "--delete-older-than 7d";
     };
     settings = {
+      allow-import-from-derivation = true;
       nix-path = [
         "nixpkgs=${inputs.nixpkgs}"
         "nixpkgs-master=${inputs.latest.outPath}"
