@@ -100,7 +100,6 @@
       url = "github:nix-community/neovim-nightly-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
-      inputs.flake-compat.follows = "flake-compat";
     };
     linyinfeng = {
       url = "github:linyinfeng/nur-packages";
@@ -119,7 +118,6 @@
     };
     nixos-vscode-server = {
       url = "github:nix-community/nixos-vscode-server";
-      inputs.flake-utils.follows = "flake-utils";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     xremap-flake.url = "github:xremap/nix-flake";
@@ -147,7 +145,6 @@
     nix-vscode-extensions = {
       url = "github:nix-community/nix-vscode-extensions";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
   };
 

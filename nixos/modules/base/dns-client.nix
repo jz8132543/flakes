@@ -4,7 +4,7 @@
   ...
 }:
 let
-  cfg = config.services.dnscrypt-proxy2;
+  cfg = config.services.dnscrypt-proxy;
 in
 {
   networking =
@@ -33,7 +33,7 @@ in
         }
       else
         { };
-    dnscrypt-proxy2 = rec {
+    dnscrypt-proxy = rec {
       enable = lib.mkDefault false;
       settings = {
         listen_addresses = [ "127.0.0.55:53" ];

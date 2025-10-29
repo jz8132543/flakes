@@ -14,7 +14,9 @@
       # };
       # xkb.options = "caps:swapescape,caps:escape";
     };
-    xremap.config.modmap = [
+    xremap = {
+      enable = true;
+      config.modmap = [
       {
         name = "Global";
         remap = {
@@ -27,7 +29,7 @@
           "ESC" = "CapsLock";
         }; # globally remap CapsLock to Esc
       }
-    ];
+    ];};
     # Ignore auto hibernate
     logind.extraConfig = ''
       LidSwitchIgnoreInhibited=yes
