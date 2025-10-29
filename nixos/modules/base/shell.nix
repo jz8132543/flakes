@@ -33,6 +33,11 @@
     ])
     ++ lib.optional (pkgs ? comma-with-db) pkgs.comma-with-db;
 
+  environment.shellAliases = {
+    # sl = service log
+    sl = "journalctl --unit";
+  };
+
   environment.global-persistence.user.directories = [
     ".local/share/fish"
   ];

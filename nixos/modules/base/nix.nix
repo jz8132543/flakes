@@ -11,7 +11,7 @@
     # inputs.lix-module.nixosModules.lixFromNixpkgs
   ];
   nix = {
-    package = pkgs.lixPackageSets.git.lix;
+    package = pkgs.lixPackageSets.stable.lix;
     optimise.automatic = true;
     channel.enable = false;
     gc = {

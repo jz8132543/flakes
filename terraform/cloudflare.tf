@@ -91,6 +91,7 @@ locals {
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }
+    plex               = { on = "vie0", proxy = false }
   }
 }
 output "service_cname_mappings" {

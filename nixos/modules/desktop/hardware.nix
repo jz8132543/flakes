@@ -29,10 +29,10 @@
       }
     ];
     # Ignore auto hibernate
-    logind.extraConfig = ''
-      LidSwitchIgnoreInhibited=yes
-      HandleLidSwitch=ignore
-    '';
+    logind.settings.Login = {
+      LidSwitchIgnoreInhibited = "yes";
+      HandleLidSwitch = "ignore";
+    };
     # pipewire = {
     #   enable = true;
     #   audio.enable = true;
