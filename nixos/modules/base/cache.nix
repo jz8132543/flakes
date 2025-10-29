@@ -9,7 +9,6 @@
       "https://numtide.cachix.org"
       "https://cache.garnix.io"
       "https://linyinfeng.cachix.org"
-      "https://cache.nichi.co?priority=50"
       "https://xddxdd.cachix.org"
     ];
     trusted-public-keys = [
@@ -19,7 +18,6 @@
       "numtide.cachix.org-1:2ps1kLBUWjxIneOy1Ik6cQjb41X0iXVXeHigGmycPPE="
       "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
       "linyinfeng.cachix.org-1:sPYQXcNrnCf7Vr7T0YmjXz5dMZ7aOKG3EqLja0xr9MM="
-      "hydra.nichi.co-0:P3nkYHhmcLR3eNJgOAnHDjmQLkfqheGyhZ6GLrUVHwk="
       "xddxdd.cachix.org-1:ay1HJyNDYmlSwj5NXQG065C8LfoqqKaTNCyzeixGjf8="
     ];
   };

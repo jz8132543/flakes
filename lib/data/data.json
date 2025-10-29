@@ -156,6 +156,10 @@
       "on": "hkg4",
       "proxy": false
     },
+    "plex": {
+      "on": "vie0",
+      "proxy": false
+    },
     "reader": {
       "on": "vie0",
       "proxy": false

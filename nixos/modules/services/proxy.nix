@@ -3,10 +3,12 @@
   networking.firewall.allowedTCPPorts = [
     8443
     8444
+    8555
   ];
   networking.firewall.allowedUDPPorts = [
     8443
     8444
+    8555
   ];
   systemd.services.xray = {
     wantedBy = [ "multi-user.target" ];
@@ -19,6 +21,16 @@
       Restart = "always";
       # ExecStart = "${pkgs.sing-box}/bin/sing-box run -C /etc/sing-box";
       ExecStart = "${pkgs.xray}/bin/xray -config /etc/xray/config.json";
+    };
+  };
+  systemd.timers = {
+    xray = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        AccuracySec = "1d";
+        Persistent = true;
+      };
     };
   };
   # environment.etc."sing-box/geoip.db".source = "${pkgs.sing-geoip}/share/sing-box/geoip.db";

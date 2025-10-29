@@ -19,9 +19,10 @@
       # nixosModules.services.ollama
       nixosModules.services.proxy
       nixosModules.services.jellyfin
-      nixosModules.services.syncthing
+      # nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.searx
+      nixosModules.services.plex
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { })

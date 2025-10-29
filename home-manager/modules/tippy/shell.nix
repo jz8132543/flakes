@@ -5,11 +5,11 @@
   ...
 }:
 let
-  # catppuccin = pkgs.catppuccin.override {
-  #   inherit (config.home.catppuccin) variant;
-  #   inherit (config.home.catppuccin) accent;
-  # };
-  inherit (pkgs) catppuccin;
+  catppuccin = pkgs.catppuccin.override {
+    inherit (config.home.catppuccin) variant;
+    inherit (config.home.catppuccin) accent;
+  };
+  # inherit (pkgs) catppuccin;
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
 in
@@ -168,7 +168,7 @@ with config.home.catppuccin;
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
-      # enableFishIntegration = true;
+      enableFishIntegration = true;
       settings = {
         # git
         git_commit.commit_hash_length = 7;
@@ -194,8 +194,8 @@ with config.home.catppuccin;
         golang.symbol = "[󰟓 ](blue)";
         package.disabled = true;
         palette = "catppuccin_${flavor}";
-      };
-      # // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
+      }
+      // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
     fzf = {
       enable = true;
@@ -221,7 +221,6 @@ with config.home.catppuccin;
       enable = true;
       config = {
         pager = "less -FR";
-        # theme = "Catppuccin\ ${toTitle flavor}";
         theme = "catppuccin-${flavor}";
       };
       themes = {
@@ -238,7 +237,9 @@ with config.home.catppuccin;
         batdiff
       ];
     };
-    # bottom = {settings = {} // builtins.fromTOML (builtins.readFile "${catppuccin}/bottom/${flavor}.toml");};
+    bottom = {
+      settings = { } // builtins.fromTOML (builtins.readFile "${catppuccin}/bottom/${flavor}.toml");
+    };
     skim.enable = true;
   };
   home.packages = with pkgs; [

@@ -8,12 +8,7 @@ with lib.strings;
   programs = {
     ssh = {
       enable = true;
-      userKnownHostsFile = "/dev/null";
-      serverAliveInterval = 3;
-      serverAliveCountMax = 6;
-      compression = false;
-      controlMaster = "auto";
-      forwardAgent = true;
+      enableDefaultConfig = false;
       # https://github.com/NixOS/nixpkgs/issues/168322
       # controlPersist = "10m";
       extraOptionOverrides = {
@@ -43,6 +38,11 @@ with lib.strings;
           checkHostIP = false;
           forwardAgent = true;
           # forwardX11 = true;
+          userKnownHostsFile = "/dev/null";
+          serverAliveInterval = 3;
+          serverAliveCountMax = 6;
+          compression = false;
+          controlMaster = "auto";
         };
         "canonical" = {
           match = concatStrings [

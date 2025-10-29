@@ -29,27 +29,7 @@
   };
   environment.systemPackages = with pkgs; [
     qrcp
-    # LSP
-    alejandra
-    vscode-langservers-extracted
-    sumneko-lua-language-server
-    stylua
-    efm-langserver
-    prettierd
-    shellcheck
-    shfmt
-    taplo
-    yaml-language-server
-    # nix
-    nil
-    nix-doc
-    # nix-melt
-    nix-output-monitor
-    nix-tree
-    nurl
-    manix
-
-    mihomo-party
+    # mihomo-party
   ];
   environment.shellAliases = {
     qrcp = "qrcp --port ${toString config.ports.qrcp}";
