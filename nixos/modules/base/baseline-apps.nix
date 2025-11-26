@@ -29,7 +29,7 @@
     nh.enable = true;
     nix-ld = {
       enable = true;
-      package = pkgs.nix-ld-rs;
+      package = pkgs.nix-ld;
     };
     # neovim = {
     #   enable = true;
@@ -86,7 +86,7 @@
     nodePackages.typescript-language-server
     nodePackages.bash-language-server
     dockerfile-language-server
-    sumneko-lua-language-server
+    lua-language-server
     efm-langserver
     shellcheck
     shfmt

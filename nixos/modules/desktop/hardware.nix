@@ -17,19 +17,20 @@
     xremap = {
       enable = true;
       config.modmap = [
-      {
-        name = "Global";
-        remap = {
-          "CapsLock" = "Esc";
-        }; # globally remap CapsLock to Esc
-      }
-      {
-        name = "Global";
-        remap = {
-          "ESC" = "CapsLock";
-        }; # globally remap CapsLock to Esc
-      }
-    ];};
+        {
+          name = "Global";
+          remap = {
+            "CapsLock" = "Esc";
+          }; # globally remap CapsLock to Esc
+        }
+        {
+          name = "Global";
+          remap = {
+            "ESC" = "CapsLock";
+          }; # globally remap CapsLock to Esc
+        }
+      ];
+    };
     # Ignore auto hibernate
     logind.settings.Login = {
       LidSwitchIgnoreInhibited = "yes";

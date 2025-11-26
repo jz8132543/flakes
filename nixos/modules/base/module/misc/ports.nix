@@ -101,7 +101,7 @@
       ldaps = 636;
       mta-sts = 8097;
       derp = 3340;
-      derp-stun = 3478;
+      # derp-stun = 3478;
       smtp = 465;
       imap = 993;
       sogo = 20001;
@@ -123,6 +123,7 @@
       office = 13444;
       code = 4444;
       opencloud = 9200;
+      turn-port = 3478;
     };
   };
 }

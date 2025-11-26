@@ -11,7 +11,7 @@
     serviceConfig = {
       Restart = "always";
       DynamicUser = true;
-      ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
+      ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.turn-port} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
       # ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='\${HOSTNAME}' -c /tmp/derper.conf -verify-clients";
       # ExecStart = "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev";
       # if !config.environment.isNAT
@@ -65,5 +65,5 @@
   #   requiredBy = ["derper.service"];
   # };
   networking.firewall.allowedTCPPorts = [ config.ports.derp ];
-  networking.firewall.allowedUDPPorts = [ config.ports.derp-stun ];
+  networking.firewall.allowedUDPPorts = [ config.ports.turn-port ];
 }
