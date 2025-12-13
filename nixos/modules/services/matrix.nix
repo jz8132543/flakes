@@ -183,7 +183,7 @@ lib.mkMerge [
       };
     };
     environment.systemPackages = [
-      pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
+      # pkgs.nur.repos.linyinfeng.synapse-s3-storage-provider
     ];
     systemd.services."matrix-synapse" = {
       after = [

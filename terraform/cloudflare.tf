@@ -66,28 +66,28 @@ resource "cloudflare_dns_record" "dora_shg0" {
 
 locals {
   service_cname_mappings = {
-    vault              = { on = "vie0", proxy = false }
-    ts                 = { on = "vie0", proxy = false }
-    ldap               = { on = "vie0", proxy = false }
-    sso                = { on = "vie0", proxy = false }
-    mta-sts            = { on = "vie0", proxy = false }
-    atuin              = { on = "vie0", proxy = false }
-    ntfy               = { on = "vie0", proxy = false }
-    pb                 = { on = "vie0", proxy = false }
-    ollama             = { on = "vie0", proxy = false }
-    ollama-ui          = { on = "vie0", proxy = false }
-    minio              = { on = "vie0", proxy = false }
-    minio-console      = { on = "vie0", proxy = false }
-    "admin.m"          = { on = "vie0", proxy = false }
-    zone               = { on = "vie0", proxy = false }
-    jellyfin           = { on = "vie0", proxy = false }
-    alist              = { on = "vie0", proxy = false }
-    office             = { on = "vie0", proxy = false }
-    code               = { on = "vie0", proxy = false }
-    cloud              = { on = "vie0", proxy = false }
-    reader             = { on = "vie0", proxy = false }
-    searx              = { on = "vie0", proxy = false }
-    morty              = { on = "vie0", proxy = false }
+    vault              = { on = "nue0", proxy = false }
+    ts                 = { on = "nue0", proxy = false }
+    ldap               = { on = "nue0", proxy = false }
+    sso                = { on = "nue0", proxy = false }
+    mta-sts            = { on = "nue0", proxy = false }
+    atuin              = { on = "nue0", proxy = false }
+    ntfy               = { on = "nue0", proxy = false }
+    pb                 = { on = "nue0", proxy = false }
+    ollama             = { on = "nue0", proxy = false }
+    ollama-ui          = { on = "nue0", proxy = false }
+    minio              = { on = "nue0", proxy = false }
+    minio-console      = { on = "nue0", proxy = false }
+    "admin.m"          = { on = "nue0", proxy = false }
+    zone               = { on = "nue0", proxy = false }
+    jellyfin           = { on = "nue0", proxy = false }
+    alist              = { on = "nue0", proxy = false }
+    office             = { on = "nue0", proxy = false }
+    code               = { on = "nue0", proxy = false }
+    cloud              = { on = "nue0", proxy = false }
+    reader             = { on = "nue0", proxy = false }
+    searx              = { on = "nue0", proxy = false }
+    morty              = { on = "nue0", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }

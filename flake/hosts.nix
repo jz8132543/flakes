@@ -113,6 +113,10 @@ in
       name = "vie0";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "nue0";
+      system = "x86_64-linux";
+    })
     # (mkHost {
     #   name = "isk";
     #   system = "x86_64-linux";

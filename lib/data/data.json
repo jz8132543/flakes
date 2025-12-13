@@ -60,6 +60,15 @@
       "endpoints_v6": [],
       "host_indices": [8]
     },
+    "nue0": {
+      "dn42_addresses_v4": ["172.23.224.99"],
+      "dn42_addresses_v6": ["fd72:db83:badd:3::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:3::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [3]
+    },
     "surface": {
       "dn42_addresses_v4": ["172.23.224.126"],
       "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],
@@ -81,47 +90,47 @@
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "alist": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "atuin": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "cloud": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "code": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "jellyfin": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "ldap": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "minio": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "minio-console": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "morty": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "mta-sts": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "murmur": {
@@ -129,19 +138,19 @@
       "proxy": false
     },
     "ntfy": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "office": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "ollama": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "ollama-ui": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "p": {
@@ -149,7 +158,7 @@
       "proxy": false
     },
     "pb": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "perplexica-backend": {
@@ -161,27 +170,27 @@
       "proxy": false
     },
     "reader": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "searx": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "sso": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "ts": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "vault": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "zone": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     }
   }
