@@ -53,7 +53,7 @@
     # VDPAU_NVIDIA_SYNC_DISPLAY_DEVICE = "HDMI-A-1";
   };
   nix.settings = {
-    substituters = lib.mkForce [
+    substituters = [
       "https://cuda-maintainers.cachix.org"
     ];
     trusted-public-keys = [

@@ -1,0 +1,110 @@
+{
+  config,
+  lib,
+  ...
+}:
+{
+  services = {
+    netbird = {
+      enable = true;
+      clients.default = {
+        dns-resolver = {
+          # NOTE Having the addr set to the default value (null) will lead to nb
+          # using its own addr
+          address = "127.0.0.20";
+          # NOTE for resolvectl to work reliably we need to leave the port on 53
+          # other ports does not seem to work well with systemd-resolved
+          port = 53;
+        };
+        environment = {
+          # do not set up netbird ssh
+          NB_ALLOW_SERVER_SSH = "false";
+          # don't mess with my ssh config!
+          NB_DISABLE_SSH_CONFIG = "true";
+        };
+        config =
+          let
+            urlConfig = {
+              Scheme = "https";
+              Opaque = "";
+              User = null;
+              Host = "ts.${config.networking.domain}:443";
+              Path = "";
+              RawPath = "";
+              OmitHost = false;
+              ForceQuery = false;
+              RawQuery = "";
+              Fragment = "";
+              RawFragment = "";
+            };
+          in
+          {
+            # Set Management URL for netbird configuration file
+            # ManagementURL = urlConfig;
+            # AdminUrl = urlConfig;
+          };
+      };
+      useRoutingFeatures = "both";
+    };
+    # Don't let tailscale drop all our packets!
+    tailscale =
+      let
+        tsFlags = [
+          "--netfilter-mode=off"
+        ];
+      in
+      {
+        extraSetFlags = tsFlags;
+        extraUpFlags = tsFlags;
+      };
+  };
+  systemd.services = {
+    # reload netbird service whenever the system config changes
+    ${config.services.netbird.clients.default.service.name} = {
+      # caddy needs to be started before the client can access the management server
+      # requires = [ config.systemd.services.caddy.name ];
+      after = [ "traefik.service" ];
+    };
+    # netbird login before service starts
+    netbird-login =
+      let
+        defaultClient = config.services.netbird.clients.default;
+      in
+      {
+        description = "Login to self hosted netbird instance";
+        before = [ config.systemd.services.${defaultClient.service.name}.name ];
+        after = [
+          "network.target"
+          "traefik.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        inherit (config.systemd.services.${defaultClient.service.name}) preStart;
+        serviceConfig = {
+          ExecStart = "${lib.getExe config.services.netbird.package} login --management-url https://ts.${config.networking.domain} --setup-key-file ${
+            config.sops.secrets."netbird/Servers".path
+          }";
+          User = defaultClient.user.name;
+          Group = defaultClient.user.group;
+          RuntimeDirectory = defaultClient.dir.baseName;
+          RuntimeDirectoryMode = "0755";
+          ConfigurationDirectory = defaultClient.dir.baseName;
+          StateDirectory = defaultClient.dir.baseName;
+          StateDirectoryMode = "0700";
+          WorkingDirectory = defaultClient.dir.state;
+        };
+      };
+  };
+  users = {
+    users.netbird = {
+      isSystemUser = true;
+      group = "netbird";
+    };
+    groups.netbird = { };
+  };
+  sops.secrets = {
+    "netbird/Servers".owner = "netbird";
+  };
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/tailscale/tailscaled.state"
+  ];
+}

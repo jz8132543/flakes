@@ -16,7 +16,6 @@ let
       _final: prev:
       let
         inherit (prev.stdenv.hostPlatform) system;
-        inherit ((getSystem system).allModuleArgs) inputs';
       in
       {
         # inherit (inputs'.nix-gc-s3.packages) nix-gc-s3;
