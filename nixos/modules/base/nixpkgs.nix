@@ -36,7 +36,7 @@ let
             old.postInstall
           ];
         });
-        inherit (inputs'.latest.legacyPackages) nextcloud;
+        # inherit (inputs'.latest.legacyPackages) nextcloud;
       }
       // (self.lib.maybeAttrByPath "comma-with-db" inputs [
         "nix-index-database"
