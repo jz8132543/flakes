@@ -7,9 +7,9 @@
 
   networking.networkmanager = {
     enable = true;
-    # dns = "dnsmasq";
+    dns = "dnsmasq";
   };
-  services.dnscrypt-proxy2.enable = true;
+  # services.dnscrypt-proxy.enable = true;
   environment.global-persistence.directories = [
     "/etc/NetworkManager/system-connections"
   ];
