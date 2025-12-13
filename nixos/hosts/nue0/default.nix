@@ -23,9 +23,10 @@
       nixosModules.services.reader
       # nixosModules.services.searx
       nixosModules.services.plex
+      nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
-      (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      # (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
       nixosModules.services.netbird
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
