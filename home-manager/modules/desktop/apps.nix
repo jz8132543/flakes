@@ -4,7 +4,7 @@
 }:
 {
   home.packages = with pkgs; [
-    tdesktop
+    telegram-desktop
     ffmpeg
     thunderbird
     kdePackages.okular
@@ -21,7 +21,7 @@
     logseq
     zotero
     libreoffice
-    teamspeak5_client
+    teamspeak6-client
     mumble
     wechat-uos
   ];

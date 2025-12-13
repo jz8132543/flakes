@@ -19,7 +19,7 @@
       extraPackages = with pkgs; [
         libvdpau-va-gl
         nvidia-vaapi-driver
-        vaapiVdpau
+        libva-vdpau-driver
       ];
     };
     nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
