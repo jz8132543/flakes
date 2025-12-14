@@ -127,15 +127,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     preservation.url = "github:nix-community/preservation";
-    lix = {
-      url = "git+https://git.lix.systems/lix-project/lix.git";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    lix-module = {
-      url = "git+https://git.lix.systems/lix-project/nixos-module.git";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.lix.follows = "lix";
-    };
     chinese-fonts-overlay.url = "github:brsvh/chinese-fonts-overlay";
     nixvim = {
       url = "github:nix-community/nixvim";
