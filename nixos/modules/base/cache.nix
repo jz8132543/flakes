@@ -4,6 +4,7 @@
 {
   nix.settings = {
     substituters = [
+      "https://cache.nixos.org"
       "https://nix-community.cachix.org"
       "https://numtide.cachix.org"
       "https://cache.garnix.io"
