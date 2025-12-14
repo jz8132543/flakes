@@ -1,6 +1,5 @@
 {
   inputs,
-  getSystem,
   config,
   lib,
   self,
