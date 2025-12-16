@@ -8,7 +8,7 @@
     ffmpeg
     thunderbird
     kdePackages.okular
-    wpsoffice
+    wpsoffice-cn
     # nur.repos.xddxdd.baidupcs-go
     # nur.repos.xddxdd.wechat-uos
     remmina
@@ -106,6 +106,7 @@
       ".thunderbird"
       ".config/weixin"
       ".local/share/Kingsoft"
+      ".config/Kingsoft"
       ".config/Element"
       ".logseq"
       ".config/Logseq"

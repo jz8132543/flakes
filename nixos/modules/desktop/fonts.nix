@@ -40,6 +40,7 @@
       sarasa-gothic
 
       custom-win10-fonts
+      nur.repos.rewine.ttf-wps-fonts
     ];
 
     # user defined fonts

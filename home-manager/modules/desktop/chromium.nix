@@ -37,6 +37,7 @@
   home.global-persistence = {
     directories = [
       ".config/chromium"
+      ".cache/chromium"
     ];
   };
 }
