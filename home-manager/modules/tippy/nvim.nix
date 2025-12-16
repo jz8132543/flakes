@@ -20,7 +20,7 @@ in
     extraPackages = with pkgs; [
       clang
       luarocks
-      lua5_1
+      lua
       nodejs
       tree-sitter
     ];

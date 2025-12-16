@@ -295,6 +295,8 @@ in
       };
     };
   };
+
+  nix.settings.allowed-users = [ "code-server" ];
   environment.global-persistence.user = {
     directories = [
       ".local/share/code-server"
@@ -302,5 +304,4 @@ in
       ".vscode-server"
     ];
   };
-
 }

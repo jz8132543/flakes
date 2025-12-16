@@ -29,6 +29,17 @@ in
     ];
     extraConfig = ''
       # source: https://github.com/felixonmars/dotfiles/blob/master/.tmux.conf
+
+      # 配置 24-bit True-color(Tc), more info in this PR:
+      #   https://github.com/tmux/tmux/pull/112
+      set -s default-terminal 'tmux-256color'
+      set -sa terminal-overrides 'xterm-256color:RGB'
+      set -sa terminal-overrides 'alacritty:RGB'
+
+      set -g focus-events on
+      # 监视窗口信息，如有内容变动，进行提示
+      setw -g monitor-activity on
+      set -g visual-activity on
       set -g prefix ^b
       set-option -gw xterm-keys on
       set-option -g escape-time 0
@@ -160,11 +171,6 @@ in
       bind-key -n C-Tab next-window
       bind-key -n C-S-Tab previous-window
 
-      #For more compatibility
-      #set -g default-terminal "xterm-color"
-      #set -as terminal-features ",xterm-256color:RGB"
-      #set -ga terminal-overrides ",alacritty:Tc"
-      set -as terminal-overrides ",xterm-256color:RGB"
 
       #set-option -g mouse-resize-pane on
       #set-option -g mouse-select-window on
