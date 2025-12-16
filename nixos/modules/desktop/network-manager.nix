@@ -7,7 +7,7 @@
 
   networking.networkmanager = {
     enable = true;
-    dns = "dnsmasq";
+    # dns = "dnsmasq";
   };
   # services.dnscrypt-proxy.enable = true;
   environment.global-persistence.directories = [

@@ -11,7 +11,7 @@
     search = [ "dora.im" ];
     # search = ["ts.dora.im" "users.dora.im"];
     dhcpcd.extraConfig = "nohook resolv.conf";
-    networkmanager.dns = lib.mkDefault "none";
+    # networkmanager.dns = lib.mkDefault "none";
   };
 
   boot = {

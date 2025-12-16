@@ -29,26 +29,47 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-RKXzbVcy2M5cn3zZYbsbsIIKoKMzHbe1F5nJcaZ7Jqc=",
+      "sha256": "sha256-7OiwuJ4U0cI3WyRKnk+cUXLBO+wHtlmHsC8c0563pqw=",
       "type": "url",
-      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.0.8/openlist-linux-musl-amd64.tar.gz"
+      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.8/openlist-linux-musl-amd64.tar.gz"
     },
-    "version": "v4.0.8"
+    "version": "v4.1.8"
   },
   "clash-webui-yacd-meta": {
     "cargoLocks": null,
-    "date": "2025-02-20",
+    "date": "2025-12-14",
     "extract": null,
     "name": "clash-webui-yacd-meta",
     "passthru": null,
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-1sSaPXpc1MKnwzj+DqHsKL/ZZw2C4RuyII43ME+Kxvo=",
+      "sha256": "sha256-9bdYO7PSM/r2r4XVN6iJZ6Q1n6Hz8EpXf9A8QlH0J3I=",
       "type": "url",
-      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/9746ca746061e803b89c8102c43e5d11ad001e69.zip"
+      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/7643378feae9c9f44ea41b5143cd98e5135f9b9a.zip"
     },
-    "version": "9746ca746061e803b89c8102c43e5d11ad001e69"
+    "version": "7643378feae9c9f44ea41b5143cd98e5135f9b9a"
+  },
+  "custom-win10-fonts": {
+    "cargoLocks": null,
+    "date": "2025-01-01",
+    "extract": null,
+    "name": "custom-win10-fonts",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "jz8132543",
+      "repo": "ttf-ms-win10",
+      "rev": "4adc0a4198cc090b63bcb667363c03101e8175eb",
+      "sha256": "sha256-pymEG+Ygll+2YY8NyUj5Ky3ExRSlfFvthz5ap5scO4Y=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "4adc0a4198cc090b63bcb667363c03101e8175eb"
   },
   "ebook-sender-bot": {
     "cargoLocks": null,
@@ -101,7 +122,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-kk7Q8Kpn9CDDVYNdWVsGrTF807iKS5qiHBZ8OnJn9CI=",
+      "sha256": "sha256-gToovrVvggDK7yfw2+IA1Ruh9YTjjLOZLxWLAMoO5yI=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },

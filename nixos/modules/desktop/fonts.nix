@@ -1,4 +1,4 @@
-{ pkgs, chinese-fonts-overlay, ... }:
+{ pkgs, inputs, ... }:
 {
   # all fonts are linked to /nix/var/nix/profiles/system/sw/share/X11/fonts
   fonts = {
@@ -18,7 +18,8 @@
       # 其中汉字部分叫 Noto Sans/Serif CJK SC/TC/HK/JP/KR，最后一个词是地区变种。
       # noto-fonts # 大部分文字的常见样式，不包含汉字
       # noto-fonts-cjk # 汉字部分
-      noto-fonts-emoji # 彩色的表情符号字体
+
+      noto-fonts-color-emoji # 彩色的表情符号字体
       # noto-fonts-extra # 提供额外的字重和宽度变种
 
       # 思源系列字体是 Adobe 主导的。其中汉字部分被称为「思源黑体」和「思源宋体」，是由 Adobe + Google 共同开发的
@@ -38,7 +39,7 @@
       dejavu_fonts
       sarasa-gothic
 
-      (callPackage ./myfonts/win10-fonts.nix { })
+      custom-win10-fonts
     ];
 
     # user defined fonts
@@ -64,7 +65,7 @@
   };
 
   nixpkgs.overlays = [
-    chinese-fonts-overlay.overlays.default
+    inputs.chinese-fonts-overlay.overlays.default
   ];
 
   # https://wiki.archlinux.org/title/KMSCON
