@@ -13,6 +13,7 @@ in
   imports = [ nixosModules.desktop.fonts ];
   services.code-server = {
     enable = true;
+    user = "tippy";
     port = config.ports.code;
     disableGettingStartedOverride = true;
     disableTelemetry = true;
@@ -296,7 +297,7 @@ in
     };
   };
 
-  nix.settings.allowed-users = [ "code-server" ];
+  nix.settings.allowed-users = [ config.services.code-server.user ];
   environment.global-persistence.user = {
     directories = [
       ".local/share/code-server"
