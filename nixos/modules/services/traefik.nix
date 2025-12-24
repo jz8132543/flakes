@@ -154,8 +154,8 @@
         Group = group;
         ExecStart = "${pkgs.traefik-certs-dumper}/bin/traefik-certs-dumper file --watch --domain-subdir=true --version v2 --source ${certsPath} --dest ${destination} --post-hook 'chmod -R +r ${destination}'";
         ExecStartPre = [
-          "-${pkgs.coreutils}/bin/chown -R ${group}:${user} ${destination}"
-          "-${pkgs.coreutils}/bin/chmod -R 0755 ${destination}"
+          "+${pkgs.coreutils}/bin/chown -R ${group}:${user} ${destination}"
+          "+${pkgs.coreutils}/bin/chmod -R 0755 ${destination}"
         ];
         PermissionsStartOnly = true;
         LimitNOFILE = "1048576";

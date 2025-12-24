@@ -24,6 +24,7 @@
     teamspeak6-client
     mumble
     wechat-uos
+    obsidian
   ];
   programs = {
     # TODO

@@ -1,0 +1,107 @@
+{
+  config,
+  nixosModules,
+  pkgs,
+  ...
+}:
+let
+  DATA_DIR = "/mnt/alist/189P/Sync";
+in
+{
+  imports = [ nixosModules.services.rclone-alist ];
+  services.myRcloneMounts = {
+    obsidian = {
+      remotePath = "alist:/189P/Sync/Obsidian";
+      localPath = "/var/lib/syncthing/data/Obsidian";
+    };
+    backup-mobi = {
+      remotePath = "alist:/189P/Sync/Backup-mobi";
+      localPath = "/var/lib/syncthing/data/Backup-mobi";
+    };
+    transfer = {
+      remotePath = "alist:/189F/Sync/Transfer";
+      localPath = "/var/lib/syncthing/data/Transfer";
+    };
+  };
+  systemd.tmpfiles.rules = [
+    "d '${config.services.syncthing.configDir}/' 0700 syncthing syncthing - -"
+  ];
+  services.syncthing = {
+    enable = true;
+    guiAddress = "127.0.0.1:${toString config.ports.syncthing}";
+    # configDir = "/var/lib/syncthing";
+    # dataDir = "${DATA_DIR}";
+    settings.gui.insecureSkipHostcheck = true;
+    overrideDevices = false;
+    overrideFolders = false;
+
+    settings.folders = {
+      "Obsidian" = {
+        id = "Obsidian"; # 保证所有设备上 ID 一致
+        path = config.services.myRcloneMounts.obsidian.localPath; # 对应你的 rclone 挂载点
+        # 使用“阶段版本控制”，因为笔记最重要，且磁盘够大
+        versioning = {
+          type = "staggered";
+          params = {
+            cleanInterval = "3600";
+            maxAge = "31536000"; # 保留一年
+          };
+        };
+      };
+
+      "Backup-mobi" = {
+        id = "Backup-mobi";
+        path = config.services.myRcloneMounts.backup-mobi.localPath; # 对应你的 rclone 挂载点
+        # 使用“简易版本控制”，保留最近 3 个备份
+        versioning = {
+          type = "simple";
+          params.keep = "3";
+        };
+      };
+
+      "Transfer" = {
+        id = "Transfer";
+        path = config.services.myRcloneMounts.transfer.localPath; # 对应你的 rclone 挂载点
+        versioning = null; # 传输中转不需要版本控制，省空间
+      };
+    };
+  };
+  systemd.services.syncthing = {
+    serviceConfig = {
+      ExecStartPre =
+        let
+          cfg = config.services.syncthing;
+        in
+        [
+          "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.configDir}"
+          "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}"
+          "+${pkgs.coreutils}/bin/chmod -R 755 ${cfg.configDir}"
+          "+${pkgs.coreutils}/bin/chmod -R 755 ${cfg.dataDir}"
+        ];
+    };
+  };
+  # fix 'mkdir ***: Input/output error at /nix/store/sll7fxa3fgbrjacmn3hbqi2avjlqij2k-update-users-groups.pl line 237.'
+  # users.users.syncthing.createHome = lib.mkForce false;
+  services.traefik.dynamicConfigOptions.http = {
+    routers = {
+      syncthing = {
+        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/syncthing`)";
+        entryPoints = [ "https" ];
+        service = "syncthing";
+        middlewares = [
+          "strip-prefix"
+        ];
+      };
+    };
+    services = {
+      syncthing.loadBalancer = {
+        passHostHeader = true;
+        servers = [ { url = "http://localhost:${toString config.ports.syncthing}"; } ];
+      };
+    };
+  };
+  environment.global-persistence.directories = [ config.services.syncthing.configDir ];
+  services.restic.backups.borgbase.paths = [
+    config.services.syncthing.configDir
+  ];
+}
