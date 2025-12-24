@@ -90,11 +90,13 @@ in
     ]
     ++ (lib.mapAttrsToList (_name: f: "+${pkgs.coreutils}/bin/mkdir -p ${f.local}") myData)
     ++ [
-      "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.configDir}"
-      # "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}"
-      "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:users ${cfg.dataDir}"
-      "+${pkgs.coreutils}/bin/chmod -R 775 ${cfg.configDir}"
-      "+${pkgs.coreutils}/bin/chmod -R 775 ${cfg.dataDir}"
+      # "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.configDir}"
+      # # "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:${cfg.group} ${cfg.dataDir}"
+      # "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:users ${cfg.dataDir}"
+      # "+${pkgs.coreutils}/bin/chmod -R 775 ${cfg.configDir}"
+      # "+${pkgs.coreutils}/bin/chmod -R 775 ${cfg.dataDir}"
+      "+${pkgs.coreutils}/bin/chown -R ${cfg.user}:users /var/lib/syncthing"
+      "+${pkgs.coreutils}/bin/chmod -R 775 /var/lib/syncthing"
     ];
 
   services.traefik.dynamicConfigOptions.http = {
