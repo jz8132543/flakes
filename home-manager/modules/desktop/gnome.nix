@@ -73,6 +73,9 @@ in
         command = mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
         name = mkString "Power off monitor";
       };
+      "org/gnome/settings-daemon/plugins/housekeeping" = {
+        donation-reminder-enabled = false;
+      };
       "org/gnome/shell" = {
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
@@ -283,6 +286,7 @@ in
     directories = [
       ".config/gsconnect"
       ".cache/gsconnect"
+      ".local/share/keyrings"
     ];
   };
   systemd.user.services.gsconnect-dconf = {

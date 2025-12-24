@@ -100,6 +100,9 @@ in
         IOSchedulingPriority = 7;
         MemoryMax = "2G"; # 防止内存泄漏影响系统
 
+        ExecStartPre = mapAttrsToList (
+          _name: task: "-${pkgs.rclone}/bin/rclone mkdir ${task.remotePath}"
+        ) cfg.tasks;
         # 智能同步脚本：自动处理首次运行的 --resync
         ExecStart = pkgs.writeShellScript "rclone-sync-smart" (
           concatStringsSep "\n" (
@@ -113,14 +116,14 @@ in
               if [ "$DB_EXISTS" -eq "0" ]; then
                 echo "[First Run] No database found for '${name}'. Initializing with --resync..."
                 ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
-                  --filters-file ${filterPath} \
-                  --resync --force --vfs-cache-mode full \
+                  --filter-from ${filterPath} \
+                  --resync --force \
                   --transfers 2 --checkers 4 --use-mmap --quiet
               else
                 echo "[Routine] Running incremental bisync for '${name}'..."
                 ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
-                  --filters-file ${filterPath} \
-                  --resync-mode newer --force --vfs-cache-mode full \
+                  --filter-from ${filterPath} \
+                  --resync-mode newer --force \
                   --transfers 2 --checkers 4 --use-mmap --tpslimit 5 --quiet
               fi
             '') cfg.tasks
