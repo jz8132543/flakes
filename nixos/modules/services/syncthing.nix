@@ -53,6 +53,8 @@ in
   services.syncthing = {
     enable = true;
     guiAddress = "127.0.0.1:${toString config.ports.syncthing}";
+    openDefaultPorts = true;
+    # urAccepted = -1; # 是否同意匿名报告
     # guiPasswordFile = config.sops.secrets."syncthing/password_hash".path;
     guiPasswordFile = config.sops.secrets."password".path;
 
@@ -73,7 +75,10 @@ in
     }) myData;
 
     # 针对 8G 内存优化数据库
-    settings.options.databaseTuning = "large";
+    settings.options = {
+      databaseTuning = "large";
+      urAccepted = -1; # 是否同意匿名报告
+    };
   };
   sops.secrets = {
     # "syncthing/password_hash" = {
