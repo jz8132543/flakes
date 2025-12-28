@@ -32,6 +32,28 @@
     #   keyConfig = builtins.readFile ./key_bindings.ron;
     #   theme = builtins.readFile "${localFlake'.packages.catppuccin-gitui}/share/gitui/catppuccin-macchiato.ron";
     # };
+    zathura = {
+      enable = true;
+      options = {
+        selection-clipboard = "clipboard";
+        scroll-page-aware = "true";
+        scroll-full-overlap = "0.01";
+        scroll-step = "100";
+      };
+    };
+    thunderbird = {
+      enable = true;
+      profiles = {
+        default = {
+          isDefault = true;
+          search = {
+            force = true;
+            default = "ddg";
+            privateDefault = "ddg";
+          };
+        };
+      };
+    };
     yt-dlp = {
       enable = true;
       settings = {
