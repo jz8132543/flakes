@@ -77,7 +77,7 @@ in
     };
 
     # --- 4. 核心执行引擎 (Systemd Service) ---
-    systemd.services.rclone-sync-engine = {
+    systemd.services.rclone-sync-watcher = {
       description = "Universal Rclone Bisync Engine with Auto-Init";
       after = [
         "network-online.target"
