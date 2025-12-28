@@ -1,5 +1,6 @@
 {
   pkgs,
+  osConfig,
   config,
   lib,
   ...
@@ -196,6 +197,19 @@ with config.home.catppuccin;
         palette = "catppuccin_${flavor}";
       }
       // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
+    };
+    atuin = {
+      enable = true;
+      enableBashIntegration = true;
+      enableZshIntegration = true;
+      enableFishIntegration = true;
+
+      settings = {
+        sync_address = "https://atuin.${osConfig.networking.domain}";
+        sync_frequency = "1m";
+        search_mode = "prefix";
+        # 默认情况下 atuin 会绑定 Up 键和 Ctrl-r
+      };
     };
     fzf = {
       enable = true;

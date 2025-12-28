@@ -15,6 +15,7 @@
       nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
+      (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.proxy

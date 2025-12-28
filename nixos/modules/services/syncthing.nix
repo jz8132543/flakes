@@ -78,8 +78,10 @@ in
     settings.options = {
       databaseTuning = "large";
       urAccepted = -1; # 是否同意匿名报告
+      urSeen = 3;
     };
   };
+  users.users.syncthing.homeMode = "770";
   sops.secrets = {
     # "syncthing/password_hash" = {
     "password" = {

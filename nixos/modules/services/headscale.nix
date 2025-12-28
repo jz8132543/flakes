@@ -20,6 +20,10 @@
         metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
         grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
         grpc_allow_insecure = true;
+        randomize_client_port = false;
+        disable_check_updates = true;
+        ephemeral_node_inactivity_timeout = "30m";
+        node_update_check_interval = "10s";
         # tls_cert_path = "${config.security.acme.certs."main".directory}/full.pem";
         # tls_key_path = "${config.security.acme.certs."main".directory}/key.pem";
         database = {
