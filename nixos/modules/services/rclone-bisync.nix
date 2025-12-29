@@ -123,7 +123,7 @@ in
                 echo "[Routine] Running incremental bisync for '${name}'..."
                 ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
                   --filter-from ${filterPath} \
-                  --resync-mode newer --force \
+                  --conflict-resolve newer --force \
                   --transfers 2 --checkers 4 --use-mmap --tpslimit 5 --quiet
               fi
             '') cfg.tasks

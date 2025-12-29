@@ -203,12 +203,20 @@ with config.home.catppuccin;
       enableBashIntegration = true;
       enableZshIntegration = true;
       enableFishIntegration = true;
+      flags = [
+        "--disable-up-arrow"
+        # "--disable-ctrl-r"
+      ];
 
       settings = {
         sync_address = "https://atuin.${osConfig.networking.domain}";
         sync_frequency = "1m";
-        search_mode = "prefix";
-        # 默认情况下 atuin 会绑定 Up 键和 Ctrl-r
+        dialect = "uk";
+        enter_accept = false;
+        records = true;
+        show_preview = true;
+        search_mode = "skim";
+        history_ignore = [ "^ " ];
       };
     };
     fzf = {
