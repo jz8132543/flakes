@@ -117,12 +117,14 @@ in
                 echo "[First Run] No database found for '${name}'. Initializing with --resync..."
                 ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
                   --filter-from ${filterPath} \
+                  --checksum --resilient --recover --modify-window=1s \
                   --resync --force \
                   --transfers 2 --checkers 4 --use-mmap --quiet
               else
                 echo "[Routine] Running incremental bisync for '${name}'..."
                 ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
                   --filter-from ${filterPath} \
+                  --checksum --resilient --recover --modify-window=1s \
                   --conflict-resolve newer --force \
                   --transfers 2 --checkers 4 --use-mmap --tpslimit 5 --quiet
               fi
