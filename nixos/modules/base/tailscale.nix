@@ -13,6 +13,8 @@ in
     enable = true;
     openFirewall = true;
     useRoutingFeatures = "both";
+    extraSetFlags = [ "--netfilter-mode=nodivert" ];
+    extraDaemonFlags = [ "--no-logs-no-support" ];
   };
   networking = {
     networkmanager.unmanaged = [ interfaceName ];
@@ -24,6 +26,9 @@ in
       ];
     };
   };
+  # https://github.com/tailscale/tailscale/issues/4254
+  services.resolved.enable = true;
+  networking.useNetworkd = false;
   # TODO: tailscale cannot connect to some derp when firewall is enabled
   networking.firewall = {
     allowedUDPPortRanges = [

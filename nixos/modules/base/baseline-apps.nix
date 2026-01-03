@@ -71,6 +71,7 @@
     age
     backblaze-b2
     # neovim
+    p7zip
     unzip
     gnumake
     gcc

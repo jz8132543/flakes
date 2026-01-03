@@ -2,6 +2,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 let
@@ -30,7 +31,10 @@ in
       ];
     };
     extraModulePackages = [ config.boot.kernelPackages.lenovo-legion-module ];
-    kernelModules = [ "kvm-amd" ];
+    kernelModules = [
+      "kvm-amd"
+      "lenovo-legion-module"
+    ];
     kernelParams = [
       # "fbdev=1"
       "acpi=copy_dsdt"
@@ -84,15 +88,30 @@ in
   hardware = {
     # enableAllFirmware = true;
     cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+    # nvidia = {
+    #   # package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
+    #   modesetting.enable = true;
+    #   nvidiaPersistenced = true;
+    #   nvidiaSettings = true;
+    #   open = false;
+    #   prime = {
+    #     offload.enable = false;
+    #     sync.enable = true;
+    #     amdgpuBusId = "PCI:8:0:0";
+    #     nvidiaBusId = "PCI:1:0:0";
+    #   };
+    # };
     nvidia = {
-      # package = config.boot.kernelPackages.nvidiaPackages.vulkan_beta;
       modesetting.enable = true;
-      nvidiaPersistenced = true;
-      nvidiaSettings = true;
-      open = false;
+      powerManagement.enable = true; # 开启显卡电源管理，解决风扇不转或耗电快
+      powerManagement.finegrained = true; # 针对 40 系显卡的精细电源控制
+      open = true; # 2023 款显卡支持 NVIDIA 官方开源内核模块，更符合 NixOS 哲学
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
+
       prime = {
-        offload.enable = false;
-        sync.enable = true;
+        offload.enable = true;
+        offload.enableOffloadCmd = true;
+        # 这里的 Bus ID 需要通过 lspci 命令确认后修改
         amdgpuBusId = "PCI:8:0:0";
         nvidiaBusId = "PCI:1:0:0";
       };
@@ -105,4 +124,9 @@ in
   home-manager.users.tippy.wayland.dpi = 144;
   utils.disk = "/dev/nvme0n1";
   nix.gc.automatic = lib.mkForce false;
+  environment.systemPackages = with pkgs; [
+    lenovo-legion
+    nvtopPackages.full # 监控显卡状态
+    libva-utils
+  ];
 }
