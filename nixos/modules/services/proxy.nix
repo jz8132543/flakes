@@ -24,13 +24,21 @@
     };
   };
   systemd.timers = {
-    xray = {
+    xray-restart = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnCalendar = "daily";
-        AccuracySec = "1d";
+        OnCalendar = "*-*-* 04:00:00";
+        AccuracySec = "1s";
         Persistent = true;
       };
+    };
+  };
+  systemd.services.xray-restart = {
+    description = "Trigger to restart Xray";
+    serviceConfig = {
+      Type = "oneshot";
+      # 使用 systemctl restart 重启目标服务
+      ExecStart = "${pkgs.systemd}/bin/systemctl restart xray.service";
     };
   };
   # environment.etc."sing-box/geoip.db".source = "${pkgs.sing-geoip}/share/sing-box/geoip.db";
