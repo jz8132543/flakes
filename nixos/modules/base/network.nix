@@ -6,6 +6,7 @@
     nameservers = lib.mkDefault [
       "1.1.1.1"
       "1.0.0.1"
+      "223.5.5.5"
     ];
     domain = "dora.im";
     search = [ "dora.im" ];
