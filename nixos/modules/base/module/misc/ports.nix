@@ -124,6 +124,7 @@
       code = 4444;
       opencloud = 9200;
       turn-port = 3478;
+      cfProxy = 2408;
     };
   };
 }

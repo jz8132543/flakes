@@ -9,7 +9,10 @@
       nixosModules.services.doraim
       nixosModules.services.derp
       # nixosModules.services.stun
-      nixosModules.services.proxy
+      (import nixosModules.services.xray {
+        needProxy = true;
+        proxyHost = "nue0.dora.im";
+      })
       # nixosModules.services.tuic
       # nixosModules.services.searx
       # nixosModules.services.perplexica

@@ -18,7 +18,7 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-      nixosModules.services.proxy
+      (import nixosModules.services.xray { })
       nixosModules.services.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
