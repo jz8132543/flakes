@@ -57,6 +57,10 @@ in
       mode = "0777";
     }
   ];
+  systemd.tmpfiles.rules = [
+    "d  ${homeDirectory}/source                 775 ${name} users -"
+  ];
+
   # systemd.tmpfiles.rules = [
   #   # "A+ ${homeDirectory}/source - - - - group::rw,other::rw"
   #   # "A+ ${homeDirectory}/source - - - - default:group::rw,default:other::rw"
