@@ -59,6 +59,7 @@
     netcat-openbsd
     expect
     iperf
+    jq
     nmap
     colmena
     deploy-rs
@@ -97,7 +98,7 @@
     eslint_d
     prettierd
     nodePackages.prettier
-    nixfmt-rfc-style
+    nixfmt
     stylua
     alejandra
 

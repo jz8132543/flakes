@@ -15,7 +15,7 @@
       publicShare = "$HOME/.local/XDG/Public";
     };
     configFile = {
-      "sioyek/prefs_user.config".text = '''';
+      "sioyek/prefs_user.config".text = "";
       "go/env".text = ''
         GOPATH=${config.xdg.cacheHome}/go
         GOBIN=${config.xdg.stateHome}/go/bin

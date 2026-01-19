@@ -32,7 +32,7 @@ lib.mkMerge [
         routingTable = config.routingTables.fw-proxy;
         rulePriority = config.routingPolicyPriorities.fw-proxy;
       };
-      downloadedConfigPreprocessing = '''';
+      downloadedConfigPreprocessing = "";
       configPreprocessing = ''
         jq 'del(.log) | del(.inbounds) | del(.experimental.clash_api)' "$raw_config" |\
           sponge "$raw_config"

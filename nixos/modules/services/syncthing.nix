@@ -32,7 +32,7 @@ let
     "Transfer" = {
       id = "Transfer";
       local = "/var/lib/syncthing/data/Transfer";
-      remote = "alist:/189F/Sync/Transfer"; # 注意：你原配置这里是 189F
+      remote = "alist:/189F/Sync/Transfer";
       versioning = null;
     };
   };

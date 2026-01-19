@@ -12,57 +12,68 @@ let
   ssh = "${pkgs.openssh}/bin/ssh";
   tmux-ssh-status = pkgs.writeShellScriptBin "tmux-ssh-status" ''
     tty=$1
-    export PATH="${pkgs.procps}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.nettools}/bin:$PATH"
+    export PATH="${pkgs.procps}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.nettools}/bin:${pkgs.gnused}/bin:$PATH"
 
-    # --- Catppuccin Mocha 配色 ---
-    # 统一使用 Lavender (淡紫) 作为“环境/主机”的识别色
+    # --- Catppuccin Mocha 配色 (Lavender) ---
     COLOR_ICON_BG="#b4befe"
     COLOR_ICON_FG="#11111b"
     COLOR_TEXT_BG="#313244"
     COLOR_TEXT_FG="#cdd6f4"
 
-    # 1. 初始化默认状态 (本地模式)
-    # 使用 'hostname' 命令获取本地主机名
-    # 图标使用  (电脑/桌面)，代表本地
+    # 1. 默认状态：显示本地主机名
     ICON="  "
     display_text=$(hostname)
 
-    # 2. 尝试检测 SSH 进程
+    # 2. 获取进程 (使用 ps -e 配合 awk 匹配 TTY，解决 NixOS/Fish 下抓不到进程的问题)
     tty_clean=''${tty#/dev/}
-    cmd_args=$(ps -t "$tty_clean" -o args= | grep "^ssh" | head -n 1)
+    raw_cmd=$(ps -e -o tty,args= | awk -v t="$tty_clean" '$1 == t { $1=""; print $0 }' | grep "ssh" | grep -v "tmux-ssh-status" | head -n 1)
 
-    # 3. 如果检测到 SSH，覆盖默认值
-    if [ -n "$cmd_args" ]; then
-      # 切换为 SSH 图标
+    if [ -n "$raw_cmd" ]; then
       ICON="  "
 
-      target=$(echo "$cmd_args" | awk '{print $NF}')
-      explicit_port=$(echo "$cmd_args" | grep -oP '(?<=-p )\d+')
+      # 3. 提取显示用的别名 (Alias) - 用于状态栏显示
+      target_alias=$(echo "$raw_cmd" | \
+        sed -E 's/^.*ssh\s+//' | \
+        sed -E 's/ -[a-zA-Z0-9] [^ ]+ / /g' | \
+        sed -E 's/ -[a-zA-Z0-9] / /g' | \
+        awk '{print $1}' | \
+        cut -d@ -f2)
 
+      display_text="$target_alias"
+
+      # 4. 提取真实连接参数 - 用于 ssh -G 解析
+      # 去除 /nix/store/.../ssh 前缀，只保留参数
+      pure_args=$(echo "$raw_cmd" | sed -E 's/^.*ssh\s+//')
+
+      ssh_config=$(${ssh} -G $pure_args 2>/dev/null)
+      config_host=$(echo "$ssh_config" | awk '/^hostname / {print $2}')
+      config_port=$(echo "$ssh_config" | awk '/^port / {print $2}')
+
+      # 优先使用命令行指定的端口
+      explicit_port=$(echo "$raw_cmd" | grep -oE " -p ?[0-9]+" | sed 's/[^0-9]*//g' | head -n 1)
+
+      final_host="$config_host"
       if [ -n "$explicit_port" ]; then
-        final_host="$target"
         final_port="$explicit_port"
       else
-        ssh_config=$(${ssh} -G "$target" 2>/dev/null)
-        final_host=$(echo "$ssh_config" | awk '/^hostname / {print $2}')
-        final_port=$(echo "$ssh_config" | awk '/^port / {print $2}')
+        final_port="$config_port"
       fi
 
-      # 暂时只显示目标名 (作为 fallback)
-      display_text="$target"
-
+      # 5. 执行延迟测试
       if [ -n "$final_host" ] && [ -n "$final_port" ]; then
-        # 计算延迟 (保持之前的修复逻辑: 整数, 无单位)
-        tcping_out=$(${tcping} -c 1 --timeout-ms 500 "$final_host":"$final_port" 2>&1)
-        latency=$(echo "$tcping_out" | awk '/ - open - / {print $(NF-1)}' | cut -d. -f1)
+         # 使用你确认过的参数: --timeout-ms 500 和 host:port
+         tcping_out=$(${tcping} -c 1 --timeout-ms 500 "$final_host":"$final_port" 2>&1)
 
-        if [ -n "$latency" ]; then
-          display_text="$target $latency"
-        fi
+         # 提取 " - open - " 前面的数字
+         latency=$(echo "$tcping_out" | awk '/ - open - / {print $(NF-1)}' | cut -d. -f1)
+
+         if [ -n "$latency" ]; then
+           display_text="$target_alias $latency"
+         fi
       fi
     fi
 
-    # 4. 统一输出 (无论是本地还是远程，都走这里)
+    # 输出 Catppuccin 风格的状态栏组件
     echo "#[fg=''${COLOR_ICON_BG}]#{E:@catppuccin_status_left_separator}#[fg=''${COLOR_ICON_FG},bg=''${COLOR_ICON_BG}]''${ICON}#{E:@catppuccin_status_middle_separator}#[fg=''${COLOR_TEXT_FG},bg=''${COLOR_TEXT_BG}] $display_text#[fg=''${COLOR_TEXT_BG}]#{E:@catppuccin_status_right_separator}"
   '';
 in

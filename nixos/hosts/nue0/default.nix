@@ -3,7 +3,7 @@
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
-    ++ nixosModules.services.opencloud.all
+    # ++ nixosModules.services.opencloud.all
     # ++ nixosModules.services.mail.all ++ [
     ++ [
       ./hardware-configuration.nix

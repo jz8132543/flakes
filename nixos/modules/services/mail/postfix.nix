@@ -56,7 +56,7 @@ in
       smtpd_tls_CAfile = "${config.security.acme.certs."main".directory}/fullchain.pem";
       smtpd_tls_dh512_param_file = config.security.dhparams.params.postfix512.path;
       smtpd_tls_dh1024_param_file = config.security.dhparams.params.postfix2048.path;
-      smtpd_tls_session_cache_database = ''btree:''${data_directory}/smtpd_scache'';
+      smtpd_tls_session_cache_database = "btree:\${data_directory}/smtpd_scache";
       smtpd_tls_mandatory_protocols = "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1";
       smtpd_tls_protocols = "!SSLv2,!SSLv3,!TLSv1,!TLSv1.1";
       smtpd_tls_mandatory_ciphers = "medium";
