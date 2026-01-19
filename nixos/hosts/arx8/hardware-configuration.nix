@@ -57,16 +57,19 @@ in
           menuentry "Windows" {
             insmod part_gpt
             insmod ntfs
+            insmod fat
             insmod search_fs_uuid
             insmod chain
-            search --no-floppy --fs-uuid --set=root 628A86FC8A86CC4B
+            search --no-floppy --set=root --file /EFI/Microsoft/Boot/bootmgfw.efi
             chainloader /EFI/Microsoft/Boot/bootmgfw.efi
           }
         '';
       };
       grub2-theme = {
         enable = true;
-        theme = "whitesur";
+        theme = "vimix";
+        footer = true;
+        # customResolution = "1920x1200";
       };
     };
   };

@@ -20,7 +20,6 @@
     "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-domain-list-community}/share/v2ray/geosite.dat /var/lib/private/mihomo/GeoSite.dat"
   ];
   programs = {
-    adb.enable = true;
     # clash-verge = {
     #   enable = true;
     #   autoStart = true;
@@ -29,6 +28,7 @@
   };
   environment.systemPackages = with pkgs; [
     qrcp
+    android-tools
     # mihomo-party
   ];
   environment.shellAliases = {
