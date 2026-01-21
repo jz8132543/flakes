@@ -38,171 +38,174 @@
         };
       };
     };
-    search = {
-      default = "SearXNG";
-      engines = {
-        "SearXNG" = {
-          loadPath = "[https]searx.dora.im/sams-searxng.xml";
-          description = "SearXNG is a metasearch engine that respects your privacy.";
-          urls = [
-            {
-              rels = [ "results" ];
-              template = "https://searx.dora.im/search";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-            {
-              rels = [ "suggestions" ];
-              template = "https://searx.dora.im/autocompleter";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-              "type" = "application/x-suggestions+json";
-            }
-          ];
-          # icon = engine-logos + /searx.svg;
-          definedAliases = [ "@s" ];
-        };
-
-        "LibRedirect" = {
-          loadPath = "[other]addEngineWithDetails:7esoorv3@alefvanoon.anonaddy.me";
-          description = "A web extension that redirects popular sites to alternative privacy-friendly frontends and backends";
-          urls = [
-            {
-              template = "https://search.libredirect.invalid/";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          # icon engine-logos + /libredirect.png;
-          iconMapObj = {
-            "16" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-16.png";
-            "32" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-32.png";
-            "48" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-48.png";
-            "64" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-64.png";
-            "96" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-96.png";
-            "128" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-128.png";
+    profiles.default = {
+      isDefault = true;
+      search = {
+        default = "SearXNG";
+        engines = {
+          "SearXNG" = {
+            loadPath = "[https]searx.dora.im/sams-searxng.xml";
+            description = "SearXNG is a metasearch engine that respects your privacy.";
+            urls = [
+              {
+                rels = [ "results" ];
+                template = "https://searx.dora.im/search";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+              {
+                rels = [ "suggestions" ];
+                template = "https://searx.dora.im/autocompleter";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+                "type" = "application/x-suggestions+json";
+              }
+            ];
+            # icon = engine-logos + /searx.svg;
+            definedAliases = [ "@s" ];
           };
-          definedAliases = [ "@lb" ];
-          _extensionID = "7esoorv3@alefvanoon.anonaddy.me";
-        };
 
-        "wikipedia".metaData.alias = "@w";
+          "LibRedirect" = {
+            loadPath = "[other]addEngineWithDetails:7esoorv3@alefvanoon.anonaddy.me";
+            description = "A web extension that redirects popular sites to alternative privacy-friendly frontends and backends";
+            urls = [
+              {
+                template = "https://search.libredirect.invalid/";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            # icon engine-logos + /libredirect.png;
+            iconMapObj = {
+              "16" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-16.png";
+              "32" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-32.png";
+              "48" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-48.png";
+              "64" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-64.png";
+              "96" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-96.png";
+              "128" = "moz-extension://e115e8c0-56ce-4709-b20b-6185524b5fc9/assets/images/libredirect-128.png";
+            };
+            definedAliases = [ "@lb" ];
+            _extensionID = "7esoorv3@alefvanoon.anonaddy.me";
+          };
 
-        "ddg".metaData.alias = "@ddg";
+          "wikipedia".metaData.alias = "@w";
 
-        "GitHub" = {
-          urls = [
-            {
-              template = "https://github.com/search";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          # icon = engine-logos + /github.svg;
-          definedAliases = [ "@gh" ];
-        };
+          "ddg".metaData.alias = "@ddg";
 
-        "Nix Packages" = {
-          urls = [
-            {
-              template = "https://search.nixos.org/packages";
-              params = [
-                {
-                  name = "channel";
-                  value = "unstable";
-                }
-                {
-                  name = "query";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-          definedAliases = [ "@np" ];
-        };
+          "GitHub" = {
+            urls = [
+              {
+                template = "https://github.com/search";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            # icon = engine-logos + /github.svg;
+            definedAliases = [ "@gh" ];
+          };
 
-        "NixOS Wiki" = {
-          urls = [
-            {
-              template = "https://nixos.wiki/index.php";
-              params = [
-                {
-                  name = "search";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-          definedAliases = [ "@nw" ];
-        };
+          "Nix Packages" = {
+            urls = [
+              {
+                template = "https://search.nixos.org/packages";
+                params = [
+                  {
+                    name = "channel";
+                    value = "unstable";
+                  }
+                  {
+                    name = "query";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+            definedAliases = [ "@np" ];
+          };
 
-        "Nixpkgs Issues" = {
-          urls = [
-            {
-              template = "https://github.com/NixOS/nixpkgs/issues";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
-          definedAliases = [
-            "@ni"
-          ];
-        };
+          "NixOS Wiki" = {
+            urls = [
+              {
+                template = "https://nixos.wiki/index.php";
+                params = [
+                  {
+                    name = "search";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+            definedAliases = [ "@nw" ];
+          };
 
-        # The urls are not changed since LibRedirect will manage the instances part
-        "LibReddit" = {
-          urls = [
-            {
-              template = "https://www.reddit.com/search";
-              params = [
-                {
-                  name = "q";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          # icon = engine-logos + /libreddit.svg;
-          definedAliases = [ "@r" ];
-        };
+          "Nixpkgs Issues" = {
+            urls = [
+              {
+                template = "https://github.com/NixOS/nixpkgs/issues";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            icon = "${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+            definedAliases = [
+              "@ni"
+            ];
+          };
 
-        "Invidious" = {
-          urls = [
-            {
-              template = "https://www.youtube.com/results";
-              params = [
-                {
-                  name = "search_query";
-                  value = "{searchTerms}";
-                }
-              ];
-            }
-          ];
-          # icon = engine-logos + /invidious.svg;
-          definedAliases = [ "@i" ];
+          # The urls are not changed since LibRedirect will manage the instances part
+          "LibReddit" = {
+            urls = [
+              {
+                template = "https://www.reddit.com/search";
+                params = [
+                  {
+                    name = "q";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            # icon = engine-logos + /libreddit.svg;
+            definedAliases = [ "@r" ];
+          };
+
+          "Invidious" = {
+            urls = [
+              {
+                template = "https://www.youtube.com/results";
+                params = [
+                  {
+                    name = "search_query";
+                    value = "{searchTerms}";
+                  }
+                ];
+              }
+            ];
+            # icon = engine-logos + /invidious.svg;
+            definedAliases = [ "@i" ];
+          };
         };
       };
     };
