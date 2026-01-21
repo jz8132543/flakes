@@ -126,7 +126,7 @@
       "proxy": false
     },
     "morty": {
-      "on": "nue0",
+      "on": "hkg4",
       "proxy": false
     },
     "mta-sts": {
@@ -166,7 +166,7 @@
       "proxy": false
     },
     "plex": {
-      "on": "vie0",
+      "on": "nue0",
       "proxy": false
     },
     "reader": {
@@ -174,7 +174,7 @@
       "proxy": false
     },
     "searx": {
-      "on": "nue0",
+      "on": "hkg4",
       "proxy": false
     },
     "sso": {

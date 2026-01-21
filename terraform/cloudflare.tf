@@ -86,12 +86,12 @@ locals {
     code               = { on = "nue0", proxy = false }
     cloud              = { on = "nue0", proxy = false }
     reader             = { on = "nue0", proxy = false }
-    searx              = { on = "nue0", proxy = false }
-    morty              = { on = "nue0", proxy = false }
+    plex               = { on = "nue0", proxy = false }
+    searx              = { on = "hkg4", proxy = false }
+    morty              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }
-    plex               = { on = "vie0", proxy = false }
   }
 }
 output "service_cname_mappings" {

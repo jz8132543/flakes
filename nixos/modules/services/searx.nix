@@ -6,7 +6,6 @@
 }:
 let
   url = "searx.${config.networking.domain}";
-  morty_url = "morty.${config.networking.domain}";
 in
 {
   sops.secrets."searx/SEARX_SECRET_KEY" = { };
@@ -81,6 +80,7 @@ in
             "searx.plugins.ahmia_filter.SXNGPlugin"
             "searx.plugins.hostnames.SXNGPlugin"
             "searx.plugins.oa_doi_rewrite.SXNGPlugin"
+            "searx.plugins.tor_check.SXNGPlugin"
           ];
           inactivePlugins = map (name: mkPlugin name false) [
           ];
@@ -93,9 +93,6 @@ in
         pool_maxsize = 20;
         request_timeout = 10.0;
         max_request_timeout = 15.0;
-      };
-      result_proxy = {
-        url = "https://morty.${config.networking.domain}/";
       };
       engines = [
         {
@@ -144,11 +141,6 @@ in
       };
     };
   };
-  services.morty = {
-    enable = true;
-    port = config.ports.morty;
-    timeout = 10;
-  };
 
   services.traefik.dynamicConfigOptions.http = {
     routers = {
@@ -157,20 +149,11 @@ in
         entryPoints = [ "https" ];
         service = "searx";
       };
-      morty = {
-        rule = "Host(`${morty_url}`)";
-        entryPoints = [ "https" ];
-        service = "morty";
-      };
     };
     services = {
       searx.loadBalancer = {
         passHostHeader = true;
         servers = [ { url = "http://localhost:${toString config.ports.searx}"; } ];
-      };
-      morty.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.morty}"; } ];
       };
     };
   };

@@ -233,12 +233,22 @@ lib.mkMerge [
       enable = true;
       defaultHTTPListenPort = config.ports.nginx;
       virtualHosts."m.*" = {
-        locations."/" = {
-          root = pkgs.element-web;
+        root = pkgs.element-web;
+        locations = {
+          "/" = {
+            tryFiles = "$uri $uri/ /index.html?$query_string";
+            index = "index.html";
+          };
+          "= /config.json" = {
+            alias = element-web-config;
+          };
         };
-        locations."/config.json" = {
-          root = element-web-config;
-        };
+        # locations."/" = {
+        #   root = pkgs.element-web;
+        # };
+        # locations."/config.json" = {
+        #   root = element-web-config;
+        # };
       };
       virtualHosts."admin.m.*" = {
         locations."/" = {

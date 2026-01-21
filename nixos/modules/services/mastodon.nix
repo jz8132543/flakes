@@ -27,7 +27,8 @@
       OMNIAUTH_ONLY = "true";
       OIDC_ENABLED = "true";
       OIDC_DISPLAY_NAME = "sso.dora.im";
-      OIDC_ISSUER = "https://sso.dora.im/application/o/mastodon/";
+      # OIDC_ISSUER = "https://sso.dora.im/application/o/mastodon/";
+      OIDC_ISSUER = "https://sso.dora.im/realms/users";
       OIDC_DISCOVERY = "true";
       OIDC_SCOPE = "openid,profile,email";
       OIDC_UID_FIELD = "preferred_username";
