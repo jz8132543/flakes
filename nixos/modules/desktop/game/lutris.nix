@@ -3,8 +3,9 @@
   environment.systemPackages = with pkgs; [
     lutris
     # heroic
-    wineWowPackages.staging
-    winetricks
+    # wineWowPackages.staging
+    # winetricks
+    # proton
   ];
   environment.global-persistence.user.directories = [
     "Games"

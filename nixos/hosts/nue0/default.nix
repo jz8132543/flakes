@@ -37,5 +37,9 @@
       (import nixosModules.services.matrix { })
       # TODO
       # nixosModules.services.pastebin
+
+      # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
+      nixosModules.services.prometheus
+      nixosModules.services.grafana
     ];
 }

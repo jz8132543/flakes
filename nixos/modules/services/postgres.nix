@@ -47,4 +47,23 @@
     # requires = ["postgresqlBackup.service"];
     after = [ "postgresqlBackup.service" ];
   };
+
+  # Prometheus PostgreSQL Exporter
+  services.prometheus.exporters.postgres = {
+    enable = true;
+    port = config.ports.postgres-exporter;
+    listenAddress = "127.0.0.1";
+    runAsLocalSuperUser = true;
+    dataSourceName = "user=postgres host=/run/postgresql dbname=postgres";
+    extraFlags = [
+      "--auto-discover-databases"
+      "--exclude-databases=template0,template1"
+    ];
+  };
+
+  systemd.services.prometheus-postgres-exporter = {
+    after = [ "postgresql.service" ];
+    requires = [ "postgresql.service" ];
+    serviceConfig.SupplementaryGroups = [ "postgres" ];
+  };
 }

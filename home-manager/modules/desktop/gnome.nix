@@ -86,6 +86,7 @@ in
           "org.gnome.Nautilus.desktop"
           "firefox.desktop"
           "chromium-browser.desktop"
+          "chromium.desktop"
           "gnome-system-monitor.desktop"
           "code.desktop"
           "steam-hidpi.desktop"

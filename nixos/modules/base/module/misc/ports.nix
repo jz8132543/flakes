@@ -125,6 +125,7 @@
       opencloud = 9200;
       turn-port = 3478;
       cfProxy = 2408;
+      postgres-exporter = 9187;
     };
   };
 }

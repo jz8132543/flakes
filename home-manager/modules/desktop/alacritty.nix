@@ -8,8 +8,8 @@
     alacritty = {
       enable = true;
       settings = {
-        import = [ "${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml" ];
-        shell = {
+        general.import = [ "${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml" ];
+        terminal.shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = [ "a" ];
         };

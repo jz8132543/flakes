@@ -24,6 +24,7 @@
     teamspeak6-client
     mumble
     wechat-uos
+    antigravity
   ];
   programs = {
     # TODO
@@ -32,6 +33,10 @@
     #   keyConfig = builtins.readFile ./key_bindings.ron;
     #   theme = builtins.readFile "${localFlake'.packages.catppuccin-gitui}/share/gitui/catppuccin-macchiato.ron";
     # };
+    intelli-shell = {
+      enable = true;
+    };
+    # Document viewer
     zathura = {
       enable = true;
       options = {
@@ -134,6 +139,7 @@
       ".config/Logseq"
       "Zotero"
       ".zotero"
+      ".antigravity"
     ];
     files = [
       ".config/monitors.xml"

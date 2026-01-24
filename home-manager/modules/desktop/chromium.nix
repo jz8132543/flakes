@@ -1,6 +1,9 @@
 { ... }:
 let
-  browser = [ "chromium-browser.desktop" ];
+  browser = [
+    "chromium-browser.desktop"
+    "chromium.desktop"
+  ];
   associations = {
     "text/html" = browser;
     "x-scheme-handler/http" = browser;
