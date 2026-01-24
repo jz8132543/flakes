@@ -15,6 +15,13 @@
   services.traefik = {
     enable = true;
     staticConfigOptions = {
+      log = {
+        level = "DEBUG";
+        filePath = "/var/lib/traefik/traefik.log";
+      };
+      accessLog = {
+        filePath = "/var/lib/traefik/access.log";
+      };
       entryPoints = {
         http = {
           address = ":80";

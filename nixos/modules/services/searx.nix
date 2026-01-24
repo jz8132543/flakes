@@ -34,7 +34,7 @@ in
       };
       search = {
         safe_search = 0;
-        default_lang = "zh-CN";
+        # default_lang = "zh-CN";
         autocomplete = "duckduckgo";
         favicon_resolver = "duckduckgo";
         suspend_on_unavailable = false;

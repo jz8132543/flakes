@@ -1,3 +1,4 @@
+# https://github.com/xddxdd/nixos-config/blob/0efc32d005bfd4bd67412be008673e90af7219cd/nixos/common-apps/nginx/vhost-matrix-element/default.nix
 {
   PG ? "postgres.mag",
   ...
@@ -9,13 +10,49 @@
   ...
 }:
 let
-  element-web-config = pkgs.runCommand "element-web-config" { } ''
-    mkdir -p $out
-    "${pkgs.jq}/bin/jq" -s ".[0] * .[1]" \
-      "${pkgs.element-web}/config.json" \
-      ${/${config.lib.self.path}/conf/synapse/mixin-config.json} \
-      > $out/config.json
-  '';
+  elementConfig = builtins.toJSON {
+    default_server_config = {
+      server = {
+        "m.server" = "m.dora.im:443";
+      };
+      client = {
+        "m.server"."base_url" = "https://m.dora.im";
+        "m.homeserver"."base_url" = "https://m.dora.im";
+        "m.identity_server"."base_url" = "https://vector.im";
+        "org.matrix.msc3575.proxy"."url" = "https://m.dora.im";
+      };
+    };
+    disable_custom_urls = true;
+    disable_guests = true;
+    disable_login_language_selector = false;
+    disable_3pid_login = true;
+    default_country_code = "US";
+    show_labs_settings = true;
+    default_federate = true;
+    default_theme = "dark";
+    room_directory.servers = [
+      "matrix.org"
+      "nixos.org"
+      "dora.im"
+    ];
+    embedded_pages.login_for_welcome = true;
+    setting_defaults = {
+      "UIFeature.feedback" = false;
+      "UIFeature.registration" = false;
+      "UIFeature.passwordReset" = false;
+      "UIFeature.deactivate" = false;
+      "UIFeature.TimelineEnableRelativeDates" = false;
+    };
+  };
+
+  elementConfigPath = pkgs.stdenvNoCC.mkDerivation {
+    name = "element-config";
+    dontUnpack = true;
+    postInstall = ''
+      mkdir -p $out
+      ${lib.getExe pkgs.jq} -s -c '.[0] * $conf' "${pkgs.element-web}/config.json" --argjson "conf" '${elementConfig}' > "$out/config.json"
+    '';
+  };
 in
 lib.mkMerge [
   # matrix-synapse
@@ -236,12 +273,11 @@ lib.mkMerge [
         root = pkgs.element-web;
         locations = {
           "/" = {
-            tryFiles = "$uri $uri/ /index.html?$query_string";
-            index = "index.html";
+            index = "index.html index.htm";
+            tryFiles = "$uri $uri/ =404";
           };
-          "= /config.json" = {
-            alias = element-web-config;
-          };
+          # "= /config.json".root = "${elementConfigPath}/config.json";
+          "= /config.json".root = "${elementConfigPath}";
         };
         # locations."/" = {
         #   root = pkgs.element-web;
@@ -252,7 +288,7 @@ lib.mkMerge [
       };
       virtualHosts."admin.m.*" = {
         locations."/" = {
-          root = pkgs.synapse-admin;
+          root = pkgs.synapse-admin-etkecc;
         };
       };
     };

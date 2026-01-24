@@ -35,6 +35,7 @@ in
           naumovs.color-highlight
           ibm.output-colorizer
           dracula-theme.theme-dracula
+          ms-ceintl.vscode-language-pack-zh-hans
 
           # format
           esbenp.prettier-vscode
@@ -50,8 +51,8 @@ in
           formulahendry.code-runner
 
           # test
-          hbenl.vscode-test-explorer
-          ms-vscode.test-adapter-converter
+          # hbenl.vscode-test-explorer
+          # ms-vscode.test-adapter-converter
 
           # comments
           aaron-bond.better-comments
@@ -260,6 +261,7 @@ in
         "breadcrumbs.enabled" = true;
         "update.mode" = "none";
         "extensions.autoCheckUpdates" = false;
+        "github.copilot.nextEditSuggestions.enabled" = true;
       };
     };
   };
@@ -267,6 +269,9 @@ in
   systemd.services.code-server.serviceConfig.EnvironmentFile = [
     config.sops.templates."code-server-environment".path
   ];
+  systemd.services.code-server.environment = {
+    LANG = "zh_CN.UTF-8";
+  };
   sops.templates."code-server-environment" = {
     content = ''
       # CODER_OIDC_ISSUER_URL="https://sso.dora.im/realms/users"

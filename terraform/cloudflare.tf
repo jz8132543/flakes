@@ -221,7 +221,7 @@ resource "cloudflare_dns_record" "dora_matrix" {
   proxied = false
   ttl     = 1
   type    = "A"
-  content = "176.116.18.242"
+  content = "185.216.178.70"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_matrix_v6" {
@@ -229,7 +229,7 @@ resource "cloudflare_dns_record" "dora_matrix_v6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2a04:e8c0:18:619::"
+  content = "2a03:4000:4f:92d::"
   zone_id = cloudflare_zone.im_dora.id
 }
 
