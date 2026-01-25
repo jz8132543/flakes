@@ -1,6 +1,5 @@
 {
   inputs,
-  config,
   lib,
   pkgs,
   ...
@@ -13,11 +12,6 @@
       {
         name = "flathub";
         location = "https://dl.flathub.org/repo/flathub.flatpakrepo";
-      }
-      {
-        name = "launcher.moe";
-        # 米哈游系游戏启动器专用源 (Anime Game Launcher/Honkai等)
-        location = "https://launcher.moe/launcher.moe.flatpakrepo";
       }
       {
         name = "flathub-beta";

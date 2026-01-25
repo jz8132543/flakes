@@ -139,7 +139,10 @@
       ".config/Logseq"
       "Zotero"
       ".zotero"
+      # google ai editor (antigravity)
+      ".config/Antigravity"
       ".antigravity"
+      ".gemini"
     ];
     files = [
       ".config/monitors.xml"
