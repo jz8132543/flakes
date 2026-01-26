@@ -27,9 +27,9 @@ in
   services.flatpak = {
     packages = [
       # 1. Bottles 主程序
-      # "com.usebottles.bottles"
+      "com.usebottles.bottles"
       # 用于图形化管理 Flatpak 的权限（如允许微信访问 ~/Downloads）
-      # "com.github.tchx84.flatseal"
+      "com.github.tchx84.flatseal"
     ];
     overrides = {
       "global" = {
@@ -81,6 +81,21 @@ in
             "xdg-config/gtk-4.0:ro"
             "xdg-data/themes:ro"
             "xdg-data/icons:ro"
+          ];
+        };
+      };
+      "com.usebottles.bottles" = {
+        Context = {
+          devices = [ "all" ];
+          shared = [ "ipc" ];
+          sockets = [
+            "x11"
+            "wayland"
+            "pulseaudio"
+          ];
+          filesystems = [
+            "xdg-run/app/com.discordapp.Discord:create" # Example common need, keeping safe defaults mostly but ensuring it works
+            "~/.local/share/bottles"
           ];
         };
       };
