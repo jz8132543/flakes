@@ -29,7 +29,7 @@ in
       # 1. Bottles 主程序
       "com.usebottles.bottles"
       # 用于图形化管理 Flatpak 的权限（如允许微信访问 ~/Downloads）
-      "com.github.tchx84.flatseal"
+      "com.github.tchx84.Flatseal"
     ];
     overrides = {
       "global" = {
