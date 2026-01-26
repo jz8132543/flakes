@@ -109,11 +109,19 @@
       "on": "nue0",
       "proxy": false
     },
+    "dash": {
+      "on": "nue0",
+      "proxy": false
+    },
     "jellyfin": {
       "on": "nue0",
       "proxy": false
     },
     "ldap": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "metrics": {
       "on": "nue0",
       "proxy": false
     },
@@ -123,10 +131,6 @@
     },
     "minio-console": {
       "on": "nue0",
-      "proxy": false
-    },
-    "morty": {
-      "on": "hkg4",
       "proxy": false
     },
     "mta-sts": {

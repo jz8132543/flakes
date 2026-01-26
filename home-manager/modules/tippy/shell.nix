@@ -215,8 +215,11 @@ with config.home.catppuccin;
         enter_accept = false;
         records = true;
         show_preview = true;
-        search_mode = "skim";
+        # skim = fuzzy match (relevance first), prefix = prefix match (time first)
+        # fuzzy = fuzzy match but sorted by time
+        search_mode = "fuzzy";
         history_ignore = [ "^ " ];
+        inline_height = 20;
       };
     };
     fzf = {

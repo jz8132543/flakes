@@ -6,6 +6,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.telegraf
       nixosModules.services.doraim
       nixosModules.services.derp
       # nixosModules.services.stun

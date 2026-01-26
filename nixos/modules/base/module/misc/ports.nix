@@ -126,6 +126,7 @@
       turn-port = 3478;
       cfProxy = 2408;
       postgres-exporter = 9187;
+      blackbox-exporter = 9115;
     };
   };
 }

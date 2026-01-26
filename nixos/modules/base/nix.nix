@@ -1,11 +1,15 @@
 {
   inputs,
   config,
+  lib,
   ...
 }:
 {
   imports = [
   ];
+  nix.registry = lib.mapAttrs (_: flake: { inherit flake; }) (
+    lib.filterAttrs (_: v: v ? lastModified) inputs
+  );
   nix = {
     optimise.automatic = true;
     channel.enable = false;

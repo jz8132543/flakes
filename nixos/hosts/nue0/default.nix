@@ -39,7 +39,8 @@
       # nixosModules.services.pastebin
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
+      nixosModules.services.telegraf
       nixosModules.services.prometheus
-      nixosModules.services.grafana
+      nixosModules.services.grafana.default
     ];
 }

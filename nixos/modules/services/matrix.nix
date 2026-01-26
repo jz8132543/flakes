@@ -84,6 +84,8 @@ lib.mkMerge [
         server_name = "dora.im";
         public_baseurl = "https://m.dora.im";
         admin_contact = "mailto:i@dora.im";
+        report_stats = true;
+        enable_metrics = true;
         signing_key_path = config.sops.secrets."matrix/signing-key".path;
         serve_server_wellknown = true;
 
