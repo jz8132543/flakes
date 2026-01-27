@@ -193,7 +193,8 @@ in
 
   sops.secrets."password" = {
     restartUnits = [ "nextcloud-setup.service" ];
-    owner = "nextcloud";
+    mode = "0444";
+    # owner = "nextcloud";
   };
   sops.secrets."nextcloud/mail_password" = {
     restartUnits = [ "nextcloud-setup.service" ];

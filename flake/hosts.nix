@@ -8,8 +8,10 @@
 let
   inherit (inputs.nixpkgs.lib) nixosSystem;
 
-  nixosModules = self.lib.rake ../nixos/modules;
-  hmModules = self.lib.rake ../home-manager/modules;
+  # Fix infinite recursion by importing lib locally instead of via self
+  selfLib = import ../lib { inherit inputs lib; };
+  nixosModules = selfLib.rake ../nixos/modules;
+  hmModules = selfLib.rake ../home-manager/modules;
 
   commonNixosModules = nixosModules.base.all ++ [
     inputs.home-manager.nixosModules.home-manager
@@ -30,7 +32,7 @@ let
   commonHmModules = hmModules.base.all ++ [
     inputs.nur.modules.homeManager.default
     {
-      lib.self = self.lib;
+      lib.self = selfLib;
     }
   ];
 
@@ -44,7 +46,8 @@ let
   };
 
   hmSpecialArgs = {
-    inherit inputs self hmModules;
+    inputs = builtins.removeAttrs inputs [ "self" ];
+    inherit hmModules;
   };
 
   mkHost =
@@ -73,6 +76,42 @@ let
             )
           ];
         extraModules = [ inputs.colmena.nixosModules.deploymentOptions ];
+      };
+    };
+
+  mkHome =
+    {
+      name,
+      user,
+      system,
+      extraModules ? [ ],
+    }:
+    {
+      "${user}@${name}" = inputs.home-manager.lib.homeManagerConfiguration {
+        pkgs = inputs.nixpkgs.legacyPackages.${system};
+        modules =
+          commonHmModules
+          ++ hmModules.${user}.all
+          ++ extraModules
+          ++ [
+            {
+              home = {
+                username = user;
+                homeDirectory = "/home/${user}";
+              };
+              targets.genericLinux.enable = true;
+            }
+          ];
+        extraSpecialArgs = hmSpecialArgs // {
+          osConfig = {
+            networking.domain = "dora.im"; # Fallback/Default domain
+            networking.fw-proxy.enable = false;
+            environment.domains = [ ];
+            ports.ssh = 22;
+            sops-file.get = name: "${self}/secrets/${name}";
+            services.xserver.enable = false; # Assuming headless for remote deploy
+          };
+        };
       };
     };
 in
@@ -121,5 +160,19 @@ in
     #   name = "isk";
     #   system = "x86_64-linux";
     # })
+  ];
+
+  flake.homeConfigurations = lib.mkMerge [
+    # (mkHome {
+    #   name = "nue0";
+    #   user = "tippy";
+    #   system = "x86_64-linux";
+    # })
+    # Generic localhost configuration for remote home-manager deployment
+    (mkHome {
+      name = "localhost";
+      user = "tippy";
+      system = "x86_64-linux";
+    })
   ];
 }

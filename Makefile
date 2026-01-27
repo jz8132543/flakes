@@ -10,3 +10,18 @@ mount:
   nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:
   nixos-enter --root /mnt -- nixos-rebuild boot --flake 'https://github.com/jz8132543/flakes'#${host} --install-bootloader
+
+
+deploy-home: install-nix
+	$(eval user ?= tippy)
+	$(eval port ?= 22)
+	$(eval build_host ?= localhost)
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-home host=<host> [user=...]"; exit 1; fi
+	ssh-keygen -R [${host}]:${port} || true
+	./scripts/deploy.sh ${host} ${user} ${port} ${build_host}
+
+install-nix:
+	$(eval user ?= tippy)
+	$(eval port ?= 22)
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make install-nix host=<host>"; exit 1; fi
+	./scripts/install-nix-remote.sh ${host} ${user} ${port}

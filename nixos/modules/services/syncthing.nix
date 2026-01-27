@@ -85,7 +85,8 @@ in
   sops.secrets = {
     # "syncthing/password_hash" = {
     "password" = {
-      owner = config.services.syncthing.user;
+      # owner = config.services.syncthing.user;
+      mode = "0444";
     };
   };
   systemd.services.syncthing.serviceConfig.ExecStartPre =
