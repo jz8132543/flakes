@@ -194,7 +194,7 @@ with config.home.catppuccin;
         nix_shell.symbol = "[󱄅 ](blue) ";
         golang.symbol = "[󰟓 ](blue)";
         package.disabled = true;
-        palette = "catppuccin_${flavor}";
+        # palette = "catppuccin_${flavor}";
       };
       # // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
