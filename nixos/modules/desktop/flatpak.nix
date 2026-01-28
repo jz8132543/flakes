@@ -24,6 +24,7 @@ let
       };
 in
 {
+  xdg.portal.config.common.default = "*";
   services.flatpak = {
     packages = [
       # 1. Bottles 主程序

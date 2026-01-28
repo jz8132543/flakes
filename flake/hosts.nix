@@ -30,7 +30,6 @@ let
   ];
 
   commonHmModules = hmModules.base.all ++ [
-    inputs.nur.modules.homeManager.default
     {
       lib.self = selfLib;
     }
@@ -71,7 +70,7 @@ let
               {
                 networking.hostName = lib.mkDefault name;
                 # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
-                nixpkgs.system = system;
+                nixpkgs.hostPlatform = system;
               }
             )
           ];

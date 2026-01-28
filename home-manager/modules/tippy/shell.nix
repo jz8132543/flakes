@@ -87,7 +87,7 @@ with config.home.catppuccin;
     zsh = {
       enable = true;
       history.path = "$HOME/.local/share/zsh/zsh_history";
-      dotDir = ".config/zsh";
+      dotDir = "${config.xdg.configHome}/zsh";
       defaultKeymap = "emacs";
 
       enableVteIntegration = true;

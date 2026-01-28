@@ -22,8 +22,8 @@
       allow-import-from-derivation = true;
       nix-path = [
         "nixpkgs=${inputs.nixpkgs}"
-        "nixpkgs-master=${inputs.latest.outPath}"
-        "nixpkgs-stable=${inputs.release.outPath}"
+        # "nixpkgs-master=${inputs.latest.outPath}"
+        # "nixpkgs-stable=${inputs.release.outPath}"
       ];
       experimental-features = [
         "nix-command"

@@ -1,6 +1,7 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
 {
@@ -34,5 +35,13 @@
   services.journald.extraConfig = ''
     SystemMaxUse=100M
     SystemKeepFree=1G
+  '';
+
+  sops.secrets."nix/github-token" = {
+    mode = "0440";
+    group = config.users.groups.users.name;
+  };
+  nix.extraOptions = ''
+    !include ${config.sops.secrets."nix/github-token".path}
   '';
 }
