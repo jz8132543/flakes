@@ -194,24 +194,6 @@
         "type": "github"
       }
     },
-    "flake-parts_2": {
-      "inputs": {
-        "nixpkgs-lib": "nixpkgs-lib"
-      },
-      "locked": {
-        "lastModified": 1765835352,
-        "narHash": "sha256-XswHlK/Qtjasvhd1nOa1e8MgZ8GS//jBoTqWtrS1Giw=",
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "rev": "a34fae9c08a15ad73f295041fec82323541400a9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hercules-ci",
-        "repo": "flake-parts",
-        "type": "github"
-      }
-    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -374,11 +356,11 @@
     },
     "latest": {
       "locked": {
-        "lastModified": 1769606632,
-        "narHash": "sha256-MXgh/DAEtyEoHxSqbVm/jFHuB10xkUiHk059dqvHcgw=",
+        "lastModified": 1769609431,
+        "narHash": "sha256-1qpsoe+jJIDP01VuwlqwpYXdrTpcBpBwmE+p/C9hFbM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "9bf1446389d0132a7faf259929b4a8321337b9e8",
+        "rev": "a653412b9fb7ca0c1e2d7ce1cd03242fe088171b",
         "type": "github"
       },
       "original": {
@@ -628,21 +610,6 @@
         "type": "github"
       }
     },
-    "nixpkgs-lib": {
-      "locked": {
-        "lastModified": 1765674936,
-        "narHash": "sha256-k00uTP4JNfmejrCLJOwdObYC9jHRrr/5M/a/8L2EIdo=",
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "rev": "2075416fcb47225d9b68ac469a5c4801a9c4dd85",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "nixpkgs.lib",
-        "type": "github"
-      }
-    },
     "nixpkgs-terraform-providers-bin": {
       "inputs": {
         "nixpkgs": [
@@ -713,11 +680,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1769604042,
-        "narHash": "sha256-KQGbmKSY3tA4S8qFN76xd+3cbM0mAtPgoUVbjWrprcs=",
+        "lastModified": 1769609968,
+        "narHash": "sha256-RnXALOTC2y7NSFgmqFuSbys7zQPNDHL/Dk2rplJ/y0I=",
         "owner": "nix-community",
         "repo": "NUR",
-        "rev": "92f5f3f18a365341dd424314a80253f5ede071e4",
+        "rev": "a0964f128b09a1122f1b57e3e3671fc3a221c99e",
         "type": "github"
       },
       "original": {
@@ -958,7 +925,9 @@
     "xremap-flake": {
       "inputs": {
         "crane": "crane",
-        "flake-parts": "flake-parts_2",
+        "flake-parts": [
+          "flake-parts"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ],

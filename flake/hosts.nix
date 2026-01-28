@@ -58,7 +58,6 @@ let
     }:
     {
       ${name} = nixosSystem {
-        inherit system;
         specialArgs = nixosSpecialArgs;
         modules =
           commonNixosModules

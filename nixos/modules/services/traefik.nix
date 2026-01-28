@@ -75,7 +75,7 @@
       api = {
         dashboard = true;
         disableDashboardAd = true;
-        insecure = true;
+        insecure = false;
       };
       serversTransport = {
         insecureSkipVerify = true;
