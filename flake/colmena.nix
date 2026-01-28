@@ -11,7 +11,7 @@ in
     meta = {
       description = "my personal machines";
       # This can be overriden by node nixpkgs
-      nixpkgs = import inputs.nixpkgs { system = "x86_64-linux"; };
+      nixpkgs = import inputs.nixpkgs { localSystem = "x86_64-linux"; };
       nodeNixpkgs = builtins.mapAttrs (_name: value: value.pkgs) conf;
       nodeSpecialArgs = builtins.mapAttrs (_name: value: value._module.specialArgs) conf;
     };

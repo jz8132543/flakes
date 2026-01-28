@@ -6,7 +6,7 @@
   ...
 }:
 let
-  vscodeExtensionsPkgs = inputs.nix-vscode-extensions.extensions.${pkgs.system};
+  vscodeExtensionsPkgs = inputs.nix-vscode-extensions.extensions.${pkgs.stdenv.hostPlatform.system};
 in
 {
   # https://github.com/alienzj/dotfiles/blob/dev/modules/editors/vscode.nix
