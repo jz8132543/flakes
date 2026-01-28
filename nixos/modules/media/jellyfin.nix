@@ -37,6 +37,7 @@ in
     extraGroups = [
       "video"
       "render"
+      "media"
     ];
     # extraGroups = [ config.users.groups.transmission.name ];
   };

@@ -18,12 +18,16 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-      (import nixosModules.services.xray { })
-      nixosModules.services.jellyfin
+      # Media Center
+      nixosModules.media.jellyfin
+      nixosModules.media.arr
+
+      nixosModules.media.downloads
+
       nixosModules.services.syncthing
       nixosModules.services.reader
       # nixosModules.services.searx
-      nixosModules.services.plex
+      # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
@@ -43,4 +47,7 @@
       nixosModules.services.prometheus
       nixosModules.services.grafana.default
     ];
+
+  # Enable Media Services
+  services.media-downloads.enable = true;
 }

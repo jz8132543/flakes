@@ -27,7 +27,7 @@ fi
 echo "Build successful: $ACTIVATION_PKG"
 
 echo "=== 2. Copying to Remote ($USER@$HOST:$PORT) ==="
-nix copy --to "ssh://${USER}@${HOST}:${PORT}" "$ACTIVATION_PKG"
+nix copy --to "ssh-ng://${USER}@${HOST}:${PORT}" "$ACTIVATION_PKG"
 
 echo "=== 3. Activating Configuration ==="
 # We assume the remote host might have conflicting files (like .zshrc created by installer),
