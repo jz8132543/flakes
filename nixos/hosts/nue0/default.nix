@@ -26,6 +26,7 @@
 
       nixosModules.services.syncthing
       nixosModules.services.reader
+      nixosModules.services.proxy
       # nixosModules.services.searx
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
