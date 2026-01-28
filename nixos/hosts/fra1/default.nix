@@ -19,7 +19,7 @@
       # nixosModules.services.pastebin
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      # nixosModules.services.jellyfin
+      # nixosModules.media.jellyfin
       nixosModules.services.syncthing
       nixosModules.services.reader
       # (import nixosModules.services.ebook-sender { })

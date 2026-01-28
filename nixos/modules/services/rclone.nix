@@ -25,7 +25,8 @@ let
 in
 {
   systemd.services.mount-alist = {
-    requires = [ "network-online.target" ];
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     serviceConfig = {
       User = "root";
       Type = "notify";
@@ -35,11 +36,11 @@ in
         ${pkgs.rclone}/bin/rclone \
         --config=${config.sops.templates."mount-alist".path} \
         --use-mmap \
-        --allow-non-empty \
+        --allow-other \
         --vfs-cache-mode=full \
         --vfs-cache-max-age=1h \
-        --vfs-cache-max-size=500M \
-        --buffer-size=16M \
+        --vfs-cache-max-size=5G \
+        --buffer-size=32M \
         --dir-cache-time=5m \
         --poll-interval=1m \
         --vfs-read-ahead=128M \
@@ -47,16 +48,16 @@ in
         --tpslimit=10 \
         --tpslimit-burst=10 \
         --transfers=4 \
-        --vfs-read-chunk-size=4M \
+        --vfs-read-chunk-size=16M \
         --vfs-read-chunk-size-limit=64M \
         --log-file=/var/log/rclone.log \
-        --allow-other=true \
         --header=Referer: \
+        --umask 000 \
         mount alist: /mnt/alist -vv
       '';
-      ExecStop = "/run/wrappers/bin/fusermount -u /mnt/alist || true";
+      ExecStop = "${pkgs.fuse}/bin/fusermount -u /mnt/alist || true";
     };
-    wantedBy = [ "default.target" ];
+    wantedBy = [ "multi-user.target" ];
   };
   sops.templates."mount-alist" = {
     # owner = "jellyfin";

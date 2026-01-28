@@ -18,11 +18,12 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      nixosModules.services.jellyfin
+      nixosModules.media.jellyfin
+      nixosModules.media.arr
       # nixosModules.services.syncthing
       nixosModules.services.reader
       # nixosModules.services.searx
-      nixosModules.services.plex
+      # nixosModules.services.plex
       nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })

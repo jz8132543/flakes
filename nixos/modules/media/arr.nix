@@ -33,4 +33,35 @@
   users.users.bazarr.extraGroups = [ "media" ];
 
   users.groups.media = { };
+
+  services.traefik.dynamicConfigOptions.http = {
+    routers = {
+      sonarr = {
+        rule = "Host(`sonarr.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "sonarr";
+      };
+      radarr = {
+        rule = "Host(`radarr.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "radarr";
+      };
+      prowlarr = {
+        rule = "Host(`prowlarr.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "prowlarr";
+      };
+      bazarr = {
+        rule = "Host(`bazarr.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "bazarr";
+      };
+    };
+    services = {
+      sonarr.loadBalancer.servers = [ { url = "http://localhost:8989"; } ];
+      radarr.loadBalancer.servers = [ { url = "http://localhost:7878"; } ];
+      prowlarr.loadBalancer.servers = [ { url = "http://localhost:9696"; } ];
+      bazarr.loadBalancer.servers = [ { url = "http://localhost:6767"; } ];
+    };
+  };
 }

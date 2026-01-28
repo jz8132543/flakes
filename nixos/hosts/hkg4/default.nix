@@ -20,7 +20,7 @@
       nixosModules.services.rustdesk
       nixosModules.services.murmur
       nixosModules.services.teamspeak
-      # nixosModules.services.jellyfin
+      # nixosModules.media.jellyfin
       # nixosModules.services.headscale
       # (import nixosModules.services.alist { })
     ];
