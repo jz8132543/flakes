@@ -176,21 +176,31 @@
   #   #   config.sops.templates."lldap-env".file
   #   # ];
   # };
-  # sops.templates."lldap-env" = {
-  #   mode = "0444";
-  #   content = ''
-  #     LLDAP_JWT_SECRET_FILE=/run/credentials/lldap.service/jwt-secret
-  #     LLDAP_SERVER_KEY_SEED=${config.sops.placeholder."lldap/LLDAP_SERVER_KEY_SEED"}
-  #     # LLDAP_FORCE_UPDATE_PRIVATE_KEY=true
-  #     # LLDAP_FORCE_LDAP_USER_PASS_RESET=true
-  #   '';
-  # };
   # sops.templates."keycloak-realm-dora" = {
   #   mode = "0444";
   #   content = ''
   #     {
   #       "realm": "users",
   #       "enabled": true,
+  #       "clients": [
+  #         {
+  #           "clientId": "jellyfin",
+  #           "name": "Jellyfin Media Server",
+  #           "enabled": true,
+  #           "protocol": "openid-connect",
+  #           "clientAuthenticatorType": "client-secret",
+  #           "secret": "${config.sops.placeholder."jellyfin/oidc_client_secret"}",
+  #           "redirectUris": [
+  #             "https://jellyfin.dora.im/sso/OID/redirect/jellyfin"
+  #           ],
+  #           "webOrigins": [
+  #             "https://jellyfin.dora.im"
+  #           ],
+  #           "publicClient": false,
+  #           "standardFlowEnabled": true,
+  #           "directAccessGrantsEnabled": true
+  #         }
+  #       ],
   #       "userFederationProviders": [
   #         {
   #           "displayName": "LDAP",

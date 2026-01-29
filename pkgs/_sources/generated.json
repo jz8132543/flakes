@@ -1,6 +1,6 @@
 {
   "alacritty-catppuccin": {
-    "cargoLocks": null,
+    "cargoLock": null,
     "date": "2024-10-28",
     "extract": null,
     "name": "alacritty-catppuccin",
@@ -21,7 +21,7 @@
     "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
   },
   "alist": {
-    "cargoLocks": null,
+    "cargoLock": null,
     "date": null,
     "extract": null,
     "name": "alist",
@@ -29,29 +29,29 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-7OiwuJ4U0cI3WyRKnk+cUXLBO+wHtlmHsC8c0563pqw=",
+      "sha256": "sha256-Jgl7U0aTU1zhIq05Z0pCr6RTxrMVd/xKiqrkXG0TIpY=",
       "type": "url",
-      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.8/openlist-linux-musl-amd64.tar.gz"
+      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.9/openlist-linux-musl-amd64.tar.gz"
     },
-    "version": "v4.1.8"
+    "version": "v4.1.9"
   },
   "clash-webui-yacd-meta": {
-    "cargoLocks": null,
-    "date": "2025-12-14",
+    "cargoLock": null,
+    "date": "2026-01-16",
     "extract": null,
     "name": "clash-webui-yacd-meta",
     "passthru": null,
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-9bdYO7PSM/r2r4XVN6iJZ6Q1n6Hz8EpXf9A8QlH0J3I=",
+      "sha256": "sha256-8lktBjGpDPXapKFWb68XuzpUe2DNpuMlfH6P7Ry7Af4=",
       "type": "url",
-      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/7643378feae9c9f44ea41b5143cd98e5135f9b9a.zip"
+      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/ac485b00be400b6c6efa3c73a579ac419bc439ec.zip"
     },
-    "version": "7643378feae9c9f44ea41b5143cd98e5135f9b9a"
+    "version": "ac485b00be400b6c6efa3c73a579ac419bc439ec"
   },
   "custom-win10-fonts": {
-    "cargoLocks": null,
+    "cargoLock": null,
     "date": "2025-01-01",
     "extract": null,
     "name": "custom-win10-fonts",
@@ -72,7 +72,7 @@
     "version": "4adc0a4198cc090b63bcb667363c03101e8175eb"
   },
   "ebook-sender-bot": {
-    "cargoLocks": null,
+    "cargoLock": null,
     "date": "2024-12-28",
     "extract": null,
     "name": "ebook-sender-bot",
@@ -92,9 +92,54 @@
     },
     "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
   },
+  "jellyfin-plugin-intro-skipper": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-intro-skipper",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-aoSZq8rUesV8U6fjWkDLNkdjOviPdAxppGpfJz8e3f8=",
+      "type": "url",
+      "url": "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v1.10.11.14/intro-skipper-v1.10.11.14.zip"
+    },
+    "version": "1.10.11.14"
+  },
+  "jellyfin-plugin-reports": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-reports",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-4DIszP6GAQRQv9Ky10sC2HVEjRJRkPiZT3oqq1csI/c=",
+      "type": "url",
+      "url": "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_18.0.0.0.zip"
+    },
+    "version": "18.0.0.0"
+  },
+  "jellyfin-plugin-sso": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-sso",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-3glRJVvsTtZGA3ZB5+CqEhCzoAoUFAZUgIe+2ZTLm90=",
+      "type": "url",
+      "url": "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.3/sso-authentication_4.0.0.3.zip"
+    },
+    "version": "4.0.0.3"
+  },
   "kitty-catppuccin": {
-    "cargoLocks": null,
-    "date": "2024-11-10",
+    "cargoLock": null,
+    "date": "2026-01-16",
     "extract": null,
     "name": "kitty-catppuccin",
     "passthru": null,
@@ -106,15 +151,15 @@
       "name": null,
       "owner": "catppuccin",
       "repo": "kitty",
-      "rev": "b14e8385c827f2d41660b71c7fec1e92bdcf2676",
-      "sha256": "sha256-59ON7CzVgfZUo7F81qQZQ1r6kpcjR3OPvTl99gzDP8E=",
+      "rev": "43098316202b84d6a71f71aaf8360f102f4d3f1a",
+      "sha256": "sha256-akRkdq8l2opGIg3HZd+Y4eky6WaHgKFQ5+iJMC1bhnQ=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "b14e8385c827f2d41660b71c7fec1e92bdcf2676"
+    "version": "43098316202b84d6a71f71aaf8360f102f4d3f1a"
   },
   "trackerslist": {
-    "cargoLocks": null,
+    "cargoLock": null,
     "date": null,
     "extract": null,
     "name": "trackerslist",
@@ -122,7 +167,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-gToovrVvggDK7yfw2+IA1Ruh9YTjjLOZLxWLAMoO5yI=",
+      "sha256": "sha256-fAS1YKR3JK7xBI3fgpZ5ZTbqZMOBSql6nB8lC8gCuQQ=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },

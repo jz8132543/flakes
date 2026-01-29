@@ -127,6 +127,15 @@
       cfProxy = 2408;
       postgres-exporter = 9187;
       blackbox-exporter = 19115;
+      # Media Stack
+      sonarr = 8989;
+      radarr = 7878;
+      prowlarr = 9696;
+      bazarr = 6767;
+      jellyseerr = 5055;
+      qbittorrent = 8080;
+      autobrr = 7474;
+      jellyfin-webdav = 15849;
     };
   };
 }

@@ -31,4 +31,8 @@
   #     FREQ_BAND = 5;
   #   };
   # };
+  # };
+
+  services.media-downloads.enable = true;
+  services.media-samba.enable = true;
 }

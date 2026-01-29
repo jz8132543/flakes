@@ -12,7 +12,7 @@ in
     enable = mkEnableOption "Media Samba Share";
     path = mkOption {
       type = types.path;
-      default = "/var/lib/media";
+      default = "/var/lib/data/media";
       description = "Path to share";
     };
   };

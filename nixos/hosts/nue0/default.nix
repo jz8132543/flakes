@@ -4,6 +4,7 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     # ++ nixosModules.services.opencloud.all
+    ++ nixosModules.services.media.all
     # ++ nixosModules.services.mail.all ++ [
     ++ [
       ./hardware-configuration.nix
@@ -19,10 +20,12 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       # Media Center
-      nixosModules.media.jellyfin
-      nixosModules.media.arr
-
-      nixosModules.media.downloads
+      # Media Center
+      # Media Center
+      ../../modules/services/media/jellyfin.nix
+      ../../modules/services/media/layout.nix
+      ../../modules/services/media/automation.nix
+      # nixosModules.services.media.all
 
       nixosModules.services.syncthing
       nixosModules.services.reader

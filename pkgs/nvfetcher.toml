@@ -1,6 +1,9 @@
 [kitty-catppuccin]
 fetch.github = "catppuccin/kitty"
 src.git = "https://github.com/catppuccin/kitty"
+[jellyfin-plugin-sso]
+src.manual = "4.0.0.3"
+fetch.url = "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v$ver/sso-authentication_$ver.zip"
 [alacritty-catppuccin]
 fetch.github = "catppuccin/alacritty"
 src.git = "https://github.com/catppuccin/alacritty"
@@ -25,3 +28,9 @@ src.git = "https://github.com/jz8132543/ttf-ms-win10"
 # [wallpaper]
 # fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 # src.manual = "latest"
+[jellyfin-plugin-reports]
+src.manual = "18.0.0.0"
+fetch.url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_$ver.zip"
+[jellyfin-plugin-intro-skipper]
+src.manual = "1.10.11.14"
+fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v$ver/intro-skipper-v$ver.zip"

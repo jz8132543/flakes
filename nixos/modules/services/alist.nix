@@ -17,6 +17,11 @@
       home = "/var/lib/alist";
       group = "alist";
       description = "alist service";
+      extraGroups = [
+        "media"
+        "video"
+        "render"
+      ];
     };
 
     groups.alist = { };

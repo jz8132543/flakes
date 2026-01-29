@@ -41,28 +41,32 @@
         rule = "Host(`sonarr.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         service = "sonarr";
+        # middlewares = [ "auth" ];
       };
       radarr = {
         rule = "Host(`radarr.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         service = "radarr";
+        # middlewares = [ "auth" ];
       };
       prowlarr = {
         rule = "Host(`prowlarr.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         service = "prowlarr";
+        # middlewares = [ "auth" ];
       };
       bazarr = {
         rule = "Host(`bazarr.${config.networking.domain}`)";
         entryPoints = [ "https" ];
         service = "bazarr";
+        # middlewares = [ "auth" ];
       };
     };
     services = {
-      sonarr.loadBalancer.servers = [ { url = "http://localhost:8989"; } ];
-      radarr.loadBalancer.servers = [ { url = "http://localhost:7878"; } ];
-      prowlarr.loadBalancer.servers = [ { url = "http://localhost:9696"; } ];
-      bazarr.loadBalancer.servers = [ { url = "http://localhost:6767"; } ];
+      sonarr.loadBalancer.servers = [ { url = "http://localhost:${toString config.ports.sonarr}"; } ];
+      radarr.loadBalancer.servers = [ { url = "http://localhost:${toString config.ports.radarr}"; } ];
+      prowlarr.loadBalancer.servers = [ { url = "http://localhost:${toString config.ports.prowlarr}"; } ];
+      bazarr.loadBalancer.servers = [ { url = "http://localhost:${toString config.ports.bazarr}"; } ];
     };
   };
 }
