@@ -19,7 +19,7 @@
       # nixosModules.services.pastebin
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      nixosModules.media.jellyfin
+      # Media Stack removed - use nue0 for media services
       nixosModules.services.syncthing
       nixosModules.services.reader
       # (import nixosModules.services.ebook-sender { })

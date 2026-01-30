@@ -33,6 +33,5 @@
   # };
   # };
 
-  services.media-downloads.enable = true;
-  services.media-samba.enable = true;
+  # Media services removed - use nue0 for media server
 }

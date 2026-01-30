@@ -18,8 +18,7 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      nixosModules.media.jellyfin
-      nixosModules.media.arr
+      # Media Stack removed - use nue0 for media services
       # nixosModules.services.syncthing
       nixosModules.services.reader
       # nixosModules.services.searx

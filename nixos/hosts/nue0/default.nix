@@ -4,8 +4,7 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     # ++ nixosModules.services.opencloud.all
-    ++ nixosModules.services.media.all
-    # ++ nixosModules.services.mail.all ++ [
+    # ++ nixosModules.services.mail.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -19,13 +18,9 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-      # Media Center
-      # Media Center
-      # Media Center
-      ../../modules/services/media/jellyfin.nix
-      ../../modules/services/media/layout.nix
-      ../../modules/services/media/automation.nix
-      # nixosModules.services.media.all
+
+      # Media Stack (Based on Misterio77/nix-config)
+      ../../modules/services/media/default.nix
 
       nixosModules.services.syncthing
       nixosModules.services.reader
@@ -52,6 +47,6 @@
       nixosModules.services.grafana.default
     ];
 
-  # Enable Media Services
-  services.media-downloads.enable = true;
+  # Media group for shared file access
+  users.groups.media = { };
 }
