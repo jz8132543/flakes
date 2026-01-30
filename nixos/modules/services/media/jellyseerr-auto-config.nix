@@ -29,8 +29,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "jellyseerr";
-        Group = "jellyseerr";
+        # Run as root to access sops secrets
       };
 
       path = with pkgs; [

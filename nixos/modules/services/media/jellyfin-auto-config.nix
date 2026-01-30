@@ -25,8 +25,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "jellyfin";
-        Group = "media";
+        # Run as root to access sops secrets
       };
 
       path = with pkgs; [
