@@ -19,13 +19,12 @@ in
       description = "Auto-configure Radarr";
       wantedBy = [ "multi-user.target" ];
       after = [ "radarr.service" ];
-      requires = [ "radarr.service" ];
+      wants = [ "radarr.service" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "radarr";
-        Group = "media";
+        # Run as root to be able to restart radarr service
       };
 
       path = with pkgs; [

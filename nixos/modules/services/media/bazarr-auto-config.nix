@@ -23,13 +23,12 @@ in
         "sonarr.service"
         "radarr.service"
       ];
-      requires = [ "bazarr.service" ];
+      wants = [ "bazarr.service" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "bazarr";
-        Group = "media";
+        # Run as root to be able to restart bazarr service
       };
 
       path = with pkgs; [

@@ -117,6 +117,75 @@ in
           mode = "0775";
         };
       };
+
+      # Service data directories
+      "var-lib-media" = {
+        "/var/lib/jellyfin".d = {
+          user = "jellyfin";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/jellyfin/data".d = {
+          user = "jellyfin";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/jellyfin/config".d = {
+          user = "jellyfin";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/jellyfin/log".d = {
+          user = "jellyfin";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/jellyfin/cache".d = {
+          user = "jellyfin";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/sonarr".d = {
+          user = "sonarr";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/radarr".d = {
+          user = "radarr";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/prowlarr".d = {
+          user = "prowlarr";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/bazarr".d = {
+          user = "bazarr";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/qbittorrent".d = {
+          user = "qbittorrent";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/qbittorrent/.config".d = {
+          user = "qbittorrent";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/qbittorrent/.config/qBittorrent".d = {
+          user = "qbittorrent";
+          group = "media";
+          mode = "0750";
+        };
+        "/var/lib/jellyseerr".d = {
+          user = "jellyseerr";
+          group = "media";
+          mode = "0750";
+        };
+      };
     };
 
     # Environment variables for automation scripts

@@ -19,13 +19,12 @@ in
       description = "Auto-configure Prowlarr";
       wantedBy = [ "multi-user.target" ];
       after = [ "prowlarr.service" ];
-      requires = [ "prowlarr.service" ];
+      wants = [ "prowlarr.service" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "prowlarr";
-        Group = "prowlarr";
+        # Run as root to be able to restart prowlarr service
       };
 
       path = with pkgs; [

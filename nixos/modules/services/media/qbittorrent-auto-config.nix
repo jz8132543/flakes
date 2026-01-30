@@ -37,14 +37,13 @@ in
       description = "Auto-configure qBittorrent";
       wantedBy = [ "multi-user.target" ];
       after = [ "qbittorrent.service" ];
-      requires = [ "qbittorrent.service" ];
+      wants = [ "qbittorrent.service" ];
 
       # Only run once when config doesn't exist or needs update
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "qbittorrent";
-        Group = "media";
+        # Run as root to be able to restart qbittorrent service
       };
 
       path = with pkgs; [
@@ -86,28 +85,30 @@ in
                 systemctl stop qbittorrent.service || true
                 sleep 2
                 
-                # Read password from sops
+                # Read password from sops and export for Python
                 if [ -f "$PASSWORD_FILE" ]; then
-                  PASSWORD=$(cat "$PASSWORD_FILE")
+                  export PASSWORD=$(cat "$PASSWORD_FILE")
                 else
                   echo "Password file not found, using default"
-                  PASSWORD="changeme"
+                  export PASSWORD="changeme"
                 fi
                 
                 # Generate PBKDF2 password hash for qBittorrent 4.2+
                 # qBittorrent uses: @ByteArray(PBKDF2 hash in base64)
                 # We'll use a Python one-liner for the hash
-                HASH=$(${pkgs.python3}/bin/python3 -c "
+                HASH=$(${pkgs.python3}/bin/python3 << 'PYTHON_EOF'
         import hashlib
         import base64
         import secrets
-        password = '''$PASSWORD'''
+        import os
+        password = os.environ.get('PASSWORD', 'changeme')
         salt = secrets.token_bytes(16)
         iterations = 100000
         dk = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, iterations, dklen=64)
         result = base64.b64encode(salt + dk).decode()
         print(f'@ByteArray({result})')
-        ")
+        PYTHON_EOF
+        )
                 
                 # Update configuration
                 cat >> "$CONFIG_FILE" << EOF

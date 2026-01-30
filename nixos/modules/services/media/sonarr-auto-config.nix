@@ -19,13 +19,12 @@ in
       description = "Auto-configure Sonarr";
       wantedBy = [ "multi-user.target" ];
       after = [ "sonarr.service" ];
-      requires = [ "sonarr.service" ];
+      wants = [ "sonarr.service" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        User = "sonarr";
-        Group = "media";
+        # Run as root to be able to restart sonarr service
       };
 
       path = with pkgs; [
