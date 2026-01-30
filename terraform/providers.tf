@@ -24,5 +24,15 @@ terraform {
     shell = {
       source = "linyinfeng/shell"
     }
+    # Media automation providers (devopsarr)
+    sonarr = {
+      source = "devopsarr/sonarr"
+    }
+    radarr = {
+      source = "devopsarr/radarr"
+    }
+    prowlarr = {
+      source = "devopsarr/prowlarr"
+    }
   }
 }
