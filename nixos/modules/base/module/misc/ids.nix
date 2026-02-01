@@ -17,6 +17,16 @@
     # windows = 406;
     steam = 407;
     nextcloud = 501;
+
+    # nixflix media stack
+    jellyfin = 600;
+    jellyseerr = 601;
+    sonarr = 602;
+    radarr = 603;
+    prowlarr = 604;
+    lidarr = 605;
+    sabnzbd = 606;
+    recyclarr = 607;
   };
   ids.gids = {
     # service groups
@@ -28,5 +38,16 @@
     hydra-builder-client = 405;
     windows = 406;
     steam = 407;
+
+    # nixflix media stack
+    media = 600;
+    jellyfin = 600;
+    jellyseerr = 601;
+    sonarr = 602;
+    radarr = 603;
+    prowlarr = 604;
+    lidarr = 605;
+    sabnzbd = 606;
+    recyclarr = 607;
   };
 }

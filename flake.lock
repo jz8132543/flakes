@@ -411,6 +411,22 @@
         "type": "github"
       }
     },
+    "mkdocs-catppuccin": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1767028711,
+        "narHash": "sha256-YVIZAtQT2B4Xs2sBaszvyyukm+1klCJdRpsc/BYV1gw=",
+        "owner": "ruslanlap",
+        "repo": "mkdocs-catppuccin",
+        "rev": "fd8ac6106b5b6d32922cd80cbc3d221622a17408",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ruslanlap",
+        "repo": "mkdocs-catppuccin",
+        "type": "github"
+      }
+    },
     "neovim-nightly-overlay": {
       "inputs": {
         "flake-parts": [
@@ -576,6 +592,27 @@
       "original": {
         "owner": "nix-community",
         "repo": "nixago-extensions",
+        "type": "github"
+      }
+    },
+    "nixflix": {
+      "inputs": {
+        "mkdocs-catppuccin": "mkdocs-catppuccin",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1769771226,
+        "narHash": "sha256-38T/fYvyQTYoizaUbopOq/GoEOPJNyZiHJD3/W8Hl/o=",
+        "owner": "kiriwalawren",
+        "repo": "nixflix",
+        "rev": "021c467b1652ad407970401a06e5a14ada306b35",
+        "type": "github"
+      },
+      "original": {
+        "owner": "kiriwalawren",
+        "repo": "nixflix",
         "type": "github"
       }
     },
@@ -785,6 +822,7 @@
         "nix-vscode-extensions": "nix-vscode-extensions",
         "nixago": "nixago",
         "nixago-exts": "nixago-exts",
+        "nixflix": "nixflix",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs_2",
         "nixpkgs-terraform-providers-bin": "nixpkgs-terraform-providers-bin",

@@ -119,6 +119,15 @@ in
         nvidiaBusId = "PCI:1:0:0";
       };
     };
+    graphics = {
+      enable = true;
+      enable32Bit = true;
+      extraPackages = with pkgs; [
+        vaapiVdpau
+        libvdpau-va-gl
+        nvidia-vaapi-driver
+      ];
+    };
   };
   environment.sessionVariables = {
     __GL_SYNC_DISPLAY_DEVICE = MONITOR;

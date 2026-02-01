@@ -35,6 +35,10 @@ in
       # "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
       "cjpalhdlnbpafiamejdnhcphjbkeiagm" # uBlock Origin
       # "dbepggeogbaibhgnhhndojpepiihcmeb" # Vimium
+      # PT-Depiler - PT站点效率工具（聚合搜索、一键下载到qBittorrent等）
+      "gfkgnjfipffpfdnfmcpaoajkidapcplc"
+      # CookieCloud - 同步PT站点Cookie
+      "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
     ];
     # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
     # commandLineArgs = [

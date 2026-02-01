@@ -11,7 +11,19 @@
     80
     443
   ];
-  networking.firewall.allowedUDPPorts = [ 443 ];
+  services.nginx = {
+    enable = true;
+    defaultHTTPListenPort = config.ports.nginx;
+    commonHttpConfig = ''
+      # Trust Traefik and common private networks
+      set_real_ip_from  127.0.0.1;
+      set_real_ip_from  10.0.0.0/8;
+      set_real_ip_from  172.16.0.0/12;
+      set_real_ip_from  192.168.0.0/16;
+      real_ip_header    X-Forwarded-For;
+      real_ip_recursive on;
+    '';
+  };
   services.traefik = {
     enable = true;
     staticConfigOptions = {
@@ -140,16 +152,6 @@
           };
         };
       };
-      # defaultConfig = {
-      #   enable = false;
-      #   value = {
-      #     http.middlewares = {
-      #       strip-prefix = {
-      #         stripprefixregex.regex = "/[^/]+/";
-      #       };
-      #     };
-      #   };
-      # };
     };
   };
 

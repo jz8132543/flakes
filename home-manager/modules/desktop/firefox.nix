@@ -36,6 +36,16 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/aria2-integration/latest.xpi";
         };
+        # PT-Depiler - PT站点效率工具（聚合搜索、一键下载到qBittorrent等）
+        "{4614e090-d5c4-4961-9eb4-5dd9f47d7d00}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/pt-depiler/latest.xpi";
+        };
+        # CookieCloud - 同步PT站点Cookie
+        "{5c852dc5-cb17-4a56-a8f1-0d7b7c5dd00a}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/cookiecloud/latest.xpi";
+        };
       };
     };
   };

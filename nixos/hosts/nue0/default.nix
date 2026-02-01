@@ -18,10 +18,7 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-
-      # Media Stack (Based on Misterio77/nix-config)
-      ../../modules/services/media/default.nix
-
+      (import nixosModules.services.nixflix { })
       nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.proxy
@@ -47,6 +44,11 @@
       nixosModules.services.grafana.default
     ];
 
-  # Media group for shared file access
-  users.groups.media = { };
+  # ═══════════════════════════════════════════════════════════════
+  # Firewall - Open qBittorrent listening port for PT
+  # ═══════════════════════════════════════════════════════════════
+  networking.firewall = {
+    allowedTCPPorts = [ 51413 ]; # qBittorrent
+    allowedUDPPorts = [ 51413 ]; # uTP protocol
+  };
 }

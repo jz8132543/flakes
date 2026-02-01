@@ -128,6 +128,7 @@
       postgres-exporter = 9187;
       blackbox-exporter = 19115;
       # Media Stack
+      nixflix-nginx = 8880;
       sonarr = 8989;
       radarr = 7878;
       prowlarr = 9696;
@@ -136,6 +137,12 @@
       qbittorrent = 8080;
       autobrr = 7474;
       jellyfin-webdav = 15849;
+      lidarr = 8686;
+      sabnzbd = 8090;
+      flaresolverr = 8191;
+      iyuu = 8777;
+      vertex = 3004;
+      mysql = 3306;
     };
   };
 }

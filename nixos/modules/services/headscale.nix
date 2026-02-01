@@ -56,6 +56,11 @@
               type = "A";
               value = "100.64.0.1";
             }
+            {
+              name = "mysql.mag";
+              type = "A";
+              value = "100.64.0.1";
+            }
           ];
         };
         logtail = {

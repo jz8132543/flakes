@@ -101,14 +101,6 @@
       "on": "nue0",
       "proxy": false
     },
-    "autobrr": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "bazarr": {
-      "on": "nue0",
-      "proxy": false
-    },
     "cloud": {
       "on": "nue0",
       "proxy": false
@@ -181,18 +173,6 @@
       "on": "nue0",
       "proxy": false
     },
-    "prowlarr": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "qbit": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "radarr": {
-      "on": "nue0",
-      "proxy": false
-    },
     "reader": {
       "on": "nue0",
       "proxy": false
@@ -201,19 +181,15 @@
       "on": "hkg4",
       "proxy": false
     },
-    "seerr": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "sonarr": {
-      "on": "nue0",
-      "proxy": false
-    },
     "sso": {
       "on": "nue0",
       "proxy": false
     },
     "ts": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "tv": {
       "on": "nue0",
       "proxy": false
     },

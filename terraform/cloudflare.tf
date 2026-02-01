@@ -66,36 +66,37 @@ resource "cloudflare_dns_record" "dora_shg0" {
 
 locals {
   service_cname_mappings = {
-    vault              = { on = "nue0", proxy = false }
-    ts                 = { on = "nue0", proxy = false }
-    ldap               = { on = "nue0", proxy = false }
-    sso                = { on = "nue0", proxy = false }
-    mta-sts            = { on = "nue0", proxy = false }
-    atuin              = { on = "nue0", proxy = false }
-    ntfy               = { on = "nue0", proxy = false }
-    pb                 = { on = "nue0", proxy = false }
-    ollama             = { on = "nue0", proxy = false }
-    ollama-ui          = { on = "nue0", proxy = false }
-    minio              = { on = "nue0", proxy = false }
-    minio-console      = { on = "nue0", proxy = false }
-    "admin.m"          = { on = "nue0", proxy = false }
-    zone               = { on = "nue0", proxy = false }
-    jellyfin           = { on = "nue0", proxy = false }
-    alist              = { on = "nue0", proxy = false }
-    office             = { on = "nue0", proxy = false }
-    code               = { on = "nue0", proxy = false }
-    cloud              = { on = "nue0", proxy = false }
-    reader             = { on = "nue0", proxy = false }
-    plex               = { on = "nue0", proxy = false }
-    dash               = { on = "nue0", proxy = false }
-    metrics            = { on = "nue0", proxy = false }
-    seerr              = { on = "nue0", proxy = false }
-    sonarr             = { on = "nue0", proxy = false }
-    autobrr            = { on = "nue0", proxy = false }
-    prowlarr           = { on = "nue0", proxy = false }
-    radarr             = { on = "nue0", proxy = false }
-    bazarr             = { on = "nue0", proxy = false }
-    qbit               = { on = "nue0", proxy = false }
+    vault         = { on = "nue0", proxy = false }
+    ts            = { on = "nue0", proxy = false }
+    ldap          = { on = "nue0", proxy = false }
+    sso           = { on = "nue0", proxy = false }
+    mta-sts       = { on = "nue0", proxy = false }
+    atuin         = { on = "nue0", proxy = false }
+    ntfy          = { on = "nue0", proxy = false }
+    pb            = { on = "nue0", proxy = false }
+    ollama        = { on = "nue0", proxy = false }
+    ollama-ui     = { on = "nue0", proxy = false }
+    minio         = { on = "nue0", proxy = false }
+    minio-console = { on = "nue0", proxy = false }
+    "admin.m"     = { on = "nue0", proxy = false }
+    zone          = { on = "nue0", proxy = false }
+    jellyfin      = { on = "nue0", proxy = false }
+    alist         = { on = "nue0", proxy = false }
+    office        = { on = "nue0", proxy = false }
+    code          = { on = "nue0", proxy = false }
+    cloud         = { on = "nue0", proxy = false }
+    reader        = { on = "nue0", proxy = false }
+    plex          = { on = "nue0", proxy = false }
+    dash          = { on = "nue0", proxy = false }
+    metrics       = { on = "nue0", proxy = false }
+    tv            = { on = "nue0", proxy = false }
+    # seerr              = { on = "nue0", proxy = false }
+    # sonarr             = { on = "nue0", proxy = false }
+    # autobrr            = { on = "nue0", proxy = false }
+    # prowlarr           = { on = "nue0", proxy = false }
+    # radarr             = { on = "nue0", proxy = false }
+    # bazarr             = { on = "nue0", proxy = false }
+    # qbit               = { on = "nue0", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }

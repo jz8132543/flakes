@@ -14,11 +14,28 @@
 
   # Traefik reverse proxy
   services.traefik.dynamicConfigOptions.http = {
-    routers.jellyfin = {
-      rule = "Host(`jellyfin.${config.networking.domain}`)";
-      entryPoints = [ "https" ];
-      service = "jellyfin";
+    routers = {
+      jellyfin = {
+        rule = "Host(`jellyfin.${config.networking.domain}`)";
+        entryPoints = [ "https" ];
+        service = "jellyfin";
+      };
+      # Access via tv.{domain}/jellyfin
+      jellyfin-tv = {
+        rule = "Host(`tv.${config.networking.domain}`) && PathPrefix(`/jellyfin`)";
+        entryPoints = [ "https" ];
+        service = "jellyfin";
+        middlewares = [ "jellyfin-stripprefix" ];
+      };
+      # Access via FQDN path: {fqdn}/jellyfin
+      jellyfin-fqdn = {
+        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/jellyfin`)";
+        entryPoints = [ "https" ];
+        service = "jellyfin";
+        middlewares = [ "jellyfin-stripprefix" ];
+      };
     };
+    middlewares.jellyfin-stripprefix.stripPrefix.prefixes = [ "/jellyfin" ];
     services.jellyfin.loadBalancer = {
       passHostHeader = true;
       servers = [ { url = "http://localhost:${toString config.ports.jellyfin}"; } ];

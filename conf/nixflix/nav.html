@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Media Stack</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 2rem;
+        color: #e4e4e4;
+      }
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .subtitle {
+        color: #888;
+        margin-bottom: 2rem;
+        font-size: 1rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.5rem;
+        max-width: 900px;
+        width: 100%;
+      }
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        text-decoration: none;
+        color: #e4e4e4;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+      .card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      }
+      .card .icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .card .name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.25rem;
+      }
+      .card .desc {
+        font-size: 0.8rem;
+        color: #888;
+      }
+      .section-title {
+        width: 100%;
+        max-width: 900px;
+        margin: 1.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        color: #667eea;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      footer {
+        margin-top: auto;
+        padding-top: 2rem;
+        color: #666;
+        font-size: 0.8rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎬 Media Stack</h1>
+    <p class="subtitle" id="domain"></p>
+
+    <div class="section-title">Media & Requests</div>
+    <div class="grid">
+      <a href="/jellyfin" class="card">
+        <div class="icon">📺</div>
+        <div class="name">Jellyfin</div>
+        <div class="desc">Media Server</div>
+      </a>
+      <a href="/jellyseerr" class="card">
+        <div class="icon">🎫</div>
+        <div class="name">Jellyseerr</div>
+        <div class="desc">Request Manager</div>
+      </a>
+    </div>
+
+    <div class="section-title">Media Management</div>
+    <div class="grid">
+      <a href="/sonarr" class="card">
+        <div class="icon">📺</div>
+        <div class="name">Sonarr</div>
+        <div class="desc">TV Series</div>
+      </a>
+      <a href="/radarr" class="card">
+        <div class="icon">🎬</div>
+        <div class="name">Radarr</div>
+        <div class="desc">Movies</div>
+      </a>
+      <a href="/lidarr" class="card">
+        <div class="icon">🎵</div>
+        <div class="name">Lidarr</div>
+        <div class="desc">Music</div>
+      </a>
+      <a href="/bazarr" class="card">
+        <div class="icon">💬</div>
+        <div class="name">Bazarr</div>
+        <div class="desc">Subtitles</div>
+      </a>
+      <a href="/prowlarr" class="card">
+        <div class="icon">🔍</div>
+        <div class="name">Prowlarr</div>
+        <div class="desc">Indexers</div>
+      </a>
+    </div>
+
+    <div class="section-title">Downloads</div>
+    <div class="grid">
+      <a href="/qbittorrent/" class="card">
+        <div class="icon">🌊</div>
+        <div class="name">qBittorrent</div>
+        <div class="desc">Torrents</div>
+      </a>
+      <a href="/sabnzbd/" class="card">
+        <div class="icon">📥</div>
+        <div class="name">SABnzbd</div>
+        <div class="desc">Usenet</div>
+      </a>
+    </div>
+
+    <div class="section-title">PT Racing & Seeding</div>
+    <div class="grid">
+      <a href="/autobrr" class="card">
+        <div class="icon">🏎️</div>
+        <div class="name">Autobrr</div>
+        <div class="desc">Auto Racing</div>
+      </a>
+      <div class="card" style="cursor: default; opacity: 0.7">
+        <div class="icon">🧠</div>
+        <div class="name">Smart Manage</div>
+        <div class="desc">Auto Cleanup</div>
+      </div>
+      <div class="card" style="cursor: default; opacity: 0.7">
+        <div class="icon">🔗</div>
+        <div class="name">Cross-Seed</div>
+        <div class="desc">Background</div>
+      </div>
+    </div>
+
+    <footer>Powered by Nixflix on NixOS</footer>
+    <script>
+      document.getElementById("domain").textContent = location.host;
+    </script>
+  </body>
+</html>
