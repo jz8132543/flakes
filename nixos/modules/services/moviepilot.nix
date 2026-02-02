@@ -114,22 +114,22 @@ in
       mode = "0755";
     };
     "${mediaPath}".d = {
-      mode = "0775";
+      mode = "0755";
     };
     "${mediaPath}/movies".d = {
-      mode = "0775";
+      mode = "0755";
     };
     "${mediaPath}/tv".d = {
-      mode = "0775";
+      mode = "0755";
     };
     "${mediaPath}/anime".d = {
-      mode = "0775";
+      mode = "0755";
     };
     "${downloadPath}".d = {
-      mode = "0775";
+      mode = "0755";
     };
     "${downloadPath}/torrents".d = {
-      mode = "0775";
+      mode = "0755";
     };
     # qBittorrent BT_backup for cross-seed
     "/var/lib/qBittorrent/qBittorrent/BT_backup".d = {

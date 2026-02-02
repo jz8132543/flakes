@@ -142,6 +142,7 @@
       flaresolverr = 8191;
       iyuu = 8777;
       vertex = 3004;
+      sonarr-anime = 8990;
       moviepilot = 3201;
       mysql = 3306;
     };

@@ -56,48 +56,60 @@ let
 
       # Content rewriting for subpath support
       sub_filter_once off;
-      sub_filter_types text/html text/css application/javascript application/json;
+      sub_filter_types *;
 
       # Rewrite common paths and patterns
-      sub_filter '"/assets' '"/${path}/assets';
-      sub_filter "'/assets" "'/${path}/assets";
-      sub_filter '"/js' '"/${path}/js';
-      sub_filter "'/js" "'/${path}/js";
-      sub_filter '"/css' '"/${path}/css';
-      sub_filter "'/css" "'/${path}/css";
-      sub_filter '"/img' '"/${path}/img';
-      sub_filter "'/img" "'/${path}/img";
-      sub_filter '"/fonts' '"/${path}/fonts';
-      sub_filter "'/fonts" "'/${path}/fonts";
-      sub_filter '"/api' '"/${path}/api';
-      sub_filter "'/api" "'/${path}/api";
-      sub_filter '"/app' '"/${path}/app';
-      sub_filter "'/app" "'/${path}/app";
-      sub_filter '"/login' '"/${path}/login';
-      sub_filter "'/login" "'/${path}/login";
-      sub_filter '"/user' '"/${path}/user';
-      sub_filter "'/user" "'/${path}/user";
-      sub_filter '"/static' '"/${path}/static';
-      sub_filter "'/static" "'/${path}/static";
+      sub_filter '\"/assets' '\"/${path}/assets';
+      sub_filter '\'/assets' '\'/${path}/assets';
+      sub_filter '\"/js' '\"/${path}/js';
+      sub_filter '\'/js' '\'/${path}/js';
+      sub_filter '\"/css' '\"/${path}/css';
+      sub_filter '\'/css' '\'/${path}/css';
+      sub_filter '\"/img' '\"/${path}/img';
+      sub_filter '\'/img' '\'/${path}/img';
+      sub_filter '\"/fonts' '\"/${path}/fonts';
+      sub_filter '\'/fonts' '\'/${path}/fonts';
+      sub_filter '\"/api' '\"/${path}/api';
+      sub_filter '\'/api' '\'/${path}/api';
+      sub_filter '\"/app' '\"/${path}/app';
+      sub_filter '\'/app' '\'/${path}/app';
+      sub_filter '\"/login' '\"/${path}/login';
+      sub_filter '\'/login' '\'/${path}/login';
+      sub_filter '\"/user' '\"/${path}/user';
+      sub_filter '\'/user' '\'/${path}/user';
+      sub_filter '\"/static' '\"/${path}/static';
+      sub_filter '\'/static' '\'/${path}/static';
+      sub_filter '\"/manifest.json' '\"/${path}/manifest.json';
+      sub_filter '\"/favicon.ico' '\"/${path}/favicon.ico';
 
       # CSS url() patterns
       sub_filter 'url(/assets' 'url(/${path}/assets';
-      sub_filter 'url("/assets' 'url("/${path}/assets';
-      sub_filter "url('/assets" "url('/${path}/assets";
-      sub_filter '\"/assets' '\"/${path}/assets';
-      sub_filter '\'/assets' '\'/${path}/assets';
+      sub_filter 'url(\"/assets' 'url(\"/${path}/assets';
+      sub_filter 'url(\'/assets' 'url(\'/${path}/assets';
+      sub_filter 'url(/Content' 'url(/${path}/Content';
+      sub_filter 'url(\"/Content' 'url(\"/${path}/Content';
+      sub_filter 'url(\'/Content' 'url(\'/${path}/Content';
+      sub_filter 'url(/dist' 'url(/${path}/dist';
+      sub_filter 'url(/web' 'url(/${path}/web';
+      sub_filter 'url(/views' 'url(/${path}/views';
+
+      # HTML specific
       sub_filter 'src=\"/assets' 'src=\"/${path}/assets';
       sub_filter 'href=\"/assets' 'href=\"/${path}/assets';
-      sub_filter '\"/api' '\"/${path}/api';
-      sub_filter '\"/static' '\"/${path}/static';
+      sub_filter 'src=\"/js' 'src=\"/${path}/js';
+      sub_filter 'href=\"/css' 'href=\"/${path}/css';
 
-      # Additional common patterns
-      sub_filter '"/Content' '"/${path}/Content';
-      sub_filter "'/Content" "'/${path}/Content";
-      sub_filter '"/dist' '"/${path}/dist';
-      sub_filter "'/dist" "'/${path}/dist";
-      sub_filter '"/web' '"/${path}/web';
-      sub_filter "'/web" "'/${path}/web";
+      # Additional common patterns found in JS
+      sub_filter '\"/Content' '\"/${path}/Content';
+      sub_filter '\'/Content' '\'/${path}/Content';
+      sub_filter '\"/dist' '\"/${path}/dist';
+      sub_filter '\'/dist' '\'/${path}/dist';
+      sub_filter '\"/web' '\"/${path}/web';
+      sub_filter '\'/web' '\'/${path}/web';
+      sub_filter '\"/views' '\"/${path}/views';
+      sub_filter '\'/views' '\'/${path}/views';
+      sub_filter '\"/signalr' '\"/${path}/signalr';
+      sub_filter '\'/signalr' '\'/${path}/signalr';
       sub_filter '"/views' '"/${path}/views';
       sub_filter "'/views" "'/${path}/views";
       sub_filter '"/signalr' '"/${path}/signalr';
@@ -126,17 +138,7 @@ in
 {
   imports = [
     inputs.nixflix.nixosModules.nixflix
-    (import ./moviepilot.nix { PG = "127.0.0.1"; })
   ];
-
-  options.nixflix.moviepilot = {
-    enable = lib.mkEnableOption "MoviePilot";
-    bigMemoryMode = lib.mkEnableOption "Big Memory Mode";
-    PG = lib.mkOption {
-      type = lib.types.str;
-      default = "127.0.0.1";
-    };
-  };
 
   config = {
     # Core nixflix configuration (official documentation pattern)
@@ -377,10 +379,20 @@ in
         };
       };
 
-      moviepilot = {
+      sonarr-anime = {
         enable = true;
-        bigMemoryMode = false;
-        PG = "127.0.0.1";
+        config = {
+          hostConfig = {
+            username = "i";
+            password = {
+              _secret = config.sops.secrets."password".path;
+            };
+            urlBase = "/sonarr-anime";
+          };
+          apiKey = {
+            _secret = config.sops.secrets."media/sonarr_api_key".path;
+          };
+        };
       };
     };
 
@@ -461,7 +473,7 @@ in
         settings = {
           host = "127.0.0.1";
           port = config.ports.autobrr;
-          base_url = "/autobrr";
+          baseUrl = "/autobrr/";
         };
       };
 
@@ -503,10 +515,10 @@ in
             "/autobrr/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "autobrr";
-                port = config.ports.autobrr;
-              };
+              #extraConfig = subpathProxyConfig {
+              #  path = "autobrr";
+              #  port = config.ports.autobrr;
+              # };
             };
             "/autobrr" = {
               return = "301 /autobrr/";
@@ -556,27 +568,17 @@ in
               return = "301 /whoami/";
             };
 
-            "/moviepilot/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.moviepilot}/";
+            "/sonarr-anime/" = {
+              proxyPass = "http://127.0.0.1:8990/";
               extraConfig = subpathProxyConfig {
-                path = "moviepilot";
-                port = config.ports.moviepilot;
+                path = "sonarr-anime";
+                port = 8990;
               };
             };
-            "/moviepilot" = {
-              return = "301 /moviepilot/";
+            "/sonarr-anime" = {
+              return = "301 /sonarr-anime/";
             };
 
-            "/cookiecloud/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.moviepilot}/cookiecloud/";
-              extraConfig = subpathProxyConfig {
-                path = "cookiecloud";
-                port = config.ports.moviepilot;
-              };
-            };
-            "/cookiecloud" = {
-              return = "301 /cookiecloud/";
-            };
             # Delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr
           };
         };
@@ -590,7 +592,7 @@ in
             service = "nixflix-nginx";
           };
           nixflix-apps = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`) || PathPrefix(`/moviepilot`) || PathPrefix(`/cookiecloud`))";
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`))";
             entryPoints = [ "https" ];
             service = "nixflix-nginx";
           };
@@ -606,40 +608,41 @@ in
     # Consolidated Systemd Configuration
     systemd = {
       tmpfiles.rules = [
-        "d /data 0775 root media -"
-        "d /data/media 0775 root media -"
-        "d /data/downloads 0775 root media -"
-        "d /data/downloads/usenet 0775 sabnzbd media -"
-        "d /data/downloads/usenet/incomplete 0775 sabnzbd media -"
-        "d /data/downloads/usenet/complete 0775 sabnzbd media -"
-        "d /data/.state 0775 root media -"
-        "d /data/downloads/torrents 0775 qbittorrent media -"
-        "d /data/downloads/torrents/.incomplete 0775 qbittorrent media -"
-        "d /data/downloads/torrents/tv-sonarr 0775 qbittorrent media -"
-        "d /data/downloads/torrents/movies-radarr 0775 qbittorrent media -"
-        "d /data/downloads/torrents/music-lidarr 0775 qbittorrent media -"
-        "d /data/downloads/torrents/prowlarr 0775 qbittorrent media -"
-        "d /data/torrents 0775 qbittorrent media -"
-        "d /data/torrents/downloading 0775 qbittorrent media -"
-        "d /data/torrents/completed 0775 qbittorrent media -"
-        "d /data/.state/jellyfin 0750 jellyfin media -"
-        "d /data/.state/jellyseerr 0750 jellyseerr media -"
-        "d /data/.state/sonarr 0750 sonarr media -"
-        "d /data/.state/radarr 0750 radarr media -"
-        "d /data/.state/prowlarr 0750 prowlarr media -"
-        "d /data/.state/lidarr 0750 lidarr media -"
-        "d /data/.state/sabnzbd 0750 sabnzbd media -"
-        "d /data/.state/recyclarr 0750 recyclarr media -"
-        "d /data/.state/autobrr 0750 autobrr media -"
-        "d /data/.state/moviepilot 0750 root media -"
-        "d /data/.state/moviepilot/core 0750 root media -"
-        "d /data/.state/vertex 0750 root media -"
-        "d /data/.state/iyuu 0750 root media -"
-        "d /srv/moviepilot-plugins 0750 root media -"
-        "d /var/lib/bazarr 0750 bazarr media -"
-        "d /var/lib/qBittorrent 0750 qbittorrent media -"
-        "d /var/lib/iyuu 0750 iyuu media -"
-        "d /var/lib/autobrr 0750 autobrr media -"
+        "d /data 0755 root media -"
+        "d /data/media 0755 root media -"
+        "d /data/downloads 0755 root media -"
+        "d /data/downloads/usenet 0755 sabnzbd media -"
+        "d /data/downloads/usenet/incomplete 0755 sabnzbd media -"
+        "d /data/downloads/usenet/complete 0755 sabnzbd media -"
+        "d /data/.state 0755 root media -"
+        "d /data/downloads/torrents 0755 qbittorrent media -"
+        "d /data/downloads/torrents/.incomplete 0755 qbittorrent media -"
+        "d /data/downloads/torrents/tv-sonarr 0755 qbittorrent media -"
+        "d /data/downloads/torrents/movies-radarr 0755 qbittorrent media -"
+        "d /data/downloads/torrents/music-lidarr 0755 qbittorrent media -"
+        "d /data/downloads/torrents/prowlarr 0755 qbittorrent media -"
+        "d /data/torrents 0755 qbittorrent media -"
+        "d /data/torrents/downloading 0755 qbittorrent media -"
+        "d /data/torrents/completed 0755 qbittorrent media -"
+        "d /data/.state/jellyfin 0755 jellyfin media -"
+        "d /data/.state/jellyseerr 0755 jellyseerr media -"
+        "d /data/.state/sonarr 0755 sonarr media -"
+        "d /data/.state/sonarr-anime 0755 sonarr-anime media -"
+        "d /data/.state/radarr 0755 radarr media -"
+        "d /data/.state/prowlarr 0755 prowlarr media -"
+        "d /data/.state/lidarr 0755 lidarr media -"
+        "d /data/.state/sabnzbd 0755 sabnzbd media -"
+        "d /data/.state/recyclarr 0755 recyclarr media -"
+        "d /data/.state/autobrr 0755 autobrr media -"
+        "d /data/.state/moviepilot 0755 root media -"
+        "d /data/.state/moviepilot/core 0755 root media -"
+        "d /data/.state/vertex 0755 root media -"
+        "d /data/.state/iyuu 0755 root media -"
+        "d /srv/moviepilot-plugins 0755 root media -"
+        "d /var/lib/bazarr 0755 bazarr media -"
+        "d /var/lib/qBittorrent 0755 qbittorrent media -"
+        "d /var/lib/iyuu 0755 iyuu media -"
+        "d /var/lib/autobrr 0755 autobrr media -"
       ];
 
       targets.postgresql-ready = {
@@ -772,7 +775,8 @@ in
                              bazarr:${toString config.ports.bazarr}/ \
                              autobrr:${toString config.ports.autobrr}/autobrr \
                              vertex:${toString config.ports.vertex}/vertex \
-                             qbittorrent:${toString config.ports.qbittorrent}/; do
+                             qbittorrent:${toString config.ports.qbittorrent}/ \
+                             sonarr-anime:8990/sonarr-anime; do
                 host=''${service%%:*}
                 path_port=''${service#*:}
                 until curl -s "http://127.0.0.1:$path_port" > /dev/null; do
@@ -786,7 +790,6 @@ in
               ${pkgs.python3.withPackages (ps: [ ps.requests ])}/bin/python3 ${navHtmlDir}/setup.py \
                 --bazarr-url "http://127.0.0.1:${toString config.ports.bazarr}/bazarr/api" \
                 --autobrr-url "http://127.0.0.1:${toString config.ports.autobrr}/autobrr" \
-                --moviepilot-url "http://127.0.0.1:${toString config.ports.moviepilot}/moviepilot" \
                 --sonarr-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --radarr-key-file "${config.sops.secrets."media/radarr_api_key".path}" \
                 --autobrr-key-file "${config.sops.secrets."media/autobrr_session_token".path}" \
@@ -810,7 +813,9 @@ in
             serviceConfig = {
               Type = "oneshot";
               RemainAfterExit = true;
-              ProtectSystem = "off";
+              ProtectSystem = "no";
+              ProtectHome = "no";
+              ReadWritePaths = [ "/var/lib/qBittorrent" ];
               User = "root";
             };
             path = [
@@ -948,7 +953,7 @@ in
           TZ = "Asia/Shanghai";
           PORT = toString config.ports.vertex;
           USERNAME = "i";
-          BASE_URL = "/vertex";
+          BASE_URL = "/vertex/";
         };
         environmentFiles = [ config.sops.secrets.password.path ]; # This file contains PASSWORD=...
         extraOptions = [ "--network=host" ];
