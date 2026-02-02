@@ -34,3 +34,7 @@ fetch.url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/downlo
 [jellyfin-plugin-intro-skipper]
 src.manual = "1.10.11.14"
 fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v$ver/intro-skipper-v$ver.zip"
+[iyuuplus]
+src.git = "https://gitee.com/ledc/iyuuplus"
+fetch.git = "https://gitee.com/ledc/iyuuplus"
+src.branch = "master"

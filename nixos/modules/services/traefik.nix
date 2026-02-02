@@ -14,7 +14,29 @@
   services.nginx = {
     enable = true;
     defaultHTTPListenPort = config.ports.nginx;
+    recommendedGzipSettings = true;
+    recommendedOptimisation = true;
+    recommendedProxySettings = true;
+    # recommendedTlsSettings = true;
+    # resolver.addresses = config.networking.nameservers;
+    # sslDhparam = config.security.dhparams.params.nginx.path;
+    clientMaxBodySize = "1000m";
+    eventsConfig = ''
+      worker_connections 4096;
+      multi_accept on;
+    '';
+    appendConfig = ''
+      worker_processes auto;
+      worker_rlimit_nofile 65535;
+    '';
     commonHttpConfig = ''
+      # Add HSTS header with preloading to HTTPS requests.
+      # Adding this header to HTTP requests is discouraged
+      server_names_hash_bucket_size 128;
+      proxy_headers_hash_max_size 1024;
+      proxy_headers_hash_bucket_size 256;
+      # client_max_body_size 0;
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
       # Trust Traefik and common private networks
       set_real_ip_from  127.0.0.1;
       set_real_ip_from  10.0.0.0/8;

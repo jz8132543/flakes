@@ -18,7 +18,8 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-      (import nixosModules.services.nixflix { })
+      nixosModules.services.nixflix
+      nixosModules.services.mysql
       nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.proxy

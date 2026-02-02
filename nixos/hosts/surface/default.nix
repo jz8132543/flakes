@@ -16,7 +16,7 @@
   # hardware.microsoft-surface.kernelVersion = "stable";
   hardware.microsoft-surface = {
     # kernelVersion = "6.4.12";
-    kernelVersion = "stable";
+    # kernelVersion = "stable";
     # surface-control.enable = true;
     # ipts.enable = true;
   };

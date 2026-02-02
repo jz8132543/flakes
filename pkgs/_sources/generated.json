@@ -29,11 +29,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-Jgl7U0aTU1zhIq05Z0pCr6RTxrMVd/xKiqrkXG0TIpY=",
+      "sha256": "sha256-Jexh84BBS56I7KuhJt/nW+s2Nxnl22IyHZgGxnAzo4M=",
       "type": "url",
-      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.9/openlist-linux-musl-amd64.tar.gz"
+      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.10/openlist-linux-musl-amd64.tar.gz"
     },
-    "version": "v4.1.9"
+    "version": "v4.1.10"
   },
   "clash-webui-yacd-meta": {
     "cargoLock": null,
@@ -91,6 +91,26 @@
       "type": "github"
     },
     "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
+  },
+  "iyuuplus": {
+    "cargoLock": null,
+    "date": "2024-04-23",
+    "extract": null,
+    "name": "iyuuplus",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "rev": "ba878b9299c5d944d1c05035716d143fc591c6f1",
+      "sha256": "sha256-lMqxf9X4nycEK4aTsw8oP+0mzsm6sycrW5bd2OvwQf4=",
+      "sparseCheckout": [],
+      "type": "git",
+      "url": "https://gitee.com/ledc/iyuuplus"
+    },
+    "version": "ba878b9299c5d944d1c05035716d143fc591c6f1"
   },
   "jellyfin-plugin-intro-skipper": {
     "cargoLock": null,
@@ -167,7 +187,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-fAS1YKR3JK7xBI3fgpZ5ZTbqZMOBSql6nB8lC8gCuQQ=",
+      "sha256": "sha256-1HgtLW7xP4jsW9hQkSmZcGW+MlaS3nBHE5l5kiOvMTw=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },

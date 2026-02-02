@@ -17,6 +17,7 @@ let
     inputs.home-manager.nixosModules.home-manager
     inputs.nur.modules.nixos.default
     {
+      nixpkgs.overlays = [ (import ../pkgs).overlay ];
       lib.self = self.lib;
       home-manager = {
         sharedModules = commonHmModules;

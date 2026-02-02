@@ -1,5 +1,4 @@
 {
-  PG ? "127.0.0.1",
   bigMemoryMode ? false,
 }:
 {
@@ -31,11 +30,7 @@ let
     NGINX_PORT = toString webPort;
     PORT = toString webPort;
 
-    # Database
-    DB_HOST = PG;
-    DB_PORT = "5432";
-    DB_NAME = "moviepilot";
-    DB_USER = "moviepilot";
+    # Database (SQLite is used by default when DB_HOST is empty)
 
     # Big Memory Mode
     BIG_MEMORY_MODE = if bigMemoryMode then "true" else "false";
