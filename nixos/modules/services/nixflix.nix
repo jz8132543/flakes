@@ -56,7 +56,7 @@ let
 
       # Content rewriting for subpath support
       sub_filter_once off;
-      sub_filter_types *;
+      sub_filter_types text/html text/css text/javascript application/javascript application/json application/xml image/svg+xml;
 
       # Rewrite common paths and patterns
       sub_filter '\"/assets' '\"/${path}/assets';
@@ -133,6 +133,10 @@ let
       sub_filter 'url(/signalr' 'url(/${path}/signalr';
       sub_filter 'url("/signalr' 'url("/${path}/signalr';
       sub_filter "url('/signalr" "url('/${path}/signalr";
+      sub_filter 'service-worker.js' '${path}/service-worker.js';
+      sub_filter 'scope: "/"' 'scope: "/${path}/"';
+      sub_filter "scope: '/'" "scope: '/${path}/'";
+      sub_filter 'scope: "./"' 'scope: "./"'; # Preserve relative scopes
     '';
 in
 {
@@ -275,6 +279,8 @@ in
           indexers = [
             {
               name = "M-Team - TP";
+              enable = true;
+              freeleechOnly = true;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {
                 _secret = config.sops.secrets."media/mteam_api_key".path;
@@ -282,7 +288,10 @@ in
             }
             {
               name = "PTTime";
-              baseUrl = "https://pttime.org/";
+              enable = true;
+              baseUrl = "https://www.pttime.org/";
+              freeleechOnly = true;
+              # searchFreeleechOnly = true;
               username = {
                 _secret = config.sops.secrets."media/pttime_username".path;
               };
@@ -473,7 +482,7 @@ in
         settings = {
           host = "127.0.0.1";
           port = config.ports.autobrr;
-          baseUrl = "/autobrr/";
+          base_url = "/autobrr/";
         };
       };
 
@@ -513,12 +522,8 @@ in
               };
             };
             "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
+              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
               proxyWebsockets = true;
-              #extraConfig = subpathProxyConfig {
-              #  path = "autobrr";
-              #  port = config.ports.autobrr;
-              # };
             };
             "/autobrr" = {
               return = "301 /autobrr/";
@@ -536,10 +541,15 @@ in
 
             "/vertex/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
-              extraConfig = subpathProxyConfig {
-                path = "vertex";
-                port = config.ports.vertex;
-              };
+              proxyWebsockets = true;
+              extraConfig =
+                subpathProxyConfig {
+                  path = "vertex";
+                  port = config.ports.vertex;
+                }
+                + ''
+                  proxy_redirect / /vertex/;
+                '';
             };
             "/vertex" = {
               return = "301 /vertex/";
@@ -566,17 +576,6 @@ in
             };
             "/whoami" = {
               return = "301 /whoami/";
-            };
-
-            "/sonarr-anime/" = {
-              proxyPass = "http://127.0.0.1:8990/";
-              extraConfig = subpathProxyConfig {
-                path = "sonarr-anime";
-                port = 8990;
-              };
-            };
-            "/sonarr-anime" = {
-              return = "301 /sonarr-anime/";
             };
 
             # Delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr
@@ -799,10 +798,6 @@ in
                 --radarr-port "${toString config.ports.radarr}" \
                 --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
                 --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}"
-
-              # Recyclarr trigger
-              recyclarr sync
-              echo "Triggered Recyclarr sync"
             '';
           };
 
@@ -841,7 +836,16 @@ in
               PYTHON_EOF
                                      )
                                      mkdir -p "$(dirname "$CONFIG_FILE")"
-                                     touch "$CONFIG_FILE"
+
+                                     # If config is a symlink (from Nix store), replace with actual file
+                                     if [ -L "$CONFIG_FILE" ]; then
+                                       cp --remove-destination "$(readlink -f "$CONFIG_FILE")" "$CONFIG_FILE"
+                                       chmod 600 "$CONFIG_FILE"
+                                     elif [ ! -f "$CONFIG_FILE" ]; then
+                                       touch "$CONFIG_FILE"
+                                       chmod 600 "$CONFIG_FILE"
+                                     fi
+
                                      chown -R qbittorrent:media /var/lib/qBittorrent
                                      grep -q "\[Preferences\]" "$CONFIG_FILE" || echo "[Preferences]" >> "$CONFIG_FILE"
                                      sed -i '/WebUI\\Password_PBKDF2/d' "$CONFIG_FILE"
@@ -929,13 +933,9 @@ in
     sops.templates."iyuu-env" = {
       content = ''
         SERVER_LISTEN_PORT=${toString config.ports.iyuu}
-        DB_CONNECTION=mysql
-        DB_HOST=mysql.mag
-        DB_PORT=${toString config.ports.mysql}
-        DB_DATABASE=iyuu
-        DB_USERNAME=iyuu
-        DB_PASSWORD=
         IYUU_TOKEN=${config.sops.placeholder."media/iyuu_token"}
+        CONFIG_NOT_MYSQL=1
+        # IYUU_APPID=
       '';
       owner = "iyuu";
       group = "media";
@@ -953,7 +953,6 @@ in
           TZ = "Asia/Shanghai";
           PORT = toString config.ports.vertex;
           USERNAME = "i";
-          BASE_URL = "/vertex/";
         };
         environmentFiles = [ config.sops.secrets.password.path ]; # This file contains PASSWORD=...
         extraOptions = [ "--network=host" ];

@@ -19,7 +19,6 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.nixflix
-      nixosModules.services.mysql
       nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.proxy
