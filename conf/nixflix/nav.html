@@ -3,8 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Media Stack</title>
+    <title>Nixflix Dashboard</title>
     <style>
+      :root {
+        --bg-gradient: linear-gradient(
+          135deg,
+          #0f172a 0%,
+          #1e293b 50%,
+          #0f172a 100%
+        );
+        --card-bg: rgba(255, 255, 255, 0.03);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --card-hover-bg: rgba(255, 255, 255, 0.08);
+        --card-hover-border: rgba(255, 255, 255, 0.2);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-gradient: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+        --accent-glow: rgba(139, 92, 246, 0.3);
+      }
+
       * {
         margin: 0;
         padding: 0;
@@ -13,255 +30,435 @@
 
       body {
         font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: linear-gradient(
-          135deg,
-          #1a1a2e 0%,
-          #16213e 50%,
-          #0f3460 100%
-        );
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg-gradient);
+        color: var(--text-primary);
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         align-items: center;
-        padding: 2rem;
-        color: #e4e4e4;
+        padding: 3rem 1.5rem;
+      }
+
+      /* Animated Background Mesh */
+      body::before {
+        content: "";
+        position: fixed;
+        width: 60vw;
+        height: 60vw;
+        background: radial-gradient(
+          circle,
+          rgba(99, 102, 241, 0.15) 0%,
+          transparent 70%
+        );
+        top: -20%;
+        left: -10%;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: -1;
+        animation: pulse 15s ease-in-out infinite alternate;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        width: 50vw;
+        height: 50vw;
+        background: radial-gradient(
+          circle,
+          rgba(168, 85, 247, 0.12) 0%,
+          transparent 70%
+        );
+        bottom: -10%;
+        right: -10%;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: -1;
+        animation: pulse 20s ease-in-out infinite alternate-reverse;
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1) translate(0, 0);
+        }
+
+        100% {
+          transform: scale(1.2) translate(50px, 30px);
+        }
       }
 
       h1 {
-        font-size: 2.5rem;
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
         margin-bottom: 0.5rem;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: var(--accent-gradient);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        background-clip: text;
+        text-shadow: 0 20px 40px var(--accent-glow);
+        text-align: center;
       }
 
       .subtitle {
-        color: #888;
-        margin-bottom: 2rem;
-        font-size: 1rem;
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 3.5rem;
+        font-weight: 500;
+        opacity: 0.8;
+      }
+
+      .container {
+        max-width: 1000px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 3rem;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-left: 0.5rem;
+      }
+
+      .section-title {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--text-secondary);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .section-line {
+        height: 1px;
+        flex-grow: 1;
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 100%
+        );
       }
 
       .grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 1.5rem;
-        max-width: 900px;
-        width: 100%;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 1.25rem;
       }
 
       .card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 1.5rem;
-        text-align: center;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        padding: 1.5rem 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
         text-decoration: none;
-        color: #e4e4e4;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
+        color: var(--text-primary);
+        transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        backdrop-filter: blur(12px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.05) 0%,
+          transparent 100%
+        );
+        opacity: 0;
+        transition: opacity 0.4s ease;
       }
 
       .card:hover {
-        transform: translateY(-5px);
-        background: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.2);
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        transform: translateY(-5px) scale(1.02);
+        background: var(--card-hover-bg);
+        border-color: var(--card-hover-border);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.5);
       }
 
-      .card .icon {
-        height: 48px;
-        width: 48px;
-        margin-bottom: 0.75rem;
+      .card:hover::before {
+        opacity: 1;
+      }
+
+      .card .icon-wrapper {
+        width: 52px;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.03);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .card:hover .icon-wrapper {
+        background: rgba(255, 255, 255, 0.1);
+        transform: scale(1.1);
+      }
+
+      .card img.icon {
+        width: 28px;
+        height: 28px;
         object-fit: contain;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
+        filter: brightness(1.2) drop-shadow(0 0 10px rgba(255, 255, 255, 0.1));
+        transition: transform 0.3s ease;
       }
 
       .card .name {
         font-weight: 600;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         margin-bottom: 0.25rem;
+        z-index: 1;
       }
 
       .card .desc {
-        font-size: 0.8rem;
-        color: #888;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        z-index: 1;
+        transition: color 0.3s ease;
       }
 
-      .section-title {
-        width: 100%;
-        max-width: 900px;
-        margin: 1.5rem 0 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        color: #667eea;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
+      .card:hover .desc {
+        color: rgba(255, 255, 255, 0.7);
       }
 
       footer {
         margin-top: auto;
-        padding-top: 2rem;
-        color: #666;
+        padding-top: 4rem;
+        color: rgba(255, 255, 255, 0.2);
         font-size: 0.8rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
       }
     </style>
   </head>
 
   <body>
-    <h1>🎬 Media Stack</h1>
-    <p class="subtitle" id="domain"></p>
+    <h1>NIXFLIX</h1>
+    <p class="subtitle" id="domain">Media & Automation Dashboard</p>
 
-    <div class="section-title">Media & Requests</div>
-    <div class="grid">
-      <a href="/jellyfin" class="card">
-        <img
-          src="https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/icon-transparent.svg"
-          class="icon"
-          alt="Jellyfin"
-        />
-        <div class="name">Jellyfin</div>
-        <div class="desc">Media Server</div>
-      </a>
-      <a href="/jellyseerr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Fallenbagel/jellyseerr/main/public/logo_full.svg"
-          class="icon"
-          alt="Jellyseerr"
-        />
-        <div class="name">Jellyseerr</div>
-        <div class="desc">Request Manager</div>
-      </a>
+    <div class="container">
+      <!-- Media Section -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Media & Requests</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="grid">
+          <a href="/jellyfin" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/jellyfin/white"
+                class="icon"
+                alt="Jellyfin"
+              />
+            </div>
+            <div class="name">Jellyfin</div>
+            <div class="desc">Streaming</div>
+          </a>
+          <a href="/jellyseerr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/jellyseerr/white"
+                class="icon"
+                alt="Jellyseerr"
+              />
+            </div>
+            <div class="name">Jellyseerr</div>
+            <div class="desc">Requests</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Management Section -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Library Management</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="grid">
+          <a href="/sonarr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/sonarr/white"
+                class="icon"
+                alt="Sonarr"
+              />
+            </div>
+            <div class="name">Sonarr</div>
+            <div class="desc">TV Shows</div>
+          </a>
+          <a href="/sonarr-anime" class="card">
+            <div class="icon-wrapper">
+              <!-- Using crunchyroll as a good visual proxy for Anime Sonarr distinctness, or generic Sonarr -->
+              <img
+                src="https://cdn.simpleicons.org/crunchyroll/white"
+                class="icon"
+                alt="Anime"
+              />
+            </div>
+            <div class="name">Anime</div>
+            <div class="desc">Sonarr Instance</div>
+          </a>
+          <a href="/radarr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/radarr/white"
+                class="icon"
+                alt="Radarr"
+              />
+            </div>
+            <div class="name">Radarr</div>
+            <div class="desc">Movies</div>
+          </a>
+          <a href="/lidarr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/lidarr/white"
+                class="icon"
+                alt="Lidarr"
+              />
+            </div>
+            <div class="name">Lidarr</div>
+            <div class="desc">Music</div>
+          </a>
+          <a href="/bazarr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/bazarr/white"
+                class="icon"
+                alt="Bazarr"
+              />
+            </div>
+            <div class="name">Bazarr</div>
+            <div class="desc">Subtitles</div>
+          </a>
+          <a href="/prowlarr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/prowlarr/white"
+                class="icon"
+                alt="Prowlarr"
+              />
+            </div>
+            <div class="name">Prowlarr</div>
+            <div class="desc">Indexers</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Downloads Section -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Insdustry & Downloads</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="grid">
+          <a href="/qbit/" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/qbittorrent/white"
+                class="icon"
+                alt="qBittorrent"
+              />
+            </div>
+            <div class="name">qBittorrent</div>
+            <div class="desc">Client</div>
+          </a>
+          <a href="/sabnzbd/" class="card">
+            <div class="icon-wrapper">
+              <!-- SABnzbd icon via simpleicons -->
+              <img
+                src="https://cdn.simpleicons.org/sabnzbd/white"
+                class="icon"
+                alt="SABnzbd"
+              />
+            </div>
+            <div class="name">SABnzbd</div>
+            <div class="desc">Usenet</div>
+          </a>
+          <a href="/autobrr" class="card">
+            <div class="icon-wrapper">
+              <img
+                src="https://cdn.simpleicons.org/autobrr/white"
+                class="icon"
+                alt="Autobrr"
+              />
+            </div>
+            <div class="name">Autobrr</div>
+            <div class="desc">Automation</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Advanced Section -->
+      <div>
+        <div class="section-header">
+          <div class="section-title">Advanced Control</div>
+          <div class="section-line"></div>
+        </div>
+        <div class="grid">
+          <a href="/vertex" class="card">
+            <div class="icon-wrapper">
+              <!-- Vercel icon is a nice geometric triangle for 'Vertex' -->
+              <img
+                src="https://cdn.simpleicons.org/vercel/white"
+                class="icon"
+                alt="Vertex"
+              />
+            </div>
+            <div class="name">Vertex</div>
+            <div class="desc">PT Control</div>
+          </a>
+          <a href="/iyuu" class="card">
+            <div class="icon-wrapper">
+              <!-- Terraform represents infrastructure/syncing well -->
+              <img
+                src="https://cdn.simpleicons.org/terraform/white"
+                class="icon"
+                alt="IYUU"
+              />
+            </div>
+            <div class="name">IYUU</div>
+            <div class="desc">Reseeding</div>
+          </a>
+          <a href="/qbit_manage" class="card">
+            <div class="icon-wrapper">
+              <!-- Robot icon for management bot -->
+              <img
+                src="https://cdn.simpleicons.org/probot/white"
+                class="icon"
+                alt="Manager"
+              />
+            </div>
+            <div class="name">Manage</div>
+            <div class="desc">qBit Cleaner</div>
+          </a>
+        </div>
+      </div>
     </div>
 
-    <div class="section-title">Media Management</div>
-    <div class="grid">
-      <a href="/sonarr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/Sonarr.svg"
-          class="icon"
-          alt="Sonarr"
-        />
-        <div class="name">Sonarr</div>
-        <div class="desc">TV Series</div>
-      </a>
-      <a href="/sonarr-anime" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Sonarr/Sonarr/develop/Logo/Sonarr.svg"
-          class="icon"
-          alt="Sonarr Anime"
-        />
-        <div class="name">Sonarr Anime</div>
-        <div class="desc">Anime Series</div>
-      </a>
-      <a href="/radarr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Radarr/Radarr/develop/Logo/Radarr.svg"
-          class="icon"
-          alt="Radarr"
-        />
-        <div class="name">Radarr</div>
-        <div class="desc">Movies</div>
-      </a>
-      <a href="/lidarr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Lidarr/Lidarr/develop/Logo/Lidarr.svg"
-          class="icon"
-          alt="Lidarr"
-        />
-        <div class="name">Lidarr</div>
-        <div class="desc">Music</div>
-      </a>
-      <a href="/bazarr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/morpheus65535/bazarr/master/bazarr/frontend/public/images/logo.png"
-          class="icon"
-          alt="Bazarr"
-        />
-        <div class="name">Bazarr</div>
-        <div class="desc">Subtitles</div>
-      </a>
-      <a href="/prowlarr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/Prowlarr/Prowlarr/develop/Logo/Prowlarr.svg"
-          class="icon"
-          alt="Prowlarr"
-        />
-        <div class="name">Prowlarr</div>
-        <div class="desc">Indexers</div>
-      </a>
-    </div>
-
-    <div class="section-title">Downloads</div>
-    <div class="grid">
-      <a href="/qbit/" class="card">
-        <img
-          src="https://raw.githubusercontent.com/qbittorrent/qBittorrent/master/src/icons/skin/qbittorrent-tray.svg"
-          class="icon"
-          alt="qBittorrent"
-        />
-        <div class="name">qBittorrent</div>
-        <div class="desc">Torrents</div>
-      </a>
-      <a href="/sabnzbd/" class="card">
-        <img
-          src="https://sabnzbd.org/images/icons/apple-touch-icon.png"
-          class="icon"
-          alt="SABnzbd"
-        />
-        <div class="name">SABnzbd</div>
-        <div class="desc">Usenet</div>
-      </a>
-    </div>
-
-    <div class="section-title">PT Racing & Seeding</div>
-    <div class="grid">
-      <a href="/autobrr" class="card">
-        <img
-          src="https://raw.githubusercontent.com/autobrr/autobrr/main/web/public/logo.svg"
-          class="icon"
-          alt="Autobrr"
-        />
-        <div class="name">Autobrr</div>
-        <div class="desc">PT 抢种/自动推送</div>
-      </a>
-      <a href="/vertex" class="card">
-        <img
-          src="https://raw.githubusercontent.com/vertex-project/vertex-icons/main/icons/vertex.svg"
-          class="icon"
-          alt="Vertex"
-          onerror="this.src='https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/vertex.png'"
-        />
-        <div class="name">Vertex</div>
-        <div class="desc">PT 站点主控</div>
-      </a>
-      <a href="/iyuu" class="card">
-        <img
-          src="https://raw.githubusercontent.com/ledccn/IYUUPlus/master/logo.png"
-          class="icon"
-          alt="IYUU"
-        />
-        <div class="name">IYUUPlus</div>
-        <div class="desc">PT 辅种/同步</div>
-      </a>
-      <a href="/qbit_manage" class="card">
-        <img
-          src="https://raw.githubusercontent.com/StuffAnThings/qbit_manage/master/docs/img/qbit_manage.png"
-          class="icon"
-          alt="qbit_manage"
-        />
-        <div class="name">qbit_manage</div>
-        <div class="desc">智能做种/清理</div>
-      </a>
-    </div>
-
-    <footer>Powered by Nixflix on NixOS</footer>
+    <footer><span id="host-display">NIXOS</span> SYSTEM :: ONLINE</footer>
     <script>
-      document.getElementById("domain").textContent = location.host;
+      document.getElementById("host-display").textContent =
+        location.hostname.toUpperCase();
     </script>
   </body>
 </html>

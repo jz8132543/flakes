@@ -30,18 +30,7 @@ let
       # Cookie handling - CRITICAL for login to work
       proxy_cookie_path / /${path}/;
       proxy_cookie_flags ~ nosecure samesite=lax;
-
-      # Pass correct headers for auth
-      proxy_set_header Host $host;
-      proxy_set_header X-Real-IP $remote_addr;
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header X-Forwarded-Proto $scheme;
-      proxy_set_header X-Forwarded-Host $host;
       proxy_set_header X-Forwarded-Prefix /${path};
-      proxy_set_header Cookie $http_cookie;
-      proxy_set_header Origin "";
-      proxy_set_header Referer "";
-
       # Rewrite redirects
       proxy_redirect default;
       ${
@@ -278,8 +267,9 @@ in
           # PT Indexers
           indexers = [
             {
+              id = 0;
               name = "M-Team - TP";
-              enable = true;
+              enable = false;
               freeleechOnly = true;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {
@@ -287,6 +277,7 @@ in
               };
             }
             {
+              id = 1;
               name = "PTTime";
               enable = true;
               baseUrl = "https://www.pttime.org/";
@@ -482,7 +473,7 @@ in
         settings = {
           host = "127.0.0.1";
           port = config.ports.autobrr;
-          base_url = "/autobrr/";
+          baseUrl = "/autobrr/";
         };
       };
 
@@ -500,11 +491,18 @@ in
           serverAliases = [ config.networking.fqdn ];
           extraConfig = ''
             absolute_redirect off;
-            proxy_set_header X-Forwarded-Host $host;
+
+            # Pass correct headers for auth
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Forwarded-Host $host;
             proxy_set_header Cookie $http_cookie;
             proxy_set_header Origin "";
             proxy_set_header Referer "";
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $http_connection;
           '';
           locations = {
             "/" = {
@@ -522,8 +520,11 @@ in
               };
             };
             "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
+              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
               proxyWebsockets = true;
+              extraConfig = ''
+                # rewrite ^/autobrr/(.*) /$1 break;
+              '';
             };
             "/autobrr" = {
               return = "301 /autobrr/";
@@ -789,8 +790,12 @@ in
               ${pkgs.python3.withPackages (ps: [ ps.requests ])}/bin/python3 ${navHtmlDir}/setup.py \
                 --bazarr-url "http://127.0.0.1:${toString config.ports.bazarr}/bazarr/api" \
                 --autobrr-url "http://127.0.0.1:${toString config.ports.autobrr}/autobrr" \
+                --prowlarr-url "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr" \
+                --sonarr-url "http://127.0.0.1:${toString config.ports.sonarr}/sonarr" \
+                --radarr-url "http://127.0.0.1:${toString config.ports.radarr}/radarr" \
                 --sonarr-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --radarr-key-file "${config.sops.secrets."media/radarr_api_key".path}" \
+                --prowlarr-key-file "${config.sops.secrets."media/prowlarr_api_key".path}" \
                 --autobrr-key-file "${config.sops.secrets."media/autobrr_session_token".path}" \
                 --password-file "${config.sops.secrets."password".path}" \
                 --qbit-port "${toString config.ports.qbittorrent}" \
