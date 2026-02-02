@@ -277,15 +277,28 @@ in
               };
             }
             {
-              id = 1;
+              # id = 1;
               name = "PTTime";
               enable = true;
               baseUrl = "https://www.pttime.org/";
-              freeleechOnly = true;
+              # freeleechOnly = true;
               # searchFreeleechOnly = true;
               username = {
                 _secret = config.sops.secrets."media/pttime_username".path;
               };
+              password = {
+                _secret = config.sops.secrets."password".path;
+              };
+            }
+          ];
+          downloadClients = [
+            {
+              name = "qBittorrent";
+              implementationName = "qBittorrent";
+              apiKey = "";
+              host = "127.0.0.1";
+              port = config.ports.qbittorrent;
+              username = "i";
               password = {
                 _secret = config.sops.secrets."password".path;
               };
@@ -474,6 +487,7 @@ in
           host = "127.0.0.1";
           port = config.ports.autobrr;
           baseUrl = "/autobrr/";
+          metricsBasicAuthUsers = "i:$2y$05$yaH6RqWhDQGPvLI7vyVdY.EsH8LBrNaAS30HJwXiCHziIFf7csVbi";
         };
       };
 
@@ -541,7 +555,7 @@ in
             };
 
             "/vertex/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
+              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}";
               proxyWebsockets = true;
               extraConfig =
                 subpathProxyConfig {
@@ -788,7 +802,7 @@ in
               # Run unified setup script
               # Run unified setup script
               ${pkgs.python3.withPackages (ps: [ ps.requests ])}/bin/python3 ${navHtmlDir}/setup.py \
-                --bazarr-url "http://127.0.0.1:${toString config.ports.bazarr}/bazarr/api" \
+                --bazarr-url "http://127.0.0.1:${toString config.ports.bazarr}/api" \
                 --autobrr-url "http://127.0.0.1:${toString config.ports.autobrr}/autobrr" \
                 --prowlarr-url "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr" \
                 --sonarr-url "http://127.0.0.1:${toString config.ports.sonarr}/sonarr" \
@@ -826,7 +840,7 @@ in
             script = ''
                                      CONFIG_FILE="/var/lib/qBittorrent/qBittorrent/config/qBittorrent.conf"
                                      PASSWORD_FILE="${config.sops.secrets."password".path}"
-                                     export PASSWORD=$(cat "$PASSWORD_FILE")
+                                     export PASSWORD=$(cat "$PASSWORD_FILE" | tr -d '\n')
                                      HASH=$(python3 << 'PYTHON_EOF'
               import hashlib
               import base64
@@ -856,34 +870,6 @@ in
                                      sed -i '/WebUI\\Password_PBKDF2/d' "$CONFIG_FILE"
                                      sed -i "/\[Preferences\]/a WebUI\\Password_PBKDF2=$HASH" "$CONFIG_FILE"
                                      echo "qBittorrent password configured"
-            '';
-          };
-
-          autobrr-config = {
-            description = "Automated configuration for Autobrr";
-            after = [ "autobrr.service" ];
-            wants = [ "autobrr.service" ];
-            wantedBy = [ "multi-user.target" ];
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              Restart = "on-failure";
-              RestartSec = "30s";
-            };
-            path = [
-              pkgs.curl
-              pkgs.autobrr
-            ];
-            script = ''
-              # Wait for Autobrr to be ready
-              until curl -s http://127.0.0.1:${toString config.ports.autobrr}/api/health > /dev/null; do
-                echo "Waiting for Autobrr..."
-                sleep 5
-              done
-
-              # Add user 'i'
-              PASSWORD=$(cat ${config.sops.secrets.password.path})
-              autobrr --config /var/lib/autobrr user add --username i --password "$PASSWORD" || true
             '';
           };
 

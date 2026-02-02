@@ -32,26 +32,37 @@ def add_download_client(name, app_url, app_key, client_name, host, port, usernam
             return
 
         # Add new
+        fields = [
+            {'name': 'host', 'value': host},
+            {'name': 'port', 'value': int(port)},
+            {'name': 'useSsl', 'value': False},
+            {'name': 'username', 'value': username},
+            {'name': 'password', 'value': password},
+        ]
+        
+        # App-specific Category fields
+        if name == 'Sonarr':
+            fields.append({'name': 'tvCategory', 'value': 'sonarr'})
+        elif name == 'Radarr':
+            fields.append({'name': 'movieCategory', 'value': 'radarr'})
+        elif name == 'Prowlarr':
+            fields.append({'name': 'category', 'value': 'prowlarr'})
+        
         payload = {
             'enable': True,
-            'protocol': 'torrent',
+            'protocol': 1, # 1 for Torrent
             'priority': 1,
             'name': client_name,
             'implementation': 'QBittorrent',
-            'fields': [
-                {'name': 'host', 'value': host},
-                {'name': 'port', 'value': int(port)},
-                {'name': 'useSsl', 'value': False},
-                {'name': 'username', 'value': username},
-                {'name': 'password', 'value': password},
-                {'name': 'tvCategory', 'value': 'sonarr'}, # For Sonarr
-                {'name': 'movieCategory', 'value': 'radarr'}, # For Radarr
-                # Prowlarr specific fields? Prowlarr doesn't use categories for itself usually, but safe to include or ignored
-            ]
+            'implementationName': 'qBittorrent',
+            'configContract': 'QBittorrentSettings',
+            'fields': fields,
+            'categories': [] if name == 'Prowlarr' else None,
+            'supportsCategories': True if name == 'Prowlarr' else False
         }
         
-        # Adjust fields structure if needed (Sonarr v3 uses 'fields' list for settings)
-        # Some versions flatten this. But generic Arr usually uses this structure for "implementation" settings.
+        # Filter out None from payload
+        payload = {k: v for k, v in payload.items() if v is not None}
         
         resp = requests.post(endpoint, headers=headers, json=payload)
         if resp.status_code in [200, 201]:
@@ -234,8 +245,8 @@ def main():
         add_download_client("Radarr", args.radarr_url, radarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
         
     # Setup Prowlarr
-    if args.prowlarr_url and prowlarr_key:
-        if qbit_pass:
+    if args.prowlarr_url:
+        if qbit_pass and prowlarr_key:
             add_download_client("Prowlarr", args.prowlarr_url, prowlarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v1')
         
         setup_prowlarr_apps(args.prowlarr_url, prowlarr_key, args.sonarr_url, sonarr_key, args.radarr_url, radarr_key)
