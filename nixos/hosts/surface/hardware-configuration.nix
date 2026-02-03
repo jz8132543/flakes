@@ -2,6 +2,7 @@
   config,
   lib,
   inputs,
+  pkgs,
   ...
 }:
 {
@@ -9,6 +10,7 @@
     inputs.grub2-themes.nixosModules.default
   ];
   boot = {
+    kernelPackages = lib.mkForce pkgs.linuxPackages;
     initrd = {
       availableKernelModules = [
         "xhci_pci"
