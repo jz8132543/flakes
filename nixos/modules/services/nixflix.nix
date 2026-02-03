@@ -151,6 +151,7 @@ in
 
       sonarr = {
         enable = true;
+        group = "media";
         config = {
           apiKey = {
             _secret = config.sops.secrets."media/sonarr_api_key".path;
@@ -190,6 +191,7 @@ in
 
       radarr = {
         enable = true;
+        group = "media";
         config = {
           apiKey = {
             _secret = config.sops.secrets."media/radarr_api_key".path;
@@ -229,6 +231,7 @@ in
 
       prowlarr = {
         enable = true;
+        group = "media";
         config = {
           apiKey = {
             _secret = config.sops.secrets."media/prowlarr_api_key".path;
@@ -309,6 +312,7 @@ in
 
       lidarr = {
         enable = true;
+        group = "media";
         config = {
           apiKey = {
             _secret = config.sops.secrets."media/lidarr_api_key".path;
@@ -348,6 +352,7 @@ in
 
       sabnzbd = {
         enable = true;
+        group = "media";
         settings = {
           misc = {
             port = config.ports.sabnzbd;
@@ -369,6 +374,7 @@ in
 
       recyclarr = {
         enable = true;
+        group = "media";
         cleanupUnmanagedProfiles = true;
       };
 
@@ -394,6 +400,7 @@ in
 
       sonarr-anime = {
         enable = true;
+        group = "media";
         config = {
           hostConfig = {
             username = "i";
@@ -476,6 +483,9 @@ in
             "Session\\TrackerExchangeEnabled" = true;
             "Session\\Encryption" = 1;
             "Session\\AnonymousMode" = true;
+            "Session\\DHTEnabled" = false;
+            "Session\\PeXEnabled" = false;
+            "Session\\LSDEnabled" = false;
           };
         };
       };
@@ -650,7 +660,7 @@ in
         "d /data/.state/autobrr 0755 autobrr media -"
         "d /data/.state/moviepilot 0755 root media -"
         "d /data/.state/moviepilot/core 0755 root media -"
-        "d /data/.state/vertex 0755 root media -"
+        "d /data/.state/vertex 0777 root media -"
         "d /data/.state/iyuu 0755 root media -"
         "d /srv/moviepilot-plugins 0755 root media -"
         "d /var/lib/bazarr 0755 bazarr media -"
@@ -791,8 +801,8 @@ in
                              vertex:${toString config.ports.vertex}/vertex \
                              qbittorrent:${toString config.ports.qbittorrent}/ \
                              sonarr-anime:8990/sonarr-anime; do
-                host=''${service%%:*}
-                path_port=''${service#*:}
+                host="''${service%%:*}"
+                path_port="''${service#*:}"
                 until curl -s "http://127.0.0.1:$path_port" > /dev/null; do
                   echo "Waiting for $host on $path_port..."
                   sleep 5
@@ -815,67 +825,34 @@ in
                 --qbit-port "${toString config.ports.qbittorrent}" \
                 --sonarr-port "${toString config.ports.sonarr}" \
                 --radarr-port "${toString config.ports.radarr}" \
+                --sonarr-anime-url "http://127.0.0.1:8990/sonarr-anime" \
+                --sonarr-anime-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
                 --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}"
             '';
           };
 
           qbittorrent-password = {
-            description = "Set qBittorrent WebUI password";
-            before = [ "qbittorrent.service" ];
-            requiredBy = [ "qbittorrent.service" ];
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ProtectSystem = "no";
-              ProtectHome = "no";
-              ReadWritePaths = [ "/var/lib/qBittorrent" ];
-              User = "root";
-            };
-            path = [
-              pkgs.python3
-              pkgs.coreutils
-              pkgs.gnused
-            ];
             script = ''
-                                     CONFIG_FILE="/var/lib/qBittorrent/qBittorrent/config/qBittorrent.conf"
-                                     PASSWORD_FILE="${config.sops.secrets."password".path}"
-                                     export PASSWORD=$(cat "$PASSWORD_FILE" | tr -d '\n')
-                                     HASH=$(python3 << 'PYTHON_EOF'
-              import hashlib
-              import base64
-              import secrets
-              import os
-              password = os.environ.get('PASSWORD', 'changeme')
-              salt = secrets.token_bytes(16)
-              iterations = 100000
-              dk = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, iterations, dklen=64)
-              result = base64.b64encode(salt + dk).decode()
-              print(f'@ByteArray({result})')
-              PYTHON_EOF
-                                     )
-                                     mkdir -p "$(dirname "$CONFIG_FILE")"
-
-                                     # If config is a symlink (from Nix store), replace with actual file
-                                     if [ -L "$CONFIG_FILE" ]; then
-                                       cp --remove-destination "$(readlink -f "$CONFIG_FILE")" "$CONFIG_FILE"
-                                       chmod 600 "$CONFIG_FILE"
-                                     elif [ ! -f "$CONFIG_FILE" ]; then
-                                       touch "$CONFIG_FILE"
-                                       chmod 600 "$CONFIG_FILE"
-                                     fi
-
-                                     chown -R qbittorrent:media /var/lib/qBittorrent
-                                     grep -q "\[Preferences\]" "$CONFIG_FILE" || echo "[Preferences]" >> "$CONFIG_FILE"
-                                     sed -i '/WebUI\\Password_PBKDF2/d' "$CONFIG_FILE"
-                                     sed -i "/\[Preferences\]/a WebUI\\Password_PBKDF2=$HASH" "$CONFIG_FILE"
-                                     echo "qBittorrent password configured"
+              sed -i "/\[Preferences\]/a WebUI\\Password_PBKDF2=$HASH" "$CONFIG_FILE"
+              echo "qBittorrent password configured"
             '';
           };
 
           jellyfin.serviceConfig = {
             PrivateUsers = lib.mkForce false;
+            UMask = "0002";
           };
+          sonarr.serviceConfig.UMask = "0002";
+          radarr.serviceConfig.UMask = "0002";
+          prowlarr.serviceConfig.UMask = "0002";
+          lidarr.serviceConfig.UMask = "0002";
+          sabnzbd.serviceConfig.UMask = "0002";
+          jellyseerr.serviceConfig.UMask = "0002";
+          sonarr-anime.serviceConfig.UMask = "0002";
+          bazarr.serviceConfig.UMask = "0002";
+          qbittorrent.serviceConfig.UMask = "0002"; # Already has group but ensure umask
+          autobrr.serviceConfig.UMask = "0002";
         };
     };
 

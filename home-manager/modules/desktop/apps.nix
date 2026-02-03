@@ -143,6 +143,7 @@
       ".config/Antigravity"
       ".antigravity"
       ".gemini"
+      ".antigravity-server"
     ];
     files = [
       ".config/monitors.xml"

@@ -73,7 +73,7 @@ def add_download_client(name, app_url, app_key, client_name, host, port, usernam
     except Exception as e:
         print(f"Error setting up client for {name}: {e}")
 
-def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, radarr_url, radarr_key):
+def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, radarr_url, radarr_key, sonarr_anime_url=None, sonarr_anime_key=None):
     print("Setting up Prowlarr Applications...")
     headers = {'X-Api-Key': prowlarr_key}
     endpoint = f"{prowlarr_url}/api/v1/applications"
@@ -93,18 +93,33 @@ def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, rada
                 'name': 'Sonarr',
                 'syncLevel': 'fullSync',
                 'implementation': 'Sonarr',
+                'configContract': 'SonarrSettings',
                 'fields': [
                     {'name': 'prowlarrUrl', 'value': 'http://127.0.0.1:9696'}, # Prowlarr internal URL
                     {'name': 'baseUrl', 'value': sonarr_url},
                     {'name': 'apiKey', 'value': sonarr_key},
-                    {'name': 'syncCategories', 'value': [5000, 5010, 5030, 5040, 5070]} # Standard TV cats
+                    {'name': 'syncCategories', 'value': [5000, 5010, 5030, 5040]}
                 ]
             }
             r = requests.post(endpoint, headers=headers, json=payload)
-            if r.status_code in [200, 201]:
-                print("Added Sonarr to Prowlarr")
-            else:
-                 print(f"Failed to add Sonarr: {r.text}")
+            print(f"Add Sonarr: {r.status_code}")
+
+        # Add Sonarr Anime
+        if 'Sonarr Anime' not in existing_names and sonarr_anime_url and sonarr_anime_key:
+            payload = {
+                'name': 'Sonarr Anime',
+                'syncLevel': 'fullSync',
+                'implementation': 'Sonarr',
+                'configContract': 'SonarrSettings',
+                'fields': [
+                    {'name': 'prowlarrUrl', 'value': 'http://127.0.0.1:9696'},
+                    {'name': 'baseUrl', 'value': sonarr_anime_url},
+                    {'name': 'apiKey', 'value': sonarr_anime_key},
+                    {'name': 'syncCategories', 'value': [5070]} # Anime
+                ]
+            }
+            r = requests.post(endpoint, headers=headers, json=payload)
+            print(f"Add Sonarr Anime: {r.status_code}")
 
         # Add Radarr
         if 'Radarr' not in existing_names and radarr_url and radarr_key:
@@ -112,6 +127,7 @@ def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, rada
                 'name': 'Radarr',
                 'syncLevel': 'fullSync',
                 'implementation': 'Radarr',
+                'configContract': 'RadarrSettings',
                 'fields': [
                     {'name': 'prowlarrUrl', 'value': 'http://127.0.0.1:9696'},
                     {'name': 'baseUrl', 'value': radarr_url},
@@ -120,10 +136,7 @@ def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, rada
                 ]
             }
             r = requests.post(endpoint, headers=headers, json=payload)
-            if r.status_code in [200, 201]:
-                print("Added Radarr to Prowlarr")
-            else:
-                 print(f"Failed to add Radarr: {r.text}")
+            print(f"Add Radarr: {r.status_code}")
 
     except Exception as e:
         print(f"Error setting up Prowlarr apps: {e}")
@@ -219,6 +232,8 @@ def main():
     parser.add_argument("--prowlarr-key-file")
     parser.add_argument("--autobrr-key-file")
     parser.add_argument("--password-file")
+    parser.add_argument("--sonarr-anime-url")
+    parser.add_argument("--sonarr-anime-key-file")
     
     parser.add_argument("--qbit-port")
     parser.add_argument("--sonarr-port")
@@ -244,12 +259,19 @@ def main():
     if args.radarr_url and radarr_key and qbit_pass:
         add_download_client("Radarr", args.radarr_url, radarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
         
+    # Setup Sonarr Anime
+    if args.sonarr_anime_url and args.sonarr_anime_key_file:
+        sa_key = get_secret(args.sonarr_anime_key_file)
+        if sa_key and qbit_pass:
+            add_download_client("Sonarr Anime", args.sonarr_anime_url, sa_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
+
     # Setup Prowlarr
     if args.prowlarr_url:
         if qbit_pass and prowlarr_key:
             add_download_client("Prowlarr", args.prowlarr_url, prowlarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v1')
         
-        setup_prowlarr_apps(args.prowlarr_url, prowlarr_key, args.sonarr_url, sonarr_key, args.radarr_url, radarr_key)
+        sa_key = get_secret(args.sonarr_anime_key_file) # Re-read for clarity or pass if available
+        setup_prowlarr_apps(args.prowlarr_url, prowlarr_key, args.sonarr_url, sonarr_key, args.radarr_url, radarr_key, args.sonarr_anime_url, sa_key)
 
     if args.bazarr_url:
         setup_bazarr(args)
