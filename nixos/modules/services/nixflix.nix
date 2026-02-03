@@ -27,105 +27,332 @@ let
       port ? null,
     }:
     ''
-      # Cookie handling - CRITICAL for login to work
+      # ============================================================
+      # ULTIMATE SUBPATH PROXY CONFIG - Maximum Compatibility Mode
+      # ============================================================
+
+      # --- CRITICAL: Disable compression to allow sub_filter to work ---
+      proxy_set_header Accept-Encoding "";
+
+      # --- Cookie handling - CRITICAL for login/sessions ---
       proxy_cookie_path / /${path}/;
+      proxy_cookie_path ~^/(.+)$ /${path}/$1;
       proxy_cookie_flags ~ nosecure samesite=lax;
+      # proxy_cookie_domain ~\.?(.+)$ $host;
+
+      # --- Essential headers for subpath awareness ---
       proxy_set_header X-Forwarded-Prefix /${path};
-      # Rewrite redirects
+      proxy_set_header X-Base-URL /${path};
+      proxy_set_header X-Script-Name /${path};
+      proxy_set_header X-Ingress-Path /${path};
+
+      # --- Redirect rewriting ---
       proxy_redirect default;
+      proxy_redirect ~^/(.*)$ /${path}/$1;
       ${
         if port != null then
           ''
             proxy_redirect http://127.0.0.1:${toString port}/ /${path}/;
+            proxy_redirect http://localhost:${toString port}/ /${path}/;
+            proxy_redirect http://127.0.0.1:${toString port} /${path};
             proxy_redirect / /${path}/;
           ''
         else
-          "proxy_redirect off;"
+          ''
+            proxy_redirect off;
+          ''
       }
 
-      # Content rewriting for subpath support
+
+      # --- WebSocket support (removed redundant headers to avoid duplicate directive errors) ---
+      proxy_http_version 1.1;
+      proxy_read_timeout 86400s;
+      proxy_send_timeout 86400s;
+
+      # --- Buffering settings for sub_filter ---
+      proxy_buffering on;
+      proxy_buffer_size 128k;
+      proxy_buffers 4 256k;
+      proxy_busy_buffers_size 256k;
+
+      # ============================================================
+      # CONTENT REWRITING - User requested broad but safe rules
+      # ============================================================
       sub_filter_once off;
-      sub_filter_types text/html text/css text/javascript application/javascript application/json application/xml image/svg+xml;
+      # text/html is default, adding others as requested
+      sub_filter_types
+        text/css
+        text/javascript
+        application/javascript
+        application/x-javascript
+        application/json
+        application/xml
+        image/svg+xml;
 
-      # Rewrite common paths and patterns
-      sub_filter '\"/assets' '\"/${path}/assets';
-      sub_filter '\'/assets' '\'/${path}/assets';
-      sub_filter '\"/js' '\"/${path}/js';
-      sub_filter '\'/js' '\'/${path}/js';
-      sub_filter '\"/css' '\"/${path}/css';
-      sub_filter '\'/css' '\'/${path}/css';
-      sub_filter '\"/img' '\"/${path}/img';
-      sub_filter '\'/img' '\'/${path}/img';
-      sub_filter '\"/fonts' '\"/${path}/fonts';
-      sub_filter '\'/fonts' '\'/${path}/fonts';
-      sub_filter '\"/api' '\"/${path}/api';
-      sub_filter '\'/api' '\'/${path}/api';
-      sub_filter '\"/app' '\"/${path}/app';
-      sub_filter '\'/app' '\'/${path}/app';
-      sub_filter '\"/login' '\"/${path}/login';
-      sub_filter '\'/login' '\'/${path}/login';
-      sub_filter '\"/user' '\"/${path}/user';
-      sub_filter '\'/user' '\'/${path}/user';
-      sub_filter '\"/static' '\"/${path}/static';
-      sub_filter '\'/static' '\'/${path}/static';
-      sub_filter '\"/manifest.json' '\"/${path}/manifest.json';
-      sub_filter '\"/favicon.ico' '\"/${path}/favicon.ico';
+      # --- Surgical Contextual Rewriting (HTML/CSS/JS safe) ---
+      sub_filter ' href="/' ' href="/${path}/';
+      sub_filter ' src="/' ' src="/${path}/';
+      sub_filter ' action="/' ' action="/${path}/';
+      sub_filter ' url("/' ' url("/${path}/';
+      sub_filter " url('/" " url('/${path}/";
+      sub_filter ' fetch("/' ' fetch("/${path}/';
+      sub_filter ' axios.get("/' ' axios.get("/${path}/';
+      sub_filter ' serviceWorker.register("/' ' serviceWorker.register("/${path}/';
+      sub_filter ' registerServiceWorker("/' ' registerServiceWorker("/${path}/';
+      sub_filter ' window.location="/' ' window.location="/${path}/';
+      sub_filter ' location.href="/' ' location.href="/${path}/';
 
-      # CSS url() patterns
-      sub_filter 'url(/assets' 'url(/${path}/assets';
-      sub_filter 'url(\"/assets' 'url(\"/${path}/assets';
-      sub_filter 'url(\'/assets' 'url(\'/${path}/assets';
-      sub_filter 'url(/Content' 'url(/${path}/Content';
-      sub_filter 'url(\"/Content' 'url(\"/${path}/Content';
-      sub_filter 'url(\'/Content' 'url(\'/${path}/Content';
-      sub_filter 'url(/dist' 'url(/${path}/dist';
-      sub_filter 'url(/web' 'url(/${path}/web';
-      sub_filter 'url(/views' 'url(/${path}/views';
+      # --- JSON/JS string paths (targeting common patterns) ---
+      sub_filter '": "/' '": "/${path}/';
+      sub_filter "': '/" "': '/${path}/";
+      sub_filter 'path: "/' 'path: "/${path}/';
+      sub_filter "path: '/" "path: '/${path}/";
 
-      # HTML specific
-      sub_filter 'src=\"/assets' 'src=\"/${path}/assets';
-      sub_filter 'href=\"/assets' 'href=\"/${path}/assets';
-      sub_filter 'src=\"/js' 'src=\"/${path}/js';
-      sub_filter 'href=\"/css' 'href=\"/${path}/css';
+      # --- Absolute root paths with single quotes ---
+      # sub_filter "='/" "='/${path}/";
+      # sub_filter "= '/" "= '/${path}/";
 
-      # Additional common patterns found in JS
-      sub_filter '\"/Content' '\"/${path}/Content';
-      sub_filter '\'/Content' '\'/${path}/Content';
-      sub_filter '\"/dist' '\"/${path}/dist';
-      sub_filter '\'/dist' '\'/${path}/dist';
-      sub_filter '\"/web' '\"/${path}/web';
-      sub_filter '\'/web' '\'/${path}/web';
-      sub_filter '\"/views' '\"/${path}/views';
-      sub_filter '\'/views' '\'/${path}/views';
-      sub_filter '\"/signalr' '\"/${path}/signalr';
-      sub_filter '\'/signalr' '\'/${path}/signalr';
-      sub_filter '"/views' '"/${path}/views';
-      sub_filter "'/views" "'/${path}/views";
+      # --- JSON/JS string paths ---
+      sub_filter '": /' '": /${path}/';
+      sub_filter '": "/' '": "/${path}/';
+      sub_filter "': /" "': /${path}/";
+      sub_filter "': '/" "': '/${path}/";
+
+      # --- Common HTML attributes with absolute paths ---
+      sub_filter ' href="/' ' href="/${path}/';
+      sub_filter " href='/" " href='/${path}/";
+      sub_filter ' src="/' ' src="/${path}/';
+      sub_filter " src='/" " src='/${path}/";
+      sub_filter ' action="/' ' action="/${path}/';
+      sub_filter " action='/" " action='/${path}/";
+      sub_filter ' data-url="/' ' data-url="/${path}/';
+      sub_filter " data-url='/" " data-url='/${path}/";
+      sub_filter ' data-src="/' ' data-src="/${path}/';
+      sub_filter " data-src='/" " data-src='/${path}/";
+      sub_filter ' data-href="/' ' data-href="/${path}/';
+      sub_filter " data-href='/" " data-href='/${path}/";
+      sub_filter ' poster="/' ' poster="/${path}/';
+      sub_filter " poster='/" " poster='/${path}/";
+      sub_filter ' content="/' ' content="/${path}/';
+      sub_filter " content='/" " content='/${path}/";
+
+      # --- CSS url() patterns ---
+      sub_filter 'url(/' 'url(/${path}/';
+      sub_filter 'url("/' 'url("/${path}/';
+      sub_filter "url('/" "url('/${path}/";
+      sub_filter 'url( /' 'url( /${path}/';
+      sub_filter 'url( "/' 'url( "/${path}/';
+      sub_filter "url( '/" "url( '/${path}/";
+
+      # --- @import CSS patterns ---
+      sub_filter '@import "/' '@import "/${path}/';
+      sub_filter "@import '/" "@import '/${path}/";
+      sub_filter '@import url("/' '@import url("/${path}/';
+      sub_filter "@import url('/" "@import url('/${path}/";
+
+      # --- JavaScript fetch/XHR patterns ---
+      sub_filter 'fetch("/' 'fetch("/${path}/';
+      sub_filter "fetch('/" "fetch('/${path}/";
+      sub_filter 'fetch(`/' 'fetch(`/${path}/';
+      sub_filter 'axios.get("/' 'axios.get("/${path}/';
+      sub_filter "axios.get('/" "axios.get('/${path}/";
+      sub_filter 'axios.post("/' 'axios.post("/${path}/';
+      sub_filter "axios.post('/" "axios.post('/${path}/";
+      sub_filter 'axios.put("/' 'axios.put("/${path}/';
+      sub_filter "axios.put('/" "axios.put('/${path}/";
+      sub_filter 'axios.delete("/' 'axios.delete("/${path}/';
+      sub_filter "axios.delete('/" "axios.delete('/${path}/";
+      sub_filter '$.get("/' '$.get("/${path}/';
+      sub_filter "$.get('/" "$.get('/${path}/";
+      sub_filter '$.post("/' '$.post("/${path}/';
+      sub_filter "$.post('/" "$.post('/${path}/";
+      sub_filter '$.ajax({url:"/' '$.ajax({url:"/${path}/';
+      sub_filter "$.ajax({url:'/" "$.ajax({url:'/${path}/";
+      sub_filter 'XMLHttpRequest.open("GET","/' 'XMLHttpRequest.open("GET","/${path}/';
+      sub_filter 'XMLHttpRequest.open("POST","/' 'XMLHttpRequest.open("POST","/${path}/';
+
+      # --- Vue/React/Angular router patterns ---
+      sub_filter 'to="/' 'to="/${path}/';
+      sub_filter "to='/" "to='/${path}/";
+      sub_filter ':to="/' ':to="/${path}/';
+      sub_filter ":to='/" ":to='/${path}/";
+      sub_filter 'router.push("/' 'router.push("/${path}/';
+      sub_filter "router.push('/" "router.push('/${path}/";
+      sub_filter 'router.replace("/' 'router.replace("/${path}/';
+      sub_filter "router.replace('/" "router.replace('/${path}/";
+      sub_filter 'navigate("/' 'navigate("/${path}/';
+      sub_filter "navigate('/" "navigate('/${path}/";
+      sub_filter 'redirect:"/' 'redirect:"/${path}/';
+      sub_filter "redirect:'/" "redirect:'/${path}/";
+      sub_filter 'path:"/' 'path:"/${path}/';
+      sub_filter "path:'/" "path:'/${path}/";
+      sub_filter 'location.href="/' 'location.href="/${path}/';
+      sub_filter "location.href='/" "location.href='/${path}/";
+      sub_filter 'location.pathname="/' 'location.pathname="/${path}/';
+      sub_filter "location.pathname='/" "location.pathname='/${path}/";
+      sub_filter 'window.location="/' 'window.location="/${path}/';
+      sub_filter "window.location='/" "window.location='/${path}/";
+      sub_filter 'history.pushState' 'history.pushState';
+      sub_filter 'history.replaceState' 'history.replaceState';
+
+      # --- Service Worker and PWA ---
+      sub_filter 'serviceWorker.register("/' 'serviceWorker.register("/${path}/';
+      sub_filter "serviceWorker.register('/" "serviceWorker.register('/${path}/";
+      sub_filter 'navigator.serviceWorker.register("/' 'navigator.serviceWorker.register("/${path}/';
+      sub_filter "navigator.serviceWorker.register('/" "navigator.serviceWorker.register('/${path}/";
+      sub_filter 'scope:"/' 'scope:"/${path}/';
+      sub_filter "scope:'/" "scope:'/${path}/";
+      sub_filter 'scope: "/' 'scope: "/${path}/';
+      sub_filter "scope: '/" "scope: '/${path}/";
+      sub_filter '"start_url":"/' '"start_url":"/${path}/';
+      sub_filter '"scope":"/' '"scope":"/${path}/';
+      sub_filter '"start_url": "/' '"start_url": "/${path}/';
+      sub_filter '"scope": "/' '"scope": "/${path}/';
+
+      # --- WebSocket paths ---
+      sub_filter 'new WebSocket("ws://' 'new WebSocket("ws://';
+      sub_filter 'new WebSocket("wss://' 'new WebSocket("wss://';
+      sub_filter "'ws://' + location.host + \"/\"" "'ws://' + location.host + \"/${path}/\"";
+      sub_filter "'wss://' + location.host + \"/\"" "'wss://' + location.host + \"/${path}/\"";
+
+      # --- SignalR (ASP.NET real-time) ---
       sub_filter '"/signalr' '"/${path}/signalr';
       sub_filter "'/signalr" "'/${path}/signalr";
+      sub_filter '"/hubs' '"/${path}/hubs';
+      sub_filter "'/hubs" "'/${path}/hubs";
+
+      # --- Common static asset directories ---
+      sub_filter '"/assets' '"/${path}/assets';
+      sub_filter "'/assets" "'/${path}/assets";
+      sub_filter '"/static' '"/${path}/static';
+      sub_filter "'/static" "'/${path}/static";
+      sub_filter '"/js' '"/${path}/js';
+      sub_filter "'/js" "'/${path}/js";
+      sub_filter '"/css' '"/${path}/css';
+      sub_filter "'/css" "'/${path}/css";
+      sub_filter '"/img' '"/${path}/img';
+      sub_filter "'/img" "'/${path}/img";
+      sub_filter '"/images' '"/${path}/images';
+      sub_filter "'/images" "'/${path}/images";
+      sub_filter '"/fonts' '"/${path}/fonts';
+      sub_filter "'/fonts" "'/${path}/fonts";
+      sub_filter '"/media' '"/${path}/media';
+      sub_filter "'/media" "'/${path}/media";
+      sub_filter '"/dist' '"/${path}/dist';
+      sub_filter "'/dist" "'/${path}/dist";
+      sub_filter '"/build' '"/${path}/build';
+      sub_filter "'/build" "'/${path}/build";
+      sub_filter '"/public' '"/${path}/public';
+      sub_filter "'/public" "'/${path}/public";
+      sub_filter '"/vendor' '"/${path}/vendor';
+      sub_filter "'/vendor" "'/${path}/vendor";
+      sub_filter '"/lib' '"/${path}/lib';
+      sub_filter "'/lib" "'/${path}/lib";
+      sub_filter '"/node_modules' '"/${path}/node_modules';
+      sub_filter "'/node_modules" "'/${path}/node_modules";
+      sub_filter '"/Content' '"/${path}/Content';
+      sub_filter "'/Content" "'/${path}/Content";
+      sub_filter '"/Scripts' '"/${path}/Scripts';
+      sub_filter "'/Scripts" "'/${path}/Scripts";
+      sub_filter '"/bundles' '"/${path}/bundles';
+      sub_filter "'/bundles" "'/${path}/bundles";
+
+      # --- Common app routes ---
+      sub_filter '"/api' '"/${path}/api';
+      sub_filter "'/api" "'/${path}/api";
+      sub_filter '"/v1' '"/${path}/v1';
+      sub_filter "'/v1" "'/${path}/v1";
+      sub_filter '"/v2' '"/${path}/v2';
+      sub_filter "'/v2" "'/${path}/v2";
+      sub_filter '"/auth' '"/${path}/auth';
+      sub_filter "'/auth" "'/${path}/auth";
+      sub_filter '"/login' '"/${path}/login';
+      sub_filter "'/login" "'/${path}/login";
+      sub_filter '"/logout' '"/${path}/logout';
+      sub_filter "'/logout" "'/${path}/logout";
+      sub_filter '"/user' '"/${path}/user';
+      sub_filter "'/user" "'/${path}/user";
+      sub_filter '"/users' '"/${path}/users';
+      sub_filter "'/users" "'/${path}/users";
+      sub_filter '"/account' '"/${path}/account';
+      sub_filter "'/account" "'/${path}/account";
+      sub_filter '"/profile' '"/${path}/profile';
+      sub_filter "'/profile" "'/${path}/profile";
+      sub_filter '"/settings' '"/${path}/settings';
+      sub_filter "'/settings" "'/${path}/settings";
+      sub_filter '"/admin' '"/${path}/admin';
+      sub_filter "'/admin" "'/${path}/admin";
+      sub_filter '"/dashboard' '"/${path}/dashboard';
+      sub_filter "'/dashboard" "'/${path}/dashboard";
+      sub_filter '"/app' '"/${path}/app';
+      sub_filter "'/app" "'/${path}/app";
+      sub_filter '"/home' '"/${path}/home';
+      sub_filter "'/home" "'/${path}/home";
+      sub_filter '"/web' '"/${path}/web';
+      sub_filter "'/web" "'/${path}/web";
+      sub_filter '"/views' '"/${path}/views';
+      sub_filter "'/views" "'/${path}/views";
+      sub_filter '"/socket' '"/${path}/socket';
+      sub_filter "'/socket" "'/${path}/socket";
+      sub_filter '"/ws' '"/${path}/ws';
+      sub_filter "'/ws" "'/${path}/ws";
+      sub_filter '"/stream' '"/${path}/stream';
+      sub_filter "'/stream" "'/${path}/stream";
+      sub_filter '"/config' '"/${path}/config';
+      sub_filter "'/config" "'/${path}/config";
+      sub_filter '"/health' '"/${path}/health';
+      sub_filter "'/health" "'/${path}/health";
+      sub_filter '"/status' '"/${path}/status';
+      sub_filter "'/status" "'/${path}/status";
+
+      # --- Meta tags and common files ---
       sub_filter '"/manifest.json' '"/${path}/manifest.json';
       sub_filter "'/manifest.json" "'/${path}/manifest.json";
       sub_filter '"/favicon.ico' '"/${path}/favicon.ico';
       sub_filter "'/favicon.ico" "'/${path}/favicon.ico";
-      sub_filter 'url(/Content' 'url(/${path}/Content';
-      sub_filter 'url("/Content' 'url("/${path}/Content';
-      sub_filter "url('/Content" "url('/${path}/Content";
-      sub_filter 'url(/dist' 'url(/${path}/dist';
-      sub_filter 'url("/dist' 'url("/${path}/dist';
-      sub_filter "url('/dist" "url('/${path}/dist";
-      sub_filter 'url(/web' 'url(/${path}/web';
-      sub_filter 'url("/web' 'url("/${path}/web';
-      sub_filter "url('/web" "url('/${path}/web";
-      sub_filter 'url(/views' 'url(/${path}/views';
-      sub_filter 'url("/views' 'url("/${path}/views';
-      sub_filter "url('/views" "url('/${path}/views";
-      sub_filter 'url(/signalr' 'url(/${path}/signalr';
-      sub_filter 'url("/signalr' 'url("/${path}/signalr';
-      sub_filter "url('/signalr" "url('/${path}/signalr";
-      sub_filter 'service-worker.js' '${path}/service-worker.js';
-      sub_filter 'scope: "/"' 'scope: "/${path}/"';
-      sub_filter "scope: '/'" "scope: '/${path}/'";
-      sub_filter 'scope: "./"' 'scope: "./"'; # Preserve relative scopes
+      sub_filter '"/favicon.png' '"/${path}/favicon.png';
+      sub_filter '"/apple-touch-icon' '"/${path}/apple-touch-icon';
+      sub_filter '"/robots.txt' '"/${path}/robots.txt';
+      sub_filter '"/sitemap.xml' '"/${path}/sitemap.xml';
+      sub_filter '"/sw.js' '"/${path}/sw.js';
+      sub_filter '"/service-worker.js' '"/${path}/service-worker.js';
+      sub_filter '"/workbox' '"/${path}/workbox';
+
+      # --- Media stack specific paths (Sonarr/Radarr/Jellyfin/etc) ---
+      sub_filter '"/system' '"/${path}/system';
+      sub_filter "'/system" "'/${path}/system";
+      sub_filter '"/library' '"/${path}/library';
+      sub_filter "'/library" "'/${path}/library";
+      sub_filter '"/queue' '"/${path}/queue';
+      sub_filter "'/queue" "'/${path}/queue";
+      sub_filter '"/calendar' '"/${path}/calendar';
+      sub_filter "'/calendar" "'/${path}/calendar";
+      sub_filter '"/wanted' '"/${path}/wanted';
+      sub_filter "'/wanted" "'/${path}/wanted";
+      sub_filter '"/activity' '"/${path}/activity';
+      sub_filter "'/activity" "'/${path}/activity";
+      sub_filter '"/series' '"/${path}/series';
+      sub_filter "'/series" "'/${path}/series";
+      sub_filter '"/movie' '"/${path}/movie';
+      sub_filter "'/movie" "'/${path}/movie";
+      sub_filter '"/artist' '"/${path}/artist';
+      sub_filter "'/artist" "'/${path}/artist";
+      sub_filter '"/album' '"/${path}/album';
+      sub_filter "'/album" "'/${path}/album";
+      sub_filter '"/indexer' '"/${path}/indexer';
+      sub_filter "'/indexer" "'/${path}/indexer";
+      sub_filter '"/download' '"/${path}/download';
+      sub_filter "'/download" "'/${path}/download";
+      sub_filter '"/Items' '"/${path}/Items';
+      sub_filter "'/Items" "'/${path}/Items";
+
+      # --- Template literal backticks (ES6) ---
+      sub_filter '`/' '`/${path}/';
+
+      # --- Prevent double-prefixing (safety net) ---
+      sub_filter '/${path}/${path}/' '/${path}/';
+      sub_filter '"/${path}/${path}/' '"/${path}/';
+      sub_filter "'/${path}/${path}/" "'/${path}/";
     '';
 in
 {
@@ -431,12 +658,18 @@ in
           host = "127.0.0.1";
           port = config.ports.autobrr;
           baseUrl = "/autobrr/";
-          metricsBasicAuthUsers = "i:$2y$05$yaH6RqWhDQGPvLI7vyVdY.EsH8LBrNaAS30HJwXiCHziIFf7csVbi";
+          # metricsBasicAuthUsers = "i:$2y$05$yaH6RqWhDQGPvLI7vyVdY.EsH8LBrNaAS30HJwXiCHziIFf7csVbi";
         };
       };
 
       nginx = {
         enable = lib.mkForce true;
+        commonHttpConfig = ''
+          map $http_upgrade $connection_upgrade {
+            default upgrade;
+            ""      close;
+          }
+        '';
         virtualHosts.localhost = {
           listen = lib.mkForce [
             {
@@ -475,11 +708,8 @@ in
               };
             };
             "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
+              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
               proxyWebsockets = true;
-              extraConfig = ''
-                # rewrite ^/autobrr/(.*) /$1 break;
-              '';
             };
             "/autobrr" = {
               return = "301 /autobrr/";
@@ -498,17 +728,21 @@ in
             "/vertex/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
               proxyWebsockets = true;
-              extraConfig =
-                subpathProxyConfig {
-                  path = "vertex";
-                  port = config.ports.vertex;
-                }
-                + ''
-                  proxy_redirect / /vertex/;
-                '';
+              extraConfig = subpathProxyConfig {
+                path = "vertex";
+                port = config.ports.vertex;
+              };
             };
             "/vertex" = {
               return = "301 /vertex/";
+            };
+            # Proxy Service Worker to Vertex backend to fix root 404
+            "/service-worker.js" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/service-worker.js";
+              extraConfig = ''
+                # Allow cross-scope SW registration if needed, though proxying usually avoids this
+                proxy_set_header X-Forwarded-Host $host;
+              '';
             };
 
             "/iyuu/" = {
@@ -687,15 +921,6 @@ in
             ProcSubset = lib.mkForce "all";
           };
 
-          # Fix autobrr service - disable DynamicUser to use our pre-created directory
-          autobrr.serviceConfig = {
-            DynamicUser = lib.mkForce false;
-            User = lib.mkForce "autobrr";
-            Group = lib.mkForce "media";
-            StateDirectory = lib.mkForce "";
-            WorkingDirectory = "/var/lib/autobrr";
-          };
-
           media-stack-init = {
             description = "Automated configuration for media stack connections";
             after = [
@@ -705,6 +930,7 @@ in
               "bazarr.service"
               "qbittorrent.service"
               "postgresql-ready.target"
+              "autobrr-user-init.service"
             ];
             wants = [
               "sonarr.service"
@@ -712,6 +938,7 @@ in
               "prowlarr.service"
               "bazarr.service"
               "qbittorrent.service"
+              "autobrr-user-init.service"
             ];
             wantedBy = [ "multi-user.target" ];
             serviceConfig = {
@@ -764,6 +991,59 @@ in
                 --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}"
             '';
           };
+
+          # Fix autobrr service - override ExecStart and WorkDir to point to correct config dir
+          autobrr.serviceConfig = {
+            DynamicUser = lib.mkForce false;
+            User = lib.mkForce "autobrr";
+            Group = lib.mkForce "media";
+            StateDirectory = lib.mkForce "";
+            WorkingDirectory = "/data/.state/autobrr";
+            ExecStart = lib.mkForce "${pkgs.autobrr}/bin/autobrr --config /data/.state/autobrr";
+            Environment = [
+              "AUTOBRR__BASE_URL=/autobrr/"
+            ];
+          };
+
+          # autobrr-user-init = {
+          #   description = "Setup Autobrr User";
+          #   after = [ "autobrr.service" ];
+          #   wants = [ "autobrr.service" ];
+          #   wantedBy = [ "multi-user.target" ];
+          #   serviceConfig = {
+          #     Type = "oneshot";
+          #     User = "autobrr";
+          #     Group = "media";
+          #     WorkingDirectory = "/data/.state/autobrr";
+          #   };
+          #   script = ''
+          #     # Allow autobrr to initialize
+          #     sleep 10
+          #
+          #     PASSWORD=$(cat ${config.sops.secrets."password".path})
+          #     CONFIG_FILE="/data/.state/autobrr/config.toml"
+          #
+          #     # Ensure user exists (idempotent via || echo)
+          #     ${pkgs.autobrr}/bin/autobrrctl --config /data/.state/autobrr create-user i <<< "$PASSWORD" || echo "User creation failed or user exists"
+          #
+          #     # Update metricsBasicAuthUsers in config.toml
+          #     if [ -f "$CONFIG_FILE" ]; then
+          #       # Use sed to replace the line with the specific hash requested
+          #       sed -i "s|metricsBasicAuthUsers = .*|metricsBasicAuthUsers = 'i:\$2y\$05\$yaH6RqWhDQGPvLI7vyVdY.EsH8LBrNaAS30HJwXiCHziIFf7csVbi'|" "$CONFIG_FILE"
+          #       echo "Updated metricsBasicAuthUsers in $CONFIG_FILE"
+          #     else
+          #        echo "Config file not found at $CONFIG_FILE"
+          #     fi
+          #
+          #     # Inject API Key for setup.py
+          #     API_KEY=$(cat ${config.sops.secrets."media/autobrr_session_token".path})
+          #     DB_FILE="/data/.state/autobrr/autobrr.db"
+          #     if [ -f "$DB_FILE" ]; then
+          #       ${pkgs.sqlite}/bin/sqlite3 "$DB_FILE" "INSERT OR IGNORE INTO api_key (name, key) VALUES ('setup', '$API_KEY');"
+          #       echo "Injected API Key into $DB_FILE"
+          #     fi
+          #   '';
+          # };
 
           jellyfin.serviceConfig = {
             PrivateUsers = lib.mkForce false;
@@ -840,13 +1120,14 @@ in
       containers.vertex = {
         image = "docker://lswl/vertex:latest";
         volumes = [
-          "/data/.state/vertex:/vertex/data"
+          "/data/.state/vertex:/vertex"
           "/data/downloads/torrents:/data/downloads/torrents"
         ];
         environment = {
           TZ = "Asia/Shanghai";
           PORT = toString config.ports.vertex;
-          USERNAME = "i";
+          BASE_PATH = "/vertex";
+          # USERNAME = "i";
         };
         environmentFiles = [ config.sops.secrets.password.path ]; # This file contains PASSWORD=...
         extraOptions = [ "--network=host" ];

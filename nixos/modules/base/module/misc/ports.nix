@@ -141,7 +141,8 @@
       sabnzbd = 8090;
       flaresolverr = 8191;
       iyuu = 8777;
-      vertex = 3004;
+      # vertex = 3004;
+      vertex = 5555;
       sonarr-anime = 8990;
       moviepilot = 3201;
       mysql = 3306;
