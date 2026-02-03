@@ -163,29 +163,7 @@ in
             };
             urlBase = "/sonarr";
           };
-          downloadClients = lib.mkForce [
-            {
-              name = "SABnzbd";
-              implementationName = "SABnzbd";
-              apiKey = config.nixflix.sabnzbd.settings.misc.api_key;
-              host = "127.0.0.1";
-              port = 8090;
-              urlBase = "/sabnzbd";
-              tvCategory = "sonarr";
-            }
-            {
-              name = "qBit";
-              implementationName = "qBittorrent";
-              apiKey = ""; # Required by nixflix schema but not used by qBit
-              host = "127.0.0.1";
-              port = config.ports.qbittorrent;
-              username = "i";
-              password = {
-                _secret = config.sops.secrets."password".path;
-              };
-              tvCategory = "tv-sonarr";
-            }
-          ];
+
         };
       };
 
@@ -203,29 +181,7 @@ in
             };
             urlBase = "/radarr";
           };
-          downloadClients = lib.mkForce [
-            {
-              name = "SABnzbd";
-              implementationName = "SABnzbd";
-              apiKey = config.nixflix.sabnzbd.settings.misc.api_key;
-              host = "127.0.0.1";
-              port = 8090;
-              urlBase = "/sabnzbd";
-              movieCategory = "radarr";
-            }
-            {
-              name = "qBit";
-              implementationName = "qBittorrent";
-              apiKey = "";
-              host = "127.0.0.1";
-              port = config.ports.qbittorrent;
-              username = "i";
-              password = {
-                _secret = config.sops.secrets."password".path;
-              };
-              movieCategory = "movies-radarr";
-            }
-          ];
+
         };
       };
 
@@ -324,29 +280,7 @@ in
             };
             urlBase = "/lidarr";
           };
-          downloadClients = lib.mkForce [
-            {
-              name = "SABnzbd";
-              implementationName = "SABnzbd";
-              apiKey = config.nixflix.sabnzbd.settings.misc.api_key;
-              host = "127.0.0.1";
-              port = 8090;
-              urlBase = "/sabnzbd";
-              musicCategory = "lidarr";
-            }
-            {
-              name = "qBit";
-              implementationName = "qBittorrent";
-              apiKey = "";
-              host = "127.0.0.1";
-              port = config.ports.qbittorrent;
-              username = "i";
-              password = {
-                _secret = config.sops.secrets."password".path;
-              };
-              musicCategory = "music-lidarr";
-            }
-          ];
+
         };
       };
 
@@ -523,9 +457,6 @@ in
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header X-Forwarded-Host $host;
             proxy_set_header Cookie $http_cookie;
-            proxy_set_header Origin "";
-            proxy_set_header Referer "";
-            proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $http_connection;
           '';
           locations = {
@@ -544,7 +475,7 @@ in
               };
             };
             "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
+              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
               proxyWebsockets = true;
               extraConfig = ''
                 # rewrite ^/autobrr/(.*) /$1 break;
@@ -565,7 +496,7 @@ in
             };
 
             "/vertex/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}";
+              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
               proxyWebsockets = true;
               extraConfig =
                 subpathProxyConfig {
@@ -828,14 +759,9 @@ in
                 --sonarr-anime-url "http://127.0.0.1:8990/sonarr-anime" \
                 --sonarr-anime-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
-                --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}"
-            '';
-          };
-
-          qbittorrent-password = {
-            script = ''
-              sed -i "/\[Preferences\]/a WebUI\\Password_PBKDF2=$HASH" "$CONFIG_FILE"
-              echo "qBittorrent password configured"
+                --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}" \
+                --lidarr-url "http://127.0.0.1:${toString config.ports.lidarr}/lidarr" \
+                --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}"
             '';
           };
 

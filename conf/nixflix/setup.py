@@ -47,6 +47,8 @@ def add_download_client(name, app_url, app_key, client_name, host, port, usernam
             fields.append({'name': 'movieCategory', 'value': 'radarr'})
         elif name == 'Prowlarr':
             fields.append({'name': 'category', 'value': 'prowlarr'})
+        elif name == 'Lidarr':
+            fields.append({'name': 'musicCategory', 'value': 'music-lidarr'})
         
         payload = {
             'enable': True,
@@ -73,7 +75,7 @@ def add_download_client(name, app_url, app_key, client_name, host, port, usernam
     except Exception as e:
         print(f"Error setting up client for {name}: {e}")
 
-def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, radarr_url, radarr_key, sonarr_anime_url=None, sonarr_anime_key=None):
+def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, radarr_url, radarr_key, sonarr_anime_url=None, sonarr_anime_key=None, lidarr_url=None, lidarr_key=None):
     print("Setting up Prowlarr Applications...")
     headers = {'X-Api-Key': prowlarr_key}
     endpoint = f"{prowlarr_url}/api/v1/applications"
@@ -137,6 +139,24 @@ def setup_prowlarr_apps(prowlarr_url, prowlarr_key, sonarr_url, sonarr_key, rada
             }
             r = requests.post(endpoint, headers=headers, json=payload)
             print(f"Add Radarr: {r.status_code}")
+
+        # Add Lidarr
+        if 'Lidarr' not in existing_names and lidarr_url and lidarr_key:
+            payload = {
+                'name': 'Lidarr',
+                'syncLevel': 'fullSync',
+                'implementation': 'Lidarr',
+                'configContract': 'LidarrSettings',
+                'fields': [
+                    {'name': 'prowlarrUrl', 'value': 'http://127.0.0.1:9696'},
+                    {'name': 'baseUrl', 'value': lidarr_url},
+                    {'name': 'apiKey', 'value': lidarr_key},
+                    # Standard audio categories: 3000 (Audio), 3010 (MP3), 3020 (Video), 3030 (Audiobook), 3040 (Lossless)
+                    {'name': 'syncCategories', 'value': [3000, 3010, 3020, 3030, 3040]}
+                ]
+            }
+            r = requests.post(endpoint, headers=headers, json=payload)
+            print(f"Add Lidarr: {r.status_code}")
 
     except Exception as e:
         print(f"Error setting up Prowlarr apps: {e}")
@@ -226,8 +246,10 @@ def main():
     parser.add_argument("--prowlarr-url")
     parser.add_argument("--sonarr-url")
     parser.add_argument("--radarr-url")
+    parser.add_argument("--lidarr-url")
     
     parser.add_argument("--sonarr-key-file")
+    parser.add_argument("--lidarr-key-file")
     parser.add_argument("--radarr-key-file")
     parser.add_argument("--prowlarr-key-file")
     parser.add_argument("--autobrr-key-file")
@@ -246,6 +268,7 @@ def main():
     # Load Secrets
     sonarr_key = get_secret(args.sonarr_key_file)
     radarr_key = get_secret(args.radarr_key_file)
+    lidarr_key = get_secret(args.lidarr_key_file)
     prowlarr_key = get_secret(args.prowlarr_key_file)
     qbit_pass = get_secret(args.password_file)
     
@@ -258,6 +281,10 @@ def main():
     # Setup Radarr
     if args.radarr_url and radarr_key and qbit_pass:
         add_download_client("Radarr", args.radarr_url, radarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
+
+    # Setup Lidarr
+    if args.lidarr_url and lidarr_key and qbit_pass:
+        add_download_client("Lidarr", args.lidarr_url, lidarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v1')
         
     # Setup Sonarr Anime
     if args.sonarr_anime_url and args.sonarr_anime_key_file:
@@ -271,7 +298,7 @@ def main():
             add_download_client("Prowlarr", args.prowlarr_url, prowlarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v1')
         
         sa_key = get_secret(args.sonarr_anime_key_file) # Re-read for clarity or pass if available
-        setup_prowlarr_apps(args.prowlarr_url, prowlarr_key, args.sonarr_url, sonarr_key, args.radarr_url, radarr_key, args.sonarr_anime_url, sa_key)
+        setup_prowlarr_apps(args.prowlarr_url, prowlarr_key, args.sonarr_url, sonarr_key, args.radarr_url, radarr_key, args.sonarr_anime_url, sa_key, args.lidarr_url, lidarr_key)
 
     if args.bazarr_url:
         setup_bazarr(args)

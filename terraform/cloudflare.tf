@@ -274,14 +274,6 @@ resource "cloudflare_dns_record" "dora_lax2" {
   content = "74.48.170.226"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_dns_record" "dora_nue0" {
-  name    = "nue0.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  content = "45.142.176.126"
-  zone_id = cloudflare_zone.im_dora.id
-}
 resource "cloudflare_dns_record" "dora_tyo1" {
   name    = "tyo1.${cloudflare_zone.im_dora.name}"
   proxied = false
