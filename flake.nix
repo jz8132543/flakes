@@ -36,7 +36,8 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
     haumea = {
-      url = "github:nix-community/haumea";
+      url = "github:nix-community/haumea/v0.2.2";
+
       inputs.nixpkgs.follows = "nixpkgs";
     };
     colmena = {
@@ -62,7 +63,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     devshell = {
-      url = "github:numtide/devshell";
+      url = "github:numtide/devshell/a41d4f419bd893ddcaadb45d5c81b3d599a89d4d";
+
       inputs.nixpkgs.follows = "nixpkgs";
     };
     treefmt-nix = {

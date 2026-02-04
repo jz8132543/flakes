@@ -25,6 +25,8 @@
     mumble
     wechat-uos
     antigravity
+    google-chrome
+    opencode
   ];
   programs = {
     # TODO
@@ -144,6 +146,9 @@
       ".antigravity"
       ".gemini"
       ".antigravity-server"
+      ".config/opencode"
+      ".local/share/opencode"
+      ".opencode"
     ];
     files = [
       ".config/monitors.xml"

@@ -47,7 +47,7 @@
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
-        default = 1;
+        default = 0;
         gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
           menuentry "Windows" {
@@ -73,7 +73,7 @@
     ];
   };
   hardware.nvidia = {
-    open = true;
+
     modesetting.enable = true;
     # package = config.boot.kernelPackages.nvidiaPackages.production;
     nvidiaSettings = true;
@@ -85,7 +85,7 @@
     };
     powerManagement = {
       enable = true;
-      finegrained = true;
+      finegrained = false;
     };
   };
   utils.disk = "/dev/nvme0n1";

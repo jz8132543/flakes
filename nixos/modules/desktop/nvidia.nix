@@ -22,8 +22,12 @@
         libva-vdpau-driver
       ];
     };
-    nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
+    nvidia = {
+      package = config.boot.kernelPackages.nvidiaPackages.stable;
+      open = false;
+    };
   };
+
   boot = {
     kernelModules = [
       "nvidia"
@@ -36,8 +40,8 @@
       "nvidia-drm.fbdev=1"
       "nvidia-modeset.hdmi_deepcolor=1"
       "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
-      "nvidia.NVreg_OpenRmEnableUnsupportedGpus=1"
       # "nvidia.NVreg_DynamicPowerManagement=2"
+
     ];
   };
   services.xserver.videoDrivers = lib.mkDefault [ "nvidia" ];

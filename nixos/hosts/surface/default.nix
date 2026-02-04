@@ -10,6 +10,8 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.services.traefik
+      nixosModules.services.nixflix
       # nixosModules.services.fw-proxy
     ];
 
