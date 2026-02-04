@@ -38,3 +38,8 @@ fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10
 src.git = "https://gitee.com/ledc/iyuuplus"
 fetch.git = "https://gitee.com/ledc/iyuuplus"
 src.branch = "master"
+[vertex]
+src.git = "https://github.com/vertex-app/vertex"
+fetch.git = "https://github.com/vertex-app/vertex"
+src.branch = "master"
+

@@ -116,4 +116,18 @@
       sha256 = "sha256-1HgtLW7xP4jsW9hQkSmZcGW+MlaS3nBHE5l5kiOvMTw=";
     };
   };
+  vertex = {
+    pname = "vertex";
+    version = "master-9f9bc5b";
+    src = fetchgit {
+      url = "https://github.com/vertex-app/vertex";
+      rev = "9f9bc5b738d97aa6652d9fcfa475db8eea3031e7";
+      fetchSubmodules = false;
+      deepClone = false;
+      leaveDotGit = false;
+      sparseCheckout = [ ];
+      sha256 = "sha256-ObY+IIdQ3cWju0KPPbC/5TDqrBZWTo88OWh0wrGd3Tk=";
+    };
+    date = "2025-09-27";
+  };
 }

@@ -36,7 +36,7 @@
   #   };
   # };
 
-  environment.isCN = true;
+  # environment.isCN = true;
 
   environment.systemPackages = with pkgs; [
     efibootmgr

@@ -194,101 +194,7 @@ def setup_bazarr(args):
     except Exception as e:
         print(f"Failed to configure Bazarr: {e}")
 
-def setup_autobrr(args):
-    print("Setting up Autobrr...")
-    a_key = get_secret(args.autobrr_key_file)
-    qbit_pass = get_secret(args.password_file)
-    mteam_rss = get_secret(args.mteam_rss_file)
-    pttime_rss = get_secret(args.pttime_rss_file)
 
-    if not (a_key and qbit_pass):
-        print("Missing secrets for Autobrr setup")
-        return
-
-    headers = {'X-API-Token': a_key}
-    try:
-        # 1. Setup qBittorrent client
-        resp = requests.get(f"{args.autobrr_url}/api/config/download-clients", headers=headers)
-        existing = resp.json() if resp.status_code == 200 else []
-        qbit_id = None
-        for c in existing:
-            if isinstance(c, dict) and c.get('name') == 'qBit':
-                qbit_id = c.get('id')
-                break
-        
-        if not qbit_id:
-            resp = requests.post(f"{args.autobrr_url}/api/config/download-clients", headers=headers, json={
-                'name': 'qBit', 'type': 'qBittorrent', 'host': '127.0.0.1',
-                'port': int(args.qbit_port), 'username': 'i',
-                'password': qbit_pass, 'enabled': True
-            })
-            if resp.status_code in [200, 201]:
-                qbit_id = resp.json().get('id')
-                print(f"Added qBit to Autobrr")
-            else:
-                print(f"Failed to add qBit to Autobrr: {resp.status_code} {resp.text}")
-        
-        # 2. Setup Feeds
-        # 2. Setup Feeds
-        feed_ids = {}
-        resp = requests.get(f"{args.autobrr_url}/api/feeds", headers=headers)
-        existing_feeds = resp.json() if resp.status_code == 200 else []
-        existing_feed_names = {f.get('name'): f.get('id') for f in existing_feeds}
-        
-        feeds_to_add = [
-            {'name': 'M-Team', 'url': mteam_rss},
-            {'name': 'PTTime', 'url': pttime_rss}
-        ]
-
-        for feed in feeds_to_add:
-            name = feed['name']
-            url = feed['url']
-            
-            if not url:
-                continue
-
-            if name not in existing_feed_names:
-                resp = requests.post(f"{args.autobrr_url}/api/feeds", headers=headers, json={
-                    'name': name, 'type': 'TORZNAB', 'url': url, 
-                    'interval': 15, 'enabled': True
-                })
-                if resp.status_code in [200, 201]:
-                    feed_ids[name] = resp.json().get('id')
-                    print(f"Added {name} feed")
-            else:
-                feed_ids[name] = existing_feed_names[name]
-
-        # 3. Setup Filter (Auto-Free-Grabber)
-        if qbit_id and feed_ids:
-            resp = requests.get(f"{args.autobrr_url}/api/filters", headers=headers)
-            existing_filters = resp.json() if resp.status_code == 200 else []
-            if not any(f.get('name') == 'Auto-Free-Grabber' for f in existing_filters):
-                action_list = [{
-                    'name': 'qBit-Free',
-                    'type': 'QBITTORRENT',
-                    'enabled': True,
-                    'client_id': qbit_id,
-                    'save_path': '/data/downloads/torrents/prowlarr',
-                    'category': 'prowlarr', # Using prowlarr category as a generic bucket for auto-grabs
-                    'paused': False
-                }]
-                indexer_list = list(feed_ids.values())
-                
-                resp = requests.post(f"{args.autobrr_url}/api/filters", headers=headers, json={
-                    'name': 'Auto-Free-Grabber',
-                    'enabled': True,
-                    'priority': 10,
-                    'min_size': '100MB',
-                    'max_size': '50GB',
-                    'freeleech': True,
-                    'freeleech_percent': '100%',
-                    'actions': action_list,
-                    'indexers': indexer_list
-                })
-                print(f"Created Auto-Free-Grabber filter: {resp.status_code}")
-        
-    except Exception as e:
-        print(f"Failed to setup Autobrr: {e}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -354,8 +260,7 @@ def main():
     if args.bazarr_url:
         setup_bazarr(args)
     
-    if args.autobrr_url:
-        setup_autobrr(args)
+
 
 if __name__ == "__main__":
     main()
