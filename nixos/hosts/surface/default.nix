@@ -10,7 +10,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      # nixosModules.services.fw-proxy
+      nixosModules.services.nixflix
     ];
 
   # hardware.microsoft-surface.kernelVersion = "stable";
@@ -34,7 +34,7 @@
   #   };
   # };
 
-  environment.isCN = true;
+  # environment.isCN = true;
 
   environment.systemPackages = with pkgs; [
     efibootmgr

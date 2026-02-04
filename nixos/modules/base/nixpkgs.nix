@@ -8,7 +8,7 @@
 let
   packages = [
     inputs.sops-nix.overlays.default
-    inputs.neovim-nightly-overlay.overlays.default
+    # inputs.neovim-nightly-overlay.overlays.default
     inputs.rust-overlay.overlays.default
     inputs.chinese-fonts-overlay.overlays.default
     (

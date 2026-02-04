@@ -19,9 +19,17 @@
 let
   domain = "tv.dora.im";
 
-  navHtmlDir = toString ./../../../conf/nixflix;
+  navHtmlDir = ./../../../conf/nixflix;
 
   subpathProxyConfig = import ./../../../conf/nixflix/subpath-proxy.nix;
+
+  finalNavHtml = pkgs.runCommand "nixflix-nav-html" { } ''
+    mkdir -p $out
+    substitute ${navHtmlDir}/nav.html $out/nav.html \
+      --replace "@AUTOBRR_URL@" "http://tv.mag:${toString config.ports.autobrr}/" \
+      --replace "@VERTEX_URL@" "http://tv.mag:${toString config.ports.vertex}/" \
+      --replace "@IYUU_URL@" "http://tv.mag:${toString config.ports.iyuu}/"
+  '';
 in
 {
   imports = [
@@ -323,7 +331,7 @@ in
         enable = true;
         secretFile = config.sops.secrets."media/autobrr_session_token".path;
         settings = {
-          host = "127.0.0.1";
+          host = "0.0.0.0";
           port = config.ports.autobrr;
           baseUrl = "/autobrr/";
           database = {
@@ -367,7 +375,7 @@ in
           locations = {
             "/" = {
               extraConfig = ''
-                root ${navHtmlDir};
+                root ${finalNavHtml};
                 try_files /nav.html =404;
                 default_type text/html;
               '';
@@ -631,7 +639,10 @@ in
               RestartSec = "30s";
               TimeoutStartSec = "1min";
             };
-            path = [ pkgs.curl ];
+            path = [
+              pkgs.curl
+              pkgs.coreutils
+            ];
             script = ''
               # Wait for all services to be healthy
               for service in sonarr:${toString config.ports.sonarr}/sonarr \
@@ -661,7 +672,6 @@ in
                 --sonarr-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --radarr-key-file "${config.sops.secrets."media/radarr_api_key".path}" \
                 --prowlarr-key-file "${config.sops.secrets."media/prowlarr_api_key".path}" \
-
                 --password-file "${config.sops.secrets."password".path}" \
                 --qbit-port "${toString config.ports.qbittorrent}" \
                 --sonarr-port "${toString config.ports.sonarr}" \
@@ -788,6 +798,7 @@ in
     sops.templates."iyuu-env" = {
       content = ''
         SERVER_LISTEN_PORT=${toString config.ports.iyuu}
+        SERVER_LISTEN_IP=0.0.0.0
         IYUU_TOKEN=${config.sops.placeholder."media/iyuu_token"}
         CONFIG_NOT_MYSQL=1
         # IYUU_APPID=
@@ -820,6 +831,7 @@ in
           PORT = toString config.ports.vertex;
           BASE_PATH = "/vertex";
           USERNAME = "i";
+          HOST = "0.0.0.0";
         };
         environmentFiles = [ config.sops.secrets.password.path ]; # This file contains PASSWORD=...
         extraOptions = [ "--network=host" ];
@@ -919,5 +931,8 @@ in
         "media/moviepilot_api_key"
         "media/jellyfin_api_key" # Explicitly included as it was missing from the list but used
       ];
+    services.restic.backups.borgbase.paths = [
+      "/data/.state/vertex/db/sql.db"
+    ];
   };
 }
