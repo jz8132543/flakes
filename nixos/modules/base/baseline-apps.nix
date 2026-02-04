@@ -107,4 +107,12 @@
     nurl
     manix
   ];
+  environment.global-persistence.user.directories = [
+    # google ai editor (antigravity)
+    ".config/Antigravity"
+    ".antigravity"
+    ".gemini"
+    ".antigravity-server"
+  ];
+
 }

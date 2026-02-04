@@ -64,10 +64,10 @@ let
       }
 
 
-      # --- WebSocket support (removed redundant headers to avoid duplicate directive errors) ---
-      proxy_http_version 1.1;
-      proxy_read_timeout 86400s;
-      proxy_send_timeout 86400s;
+      # --- WebSocket settings removed (handled by proxyWebsockets = true in location) ---
+       # proxy_http_version 1.1;
+       # proxy_read_timeout 86400s;
+       # proxy_send_timeout 86400s;
 
       # --- Buffering settings for sub_filter ---
       proxy_buffering on;
@@ -162,12 +162,7 @@ let
       sub_filter "axios.put('/" "axios.put('/${path}/";
       sub_filter 'axios.delete("/' 'axios.delete("/${path}/';
       sub_filter "axios.delete('/" "axios.delete('/${path}/";
-      sub_filter '$.get("/' '$.get("/${path}/';
-      sub_filter "$.get('/" "$.get('/${path}/";
-      sub_filter '$.post("/' '$.post("/${path}/';
-      sub_filter "$.post('/" "$.post('/${path}/";
-      sub_filter '$.ajax({url:"/' '$.ajax({url:"/${path}/';
-      sub_filter "$.ajax({url:'/" "$.ajax({url:'/${path}/";
+      # jQuery patterns removed due to nginx variable conflict with $
       sub_filter 'XMLHttpRequest.open("GET","/' 'XMLHttpRequest.open("GET","/${path}/';
       sub_filter 'XMLHttpRequest.open("POST","/' 'XMLHttpRequest.open("POST","/${path}/';
 
@@ -353,6 +348,10 @@ let
       sub_filter '/${path}/${path}/' '/${path}/';
       sub_filter '"/${path}/${path}/' '"/${path}/';
       sub_filter "'/${path}/${path}/" "'/${path}/";
+
+      # --- Fix double-rewriting in API paths (VueTorrent/qBittorrent) ---
+      sub_filter '/api/v2/${path}/' '/api/v2/';
+      sub_filter '/api/v1/${path}/' '/api/v1/';
     '';
 in
 {
@@ -658,7 +657,19 @@ in
           host = "127.0.0.1";
           port = config.ports.autobrr;
           baseUrl = "/autobrr/";
+          database = {
+            type = "sqlite";
+            dsn = "/data/.state/autobrr/autobrr.db";
+          };
           # metricsBasicAuthUsers = "i:$2y$05$yaH6RqWhDQGPvLI7vyVdY.EsH8LBrNaAS30HJwXiCHziIFf7csVbi";
+        };
+        serviceConfig = {
+          User = "autobrr";
+          Group = "media";
+          ReadWritePaths = [
+            "/data/.state/autobrr"
+            "/var/lib/autobrr"
+          ];
         };
       };
 
@@ -702,6 +713,7 @@ in
             };
             "/bazarr" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.bazarr}";
+              proxyWebsockets = true;
               extraConfig = subpathProxyConfig {
                 path = "bazarr";
                 port = config.ports.bazarr;
@@ -716,6 +728,7 @@ in
             };
             "/qbit/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.qbittorrent}/";
+              proxyWebsockets = true;
               extraConfig = subpathProxyConfig {
                 path = "qbit";
                 port = config.ports.qbittorrent;
@@ -759,6 +772,7 @@ in
 
             "/whoami/" = {
               proxyPass = "http://127.0.0.1:8082/";
+              proxyWebsockets = true;
               extraConfig = subpathProxyConfig {
                 path = "whoami";
                 port = 8082;
@@ -813,20 +827,20 @@ in
         "d /data/torrents 0755 qbittorrent media -"
         "d /data/torrents/downloading 0755 qbittorrent media -"
         "d /data/torrents/completed 0755 qbittorrent media -"
-        "d /data/.state/jellyfin 0755 jellyfin media -"
-        "d /data/.state/jellyseerr 0755 jellyseerr media -"
-        "d /data/.state/sonarr 0755 sonarr media -"
-        "d /data/.state/sonarr-anime 0755 sonarr-anime media -"
-        "d /data/.state/radarr 0755 radarr media -"
-        "d /data/.state/prowlarr 0755 prowlarr media -"
-        "d /data/.state/lidarr 0755 lidarr media -"
-        "d /data/.state/sabnzbd 0755 sabnzbd media -"
-        "d /data/.state/recyclarr 0755 recyclarr media -"
-        "d /data/.state/autobrr 0755 autobrr media -"
-        "d /data/.state/moviepilot 0755 root media -"
-        "d /data/.state/moviepilot/core 0755 root media -"
+        "d /data/.state/jellyfin 0777 jellyfin media -"
+        "d /data/.state/jellyseerr 0777 jellyseerr media -"
+        "d /data/.state/sonarr 0777 sonarr media -"
+        "d /data/.state/sonarr-anime 0777 sonarr-anime media -"
+        "d /data/.state/radarr 0777 radarr media -"
+        "d /data/.state/prowlarr 0777 prowlarr media -"
+        "d /data/.state/lidarr 0777 lidarr media -"
+        "d /data/.state/sabnzbd 0777 sabnzbd media -"
+        "d /data/.state/recyclarr 0777 recyclarr media -"
+        "d /data/.state/autobrr 0777 autobrr media -"
+        "d /data/.state/moviepilot 0777 root media -"
+        "d /data/.state/moviepilot/core 0777 root media -"
         "d /data/.state/vertex 0777 root media -"
-        "d /data/.state/iyuu 0755 root media -"
+        "d /data/.state/iyuu 0777 root media -"
         "d /srv/moviepilot-plugins 0755 root media -"
         "d /var/lib/bazarr 0755 bazarr media -"
         "d /var/lib/qBittorrent 0755 qbittorrent media -"
@@ -946,6 +960,7 @@ in
               RemainAfterExit = true;
               Restart = "on-failure";
               RestartSec = "30s";
+              TimeoutStartSec = "1min";
             };
             path = [ pkgs.curl ];
             script = ''
@@ -992,17 +1007,12 @@ in
             '';
           };
 
-          # Fix autobrr service - override ExecStart and WorkDir to point to correct config dir
+          # Fix autobrr service - Ensure correct User/Group and permissions for /data
           autobrr.serviceConfig = {
             DynamicUser = lib.mkForce false;
             User = lib.mkForce "autobrr";
             Group = lib.mkForce "media";
-            StateDirectory = lib.mkForce "";
-            WorkingDirectory = "/data/.state/autobrr";
-            ExecStart = lib.mkForce "${pkgs.autobrr}/bin/autobrr --config /data/.state/autobrr";
-            Environment = [
-              "AUTOBRR__BASE_URL=/autobrr/"
-            ];
+            ReadWritePaths = [ "/data/.state/autobrr" ];
           };
 
           # autobrr-user-init = {
