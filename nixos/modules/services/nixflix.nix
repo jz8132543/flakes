@@ -14,6 +14,7 @@
   pkgs,
   config,
   inputs,
+  nixosModules,
   ...
 }:
 let
@@ -34,6 +35,8 @@ in
 {
   imports = [
     inputs.nixflix.nixosModules.nixflix
+    nixosModules.services.qbittorrent
+    nixosModules.services.traefik
   ];
 
   config = {
@@ -268,65 +271,6 @@ in
         port = config.ports.flaresolverr;
       };
 
-      # qBittorrent - Torrent client with VueTorrent UI
-      qbittorrent = {
-        enable = true;
-        group = "media";
-        webuiPort = config.ports.qbittorrent;
-        serverConfig.Preferences = {
-          WebUI = {
-            AlternativeUIEnabled = true;
-            RootFolder = "${pkgs.vuetorrent}/share/vuetorrent";
-            Username = "i";
-            CSRFProtection = false;
-            HostHeaderValidation = false;
-            ServerDomains = "*";
-            SecureCookie = false;
-            ClickjackingProtection = false;
-            LocalHostAuth = false;
-            # AuthSubnetWhitelistEnabled = true;
-            # AuthSubnetWhitelist = "127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
-          };
-          Downloads = {
-            SavePath = "/data/downloads/torrents";
-            TempPath = "/data/downloads/torrents/.incomplete";
-            TempPathEnabled = true;
-          };
-          Connection = {
-            GlobalMaxConnections = 4000;
-            MaxConnectionsPerTorrent = 500;
-            GlobalMaxUploads = 200;
-            MaxUploadsPerTorrent = 50;
-          };
-          BitTorrent = {
-            "Session\\DefaultSavePath" = "/data/downloads/torrents";
-            "Session\\TempPath" = "/data/downloads/torrents/.incomplete";
-            "Session\\TempPathEnabled" = true;
-            "Session\\BTProtocol" = "Both";
-            "Session\\MaxConnections" = 4000;
-            "Session\\MaxConnectionsPerTorrent" = 500;
-            "Session\\MaxUploads" = 200;
-            "Session\\MaxUploadsPerTorrent" = 50;
-            "Session\\EnableSuperSeeding" = true;
-            "Session\\ChokingAlgorithm" = "FastestUpload";
-            "Session\\SeedChokingAlgorithm" = "AntiLeech";
-            "Session\\UploadSlotsBehavior" = "UploadRateBased";
-            "Session\\QueueingSystemEnabled" = true;
-            "Session\\MaxActiveDownloads" = 20;
-            "Session\\MaxActiveUploads" = 100;
-            "Session\\MaxActiveTorrents" = 120;
-            "Session\\AnnounceToAllTrackers" = true;
-            "Session\\AnnounceToAllTiers" = true;
-            "Session\\TrackerExchangeEnabled" = true;
-            "Session\\Encryption" = 1;
-            "Session\\AnonymousMode" = true;
-            "Session\\DHTEnabled" = false;
-            "Session\\PeXEnabled" = false;
-            "Session\\LSDEnabled" = false;
-          };
-        };
-      };
-
       autobrr = {
         enable = true;
         secretFile = config.sops.secrets."media/autobrr_session_token".path;
@@ -548,7 +492,6 @@ in
               "lidarr"
               "sabnzbd"
               "bazarr"
-              "qbittorrent"
               "flaresolverr"
             ]
         ))
@@ -588,29 +531,6 @@ in
         ))
         // {
           sabnzbd-categories.enable = lib.mkForce false;
-
-          # Fix qBittorrent service crash settings
-          qbittorrent.serviceConfig = {
-            DynamicUser = lib.mkForce false;
-            User = lib.mkForce "qbittorrent";
-            Group = lib.mkForce "media";
-            StateDirectory = lib.mkForce "";
-            WorkingDirectory = lib.mkForce "/var/lib/qBittorrent";
-            LimitNOFILE = lib.mkForce 16384;
-            MemoryDenyWriteExecute = lib.mkForce false;
-            RestrictAddressFamilies = lib.mkForce "AF_UNIX AF_INET AF_INET6 AF_NETLINK";
-            Environment = lib.mkForce "LOCALE_ARCHIVE=/run/current-system/sw/lib/locale/locale-archive";
-            Restart = "always";
-            RestartSec = "5s";
-            # Sandboxing fixes for libtorrent ABRT
-            ProtectHome = lib.mkForce false;
-            ProtectSystem = lib.mkForce false;
-            PrivateTmp = lib.mkForce false;
-            NoNewPrivileges = lib.mkForce false;
-            SystemCallFilter = lib.mkForce [ ];
-            ProtectProc = lib.mkForce "default";
-            ProcSubset = lib.mkForce "all";
-          };
 
           media-stack-init = {
             description = "Automated configuration for media stack connections";
@@ -777,7 +697,6 @@ in
     environment.global-persistence.directories = [
       "/data"
       "/var/lib/bazarr"
-      "/var/lib/qbittorrent"
       "/data/.state/autobrr"
     ];
 
