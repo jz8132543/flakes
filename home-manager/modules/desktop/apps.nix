@@ -27,6 +27,11 @@
     antigravity
     google-chrome
     opencode
+    # CD/DVD Burning
+    kdePackages.k3b
+    vcdimager
+    cdrtools
+    dvdplusrwtools
   ];
   programs = {
     # TODO

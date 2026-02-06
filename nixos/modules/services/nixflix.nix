@@ -395,13 +395,13 @@ in
               return = "301 /whoami/";
             };
 
-            "/moviepilot/" = {
-              proxyPass = "http://127.0.0.1:${toString (config.ports.moviepilot or 3000)}/";
-              proxyWebsockets = true;
-            };
-            "/moviepilot" = {
-              return = "301 /moviepilot/";
-            };
+            #            "/moviepilot/" = {
+            #              proxyPass = "http://127.0.0.1:${toString (config.ports.moviepilot or 3000)}/";
+            #              proxyWebsockets = true;
+            #            };
+            #            "/moviepilot" = {
+            #              return = "301 /moviepilot/";
+            #            };
 
             # Delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr
           };
@@ -416,7 +416,7 @@ in
             service = "nixflix-nginx";
           };
           nixflix-apps = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/moviepilot`) || PathPrefix(`/whoami`))";
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`))";
             entryPoints = [ "https" ];
             service = "nixflix-nginx";
           };
@@ -458,12 +458,12 @@ in
         "d /data/.state/sabnzbd 0777 sabnzbd media -"
         "d /data/.state/recyclarr 0777 recyclarr media -"
         "d /data/.state/autobrr 0777 autobrr media -"
-        "d /data/.state/moviepilot 0777 root media -"
-        "d /data/.state/moviepilot/core 0777 root media -"
+        #        "d /data/.state/moviepilot 0777 root media -"
+        #        "d /data/.state/moviepilot/core 0777 root media -"
         "d /data/.state/vertex 0777 root media -"
         "d /data/.state/iyuu 0777 root media -"
-        "d /data/.state/moviepilot/plugins 0755 root media -"
-        "d /var/lib/bazarr 0755 bazarr media -"
+        #        "d /data/.state/moviepilot/plugins 0755 root media -"
+        "Z /var/lib/bazarr 0755 bazarr media -"
         "d /var/lib/qBittorrent 0755 qbittorrent media -"
         "d /var/lib/iyuu 0755 iyuu media -"
         "d /var/lib/autobrr 0755 autobrr media -"
@@ -726,16 +726,16 @@ in
       group = "media";
     };
 
-    sops.templates."moviepilot-env" = {
-      content = ''
-        SUPERUSER_PASSWORD=${config.sops.placeholder.password}
-        API_TOKEN=${config.sops.placeholder."media/moviepilot_api_key"}
-        QB_PASSWORD=${config.sops.placeholder.password}
-        JELLYFIN_API_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
-        JELLYFIN_PASSWORD=${config.sops.placeholder.password}
-      '';
-      owner = "root";
-    };
+    #    sops.templates."moviepilot-env" = {
+    #      content = ''
+    #        SUPERUSER_PASSWORD=${config.sops.placeholder.password}
+    #        API_TOKEN=${config.sops.placeholder."media/moviepilot_api_key"}
+    #        QB_PASSWORD=${config.sops.placeholder.password}
+    #        JELLYFIN_API_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
+    #        JELLYFIN_PASSWORD=${config.sops.placeholder.password}
+    #      '';
+    #      owner = "root";
+    #    };
 
     virtualisation.oci-containers = {
       backend = "podman";
@@ -756,39 +756,39 @@ in
         extraOptions = [ "--network=host" ];
       };
 
-      containers.moviepilot = {
-        image = "jxxghp/moviepilot:latest";
-        volumes = [
-          "/data/.state/moviepilot:/config"
-          "/data/.state/moviepilot/core:/moviepilot/.cache/ms-playwright"
-          "/data/media:/media"
-          "/data/downloads:/downloads"
-          "/data/.state/moviepilot/plugins:/app/plugins"
-          "/run/podman/podman.sock:/var/run/docker.sock:ro"
-        ];
-        environment = {
-          TZ = "Asia/Shanghai";
-          PUID = "0";
-          PGID = "0";
-          UMASK = "022";
-          WORKDIR = "/moviepilot";
-          CONFIG_DIR = "/config";
-          NGINX_PORT = toString (config.ports.moviepilot or 3000);
-          PORT = toString (config.ports.moviepilot or 3000);
-          BIG_MEMORY_MODE = "false";
-          DOWNLOADER = "qbittorrent";
-          QB_HOST = "127.0.0.1:${toString config.ports.qbittorrent}";
-          QB_USER = "i";
-          MEDIASERVER = "jellyfin";
-          JELLYFIN_HOST = "http://127.0.0.1:8096";
-          PLUGIN_MARKET = "https://github.com/jxxghp/MoviePilot-Plugins,https://github.com/thsrite/MoviePilot-Plugins";
-        };
-        environmentFiles = [ config.sops.templates."moviepilot-env".path ];
-        extraOptions = [
-          "--network=host"
-          "--hostname=moviepilot"
-        ];
-      };
+      #      containers.moviepilot = {
+      #        image = "jxxghp/moviepilot:latest";
+      #        volumes = [
+      #          "/data/.state/moviepilot:/config"
+      #          "/data/.state/moviepilot/core:/moviepilot/.cache/ms-playwright"
+      #          "/data/media:/media"
+      #          "/data/downloads:/downloads"
+      #          "/data/.state/moviepilot/plugins:/app/plugins"
+      #          "/run/podman/podman.sock:/var/run/docker.sock:ro"
+      #        ];
+      #        environment = {
+      #          TZ = "Asia/Shanghai";
+      #          PUID = "0";
+      #          PGID = "0";
+      #          UMASK = "022";
+      #          WORKDIR = "/moviepilot";
+      #          CONFIG_DIR = "/config";
+      #          NGINX_PORT = toString (config.ports.moviepilot or 3000);
+      #          PORT = toString (config.ports.moviepilot or 3000);
+      #          BIG_MEMORY_MODE = "false";
+      #          DOWNLOADER = "qbittorrent";
+      #          QB_HOST = "127.0.0.1:${toString config.ports.qbittorrent}";
+      #          QB_USER = "i";
+      #          MEDIASERVER = "jellyfin";
+      #          JELLYFIN_HOST = "http://127.0.0.1:8096";
+      #          PLUGIN_MARKET = "https://github.com/jxxghp/MoviePilot-Plugins,https://github.com/thsrite/MoviePilot-Plugins";
+      #        };
+      #        environmentFiles = [ config.sops.templates."moviepilot-env".path ];
+      #        extraOptions = [
+      #          "--network=host"
+      #          "--hostname=moviepilot"
+      #        ];
+      #      };
 
       containers.iyuu = {
         image = "docker://iyuucn/iyuuplus:latest";
