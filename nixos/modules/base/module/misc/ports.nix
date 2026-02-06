@@ -145,6 +145,7 @@
       vertex = 5555;
       sonarr-anime = 8990;
       moviepilot = 3201;
+      cookiecloud = 8088;
       mysql = 3306;
     };
   };

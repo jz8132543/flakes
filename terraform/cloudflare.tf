@@ -90,6 +90,7 @@ locals {
     dash          = { on = "nue0", proxy = false }
     metrics       = { on = "nue0", proxy = false }
     tv            = { on = "nue0", proxy = false }
+    cookiecloud   = { on = "nue0", proxy = false }
     # seerr              = { on = "nue0", proxy = false }
     # sonarr             = { on = "nue0", proxy = false }
     # autobrr            = { on = "nue0", proxy = false }

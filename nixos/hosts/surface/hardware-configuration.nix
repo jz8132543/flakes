@@ -21,10 +21,10 @@
     };
     kernelModules = [
       "kvm-intel"
-      "vfio"
-      "vfio_iommu_type1"
-      "vfio_pci"
-      "vfio_virqfd"
+      # "vfio"
+      # "vfio_iommu_type1"
+      # "vfio_pci"
+      # "vfio_virqfd"
     ];
     kernelParams = [
       "intel_iommu=on"
@@ -79,7 +79,8 @@
     nvidiaSettings = true;
     nvidiaPersistenced = true;
     prime = {
-      offload.enable = true;
+      sync.enable = true;
+      # offload.enable = true;
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:2:0:0";
     };

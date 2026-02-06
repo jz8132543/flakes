@@ -21,7 +21,7 @@
           MaxSizeBytes = 66560;
           Path = "/var/lib/qBittorrent/qBittorrent/data/logs";
         };
-        MemoryWorkingSetLimit = 1024;
+        MemoryWorkingSetLimit = 4096;
       };
       BitTorrent = {
         Session = {
@@ -35,7 +35,7 @@
           MaxConnectionsPerTorrent = 500;
           MaxUploads = 200;
           MaxUploadsPerTorrent = 50;
-          EnableSuperSeeding = true;
+          EnableSuperSeeding = false;
           ChokingAlgorithm = "FastestUpload";
           SeedChokingAlgorithm = "AntiLeech";
           UploadSlotsBehavior = "UploadRateBased";
@@ -51,6 +51,7 @@
           DHTEnabled = false;
           PeXEnabled = false;
           LSDEnabled = false;
+          Port = 51413;
         };
       };
       Preferences = {
@@ -78,6 +79,7 @@
           MaxConnectionsPerTorrent = 500;
           GlobalMaxUploads = 200;
           MaxUploadsPerTorrent = 50;
+          PortRangeMin = 51413;
         };
         General = {
           Locale = "zh_CN";
