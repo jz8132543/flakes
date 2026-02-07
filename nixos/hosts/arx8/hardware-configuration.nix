@@ -108,7 +108,7 @@ in
       modesetting.enable = true;
       powerManagement.enable = true; # 开启显卡电源管理，解决风扇不转或耗电快
       powerManagement.finegrained = true; # 针对 40 系显卡的精细电源控制
-      open = true; # 2023 款显卡支持 NVIDIA 官方开源内核模块，更符合 NixOS 哲学
+      open = lib.mkForce true; # 2023 款显卡支持 NVIDIA 官方开源内核模块，更符合 NixOS 哲学
       package = config.boot.kernelPackages.nvidiaPackages.stable;
 
       prime = {

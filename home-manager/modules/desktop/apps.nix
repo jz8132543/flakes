@@ -134,6 +134,11 @@
       network-traffic = true;
     };
   };
+  # Set Chrome environment variables for Playwright/browser integration
+  home.sessionVariables = {
+    CHROME_BIN = "${pkgs.google-chrome}/bin/google-chrome-stable";
+    CHROME_PATH = "${pkgs.google-chrome}/bin/google-chrome-stable";
+  };
   home.global-persistence = {
     directories = [
       ".local/share/TelegramDesktop"

@@ -40,15 +40,6 @@ in
       # CookieCloud - 同步PT站点Cookie
       "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
     ];
-    extraOpts = {
-      "3rdparty" = {
-        "extensions" = {
-          "ffjiejobkoibkjlhjnlgmcnnigeelbdl" = {
-            "host" = "https://cookiecloud.dora.im";
-          };
-        };
-      };
-    };
     # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
     # commandLineArgs = [
     #   "--ozone-platform-hint=auto"
