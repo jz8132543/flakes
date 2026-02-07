@@ -45,7 +45,10 @@ in
       enable = true;
       mediaDir = "/data/media";
       stateDir = "/data/.state";
-      mediaUsers = [ "i" ];
+      mediaUsers = [
+        "tippy"
+        "root"
+      ];
 
       theme = {
         enable = true;
@@ -432,41 +435,30 @@ in
     # Consolidated Systemd Configuration
     systemd = {
       tmpfiles.rules = [
-        "d /data 0755 root media -"
-        "d /data/media 0755 root media -"
-        "d /data/downloads 0755 root media -"
-        "d /data/downloads/usenet 0755 sabnzbd media -"
-        "d /data/downloads/usenet/incomplete 0755 sabnzbd media -"
-        "d /data/downloads/usenet/complete 0755 sabnzbd media -"
-        "d /data/.state 0755 root media -"
-        "d /data/downloads/torrents 0755 qbittorrent media -"
-        "d /data/downloads/torrents/.incomplete 0755 qbittorrent media -"
-        "d /data/downloads/torrents/tv-sonarr 0755 qbittorrent media -"
-        "d /data/downloads/torrents/movies-radarr 0755 qbittorrent media -"
-        "d /data/downloads/torrents/music-lidarr 0755 qbittorrent media -"
-        "d /data/downloads/torrents/prowlarr 0755 qbittorrent media -"
-        "d /data/torrents 0755 qbittorrent media -"
-        "d /data/torrents/downloading 0755 qbittorrent media -"
-        "d /data/torrents/completed 0755 qbittorrent media -"
-        "d /data/.state/jellyfin 0777 jellyfin media -"
-        "d /data/.state/jellyseerr 0777 jellyseerr media -"
-        "d /data/.state/sonarr 0777 sonarr media -"
-        "d /data/.state/sonarr-anime 0777 sonarr-anime media -"
-        "d /data/.state/radarr 0777 radarr media -"
-        "d /data/.state/prowlarr 0777 prowlarr media -"
-        "d /data/.state/lidarr 0777 lidarr media -"
-        "d /data/.state/sabnzbd 0777 sabnzbd media -"
-        "d /data/.state/recyclarr 0777 recyclarr media -"
-        "d /data/.state/autobrr 0777 autobrr media -"
-        #        "d /data/.state/moviepilot 0777 root media -"
-        #        "d /data/.state/moviepilot/core 0777 root media -"
-        "d /data/.state/vertex 0777 root media -"
-        "d /data/.state/iyuu 0777 root media -"
-        #        "d /data/.state/moviepilot/plugins 0755 root media -"
-        "Z /var/lib/bazarr 0755 bazarr media -"
-        "d /var/lib/qBittorrent 0755 qbittorrent media -"
-        "d /var/lib/iyuu 0755 iyuu media -"
-        "d /var/lib/autobrr 0755 autobrr media -"
+        "Z /data 0777 root media -"
+        "Z /data/media 0777 root media -"
+        "Z /data/downloads 0777 root media -"
+        "Z /data/downloads/usenet 0777 sabnzbd media -"
+        "Z /data/downloads/usenet/incomplete 0777 sabnzbd media -"
+        "Z /data/downloads/usenet/complete 0777 sabnzbd media -"
+        "Z /data/.state 0777 root media -"
+
+        "Z /data/.state/jellyfin 0777 jellyfin media -"
+        "Z /data/.state/jellyseerr 0777 jellyseerr media -"
+        "Z /data/.state/sonarr 0777 sonarr media -"
+        "Z /data/.state/sonarr-anime 0777 sonarr-anime media -"
+        "Z /data/.state/radarr 0777 radarr media -"
+        "Z /data/.state/prowlarr 0777 prowlarr media -"
+        "Z /data/.state/lidarr 0777 lidarr media -"
+        "Z /data/.state/sabnzbd 0777 sabnzbd media -"
+        "Z /data/.state/recyclarr 0777 recyclarr media -"
+        "Z /data/.state/autobrr 0777 autobrr media -"
+        "Z /data/.state/vertex 0777 root media -"
+        "Z /data/.state/iyuu 0777 root media -"
+        "Z /var/lib/bazarr 0777 bazarr media -"
+
+        "Z /var/lib/iyuu 0777 iyuu media -"
+        "Z /var/lib/autobrr 0777 autobrr media -"
       ];
 
       targets.postgresql-ready = {
@@ -700,19 +692,30 @@ in
       "/data/.state/autobrr"
     ];
 
+    users.users.bazarr = {
+      isSystemUser = true;
+      group = "media";
+      uid = config.ids.uids.bazarr;
+    };
+    users.groups.bazarr.gid = config.ids.gids.bazarr;
+
     users.users.iyuu = {
       isSystemUser = true;
       group = "media";
+      uid = config.ids.uids.iyuu;
       home = "/var/lib/iyuu";
       createHome = true;
     };
+    users.groups.iyuu.gid = config.ids.gids.iyuu;
 
     users.users.autobrr = {
       isSystemUser = true;
       group = "media";
+      uid = config.ids.uids.autobrr;
       home = "/var/lib/autobrr";
       createHome = true;
     };
+    users.groups.autobrr.gid = config.ids.gids.autobrr;
 
     sops.templates."iyuu-env" = {
       content = ''

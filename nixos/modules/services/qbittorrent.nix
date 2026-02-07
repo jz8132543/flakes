@@ -5,6 +5,13 @@
   ...
 }:
 {
+  users.users.qbittorrent = {
+    group = "media";
+    uid = config.ids.uids.qbittorrent;
+    isSystemUser = true;
+  };
+  users.groups.qbittorrent.gid = config.ids.gids.qbittorrent;
+
   services.qbittorrent = {
     enable = true;
     # package = pkgs.qbittorrent-enhanced-nox;
@@ -69,6 +76,8 @@
           AuthSubnetWhitelistEnabled = true;
           AuthSubnetWhitelist = "127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
         };
+        ExternalProgramEnabled = config.environment.isSeed;
+        ExternalProgramOnTorrentAdded = lib.mkIf config.environment.isSeed "${pkgs.curl}/bin/curl -s -X POST \"http://localhost:${toString config.ports.qbittorrent}/api/v2/torrents/setUploadLimit\" -d \"hashes=%I&limit=10485760\"";
         Downloads = {
           SavePath = "/data/downloads/torrents";
           TempPath = "/data/downloads/torrents/.incomplete";
@@ -97,16 +106,16 @@
   };
 
   systemd.tmpfiles.rules = [
-    "d /data/downloads/torrents 0755 qbittorrent media -"
-    "d /data/downloads/torrents/.incomplete 0755 qbittorrent media -"
-    "d /data/downloads/torrents/tv-sonarr 0755 qbittorrent media -"
-    "d /data/downloads/torrents/movies-radarr 0755 qbittorrent media -"
-    "d /data/downloads/torrents/music-lidarr 0755 qbittorrent media -"
-    "d /data/downloads/torrents/prowlarr 0755 qbittorrent media -"
-    "d /data/torrents 0755 qbittorrent media -"
-    "d /data/torrents/downloading 0755 qbittorrent media -"
-    "d /data/torrents/completed 0755 qbittorrent media -"
-    "d /var/lib/qBittorrent 0755 qbittorrent media -"
+    "Z /data/downloads/torrents 0777 qbittorrent media -"
+    "Z /data/downloads/torrents/.incomplete 0777 qbittorrent media -"
+    "Z /data/downloads/torrents/tv-sonarr 0777 qbittorrent media -"
+    "Z /data/downloads/torrents/movies-radarr 0777 qbittorrent media -"
+    "Z /data/downloads/torrents/music-lidarr 0777 qbittorrent media -"
+    "Z /data/downloads/torrents/prowlarr 0777 qbittorrent media -"
+    "Z /data/torrents 0777 qbittorrent media -"
+    "Z /data/torrents/downloading 0777 qbittorrent media -"
+    "Z /data/torrents/completed 0777 qbittorrent media -"
+    "Z /var/lib/qBittorrent 0777 qbittorrent media -"
   ];
 
   systemd.services.qbittorrent.serviceConfig = {

@@ -24,8 +24,7 @@
     teamspeak6-client
     mumble
     wechat-uos
-
-    antigravity
+    google-antigravity
     google-chrome
     code-cursor
     # CD/DVD Burning

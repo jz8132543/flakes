@@ -27,6 +27,10 @@
     lidarr = 605;
     sabnzbd = 606;
     recyclarr = 607;
+    qbittorrent = 608;
+    bazarr = 609;
+    autobrr = 610;
+    iyuu = 611;
   };
   ids.gids = {
     # service groups
@@ -49,5 +53,9 @@
     lidarr = 605;
     sabnzbd = 606;
     recyclarr = 607;
+    qbittorrent = 608;
+    bazarr = 609;
+    autobrr = 610;
+    iyuu = 611;
   };
 }
