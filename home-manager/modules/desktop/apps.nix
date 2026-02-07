@@ -24,9 +24,10 @@
     teamspeak6-client
     mumble
     wechat-uos
+
     antigravity
     google-chrome
-    opencode
+    code-cursor
     # CD/DVD Burning
     kdePackages.k3b
     vcdimager
