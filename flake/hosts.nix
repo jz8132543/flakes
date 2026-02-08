@@ -49,7 +49,7 @@ let
   };
 
   hmSpecialArgs = {
-    inputs = builtins.removeAttrs inputs [ "self" ];
+    inputs = removeAttrs inputs [ "self" ];
     inherit hmModules;
   };
 
@@ -110,6 +110,9 @@ let
                 home = {
                   username = user;
                   homeDirectory = "/home/${user}";
+                  activation.enableLinger = inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                    ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
+                  '';
                 };
                 nix.package = pkgs.nix;
                 targets.genericLinux.enable = true;

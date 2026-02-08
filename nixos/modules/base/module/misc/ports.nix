@@ -30,6 +30,7 @@
       https-alternative = 8443;
       ipsec-ike = 500;
       ssh = 1022;
+      homepage = 3005;
       pastebin = 3000;
       vaultwarden-http = 3010;
       vaultwarden-websocket = 3011;

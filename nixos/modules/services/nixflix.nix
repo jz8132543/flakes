@@ -22,15 +22,7 @@ let
 
   navHtmlDir = ./../../../conf/nixflix;
 
-  subpathProxyConfig = import ./../../../conf/nixflix/subpath-proxy.nix;
-
-  finalNavHtml = pkgs.runCommand "nixflix-nav-html" { } ''
-    mkdir -p $out
-    substitute ${navHtmlDir}/nav.html $out/nav.html \
-      --replace "@AUTOBRR_URL@" "http://tv.mag:${toString config.ports.autobrr}/" \
-      --replace "@VERTEX_URL@" "http://tv.mag:${toString config.ports.vertex}/" \
-      --replace "@IYUU_URL@" "http://tv.mag:${toString config.ports.iyuu}/"
-  '';
+  finalNavHtml = navHtmlDir;
 in
 {
   imports = [
@@ -138,7 +130,7 @@ in
               id = 0;
               name = "M-Team - TP";
               enable = true;
-              freeleechOnly = true;
+              # freeleechOnly = false;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {
                 _secret = config.sops.secrets."media/mteam_api_key".path;
@@ -266,6 +258,8 @@ in
         enable = true;
         group = "media";
         listenPort = config.ports.bazarr;
+        # CRITICAL: Bazarr needs url_base for subpath support
+        # This is not in NixOS options by default, needs to be in config file
       };
 
       # FlareSolverr - Cloudflare bypass
@@ -327,28 +321,40 @@ in
                 default_type text/html;
               '';
             };
-            "/bazarr" = {
+
+            # --- Custom Services (not managed by nixflix) ---
+            "/bazarr/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.bazarr}";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "bazarr";
-                port = config.ports.bazarr;
-              };
+              extraConfig = ''
+                # Bazarr handles url_base via its config.xml
+                proxy_set_header X-Forwarded-Prefix /bazarr;
+                # Preserve original request path for static assets
+                proxy_set_header X-Script-Name /bazarr;
+              '';
             };
+            "/bazarr" = {
+              return = "301 /bazarr/";
+            };
+
             "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}";
+              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
               proxyWebsockets = true;
+              extraConfig = ''
+                proxy_set_header X-Forwarded-Prefix /autobrr;
+              '';
             };
             "/autobrr" = {
               return = "301 /autobrr/";
             };
+
             "/qbit/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.qbittorrent}/";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "qbit";
-                port = config.ports.qbittorrent;
-              };
+              extraConfig = ''
+                # qBittorrent needs minimal config, it handles WebUI-RootFolder internally
+                proxy_set_header X-Forwarded-Prefix /qbit;
+              '';
             };
             "/qbit" = {
               return = "301 /qbit/";
@@ -357,14 +363,15 @@ in
             "/vertex/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "vertex";
-                port = config.ports.vertex;
-              };
+              extraConfig = ''
+                # Vertex already configured with BASE_PATH=/vertex
+                proxy_set_header X-Forwarded-Prefix /vertex;
+              '';
             };
             "/vertex" = {
               return = "301 /vertex/";
             };
+
             # Proxy Service Worker to Vertex backend to fix root 404
             "/service-worker.js" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/service-worker.js";
@@ -377,10 +384,9 @@ in
             "/iyuu/" = {
               proxyPass = "http://127.0.0.1:8777/";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "iyuu";
-                port = 8777;
-              };
+              extraConfig = ''
+                proxy_set_header X-Forwarded-Prefix /iyuu;
+              '';
             };
             "/iyuu" = {
               return = "301 /iyuu/";
@@ -389,32 +395,46 @@ in
             "/whoami/" = {
               proxyPass = "http://127.0.0.1:8082/";
               proxyWebsockets = true;
-              extraConfig = subpathProxyConfig {
-                path = "whoami";
-                port = 8082;
-              };
+              extraConfig = ''
+                proxy_set_header X-Forwarded-Prefix /whoami;
+              '';
             };
             "/whoami" = {
               return = "301 /whoami/";
             };
 
-            #            "/moviepilot/" = {
-            #              proxyPass = "http://127.0.0.1:${toString (config.ports.moviepilot or 3000)}/";
-            #              proxyWebsockets = true;
-            #            };
-            #            "/moviepilot" = {
-            #              return = "301 /moviepilot/";
-            #            };
+            "/dashboard/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.homepage}/";
+              proxyWebsockets = true;
+            };
 
-            # Delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr
+            "/nav" = {
+              return = "301 /";
+            };
+
+            # Services delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr, sonarr-anime
           };
         };
       };
 
       traefik.dynamicConfigOptions.http = {
+        middlewares = {
+          strip-tv = {
+            stripPrefix = {
+              prefixes = [ "/tv" ];
+            };
+          };
+        };
         routers = {
           nixflix-nav = {
-            rule = "Host(`${domain}`) && Path(`/`)";
+            # Allow access via domain or local fqdn, and via root path or /tv path
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (Path(`/`) || PathPrefix(`/tv`))";
+            entryPoints = [ "https" ];
+            service = "nixflix-nginx";
+            middlewares = [ "strip-tv" ];
+          };
+          nixflix-dashboard = {
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/dashboard`)";
             entryPoints = [ "https" ];
             service = "nixflix-nginx";
           };
@@ -662,6 +682,52 @@ in
           bazarr.serviceConfig.UMask = "0002";
           qbittorrent.serviceConfig.UMask = "0002"; # Already has group but ensure umask
           autobrr.serviceConfig.UMask = "0002";
+
+          # Configure Bazarr url_base for subpath support
+          bazarr-config-urlbase = {
+            description = "Configure Bazarr URL base for subpath routing";
+            after = [ "bazarr.service" ];
+            wants = [ "bazarr.service" ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+            };
+            path = [
+              pkgs.gnused
+              pkgs.coreutils
+            ];
+            script = ''
+              CONFIG_FILE="/var/lib/bazarr/config/config.xml"
+
+              # Wait for Bazarr to create its config file
+              for i in {1..30}; do
+                if [ -f "$CONFIG_FILE" ]; then
+                  break
+                fi
+                echo "Waiting for Bazarr config file..."
+                sleep 2
+              done
+
+              if [ ! -f "$CONFIG_FILE" ]; then
+                echo "Bazarr config file not found after waiting"
+                exit 0
+              fi
+
+              # Set url_base if not already set
+              if ! grep -q "<base_url>" "$CONFIG_FILE"; then
+                echo "Adding base_url to Bazarr config"
+                sed -i 's|</general>|  <base_url>/bazarr</base_url>\n  </general>|' "$CONFIG_FILE"
+                systemctl restart bazarr
+              elif ! grep -q "<base_url>/bazarr</base_url>" "$CONFIG_FILE"; then
+                echo "Updating base_url in Bazarr config"
+                sed -i 's|<base_url>.*</base_url>|<base_url>/bazarr</base_url>|' "$CONFIG_FILE"
+                systemctl restart bazarr
+              else
+                echo "Bazarr base_url already configured correctly"
+              fi
+            '';
+          };
         };
     };
 

@@ -64,7 +64,7 @@
       AutoRun = {
         OnTorrentAdded = {
           Enabled = config.environment.seedbox.enable;
-          Program = lib.mkIf config.environment.seedbox.enable "${pkgs.curl}/bin/curl -s -X POST \"http://localhost:${toString config.ports.qbittorrent}/api/v2/torrents/setUploadLimit\" -d \"hashes=%I&limit=10485760\"";
+          Program = lib.mkIf config.environment.seedbox.enable "${pkgs.curl}/bin/curl -s -X POST \"http://localhost:${toString config.ports.qbittorrent}/api/v2/torrents/setUploadLimit\" -d \"hashes=%I&limit=41943040\"";
         };
       };
       Network = {
