@@ -44,12 +44,9 @@
       nixosModules.services.prometheus
       nixosModules.services.grafana.default
     ];
-
-  # ═══════════════════════════════════════════════════════════════
-  # Firewall - Open qBittorrent listening port for PT
-  # ═══════════════════════════════════════════════════════════════
-  networking.firewall = {
-    allowedTCPPorts = [ 51413 ]; # qBittorrent
-    allowedUDPPorts = [ 51413 ]; # uTP protocol
+  environment.seedbox = {
+    enable = true;
+    proxyHost = "shg0.mag";
+    # proxyPort = 10080;
   };
 }

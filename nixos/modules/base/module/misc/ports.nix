@@ -147,6 +147,7 @@
       moviepilot = 3201;
       cookiecloud = 8088;
       mysql = 3306;
+      seedboxProxyPort = 50080;
     };
   };
 }
