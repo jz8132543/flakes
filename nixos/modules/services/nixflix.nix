@@ -19,9 +19,7 @@
 }:
 let
   domain = "tv.dora.im";
-
   navHtmlDir = ./../../../conf/nixflix;
-
   finalNavHtml = navHtmlDir;
 in
 {
@@ -283,6 +281,14 @@ in
         };
       };
 
+      /*
+            homepage-dashboard = {
+              enable = true;
+              # ... content omitted for brevity, reverted by user ...
+            };
+      */
+      homepage-dashboard.enable = false;
+
       nginx = {
         enable = lib.mkForce true;
         commonHttpConfig = ''
@@ -309,7 +315,7 @@ in
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header X-Forwarded-Host $host;
+              proxy_set_header X-Forwarded-Host $host;
             proxy_set_header Cookie $http_cookie;
             proxy_set_header Connection $http_connection;
           '';
@@ -364,21 +370,43 @@ in
               proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
               proxyWebsockets = true;
               extraConfig = ''
-                # Vertex already configured with BASE_PATH=/vertex
+                gunzip on;
+                proxy_set_header Accept-Encoding "";
+
+                sub_filter_types *;
+                sub_filter_once off;
+
+                # 1. Inject Base URL to fix Vue Router routing issues (White screen fix)
+                sub_filter '<head>' '<head><base href="/vertex/">';
+
+                # 2. Disable Service Worker registration to prevent caching issues
+                sub_filter 'navigator.serviceWorker.register' 'console.log("SW Disabled by Nginx"); //';
+
+                # 3. Rewrite asset paths
+                sub_filter 'src="/assets/' 'src="/vertex/assets/';
+                sub_filter 'href="/assets/' 'href="/vertex/assets/';
+                sub_filter 'content="/assets/' 'content="/vertex/assets/';
+                sub_filter 'url("/assets/' 'url("/vertex/assets/';
+                sub_filter '"src": "/assets/' '"src": "/vertex/assets/';
+                sub_filter '"/assets/' '"/vertex/assets/';
+                sub_filter "'/assets/" "'/vertex/assets/";
+
+                # 4. Inject API Path Rewriter (Monkey Patching fetch/XHR)
+                sub_filter '</head>' '<script>(function(){var f=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/api/"))u="/vertex"+u;return f(u,o);};var x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/api/"))u="/vertex"+u;return x.apply(this,arguments);};})();</script></head>';
+
+                proxy_redirect / /vertex/;
                 proxy_set_header X-Forwarded-Prefix /vertex;
               '';
             };
-            "/vertex" = {
-              return = "301 /vertex/";
+
+            # Block Service Worker to prevent "bad-precaching-response" errors
+            "/vertex/service-worker.js" = {
+              return = "200 '/* Service Worker Disabled */'";
+              extraConfig = "add_header Content-Type application/javascript;";
             };
 
-            # Proxy Service Worker to Vertex backend to fix root 404
-            "/service-worker.js" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/service-worker.js";
-              extraConfig = ''
-                # Allow cross-scope SW registration if needed, though proxying usually avoids this
-                proxy_set_header X-Forwarded-Host $host;
-              '';
+            "/vertex" = {
+              return = "301 /vertex/";
             };
 
             "/iyuu/" = {
@@ -886,6 +914,22 @@ in
         extraOptions = [ "--network=host" ];
       };
     };
+
+    /*
+        sops.templates."homepage.env".content = ''
+          HOMEPAGE_VAR_SONARR_API_KEY=${config.sops.placeholder."media/sonarr_api_key"}
+          HOMEPAGE_VAR_RADARR_API_KEY=${config.sops.placeholder."media/radarr_api_key"}
+          HOMEPAGE_VAR_LIDARR_API_KEY=${config.sops.placeholder."media/lidarr_api_key"}
+          HOMEPAGE_VAR_PROWLARR_API_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
+          HOMEPAGE_VAR_PROWLARR_API_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
+          HOMEPAGE_VAR_JELLYFIN_API_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
+          HOMEPAGE_VAR_JELLYSEERR_API_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
+          HOMEPAGE_VAR_AUTOBRR_API_KEY=${config.sops.placeholder."media/autobrr_session_token"}
+          HOMEPAGE_VAR_SABNZBD_API_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
+          HOMEPAGE_VAR_QBITTORRENT_USERNAME=admin
+          HOMEPAGE_VAR_QBITTORRENT_PASSWORD=${config.sops.placeholder.password}
+        '';
+    */
 
     sops.secrets =
       let
