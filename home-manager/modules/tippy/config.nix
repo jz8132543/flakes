@@ -1,6 +1,5 @@
 {
   config,
-  osConfig,
   pkgs,
   ...
 }:
@@ -12,8 +11,7 @@
       ".cache/nix"
     ];
   };
-  home.sessionVariables =
-    if osConfig.networking.fw-proxy.enable then osConfig.networking.fw-proxy.environment else { };
+  home.sessionVariables = { };
   # home.activation.syncOwnerPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
   #   sync_permissions() {
   #     local target_dir="$1"

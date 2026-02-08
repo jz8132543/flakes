@@ -14,7 +14,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.tailscale;
+      default = osConfig.pkgs.tailscale;
       description = "The package to use for the DERP relay.";
     };
 
@@ -65,7 +65,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ pkgs.tailscale ];
+    home.packages = [ cfg.package ];
     # Ensure cert directory exists
     systemd.user.services.derp = {
       Unit = {
@@ -94,7 +94,7 @@ in
             ++ lib.optional cfg.verifyClients "-verify-clients"
             ++ cfg.extraArgs;
           in
-          "${osConfig.pkgs.tailscale}/bin/derp ${builtins.concatStringsSep " " args}";
+          "${cfg.package}/bin/derp ${builtins.concatStringsSep " " args}";
         Restart = "on-failure";
       };
 

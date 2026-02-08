@@ -24,6 +24,6 @@ in
         "vscode"
       ];
     };
-    overlays = packages ++ [ lateFixes ] ++ lastePackages;
+    overlays = packages;
   };
 }

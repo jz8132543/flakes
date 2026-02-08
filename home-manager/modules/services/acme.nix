@@ -88,7 +88,7 @@ in
                 ${pkgs.lego}/bin/lego --email ${cfg.email} --accept-tos --path ${cfg.directory} --dns ${cert.dnsProvider} ${domainArgs} run
               else
                 echo "Certificate ${certPath} found. Checking for renewal..."
-                ${pkgs.lego}/bin/lego --email ${cfg.email} --accept-tos --path ${cfg.directory} --dns ${cert.dnsProvider} ${domainArgs} renew --renew-days 30
+                ${pkgs.lego}/bin/lego --email ${cfg.email} --accept-tos --path ${cfg.directory} --dns ${cert.dnsProvider} ${domainArgs} renew --days 30
               fi
 
               # Create aliases

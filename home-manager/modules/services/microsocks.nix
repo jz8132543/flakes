@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  osConfig,
   ...
 }:
 let
@@ -19,7 +20,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 1080;
+      default = osConfig.ports.seedboxProxyPort;
       description = "The port to listen on.";
     };
 
@@ -33,6 +34,12 @@ in
       type = lib.types.nullOr lib.types.str;
       default = "tailscale0";
       description = "The interface to bind to. If set, bindAddr is ignored.";
+    };
+
+    ipWhitelist = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "List of IP addresses allowed to use the proxy without authentication.";
     };
 
     extraArgs = lib.mkOption {
@@ -72,7 +79,9 @@ in
                     echo "Using explicit bind address $BIND_IP"
                   ''
               }
-              exec ${cfg.package}/bin/microsocks -p ${toString cfg.port} -i "$BIND_IP" ${lib.escapeShellArgs cfg.extraArgs}
+              exec ${cfg.package}/bin/microsocks -p ${toString cfg.port} -i "$BIND_IP" \
+                ${lib.optionalString (cfg.ipWhitelist != [ ]) "-w ${lib.concatStringsSep "," cfg.ipWhitelist}"} \
+                ${lib.escapeShellArgs cfg.extraArgs}
             '';
           in
           "${startScript}";

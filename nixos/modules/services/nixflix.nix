@@ -137,7 +137,7 @@ in
             {
               id = 0;
               name = "M-Team - TP";
-              enable = false;
+              enable = true;
               freeleechOnly = true;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {

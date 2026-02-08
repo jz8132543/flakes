@@ -86,6 +86,7 @@ let
       name,
       user,
       system,
+      configurationName ? name,
       extraModules ? [ ],
     }:
     {
@@ -103,43 +104,38 @@ let
             commonHmModules
             ++ hmModules.${user}.all
             ++ extraModules
+            ++ lib.optional (configurationName != null) ../home-manager/hosts/${configurationName}.nix
             ++ [
               {
                 home = {
                   username = user;
                   homeDirectory = "/home/${user}";
                 };
-                home.packages = [ pkgs.tailscale ];
+                nix.package = pkgs.nix;
                 targets.genericLinux.enable = true;
+
+                # Mock osConfig for standalone Home Manager
+                _module.args.osConfig = rec {
+                  networking.hostName = name;
+                  networking.domain = "dora.im";
+                  networking.fqdn = "${networking.hostName}.${networking.domain}";
+                  environment.domains = [ ];
+                  sops-file.get = name: "${self}/secrets/${name}";
+
+                  inherit
+                    ((import ../nixos/modules/base/module/misc/ports.nix {
+                      inherit lib;
+                      config = { };
+                    }).config
+                    )
+                    ports
+                    ;
+
+                  inherit pkgs;
+                };
               }
             ];
-          extraSpecialArgs = hmSpecialArgs // {
-            osConfig = rec {
-              networking.hostName =
-                let
-                  hostnameFile = "/nix/config/hostname";
-                in
-                if builtins.pathExists hostnameFile then
-                  lib.strings.trim (builtins.readFile hostnameFile)
-                else
-                  "localhost";
-              networking.domain = "dora.im";
-              networking.fqdn = "${networking.hostName}.${networking.domain}";
-              networking.fw-proxy.enable = false;
-              environment.domains = [ ];
-              inherit ((import ../nixos/modules/base/module/misc/ports.nix {
-                  inherit lib;
-                  config = { };
-                }).config) ports;
-              nix.settings = {
-                substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
-                trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
-              };
-              sops-file.get = name: "${self}/secrets/${name}";
-              services.xserver.enable = false; # Assuming headless for remote deploy
-              inherit pkgs;
-            };
-          };
+          extraSpecialArgs = hmSpecialArgs;
         };
     };
 in
@@ -190,44 +186,16 @@ in
     # })
   ];
 
-  flake.homeConfigurations = lib.mkMerge [
-    # (mkHome {
-    #   name = "nue0";
-    #   user = "tippy";
-    #   system = "x86_64-linux";
-    # })
-    # Generic localhost configuration for remote home-manager deployment
+  flake.homeConfigurations =
     (mkHome {
       name = "localhost";
       user = "tippy";
       system = "x86_64-linux";
-      extraModules = [
-        (
-          { config, osConfig, ... }:
-          {
-            sops.age.keyFile = "/nix/config/sops/age/keys.txt";
-            services.derp = {
-              enable = true;
-              hostname = osConfig.networking.fqdn;
-              port = 10043;
-              stunPort = 3440;
-              certMode = "manual";
-              certDir = "${config.services.acme.directory}/certificates";
-            };
-            services.microsocks = {
-              enable = true;
-              port = osConfig.ports.seedboxProxyPort;
-            };
-            services.acme = {
-              enable = true;
-              certs."main" = {
-                domain = "*.dora.im";
-                aliasNames = [ osConfig.networking.fqdn ];
-              };
-            };
-          }
-        )
-      ];
+      configurationName = null;
     })
-  ];
+    // (mkHome {
+      name = "shg0";
+      user = "tippy";
+      system = "x86_64-linux";
+    });
 }

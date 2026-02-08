@@ -23,7 +23,6 @@ in
         hydraURL = "https://hydra.dora.im";
         notificationSender = "hydra@dora.im";
         useSubstitutes = true;
-        extraEnv = lib.mkIf config.networking.fw-proxy.enable config.networking.fw-proxy.environment;
         dbi = "dbi:Pg:dbname=hydra;host=${PG};user=hydra;";
         buildMachinesFiles = [
           "/etc/nix/machines"
