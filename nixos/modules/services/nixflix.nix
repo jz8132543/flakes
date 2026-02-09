@@ -382,8 +382,11 @@ in
                 # 1. Inject Base URL to fix Vue Router routing issues (White screen fix)
                 sub_filter '<head>' '<head><base href="/vertex/">';
 
-                # 2. Disable Service Worker registration to prevent caching issues
-                sub_filter 'navigator.serviceWorker.register' 'console.log("SW Disabled by Nginx"); //';
+                # 2. Fix Service Worker and Manifest paths (Prevent 404 errors)
+                sub_filter '"/service-worker.js"' '"/vertex/service-worker.js"';
+                sub_filter "'/service-worker.js'" "'/vertex/service-worker.js'";
+                sub_filter '"start_url":"/"' '"scope":"/vertex/","start_url":"/vertex/"';
+                sub_filter '"scope":"/"' '"scope":"/vertex/"';
 
                 # 3. Rewrite asset paths
                 sub_filter 'src="/assets/' 'src="/vertex/assets/';
@@ -934,22 +937,6 @@ in
         extraOptions = [ "--network=host" ];
       };
     };
-
-    /*
-        sops.templates."homepage.env".content = ''
-          HOMEPAGE_VAR_SONARR_API_KEY=${config.sops.placeholder."media/sonarr_api_key"}
-          HOMEPAGE_VAR_RADARR_API_KEY=${config.sops.placeholder."media/radarr_api_key"}
-          HOMEPAGE_VAR_LIDARR_API_KEY=${config.sops.placeholder."media/lidarr_api_key"}
-          HOMEPAGE_VAR_PROWLARR_API_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
-          HOMEPAGE_VAR_PROWLARR_API_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
-          HOMEPAGE_VAR_JELLYFIN_API_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
-          HOMEPAGE_VAR_JELLYSEERR_API_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
-          HOMEPAGE_VAR_AUTOBRR_API_KEY=${config.sops.placeholder."media/autobrr_session_token"}
-          HOMEPAGE_VAR_SABNZBD_API_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
-          HOMEPAGE_VAR_QBITTORRENT_USERNAME=admin
-          HOMEPAGE_VAR_QBITTORRENT_PASSWORD=${config.sops.placeholder.password}
-        '';
-    */
 
     sops.secrets =
       let

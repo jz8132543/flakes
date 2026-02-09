@@ -23,7 +23,8 @@
       nixosModules.services.reader
       nixosModules.services.proxy
       nixosModules.services.cookiecloud
-      # nixosModules.services.searx
+      nixosModules.services.homepage
+      nixosModules.services.searx
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
@@ -43,6 +44,7 @@
       nixosModules.services.telegraf
       nixosModules.services.prometheus
       nixosModules.services.grafana.default
+      nixosModules.services.homepage
     ];
   environment.seedbox = {
     enable = true;

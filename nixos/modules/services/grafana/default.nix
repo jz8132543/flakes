@@ -14,6 +14,9 @@ in
     "alertmanager/telegram_bot" = {
       owner = "grafana";
     };
+    "password" = {
+      mode = "0444";
+    };
   };
 
   services.grafana = {
@@ -29,7 +32,8 @@ in
       security = {
         admin_user = "i";
         admin_email = "i@dora.im";
-        secret_key = "$__file{${config.sops.secrets."grafana/secret_key".path}}";
+        # secret_key = "$__file{${config.sops.secrets."grafana/secret_key".path}}";
+        secret_key = "$__file{${config.sops.secrets."password".path}}";
         cookie_secure = true;
       };
       users = {

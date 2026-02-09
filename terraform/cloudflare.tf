@@ -91,9 +91,9 @@ locals {
     metrics       = { on = "nue0", proxy = false }
     tv            = { on = "nue0", proxy = false }
     cookiecloud   = { on = "nue0", proxy = false }
-    # seerr              = { on = "nue0", proxy = false }
-    # sonarr             = { on = "nue0", proxy = false }
-    # autobrr            = { on = "nue0", proxy = false }
+    dash          = { on = "nue0", proxy = false }
+    cookie        = { on = "nue0", proxy = false }
+    home          = { on = "nue0", proxy = false }
     # prowlarr           = { on = "nue0", proxy = false }
     # radarr             = { on = "nue0", proxy = false }
     # bazarr             = { on = "nue0", proxy = false }

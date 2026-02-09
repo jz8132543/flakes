@@ -40,7 +40,9 @@
       # S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
       # S3_REGION = config.lib.self.data.mastodon.media.region.value;
       # S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
-      DEEPL_PLAN = "free";
+      RAILS_DEVELOPMENT_HOSTS = "zone.dora.im";
+      LOCAL_DOMAIN_WHITELIST = "zone.dora.im";
+      TRUSTED_PROXY_IP = "127.0.0.1,::1";
     };
     extraEnvFiles = [ config.sops.templates."mastodon-env".path ];
   };
@@ -90,6 +92,7 @@
         extraConfig = ''
           proxy_set_header Host $host;
           proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Port 443;
           proxy_set_header Proxy "";
         '';
       };
@@ -99,6 +102,7 @@
         extraConfig = ''
           proxy_set_header Host $host;
           proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Port 443;
           proxy_set_header Proxy "";
         '';
       };

@@ -109,7 +109,19 @@
       "on": "nue0",
       "proxy": false
     },
+    "cookie": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "cookiecloud": {
+      "on": "nue0",
+      "proxy": false
+    },
     "dash": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "home": {
       "on": "nue0",
       "proxy": false
     },
