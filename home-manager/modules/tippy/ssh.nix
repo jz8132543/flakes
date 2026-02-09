@@ -20,7 +20,7 @@ with lib.strings;
         );
         "CanonicalizeMaxDots" = "0";
         # fix kde connection for android
-        "HostKeyAlgorithms " = "+ssh-rsa";
+        "HostKeyAlgorithms" = "+ssh-rsa";
       };
       matchBlocks = {
         "github.com" = {
@@ -63,4 +63,37 @@ with lib.strings;
       ];
     };
   };
+
+  home.activation.sshConfigPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    ssh_dir="$HOME/.ssh"
+    if [ -d "$ssh_dir" ]; then
+      $DRY_RUN_CMD echo "Fixing permissions for $ssh_dir..."
+      $DRY_RUN_CMD chmod 700 "$ssh_dir"
+
+      # Handle config file
+      ssh_config="$ssh_dir/config"
+      if [ -e "$ssh_config" ]; then
+        if [ -L "$ssh_config" ]; then
+          $DRY_RUN_CMD echo "Converting $ssh_config from symlink to real file..."
+          target=$(readlink -f "$ssh_config")
+          $DRY_RUN_CMD rm "$ssh_config"
+          $DRY_RUN_CMD cp "$target" "$ssh_config"
+        fi
+        $DRY_RUN_CMD chmod 600 "$ssh_config"
+      fi
+
+      # Handle private keys
+      for key in "$ssh_dir"/id_*; do
+        if [ -e "$key" ] && [[ ! "$key" == *.pub ]]; then
+          if [ -L "$key" ]; then
+            $DRY_RUN_CMD echo "Converting private key $key from symlink to real file..."
+            target=$(readlink -f "$key")
+            $DRY_RUN_CMD rm "$key"
+            $DRY_RUN_CMD cp "$target" "$key"
+          fi
+          $DRY_RUN_CMD chmod 600 "$key"
+        fi
+      done
+    fi
+  '';
 }

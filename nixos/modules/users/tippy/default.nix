@@ -59,6 +59,7 @@ in
   ];
   systemd.tmpfiles.rules = [
     "d  ${homeDirectory}/source                 775 ${name} users -"
+    "d  ${homeDirectory}/.ssh                   700 ${name} users -"
   ];
 
   # systemd.tmpfiles.rules = [

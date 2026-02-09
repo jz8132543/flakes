@@ -27,6 +27,7 @@
     google-antigravity
     google-chrome
     code-cursor
+    codex
     # CD/DVD Burning
     kdePackages.k3b
     vcdimager
@@ -159,6 +160,7 @@
       ".config/opencode"
       ".local/share/opencode"
       ".opencode"
+      ".codex"
     ];
     files = [
       ".config/monitors.xml"
