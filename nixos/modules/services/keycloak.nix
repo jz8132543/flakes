@@ -33,7 +33,7 @@
       http-host = "127.0.0.1";
       http-port = config.ports.keycloak;
     };
-    # realmFiles = [ config.sops.templates."keycloak-realm-dora".path ];
+    realmFiles = [ config.sops.templates."keycloak-realm-dora".path ];
   };
   # services.openldap = {
   #   enable = true;
@@ -176,56 +176,68 @@
   #   #   config.sops.templates."lldap-env".file
   #   # ];
   # };
-  # sops.templates."keycloak-realm-dora" = {
-  #   mode = "0444";
-  #   content = ''
-  #     {
-  #       "realm": "users",
-  #       "enabled": true,
-  #       "clients": [
-  #         {
-  #           "clientId": "jellyfin",
-  #           "name": "Jellyfin Media Server",
-  #           "enabled": true,
-  #           "protocol": "openid-connect",
-  #           "clientAuthenticatorType": "client-secret",
-  #           "secret": "${config.sops.placeholder."jellyfin/oidc_client_secret"}",
-  #           "redirectUris": [
-  #             "https://jellyfin.dora.im/sso/OID/redirect/jellyfin"
-  #           ],
-  #           "webOrigins": [
-  #             "https://jellyfin.dora.im"
-  #           ],
-  #           "publicClient": false,
-  #           "standardFlowEnabled": true,
-  #           "directAccessGrantsEnabled": true
-  #         }
-  #       ],
-  #       "userFederationProviders": [
-  #         {
-  #           "displayName": "LDAP",
-  #           "providerName": "ldap",
-  #           "config": {
-  #             "priority": "0",
-  #             "fullSyncPeriod": "86400",
-  #             "changedSyncPeriod": "3600",
-  #             "cachePolicy": "DEFAULT",
-  #             "importEnabled": "true",
-  #             "enabled": "true",
-  #             "vendor": "other",
-  #             "connectionUrl": "ldaps://ldap.dora.im:636",
-  #             "usersDn": "ou=users,dc=dora,dc=im",
-  #             "bindDn": "cn=admin,dc=dora,dc=im",
-  #             "bindCredential": "",
-  #             "useTruststoreSpi": "ldapsOnly",
-  #             "pagination": "true"
-  #           }
-  #         }
-  #       ]
-  #     }
-  #   '';
-  # };
+  sops.templates."keycloak-realm-dora" = {
+    mode = "0444";
+    content = ''
+      {
+        "realm": "users",
+        "enabled": true,
+        "smtpServer": {
+          "host": "${config.environment.smtp_host}",
+          "port": "${toString config.environment.smtp_port}",
+          "from": "noreply@dora.im",
+          "auth": "true",
+          "user": "noreply@dora.im",
+          "password": "${config.sops.placeholder."mail/noreply"}",
+          "ssl": "false",
+          "starttls": "true"
+        },
+        "clients": [
+          {
+            "clientId": "jellyfin",
+            "name": "Jellyfin Media Server",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."jellyfin/oidc_client_secret"}",
+            "redirectUris": [
+              "https://jellyfin.dora.im/sso/OID/redirect/jellyfin"
+            ],
+            "webOrigins": [
+              "https://jellyfin.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true
+          }
+        ],
+        "userFederationProviders": [
+          {
+            "displayName": "LDAP",
+            "providerName": "ldap",
+            "config": {
+              "priority": "0",
+              "fullSyncPeriod": "86400",
+              "changedSyncPeriod": "3600",
+              "cachePolicy": "DEFAULT",
+              "importEnabled": "true",
+              "enabled": "true",
+              "vendor": "other",
+              "connectionUrl": "ldaps://ldap.dora.im:636",
+              "usersDn": "ou=users,dc=dora,dc=im",
+              "bindDn": "cn=admin,dc=dora,dc=im",
+              "bindCredential": "",
+              "useTruststoreSpi": "ldapsOnly",
+              "pagination": "true"
+            }
+          }
+        ]
+      }
+    '';
+  };
   sops.secrets = {
+    "mail/noreply" = { };
+    "jellyfin/oidc_client_secret" = { };
     "lldap/LLDAP_SERVER_KEY_SEED" = { };
     "lldap/jwt_secret" = {
       mode = "0444";

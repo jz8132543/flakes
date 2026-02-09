@@ -30,11 +30,14 @@ let
     }
   ];
 
-  commonHmModules = hmModules.base.all ++ [
-    {
-      lib.self = selfLib;
-    }
-  ];
+  commonHmModules =
+    hmModules.base.all
+    ++ hmModules.services.all
+    ++ [
+      {
+        lib.self = selfLib;
+      }
+    ];
 
   nixosSpecialArgs = {
     inherit
@@ -46,7 +49,7 @@ let
   };
 
   hmSpecialArgs = {
-    inputs = builtins.removeAttrs inputs [ "self" ];
+    inputs = removeAttrs inputs [ "self" ];
     inherit hmModules;
   };
 
@@ -83,35 +86,60 @@ let
       name,
       user,
       system,
+      configurationName ? name,
       extraModules ? [ ],
     }:
     {
-      "${user}@${name}" = inputs.home-manager.lib.homeManagerConfiguration {
-        pkgs = inputs.nixpkgs.legacyPackages.${system};
-        modules =
-          commonHmModules
-          ++ hmModules.${user}.all
-          ++ extraModules
-          ++ [
-            {
-              home = {
-                username = user;
-                homeDirectory = "/home/${user}";
-              };
-              targets.genericLinux.enable = true;
-            }
-          ];
-        extraSpecialArgs = hmSpecialArgs // {
-          osConfig = {
-            networking.domain = "dora.im"; # Fallback/Default domain
-            networking.fw-proxy.enable = false;
-            environment.domains = [ ];
-            ports.ssh = 22;
-            sops-file.get = name: "${self}/secrets/${name}";
-            services.xserver.enable = false; # Assuming headless for remote deploy
+      "${user}@${name}" =
+        let
+          pkgs = import inputs.nixpkgs {
+            inherit system;
+            config.allowUnfree = true;
+            overlays = import ../lib/overlays.nix { inherit inputs lib self; };
           };
+        in
+        inputs.home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          modules =
+            commonHmModules
+            ++ hmModules.${user}.all
+            ++ extraModules
+            ++ lib.optional (configurationName != null) ../home-manager/hosts/${configurationName}.nix
+            ++ [
+              {
+                home = {
+                  username = user;
+                  homeDirectory = "/home/${user}";
+                  activation.enableLinger = inputs.home-manager.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                    ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
+                  '';
+                };
+                nix.package = pkgs.nix;
+                targets.genericLinux.enable = true;
+
+                # Mock osConfig for standalone Home Manager
+                _module.args.osConfig = rec {
+                  networking.hostName = name;
+                  networking.domain = "dora.im";
+                  networking.fqdn = "${networking.hostName}.${networking.domain}";
+                  environment.domains = [ ];
+                  sops-file.get = name: "${self}/secrets/${name}";
+
+                  inherit
+                    ((import ../nixos/modules/base/module/misc/ports.nix {
+                      inherit lib;
+                      config = { };
+                    }).config
+                    )
+                    ports
+                    ;
+
+                  inherit pkgs;
+                };
+              }
+            ];
+          extraSpecialArgs = hmSpecialArgs;
         };
-      };
     };
 in
 {
@@ -161,17 +189,16 @@ in
     # })
   ];
 
-  flake.homeConfigurations = lib.mkMerge [
-    # (mkHome {
-    #   name = "nue0";
-    #   user = "tippy";
-    #   system = "x86_64-linux";
-    # })
-    # Generic localhost configuration for remote home-manager deployment
+  flake.homeConfigurations =
     (mkHome {
       name = "localhost";
       user = "tippy";
       system = "x86_64-linux";
+      configurationName = null;
     })
-  ];
+    // (mkHome {
+      name = "shg0";
+      user = "tippy";
+      system = "x86_64-linux";
+    });
 }

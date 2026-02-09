@@ -62,10 +62,19 @@
         db_file = "";
         table_prefix = "x_";
       };
+      email = {
+        enable = true;
+        host = "${config.environment.smtp_host}";
+        port = config.environment.smtp_port;
+        user = "noreply@dora.im";
+        password = "${config.sops.placeholder."mail/noreply"}";
+        from = "noreply@dora.im";
+      };
     };
   };
   sops.secrets = {
     "alist/JWT" = { };
+    "mail/noreply" = { };
   };
 
   services.traefik.dynamicConfigOptions.http = {

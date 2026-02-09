@@ -11,7 +11,6 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      # nixosModules.services.fw-proxy
     ];
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [

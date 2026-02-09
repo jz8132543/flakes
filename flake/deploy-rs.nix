@@ -5,30 +5,55 @@
   ...
 }:
 let
-  mkNode =
-    name: cfg:
+  # Function to generate nodes for deploy-rs
+  # It merges nixosConfigurations and homeConfigurations by hostname
+  nodes =
     let
-      inherit (cfg.pkgs.stdenv.hostPlatform) system;
-      deployLib = inputs.deploy-rs.lib.${system};
+      # System nodes from nixosConfigurations
+      nixosNodes = lib.mapAttrs (name: cfg: {
+        hostname = name;
+        profiles.system = {
+          sshUser = "root";
+          user = "root";
+          path = inputs.deploy-rs.lib.${cfg.pkgs.stdenv.hostPlatform.system}.activate.nixos cfg;
+          # Disable profile-level checks
+          check = false;
+        };
+      }) self.nixosConfigurations;
+
+      # Home nodes from homeConfigurations
+      # HM keys are in "user@host" format
+      hmNodes = lib.concatMapAttrs (
+        key: cfg:
+        let
+          parts = lib.splitString "@" key;
+          user = lib.elemAt parts 0;
+          host = lib.elemAt parts 1;
+        in
+        {
+          ${host} = {
+            hostname = host;
+            profiles."user-${user}" = {
+              sshUser = user;
+              inherit user;
+              path = inputs.deploy-rs.lib.${cfg.pkgs.stdenv.hostPlatform.system}.activate.home-manager cfg;
+              # Disable profile-level checks
+              check = false;
+            };
+          };
+        }
+      ) self.homeConfigurations;
     in
-    {
-      hostname = "${name}";
-      # sshOpts = ["-p" "1022"];
-      # currently only a single profile system
-      profilesOrder = [ "system" ];
-      profiles.system = {
-        sshUser = "root";
-        user = "root";
-        path = deployLib.activate.nixos cfg;
-      };
-    };
-  nodes = lib.mapAttrs mkNode self.nixosConfigurations;
+    lib.recursiveUpdate nixosNodes hmNodes;
 in
 {
   flake = {
     deploy = {
       autoRollback = true;
       magicRollback = true;
+
+      # Disable default evaluation of flake.checks
+      checks = { };
 
       inherit nodes;
     };
@@ -39,8 +64,6 @@ in
       ...
     }:
     {
-      # evaluation of deployChecks is slow
-      # checks = inputs.deploy-rs.lib.${system}.deployChecks self.deploy;
       devshells.default = {
         commands = [
           {

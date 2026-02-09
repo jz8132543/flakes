@@ -101,9 +101,7 @@
     restartUnits = [ "nextcloud-setup.service" ];
     owner = "nextcloud";
   };
-  sops.secrets."nextcloud/mail_password" = {
-    restartUnits = [ "nextcloud-setup.service" ];
-  };
+
   sops.secrets."nextcloud/oidc-secret" = {
     restartUnits = [ "nextcloud-setup.service" ];
   };

@@ -27,13 +27,12 @@ fi
 echo "Build successful: $ACTIVATION_PKG"
 
 echo "=== 2. Copying to Remote ($USER@$HOST:$PORT) ==="
-nix copy --to "ssh-ng://${USER}@${HOST}:${PORT}" "$ACTIVATION_PKG"
+# --no-check-sigs allows copying paths that aren't signed by a trusted key (required for non-trusted-users)
+nix copy --no-check-sigs --to "ssh-ng://${USER}@${HOST}:${PORT}" "$ACTIVATION_PKG"
 
 echo "=== 3. Activating Configuration ==="
-# We assume the remote host might have conflicting files (like .zshrc created by installer),
-# so we enable automatic backup by setting HOME_MANAGER_BACKUP_EXT.
-# This is the standard mechanism provided by Home Manager's activation script.
-CMD="source ~/.nix-profile/etc/profile.d/nix.sh; export HOME_MANAGER_BACKUP_EXT=backup; $ACTIVATION_PKG/activate"
+# We use bash -c to ensure the command runs in a POSIX-compatible shell even if the remote user's shell is fish.
+CMD="bash -c 'source ~/.profile 2>/dev/null || true; [ -f ~/.nix-profile/etc/profile.d/nix.sh ] && source ~/.nix-profile/etc/profile.d/nix.sh; export HOME_MANAGER_BACKUP_EXT=backup; $ACTIVATION_PKG/activate'"
 
 ssh -p "$PORT" "$USER@$HOST" "$CMD"
 

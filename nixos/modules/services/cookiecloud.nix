@@ -4,7 +4,7 @@
   ...
 }:
 let
-  domain = "cookiecloud.${config.networking.domain}";
+  domain = "cookie.${config.networking.domain}";
   port = config.ports.cookiecloud;
 in
 {

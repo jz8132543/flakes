@@ -1,5 +1,6 @@
 {
   inputs,
+  lib,
   osConfig,
   ...
 }:
@@ -10,7 +11,7 @@
   sops = {
     defaultSopsFile = osConfig.sops-file.get "common.yaml";
     age = {
-      keyFile = "/var/lib/sops-nix/key";
+      keyFile = lib.mkDefault "/var/lib/sops-nix/key";
       sshKeyPaths = [ ];
     };
     gnupg.sshKeyPaths = [ ];

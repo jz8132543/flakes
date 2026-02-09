@@ -58,7 +58,7 @@ lib.mkMerge [
   # matrix-synapse
   {
     sops.secrets = {
-      "matrix/mail" = { };
+
       "matrix/signing-key" = {
         owner = "matrix-synapse";
       };
@@ -196,10 +196,10 @@ lib.mkMerge [
       content = builtins.toJSON {
         email = {
           smtp_host = "${config.lib.self.data.mail.smtp}";
-          smtp_user = "matrix@dora.im";
-          notif_from = "matrix@dora.im";
+          smtp_user = "noreply@dora.im";
+          notif_from = "noreply@dora.im";
           force_tls = true;
-          smtp_pass = config.sops.placeholder."matrix/mail";
+          smtp_pass = config.sops.placeholder."mail/noreply";
         };
         # media_storage_providers = [
         #   # as backup of all local media

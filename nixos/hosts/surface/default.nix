@@ -12,7 +12,6 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.nixflix
-      # nixosModules.services.fw-proxy
     ];
 
   # hardware.microsoft-surface.kernelVersion = "stable";

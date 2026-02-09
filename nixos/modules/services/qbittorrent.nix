@@ -61,6 +61,25 @@
           Port = 51413;
         };
       };
+      AutoRun = {
+        OnTorrentAdded = {
+          Enabled = config.environment.seedbox.enable;
+          Program = lib.mkIf config.environment.seedbox.enable "${pkgs.curl}/bin/curl -s -X POST \"http://localhost:${toString config.ports.qbittorrent}/api/v2/torrents/setUploadLimit\" -d \"hashes=%I&limit=41943040\"";
+        };
+      };
+      Network = {
+        Proxy = {
+          Type = if config.environment.seedbox.enable then "SOCKS5" else "None";
+          IP = if config.environment.seedbox.enable then config.environment.seedbox.proxyHost else "";
+          Port = if config.environment.seedbox.enable then config.environment.seedbox.proxyPort else 8080;
+          HostnameLookupEnabled = config.environment.seedbox.enable;
+          Profiles = {
+            BitTorrent = config.environment.seedbox.enable;
+            RSS = config.environment.seedbox.enable;
+            Misc = config.environment.seedbox.enable;
+          };
+        };
+      };
       Preferences = {
         WebUI = {
           AlternativeUIEnabled = true;
@@ -76,8 +95,7 @@
           AuthSubnetWhitelistEnabled = true;
           AuthSubnetWhitelist = "127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
         };
-        ExternalProgramEnabled = config.environment.isSeed;
-        ExternalProgramOnTorrentAdded = lib.mkIf config.environment.isSeed "${pkgs.curl}/bin/curl -s -X POST \"http://localhost:${toString config.ports.qbittorrent}/api/v2/torrents/setUploadLimit\" -d \"hashes=%I&limit=10485760\"";
+
         Downloads = {
           SavePath = "/data/downloads/torrents";
           TempPath = "/data/downloads/torrents/.incomplete";
@@ -102,6 +120,51 @@
           '';
         };
       };
+    };
+  };
+
+  # ═══════════════════════════════════════════════════════════════
+  # PT Whitening - Automated IP Reporting
+  # ═══════════════════════════════════════════════════════════════
+  # systemd.services.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {
+  #   description = "Report qBittorrent public IP to tracker";
+  #   after = [ "qbittorrent.service" ];
+  #   wantedBy = [ "multi-user.target" ];
+  #   serviceConfig = {
+  #     Type = "oneshot";
+  #     ExecStart =
+  #       let
+  #         script = pkgs.writeShellScript "qbit-ip-reporter.sh" ''
+  #           # Get current public IP
+  #           CURRENT_IP=$(${pkgs.curl}/bin/curl -s https://api.ipify.org)
+  #           if [ -z "$CURRENT_IP" ]; then
+  #             echo "Failed to get public IP"
+  #             exit 1
+  #           fi
+  #           echo "Reporting public IP: $CURRENT_IP"
+  #
+  #           # Wait for WebUI to be ready
+  #           until ${pkgs.curl}/bin/curl -s "http://localhost:${toString config.ports.qbittorrent}" > /dev/null; do
+  #             echo "Waiting for qBittorrent WebUI..."
+  #             sleep 2
+  #           done
+  #
+  #           # Use WebAPI to set AnnounceIP
+  #           # No auth needed for localhost as per config.Preferences.WebUI.LocalHostAuth = false
+  #           ${pkgs.curl}/bin/curl -i -X POST "http://localhost:${toString config.ports.qbittorrent}/api/v2/app/setPreferences" \
+  #             -d "json={\"announce_ip\":\"$CURRENT_IP\"}"
+  #         '';
+  #       in
+  #       "${script}";
+  #     User = "qbittorrent";
+  #   };
+  # };
+
+  systemd.timers.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnBootSec = "1min";
+      OnUnitActiveSec = "10min";
     };
   };
 
@@ -145,5 +208,9 @@
     "/var/lib/qbittorrent"
   ];
 
+  networking.firewall = {
+    allowedTCPPorts = [ 51413 ]; # qBittorrent
+    allowedUDPPorts = [ 51413 ]; # uTP protocol
+  };
   networking.hosts."127.0.0.1" = [ "qbittorrent" ];
 }

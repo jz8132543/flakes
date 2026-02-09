@@ -17,8 +17,8 @@
     smtp = {
       host = config.environment.smtp_host;
       port = config.environment.smtp_port;
-      passwordFile = config.sops.secrets."mastodon/mail".path;
-      fromAddress = "mastodon@dora.im";
+      passwordFile = config.sops.secrets."mail/noreply".path;
+      fromAddress = "noreply@dora.im";
     };
     extraConfig = {
       WEB_DOMAIN = "zone.dora.im";
@@ -40,7 +40,10 @@
       # S3_ENDPOINT = config.lib.self.data.mastodon.media.host;
       # S3_REGION = config.lib.self.data.mastodon.media.region.value;
       # S3_ALIAS_HOST = "b2.dora.im/file/${config.lib.self.data.mastodon.media.name}";
-      DEEPL_PLAN = "free";
+      RAILS_DEVELOPMENT_HOSTS = "zone.dora.im";
+      LOCAL_DOMAIN_WHITELIST = "zone.dora.im";
+      TRUSTED_PROXY_IP = "127.0.0.1,::1";
+      ALLOWED_HOSTS = "zone.dora.im";
     };
     extraEnvFiles = [ config.sops.templates."mastodon-env".path ];
   };
@@ -52,9 +55,7 @@
     '';
   };
   sops.secrets = {
-    "mastodon/mail" = {
-      owner = config.services.mastodon.user;
-    };
+
     "mastodon/VAPID_PUBLIC_KEY" = {
       owner = config.services.mastodon.user;
     };
@@ -88,8 +89,13 @@
         proxyPass = "http://unix:/run/mastodon-web/web.socket";
         proxyWebsockets = true;
         extraConfig = ''
-          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Ssl on;
+          proxy_set_header X-Forwarded-Scheme https;
+          proxy_set_header X-Forwarded-Port 443;
+          proxy_set_header X-Forwarded-Host "";
           proxy_set_header Proxy "";
         '';
       };
@@ -97,8 +103,11 @@
         proxyPass = "http://unix:/run/mastodon-streaming/streaming.socket";
         proxyWebsockets = true;
         extraConfig = ''
-          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
           proxy_set_header X-Forwarded-Proto https;
+          proxy_set_header X-Forwarded-Port 443;
+          proxy_set_header X-Forwarded-Host "";
           proxy_set_header Proxy "";
         '';
       };
