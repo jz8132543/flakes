@@ -20,6 +20,10 @@
     };
   };
 
+  sops.secrets."mail/noreply" = {
+    mode = "0444";
+  };
+
   services.nginx = {
     enable = true;
     defaultHTTPListenPort = config.ports.nginx;

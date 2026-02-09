@@ -21,7 +21,7 @@ in
         listenHost = "127.0.0.1";
         port = config.ports.hydra;
         hydraURL = "https://hydra.dora.im";
-        notificationSender = "hydra@dora.im";
+        notificationSender = "noreply@dora.im";
         useSubstitutes = true;
         dbi = "dbi:Pg:dbname=hydra;host=${PG};user=hydra;";
         buildMachinesFiles = [
@@ -110,13 +110,13 @@ in
         config.sops.templates."hydra-email".path;
       sops.templates."hydra-email".content = ''
         EMAIL_SENDER_TRANSPORT=SMTP
-        EMAIL_SENDER_TRANSPORT_sasl_username=hydra@dora.im
-        EMAIL_SENDER_TRANSPORT_sasl_password=${config.sops.placeholder."hydra/mail"}
+        EMAIL_SENDER_TRANSPORT_sasl_username=noreply@dora.im
+        EMAIL_SENDER_TRANSPORT_sasl_password=${config.sops.placeholder."mail/noreply"}
         EMAIL_SENDER_TRANSPORT_host=${config.lib.self.data.mail.smtp};
         EMAIL_SENDER_TRANSPORT_port=${toString config.ports.smtp}
         EMAIL_SENDER_TRANSPORT_ssl=on
       '';
-      sops.secrets."hydra/mail" = { };
+
     }
 
     {

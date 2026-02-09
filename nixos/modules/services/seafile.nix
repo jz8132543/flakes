@@ -66,8 +66,8 @@ in
       # MAIL
       EMAIL_USE_TLS = True
       EMAIL_HOST = "${config.lib.self.data.mail.smtp}"
-      EMAIL_HOST_USER = "seafile@dora.im"
-      EMAIL_HOST_PASSWORD = "${config.sops.placeholder."seafile/mail"}"
+      EMAIL_HOST_USER = "noreply@dora.im"
+      EMAIL_HOST_PASSWORD = "${config.sops.placeholder."mail/noreply"}"
       EMAIL_PORT = ${toString config.ports.smtp}
       DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
       SERVER_EMAIL = EMAIL_HOST_USER
@@ -77,7 +77,7 @@ in
   sops.secrets = {
     "seafile/oidc-secret" = { };
     "seafile/password" = { };
-    "seafile/mail" = { };
+
   };
 
   services.nginx = {

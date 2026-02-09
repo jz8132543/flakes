@@ -1,7 +1,6 @@
 {
   osConfig,
   lib,
-  config,
   ...
 }:
 with lib.strings;
@@ -68,14 +67,14 @@ with lib.strings;
 
   # SSH requires the config file to be a real file with 0600 permissions, not a symlink
   # programs.ssh generates a symlink by default, so we copy it to a real file on activation
-  home.activation.fixSshPermissions = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.fixSshPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     # Ensure .ssh directory exists with correct permissions
     $DRY_RUN_CMD mkdir -p $HOME/.ssh
     $DRY_RUN_CMD chmod 700 $HOME/.ssh
-    
+
     # The SSH config symlink that home-manager creates
     SSH_CONFIG_LINK="$HOME/.ssh/config"
-    
+
     # Get the actual file from the store that the symlink points to
     if [ -L "$SSH_CONFIG_LINK" ]; then
       SSH_CONFIG_SOURCE=$(readlink -f "$SSH_CONFIG_LINK")

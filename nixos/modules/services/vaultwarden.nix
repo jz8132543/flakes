@@ -9,7 +9,7 @@
 }:
 {
   sops.secrets."vaultwarden/ADMIN_TOKEN" = { };
-  sops.secrets."vaultwarden/mail" = { };
+
   services.vaultwarden = {
     enable = true;
     dbBackend = "postgresql";
@@ -24,16 +24,16 @@
       rocketAddress = "127.0.0.1";
       rocketPort = config.ports.vaultwarden-http;
       smtpHost = "${config.lib.self.data.mail.smtp}";
-      smtpFrom = "vault@dora.im";
+      smtpFrom = "noreply@dora.im";
       smtpPort = config.ports.smtp;
       smtpSecurity = "force_tls";
-      smtpUsername = "vault@dora.im";
+      smtpUsername = "noreply@dora.im";
     };
     environmentFile = config.sops.templates."vaultwarden-env".path;
   };
   sops.templates."vaultwarden-env".content = ''
     ADMIN_TOKEN=${config.sops.placeholder."vaultwarden/ADMIN_TOKEN"}
-    SMTP_PASSWORD=${config.sops.placeholder."vaultwarden/mail"}
+    SMTP_PASSWORD=${config.sops.placeholder."mail/noreply"}
   '';
   services.traefik.dynamicConfigOptions.http = {
     routers = {

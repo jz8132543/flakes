@@ -93,10 +93,10 @@ in
       mail_smtpmode = "smtp";
       mail_smtphost = "${config.environment.smtp_host}";
       # mail_smtpport = config.ports.smtp-starttls;
-      mail_from_address = "nextcloud";
+      mail_from_address = "noreply";
       mail_domain = "${config.networking.domain}";
       mail_smtpauth = true;
-      mail_smtpname = "nextcloud@${config.networking.domain}";
+      mail_smtpname = "noreply@dora.im";
       # https://docs.nextcloud.com/server/latest/admin_manual/configuration_server/config_sample_php_parameters.html#enabledpreviewproviders
       enabledPreviewProviders = [
         # double slash to escape
@@ -176,7 +176,7 @@ in
   };
   sops.templates."nextcloud-secret-config" = {
     content = builtins.toJSON {
-      mail_smtppassword = config.sops.placeholder."nextcloud/mail_password";
+      mail_smtppassword = config.sops.placeholder."mail/noreply";
       oidc_login_client_secret = config.sops.placeholder."nextcloud/oidc-secret";
     };
     owner = "nextcloud";
@@ -196,9 +196,7 @@ in
     mode = "0444";
     # owner = "nextcloud";
   };
-  sops.secrets."nextcloud/mail_password" = {
-    restartUnits = [ "nextcloud-setup.service" ];
-  };
+
   sops.secrets."nextcloud/oidc-secret" = {
     restartUnits = [ "nextcloud-setup.service" ];
   };
