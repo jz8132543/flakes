@@ -21,6 +21,9 @@ let
   domain = "tv.dora.im";
   navHtmlDir = ./../../../conf/nixflix;
   finalNavHtml = navHtmlDir;
+
+  # Simple fallback login page for Vertex (bypasses Vue frontend issues)
+  vertexLoginHtml = ./vertex-login.html;
 in
 {
   imports = [
@@ -400,13 +403,21 @@ in
             };
 
             # Block Service Worker to prevent "bad-precaching-response" errors
-            "/vertex/service-worker.js" = {
-              return = "200 '/* Service Worker Disabled */'";
-              extraConfig = "add_header Content-Type application/javascript;";
-            };
+            # "/vertex/service-worker.js" = {
+            #   return = "200 '/* Service Worker Disabled */'";
+            #   extraConfig = "add_header Content-Type application/javascript;";
+            # };
 
             "/vertex" = {
               return = "301 /vertex/";
+            };
+
+            # Simple login page for Vertex (bypasses Vue frontend blank page issues)
+            "= /vertex-login" = {
+              alias = "${vertexLoginHtml}";
+              extraConfig = ''
+                default_type text/html;
+              '';
             };
 
             "/iyuu/" = {
@@ -823,6 +834,15 @@ in
       group = "media";
     };
 
+    # Vertex password environment file (must be PASSWORD=... format for podman)
+    sops.templates."vertex-env" = {
+      content = ''
+        PASSWORD=${config.sops.placeholder.password}
+      '';
+      owner = "root";
+      group = "root";
+    };
+
     #    sops.templates."moviepilot-env" = {
     #      content = ''
     #        SUPERUSER_PASSWORD=${config.sops.placeholder.password}
@@ -849,7 +869,7 @@ in
           USERNAME = "i";
           HOST = "0.0.0.0";
         };
-        environmentFiles = [ config.sops.secrets.password.path ]; # This file contains PASSWORD=...
+        environmentFiles = [ config.sops.templates."vertex-env".path ]; # Uses PASSWORD=... format
         extraOptions = [ "--network=host" ];
       };
 
