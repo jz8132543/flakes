@@ -16,9 +16,19 @@ in
         "Media" = [
           {
             "Jellyfin" = {
-              href = "https://tv.${config.networking.domain}";
+              href = "https://tv.${config.networking.domain}/jellyfin";
               icon = "jellyfin.png";
               description = "Media Server";
+              widget = {
+                type = "jellyfin";
+                url = "https://tv.${config.networking.domain}/jellyfin";
+                key = "{{HOMEPAGE_VAR_JELLYFIN_KEY}}";
+                enableBlocks = true;
+                enableNowPlaying = true;
+                enableUser = true;
+                showEpisodeNumber = true;
+                expandOneStreamToTwoRows = true;
+              };
             };
           }
           {
@@ -54,6 +64,7 @@ in
                 type = "radarr";
                 url = "http://localhost:${toString config.ports.radarr}";
                 key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
+                enableQueue = true;
               };
             };
           }
@@ -115,13 +126,14 @@ in
                 url = "http://localhost:${toString config.ports.qbittorrent}";
                 username = "i";
                 password = "{{HOMEPAGE_VAR_PASSWORD}}";
+                enableLeechProgress = false; # Download list
               };
             };
           }
           {
             "Vertex" = {
               href = "https://tv.${config.networking.domain}/vertex";
-              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/vertex.png";
+              icon = "vertex.png"; # Homepage will try to find it, or show default if missing
               description = "PT Manager";
             };
           }
@@ -205,6 +217,33 @@ in
             };
           }
           {
+            "Prometheus" = {
+              href = "https://metrics.${config.networking.domain}";
+              icon = "prometheus.png";
+              description = "Metrics";
+              widget = {
+                type = "prometheusmetric";
+                url = "http://localhost:${toString config.services.prometheus.port}";
+                metrics = [
+                  {
+                    label = "Node CPU";
+                    query = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)";
+                    format = {
+                      type = "percent";
+                    };
+                  }
+                  {
+                    label = "Node Memory";
+                    query = "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100";
+                    format = {
+                      type = "percent";
+                    };
+                  }
+                ];
+              };
+            };
+          }
+          {
             "Ntfy" = {
               href = "https://ntfy.${config.networking.domain}";
               icon = "ntfy.png";
@@ -213,14 +252,14 @@ in
           }
           {
             "Alist" = {
-              href = "https://pan.${config.networking.domain}";
+              href = "https://alist.${config.networking.domain}";
               icon = "alist.png";
               description = "File Listing";
             };
           }
           {
             "Vaultwarden" = {
-              href = "https://pass.${config.networking.domain}";
+              href = "https://vault.${config.networking.domain}";
               icon = "vaultwarden.png";
               description = "Password Manager";
             };
@@ -272,17 +311,26 @@ in
     ];
     widgets = [
       {
+        search = {
+          provider = "custom";
+          url = "https://searx.${config.networking.domain}/search?q=";
+          suggestionUrl = "https://searx.${config.networking.domain}/autocomplete?type=list&q=";
+          showSearchSuggestions = true;
+          target = "_blank";
+        };
+      }
+      {
         resources = {
           cpu = true;
           disk = "/";
           memory = true;
+          uptime = true;
+          network = true;
+          expanded = true;
         };
       }
       {
         openmeteo = {
-          label = "Shanghai";
-          latitude = 31.2304;
-          longitude = 121.4737;
           timezone = "Asia/Shanghai";
           units = "metric";
           cache = 5;
@@ -299,8 +347,10 @@ in
     settings = {
       title = "Dora Dashboard";
       background = {
-        # image = "https://images.unsplash.com/photo-1502790671504-542ad42d5189";
-        image = "https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2672&auto=format&fit=crop";
+        image = "https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80";
+        blur = "sm"; # sm, "", md, xl... see https://tailwindcss.com/docs/backdrop-blur
+        saturate = 50; # 0, 50, 100... see https://tailwindcss.com/docs/backdrop-saturate
+        brightness = 50; # 0, 50, 75... see https://tailwindcss.com/docs/backdrop-brightness
       };
     };
   };
@@ -328,6 +378,7 @@ in
       HOMEPAGE_VAR_PROWLARR_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
       HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
+      HOMEPAGE_VAR_JELLYFIN_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}

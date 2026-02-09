@@ -3,8 +3,7 @@
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
-    # ++ nixosModules.services.opencloud.all
-    # ++ nixosModules.services.mail.all
+    ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -18,7 +17,6 @@
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
-      nixosModules.services.nixflix
       nixosModules.services.syncthing
       nixosModules.services.reader
       nixosModules.services.proxy
