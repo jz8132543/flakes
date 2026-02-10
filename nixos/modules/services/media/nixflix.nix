@@ -10,14 +10,12 @@ let
   domain = "tv.dora.im";
   navHtmlDir = ./../../../../conf/media;
   finalNavHtml = navHtmlDir;
-
-  # Simple fallback login page for Vertex (bypasses Vue frontend issues)
-  vertexLoginHtml = ./../../../../conf/media/vertex-login.html;
 in
 {
   imports = [
     inputs.nixflix.nixosModules.nixflix
     nixosModules.services.traefik
+    ./jellyfin.nix
   ];
 
   config = {
@@ -202,19 +200,6 @@ in
         cleanupUnmanagedProfiles = true;
       };
 
-      jellyfin = {
-        enable = true;
-        users = {
-          i = {
-            mutable = false;
-            policy.isAdministrator = true;
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
-          };
-        };
-      };
-
       jellyseerr = {
         enable = true;
         apiKey = {
@@ -240,7 +225,6 @@ in
       };
     };
 
-    # Consolidated Services Configuration
     services = {
       homepage-dashboard.enable = false;
 
@@ -361,14 +345,6 @@ in
               return = "301 /vertex/";
             };
 
-            # Simple login page for Vertex (bypasses Vue frontend blank page issues)
-            "= /vertex-login" = {
-              alias = "${vertexLoginHtml}";
-              extraConfig = ''
-                default_type text/html;
-              '';
-            };
-
             "/iyuu/" = {
               proxyPass = "http://127.0.0.1:8777/";
               proxyWebsockets = true;
@@ -457,7 +433,6 @@ in
               value.serviceConfig.Restart = lib.mkForce "on-failure";
             })
             [
-              "jellyfin"
               "jellyseerr"
               "sonarr"
               "radarr"
@@ -489,11 +464,6 @@ in
               "lidarr-delayprofiles"
               "prowlarr-applications"
               "sabnzbd-categories"
-              "jellyfin-setup-wizard"
-              "jellyfin-system-config"
-              "jellyfin-encoding-config"
-              "jellyfin-branding-config"
-              "jellyfin-libraries"
               "jellyseerr-setup"
               "jellyseerr-sonarr"
               "jellyseerr-radarr"
@@ -543,8 +513,8 @@ in
                              autobrr:${toString config.ports.autobrr}/autobrr \
                              vertex:${toString config.ports.vertex}/vertex \
                              qbittorrent:${toString config.ports.qbittorrent}/ \
-                             jellyfin:8096/health \
-                             sonarr-anime:8990/sonarr-anime; do
+                             jellyfin:${toString config.ports.jellyfin}/health \
+                             sonarr-anime:${toString config.ports.sonarr-anime}/sonarr-anime; do
                 host="''${service%%:*}"
                 path_port="''${service#*:}"
                 until curl -s "http://127.0.0.1:$path_port" > /dev/null; do
@@ -566,13 +536,13 @@ in
                 --qbit-port "${toString config.ports.qbittorrent}" \
                 --sonarr-port "${toString config.ports.sonarr}" \
                 --radarr-port "${toString config.ports.radarr}" \
-                --sonarr-anime-url "http://127.0.0.1:8990/sonarr-anime" \
+                --sonarr-anime-url "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime" \
                 --sonarr-anime-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
                 --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
                 --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}" \
                 --lidarr-url "http://127.0.0.1:${toString config.ports.lidarr}/lidarr" \
                 --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}" \
-                --jellyfin-url "http://127.0.0.1:8096/jellyfin" \
+                --jellyfin-url "http://127.0.0.1:${toString config.ports.jellyfin}/jellyfin" \
                 --jellyfin-env-file "/var/lib/homepage/jellyfin.env"
 
               # Restart homepage to pick up new env vars
@@ -580,10 +550,6 @@ in
             '';
           };
 
-          jellyfin.serviceConfig = {
-            PrivateUsers = lib.mkForce false;
-            UMask = "0002";
-          };
           sonarr.serviceConfig.UMask = "0002";
           radarr.serviceConfig.UMask = "0002";
           prowlarr.serviceConfig.UMask = "0002";
@@ -619,8 +585,6 @@ in
       content = ''
         PASSWORD=${config.sops.placeholder.password}
       '';
-      owner = "root";
-      group = "root";
     };
 
     virtualisation.oci-containers = {
@@ -672,5 +636,6 @@ in
     services.restic.backups.borgbase.paths = [
       "/data/.state/vertex/db/sql.db"
     ];
+
   };
 }

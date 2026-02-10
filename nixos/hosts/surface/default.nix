@@ -11,7 +11,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.nixflix
+      nixosModules.services.media.nixflix
     ];
 
   # hardware.microsoft-surface.kernelVersion = "stable";

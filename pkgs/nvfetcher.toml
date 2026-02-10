@@ -34,12 +34,59 @@ fetch.url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/downlo
 [jellyfin-plugin-intro-skipper]
 src.manual = "1.10.11.14"
 fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v$ver/intro-skipper-v$ver.zip"
-[iyuuplus]
-src.git = "https://gitee.com/ledc/iyuuplus"
-fetch.git = "https://gitee.com/ledc/iyuuplus"
-src.branch = "master"
-[vertex]
-src.git = "https://github.com/vertex-app/vertex"
-fetch.git = "https://github.com/vertex-app/vertex"
-src.branch = "master"
+
+[jellyfin-plugin-playback-reporting]
+src.manual = "17.0.0.0"
+fetch.url = "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_$ver.zip"
+
+[jellyfin-plugin-bangumi]
+src.manual = "1.7.5"
+fetch.url = "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/$ver/Jellyfin.Plugin.Bangumi.zip"
+
+[jellyfin-plugin-shokofin]
+src.manual = "6.0.3.0"
+fetch.url = "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_$ver_for_10.10.zip"
+
+[jellyfin-plugin-ani-sync]
+src.manual = "3.8.0.0"
+fetch.url = "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_$ver.zip"
+
+[jellyfin-plugin-bazarr]
+src.manual = "1.1.2"
+fetch.url = "https://github.com/enoch85/bazarr-jellyfin/releases/download/v$ver/Jellyfin.Plugin.Bazarr.zip"
+
+[jellyfin-plugin-merge-versions]
+src.manual = "10.11.0.1"
+fetch.url = "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/$ver/Jellyfin.Plugin.MergeVersions.zip"
+
+[jellyfin-plugin-skin-manager]
+src.manual = "2.0.2"
+fetch.url = "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/$ver/Jellyfin-Plugin-SkinManager.zip"
+
+[jellyfin-plugin-metatube]
+src.github = "metatube-community/jellyfin-plugin-metatube"
+fetch.url = "https://github.com/metatube-community/jellyfin-plugin-metatube/releases/download/$ver/Jellyfin.MetaTube@$ver.zip"
+# Use a custom name to avoid illegal character '@' in nix-prefetch-url
+name = "jellyfin-plugin-metatube.zip"
+
+
+[jellyfin-plugin-tmdb-box-sets]
+src.manual = "12.0.0.0"
+fetch.url = "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_$ver.zip"
+
+[jellyfin-plugin-douban]
+src.manual = "2.0.0"
+fetch.url = "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v$ver/Jellyfin.Plugin.Douban.zip"
+
+[jellyfin-plugin-fanart]
+src.manual = "14.0.0.0"
+fetch.url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_$ver.zip"
+# [iyuuplus]
+# src.git = "https://gitee.com/ledc/iyuuplus"
+# fetch.git = "https://gitee.com/ledc/iyuuplus"
+# src.branch = "master"
+# [vertex]
+# src.git = "https://github.com/vertex-app/vertex"
+# fetch.git = "https://github.com/vertex-app/vertex"
+# src.branch = "master"
 

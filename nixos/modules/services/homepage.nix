@@ -223,21 +223,14 @@ in
             };
           }
           {
-            "SearX" = {
-              href = "https://searx.${config.networking.domain}";
-              icon = "searxng.png";
-              description = "Privacy Search";
-            };
-          }
-          {
             "Grafana" = {
               href = "https://dash.${config.networking.domain}";
               icon = "grafana.png";
               description = "Monitoring";
               widget = {
                 type = "grafana";
-                url = "http://localhost:${toString config.ports.grafana}";
-                username = "admin";
+                url = "https://dash.${config.networking.domain}";
+                username = "i";
                 password = "{{HOMEPAGE_VAR_GRAFANA_PASSWORD}}";
               };
             };
@@ -303,6 +296,13 @@ in
                   }
                 ];
               };
+            };
+          }
+          {
+            "SearX" = {
+              href = "https://searx.${config.networking.domain}";
+              icon = "searxng.png";
+              description = "Privacy Search";
             };
           }
           {
@@ -389,13 +389,6 @@ in
           uptime = true;
           network = true;
           expanded = true;
-        };
-      }
-      {
-        openmeteo = {
-          timezone = "Asia/Shanghai";
-          units = "metric";
-          cache = 5;
         };
       }
       {

@@ -30,7 +30,7 @@ in
         enforce_domain = true;
       };
       security = {
-        admin_user = "admin";
+        admin_user = "i";
         admin_email = "i@dora.im";
         secret_key = "$__file{${config.sops.secrets."grafana/secret_key".path}}";
         admin_password = "$__file{${config.sops.secrets."password".path}}";

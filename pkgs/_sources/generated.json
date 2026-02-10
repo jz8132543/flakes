@@ -92,25 +92,80 @@
     },
     "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
   },
-  "iyuuplus": {
+  "jellyfin-plugin-ani-sync": {
     "cargoLock": null,
-    "date": "2024-04-23",
+    "date": null,
     "extract": null,
-    "name": "iyuuplus",
+    "name": "jellyfin-plugin-ani-sync",
     "passthru": null,
     "pinned": false,
     "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
       "name": null,
-      "rev": "ba878b9299c5d944d1c05035716d143fc591c6f1",
-      "sha256": "sha256-lMqxf9X4nycEK4aTsw8oP+0mzsm6sycrW5bd2OvwQf4=",
-      "sparseCheckout": [],
-      "type": "git",
-      "url": "https://gitee.com/ledc/iyuuplus"
+      "sha256": "sha256-7Y9fBQtTixpw+6cEq3aYyZThkIcdsYPdoWjLZ53+NIA=",
+      "type": "url",
+      "url": "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_3.8.0.0.zip"
     },
-    "version": "ba878b9299c5d944d1c05035716d143fc591c6f1"
+    "version": "3.8.0.0"
+  },
+  "jellyfin-plugin-bangumi": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-bangumi",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-bVtzWYiK+m7qRryOxCM2B/FAaPBBGYdI13x7Y+w0hE8=",
+      "type": "url",
+      "url": "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/1.7.5/Jellyfin.Plugin.Bangumi.zip"
+    },
+    "version": "1.7.5"
+  },
+  "jellyfin-plugin-bazarr": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-bazarr",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-Rv3BMyBZT0bQr+axGe5J1GNZG0FhiiF7gdt6Ygnb+TM=",
+      "type": "url",
+      "url": "https://github.com/enoch85/bazarr-jellyfin/releases/download/v1.1.2/Jellyfin.Plugin.Bazarr.zip"
+    },
+    "version": "1.1.2"
+  },
+  "jellyfin-plugin-douban": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-douban",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-SOkdji33ejgfoVwtdfKu1wOdMrrm8dPBzqTIIbNO5tI=",
+      "type": "url",
+      "url": "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v2.0.0/Jellyfin.Plugin.Douban.zip"
+    },
+    "version": "2.0.0"
+  },
+  "jellyfin-plugin-fanart": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-fanart",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-y2pkeVmDEVspja0nd8kqXEMTCJHYhGSQfEWMDfQAvyk=",
+      "type": "url",
+      "url": "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_14.0.0.0.zip"
+    },
+    "version": "14.0.0.0"
   },
   "jellyfin-plugin-intro-skipper": {
     "cargoLock": null,
@@ -127,6 +182,36 @@
     },
     "version": "1.10.11.14"
   },
+  "jellyfin-plugin-merge-versions": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-merge-versions",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-ea/YAhkXbK3MsFdSlxByqfx03BEiMn3PN8PYxOvwgJs=",
+      "type": "url",
+      "url": "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/10.11.0.1/Jellyfin.Plugin.MergeVersions.zip"
+    },
+    "version": "10.11.0.1"
+  },
+  "jellyfin-plugin-playback-reporting": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-playback-reporting",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-4aNsqFpm8El+DIVke6ESNe8sBQa96872WetjU+cgRXM=",
+      "type": "url",
+      "url": "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_17.0.0.0.zip"
+    },
+    "version": "17.0.0.0"
+  },
   "jellyfin-plugin-reports": {
     "cargoLock": null,
     "date": null,
@@ -142,6 +227,36 @@
     },
     "version": "18.0.0.0"
   },
+  "jellyfin-plugin-shokofin": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-shokofin",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-tn6evlIB/tVCaelP0o4KlhX39dFiWNy9TSyfIQYcy5I=",
+      "type": "url",
+      "url": "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_6.0.3.0_for_10.10.zip"
+    },
+    "version": "6.0.3.0"
+  },
+  "jellyfin-plugin-skin-manager": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-skin-manager",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-0yy1QkVLFRuy4nSLZbw4nqc7Xu86NFBHNcHwMpn7F5w=",
+      "type": "url",
+      "url": "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/2.0.2/Jellyfin-Plugin-SkinManager.zip"
+    },
+    "version": "2.0.2"
+  },
   "jellyfin-plugin-sso": {
     "cargoLock": null,
     "date": null,
@@ -156,6 +271,21 @@
       "url": "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.3/sso-authentication_4.0.0.3.zip"
     },
     "version": "4.0.0.3"
+  },
+  "jellyfin-plugin-tmdb-box-sets": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "jellyfin-plugin-tmdb-box-sets",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-J5xYHv3xYOQeZNHkwbUAZ7Skd/x62KPaUQtSmTg1uhY=",
+      "type": "url",
+      "url": "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_12.0.0.0.zip"
+    },
+    "version": "12.0.0.0"
   },
   "kitty-catppuccin": {
     "cargoLock": null,
@@ -187,7 +317,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-1HgtLW7xP4jsW9hQkSmZcGW+MlaS3nBHE5l5kiOvMTw=",
+      "sha256": "sha256-Omaao3xaovy2sbqrtW06mna6f+xtcCOScSWHYn5isgM=",
       "type": "url",
       "url": "https://cf.trackerslist.com/best_aria2.txt"
     },
