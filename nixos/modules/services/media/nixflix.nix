@@ -531,6 +531,7 @@ in
             path = [
               pkgs.curl
               pkgs.coreutils
+              pkgs.systemd
             ];
             script = ''
               # Wait for all services to be healthy
@@ -542,6 +543,7 @@ in
                              autobrr:${toString config.ports.autobrr}/autobrr \
                              vertex:${toString config.ports.vertex}/vertex \
                              qbittorrent:${toString config.ports.qbittorrent}/ \
+                             jellyfin:8096/health \
                              sonarr-anime:8990/sonarr-anime; do
                 host="''${service%%:*}"
                 path_port="''${service#*:}"
@@ -569,7 +571,12 @@ in
                 --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
                 --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}" \
                 --lidarr-url "http://127.0.0.1:${toString config.ports.lidarr}/lidarr" \
-                --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}"
+                --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}" \
+                --jellyfin-url "http://127.0.0.1:8096/jellyfin" \
+                --jellyfin-env-file "/var/lib/homepage/jellyfin.env"
+
+              # Restart homepage to pick up new env vars
+              systemctl restart homepage-dashboard.service
             '';
           };
 

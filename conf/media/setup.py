@@ -194,6 +194,103 @@ def setup_bazarr(args):
     except Exception as e:
         print(f"Failed to configure Bazarr: {e}")
 
+def setup_jellyfin(args):
+    print("Setting up Jellyfin...")
+    password = get_secret(args.password_file)
+    if not password:
+        print("Missing password for Jellyfin setup")
+        return
+
+    try:
+        # 1. Authenticate to get Access Token
+        auth_url = f"{args.jellyfin_url}/Users/AuthenticateByName"
+        headers = {
+            'X-Emby-Authorization': 'MediaBrowser Client="Jellyfin Script", Device="NixOS", DeviceId="setup-script", Version="1.0.0"'
+        }
+        
+        # Initial auth
+        auth_payload = {
+            "Username": "i",
+            "Pw": password
+        }
+        
+        resp = requests.post(auth_url, json=auth_payload, headers=headers)
+        if resp.status_code != 200:
+            print(f"Jellyfin Auth Failed: {resp.status_code} {resp.text}")
+            return
+
+        auth_data = resp.json()
+        access_token = auth_data.get('AccessToken')
+        # user_id = auth_data.get('User', {}).get('Id')
+        
+        if not access_token:
+            print("Failed to get AccessToken from Jellyfin")
+            return
+
+        # Update headers with token
+        headers['X-Emby-Token'] = access_token
+
+        # 2. Check for existing Homepage Key
+        # API Keys are listed under /Auth/Keys
+        keys_url = f"{args.jellyfin_url}/Auth/Keys"
+        
+        keys_resp = requests.get(keys_url, headers=headers)
+        homepage_key = None
+        
+        if keys_resp.status_code == 200:
+            items = keys_resp.json().get('Items', [])
+            print(f"Existing keys: {[i.get('AppName') for i in items]}")
+            for item in items:
+                if item.get('AppName') == 'Homepage':
+                    homepage_key = item.get('AccessToken')
+                    print("Found existing Homepage API Key")
+                    break
+        
+        # 3. Create if not exists
+        if not homepage_key:
+            # Jellyfin often expects 'app' as query param for this endpoint
+            create_url = f"{keys_url}?app=Homepage"
+            create_resp = requests.post(create_url, headers=headers)
+            
+            if create_resp.status_code in [200, 201, 204]:
+                print(f"Creation response: {create_resp.status_code}")
+                # Try to parse key from response if possible
+                try:
+                    if create_resp.text:
+                        homepage_key = create_resp.json().get('AccessToken')
+                except:
+                    pass
+                
+                # If 204 or empty response, fetch list again
+                if not homepage_key:
+                    print("Re-fetching keys after creation...")
+                    keys_resp = requests.get(keys_url, headers=headers)
+                    if keys_resp.status_code == 200:
+                        items = keys_resp.json().get('Items', [])
+                        for item in items:
+                            if item.get('AppName') == 'Homepage':
+                                homepage_key = item.get('AccessToken')
+                                print("Found newly created Homepage API Key")
+                                break
+            else:
+                print(f"Failed to create Homepage key: {create_resp.status_code} {create_resp.text}")
+                return
+
+        # 4. Write to Environment File
+        if homepage_key and args.jellyfin_env_file:
+            # Create dir if not exists (though script runs as root)
+            os.makedirs(os.path.dirname(args.jellyfin_env_file), exist_ok=True)
+            
+            # Read existing content to avoid overwrite if other vars are there?
+            # Or just overwrite for this specific file.
+            # Assuming single-purpose file.
+            with open(args.jellyfin_env_file, 'w') as f:
+                f.write(f"HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY={homepage_key}\n")
+            print(f"Written Jellyfin key to {args.jellyfin_env_file}")
+
+    except Exception as e:
+        print(f"Error setting up Jellyfin: {e}")
+
 
 
 def main():
@@ -220,6 +317,10 @@ def main():
     
     parser.add_argument("--mteam-rss-file")
     parser.add_argument("--pttime-rss-file")
+    
+    parser.add_argument("--jellyfin-url")
+    parser.add_argument("--jellyfin-env-file")
+
     args, unknown = parser.parse_known_args() # Use parse_known_args to verify other keys
 
     # Load Secrets
@@ -259,6 +360,9 @@ def main():
 
     if args.bazarr_url:
         setup_bazarr(args)
+    
+    if args.jellyfin_url and args.jellyfin_env_file:
+        setup_jellyfin(args)
     
 
 

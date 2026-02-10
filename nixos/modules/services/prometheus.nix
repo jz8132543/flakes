@@ -15,7 +15,21 @@ in
       globalConfig = {
         scrape_interval = "30s";
       };
+      exporters = {
+        node = {
+          enable = true;
+          port = 9011;
+        };
+      };
       scrapeConfigs = [
+        {
+          job_name = "node";
+          static_configs = [
+            {
+              targets = [ "127.0.0.1:${toString config.services.prometheus.exporters.node.port}" ];
+            }
+          ];
+        }
         {
           job_name = "grafana";
           scheme = "https";
@@ -35,6 +49,7 @@ in
         {
           job_name = "traefik";
           scheme = "https";
+          metrics_path = "/traefik";
           static_configs = [
             {
               targets = [

@@ -43,9 +43,10 @@
           MaxUploads = 200;
           MaxUploadsPerTorrent = 50;
           EnableSuperSeeding = false;
-          ChokingAlgorithm = "FastestUpload";
-          SeedChokingAlgorithm = "AntiLeech";
-          UploadSlotsBehavior = "UploadRateBased";
+          ChokingAlgorithm = "FixedSlots";
+          SeedChokingAlgorithm = "FastestUpload";
+          UploadSlotsBehavior = "FixedSlots";
+          AllowMultipleConnectionsFromSameIP = true;
           QueueingSystemEnabled = false; # Optimized for PT
           MaxActiveDownloads = 20;
           MaxActiveUploads = 100;
@@ -126,39 +127,39 @@
   # ═══════════════════════════════════════════════════════════════
   # PT Whitening - Automated IP Reporting
   # ═══════════════════════════════════════════════════════════════
-  # systemd.services.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {
-  #   description = "Report qBittorrent public IP to tracker";
-  #   after = [ "qbittorrent.service" ];
-  #   wantedBy = [ "multi-user.target" ];
-  #   serviceConfig = {
-  #     Type = "oneshot";
-  #     ExecStart =
-  #       let
-  #         script = pkgs.writeShellScript "qbit-ip-reporter.sh" ''
-  #           # Get current public IP
-  #           CURRENT_IP=$(${pkgs.curl}/bin/curl -s https://api.ipify.org)
-  #           if [ -z "$CURRENT_IP" ]; then
-  #             echo "Failed to get public IP"
-  #             exit 1
-  #           fi
-  #           echo "Reporting public IP: $CURRENT_IP"
-  #
-  #           # Wait for WebUI to be ready
-  #           until ${pkgs.curl}/bin/curl -s "http://localhost:${toString config.ports.qbittorrent}" > /dev/null; do
-  #             echo "Waiting for qBittorrent WebUI..."
-  #             sleep 2
-  #           done
-  #
-  #           # Use WebAPI to set AnnounceIP
-  #           # No auth needed for localhost as per config.Preferences.WebUI.LocalHostAuth = false
-  #           ${pkgs.curl}/bin/curl -i -X POST "http://localhost:${toString config.ports.qbittorrent}/api/v2/app/setPreferences" \
-  #             -d "json={\"announce_ip\":\"$CURRENT_IP\"}"
-  #         '';
-  #       in
-  #       "${script}";
-  #     User = "qbittorrent";
-  #   };
-  # };
+  systemd.services.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {
+    description = "Report qBittorrent public IP to tracker";
+    after = [ "qbittorrent.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart =
+        let
+          script = pkgs.writeShellScript "qbit-ip-reporter.sh" ''
+            # Get current public IP
+            CURRENT_IP=$(${pkgs.curl}/bin/curl -s https://api.ipify.org)
+            if [ -z "$CURRENT_IP" ]; then
+              echo "Failed to get public IP"
+              exit 1
+            fi
+            echo "Reporting public IP: $CURRENT_IP"
+
+            # Wait for WebUI to be ready
+            until ${pkgs.curl}/bin/curl -s "http://localhost:${toString config.ports.qbittorrent}" > /dev/null; do
+              echo "Waiting for qBittorrent WebUI..."
+              sleep 2
+            done
+
+            # Use WebAPI to set AnnounceIP
+            # No auth needed for localhost as per config.Preferences.WebUI.LocalHostAuth = false
+            ${pkgs.curl}/bin/curl -i -X POST "http://localhost:${toString config.ports.qbittorrent}/api/v2/app/setPreferences" \
+              -d "json={\"announce_ip\":\"$CURRENT_IP\"}"
+          '';
+        in
+        "${script}";
+      User = "qbittorrent";
+    };
+  };
 
   systemd.timers.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {
     wantedBy = [ "timers.target" ];

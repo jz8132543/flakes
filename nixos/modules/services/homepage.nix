@@ -22,7 +22,7 @@ in
               widget = {
                 type = "jellyfin";
                 url = "https://tv.${config.networking.domain}/jellyfin";
-                key = "{{HOMEPAGE_VAR_JELLYFIN_KEY}}";
+                key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
                 enableBlocks = true;
                 enableNowPlaying = true;
                 enableUser = true;
@@ -194,6 +194,32 @@ in
               href = "https://${config.networking.fqdn}/dashboard/";
               icon = "traefik.png";
               description = "Reverse Proxy";
+              widget = {
+                type = "prometheusmetric";
+                url = "http://localhost:${toString config.services.prometheus.port}";
+                metrics = [
+                  {
+                    label = "Req/s";
+                    query = "sum(rate(traefik_entrypoint_requests_total[1m]))";
+                    format = {
+                      type = "number";
+                      options = {
+                        maximumFractionDigits = 2;
+                      };
+                    };
+                  }
+                  {
+                    label = "Errors/s";
+                    query = "sum(rate(traefik_entrypoint_requests_total{code!~\"2..\"}[1m]))";
+                    format = {
+                      type = "number";
+                      options = {
+                        maximumFractionDigits = 2;
+                      };
+                    };
+                  }
+                ];
+              };
             };
           }
           {
@@ -210,8 +236,8 @@ in
               description = "Monitoring";
               widget = {
                 type = "grafana";
-                url = "https://dash.${config.networking.domain}";
-                username = "i";
+                url = "http://localhost:${toString config.ports.grafana}";
+                username = "admin";
                 password = "{{HOMEPAGE_VAR_GRAFANA_PASSWORD}}";
               };
             };
@@ -226,17 +252,53 @@ in
                 url = "http://localhost:${toString config.services.prometheus.port}";
                 metrics = [
                   {
-                    label = "Node CPU";
-                    query = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)";
+                    label = "CPU Usage";
+                    query = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
                     format = {
                       type = "percent";
                     };
                   }
                   {
-                    label = "Node Memory";
+                    label = "Memory Usage";
                     query = "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100";
                     format = {
                       type = "percent";
+                    };
+                  }
+                  {
+                    label = "Disk Usage";
+                    query = "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"})";
+                    format = {
+                      type = "percent";
+                    };
+                  }
+                ];
+              };
+            };
+          }
+          {
+            "PostgreSQL" = {
+              icon = "postgresql.png";
+              description = "Database";
+              widget = {
+                type = "prometheusmetric";
+                url = "http://localhost:${toString config.services.prometheus.port}";
+                metrics = [
+                  {
+                    label = "Connections";
+                    query = "sum(pg_stat_activity_count)";
+                    format = {
+                      type = "number";
+                    };
+                  }
+                  {
+                    label = "Transactions/sec";
+                    query = "sum(irate(pg_stat_database_xact_commit[5m]))";
+                    format = {
+                      type = "number";
+                      options = {
+                        maximumFractionDigits = 2;
+                      };
                     };
                   }
                 ];
@@ -371,6 +433,11 @@ in
     };
   };
 
+  # Load generated env file (ignore if missing with - prefix)
+  systemd.services.homepage-dashboard.serviceConfig.EnvironmentFile = [
+    "-/var/lib/homepage/jellyfin.env"
+  ];
+
   sops.templates."homepage.env" = {
     content = ''
       HOMEPAGE_VAR_SONARR_KEY=${config.sops.placeholder."media/sonarr_api_key"}
@@ -378,7 +445,6 @@ in
       HOMEPAGE_VAR_PROWLARR_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
       HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
-      HOMEPAGE_VAR_JELLYFIN_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
