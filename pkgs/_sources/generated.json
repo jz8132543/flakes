@@ -308,6 +308,27 @@
     },
     "version": "43098316202b84d6a71f71aaf8360f102f4d3f1a"
   },
+  "sickbeard-mp4-automator": {
+    "cargoLock": null,
+    "date": "2026-01-18",
+    "extract": null,
+    "name": "sickbeard-mp4-automator",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "mdhiggins",
+      "repo": "sickbeard_mp4_automator",
+      "rev": "724e210be5ce56fe8087446d9ec07f33d014a7fc",
+      "sha256": "sha256-vQLsZ+I4uMmuYFM16AOKivA+P3tfl9TpOt/8K7+M/iE=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "724e210be5ce56fe8087446d9ec07f33d014a7fc"
+  },
   "trackerslist": {
     "cargoLock": null,
     "date": null,

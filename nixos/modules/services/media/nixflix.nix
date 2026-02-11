@@ -16,6 +16,14 @@ in
     inputs.nixflix.nixosModules.nixflix
     nixosModules.services.traefik
     ./jellyfin.nix
+    ./tdarr.nix
+    ./unmanic.nix
+    ./common.nix
+    ./bazarr.nix
+    ./autobrr.nix
+    ./qbittorrent.nix
+    ./flaresolverr.nix
+    ./sma.nix
   ];
 
   config = {
@@ -403,7 +411,7 @@ in
             service = "nixflix-nginx";
           };
           nixflix-apps = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`))";
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
             entryPoints = [ "https" ];
             service = "nixflix-nginx";
           };
@@ -512,6 +520,7 @@ in
                              bazarr:${toString config.ports.bazarr}/ \
                              autobrr:${toString config.ports.autobrr}/autobrr \
                              vertex:${toString config.ports.vertex}/vertex \
+                             tdarr:${toString config.ports.tdarr-webui}/ \
                              qbittorrent:${toString config.ports.qbittorrent}/ \
                              jellyfin:${toString config.ports.jellyfin}/health \
                              sonarr-anime:${toString config.ports.sonarr-anime}/sonarr-anime; do

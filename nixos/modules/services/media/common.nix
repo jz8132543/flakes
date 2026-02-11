@@ -26,6 +26,13 @@
       "Z /data/.state/autobrr 0777 autobrr media -"
       "Z /data/.state/vertex 0777 root media -"
       "Z /data/.state/iyuu 0777 root media -"
+      "d /data/.state/tdarr 0777 root media -"
+      "d /data/.state/tdarr/server 0777 root media -"
+      "d /data/.state/tdarr/configs 0777 root media -"
+      "d /data/.state/tdarr/logs 0777 root media -"
+      "d /data/.state/unmanic 0777 root media -"
+      "d /tmp/tdarr-transcode 0777 root media -"
+      "d /tmp/unmanic-transcode 0777 root media -"
       "Z /var/lib/bazarr 0777 bazarr media -"
 
       "Z /var/lib/iyuu 0777 iyuu media -"

@@ -63,11 +63,6 @@ fetch.url = "https://github.com/danieladov/jellyfin-plugin-mergeversions/release
 src.manual = "2.0.2"
 fetch.url = "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/$ver/Jellyfin-Plugin-SkinManager.zip"
 
-[jellyfin-plugin-metatube]
-src.github = "metatube-community/jellyfin-plugin-metatube"
-fetch.url = "https://github.com/metatube-community/jellyfin-plugin-metatube/releases/download/$ver/Jellyfin.MetaTube@$ver.zip"
-# Use a custom name to avoid illegal character '@' in nix-prefetch-url
-name = "jellyfin-plugin-metatube.zip"
 
 
 [jellyfin-plugin-tmdb-box-sets]
@@ -79,8 +74,12 @@ src.manual = "2.0.0"
 fetch.url = "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v$ver/Jellyfin.Plugin.Douban.zip"
 
 [jellyfin-plugin-fanart]
-src.manual = "14.0.0.0"
 fetch.url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_$ver.zip"
+src.manual = "14.0.0.0"
+
+[sickbeard-mp4-automator]
+fetch.github = "mdhiggins/sickbeard_mp4_automator"
+src.git = "https://github.com/mdhiggins/sickbeard_mp4_automator"
 # [iyuuplus]
 # src.git = "https://gitee.com/ledc/iyuuplus"
 # fetch.git = "https://gitee.com/ledc/iyuuplus"

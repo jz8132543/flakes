@@ -173,6 +173,18 @@
     };
     date = "2026-01-16";
   };
+  sickbeard-mp4-automator = {
+    pname = "sickbeard-mp4-automator";
+    version = "724e210be5ce56fe8087446d9ec07f33d014a7fc";
+    src = fetchFromGitHub {
+      owner = "mdhiggins";
+      repo = "sickbeard_mp4_automator";
+      rev = "724e210be5ce56fe8087446d9ec07f33d014a7fc";
+      fetchSubmodules = false;
+      sha256 = "sha256-vQLsZ+I4uMmuYFM16AOKivA+P3tfl9TpOt/8K7+M/iE=";
+    };
+    date = "2026-01-18";
+  };
   trackerslist = {
     pname = "trackerslist";
     version = "latest";

@@ -149,6 +149,9 @@
       cookiecloud = 8088;
       mysql = 3306;
       seedboxProxyPort = 50080;
+      tdarr-server = 8266;
+      tdarr-webui = 8265;
+      unmanic = 8889;
     };
   };
 }

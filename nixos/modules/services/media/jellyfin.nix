@@ -131,7 +131,7 @@
             mkdir -p "${pluginDir}/${name}"
             # Use rsync if available for efficiency, or just cp
             # We use -L to follow symlinks from the store if any
-            ${pkgs.rsync}/bin/rsync -avL --delete "${path}/" "${pluginDir}/${name}/"
+            ${pkgs.rsync}/bin/rsync -aL --delete "${path}/" "${pluginDir}/${name}/"
             # Explicitly set permissions to be writable by owner
             find "${pluginDir}/${name}" -type d -exec chmod 0755 {} +
             find "${pluginDir}/${name}" -type f -exec chmod 0644 {} +

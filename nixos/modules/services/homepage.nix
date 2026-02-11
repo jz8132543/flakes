@@ -32,6 +32,17 @@ in
             };
           }
           {
+            "Unmanic" = {
+              href = "https://tv.${config.networking.domain}/unmanic";
+              icon = "unmanic.png";
+              description = "Library Optimiser";
+              widget = {
+                type = "unmanic";
+                url = "http://localhost:${toString config.ports.unmanic}";
+              };
+            };
+          }
+          {
             "Jellyseerr" = {
               href = "https://tv.${config.networking.domain}/jellyseerr";
               icon = "jellyseerr.png";

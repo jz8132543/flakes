@@ -38,5 +38,24 @@ in
   fanart = mkPlugin "jellyfin-plugin-fanart";
   sso = mkPlugin "jellyfin-plugin-sso";
 
-  metatube = mkPlugin "jellyfin-plugin-metatube";
+  metatube = pkgs.stdenv.mkDerivation {
+    pname = "jellyfin-plugin-metatube";
+    version = "2025.1102.2200.0";
+    src = pkgs.fetchurl {
+      url = "https://github.com/metatube-community/jellyfin-plugin-metatube/releases/download/v2025.1102.2200.0/Jellyfin.MetaTube@v2025.1102.2200.0.zip";
+      name = "jellyfin-plugin-metatube.zip";
+      sha256 = "0j24igpbybhjng7dv04s41njsq93czxi0xscxq2s7gd67nyppwig";
+    };
+    nativeBuildInputs = [ pkgs.unzip ];
+    sourceRoot = ".";
+    installPhase = ''
+      mkdir -p $out
+      DIR=$(find . -name "*.dll" -exec dirname {} \; | head -n 1)
+      if [ -n "$DIR" ]; then
+        cp -r "$DIR"/* $out/
+      else
+        cp -r * $out/
+      fi
+    '';
+  };
 }
