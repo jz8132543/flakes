@@ -24,6 +24,8 @@ in
     ./qbittorrent.nix
     ./flaresolverr.nix
     ./sma.nix
+    ./iyuu.nix
+    ./vertex.nix
   ];
 
   config = {
@@ -313,64 +315,6 @@ in
               return = "301 /qbit/";
             };
 
-            "/vertex/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.vertex}/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                gunzip on;
-                proxy_set_header Accept-Encoding "";
-
-                sub_filter_types *;
-                sub_filter_once off;
-
-                # 1. Inject Base URL to fix Vue Router routing issues (White screen fix)
-                sub_filter '<head>' '<head><base href="/vertex/">';
-
-                # 2. Fix Service Worker and Manifest paths (Prevent 404 errors)
-                sub_filter '"/service-worker.js"' '"/vertex/service-worker.js"';
-                sub_filter "'/service-worker.js'" "'/vertex/service-worker.js'";
-                sub_filter '"start_url":"/"' '"scope":"/vertex/","start_url":"/vertex/"';
-                sub_filter '"scope":"/"' '"scope":"/vertex/"';
-
-                # 3. Rewrite asset paths
-                sub_filter 'src="/assets/' 'src="/vertex/assets/';
-                sub_filter 'href="/assets/' 'href="/vertex/assets/';
-                sub_filter 'content="/assets/' 'content="/vertex/assets/';
-                sub_filter 'url("/assets/' 'url("/vertex/assets/';
-                sub_filter '"src": "/assets/' '"src": "/vertex/assets/';
-                sub_filter '"/assets/' '"/vertex/assets/';
-                sub_filter "'/assets/" "'/vertex/assets/";
-
-                # 4. Inject API Path Rewriter (Monkey Patching fetch/XHR)
-                sub_filter '</head>' '<script>(function(){var f=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.startsWith("/api/"))u="/vertex"+u;return f(u,o);};var x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){if(typeof u==="string"&&u.startsWith("/api/"))u="/vertex"+u;return x.apply(this,arguments);};})();</script></head>';
-
-                proxy_redirect / /vertex/;
-                proxy_set_header X-Forwarded-Prefix /vertex;
-              '';
-            };
-
-            "/vertex" = {
-              return = "301 /vertex/";
-            };
-
-            "/iyuu/" = {
-              proxyPass = "http://127.0.0.1:8777/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                proxy_set_header X-Forwarded-Prefix /iyuu;
-              '';
-            };
-            "/iyuu" = {
-              return = "301 /iyuu/";
-            };
-
-            "/whoami/" = {
-              proxyPass = "http://127.0.0.1:8082/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                proxy_set_header X-Forwarded-Prefix /whoami;
-              '';
-            };
             "/whoami" = {
               return = "301 /whoami/";
             };
@@ -384,7 +328,15 @@ in
               return = "301 /";
             };
 
-            # Services delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyfin, jellyseerr, prowlarr, sonarr-anime
+            "/jellyfin/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}/";
+              proxyWebsockets = true;
+            };
+            "/jellyfin" = {
+              return = "301 /jellyfin/";
+            };
+
+            # Services delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyseerr, prowlarr, sonarr-anime
           };
         };
       };
@@ -411,7 +363,7 @@ in
             service = "nixflix-nginx";
           };
           nixflix-apps = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/iyuu`) || PathPrefix(`/qbit`) || PathPrefix(`/vertex`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/qbit`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
             entryPoints = [ "https" ];
             service = "nixflix-nginx";
           };
@@ -570,68 +522,9 @@ in
     };
 
     # Containers
-    users.users.iyuu = {
-      isSystemUser = true;
-      group = "media";
-      uid = config.ids.uids.iyuu;
-      home = "/var/lib/iyuu";
-      createHome = true;
-    };
-    users.groups.iyuu.gid = config.ids.gids.iyuu;
-
-    sops.templates."iyuu-env" = {
-      content = ''
-        SERVER_LISTEN_PORT=${toString config.ports.iyuu}
-        SERVER_LISTEN_IP=0.0.0.0
-        IYUU_TOKEN=${config.sops.placeholder."media/iyuu_token"}
-        CONFIG_NOT_MYSQL=1
-      '';
-      owner = "iyuu";
-      group = "media";
-    };
-
-    sops.templates."vertex-env" = {
-      content = ''
-        PASSWORD=${config.sops.placeholder.password}
-      '';
-    };
 
     virtualisation.oci-containers = {
       backend = "podman";
-      containers.vertex = {
-        image = "docker://lswl/vertex:latest";
-        volumes = [
-          "/data/.state/vertex:/vertex"
-          "/data/downloads/torrents:/data/downloads/torrents"
-        ];
-        environment = {
-          TZ = "Asia/Shanghai";
-          PORT = toString config.ports.vertex;
-          BASE_PATH = "/vertex";
-          USERNAME = "i";
-          HOST = "0.0.0.0";
-        };
-        environmentFiles = [ config.sops.templates."vertex-env".path ];
-        extraOptions = [ "--network=host" ];
-      };
-
-      containers.iyuu = {
-        image = "docker://iyuucn/iyuuplus:latest";
-        volumes = [
-          "/data/.state/iyuu:/iyuu"
-          "/data/downloads/torrents:/data/downloads/torrents"
-        ];
-        environment = {
-          TZ = "Asia/Shanghai";
-          IYUU_ADMIN_USER = "i";
-        };
-        environmentFiles = [
-          config.sops.templates."iyuu-env".path
-          config.sops.secrets.password.path
-        ];
-        extraOptions = [ "--network=host" ];
-      };
-
       containers.whoami = {
         image = "docker.io/traefik/whoami";
         cmd = [
@@ -641,10 +534,6 @@ in
         extraOptions = [ "--network=host" ];
       };
     };
-
-    services.restic.backups.borgbase.paths = [
-      "/data/.state/vertex/db/sql.db"
-    ];
 
   };
 }

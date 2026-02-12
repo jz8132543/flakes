@@ -183,10 +183,10 @@ in
       name = "nue0";
       system = "x86_64-linux";
     })
-    # (mkHost {
-    #   name = "isk";
-    #   system = "x86_64-linux";
-    # })
+    (mkHost {
+      name = "isk";
+      system = "x86_64-linux";
+    })
   ];
 
   flake.homeConfigurations =

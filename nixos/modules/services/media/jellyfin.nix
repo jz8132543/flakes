@@ -127,7 +127,6 @@
           };
 
           mkSync = name: path: ''
-            echo "Syncing plugin ${name}..."
             mkdir -p "${pluginDir}/${name}"
             # Use rsync if available for efficiency, or just cp
             # We use -L to follow symlinks from the store if any

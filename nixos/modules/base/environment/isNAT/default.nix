@@ -67,7 +67,7 @@ with lib;
       if config.environment.isNAT then
         {
           NAT = {
-            address = ":8443";
+            address = ":${toString config.environment.altHTTPS}";
             forwardedHeaders.insecure = true;
             proxyProtocol.insecure = true;
             http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
