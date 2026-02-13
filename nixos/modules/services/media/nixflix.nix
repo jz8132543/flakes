@@ -15,6 +15,7 @@ in
   imports = [
     inputs.nixflix.nixosModules.default
     nixosModules.services.traefik
+    ./jellyfin.nix
   ];
 
   config = {
@@ -116,7 +117,7 @@ in
               id = 0;
               name = "M-Team - TP";
               enable = true;
-              # freeleechOnly = false;
+              freeleechOnly = false;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {
                 _secret = config.sops.secrets."media/mteam_api_key".path;
@@ -318,7 +319,7 @@ in
             };
 
             "/jellyfin/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}/";
+              proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}";
               proxyWebsockets = true;
             };
             "/jellyfin" = {

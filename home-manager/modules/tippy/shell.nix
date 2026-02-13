@@ -28,6 +28,7 @@ with config.home.catppuccin;
         batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
         rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
         rsync = "${pkgs.rsync}/bin/rsync -arvzP";
+        sl = "journalctl --unit";
       };
       shellAbbrs = {
         # ls = "eza";
@@ -105,6 +106,7 @@ with config.home.catppuccin;
         batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
         rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
         rsync = "${pkgs.rsync}/bin/rsync -arvzP";
+        sl = "journalctl --unit";
       };
       initContent = lib.mkOrder 550 ''
         zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
@@ -267,20 +269,34 @@ with config.home.catppuccin;
     };
     skim.enable = true;
   };
-  home.packages = with pkgs; [
-    eza
-    bottom
-    bat
-    fzf
-    ripgrep
-    rsync
-    vivid
-  ];
+  home.packages =
+    with pkgs;
+    [
+      eza
+      bottom
+      bat
+      fzf
+      ripgrep
+      rsync
+      vivid
+
+      # Fish plugins from NixOS
+      fishPlugins.autopair-fish
+      fishPlugins.done
+      fishPlugins.fish-you-should-use
+      fishPlugins.foreign-env
+      fishPlugins.forgit
+      fishPlugins.puffer
+      nur.repos.linyinfeng.fishPlugins.replay
+      libnotify # for done notification
+    ]
+    ++ lib.optional (pkgs ? comma-with-db) pkgs.comma-with-db;
   home.global-persistence = {
     directories = [
       ".local/share/zsh"
       ".local/share/zoxide"
       ".local/share/direnv"
+      ".local/share/fish"
     ];
   };
 }
