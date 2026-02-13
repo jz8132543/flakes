@@ -42,9 +42,9 @@ def add_download_client(name, app_url, app_key, client_name, host, port, usernam
         
         # App-specific Category fields
         if name == 'Sonarr':
-            fields.append({'name': 'tvCategory', 'value': 'sonarr'})
+            fields.append({'name': 'tvCategory', 'value': 'tv-sonarr'})
         elif name == 'Radarr':
-            fields.append({'name': 'movieCategory', 'value': 'radarr'})
+            fields.append({'name': 'movieCategory', 'value': 'movies-radarr'})
         elif name == 'Prowlarr':
             fields.append({'name': 'category', 'value': 'prowlarr'})
         elif name == 'Lidarr':
@@ -323,90 +323,6 @@ def configure_media_management(name, url, key, api_version='v3'):
     except Exception as e:
         print(f"Error configuring media management for {name}: {e}")
 
-def setup_sma(name, url, key, api_version='v3'):
-    """Configures SMA Post-Processing Script"""
-    print(f"Configuring SMA for {name}...")
-    headers = {'X-Api-Key': key}
-    endpoint = f"{url}/api/{api_version}/notification"
-    
-    script_path = ""
-    if name == 'Sonarr':
-        script_path = "/run/current-system/sw/bin/sma-sonarr"
-    elif name == 'Sonarr Anime':
-        script_path = "/run/current-system/sw/bin/sma-sonarr"
-    elif name == 'Radarr':
-        script_path = "/run/current-system/sw/bin/sma-radarr"
-    
-    if not script_path:
-        print(f"No SMA script defined for {name}")
-        return
-
-    try:
-        # Get all notifications to check for existence
-        resp = requests.get(endpoint, headers=headers)
-        if resp.status_code != 200:
-            print(f"Failed to get notifications for {name}: {resp.status_code}")
-            return
-        
-        existing = resp.json()
-        notification_name = "SMA - H265"
-        
-        # Check if already exists
-        for n in existing:
-            if n.get('name') == notification_name:
-                print(f"SMA script already configured for {name}")
-                return
-
-        # Create new notification
-        payload = {
-            "onGrab": False,
-            "onDownload": False, # SMA recommends manual trigger or OnDownload/OnUpgrade. Usually OnDownload/OnUpgrade.
-            "onUpgrade": True,
-            "onRename": False,
-            "onSeriesDelete": False,
-            "onEpisodeFileDelete": False,
-            "onEpisodeFileDeleteForUpgrade": False,
-            "onHealthIssue": False,
-            "onApplicationUpdate": False,
-            "supportsOnGrab": True,
-            "supportsOnDownload": True,
-            "supportsOnUpgrade": True,
-            "supportsOnRename": True,
-            "supportsOnSeriesDelete": True,
-            "supportsOnEpisodeFileDelete": True,
-            "supportsOnEpisodeFileDeleteForUpgrade": True,
-            "supportsOnHealthIssue": True,
-            "supportsOnApplicationUpdate": True,
-            "includeHealthWarnings": False,
-            "name": notification_name,
-            "fields": [
-                {
-                    "name": "path",
-                    "value": script_path
-                },
-                {
-                    "name": "arguments",
-                    "value": ""
-                }
-            ],
-            "implementationName": "CustomScript",
-            "implementation": "CustomScript",
-            "configContract": "CustomScriptSettings",
-            "infoLink": "https://github.com/Sonarr/Sonarr/wiki/Custom-Script",
-            "tags": []
-        }
-
-        # Enable OnDownload as well
-        payload["onDownload"] = True
-
-        resp = requests.post(endpoint, headers=headers, json=payload)
-        if resp.status_code in [200, 201]:
-            print(f"Successfully configured SMA for {name}")
-        else:
-            print(f"Failed to configure SMA for {name}: {resp.status_code} {resp.text}")
-
-    except Exception as e:
-        print(f"Error configuring SMA for {name}: {e}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -451,13 +367,11 @@ def main():
     if args.sonarr_url and sonarr_key and qbit_pass:
         add_download_client("Sonarr", args.sonarr_url, sonarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
         configure_media_management("Sonarr", args.sonarr_url, sonarr_key, api_version='v3')
-        setup_sma("Sonarr", args.sonarr_url, sonarr_key, api_version='v3')
     
     # Setup Radarr
     if args.radarr_url and radarr_key and qbit_pass:
         add_download_client("Radarr", args.radarr_url, radarr_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
         configure_media_management("Radarr", args.radarr_url, radarr_key, api_version='v3')
-        setup_sma("Radarr", args.radarr_url, radarr_key, api_version='v3')
 
     # Setup Lidarr
     if args.lidarr_url and lidarr_key and qbit_pass:
@@ -470,7 +384,6 @@ def main():
         if sa_key and qbit_pass:
             add_download_client("Sonarr Anime", args.sonarr_anime_url, sa_key, "qBit", "127.0.0.1", qbit_port, "i", qbit_pass, api_version='v3')
             configure_media_management("Sonarr Anime", args.sonarr_anime_url, sa_key, api_version='v3')
-            setup_sma("Sonarr Anime", args.sonarr_anime_url, sa_key, api_version='v3')
 
     # Setup Prowlarr
     if args.prowlarr_url:
