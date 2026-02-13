@@ -3,9 +3,6 @@
   lib,
   ...
 }:
-let
-  domain = "home.${config.networking.domain}";
-in
 {
   services.homepage-dashboard = {
     enable = lib.mkForce true;
@@ -421,20 +418,10 @@ in
     };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      homepage = {
-        rule = "Host(`${domain}`)";
-        entryPoints = [ "https" ];
-        service = "homepage";
-      };
-    };
-    services = {
-      homepage.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://127.0.0.1:${toString config.ports.homepage}"; } ];
-      };
-    };
+  services.traefik.proxies.homepage = {
+    rule = "Host(`${config.networking.domain}`)";
+    target = "http://127.0.0.1:${toString config.ports.homepage}";
+    # We don't need entryPoints/loadBalancer because proxies handles it
   };
 
   # Load generated env file (ignore if missing with - prefix)
@@ -452,7 +439,7 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS="home.dora.im,localhost,127.0.0.1"
+      HOMEPAGE_ALLOWED_HOSTS="all"
     '';
   };
 }

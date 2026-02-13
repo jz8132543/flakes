@@ -8,21 +8,48 @@ let
   inherit (config.networking) fqdn;
 in
 {
+  users.users.homepage-dashboard = {
+    isSystemUser = true;
+    group = "homepage-dashboard";
+  };
+  users.groups.homepage-dashboard = { };
+
   # Use a manual systemd service because the homepage-dashboard module only supports one instance
   systemd.services.homepage-machine = {
-    description = "Homepage Dashboard (Machine Specific)";
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
+    unitConfig.StartLimitIntervalSec = 0;
 
     serviceConfig = {
       Type = "simple";
-      ExecStart = "${pkgs.homepage-dashboard}/bin/homepage-dashboard";
+      StateDirectory = "homepage-machine";
+      CacheDirectory = "homepage-dashboard";
+      # ExecStartPre = pkgs.writeShellScript "prep-homepage" ''
+      #   cp -f /etc/homepage-machine/*.yaml /var/lib/homepage-machine/
+      # '';
+      ExecStart = "${pkgs.homepage-dashboard}/bin/homepage";
+      # ExecStartPost = pkgs.writeShellScript "check-homepage" ''
+      #   # Wait up to 60 seconds for the service to be responsive
+      #   for i in {1..60}; do
+      #     # Accept 200 (OK) or 308 (Redirect) as proof of life
+      #     CODE=$(${pkgs.curl}/bin/curl -k -s -o /dev/null -w "%{http_code}" http://localhost:${toString config.ports.homepage-machine}/)
+      #     if [ "$CODE" = "200" ] || [ "$CODE" = "308" ]; then
+      #       exit 0
+      #     fi
+      #     sleep 1
+      #   done
+      #   exit 1
+      # '';
       Restart = "always";
+      RestartSec = "5s";
       User = "homepage-dashboard";
       Group = "homepage-dashboard";
+      WorkingDirectory = "/var/lib/homepage-machine";
       Environment = [
         "PORT=${toString config.ports.homepage-machine}"
-        "HOMEPAGE_CONFIG_DIR=/etc/homepage-machine"
+        "HOMEPAGE_CONFIG_DIR=/var/lib/homepage-machine"
+        "HOMEPAGE_BASEPATH=/home"
+        "HOMEPAGE_ALLOWED_HOSTS=all"
       ];
       EnvironmentFile = [
         "-/var/lib/homepage/jellyfin.env"
@@ -41,7 +68,7 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS="${config.networking.domain},${config.networking.fqdn},localhost,127.0.0.1"
+      HOMEPAGE_ALLOWED_HOSTS="all"
     '';
   };
 
@@ -243,27 +270,13 @@ in
     }
   ];
 
-  services.traefik.dynamicConfigOptions.http = {
-    middlewares = {
-      strip-home = {
-        stripPrefix = {
-          prefixes = [ "/home" ];
-        };
-      };
-    };
-    routers = {
-      homepage-machine = {
-        rule = "Host(`${fqdn}`) && (Path(`/home`) || PathPrefix(`/home/`))";
-        entryPoints = [ "https" ];
-        service = "homepage-machine";
-        middlewares = [ "strip-home" ];
-      };
-    };
-    services = {
-      homepage-machine.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://127.0.0.1:${toString config.ports.homepage-machine}"; } ];
-      };
-    };
+  services.traefik.proxies.homepage-machine = {
+    rule = "Host(`${fqdn}`) && (Path(`/home`) || PathPrefix(`/home/`))";
+    target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
+  };
+
+  services.traefik.proxies.homepage-machine-assets = {
+    rule = "Host(`${fqdn}`) && (PathPrefix(`/_next`) || PathPrefix(`/images`) || PathPrefix(`/api/config`) || PathPrefix(`/icons`) || PathPrefix(`/site.webmanifest`))";
+    target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
   };
 }

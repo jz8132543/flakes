@@ -37,8 +37,7 @@
   # Prevent laptop from sleeping on lid close
 
   ports.derp-stun = lib.mkForce 3440;
-  environment.altHTTPS = 8444;
-  services.traefik.staticConfigOptions.entryPoints.https.address = lib.mkForce ":8443";
+  environment.altHTTPS = 8443;
 
   nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
 }

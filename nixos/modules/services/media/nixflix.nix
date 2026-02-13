@@ -15,17 +15,7 @@ in
   imports = [
     inputs.nixflix.nixosModules.nixflix
     nixosModules.services.traefik
-    ./jellyfin.nix
-    ./tdarr.nix
-    ./unmanic.nix
-    ./common.nix
-    ./bazarr.nix
-    ./autobrr.nix
-    ./qbittorrent.nix
-    ./flaresolverr.nix
-    ./sma.nix
-    ./iyuu.nix
-    ./vertex.nix
+
   ];
 
   config = {
@@ -264,17 +254,21 @@ in
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
             proxy_set_header X-Forwarded-Proto $scheme;
-              proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Host $host;
             proxy_set_header Cookie $http_cookie;
             proxy_set_header Connection $http_connection;
           '';
           locations = {
-            "/" = {
+            "/tv/" = {
               extraConfig = ''
                 root ${finalNavHtml};
+                rewrite ^/tv/(.*)$ /$1 break;
                 try_files /nav.html =404;
                 default_type text/html;
               '';
+            };
+            "/tv" = {
+              return = "301 /tv/";
             };
 
             # --- Custom Services (not managed by nixflix) ---
@@ -324,10 +318,6 @@ in
               proxyWebsockets = true;
             };
 
-            "/nav" = {
-              return = "301 /";
-            };
-
             "/jellyfin/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}/";
               proxyWebsockets = true;
@@ -341,37 +331,25 @@ in
         };
       };
 
-      traefik.dynamicConfigOptions.http = {
-        middlewares = {
-          strip-tv = {
-            stripPrefix = {
-              prefixes = [ "/tv" ];
-            };
-          };
-        };
-        routers = {
+      traefik = {
+        proxies = {
           nixflix-nav = {
-            # Allow access via domain or local fqdn, and via root path or /tv path
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (Path(`/`) || PathPrefix(`/tv`))";
-            entryPoints = [ "https" ];
-            service = "nixflix-nginx";
+            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/tv`)";
+            target = "http://127.0.0.1:${toString config.ports.nginx}";
             middlewares = [ "strip-tv" ];
           };
           nixflix-dashboard = {
             rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/dashboard`)";
-            entryPoints = [ "https" ];
-            service = "nixflix-nginx";
+            target = "http://127.0.0.1:${toString config.ports.nginx}";
           };
           nixflix-apps = {
             rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/qbit`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
-            entryPoints = [ "https" ];
-            service = "nixflix-nginx";
+            target = "http://127.0.0.1:${toString config.ports.nginx}";
           };
         };
-        services = {
-          nixflix-nginx.loadBalancer.servers = [
-            { url = "http://127.0.0.1:${toString config.ports.nginx}"; }
-          ];
+
+        dynamicConfigOptions.http.middlewares = {
+          strip-tv.stripPrefix.prefixes = [ "/tv" ];
         };
       };
     };
@@ -441,6 +419,7 @@ in
               "prowlarr.service"
               "bazarr.service"
               "qbittorrent.service"
+              "podman-vertex.service"
               "postgresql-ready.target"
             ];
             wants = [
@@ -449,6 +428,7 @@ in
               "prowlarr.service"
               "bazarr.service"
               "qbittorrent.service"
+              "podman-vertex.service"
             ];
             wantedBy = [ "multi-user.target" ];
             serviceConfig = {
@@ -471,8 +451,6 @@ in
                              prowlarr:${toString config.ports.prowlarr}/prowlarr \
                              bazarr:${toString config.ports.bazarr}/ \
                              autobrr:${toString config.ports.autobrr}/autobrr \
-                             vertex:${toString config.ports.vertex}/vertex \
-                             tdarr:${toString config.ports.tdarr-webui}/ \
                              qbittorrent:${toString config.ports.qbittorrent}/ \
                              jellyfin:${toString config.ports.jellyfin}/health \
                              sonarr-anime:${toString config.ports.sonarr-anime}/sonarr-anime; do
@@ -506,8 +484,13 @@ in
                 --jellyfin-url "http://127.0.0.1:${toString config.ports.jellyfin}/jellyfin" \
                 --jellyfin-env-file "/var/lib/homepage/jellyfin.env"
 
-              # Restart homepage to pick up new env vars
-              systemctl restart homepage-dashboard.service
+              # Restart homepage to pick up new env vars (gracefully)
+              if systemctl is-active --quiet homepage-dashboard.service; then
+                systemctl restart homepage-dashboard.service
+              fi
+              if systemctl is-active --quiet homepage-machine.service; then
+                systemctl restart homepage-machine.service
+              fi
             '';
           };
 

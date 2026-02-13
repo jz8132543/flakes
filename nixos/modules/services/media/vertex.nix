@@ -66,10 +66,9 @@
       return = "301 /vertex/";
     };
 
-    services.traefik.dynamicConfigOptions.http.routers.nixflix-apps-vertex = {
+    services.traefik.proxies.nixflix-apps-vertex = {
       rule = "(Host(`tv.dora.im`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/vertex`)";
-      entryPoints = [ "https" ];
-      service = "nixflix-nginx";
+      target = "http://127.0.0.1:${toString config.ports.nginx}";
     };
 
     services.restic.backups.borgbase.paths = [

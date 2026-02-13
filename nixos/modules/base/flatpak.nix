@@ -36,6 +36,7 @@
       extraPortals = lib.mkDefault [
         pkgs.kdePackages.xdg-desktop-portal-kde
         pkgs.xdg-desktop-portal-gtk
+        pkgs.xdg-desktop-portal-gnome
       ];
     };
     icons.enable = true;

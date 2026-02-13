@@ -66,13 +66,15 @@ with lib;
     services.traefik.staticConfigOptions.entryPoints =
       if config.environment.isNAT then
         {
-          NAT = {
+          https-alt = {
             address = ":${toString config.environment.altHTTPS}";
-            forwardedHeaders.insecure = true;
-            proxyProtocol.insecure = true;
-            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
-            # http3 = {};
-            # asDefault = true;
+            asDefault = true;
+            inherit (config.services.traefik.staticConfigOptions.entryPoints.https)
+              forwardedHeaders
+              proxyProtocol
+              transport
+              http
+              ;
           };
         }
       else

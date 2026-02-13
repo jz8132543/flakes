@@ -52,10 +52,9 @@
       return = "301 /iyuu/";
     };
 
-    services.traefik.dynamicConfigOptions.http.routers.nixflix-apps-iyuu = {
+    services.traefik.proxies.nixflix-apps-iyuu = {
       rule = "(Host(`tv.dora.im`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/iyuu`)";
-      entryPoints = [ "https" ];
-      service = "nixflix-nginx";
+      target = "http://127.0.0.1:${toString config.ports.nginx}";
     };
   };
 }
