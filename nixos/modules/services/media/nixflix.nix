@@ -13,17 +13,8 @@ let
 in
 {
   imports = [
-    inputs.nixflix.nixosModules.nixflix
+    inputs.nixflix.nixosModules.default
     nixosModules.services.traefik
-    ./jellyfin.nix
-    ./tdarr.nix
-    ./unmanic.nix
-    ./common.nix
-    ./bazarr.nix
-    ./autobrr.nix
-    ./qbittorrent.nix
-    ./flaresolverr.nix
-    ./sma.nix
   ];
 
   config = {
@@ -125,7 +116,7 @@ in
               id = 0;
               name = "M-Team - TP";
               enable = true;
-              # freeleechOnly = false;
+              freeleechOnly = true;
               baseUrl = "https://kp.m-team.cc/";
               apiKey = {
                 _secret = config.sops.secrets."media/mteam_api_key".path;
