@@ -23,6 +23,7 @@
     libreoffice
     teamspeak6-client
     mumble
+    jellyfin-desktop
     wechat-uos
     google-antigravity
     google-chrome

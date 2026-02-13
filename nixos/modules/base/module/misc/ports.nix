@@ -31,6 +31,7 @@
       ipsec-ike = 500;
       ssh = 1022;
       homepage = 3005;
+      homepage-machine = 3006;
       pastebin = 3000;
       vaultwarden-http = 3010;
       vaultwarden-websocket = 3011;

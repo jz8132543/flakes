@@ -152,19 +152,13 @@
             service = "api@internal";
             middlewares = "auth";
           };
-          dash-redirect = {
-            rule = "Host(`${config.networking.fqdn}`) && Path(`/`)";
-            middlewares = "dashboard-redirect";
-            service = "noop@internal";
-          };
         };
         middlewares = {
           dashboard-redirect.redirectregex = {
-            regex = ".*";
-            replacement = "https://${config.networking.fqdn}/dashboard/";
+            regex = "^https?://([^/]+)/?$";
+            replacement = "https://$1/dashboard/";
             permanent = true;
           };
-          # https://tool.oschina.net/htpasswd
           auth.basicauth = {
             users = "{{ env `TRAEFIK_AUTH` }}";
             removeheader = true;
