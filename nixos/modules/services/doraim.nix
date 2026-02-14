@@ -7,9 +7,10 @@
   services.traefik.dynamicConfigOptions.http = {
     routers = {
       doraim = {
-        rule = "Host(`dora.im`) || Host(`mta-sts.dora.im`)";
+        rule = "Host(`mta-sts.dora.im`) || (Host(`dora.im`) && PathPrefix(`/.well-known`))";
         entryPoints = [ "https" ];
         service = "doraim";
+        priority = 100;
       };
     };
     services = {
@@ -18,10 +19,6 @@
         servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
       };
     };
-  };
-
-  sops.secrets."mail/noreply" = {
-    mode = "0444";
   };
 
   services.nginx = {
@@ -81,7 +78,7 @@
         max_age: 86400
       '';
   };
-  # vlmcsd
+  # KMS
   networking.firewall.allowedTCPPorts = [ 1688 ];
   systemd.services.vlmcsd = {
     description = "vlmcsd server";

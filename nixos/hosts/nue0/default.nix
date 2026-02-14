@@ -14,7 +14,7 @@
       nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
-      (import nixosModules.services.atuin { })
+      (import nixosModules.services.atuin { PG = "127.0.0.1"; })
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.syncthing
@@ -33,8 +33,8 @@
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { })
       # (import nixosModules.services.nextcloud { })
-      (import nixosModules.services.mastodon { })
-      (import nixosModules.services.matrix { })
+      (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
+      (import nixosModules.services.matrix { PG = "127.0.0.1"; })
       # TODO
       # nixosModules.services.pastebin
 

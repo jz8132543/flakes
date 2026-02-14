@@ -225,8 +225,6 @@ in
     };
 
     services = {
-      homepage-dashboard.enable = false;
-
       nginx = {
         enable = lib.mkForce true;
         commonHttpConfig = ''
@@ -312,11 +310,6 @@ in
               return = "301 /whoami/";
             };
 
-            "/dashboard/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.homepage}/";
-              proxyWebsockets = true;
-            };
-
             "/jellyfin/" = {
               proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}";
               proxyWebsockets = true;
@@ -336,10 +329,6 @@ in
             rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/tv`)";
             target = "http://127.0.0.1:${toString config.ports.nginx}";
             middlewares = [ "strip-tv" ];
-          };
-          nixflix-dashboard = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/dashboard`)";
-            target = "http://127.0.0.1:${toString config.ports.nginx}";
           };
           nixflix-apps = {
             rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/qbit`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
@@ -482,14 +471,6 @@ in
                 --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}" \
                 --jellyfin-url "http://127.0.0.1:${toString config.ports.jellyfin}/jellyfin" \
                 --jellyfin-env-file "/var/lib/homepage/jellyfin.env"
-
-              # Restart homepage to pick up new env vars (gracefully)
-              if systemctl is-active --quiet homepage-dashboard.service; then
-                systemctl restart homepage-dashboard.service
-              fi
-              if systemctl is-active --quiet homepage-machine.service; then
-                systemctl restart homepage-machine.service
-              fi
             '';
           };
 

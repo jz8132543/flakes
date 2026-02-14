@@ -1,5 +1,4 @@
 {
-  lib,
   config,
   pkgs,
   nixosModules,
@@ -44,6 +43,7 @@ with lib;
     networking.firewall.allowedTCPPorts = [
       80
       443
+      8443
     ];
     services.nginx = {
       enable = true;
@@ -82,6 +82,7 @@ with lib;
     };
     services.traefik = {
       enable = true;
+      dynamic.dir = "/var/lib/traefik/dynamic";
       staticConfigOptions = {
         log = {
           level = "DEBUG";
@@ -104,7 +105,7 @@ with lib;
           };
           https = {
             address = ":443";
-            asDefault = true;
+            # asDefault = true;
             forwardedHeaders.insecure = true;
             proxyProtocol.insecure = true;
             transport = {
@@ -112,6 +113,21 @@ with lib;
               #   requestAcceptGraceTimeout = 0;
               #   graceTimeOut = 5;
               # };
+              respondingTimeouts = {
+                readTimeout = 180;
+                writeTimeout = 180;
+                idleTimeout = 180;
+              };
+            };
+            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+            http3 = { };
+          };
+          https-alt = {
+            address = ":8443";
+            # asDefault = true;
+            forwardedHeaders.insecure = true;
+            proxyProtocol.insecure = true;
+            transport = {
               respondingTimeouts = {
                 readTimeout = 180;
                 writeTimeout = 180;
@@ -132,11 +148,13 @@ with lib;
           };
         };
         ping = {
+          entryPoint = "https";
           manualRouting = true;
         };
         metrics = {
           prometheus = {
             addRoutersLabels = true;
+            entryPoint = "https";
             manualRouting = true;
           };
         };
@@ -161,8 +179,8 @@ with lib;
           else
             [ ];
         tls.options.default = {
-          minVersion = "VersionTLS13";
-          sniStrict = true;
+          # minVersion = "VersionTLS13";
+          # sniStrict = true;
         };
         http = {
           middlewares.limit.buffering = {
@@ -178,15 +196,27 @@ with lib;
               ping = {
                 rule = "Host(`${config.networking.fqdn}`) && Path(`/ping`)";
                 service = "ping@internal";
+                entryPoints = [
+                  "http"
+                  "https"
+                  "https-alt"
+                ];
               };
-              traefik = {
-                rule = "Host(`${config.networking.fqdn}`) && Path(`/traefik`)";
+              traefik-internal-metrics = {
+                rule = "Host(`${config.networking.fqdn}`) && Path(`/metrics`)";
                 service = "prometheus@internal";
+                entryPoints = [ "https" ]; # Internal services still benefit from explicit binding
               };
-              api = {
-                rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))";
+              traefik-dashboard = {
+                rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))";
                 service = "api@internal";
-                middlewares = "auth";
+                entryPoints = [
+                  "http"
+                  "https"
+                  "https-alt"
+                ];
+                middlewares = [ "auth" ];
+                tls = { }; # Enable TLS to ensure it matches the HTTPS entrypoint correctly
               };
             }
           ];
@@ -194,17 +224,12 @@ with lib;
             loadBalancer.servers = [ { url = value.target; } ];
           }) config.services.traefik.proxies;
           middlewares = {
-            dashboard-redirect.redirectregex = {
-              regex = "^https?://([^/]+)/?$";
-              replacement = "https://$1/dashboard/";
-              permanent = true;
-            };
             auth.basicauth = {
-              users = "{{ env `TRAEFIK_AUTH` }}";
-              removeheader = true;
+              usersFile = config.sops.secrets."traefik/TRAEFIK_AUTH".path;
+              removeHeader = true;
             };
             strip-prefix = {
-              stripprefixregex.regex = "/[^/]+/";
+              stripPrefixRegex.regex = [ "/[^/]+/" ];
             };
           };
         };
@@ -252,10 +277,22 @@ with lib;
       config.sops.templates."traefik-env".path
     ];
     sops.secrets = {
-      "traefik/cloudflare_token" = { };
-      "traefik/KID" = { };
-      "traefik/hmacEncoded" = { };
-      "traefik/TRAEFIK_AUTH" = { };
+      "traefik/cloudflare_token" = {
+        owner = "traefik";
+      };
+      "traefik/KID" = {
+        owner = "traefik";
+      };
+      "traefik/hmacEncoded" = {
+        owner = "traefik";
+      };
+      "traefik/TRAEFIK_AUTH" = {
+        owner = "traefik";
+      };
+    };
+    systemd.services.traefik.serviceConfig = {
+      WatchdogSec = lib.mkForce "30s";
+      StartLimitIntervalSec = lib.mkForce "0"; # Disable start limit for better recovery
     };
     sops.templates.traefik-env.content = ''
       CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}
