@@ -15,15 +15,9 @@ in
     ports = [ "${toString port}:8088" ];
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers.cookiecloud = {
-      rule = "Host(`${domain}`)";
-      entryPoints = [ "https" ];
-      service = "cookiecloud";
-    };
-    services.cookiecloud.loadBalancer.servers = [
-      { url = "http://localhost:${toString port}"; }
-    ];
+  services.traefik.proxies.cookiecloud = {
+    rule = "Host(`${domain}`)";
+    target = "http://localhost:${toString port}";
   };
 
   environment.global-persistence.directories = [

@@ -21,24 +21,9 @@
         WEBUI_AUTH = "False";
       };
     };
-    traefik.dynamicConfigOptions.http = {
-      routers = {
-        ollama-frontend = {
-          rule = "Host(`ollama.${config.networking.domain}`)";
-          entryPoints = [ "https" ];
-          service = "ollama-frontend";
-        };
-      };
-      services = {
-        ollama-frontend.loadBalancer = {
-          passHostHeader = true;
-          servers = [
-            {
-              url = "http://localhost:${toString config.ports.ollama-ui}";
-            }
-          ];
-        };
-      };
+    traefik.proxies.ollama-frontend = {
+      rule = "Host(`ollama.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.ports.ollama-ui}";
     };
   };
 }

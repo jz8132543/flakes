@@ -35,28 +35,14 @@
     ADMIN_TOKEN=${config.sops.placeholder."vaultwarden/ADMIN_TOKEN"}
     SMTP_PASSWORD=${config.sops.placeholder."mail/noreply"}
   '';
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      vault = {
-        rule = "Host(`vault.dora.im`) && PathPrefix(`/`)";
-        entryPoints = [ "https" ];
-        service = "vault";
-      };
-      vault_ws = {
-        rule = "Host(`vault.dora.im`) && PathPrefix(`/notifications/hub`)";
-        entryPoints = [ "https" ];
-        service = "vault_ws";
-      };
+  services.traefik.proxies = {
+    vault = {
+      rule = "Host(`vault.dora.im`) && PathPrefix(`/`)";
+      target = "http://localhost:${toString config.ports.vaultwarden-http}";
     };
-    services = {
-      vault.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.vaultwarden-http}"; } ];
-      };
-      vault_ws.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.vaultwarden-websocket}"; } ];
-      };
+    vault_ws = {
+      rule = "Host(`vault.dora.im`) && PathPrefix(`/notifications/hub`)";
+      target = "http://localhost:${toString config.ports.vaultwarden-websocket}";
     };
   };
   systemd.services.vaultwarden = {

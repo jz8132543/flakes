@@ -136,12 +136,11 @@ in
         ];
 
     };
-    traefik.dynamicConfigOptions.http = {
+    traefik.dynamic.files.nixos.settings.http = {
       routers.prometheus = {
         rule = "Host(`metrics.${config.networking.domain}`)";
         service = "prometheus";
         entryPoints = [ "https" ];
-        priority = 99;
       };
       services.prometheus.loadBalancer.servers = [
         { url = "http://127.0.0.1:${toString config.services.prometheus.port}"; }

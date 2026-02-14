@@ -234,38 +234,18 @@ lib.mkMerge [
   }
   # reverse proxy
   {
-    services.traefik.dynamicConfigOptions.http = {
-      routers = {
-        matrix = {
-          rule = "Host(`m.dora.im`) && (PathPrefix(`/_matrix`) || PathPrefix(`/_synapse`) || PathPrefix(`/.well-known`))";
-          entryPoints = [ "https" ];
-          service = "matrix";
-          priority = 99;
-        };
-        element = {
-          rule = "Host(`m.dora.im`)";
-          entryPoints = [ "https" ];
-          service = "element";
-        };
-        matrix-admin = {
-          rule = "Host(`admin.m.dora.im`)";
-          entryPoints = [ "https" ];
-          service = "matrix-admin";
-        };
+    services.traefik.proxies = {
+      matrix = {
+        rule = "Host(`m.dora.im`) && (PathPrefix(`/_matrix`) || PathPrefix(`/_synapse`) || PathPrefix(`/.well-known`))";
+        target = "http://localhost:${toString config.ports.matrix}";
       };
-      services = {
-        matrix.loadBalancer = {
-          passHostHeader = true;
-          servers = [ { url = "http://localhost:${toString config.ports.matrix}"; } ];
-        };
-        element.loadBalancer = {
-          passHostHeader = true;
-          servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-        };
-        matrix-admin.loadBalancer = {
-          passHostHeader = true;
-          servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-        };
+      element = {
+        rule = "Host(`m.dora.im`)";
+        target = "http://localhost:${toString config.ports.nginx}";
+      };
+      matrix-admin = {
+        rule = "Host(`admin.m.dora.im`)";
+        target = "http://localhost:${toString config.ports.nginx}";
       };
     };
     services.nginx = {

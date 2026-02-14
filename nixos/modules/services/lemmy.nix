@@ -16,28 +16,14 @@
       federation.enabled = true;
     };
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      lemmy-ui = {
-        rule = "Host(`lemmy.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "lemmy-ui";
-      };
-      lemmy = {
-        rule = "Host(`lemmy.${config.networking.domain}`) && HeadersRegexp(`Accept`, `^application/`) || Host(`lemmy.${config.networking.domain}`) && Method(`POST`) || Host(`lemmy.${config.networking.domain}`) && PathPrefix(`/{path:(api|pictrs|feeds|nodeinfo|.well-known)}`)";
-        entryPoints = [ "https" ];
-        service = "lemmy";
-      };
+  services.traefik.proxies = {
+    lemmy-ui = {
+      rule = "Host(`lemmy.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.services.lemmy.ui.port}";
     };
-    services = {
-      lemmy-ui.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${config.services.lemmy.ui.port}"; } ];
-      };
-      lemmy.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${config.services.lemmy.settings.port}"; } ];
-      };
+    lemmy = {
+      rule = "Host(`lemmy.${config.networking.domain}`) && (HeadersRegexp(`Accept`, `^application/`) || Method(`POST`) || PathPrefix(`/{path:(api|pictrs|feeds|nodeinfo|.well-known)}`))";
+      target = "http://localhost:${toString config.services.lemmy.settings.port}";
     };
   };
   systemd.services.lemmy = {

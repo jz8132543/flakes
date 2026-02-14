@@ -4,21 +4,17 @@
   ...
 }:
 {
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      doraim = {
-        rule = "Host(`mta-sts.dora.im`) || (Host(`dora.im`) && PathPrefix(`/.well-known`))";
-        entryPoints = [ "https" ];
-        service = "doraim";
-        priority = 100;
-      };
+  services.traefik.proxies = {
+    doraim = {
+      rule = "Host(`dora.im`) && PathPrefix(`/.well-known`)";
+      target = "http://localhost:${toString config.ports.nginx}";
+      # priority = 100;
     };
-    services = {
-      doraim.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-      };
+    mta-sts = {
+      rule = "Host(`mta-sts.dora.im`)";
+      target = "http://localhost:${toString config.ports.nginx}";
     };
+
   };
 
   services.nginx = {

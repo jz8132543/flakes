@@ -31,6 +31,20 @@ with lib;
                 default = [ ];
                 description = "List of middlewares for the router.";
               };
+              priority = mkOption {
+                type = types.nullOr types.int;
+                default = null;
+                description = "Priority for the router.";
+              };
+              entryPoints = mkOption {
+                type = types.listOf types.str;
+                default = [
+                  "http"
+                  "https"
+                  "https-alt"
+                ];
+                description = "List of entrypoints for the router.";
+              };
             };
           }
         )
@@ -83,7 +97,7 @@ with lib;
     services.traefik = {
       enable = true;
       dynamic.dir = "/var/lib/traefik/dynamic";
-      staticConfigOptions = {
+      static.settings = {
         log = {
           level = "DEBUG";
           filePath = "/var/lib/traefik/traefik.log";
@@ -105,14 +119,10 @@ with lib;
           };
           https = {
             address = ":443";
-            # asDefault = true;
+            asDefault = true;
             forwardedHeaders.insecure = true;
             proxyProtocol.insecure = true;
             transport = {
-              # lifeCycle = {
-              #   requestAcceptGraceTimeout = 0;
-              #   graceTimeOut = 5;
-              # };
               respondingTimeouts = {
                 readTimeout = 180;
                 writeTimeout = 180;
@@ -139,7 +149,6 @@ with lib;
           };
         };
         certificatesResolvers.zerossl.acme = {
-          # caServer = "https://acme.zerossl.com/v2/DV90";
           email = "blackhole@dora.im";
           storage = "/var/lib/traefik/acme.json";
           keyType = "EC256";
@@ -167,7 +176,7 @@ with lib;
           insecureSkipVerify = true;
         };
       };
-      dynamicConfigOptions = {
+      dynamic.files.nixos.settings = {
         tls.certificates =
           if config.environment.isNAT then
             [
@@ -178,10 +187,7 @@ with lib;
             ]
           else
             [ ];
-        tls.options.default = {
-          # minVersion = "VersionTLS13";
-          # sniStrict = true;
-        };
+        tls.options.default = { };
         http = {
           middlewares.limit.buffering = {
             maxRequestBodyBytes = 4 * 1024 * 1024;
@@ -189,7 +195,12 @@ with lib;
           };
           routers = mkMerge [
             (mapAttrs (name: value: {
-              inherit (value) rule middlewares;
+              inherit (value)
+                rule
+                middlewares
+                priority
+                entryPoints
+                ;
               service = name;
             }) config.services.traefik.proxies)
             {
@@ -273,9 +284,6 @@ with lib;
       "f '/var/lib/traefik/acme.json' 0600 traefik traefik - -"
     ];
 
-    systemd.services.traefik.serviceConfig.EnvironmentFile = [
-      config.sops.templates."traefik-env".path
-    ];
     sops.secrets = {
       "traefik/cloudflare_token" = {
         owner = "traefik";
@@ -290,9 +298,16 @@ with lib;
         owner = "traefik";
       };
     };
-    systemd.services.traefik.serviceConfig = {
-      WatchdogSec = lib.mkForce "30s";
-      StartLimitIntervalSec = lib.mkForce "0"; # Disable start limit for better recovery
+    systemd.services.traefik = {
+      startLimitIntervalSec = lib.mkForce 0;
+      serviceConfig = {
+        WatchdogSec = lib.mkForce "30s";
+        Documentation = lib.mkForce null;
+        EnvironmentFile = [
+          config.sops.templates."traefik-env".path
+        ];
+      };
+      unitConfig.Documentation = "https://doc.traefik.io/traefik/";
     };
     sops.templates.traefik-env.content = ''
       CLOUDFLARE_DNS_API_TOKEN=${config.sops.placeholder."traefik/cloudflare_token"}

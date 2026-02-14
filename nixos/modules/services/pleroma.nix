@@ -154,19 +154,8 @@ in
     # in "${preScript}/bin/pleromaStartPre";
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      pleroma = {
-        rule = "Host(`zone.dora.im`)";
-        entryPoints = [ "https" ];
-        service = "pleroma";
-      };
-    };
-    services = {
-      pleroma.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:4000"; } ];
-      };
-    };
+  services.traefik.proxies.pleroma = {
+    rule = "Host(`zone.dora.im`)";
+    target = "http://localhost:4000";
   };
 }

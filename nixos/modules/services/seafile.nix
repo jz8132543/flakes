@@ -92,20 +92,9 @@ in
     };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      seafile = {
-        rule = "Host(`box.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "seafile";
-      };
-    };
-    services = {
-      seafile.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-      };
-    };
+  services.traefik.proxies.seafile = {
+    rule = "Host(`box.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.nginx}";
   };
   systemd.services.seahub = {
     serviceConfig.EnvironmentFile = config.sops.templates."seafile-env".path;

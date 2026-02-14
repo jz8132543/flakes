@@ -69,19 +69,8 @@
     };
     after = [ "vaultwarden.service" ];
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      reader = {
-        rule = "Host(`reader.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "reader";
-      };
-    };
-    services = {
-      reader.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.reader}"; } ];
-      };
-    };
+  services.traefik.proxies.reader = {
+    rule = "Host(`reader.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.reader}";
   };
 }

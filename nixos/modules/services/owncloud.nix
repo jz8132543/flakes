@@ -106,25 +106,8 @@
     restartUnits = [ "nextcloud-setup.service" ];
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      owncloud = {
-        rule = "Host(`cloud.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        # middlewares = [
-        #   "nextcloud@file"
-        # ];
-        service = "owncloud";
-      };
-    };
-    # middlewares.nextcloud = {
-    #   headers.customRequestHeaders.Host = "${cfg.hostName}";
-    # };
-    services = {
-      owncloud.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.services.nginx.defaultHTTPListenPort}"; } ];
-      };
-    };
+  services.traefik.proxies.owncloud = {
+    rule = "Host(`cloud.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.services.nginx.defaultHTTPListenPort}";
   };
 }

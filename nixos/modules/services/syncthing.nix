@@ -107,16 +107,10 @@ in
       "+${pkgs.coreutils}/bin/chmod -R 775 /var/lib/syncthing"
     ];
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers.syncthing = {
-      rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/syncthing`)";
-      entryPoints = [ "https" ];
-      service = "syncthing";
-      middlewares = [ "strip-prefix" ];
-    };
-    services.syncthing.loadBalancer.servers = [
-      { url = "http://localhost:${toString config.ports.syncthing}"; }
-    ];
+  services.traefik.proxies.syncthing = {
+    rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/syncthing`)";
+    target = "http://localhost:${toString config.ports.syncthing}";
+    middlewares = [ "strip-prefix" ];
   };
 
   environment.global-persistence.directories = [ config.services.syncthing.configDir ];

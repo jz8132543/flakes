@@ -18,20 +18,9 @@ in
     database.uri = "postgresql://atuin@${PG}/atuin";
     openRegistration = false;
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      atuin = {
-        rule = "Host(`atuin.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "atuin";
-      };
-    };
-    services = {
-      atuin.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString cfg.port}"; } ];
-      };
-    };
+  services.traefik.proxies.atuin = {
+    rule = "Host(`atuin.${config.networking.domain}`)";
+    target = "http://localhost:${toString cfg.port}";
   };
   systemd.services."atuin" = {
     after = [

@@ -122,28 +122,14 @@
       mode = "0444";
     };
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      keycloak = {
-        rule = "Host(`sso.dora.im`)";
-        entryPoints = [ "https" ];
-        service = "keycloak";
-      };
-      ldap = {
-        rule = "Host(`ldap.dora.im`)";
-        entryPoints = [ "https" ];
-        service = "ldap";
-      };
+  services.traefik.proxies = {
+    keycloak = {
+      rule = "Host(`sso.dora.im`)";
+      target = "http://localhost:${toString config.ports.keycloak}";
     };
-    services = {
-      keycloak.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.keycloak}"; } ];
-      };
-      ldap.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:389"; } ];
-      };
+    ldap = {
+      rule = "Host(`ldap.dora.im`)";
+      target = "http://localhost:389";
     };
   };
   systemd.services.keycloak = {
