@@ -1,20 +1,19 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
   inherit (config.networking) fqdn;
 in
 {
-  users.users.homepage-dashboard = {
+  users.users.homepage-machine = {
     isSystemUser = true;
-    group = "homepage-dashboard";
+    group = "homepage-machine";
   };
-  users.groups.homepage-dashboard = { };
+  users.groups.homepage-machine = { };
 
-  # Use a manual systemd service because the homepage-dashboard module only supports one instance
+  # Use a manual systemd service because the homepage-machine module only supports one instance
   systemd.services.homepage-machine = {
     after = [ "network.target" ];
     wantedBy = [ "multi-user.target" ];
@@ -23,32 +22,16 @@ in
     serviceConfig = {
       Type = "simple";
       StateDirectory = "homepage-machine";
-      CacheDirectory = "homepage-dashboard";
-      # ExecStartPre = pkgs.writeShellScript "prep-homepage" ''
-      #   cp -f /etc/homepage-machine/*.yaml /var/lib/homepage-machine/
-      # '';
-      ExecStart = "${pkgs.homepage-dashboard}/bin/homepage";
-      # ExecStartPost = pkgs.writeShellScript "check-homepage" ''
-      #   # Wait up to 60 seconds for the service to be responsive
-      #   for i in {1..60}; do
-      #     # Accept 200 (OK) or 308 (Redirect) as proof of life
-      #     CODE=$(${pkgs.curl}/bin/curl -k -s -o /dev/null -w "%{http_code}" http://localhost:${toString config.ports.homepage-machine}/)
-      #     if [ "$CODE" = "200" ] || [ "$CODE" = "308" ]; then
-      #       exit 0
-      #     fi
-      #     sleep 1
-      #   done
-      #   exit 1
-      # '';
+      CacheDirectory = "homepage-machine";
       Restart = "always";
       RestartSec = "5s";
-      User = "homepage-dashboard";
-      Group = "homepage-dashboard";
+      User = "homepage-machine";
+      Group = "homepage-machine";
       WorkingDirectory = "/var/lib/homepage-machine";
       Environment = [
         "PORT=${toString config.ports.homepage-machine}"
         "HOMEPAGE_CONFIG_DIR=/var/lib/homepage-machine"
-        "HOMEPAGE_BASEPATH=/home"
+        "HOMEPAGE_BASEPATH=/home/"
         "HOMEPAGE_ALLOWED_HOSTS=*"
       ];
       EnvironmentFile = [
