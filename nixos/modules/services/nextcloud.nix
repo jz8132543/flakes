@@ -200,25 +200,13 @@ in
   sops.secrets."nextcloud/oidc-secret" = {
     restartUnits = [ "nextcloud-setup.service" ];
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      nextcloud = {
-        rule = "Host(`cloud.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        middlewares = [
-          "nextcloud@file"
-        ];
-        service = "nextcloud";
-      };
-    };
-    middlewares.nextcloud = {
-      headers.customRequestHeaders.Host = "${cfg.hostName}";
-    };
-    services = {
-      nextcloud.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.services.nginx.defaultHTTPListenPort}"; } ];
-      };
-    };
+  services.traefik.proxies.nextcloud = {
+    rule = "Host(`cloud.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.services.nginx.defaultHTTPListenPort}";
+    middlewares = [ "nextcloud" ];
+  };
+
+  services.traefik.dynamic.files.nixos.settings.http.middlewares.nextcloud = {
+    headers.customRequestHeaders.Host = "${cfg.hostName}";
   };
 }

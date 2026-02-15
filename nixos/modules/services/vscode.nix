@@ -287,19 +287,9 @@ in
     "code-server/hashed-password" = { };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      code = {
-        rule = "Host(`code.${config.networking.domain}`)";
-        service = "code";
-      };
-    };
-    services = {
-      code.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.code}"; } ];
-      };
-    };
+  services.traefik.proxies.code = {
+    rule = "Host(`code.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.code}";
   };
 
   nix.settings.allowed-users = [ config.services.code-server.user ];

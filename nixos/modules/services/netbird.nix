@@ -156,20 +156,9 @@ in
     # NETBIRD_AUTH_PKCE_DISABLE_PROMPT_LOGIN=true
   '';
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      netbird = {
-        rule = "Host(`${netbirdDomain}`)";
-        entryPoints = [ "https" ];
-        service = "netbird";
-      };
-    };
-    services = {
-      netbird.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://${netbirdDomain}:${toString config.ports.nginx}"; } ];
-      };
-    };
+  services.traefik.proxies.netbird = {
+    rule = "Host(`${netbirdDomain}`)";
+    target = "http://${netbirdDomain}:${toString config.ports.nginx}";
   };
 
   networking.firewall.allowedTCPPorts = [

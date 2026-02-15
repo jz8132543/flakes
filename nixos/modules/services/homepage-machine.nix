@@ -49,16 +49,16 @@ in
         "PORT=${toString config.ports.homepage-machine}"
         "HOMEPAGE_CONFIG_DIR=/var/lib/homepage-machine"
         "HOMEPAGE_BASEPATH=/home"
-        "HOMEPAGE_ALLOWED_HOSTS=all"
+        "HOMEPAGE_ALLOWED_HOSTS=*"
       ];
       EnvironmentFile = [
         "-/var/lib/homepage/jellyfin.env"
-        config.sops.templates."homepage.env".path
+        config.sops.templates."homepage-machine.env".path
       ];
     };
   };
 
-  sops.templates."homepage.env" = {
+  sops.templates."homepage-machine.env" = {
     content = ''
       HOMEPAGE_VAR_SONARR_KEY=${config.sops.placeholder."media/sonarr_api_key"}
       HOMEPAGE_VAR_RADARR_KEY=${config.sops.placeholder."media/radarr_api_key"}
@@ -68,13 +68,14 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS="all"
+      HOMEPAGE_ALLOWED_HOSTS=*
     '';
   };
 
   environment.etc."homepage-machine/settings.yaml".text = lib.generators.toYAML { } {
     title = "${config.networking.hostName} Dashboard";
-    base = "/home";
+    base = "https://${fqdn}/home/";
+    language = "zh-Hans";
     background = {
       image = "https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80";
       blur = "sm";

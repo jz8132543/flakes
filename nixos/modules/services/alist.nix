@@ -77,19 +77,8 @@
     "mail/noreply" = { };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      alist = {
-        rule = "Host(`alist.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "alist";
-      };
-    };
-    services = {
-      alist.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.alist}"; } ];
-      };
-    };
+  services.traefik.proxies.alist = {
+    rule = "Host(`alist.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.alist}";
   };
 }

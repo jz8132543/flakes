@@ -50,28 +50,14 @@
       OLLAMA = "https://ollama.${config.networking.domain}" # Ollama API URL - http://host.docker.internal:11434
     '';
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      perplexica-frontend = {
-        rule = "Host(`p.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "perplexica-frontend";
-      };
-      perplexica-backend = {
-        rule = "Host(`perplexica-backend.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "perplexica-backend";
-      };
+  services.traefik.proxies = {
+    perplexica-frontend = {
+      rule = "Host(`p.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.ports.perplexica-frontend}";
     };
-    services = {
-      perplexica-frontend.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.perplexica-frontend}"; } ];
-      };
-      perplexica-backend.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.perplexica-backend}"; } ];
-      };
+    perplexica-backend = {
+      rule = "Host(`perplexica-backend.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.ports.perplexica-backend}";
     };
   };
 }

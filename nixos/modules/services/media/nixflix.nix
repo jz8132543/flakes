@@ -336,7 +336,7 @@ in
           };
         };
 
-        dynamicConfigOptions.http.middlewares = {
+        dynamic.files.nixos.settings.http.middlewares = {
           strip-tv.stripPrefix.prefixes = [ "/tv" ];
         };
       };

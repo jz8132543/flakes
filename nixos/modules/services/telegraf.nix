@@ -46,18 +46,8 @@ in
       };
     };
   };
-  services.traefik = {
-    dynamicConfigOptions = {
-      http = {
-        routers.telegraf = {
-          rule = "Host(`${config.networking.fqdn}`) && Path(`${telegrafConfig.outputs.prometheus_client.path}`)";
-          entryPoints = [ "https" ];
-          service = "telegraf";
-        };
-        services.telegraf.loadBalancer.servers = [
-          { url = "http://${telegrafConfig.outputs.prometheus_client.listen}"; }
-        ];
-      };
-    };
+  services.traefik.proxies.telegraf = {
+    rule = "Host(`${config.networking.fqdn}`) && Path(`${telegrafConfig.outputs.prometheus_client.path}`)";
+    target = "http://${telegrafConfig.outputs.prometheus_client.listen}";
   };
 }

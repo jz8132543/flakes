@@ -439,7 +439,7 @@
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS="all"
+      HOMEPAGE_ALLOWED_HOSTS="*"
     '';
   };
 }

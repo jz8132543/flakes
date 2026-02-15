@@ -179,15 +179,8 @@ in
     };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers.grafana = {
-      rule = "Host(`${domain}`)";
-      entryPoints = [ "https" ];
-      service = "grafana";
-    };
-    services.grafana.loadBalancer = {
-      passHostHeader = true;
-      servers = [ { url = "http://localhost:${toString config.ports.grafana}"; } ];
-    };
+  services.traefik.proxies.grafana = {
+    rule = "Host(`${domain}`)";
+    target = "http://localhost:${toString config.ports.grafana}";
   };
 }

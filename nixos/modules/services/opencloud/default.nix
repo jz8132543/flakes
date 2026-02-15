@@ -138,20 +138,8 @@ in
       };
     };
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      opencloud = {
-        # rule = "Host(`${config.virtualisation.oci-containers.containers.opencloud.environment.OC_URL}`)";
-        rule = "Host(`cloud.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "opencloud";
-      };
-    };
-    services = {
-      opencloud.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.opencloud}"; } ];
-      };
-    };
+  services.traefik.proxies.opencloud = {
+    rule = "Host(`cloud.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.opencloud}";
   };
 }

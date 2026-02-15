@@ -59,17 +59,17 @@ with lib;
     #     firewall.allowedUDPPorts = with config.environment; [altHTTPS];
     #   }
     #   else {};
-    # services.traefik.staticConfigOptions.entryPoints.https =
+    # services.traefik.static.settings.entryPoints.https =
     #   if config.environment.isNAT
     #   then {address = lib.mkForce ":${toString config.environment.altHTTPS}";}
     #   else {};
-    services.traefik.staticConfigOptions.entryPoints =
+    services.traefik.static.settings.entryPoints =
       if config.environment.isNAT then
         {
           https-alt = {
             address = ":${toString config.environment.altHTTPS}";
             # asDefault = true;
-            inherit (config.services.traefik.staticConfigOptions.entryPoints.https)
+            inherit (config.services.traefik.static.settings.entryPoints.https)
               forwardedHeaders
               proxyProtocol
               transport

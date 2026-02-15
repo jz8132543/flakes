@@ -94,45 +94,14 @@
       };
     };
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      headscale = {
-        # rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/`)";
-        rule = "Host(`ts.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "headscale";
-        # priority = 500;
-      };
-      headscale_metrics = {
-        rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/metrics`)";
-        entryPoints = [ "https" ];
-        service = "headscale_metrics";
-        priority = 1000;
-      };
-      # headscale_grpc = {
-      #   rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/headscale.`)";
-      #   entryPoints = [ "https" ];
-      #   service = "headscale_grpc";
-      # };
+  services.traefik.proxies = {
+    headscale = {
+      rule = "Host(`ts.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.services.headscale.port}";
     };
-    services = {
-      headscale.loadBalancer = {
-        passHostHeader = true;
-        # servers = [
-        #   { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.port}"; }
-        # ];
-        # servers = [ { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.port}"; } ];
-        servers = [ { url = "http://localhost:${toString config.services.headscale.port}"; } ];
-      };
-      headscale_metrics.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://${config.services.headscale.settings.metrics_listen_addr}"; } ];
-      };
-      # headscale_grpc.loadBalancer = {
-      #   passHostHeader = true;
-      #   servers = [ { url = "https://:${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
-      #   # servers = [ { url = "https://ts.${config.networking.domain}:${toString config.services.headscale.settings.grpc_listen_addr}"; } ];
-      # };
+    headscale_metrics = {
+      rule = "Host(`ts.${config.networking.domain}`) && PathPrefix(`/metrics`)";
+      target = "http://${config.services.headscale.settings.metrics_listen_addr}";
     };
   };
   systemd.services.headscale.serviceConfig = {

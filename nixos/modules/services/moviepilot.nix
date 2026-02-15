@@ -140,44 +140,33 @@ in
   # ═══════════════════════════════════════════════════════════════
   # Traefik Routes (for external access, MoviePilot + qBittorrent)
   # ═══════════════════════════════════════════════════════════════
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      moviepilot = {
-        rule = "Host(`${domain}`)";
-        entryPoints = [ "https" ];
-        service = "moviepilot";
-      };
-      # Access via FQDN path: {fqdn}/moviepilot
-      moviepilot-fqdn = {
-        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/moviepilot`)";
-        entryPoints = [ "https" ];
-        service = "moviepilot";
-        middlewares = [ "moviepilot-stripprefix" ];
-      };
-      # qBittorrent: tv. and FQDN /qbit
-      qbittorrent-tv = {
-        rule = "Host(`tv.${config.networking.domain}`) && PathPrefix(`/qbit`)";
-        entryPoints = [ "https" ];
-        service = "qbittorrent";
-        middlewares = [ "qbittorrent-stripprefix" ];
-      };
-      qbittorrent-fqdn = {
-        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/qbit`)";
-        entryPoints = [ "https" ];
-        service = "qbittorrent";
-        middlewares = [ "qbittorrent-stripprefix" ];
-      };
+  services.traefik.proxies = {
+    moviepilot = {
+      rule = "Host(`${domain}`)";
+      target = "http://127.0.0.1:${toString webPort}";
     };
+    # Access via FQDN path: {fqdn}/moviepilot
+    moviepilot-fqdn = {
+      rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/moviepilot`)";
+      target = "http://127.0.0.1:${toString webPort}";
+      middlewares = [ "moviepilot-stripprefix" ];
+    };
+    # qBittorrent: tv. and FQDN /qbit
+    qbittorrent-tv = {
+      rule = "Host(`tv.${config.networking.domain}`) && PathPrefix(`/qbit`)";
+      target = "http://localhost:8080";
+      middlewares = [ "qbittorrent-stripprefix" ];
+    };
+    qbittorrent-fqdn = {
+      rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/qbit`)";
+      target = "http://localhost:8080";
+      middlewares = [ "qbittorrent-stripprefix" ];
+    };
+  };
 
-    middlewares.moviepilot-stripprefix.stripPrefix.prefixes = [ "/moviepilot" ];
-    middlewares.qbittorrent-stripprefix.stripPrefix.prefixes = [ "/qbit" ];
-
-    services.moviepilot.loadBalancer.servers = [
-      { url = "http://127.0.0.1:${toString webPort}"; }
-    ];
-    services.qbittorrent.loadBalancer.servers = [
-      { url = "http://localhost:8080"; }
-    ];
+  services.traefik.dynamic.files.nixos.settings.http.middlewares = {
+    moviepilot-stripprefix.stripPrefix.prefixes = [ "/moviepilot" ];
+    qbittorrent-stripprefix.stripPrefix.prefixes = [ "/qbit" ];
   };
   # ═══════════════════════════════════════════════════════════════
   # qBittorrent Service (merged)

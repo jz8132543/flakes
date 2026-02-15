@@ -142,19 +142,8 @@ in
     };
   };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      searx = {
-        rule = "Host(`${url}`)";
-        entryPoints = [ "https" ];
-        service = "searx";
-      };
-    };
-    services = {
-      searx.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.searx}"; } ];
-      };
-    };
+  services.traefik.proxies.searx = {
+    rule = "Host(`${url}`)";
+    target = "http://localhost:${toString config.ports.searx}";
   };
 }

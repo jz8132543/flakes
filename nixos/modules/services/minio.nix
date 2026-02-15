@@ -23,28 +23,14 @@
     MINIO_ROOT_PASSWORD=${config.sops.placeholder."minio/password"}
     MINIO_UPDATE=off
   '';
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      minio = {
-        rule = "Host(`minio.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "minio";
-      };
-      minio-console = {
-        rule = "Host(`minio-console.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "minio-console";
-      };
+  services.traefik.proxies = {
+    minio = {
+      rule = "Host(`minio.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.ports.minio}";
     };
-    services = {
-      minio.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.minio}"; } ];
-      };
-      minio-console.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.minio-console}"; } ];
-      };
+    minio-console = {
+      rule = "Host(`minio-console.${config.networking.domain}`)";
+      target = "http://localhost:${toString config.ports.minio-console}";
     };
   };
   environment.systemPackages = [

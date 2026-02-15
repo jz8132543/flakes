@@ -120,28 +120,14 @@ in
     }
 
     {
-      services.traefik.dynamicConfigOptions.http = {
-        routers = {
-          hydra = {
-            rule = "Host(`hydra.dora.im`)";
-            entryPoints = [ "https" ];
-            service = "hydra";
-          };
-          harmonia = {
-            rule = "Host(`cache.dora.im`)";
-            entryPoints = [ "https" ];
-            service = "harmonia";
-          };
+      services.traefik.proxies = {
+        hydra = {
+          rule = "Host(`hydra.dora.im`)";
+          target = "http://localhost:${toString config.ports.hydra}";
         };
-        services = {
-          hydra.loadBalancer = {
-            passHostHeader = true;
-            servers = [ { url = "http://localhost:${toString config.ports.hydra}"; } ];
-          };
-          harmonia.loadBalancer = {
-            passHostHeader = true;
-            servers = [ { url = "http://${config.services.harmonia.settings.bind}"; } ];
-          };
+        harmonia = {
+          rule = "Host(`cache.dora.im`)";
+          target = "http://${config.services.harmonia.settings.bind}";
         };
       };
       systemd.services."hydra-init" = {

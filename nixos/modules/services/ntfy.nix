@@ -46,19 +46,8 @@
     config.services.ntfy-sh.settings.auth-file
   ];
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      nfty = {
-        rule = "Host(`ntfy.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "nfty";
-      };
-    };
-    services = {
-      nfty.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.ntfy}"; } ];
-      };
-    };
+  services.traefik.proxies.nfty = {
+    rule = "Host(`ntfy.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.ntfy}";
   };
 }

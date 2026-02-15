@@ -50,7 +50,7 @@
   #   "authentik/EMAIL_PASSWORD" = { };
   #   "authentik/SECRET_KEY" = { };
   # };
-  # services.traefik.dynamicConfigOptions.http = {
+  # services.traefik.dynamic.files.nixos.settings.http = {
   #   routers = {
   #     authentik = {
   #       # rule = "Host(`sso.${config.networking.domain}`) && PathPrefix(`/outpost.goauthentik.io/`)";

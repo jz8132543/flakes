@@ -77,20 +77,9 @@
   };
   users.users.sogo.extraGroups = [ "memcached" ];
   sops.secrets."mail/ldap" = { };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      sogo = {
-        rule = "Host(`${config.services.sogo.vhostName}`)";
-        entryPoints = [ "https" ];
-        service = "sogo";
-      };
-    };
-    services = {
-      sogo.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-      };
-    };
+  services.traefik.proxies.sogo = {
+    rule = "Host(`${config.services.sogo.vhostName}`)";
+    target = "http://localhost:${toString config.ports.nginx}";
   };
   services.nginx = {
     enable = true;

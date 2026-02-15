@@ -122,19 +122,8 @@
       "tailscaled.service"
     ];
   };
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      mastodon = {
-        rule = "Host(`${config.services.mastodon.extraConfig.WEB_DOMAIN}`)";
-        entryPoints = [ "https" ];
-        service = "mastodon";
-      };
-    };
-    services = {
-      mastodon.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.nginx}"; } ];
-      };
-    };
+  services.traefik.proxies.mastodon = {
+    rule = "Host(`${config.services.mastodon.extraConfig.WEB_DOMAIN}`)";
+    target = "http://localhost:${toString config.ports.nginx}";
   };
 }

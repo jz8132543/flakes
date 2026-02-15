@@ -100,19 +100,8 @@ in
   #   '';
   # };
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      office = {
-        rule = "Host(`office.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "office";
-      };
-    };
-    services = {
-      office.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.office}"; } ];
-      };
-    };
+  services.traefik.proxies.office = {
+    rule = "Host(`office.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.office}";
   };
 }

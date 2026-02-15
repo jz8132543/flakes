@@ -27,19 +27,8 @@ in
     # radeontop
   ];
 
-  services.traefik.dynamicConfigOptions.http = {
-    routers = {
-      plex = {
-        rule = "Host(`plex.${config.networking.domain}`)";
-        entryPoints = [ "https" ];
-        service = "plex";
-      };
-    };
-    services = {
-      plex.loadBalancer = {
-        passHostHeader = true;
-        servers = [ { url = "http://localhost:${toString config.ports.plex}"; } ];
-      };
-    };
+  services.traefik.proxies.plex = {
+    rule = "Host(`plex.${config.networking.domain}`)";
+    target = "http://localhost:${toString config.ports.plex}";
   };
 }
