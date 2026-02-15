@@ -117,10 +117,13 @@
     ]
     ++ (lib.filter lib.isDerivation (lib.attrValues unixtools));
   environment.global-persistence = {
-    directories = [
+    files = [
       # Systemd requires /usr dir to be populated
       # See: https://github.com/nix-community/impermanence/issues/253
-      "/usr/systemd-placeholder"
+      # {
+      #   file = "/usr/systemd-placeholder";
+      #   inInitrd = true;
+      # }
     ];
     user.directories = [
       # google ai editor (antigravity)

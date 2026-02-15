@@ -46,8 +46,6 @@
     !include ${config.sops.secrets."nix/github-token".path}
   '';
 
-  services.envfs.enable = true;
-
   programs.fish.enable = true;
   programs.zsh.enable = true;
 }
