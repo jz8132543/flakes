@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -19,14 +20,18 @@ in
     wantedBy = [ "multi-user.target" ];
     unitConfig.StartLimitIntervalSec = 0;
 
+    # Switch to DynamicUser and systemd-managed State/Cache directories so systemd
+    # creates and owns the runtime directories without manual chown.
     serviceConfig = {
       Type = "simple";
+      DynamicUser = "true";
       StateDirectory = "homepage-machine";
       CacheDirectory = "homepage-machine";
       Restart = "always";
       RestartSec = "5s";
       User = "homepage-machine";
       Group = "homepage-machine";
+      ExecStart = "${pkgs.homepage-dashboard}/bin/homepage";
       WorkingDirectory = "/var/lib/homepage-machine";
       Environment = [
         "PORT=${toString config.ports.homepage-machine}"
@@ -51,7 +56,7 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS=*
+      HOMEPAGE_ALLOWED_HOSTS="*"
     '';
   };
 
@@ -84,17 +89,6 @@ in
               enableUser = true;
               showEpisodeNumber = true;
               expandOneStreamToTwoRows = true;
-            };
-          };
-        }
-        {
-          "Unmanic" = {
-            href = "/unmanic/";
-            icon = "unmanic.png";
-            description = "Library Optimiser";
-            widget = {
-              type = "unmanic";
-              url = "http://localhost:${toString config.ports.unmanic}";
             };
           };
         }
@@ -257,10 +251,14 @@ in
   services.traefik.proxies.homepage-machine = {
     rule = "Host(`${fqdn}`) && (Path(`/home`) || PathPrefix(`/home/`))";
     target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
+    priority = 50;
+    middlewares = [ "strip-prefix" ];
   };
 
   services.traefik.proxies.homepage-machine-assets = {
-    rule = "Host(`${fqdn}`) && (PathPrefix(`/_next`) || PathPrefix(`/images`) || PathPrefix(`/api/config`) || PathPrefix(`/icons`) || PathPrefix(`/site.webmanifest`))";
+    rule = "Host(`${fqdn}`) && (PathPrefix(`/home/_next`) || PathPrefix(`/_next`) || PathPrefix(`/home/images`) || PathPrefix(`/images`) || PathPrefix(`/home/api/config`) || PathPrefix(`/api/config`) || PathPrefix(`/home/icons`) || PathPrefix(`/icons`) || PathPrefix(`/home/site.webmanifest`) || PathPrefix(`/site.webmanifest`))";
     target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
+    priority = 50;
   };
+
 }

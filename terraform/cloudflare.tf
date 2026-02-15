@@ -126,7 +126,7 @@ resource "cloudflare_dns_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  content = "hkg4.dora.im"
+  content = "nue0.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 

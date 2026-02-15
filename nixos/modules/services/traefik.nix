@@ -219,7 +219,7 @@ with lib;
                 entryPoints = [ "https" ]; # Internal services still benefit from explicit binding
               };
               traefik-dashboard = {
-                rule = "Host(`${config.networking.fqdn}`) && (PathPrefix(`/dashboard`) || PathPrefix(`/api`))";
+                rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/dashboard`))";
                 service = "api@internal";
                 entryPoints = [
                   "http"
