@@ -42,10 +42,6 @@
       userAllowOther = true;
     };
   };
-  # https://github.com/nix-community/impermanence/issues/253
-  systemd.tmpfiles.rules = [
-    "L+ /usr/bin - - - - /bin"
-  ];
 
   environment.systemPackages =
     with pkgs;
@@ -120,12 +116,19 @@
       manix
     ]
     ++ (lib.filter lib.isDerivation (lib.attrValues unixtools));
-  environment.global-persistence.user.directories = [
-    # google ai editor (antigravity)
-    ".config/Antigravity"
-    ".antigravity"
-    ".gemini"
-    ".antigravity-server"
-  ];
+  environment.global-persistence = {
+    directories = [
+      # Systemd requires /usr dir to be populated
+      # See: https://github.com/nix-community/impermanence/issues/253
+      "/usr/systemd-placeholder"
+    ];
+    user.directories = [
+      # google ai editor (antigravity)
+      ".config/Antigravity"
+      ".antigravity"
+      ".gemini"
+      ".antigravity-server"
+    ];
+  };
 
 }
