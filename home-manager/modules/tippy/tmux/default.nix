@@ -10,6 +10,25 @@ let
   # 1. 定义工具路径
   tcping = "${pkgs.tcping-rs}/bin/tcping";
   ssh = "${pkgs.openssh}/bin/ssh";
+  tmux-net-speed = pkgs.writeShellScriptBin "tmux-net-speed" ''
+    export PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.procps}/bin:$PATH"
+    STATE_FILE="/tmp/tmux-net-speed-$USER"
+    read rx_now tx_now < <(awk 'NR > 2 && $1 !~ /lo:/ {rx += $2; tx += $10} END {print rx, tx}' /proc/net/dev)
+    if [ -f "$STATE_FILE" ]; then
+        read rx_old tx_old ts_old < "$STATE_FILE"
+    else
+        rx_old=$rx_now; tx_old=$tx_now; ts_old=$(date +%s)
+    fi
+    ts_now=$(date +%s); dt=$((ts_now - ts_old)); [ "$dt" -le 0 ] && dt=1
+    echo "$rx_now $tx_now $ts_now" > "$STATE_FILE"
+    format_speed() {
+        local s=$(( ($1) / $2 ))
+        if [ "$s" -ge 1048576 ]; then echo "$((s / 1048576)) MB/s"
+        elif [ "$s" -ge 1024 ]; then echo "$((s / 1024)) KB/s"
+        else echo "$s B/s"; fi
+    }
+    printf "↓%s ↑%s" "$(format_speed $((rx_now - rx_old)) $dt)" "$(format_speed $((tx_now - tx_old)) $dt)"
+  '';
   tmux-ssh-status = pkgs.writeShellScriptBin "tmux-ssh-status" ''
     tty=$1
     export PATH="${pkgs.procps}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.nettools}/bin:${pkgs.gnused}/bin:$PATH"
@@ -181,7 +200,7 @@ in
         "#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_tty})"
 
       set -ag status-right \
-        "#[fg=#94e2d5]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#94e2d5]󰓅  #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${pkgs.tmuxPlugins.net-speed}/share/tmux-plugins/net-speed/scripts/net_speed.sh)#[fg=#313244]#{E:@catppuccin_status_right_separator}"
+        "#[fg=#94e2d5]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#94e2d5]󰓅  #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${tmux-net-speed}/bin/tmux-net-speed)#[fg=#313244]#{E:@catppuccin_status_right_separator}"
 
       set -ag status-right \
         "#[fg=#f9e2af]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#f9e2af]#{E:@catppuccin_cpu_icon} #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh)#[fg=#313244]#{E:@catppuccin_status_right_separator}"

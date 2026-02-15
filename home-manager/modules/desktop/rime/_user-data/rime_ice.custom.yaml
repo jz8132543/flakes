@@ -3,3 +3,19 @@ patch:
     - "erase/^xx$/"
     - "derive/([ei])n$/$1ng/" # en => eng, in => ing
     - "derive/([ei])ng$/$1n/" # eng => en, ing => in
+
+    # - 将 v 视作 ü（用户习惯用 v 输入 ü）
+    - "derive/^([b-df-hj-np-tv-z]?)([aeiou])v$/$1$2ü/"
+
+    # 相邻字母置换（保守集合）：覆盖长度 2–5 的常见相邻字母互换
+    # 示例可处理 chnag -> chang、cnah -> cnah-> etc.
+    - "derive/^([a-z])([a-z])$/$2$1/" # len2 swap 1<->2
+    - "derive/^([a-z])([a-z])([a-z])$/$2$1$3/" # len3 swap 1<->2
+    - "derive/^([a-z])([a-z])([a-z])$/$1$3$2/" # len3 swap 2<->3
+    - "derive/^([a-z])([a-z])([a-z])([a-z])$/$2$1$3$4/" # len4 swap 1<->2
+    - "derive/^([a-z])([a-z])([a-z])([a-z])$/$1$3$2$4/" # len4 swap 2<->3
+    - "derive/^([a-z])([a-z])([a-z])([a-z])$/$1$2$4$3/" # len4 swap 3<->4
+    - "derive/^([a-z])([a-z])([a-z])([a-z])([a-z])$/$2$1$3$4$5/" # len5 swap 1<->2
+    - "derive/^([a-z])([a-z])([a-z])([a-z])([a-z])$/$1$3$2$4$5/" # len5 swap 2<->3
+    - "derive/^([a-z])([a-z])([a-z])([a-z])([a-z])$/$1$2$4$3$5/" # len5 swap 3<->4
+    - "derive/^([a-z])([a-z])([a-z])([a-z])([a-z])$/$1$2$3$5$4/" # len5 swap 4<->5

@@ -29,4 +29,37 @@
     rm -f "${config.xdg.configHome}/fcitx5/profile"
     rm -f "${config.xdg.configHome}/fcitx5/config"
   '';
+
+  # install fcitx5 and rime
+  home.packages = with pkgs; [
+    fcitx5
+    fcitx5-rime
+    fcitx5-configtool
+    fcitx5-gtk
+    fcitx5-qt
+  ];
+
+  home.sessionVariables = {
+    GTK_IM_MODULE = "fcitx";
+    QT_IM_MODULE = "fcitx";
+    XMODIFIERS = "@im=fcitx";
+  };
+
+  # systemd user services: fcitx5 daemon and a minimal local LLM suggestion service
+  systemd.user.services.fcitx5-daemon = {
+    Unit = {
+      Description = "fcitx5 daemon (user)";
+      Wants = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.fcitx5}/bin/fcitx5";
+      Restart = "on-failure";
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+
+  # no AI/LLM integration configured
 }

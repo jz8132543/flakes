@@ -42,6 +42,10 @@
       userAllowOther = true;
     };
   };
+  # https://github.com/nix-community/impermanence/issues/253
+  systemd.tmpfiles.rules = [
+    "L+ /usr/bin - - - - /bin"
+  ];
 
   environment.systemPackages =
     with pkgs;
