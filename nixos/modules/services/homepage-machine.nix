@@ -20,35 +20,21 @@ in
     wantedBy = [ "multi-user.target" ];
     unitConfig.StartLimitIntervalSec = 0;
 
+    # Switch to DynamicUser and systemd-managed State/Cache directories so systemd
+    # creates and owns the runtime directories without manual chown.
     serviceConfig = {
       Type = "simple";
+      DynamicUser = "true";
       StateDirectory = "homepage-machine";
       CacheDirectory = "homepage-dashboard";
-      # ExecStartPre = pkgs.writeShellScript "prep-homepage" ''
-      #   cp -f /etc/homepage-machine/*.yaml /var/lib/homepage-machine/
-      # '';
       ExecStart = "${pkgs.homepage-dashboard}/bin/homepage";
-      # ExecStartPost = pkgs.writeShellScript "check-homepage" ''
-      #   # Wait up to 60 seconds for the service to be responsive
-      #   for i in {1..60}; do
-      #     # Accept 200 (OK) or 308 (Redirect) as proof of life
-      #     CODE=$(${pkgs.curl}/bin/curl -k -s -o /dev/null -w "%{http_code}" http://localhost:${toString config.ports.homepage-machine}/)
-      #     if [ "$CODE" = "200" ] || [ "$CODE" = "308" ]; then
-      #       exit 0
-      #     fi
-      #     sleep 1
-      #   done
-      #   exit 1
-      # '';
       Restart = "always";
       RestartSec = "5s";
-      User = "homepage-dashboard";
-      Group = "homepage-dashboard";
       WorkingDirectory = "/var/lib/homepage-machine";
       Environment = [
         "PORT=${toString config.ports.homepage-machine}"
         "HOMEPAGE_CONFIG_DIR=/var/lib/homepage-machine"
-        "HOMEPAGE_BASEPATH=/home"
+        "HOMEPAGE_BASEPATH=/home/"
         "HOMEPAGE_ALLOWED_HOSTS=*"
       ];
       EnvironmentFile = [
@@ -68,7 +54,7 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS=*
+      HOMEPAGE_ALLOWED_HOSTS="*"
     '';
   };
 
@@ -101,17 +87,6 @@ in
               enableUser = true;
               showEpisodeNumber = true;
               expandOneStreamToTwoRows = true;
-            };
-          };
-        }
-        {
-          "Unmanic" = {
-            href = "/unmanic/";
-            icon = "unmanic.png";
-            description = "Library Optimiser";
-            widget = {
-              type = "unmanic";
-              url = "http://localhost:${toString config.ports.unmanic}";
             };
           };
         }
@@ -274,10 +249,14 @@ in
   services.traefik.proxies.homepage-machine = {
     rule = "Host(`${fqdn}`) && (Path(`/home`) || PathPrefix(`/home/`))";
     target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
+    priority = 50;
+    middlewares = [ "strip-prefix" ];
   };
 
   services.traefik.proxies.homepage-machine-assets = {
-    rule = "Host(`${fqdn}`) && (PathPrefix(`/_next`) || PathPrefix(`/images`) || PathPrefix(`/api/config`) || PathPrefix(`/icons`) || PathPrefix(`/site.webmanifest`))";
+    rule = "Host(`${fqdn}`) && (PathPrefix(`/home/_next`) || PathPrefix(`/_next`) || PathPrefix(`/home/images`) || PathPrefix(`/images`) || PathPrefix(`/home/api/config`) || PathPrefix(`/api/config`) || PathPrefix(`/home/icons`) || PathPrefix(`/icons`) || PathPrefix(`/home/site.webmanifest`) || PathPrefix(`/site.webmanifest`))";
     target = "http://127.0.0.1:${toString config.ports.homepage-machine}";
+    priority = 50;
   };
+
 }

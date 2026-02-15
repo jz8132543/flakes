@@ -3,11 +3,15 @@
   lib,
   ...
 }:
+let
+  inherit (config.networking) domain;
+in
 {
   services.homepage-dashboard = {
     enable = lib.mkForce true;
     listenPort = config.ports.homepage;
     environmentFile = config.sops.templates."homepage.env".path;
+    allowedHosts = domain;
     services = [
       {
         "Media" = [
@@ -25,17 +29,6 @@
                 enableUser = true;
                 showEpisodeNumber = true;
                 expandOneStreamToTwoRows = true;
-              };
-            };
-          }
-          {
-            "Unmanic" = {
-              href = "https://tv.${config.networking.domain}/unmanic";
-              icon = "unmanic.png";
-              description = "Library Optimiser";
-              widget = {
-                type = "unmanic";
-                url = "http://localhost:${toString config.ports.unmanic}";
               };
             };
           }
@@ -139,6 +132,18 @@
             };
           }
           {
+            "Sabnzbd" = {
+              href = "https://tv.${config.networking.domain}/sabnzbd";
+              icon = "sabnzbd.png";
+              description = "Usenet Downloader";
+              widget = {
+                type = "sabnzbd";
+                url = "http://localhost:${toString config.ports.sabnzbd}";
+                key = "{{HOMEPAGE_VAR_SABNZBD_KEY}}";
+              };
+            };
+          }
+          {
             "Vertex" = {
               href = "https://tv.${config.networking.domain}/vertex";
               icon = "vertex.png"; # Homepage will try to find it, or show default if missing
@@ -150,18 +155,6 @@
               href = "https://tv.${config.networking.domain}/autobrr";
               icon = "autobrr.png";
               description = "Auto Downloader";
-            };
-          }
-          {
-            "Sabnzbd" = {
-              href = "https://tv.${config.networking.domain}/sabnzbd";
-              icon = "sabnzbd.png";
-              description = "Usenet Downloader";
-              widget = {
-                type = "sabnzbd";
-                url = "http://localhost:${toString config.ports.sabnzbd}";
-                key = "{{HOMEPAGE_VAR_SABNZBD_KEY}}";
-              };
             };
           }
         ];
@@ -408,7 +401,7 @@
       }
     ];
     settings = {
-      title = "Dora Dashboard";
+      title = "Doraemon's Dashboard";
       background = {
         image = "https://images.unsplash.com/photo-1502790671504-542ad42d5189?auto=format&fit=crop&w=2560&q=80";
         blur = "sm"; # sm, "", md, xl... see https://tailwindcss.com/docs/backdrop-blur
@@ -419,8 +412,9 @@
   };
 
   services.traefik.proxies.homepage = {
-    rule = "Host(`${config.networking.domain}`)";
+    rule = "Host(`${domain}`)";
     target = "http://127.0.0.1:${toString config.ports.homepage}";
+    # priority = 10;
     # We don't need entryPoints/loadBalancer because proxies handles it
   };
 
@@ -439,7 +433,6 @@
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_ALLOWED_HOSTS="*"
     '';
   };
 }

@@ -8,7 +8,7 @@
     doraim = {
       rule = "Host(`dora.im`) && PathPrefix(`/.well-known`)";
       target = "http://localhost:${toString config.ports.nginx}";
-      # priority = 100;
+      priority = 100;
     };
     mta-sts = {
       rule = "Host(`mta-sts.dora.im`)";
@@ -65,6 +65,10 @@
           </clientConfig>
         '';
     };
+    # Redirect root to the canonical homepage host/path
+    virtualHosts."dora.im".locations."/".extraConfig = ''
+      return 301 https://nue0.dora.im/home/;
+    '';
     virtualHosts."mta-sts.dora.im".locations."=/.well-known/mta-sts.txt".alias =
       pkgs.writeText "mta-sts.txt" ''
         version: STSv1
