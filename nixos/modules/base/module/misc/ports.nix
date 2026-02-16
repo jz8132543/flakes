@@ -23,13 +23,13 @@
     ];
 
     ports = {
-      # ssh-honeypot = 22;
+      ssh-honeypot = 22;
       http = 80;
       bgp = 179;
       https = 443;
       https-alternative = 8443;
       ipsec-ike = 500;
-      ssh = 22;
+      ssh = 1022;
       homepage = 3005;
       homepage-machine = 3006;
       pastebin = 3000;

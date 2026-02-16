@@ -1,23 +1,5 @@
 locals {
   hosts = {
-    vie0 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "152.53.110.124"
-        }
-        aaaa = {
-          proxied = false
-          type    = "AAAA"
-          value   = "2a0a:4cc0:80:38bf:49e:6dff:fe2a:26c4"
-        }
-      }
-      ddns_records = {}
-      host_indices = [5]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
     nue0 = {
       records = {
         a = {
@@ -33,24 +15,6 @@ locals {
       }
       ddns_records = {}
       host_indices = [3]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    fra1 = {
-      records = {
-        a = {
-          proxied = false
-          type    = "A"
-          value   = "176.116.18.242"
-        }
-        aaaa = {
-          proxied = false
-          type    = "AAAA"
-          value   = "2a04:e8c0:18:619::"
-        }
-      }
-      ddns_records = {}
-      host_indices = [6]
       endpoints_v4 = []
       endpoints_v6 = []
     }
@@ -82,19 +46,6 @@ locals {
         }
       }
       host_indices = [8]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    "15isk" = {
-      records = {}
-      ddns_records = {
-        aaaa = {
-          proxied = false
-          type    = "AAAA"
-          value   = "::1"
-        }
-      }
-      host_indices = [9]
       endpoints_v4 = []
       endpoints_v6 = []
     }

@@ -156,7 +156,7 @@ in
               ]
             ) osConfig.environment.domains
           }
-            # Port 22
+            Port 1022
             HashKnownHosts no
             UserKnownHostsFile /dev/null
         '';
