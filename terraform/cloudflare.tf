@@ -94,6 +94,7 @@ locals {
     dash          = { on = "nue0", proxy = false }
     cookie        = { on = "nue0", proxy = false }
     home          = { on = "nue0", proxy = false }
+    link          = { on = "nue0", proxy = false }
     # prowlarr           = { on = "nue0", proxy = false }
     # radarr             = { on = "nue0", proxy = false }
     # bazarr             = { on = "nue0", proxy = false }

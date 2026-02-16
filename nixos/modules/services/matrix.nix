@@ -160,6 +160,8 @@ lib.mkMerge [
           }
         ];
         turn_uris = [
+          "turns:nue0.dora.im:3479?transport=udp"
+          "turns:nue0.dora.im:3479?transport=tcp"
           "turns:hkg0.dora.im?transport=udp"
           "turns:hkg0.dora.im?transport=tcp"
           "turns:fra1.dora.im:3479?transport=udp"

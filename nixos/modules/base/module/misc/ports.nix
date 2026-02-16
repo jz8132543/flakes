@@ -148,6 +148,7 @@
       sonarr-anime = 8990;
       moviepilot = 3201;
       cookiecloud = 8088;
+      linkwarden = 3300;
       mysql = 3306;
       seedboxProxyPort = 50080;
       tdarr-server = 8266;

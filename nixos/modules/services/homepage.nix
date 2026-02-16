@@ -369,6 +369,20 @@ in
               description = "Authentication";
             };
           }
+          {
+            "Linkwarden" = {
+              href = "https://link.${config.networking.domain}";
+              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/linkwarden.png";
+              description = "Bookmarks";
+            };
+          }
+          {
+            "Pastebin" = {
+              href = "https://pb.${config.networking.domain}";
+              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/microbin.png";
+              description = "Paste Service";
+            };
+          }
         ];
       }
     ];
@@ -407,6 +421,21 @@ in
         blur = "sm"; # sm, "", md, xl... see https://tailwindcss.com/docs/backdrop-blur
         saturate = 50; # 0, 50, 100... see https://tailwindcss.com/docs/backdrop-saturate
         brightness = 50; # 0, 50, 75... see https://tailwindcss.com/docs/backdrop-brightness
+      };
+      # Layout: Set groups to be side-by-side (horizontal)
+      layout = {
+        "Media" = {
+          header = true;
+          columns = 4;
+        };
+        "Social" = {
+          header = true;
+          columns = 4;
+        };
+        "Tools" = {
+          header = true;
+          columns = 4;
+        };
       };
     };
   };

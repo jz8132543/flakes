@@ -96,6 +96,46 @@
             '';
         };
       };
+
+      jellyfin-sso-config = {
+        description = "Configure Jellyfin SSO plugin";
+        before = [ "jellyfin.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart =
+            let
+              ssoConfig = ''
+                <?xml version="1.0" encoding="utf-8"?>
+                <PluginConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+                  <SsoConfigurations>
+                    <SsoConfiguration>
+                      <SsoProviderName>Keycloak</SsoProviderName>
+                      <OidcClientId>jellyfin</OidcClientId>
+                      <OidcClientSecret>${config.sops.placeholder."jellyfin/oidc_client_secret"}</OidcClientSecret>
+                      <OidcAuthority>https://sso.dora.im/realms/users</OidcAuthority>
+                      <OidcScopes>
+                        <string>openid</string>
+                        <string>profile</string>
+                        <string>email</string>
+                      </OidcScopes>
+                      <AdminRoles>
+                        <string>admin</string>
+                      </AdminRoles>
+                    </SsoConfiguration>
+                  </SsoConfigurations>
+                </PluginConfiguration>
+              '';
+            in
+            pkgs.writeShellScript "jellyfin-sso-config" ''
+              mkdir -p /data/.state/jellyfin/plugins/configurations
+              cat > /data/.state/jellyfin/plugins/configurations/Jellyfin.Plugin.SSO.xml <<EOF
+              ${ssoConfig}
+              EOF
+              chown -R jellyfin:media /data/.state/jellyfin/plugins/configurations/Jellyfin.Plugin.SSO.xml
+            '';
+        };
+      };
     };
 
     system.activationScripts.jellyfin-plugins = {

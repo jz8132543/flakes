@@ -10,7 +10,7 @@
       nixosModules.services.doraim
       nixosModules.services.headscale
       # nixosModules.services.derp
-      # nixosModules.services.stun
+      nixosModules.services.stun
       nixosModules.services.postgres
       nixosModules.services.minio
       nixosModules.services.doraim
@@ -36,7 +36,8 @@
       (import nixosModules.services.mastodon { })
       (import nixosModules.services.matrix { })
       # TODO
-      # nixosModules.services.pastebin
+      nixosModules.services.pastebin
+      nixosModules.services.linkwarden
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf
