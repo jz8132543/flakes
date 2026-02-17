@@ -50,6 +50,35 @@ with lib;
         )
       );
     };
+    tcpProxies = mkOption {
+      default = { };
+      description = "Simple TCP reverse proxy configuration.";
+      type = types.attrsOf (
+        types.submodule (
+          { ... }:
+          {
+            options = {
+              rule = mkOption {
+                type = types.str;
+                default = "HostSNI(`*`)";
+              };
+              target = mkOption {
+                type = types.str;
+                description = "Target address (host:port).";
+              };
+              entryPoints = mkOption {
+                type = types.listOf types.str;
+                description = "List of entrypoints.";
+              };
+              tls = mkOption {
+                type = types.bool;
+                default = false;
+              };
+            };
+          }
+        )
+      );
+    };
   };
 
   config = {
@@ -58,6 +87,7 @@ with lib;
       80
       443
       8443
+      config.ports.ldap
     ];
     services.nginx = {
       enable = true;
@@ -147,6 +177,9 @@ with lib;
             http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
             http3 = { };
           };
+          ldap = {
+            address = ":${toString config.ports.ldap}";
+          };
         };
         certificatesResolvers.zerossl.acme = {
           email = "blackhole@dora.im";
@@ -219,7 +252,7 @@ with lib;
                 entryPoints = [ "https" ]; # Internal services still benefit from explicit binding
               };
               traefik-dashboard = {
-                rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/dashboard`))";
+                rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/dashboard`)";
                 service = "api@internal";
                 entryPoints = [
                   "http"
@@ -243,6 +276,19 @@ with lib;
               stripPrefixRegex.regex = [ "/[^/]+/" ];
             };
           };
+        };
+        tcp = {
+          routers = mapAttrs (name: value: {
+            inherit (value)
+              rule
+              entryPoints
+              ;
+            service = name;
+            tls = if value.tls then { } else null;
+          }) config.services.traefik.tcpProxies;
+          services = mapAttrs (_name: value: {
+            loadBalancer.servers = [ { address = value.target; } ];
+          }) config.services.traefik.tcpProxies;
         };
       };
     };

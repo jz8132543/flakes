@@ -46,11 +46,19 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/cookiecloud/latest.xpi";
         };
+        # Linkwarden - Bookmark Manager
+        "{83995834-31b3-4f96-b0cb-1e6790b39691}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/linkwarden/latest.xpi";
+        };
       };
       "3rdparty" = {
         Extensions = {
           "{5c852dc5-cb17-4a56-a8f1-0d7b7c5dd00a}" = {
             host = "https://cookiecloud.${config.networking.domain or "dora.im"}";
+          };
+          "{83995834-31b3-4f96-b0cb-1e6790b39691}" = {
+            host = "https://link.${config.networking.domain or "dora.im"}";
           };
         };
       };

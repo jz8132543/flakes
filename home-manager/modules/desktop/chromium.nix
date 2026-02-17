@@ -40,6 +40,8 @@ in
       # CookieCloud - 同步PT站点Cookie
       "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
       "mpkodccbngfoacfalldjimigihfbocjn" # Aria2 Explorer
+      # Linkwarden - Bookmark Manager
+      "efpglpohdfnodejoimcladancmgeibao"
     ];
     # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
     # commandLineArgs = [
@@ -76,6 +78,9 @@ in
       "extensions" = {
         "ffjiejobkoibkjlhjnlgmcnnigeelbdl" = {
           "host" = "https://cookiecloud.dora.im";
+        };
+        "efpglpohdfnodejoimcladancmgeibao" = {
+          "host" = "https://link.dora.im";
         };
       };
     };

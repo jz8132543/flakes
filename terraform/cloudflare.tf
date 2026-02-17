@@ -141,22 +141,69 @@ resource "cloudflare_dns_record" "dora" {
 #   zone_id = cloudflare_zone.im_dora.id
 # }
 
-# matrix SRV record
+# matrix SRV records
 resource "cloudflare_dns_record" "_matrix_tcp" {
-  name     = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
-  type     = "SRV"
-  ttl      = 1
-  priority = 10
-  proxied  = false
-  zone_id  = cloudflare_zone.im_dora.id
+  name    = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
+  type    = "SRV"
+  ttl     = 1
+  zone_id = cloudflare_zone.im_dora.id
   data = {
-    # service = "_matrix"
-    # proto   = "_tcp"
-    # name     = cloudflare_zone.im_dora.zone
     priority = 10
     weight   = 5
     port     = 443
     target   = "m.dora.im"
+  }
+}
+
+resource "cloudflare_dns_record" "_turn_udp" {
+  name    = "_turn._udp.${cloudflare_zone.im_dora.name}"
+  type    = "SRV"
+  ttl     = 1
+  zone_id = cloudflare_zone.im_dora.id
+  data = {
+    priority = 10
+    weight   = 5
+    port     = 3478
+    target   = "nue0.dora.im"
+  }
+}
+
+resource "cloudflare_dns_record" "_turns_udp" {
+  name    = "_turns._udp.${cloudflare_zone.im_dora.name}"
+  type    = "SRV"
+  ttl     = 1
+  zone_id = cloudflare_zone.im_dora.id
+  data = {
+    priority = 10
+    weight   = 5
+    port     = 5349
+    target   = "nue0.dora.im"
+  }
+}
+
+resource "cloudflare_dns_record" "_turn_tcp" {
+  name    = "_turn._tcp.${cloudflare_zone.im_dora.name}"
+  type    = "SRV"
+  ttl     = 1
+  zone_id = cloudflare_zone.im_dora.id
+  data = {
+    priority = 10
+    weight   = 5
+    port     = 3478
+    target   = "nue0.dora.im"
+  }
+}
+
+resource "cloudflare_dns_record" "_turns_tcp" {
+  name    = "_turns._tcp.${cloudflare_zone.im_dora.name}"
+  type    = "SRV"
+  ttl     = 1
+  zone_id = cloudflare_zone.im_dora.id
+  data = {
+    priority = 10
+    weight   = 5
+    port     = 5349
+    target   = "nue0.dora.im"
   }
 }
 

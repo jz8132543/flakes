@@ -40,7 +40,7 @@
     backend = "podman";
     containers.dirsrv = {
       image = "quay.io/389ds/dirsrv:latest";
-      ports = [ "${toString config.ports.ldap}:3389" ];
+      ports = [ "127.0.0.1:3389:3389" ];
       volumes = [ "/var/lib/389ds:/data" ];
       environmentFiles = [ config.sops.templates."dirsrv-env".path ];
       environment = {
@@ -122,15 +122,15 @@
       mode = "0444";
     };
   };
-  services.traefik.proxies = {
-    keycloak = {
-      rule = "Host(`sso.dora.im`)";
-      target = "http://localhost:${toString config.ports.keycloak}";
-    };
-    ldap = {
-      rule = "Host(`ldap.dora.im`)";
-      target = "http://localhost:389";
-    };
+  services.traefik.proxies.keycloak = {
+    rule = "Host(`sso.dora.im`)";
+    target = "http://localhost:${toString config.ports.keycloak}";
+  };
+
+  services.traefik.tcpProxies.ldap = {
+    rule = "HostSNI(`*`)";
+    target = "localhost:3389"; # Internal 389ds port
+    entryPoints = [ "ldap" ];
   };
   systemd.services.keycloak = {
     after = [
