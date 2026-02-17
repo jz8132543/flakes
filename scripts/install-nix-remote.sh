@@ -12,6 +12,32 @@ if [ -z "$HOST" ] || [ -z "$USER" ]; then
   exit 1
 fi
 
+# SSH Key Setup
+echo "=== Ensuring SSH key access to $USER@$HOST... ==="
+# Check if we already have passwordless access
+if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$PORT" "$USER@$HOST" "true" 2>/dev/null; then
+  echo "SSH key access not detected. Attempting to copy SSH key..."
+  ID_FILE="$HOME/.ssh/id_ed25519"
+  if [ ! -f "$ID_FILE" ]; then
+    ID_FILE="$HOME/.ssh/id_rsa"
+  fi
+
+  SSH_COPY_ARGS=(-o "StrictHostKeyChecking=no" -p "$PORT")
+  if [ -f "$ID_FILE" ]; then
+    SSH_COPY_ARGS+=(-i "$ID_FILE.pub")
+  fi
+
+  if [ -n "$SSHPASS" ]; then
+    echo "Using provided password via sshpass..."
+    nix shell nixpkgs#sshpass nixpkgs#openssh -c sshpass -e ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
+  else
+    echo "Please enter the password for $USER@$HOST when prompted:"
+    ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
+  fi
+else
+  echo "SSH key access already configured. Good."
+fi
+
 # Check if Nix is already installed on remote
 echo "=== Checking for existing Nix installation on $USER@$HOST... ==="
 if ssh -p "$PORT" "$USER@$HOST" "test -f ~/.nix-profile/etc/profile.d/nix.sh && test -d /nix/store"; then
@@ -31,10 +57,11 @@ if ssh -p "$PORT" "$USER@$HOST" "test -f ~/.nix-profile/etc/profile.d/nix.sh && 
                         echo "if [ -f $NIX_PROFILE ]; then source $NIX_PROFILE; fi" >> ~/.zshenv
                     fi
                 fi
-                # Add to .bashrc for Bash
+                # Add to .bashrc for Bash - Prepend to the TOP of the file
+                # to avoid early return guards in default .bashrc
                 if ! grep -q "source $NIX_PROFILE" ~/.bashrc 2>/dev/null; then
-                    echo "Adding source $NIX_PROFILE to ~/.bashrc"
-                    echo "if [ -f $NIX_PROFILE ]; then source $NIX_PROFILE; fi" >> ~/.bashrc
+                    echo "Adding source $NIX_PROFILE to top of ~/.bashrc"
+                    (echo "if [ -f $NIX_PROFILE ]; then source $NIX_PROFILE; fi"; cat ~/.bashrc 2>/dev/null) > ~/.bashrc.tmp && mv ~/.bashrc.tmp ~/.bashrc
                 fi
             fi
         '

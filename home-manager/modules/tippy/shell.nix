@@ -287,7 +287,7 @@ with config.home.catppuccin;
       fishPlugins.foreign-env
       fishPlugins.forgit
       fishPlugins.puffer
-      nur.repos.linyinfeng.fishPlugins.replay
+      # nur.repos.linyinfeng.fishPlugins.replay
       libnotify # for done notification
     ]
     ++ lib.optional (pkgs ? comma-with-db) pkgs.comma-with-db;

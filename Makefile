@@ -15,7 +15,7 @@ rebuild-boot:
 deploy-home: install-nix
 	$(eval user ?= tippy)
 	$(eval port ?= 22)
-	$(eval build_host ?= localhost)
+	$(eval build_host ?= $(host))
 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-home host=<host> [user=...]"; exit 1; fi
 	ssh-keygen -R [${host}]:${port} || true
 	./scripts/deploy.sh ${host} ${user} ${port} ${build_host}

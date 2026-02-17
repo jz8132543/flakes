@@ -39,6 +39,7 @@ in
       "gfkgnjfipffpfdnfmcpaoajkidapcplc"
       # CookieCloud - 同步PT站点Cookie
       "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
+      "mpkodccbngfoacfalldjimigihfbocjn" # Aria2 Explorer
     ];
     # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
     # commandLineArgs = [

@@ -5,7 +5,7 @@ set -e
 HOST=$1
 USER=${2:-tippy}
 PORT=${3:-22}
-BUILD_HOST=${4:-localhost}
+BUILD_HOST=${4:-$HOST}
 
 if [ -z "$HOST" ]; then
   echo "Usage: $0 <HOST> [USER] [PORT] [BUILD_HOST]"
@@ -28,7 +28,8 @@ echo "Build successful: $ACTIVATION_PKG"
 
 echo "=== 2. Copying to Remote ($USER@$HOST:$PORT) ==="
 # --no-check-sigs allows copying paths that aren't signed by a trusted key (required for non-trusted-users)
-nix copy --no-check-sigs --to "ssh-ng://${USER}@${HOST}:${PORT}" "$ACTIVATION_PKG"
+# We specify remote-program to ensure nix-daemon can be found even if not in PATH
+nix copy --no-check-sigs --to "ssh-ng://${USER}@${HOST}:${PORT}?remote-program=~/.nix-profile/bin/nix-daemon" "$ACTIVATION_PKG"
 
 echo "=== 3. Activating Configuration ==="
 # We use bash -c to ensure the command runs in a POSIX-compatible shell even if the remote user's shell is fish.

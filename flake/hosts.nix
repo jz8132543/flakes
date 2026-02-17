@@ -184,5 +184,10 @@ in
       name = "shg0";
       user = "tippy";
       system = "x86_64-linux";
+    })
+    // (mkHome {
+      name = "tyo0";
+      user = "tippy";
+      system = "x86_64-linux";
     });
 }
