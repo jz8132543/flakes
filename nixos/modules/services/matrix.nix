@@ -160,14 +160,16 @@ lib.mkMerge [
           }
         ];
         turn_uris = [
-          "turns:nue0.dora.im:3479?transport=udp"
-          "turns:nue0.dora.im:3479?transport=tcp"
-          "turns:hkg0.dora.im?transport=udp"
-          "turns:hkg0.dora.im?transport=tcp"
-          "turns:fra1.dora.im:3479?transport=udp"
-          "turns:fra1.dora.im:3479?transport=tcp"
-          "turns:hkg4.dora.im:3479?transport=udp"
-          "turns:hkg4.dora.im:3479?transport=tcp"
+          "turn:nue0.dora.im:3479?transport=udp"
+          "turn:nue0.dora.im:3479?transport=tcp"
+          "turns:nue0.dora.im:5349?transport=udp"
+          "turns:nue0.dora.im:5349?transport=tcp"
+          "turns:hkg0.dora.im:5349?transport=udp"
+          "turns:hkg0.dora.im:5349?transport=tcp"
+          "turns:fra1.dora.im:5349?transport=udp"
+          "turns:fra1.dora.im:5349?transport=tcp"
+          "turns:hkg4.dora.im:5349?transport=udp"
+          "turns:hkg4.dora.im:5349?transport=tcp"
         ];
         turn_user_lifetime = "1h";
         turn_allow_guests = false;

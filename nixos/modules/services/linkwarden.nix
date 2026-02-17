@@ -26,11 +26,12 @@ in
   };
 
   virtualisation.oci-containers.containers.linkwarden = {
-    image = "linkwarden/linkwarden:latest";
-    ports = [ "${toString port}:3000" ];
+    image = "ghcr.io/linkwarden/linkwarden:latest";
+    extraOptions = [ "--network=host" ];
     environment = {
       DATABASE_URL = "postgresql://${dbUser}@localhost:5432/${dbName}";
       NEXTAUTH_URL = "https://${domain}";
+      PORT = toString port;
       # NEXTAUTH_SECRET will be provided via EnvironmentFile
     };
     environmentFiles = [ config.sops.templates."linkwarden-env".path ];

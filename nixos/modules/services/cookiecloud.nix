@@ -13,6 +13,15 @@ in
   virtualisation.oci-containers.containers.cookiecloud = {
     image = "easychen/cookiecloud:latest";
     ports = [ "${toString port}:8088" ];
+    # CookieCloud is a simple Go server that uses local file storage (SQLlite/LevelDB).
+    # It does NOT support PostgreSQL.
+    environment = {
+      # Add any other config if needed, but CookieCloud is very minimal.
+      # You can pre-set the admin port or other settings if the image supports it.
+    };
+    volumes = [
+      "/var/lib/cookiecloud:/data/api/data"
+    ];
   };
 
   services.traefik.proxies.cookiecloud = {
@@ -22,12 +31,6 @@ in
 
   environment.global-persistence.directories = [
     "/var/lib/cookiecloud"
-  ];
-  # CookieCloud might need a volume for data persistence if it stores anything.
-  # Looking at typical docker usage: -v /path/to/data:/data/api/data
-  # Let's add it.
-  virtualisation.oci-containers.containers.cookiecloud.volumes = [
-    "/var/lib/cookiecloud:/data/api/data"
   ];
 
   systemd.tmpfiles.rules = [

@@ -423,20 +423,24 @@ in
         brightness = 50; # 0, 50, 75... see https://tailwindcss.com/docs/backdrop-brightness
       };
       # Layout: Set groups to be side-by-side (horizontal)
-      layout = {
-        "Media" = {
-          header = true;
-          columns = 4;
-        };
-        "Social" = {
-          header = true;
-          columns = 4;
-        };
-        "Tools" = {
-          header = true;
-          columns = 4;
-        };
-      };
+      layout = [
+        {
+          "Media" = {
+            header = true;
+            columns = 4;
+          };
+          "Social" = {
+            header = true;
+            columns = 4;
+          };
+        }
+        {
+          "Tools" = {
+            header = true;
+            columns = 4;
+          };
+        }
+      ];
     };
   };
 
