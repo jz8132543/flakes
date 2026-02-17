@@ -24,24 +24,6 @@
   "ldap": "ldap://ldap.dora.im:389",
   "database": "postgres.mag",
   "hosts": {
-    "15isk": {
-      "dn42_addresses_v4": ["172.23.224.105"],
-      "dn42_addresses_v6": ["fd72:db83:badd:9::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:9::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [9]
-    },
-    "fra1": {
-      "dn42_addresses_v4": ["172.23.224.102"],
-      "dn42_addresses_v6": ["fd72:db83:badd:6::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:6::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [6]
-    },
     "hkg4": {
       "dn42_addresses_v4": ["172.23.224.103"],
       "dn42_addresses_v6": ["fd72:db83:badd:7::1"],
@@ -77,15 +59,6 @@
       "endpoints_v4": [],
       "endpoints_v6": [],
       "host_indices": [30]
-    },
-    "vie0": {
-      "dn42_addresses_v4": ["172.23.224.101"],
-      "dn42_addresses_v6": ["fd72:db83:badd:5::1"],
-      "dn42_v6_prefixes": ["fd72:db83:badd:5::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [5]
     }
   },
   "service_cname_mappings": {
@@ -130,6 +103,10 @@
       "proxy": false
     },
     "ldap": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "link": {
       "on": "nue0",
       "proxy": false
     },

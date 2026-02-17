@@ -70,4 +70,17 @@
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
+  # External mobile disk configuration
+  fileSystems."/data" = {
+    device = "/dev/disk/by-label/MOBILE_DATA";
+    fsType = "btrfs";
+    options = [
+      "nofail" # Don't block boot if disk is missing
+      "x-systemd.automount" # Mount on demand
+      "x-systemd.idle-timeout=60" # Unmount after 60s of inactivity to reduce risk
+      "x-systemd.device-timeout=5s"
+      "noatime"
+      "autodefrag"
+    ];
+  };
 }

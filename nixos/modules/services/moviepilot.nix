@@ -218,10 +218,6 @@ in
   # ═══════════════════════════════════════════════════════════════
   # Persistence
   # ═══════════════════════════════════════════════════════════════
-  environment.global-persistence.directories = [
-    configPath
-    "/data" # Media and downloads
-  ];
 
   # ═══════════════════════════════════════════════════════════════
   # Auto-Configured Features (开箱即用)

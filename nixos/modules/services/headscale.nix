@@ -13,7 +13,7 @@
     headscale = {
       enable = true;
       # To generate a pre-auth key for automatic login (user: s):
-      # headscale preauthkeys create -u s -e 24h
+      # sudo headscale preauthkeys c --reusable --ephemeral -e 99y -u 1
       port = config.ports.headscale;
       # group = "acme";
       settings = {

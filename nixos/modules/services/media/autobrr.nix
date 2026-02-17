@@ -39,8 +39,5 @@
     };
     users.groups.autobrr.gid = config.ids.gids.autobrr;
 
-    environment.global-persistence.directories = [
-      "/data/.state/autobrr"
-    ];
   };
 }

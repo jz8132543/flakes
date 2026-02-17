@@ -1,5 +1,6 @@
 {
   lib,
+  config,
   ...
 }:
 {
@@ -61,10 +62,9 @@
     ];
 
     environment.global-persistence.directories = [
-      "/data"
       "/var/lib/bazarr"
-      "/data/.state/autobrr"
-    ];
+    ]
+    ++ lib.optional (!builtins.hasAttr "/data" config.fileSystems) "/data";
 
     # Shared SOBs Secrets definitions
     sops.secrets =
@@ -97,6 +97,7 @@
         "media/mteam_rss_url"
         "media/pttime_rss_url"
         "media/moviepilot_api_key"
+        "jellyfin/oidc_client_secret"
       ];
   };
 }
