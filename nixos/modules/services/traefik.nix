@@ -88,6 +88,7 @@ with lib;
       443
       8443
       config.ports.ldap
+      636 # LDAPS
     ];
     services.nginx = {
       enable = true;
@@ -179,6 +180,9 @@ with lib;
           };
           ldap = {
             address = ":${toString config.ports.ldap}";
+          };
+          ldaps = {
+            address = ":636";
           };
         };
         certificatesResolvers.zerossl.acme = {
@@ -291,6 +295,13 @@ with lib;
           }) config.services.traefik.tcpProxies;
         };
       };
+    };
+
+    services.traefik.tcpProxies.ldaps = {
+      rule = "HostSNI(`*`)";
+      target = "localhost:3389"; # Forward to same 389ds port
+      entryPoints = [ "ldaps" ];
+      tls = true;
     };
 
     systemd.services.traefik-certs-dumper = {

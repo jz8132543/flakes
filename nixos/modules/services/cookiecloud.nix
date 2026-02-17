@@ -36,4 +36,8 @@ in
   systemd.tmpfiles.rules = [
     "d /var/lib/cookiecloud 0755 root root -"
   ];
+
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/cookiecloud"
+  ];
 }

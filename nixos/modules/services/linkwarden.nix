@@ -32,8 +32,12 @@ in
       DATABASE_URL = "postgresql://${dbUser}@localhost:5432/${dbName}";
       NEXTAUTH_URL = "https://${domain}";
       PORT = toString port;
+      STORAGE_PATH = "/mnt/data";
       # NEXTAUTH_SECRET will be provided via EnvironmentFile
     };
+    volumes = [
+      "/var/lib/linkwarden:/mnt/data"
+    ];
     environmentFiles = [ config.sops.templates."linkwarden-env".path ];
   };
 
@@ -54,10 +58,6 @@ in
   # Persistence
   environment.global-persistence.directories = [
     "/var/lib/linkwarden"
-  ];
-
-  virtualisation.oci-containers.containers.linkwarden.volumes = [
-    "/var/lib/linkwarden:/data"
   ];
 
   systemd.tmpfiles.rules = [

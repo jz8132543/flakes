@@ -203,6 +203,10 @@
     ProtectProc = lib.mkForce "default";
     ProcSubset = lib.mkForce "all";
     UMask = "0002";
+    # Priority tuning to prevent lag
+    CPUSchedulingPolicy = "idle";
+    IOSchedulingClass = "idle";
+    IPQoS = "background";
   };
 
   environment.global-persistence.directories = [

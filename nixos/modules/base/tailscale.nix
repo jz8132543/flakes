@@ -45,25 +45,44 @@ in
     ];
   };
 
-  # systemd.services.tailscale-setup = {
-  #   script = ''
-  #     sleep 10
-  #
-  #     if tailscale status; then
-  #       echo "tailscale already up, skip"
-  #     else
-  #       echo "tailscale down, login using auth key"
-  #       tailscale up --auth-key "file:${config.sops.secrets."tailscale_tailnet_key".path}"
-  #     fi
-  #   '';
-  #   serviceConfig = {
-  #     Type = "oneshot";
-  #     RemainAfterExit = true;
-  #   };
-  #   path = [config.services.tailscale.package];
-  #   after = ["tailscaled.service"];
-  #   requiredBy = ["tailscaled.service"];
-  # };
+  sops.secrets.tailscale_preauth_key = { };
+
+  systemd.services.tailscale-setup = {
+    description = "Tailscale automatic login";
+    after = [
+      "tailscaled.service"
+      "network-online.target"
+    ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    path = [
+      config.services.tailscale.package
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    script = ''
+      # Wait for tailscaled to be ready
+      sleep 2
+
+      # Check if already authenticated
+      status=$(tailscale status --json | jq -r .BackendState)
+      if [ "$status" = "Running" ]; then
+        echo "Tailscale is already running and authenticated."
+        exit 0
+      fi
+
+      echo "Tailscale not authenticated (state: $status), logging in..."
+      tailscale up \
+        --login-server https://ts.${config.networking.domain} \
+        --auth-key "file:${config.sops.secrets.tailscale_preauth_key.path}"
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "10";
+    };
+  };
 
   services.networkd-dispatcher = {
     enable = true;

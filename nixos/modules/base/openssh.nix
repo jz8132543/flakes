@@ -11,6 +11,7 @@
       # PermitRootLogin = lib.mkForce "no";
       PasswordAuthentication = lib.mkForce false;
       KbdInteractiveAuthentication = false;
+      IPQoS = "lowdelay throughput";
     };
     ports = [ config.ports.ssh ];
     openFirewall = true;

@@ -12,6 +12,8 @@
   services = {
     headscale = {
       enable = true;
+      # To generate a pre-auth key for automatic login (user: s):
+      # headscale preauthkeys create -u s -e 24h
       port = config.ports.headscale;
       # group = "acme";
       settings = {

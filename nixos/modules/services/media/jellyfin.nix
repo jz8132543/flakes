@@ -129,10 +129,10 @@
             in
             pkgs.writeShellScript "jellyfin-sso-config" ''
               mkdir -p /data/.state/jellyfin/plugins/configurations
-              cat > /data/.state/jellyfin/plugins/configurations/Jellyfin.Plugin.SSO.xml <<EOF
+              cat > /data/.state/jellyfin/plugins/configurations/SSO-Auth.xml <<EOF
               ${ssoConfig}
               EOF
-              chown -R jellyfin:media /data/.state/jellyfin/plugins/configurations/Jellyfin.Plugin.SSO.xml
+              chown -R jellyfin:media /data/.state/jellyfin/plugins/configurations/SSO-Auth.xml
             '';
         };
       };
