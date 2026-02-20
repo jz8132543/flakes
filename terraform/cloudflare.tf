@@ -291,14 +291,6 @@ resource "cloudflare_dns_record" "dora_matrix_v6" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_dns_record" "dora_tippy" {
-  name    = "tippy.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  content = "82.156.22.240"
-  zone_id = cloudflare_zone.im_dora.id
-}
 resource "cloudflare_dns_record" "dora_tyo0" {
   name    = "tyo0.${cloudflare_zone.im_dora.name}"
   proxied = false
@@ -393,5 +385,38 @@ resource "cloudflare_dns_record" "dora_fra2" {
   ttl     = 1
   type    = "A"
   content = "23.165.200.135"
+  zone_id = cloudflare_zone.im_dora.id
+}
+# 酷雪云
+resource "cloudflare_dns_record" "dora_cuv6" {
+  name    = "cuv6.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "AAAA"
+  content = "2408:8207:25b1:2701:6666:16:3efc:9adf"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_cmv6" {
+  name    = "cuv6.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "AAAA"
+  content = "2409:8a00:2640:4e01:6666:16:3efc:9adf"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_cu" {
+  name    = "cu.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "fastu.kxy.ovh"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_cm" {
+  name    = "cm.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "fastm.kxy.ovh"
   zone_id = cloudflare_zone.im_dora.id
 }
