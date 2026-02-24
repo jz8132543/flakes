@@ -22,9 +22,9 @@ src.manual = "latest"
 [ebook-sender-bot]
 fetch.github = "qcgzxw/ebook-sender-bot"
 src.git = "https://github.com/qcgzxw/ebook-sender-bot"
-[custom-win10-fonts]
-fetch.github = "jz8132543/ttf-ms-win10"
-src.git = "https://github.com/jz8132543/ttf-ms-win10"
+# [custom-win10-fonts]
+# fetch.github = "jz8132543/ttf-ms-win10"
+# src.git = "https://github.com/jz8132543/ttf-ms-win10"
 # [wallpaper]
 # fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 # src.manual = "latest"
@@ -90,8 +90,8 @@ src.git = "https://github.com/mdhiggins/sickbeard_mp4_automator"
 # src.branch = "master"
 
 [realm]
-fetch.github = "zhboner/realm"
-src.git = "https://github.com/zhboner/realm"
+src.github = "zhboner/realm"
+fetch.url = "https://github.com/zhboner/realm/releases/download/$ver/realm-x86_64-unknown-linux-musl.tar.gz"
 
 [kxy-script]
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"

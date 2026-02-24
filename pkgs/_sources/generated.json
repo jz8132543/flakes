@@ -1,347 +1,362 @@
 {
-  "alacritty-catppuccin": {
-    "cargoLock": null,
-    "date": "2024-10-28",
-    "extract": null,
-    "name": "alacritty-catppuccin",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "catppuccin",
-      "repo": "alacritty",
-      "rev": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7",
-      "sha256": "sha256-H8bouVCS46h0DgQ+oYY8JitahQDj0V9p2cOoD4cQX+Q=",
-      "sparseCheckout": [],
-      "type": "github"
+    "alacritty-catppuccin": {
+        "cargoLock": null,
+        "date": "2024-10-28",
+        "extract": null,
+        "name": "alacritty-catppuccin",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "catppuccin",
+            "repo": "alacritty",
+            "rev": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7",
+            "sha256": "sha256-H8bouVCS46h0DgQ+oYY8JitahQDj0V9p2cOoD4cQX+Q=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
     },
-    "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
-  },
-  "alist": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "alist",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-Jexh84BBS56I7KuhJt/nW+s2Nxnl22IyHZgGxnAzo4M=",
-      "type": "url",
-      "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.10/openlist-linux-musl-amd64.tar.gz"
+    "alist": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "alist",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-Jexh84BBS56I7KuhJt/nW+s2Nxnl22IyHZgGxnAzo4M=",
+            "type": "url",
+            "url": "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.10/openlist-linux-musl-amd64.tar.gz"
+        },
+        "version": "v4.1.10"
     },
-    "version": "v4.1.10"
-  },
-  "clash-webui-yacd-meta": {
-    "cargoLock": null,
-    "date": "2026-01-16",
-    "extract": null,
-    "name": "clash-webui-yacd-meta",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-8lktBjGpDPXapKFWb68XuzpUe2DNpuMlfH6P7Ry7Af4=",
-      "type": "url",
-      "url": "https://github.com/MetaCubeX/Yacd-meta/archive/ac485b00be400b6c6efa3c73a579ac419bc439ec.zip"
+    "clash-webui-yacd-meta": {
+        "cargoLock": null,
+        "date": "2026-01-16",
+        "extract": null,
+        "name": "clash-webui-yacd-meta",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-8lktBjGpDPXapKFWb68XuzpUe2DNpuMlfH6P7Ry7Af4=",
+            "type": "url",
+            "url": "https://github.com/MetaCubeX/Yacd-meta/archive/ac485b00be400b6c6efa3c73a579ac419bc439ec.zip"
+        },
+        "version": "ac485b00be400b6c6efa3c73a579ac419bc439ec"
     },
-    "version": "ac485b00be400b6c6efa3c73a579ac419bc439ec"
-  },
-  "custom-win10-fonts": {
-    "cargoLock": null,
-    "date": "2025-01-01",
-    "extract": null,
-    "name": "custom-win10-fonts",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "jz8132543",
-      "repo": "ttf-ms-win10",
-      "rev": "4adc0a4198cc090b63bcb667363c03101e8175eb",
-      "sha256": "sha256-pymEG+Ygll+2YY8NyUj5Ky3ExRSlfFvthz5ap5scO4Y=",
-      "sparseCheckout": [],
-      "type": "github"
+    "ebook-sender-bot": {
+        "cargoLock": null,
+        "date": "2024-12-28",
+        "extract": null,
+        "name": "ebook-sender-bot",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "qcgzxw",
+            "repo": "ebook-sender-bot",
+            "rev": "380de137064e0c92bbb99a38cbbeab06f425c5b1",
+            "sha256": "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
     },
-    "version": "4adc0a4198cc090b63bcb667363c03101e8175eb"
-  },
-  "ebook-sender-bot": {
-    "cargoLock": null,
-    "date": "2024-12-28",
-    "extract": null,
-    "name": "ebook-sender-bot",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "qcgzxw",
-      "repo": "ebook-sender-bot",
-      "rev": "380de137064e0c92bbb99a38cbbeab06f425c5b1",
-      "sha256": "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=",
-      "sparseCheckout": [],
-      "type": "github"
+    "jellyfin-plugin-ani-sync": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-ani-sync",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-7Y9fBQtTixpw+6cEq3aYyZThkIcdsYPdoWjLZ53+NIA=",
+            "type": "url",
+            "url": "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_3.8.0.0.zip"
+        },
+        "version": "3.8.0.0"
     },
-    "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
-  },
-  "jellyfin-plugin-ani-sync": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-ani-sync",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-7Y9fBQtTixpw+6cEq3aYyZThkIcdsYPdoWjLZ53+NIA=",
-      "type": "url",
-      "url": "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_3.8.0.0.zip"
+    "jellyfin-plugin-bangumi": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-bangumi",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-bVtzWYiK+m7qRryOxCM2B/FAaPBBGYdI13x7Y+w0hE8=",
+            "type": "url",
+            "url": "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/1.7.5/Jellyfin.Plugin.Bangumi.zip"
+        },
+        "version": "1.7.5"
     },
-    "version": "3.8.0.0"
-  },
-  "jellyfin-plugin-bangumi": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-bangumi",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-bVtzWYiK+m7qRryOxCM2B/FAaPBBGYdI13x7Y+w0hE8=",
-      "type": "url",
-      "url": "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/1.7.5/Jellyfin.Plugin.Bangumi.zip"
+    "jellyfin-plugin-bazarr": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-bazarr",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-Rv3BMyBZT0bQr+axGe5J1GNZG0FhiiF7gdt6Ygnb+TM=",
+            "type": "url",
+            "url": "https://github.com/enoch85/bazarr-jellyfin/releases/download/v1.1.2/Jellyfin.Plugin.Bazarr.zip"
+        },
+        "version": "1.1.2"
     },
-    "version": "1.7.5"
-  },
-  "jellyfin-plugin-bazarr": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-bazarr",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-Rv3BMyBZT0bQr+axGe5J1GNZG0FhiiF7gdt6Ygnb+TM=",
-      "type": "url",
-      "url": "https://github.com/enoch85/bazarr-jellyfin/releases/download/v1.1.2/Jellyfin.Plugin.Bazarr.zip"
+    "jellyfin-plugin-douban": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-douban",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-SOkdji33ejgfoVwtdfKu1wOdMrrm8dPBzqTIIbNO5tI=",
+            "type": "url",
+            "url": "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v2.0.0/Jellyfin.Plugin.Douban.zip"
+        },
+        "version": "2.0.0"
     },
-    "version": "1.1.2"
-  },
-  "jellyfin-plugin-douban": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-douban",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-SOkdji33ejgfoVwtdfKu1wOdMrrm8dPBzqTIIbNO5tI=",
-      "type": "url",
-      "url": "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v2.0.0/Jellyfin.Plugin.Douban.zip"
+    "jellyfin-plugin-fanart": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-fanart",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-y2pkeVmDEVspja0nd8kqXEMTCJHYhGSQfEWMDfQAvyk=",
+            "type": "url",
+            "url": "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_14.0.0.0.zip"
+        },
+        "version": "14.0.0.0"
     },
-    "version": "2.0.0"
-  },
-  "jellyfin-plugin-fanart": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-fanart",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-y2pkeVmDEVspja0nd8kqXEMTCJHYhGSQfEWMDfQAvyk=",
-      "type": "url",
-      "url": "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_14.0.0.0.zip"
+    "jellyfin-plugin-intro-skipper": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-intro-skipper",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-aoSZq8rUesV8U6fjWkDLNkdjOviPdAxppGpfJz8e3f8=",
+            "type": "url",
+            "url": "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v1.10.11.14/intro-skipper-v1.10.11.14.zip"
+        },
+        "version": "1.10.11.14"
     },
-    "version": "14.0.0.0"
-  },
-  "jellyfin-plugin-intro-skipper": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-intro-skipper",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-aoSZq8rUesV8U6fjWkDLNkdjOviPdAxppGpfJz8e3f8=",
-      "type": "url",
-      "url": "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v1.10.11.14/intro-skipper-v1.10.11.14.zip"
+    "jellyfin-plugin-merge-versions": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-merge-versions",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-ea/YAhkXbK3MsFdSlxByqfx03BEiMn3PN8PYxOvwgJs=",
+            "type": "url",
+            "url": "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/10.11.0.1/Jellyfin.Plugin.MergeVersions.zip"
+        },
+        "version": "10.11.0.1"
     },
-    "version": "1.10.11.14"
-  },
-  "jellyfin-plugin-merge-versions": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-merge-versions",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-ea/YAhkXbK3MsFdSlxByqfx03BEiMn3PN8PYxOvwgJs=",
-      "type": "url",
-      "url": "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/10.11.0.1/Jellyfin.Plugin.MergeVersions.zip"
+    "jellyfin-plugin-playback-reporting": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-playback-reporting",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-4aNsqFpm8El+DIVke6ESNe8sBQa96872WetjU+cgRXM=",
+            "type": "url",
+            "url": "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_17.0.0.0.zip"
+        },
+        "version": "17.0.0.0"
     },
-    "version": "10.11.0.1"
-  },
-  "jellyfin-plugin-playback-reporting": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-playback-reporting",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-4aNsqFpm8El+DIVke6ESNe8sBQa96872WetjU+cgRXM=",
-      "type": "url",
-      "url": "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_17.0.0.0.zip"
+    "jellyfin-plugin-reports": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-reports",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-4DIszP6GAQRQv9Ky10sC2HVEjRJRkPiZT3oqq1csI/c=",
+            "type": "url",
+            "url": "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_18.0.0.0.zip"
+        },
+        "version": "18.0.0.0"
     },
-    "version": "17.0.0.0"
-  },
-  "jellyfin-plugin-reports": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-reports",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-4DIszP6GAQRQv9Ky10sC2HVEjRJRkPiZT3oqq1csI/c=",
-      "type": "url",
-      "url": "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_18.0.0.0.zip"
+    "jellyfin-plugin-shokofin": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-shokofin",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-tn6evlIB/tVCaelP0o4KlhX39dFiWNy9TSyfIQYcy5I=",
+            "type": "url",
+            "url": "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_6.0.3.0_for_10.10.zip"
+        },
+        "version": "6.0.3.0"
     },
-    "version": "18.0.0.0"
-  },
-  "jellyfin-plugin-shokofin": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-shokofin",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-tn6evlIB/tVCaelP0o4KlhX39dFiWNy9TSyfIQYcy5I=",
-      "type": "url",
-      "url": "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_6.0.3.0_for_10.10.zip"
+    "jellyfin-plugin-skin-manager": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-skin-manager",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-0yy1QkVLFRuy4nSLZbw4nqc7Xu86NFBHNcHwMpn7F5w=",
+            "type": "url",
+            "url": "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/2.0.2/Jellyfin-Plugin-SkinManager.zip"
+        },
+        "version": "2.0.2"
     },
-    "version": "6.0.3.0"
-  },
-  "jellyfin-plugin-skin-manager": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-skin-manager",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-0yy1QkVLFRuy4nSLZbw4nqc7Xu86NFBHNcHwMpn7F5w=",
-      "type": "url",
-      "url": "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/2.0.2/Jellyfin-Plugin-SkinManager.zip"
+    "jellyfin-plugin-sso": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-sso",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-3glRJVvsTtZGA3ZB5+CqEhCzoAoUFAZUgIe+2ZTLm90=",
+            "type": "url",
+            "url": "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.3/sso-authentication_4.0.0.3.zip"
+        },
+        "version": "4.0.0.3"
     },
-    "version": "2.0.2"
-  },
-  "jellyfin-plugin-sso": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-sso",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-3glRJVvsTtZGA3ZB5+CqEhCzoAoUFAZUgIe+2ZTLm90=",
-      "type": "url",
-      "url": "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.3/sso-authentication_4.0.0.3.zip"
+    "jellyfin-plugin-tmdb-box-sets": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "jellyfin-plugin-tmdb-box-sets",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-J5xYHv3xYOQeZNHkwbUAZ7Skd/x62KPaUQtSmTg1uhY=",
+            "type": "url",
+            "url": "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_12.0.0.0.zip"
+        },
+        "version": "12.0.0.0"
     },
-    "version": "4.0.0.3"
-  },
-  "jellyfin-plugin-tmdb-box-sets": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-tmdb-box-sets",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-J5xYHv3xYOQeZNHkwbUAZ7Skd/x62KPaUQtSmTg1uhY=",
-      "type": "url",
-      "url": "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_12.0.0.0.zip"
+    "kitty-catppuccin": {
+        "cargoLock": null,
+        "date": "2026-01-16",
+        "extract": null,
+        "name": "kitty-catppuccin",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "catppuccin",
+            "repo": "kitty",
+            "rev": "43098316202b84d6a71f71aaf8360f102f4d3f1a",
+            "sha256": "sha256-akRkdq8l2opGIg3HZd+Y4eky6WaHgKFQ5+iJMC1bhnQ=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "43098316202b84d6a71f71aaf8360f102f4d3f1a"
     },
-    "version": "12.0.0.0"
-  },
-  "kitty-catppuccin": {
-    "cargoLock": null,
-    "date": "2026-01-16",
-    "extract": null,
-    "name": "kitty-catppuccin",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "catppuccin",
-      "repo": "kitty",
-      "rev": "43098316202b84d6a71f71aaf8360f102f4d3f1a",
-      "sha256": "sha256-akRkdq8l2opGIg3HZd+Y4eky6WaHgKFQ5+iJMC1bhnQ=",
-      "sparseCheckout": [],
-      "type": "github"
+    "kxy-script": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "kxy-script",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=",
+            "type": "url",
+            "url": "https://cdn.kxy.ovh/kxy.sh"
+        },
+        "version": "V1.2"
     },
-    "version": "43098316202b84d6a71f71aaf8360f102f4d3f1a"
-  },
-  "sickbeard-mp4-automator": {
-    "cargoLock": null,
-    "date": "2026-01-18",
-    "extract": null,
-    "name": "sickbeard-mp4-automator",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "mdhiggins",
-      "repo": "sickbeard_mp4_automator",
-      "rev": "724e210be5ce56fe8087446d9ec07f33d014a7fc",
-      "sha256": "sha256-vQLsZ+I4uMmuYFM16AOKivA+P3tfl9TpOt/8K7+M/iE=",
-      "sparseCheckout": [],
-      "type": "github"
+    "realm": {
+        "cargoLock": null,
+        "date": "2026-01-12",
+        "extract": null,
+        "name": "realm",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "zhboner",
+            "repo": "realm",
+            "rev": "ea48f4335065eebded263af82889941c39c8b424",
+            "sha256": "sha256-kvlKTtQ43o2hE5ihu4BnoDu4rjymORttLN71xCYolF4=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "ea48f4335065eebded263af82889941c39c8b424"
     },
-    "version": "724e210be5ce56fe8087446d9ec07f33d014a7fc"
-  },
-  "trackerslist": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "trackerslist",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-Omaao3xaovy2sbqrtW06mna6f+xtcCOScSWHYn5isgM=",
-      "type": "url",
-      "url": "https://cf.trackerslist.com/best_aria2.txt"
+    "sickbeard-mp4-automator": {
+        "cargoLock": null,
+        "date": "2026-02-23",
+        "extract": null,
+        "name": "sickbeard-mp4-automator",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "deepClone": false,
+            "fetchSubmodules": false,
+            "leaveDotGit": false,
+            "name": null,
+            "owner": "mdhiggins",
+            "repo": "sickbeard_mp4_automator",
+            "rev": "e3db46613bba5724ab298b64a9214f6f6ae863b1",
+            "sha256": "sha256-pSCBAJ2pPfnNfQCvkC8Qy6IshK3J8oACRbFJolor3AU=",
+            "sparseCheckout": [],
+            "type": "github"
+        },
+        "version": "e3db46613bba5724ab298b64a9214f6f6ae863b1"
     },
-    "version": "latest"
-  }
+    "trackerslist": {
+        "cargoLock": null,
+        "date": null,
+        "extract": null,
+        "name": "trackerslist",
+        "passthru": null,
+        "pinned": false,
+        "src": {
+            "name": null,
+            "sha256": "sha256-Q1CYu1iLu0Vws2FpAHAQnKtMrziNYV0UdJ+dsrVPw2k=",
+            "type": "url",
+            "url": "https://cf.trackerslist.com/best_aria2.txt"
+        },
+        "version": "latest"
+    }
 }
