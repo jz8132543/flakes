@@ -69,6 +69,13 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    cu = {
+      records      = {}
+      ddns_records = {}
+      host_indices = [6]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
   }
 }
 

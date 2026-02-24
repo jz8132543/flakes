@@ -22,12 +22,12 @@ src.manual = "latest"
 [ebook-sender-bot]
 fetch.github = "qcgzxw/ebook-sender-bot"
 src.git = "https://github.com/qcgzxw/ebook-sender-bot"
-# [custom-win10-fonts]
-# fetch.github = "jz8132543/ttf-ms-win10"
-# src.git = "https://github.com/jz8132543/ttf-ms-win10"
-# [wallpaper]
-# fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
-# src.manual = "latest"
+[custom-win10-fonts]
+fetch.github = "jz8132543/ttf-ms-win10"
+src.git = "https://github.com/jz8132543/ttf-ms-win10"
+[wallpaper]
+fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
+src.manual = "latest"
 [jellyfin-plugin-reports]
 src.manual = "18.0.0.0"
 fetch.url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_$ver.zip"
@@ -62,7 +62,6 @@ fetch.url = "https://github.com/danieladov/jellyfin-plugin-mergeversions/release
 [jellyfin-plugin-skin-manager]
 src.manual = "2.0.2"
 fetch.url = "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/$ver/Jellyfin-Plugin-SkinManager.zip"
-
 
 
 [jellyfin-plugin-tmdb-box-sets]

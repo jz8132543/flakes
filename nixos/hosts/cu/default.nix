@@ -6,29 +6,11 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.telegraf
-      nixosModules.services.doraim
-      nixosModules.services.derp
-      # nixosModules.services.stun
-      (import nixosModules.services.xray {
-        needProxy = true;
-        proxyHost = "nue0.dora.im";
-      })
-      # nixosModules.services.tuic
-      nixosModules.services.searx
-      # nixosModules.services.perplexica
-      nixosModules.services.rustdesk
-      nixosModules.services.murmur
-      nixosModules.services.teamspeak
-      nixosModules.services.media.nixflix
-      nixosModules.services.realm
-      # nixosModules.media.jellyfin
-      # nixosModules.services.headscale
-      # (import nixosModules.services.alist { })
+      # nixosModules.services.derp
+      # nixosModules.services.realm
     ];
 
   environment.systemPackages = with pkgs; [
-    # kxy.sh 本体及其依赖（已通过 makeWrapper 注入，此处额外补全系统层面的包）
     kxy-script
     nexttrace # 选项10: 路由追踪
 

@@ -10,7 +10,7 @@
 
   documentation = {
     nixos.enable = false;
-    man.generateCaches = false;
+    man.cache.enable = false;
   };
   programs.nix-index = {
     enable = pkgs ? nix-index-with-db;
@@ -25,7 +25,6 @@
   services.earlyoom.enable = true;
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;
-    "net.ipv4.tcp_mtu_probing" = 1;
   };
   systemd.oomd = {
     enable = true;

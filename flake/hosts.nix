@@ -179,6 +179,10 @@ in
       name = "hkg5";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "cu";
+      system = "x86_64-linux";
+    })
   ];
 
   flake.homeConfigurations =
