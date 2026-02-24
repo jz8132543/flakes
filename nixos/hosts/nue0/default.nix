@@ -20,10 +20,12 @@
       # nixosModules.services.ollama
       nixosModules.services.syncthing
       nixosModules.services.reader
-      nixosModules.services.proxy
+      (import nixosModules.services.xray {
+      })
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
       nixosModules.services.searx
+      nixosModules.services.ai.openclaw
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })

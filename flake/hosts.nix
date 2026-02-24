@@ -171,6 +171,14 @@ in
       name = "isk";
       system = "x86_64-linux";
     })
+    (mkHost {
+      name = "tyo0";
+      system = "x86_64-linux";
+    })
+    (mkHost {
+      name = "hkg5";
+      system = "x86_64-linux";
+    })
   ];
 
   flake.homeConfigurations =

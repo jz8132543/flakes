@@ -114,6 +114,7 @@
       nix-tree
       nurl
       manix
+      nixos-install-tools
     ]
     ++ (lib.filter lib.isDerivation (lib.attrValues unixtools));
   environment.global-persistence = {

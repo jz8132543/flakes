@@ -90,9 +90,38 @@ TARBALL_NAME="nix-${NIX_VERSION}-${SYSTEM}.tar.xz"
 LOCAL_TARBALL="/tmp/$TARBALL_NAME"
 DOWNLOAD_URL="https://nixos.org/releases/nix/nix-${NIX_VERSION}/${TARBALL_NAME}"
 
-echo "=== Ensuring Nix binary tarball exists locally ==="
+# === Ensuring Nix binary tarball exists locally ===
 if [ ! -f "$LOCAL_TARBALL" ]; then
-  echo "Downloading $TARBALL_NAME to /tmp..."
+  echo "=== Selecting fastest mirror for Nix tarball... ==="
+  # Format: "URL:TIMEOUT_IN_SECONDS"
+  MIRRORS=(
+    "https://mirrors.tuna.tsinghua.edu.cn/nixos-releases:0.3"
+    "https://mirrors.ustc.edu.cn/nixos-releases:0.3"
+    "https://releases.nixos.org:0.8"
+  )
+
+  SELECTED_MIRROR=""
+  for ENTRY in "${MIRRORS[@]}"; do
+    MIRROR="${ENTRY%:*}"
+    TIMEOUT="${ENTRY#*:}"
+    echo -n "Checking $MIRROR (timeout ${TIMEOUT}s)... "
+    # Check connectivity with specific timeout
+    if curl -s -o /dev/null --connect-timeout "$TIMEOUT" --max-time 2 "$MIRROR"; then
+      echo "OK"
+      SELECTED_MIRROR="$MIRROR"
+      break
+    else
+      echo "Timeout or unreachable"
+    fi
+  done
+
+  if [ -z "$SELECTED_MIRROR" ]; then
+    echo "Warning: All mirrors timed out or failed. Falling back to official releases.nixos.org"
+    SELECTED_MIRROR="https://releases.nixos.org"
+  fi
+
+  DOWNLOAD_URL="${SELECTED_MIRROR}/nix/nix-${NIX_VERSION}/${TARBALL_NAME}"
+  echo "Downloading $TARBALL_NAME from $SELECTED_MIRROR..."
   curl -L -o "$LOCAL_TARBALL" "$DOWNLOAD_URL"
 else
   echo "Found local $LOCAL_TARBALL, skipping download."
@@ -110,5 +139,13 @@ scp -P "$PORT" "$REMOTE_SCRIPT" "$USER@$HOST:~/remote-install.sh"
 # Execute the remote script with arguments
 ssh -p "$PORT" "$USER@$HOST" "bash ~/remote-install.sh '$TARBALL_NAME' '$NIX_VERSION' '$SYSTEM' && rm ~/remote-install.sh"
 
-echo "=== Nix installation complete! ==="
-echo "You may need to log out and log back in on the remote host, or source the profile."
+echo "=== Installing nixos-install-tools on remote host... ==="
+# Source profile and install the requested package
+ssh -p "$PORT" "$USER@$HOST" "
+  . ~/.nix-profile/etc/profile.d/nix.sh
+  nix-env -iA nixpkgs.nixos-install-tools
+"
+
+echo "=== Nix installation and tools setup complete! ==="
+echo "Tool 'nixos-generate-config' is now available on $HOST."
+echo "Note: You may need to log out and back in for PATH changes to take full effect in your current session."

@@ -1,4 +1,5 @@
 result*
+.last_built_image
 .direnv
 .vscode
 .history

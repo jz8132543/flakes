@@ -6,6 +6,7 @@
 }:
 {
   time.timeZone = "Asia/Shanghai";
+  time.hardwareClockInLocalTime = true;
 
   documentation = {
     nixos.enable = false;
@@ -24,6 +25,7 @@
   services.earlyoom.enable = true;
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;
+    "net.ipv4.tcp_mtu_probing" = 1;
   };
   systemd.oomd = {
     enable = true;
@@ -44,6 +46,7 @@
   xdg.portal.config.common.default = "*";
   nix.extraOptions = ''
     !include ${config.sops.secrets."nix/github-token".path}
+    download-buffer-size = 268435456
   '';
 
   programs.fish.enable = true;

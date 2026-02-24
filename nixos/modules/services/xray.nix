@@ -75,7 +75,10 @@ in
               show = false;
               target = destSite;
               xver = 0;
-              serverNames = [ serverName ];
+              serverNames = [
+                serverName
+                "itunes.apple.com"
+              ];
               privateKey = config.sops.placeholder."xray/private_key";
               shortIds = [ config.sops.placeholder."xray/short_id" ];
             };
