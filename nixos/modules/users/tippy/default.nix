@@ -15,6 +15,8 @@ in
     extraGroups = [
       "wheel"
       "networkmanager"
+      "video"
+      "render"
       "cdrom"
       "libvirtd"
       "acme"

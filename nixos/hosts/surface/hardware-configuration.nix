@@ -21,11 +21,13 @@
     };
     kernelModules = [
       "kvm-intel"
+      "v4l2loopback"
       # "vfio"
       # "vfio_iommu_type1"
       # "vfio_pci"
       # "vfio_virqfd"
     ];
+    extraModulePackages = [ config.boot.kernelPackages.v4l2loopback ];
     kernelParams = [
       "intel_iommu=on"
       "iommu=pt"
@@ -38,6 +40,7 @@
       options kvm_intel nested=1
       options kvm_intel emulate_invalid_guest_state=0
       options kvm ignore_msrs=1
+      options uvcvideo quirks=0x80
     '';
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;

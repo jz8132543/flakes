@@ -8,10 +8,10 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.desktop.all
+    ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.media.nixflix
     ];
 
   # hardware.microsoft-surface.kernelVersion = "stable";
@@ -39,5 +39,6 @@
 
   environment.systemPackages = with pkgs; [
     efibootmgr
+    v4l-utils
   ];
 }
