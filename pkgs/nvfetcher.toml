@@ -89,3 +89,10 @@ src.git = "https://github.com/mdhiggins/sickbeard_mp4_automator"
 # fetch.git = "https://github.com/vertex-app/vertex"
 # src.branch = "master"
 
+[realm]
+fetch.github = "zhboner/realm"
+src.git = "https://github.com/zhboner/realm"
+
+[kxy-script]
+fetch.url = "https://cdn.kxy.ovh/kxy.sh"
+src.manual = "V1.2"

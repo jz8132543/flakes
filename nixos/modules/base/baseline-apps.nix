@@ -72,7 +72,7 @@
       nix-output-monitor
       nix-tree
       age
-      backblaze-b2
+      # backblaze-b2 # Broken in nixpkgs unstable (docutils dependency conflict)
       # neovim
       p7zip
       unzip
