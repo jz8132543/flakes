@@ -127,8 +127,8 @@ with lib;
     };
     services.traefik = {
       enable = true;
-      dynamic.dir = "/var/lib/traefik/dynamic";
-      static.settings = {
+      staticConfigOptions = {
+        providers.file.directory = "/var/lib/traefik/dynamic";
         log = {
           level = "DEBUG";
           filePath = "/var/lib/traefik/traefik.log";
@@ -213,7 +213,7 @@ with lib;
           insecureSkipVerify = true;
         };
       };
-      dynamic.files.nixos.settings = {
+      dynamicConfigOptions = {
         tls.certificates =
           if config.environment.isNAT then
             [
@@ -231,15 +231,18 @@ with lib;
             maxResponseBodyBytes = 4 * 1024 * 1024;
           };
           routers = mkMerge [
-            (mapAttrs (name: value: {
-              inherit (value)
-                rule
-                middlewares
-                priority
-                entryPoints
-                ;
-              service = name;
-            }) config.services.traefik.proxies)
+            (mapAttrs (
+              name: value:
+              (filterAttrs (_n: v: v != null) {
+                inherit (value)
+                  rule
+                  middlewares
+                  priority
+                  entryPoints
+                  ;
+                service = name;
+              })
+            ) config.services.traefik.proxies)
             {
               ping = {
                 rule = "Host(`${config.networking.fqdn}`) && Path(`/ping`)";
@@ -282,14 +285,17 @@ with lib;
           };
         };
         tcp = {
-          routers = mapAttrs (name: value: {
-            inherit (value)
-              rule
-              entryPoints
-              ;
-            service = name;
-            tls = if value.tls then { } else null;
-          }) config.services.traefik.tcpProxies;
+          routers = mapAttrs (
+            name: value:
+            (filterAttrs (_n: v: v != null) {
+              inherit (value)
+                rule
+                entryPoints
+                ;
+              service = name;
+              tls = if value.tls then { } else null;
+            })
+          ) config.services.traefik.tcpProxies;
           services = mapAttrs (_name: value: {
             loadBalancer.servers = [ { address = value.target; } ];
           }) config.services.traefik.tcpProxies;
