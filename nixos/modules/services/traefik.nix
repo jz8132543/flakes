@@ -369,7 +369,6 @@ with lib;
       startLimitIntervalSec = lib.mkForce 0;
       serviceConfig = {
         WatchdogSec = lib.mkForce "30s";
-        Documentation = lib.mkForce null;
         EnvironmentFile = [
           config.sops.templates."traefik-env".path
         ];
