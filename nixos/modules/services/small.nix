@@ -29,28 +29,28 @@
   };
 
   # 5. 精简 Initrd 内核模块
-  boot.initrd = {
-    includeDefaultModules = lib.mkForce false;
-    availableKernelModules = lib.mkForce [
-      "virtio_net"
-      "virtio_pci"
-      "virtio_mmio"
-      "virtio_blk"
-      "virtio_scsi"
-      "virtio_balloon"
-      "virtio_console"
-      "9p"
-      "9pnet_virtio"
-      "virtio_gpu"
-      "virtio_rng"
-      "ata_piix"
-      "ahci"
-      "sd_mod"
-      "sr_mod"
-      "btrfs"
-      "vfat"
-    ];
-  };
+  # boot.initrd = {
+  #   includeDefaultModules = lib.mkForce false;
+  #   availableKernelModules = lib.mkForce [
+  #     "virtio_net"
+  #     "virtio_pci"
+  #     "virtio_mmio"
+  #     "virtio_blk"
+  #     "virtio_scsi"
+  #     "virtio_balloon"
+  #     "virtio_console"
+  #     "9p"
+  #     "9pnet_virtio"
+  #     "virtio_gpu"
+  #     "virtio_rng"
+  #     "ata_piix"
+  #     "ahci"
+  #     "sd_mod"
+  #     "sr_mod"
+  #     "btrfs"
+  #     "vfat"
+  #   ];
+  # };
 
   # 6. 禁用 GUI 相关泄露
   fonts.fontconfig.enable = lib.mkForce false;
@@ -60,18 +60,18 @@
 
   # 7. 强制替换重型工具为最小化版本 (Overlay 策略)
   programs.git.package = lib.mkForce pkgs.gitMinimal;
-  nixpkgs.overlays = [
-    (_final: prev: {
-      # 使用 Overlay 替换 curlFull 为基础级 curl
-      curlFull = prev.curl;
-      # 替换 gitFull 避免拉取 SVN/Python/Perl
-      gitFull = prev.gitMinimal;
-    })
-  ];
+  # nixpkgs.overlays = [
+  #   (_final: prev: {
+  #     # 使用 Overlay 替换 curlFull 为基础级 curl
+  #     curlFull = prev.curl;
+  #     # 替换 gitFull 避免拉取 SVN/Python/Perl
+  #     gitFull = prev.gitMinimal;
+  #   })
+  # ];
 
   # 8. 彻底移除系统级的 GTK/VTE 依赖
-  programs.bash.vteIntegration = lib.mkForce false;
-  programs.zsh.vteIntegration = lib.mkForce false;
+  # programs.bash.vteIntegration = lib.mkForce false;
+  # programs.zsh.vteIntegration = lib.mkForce false;
 
   # 9. 移除非必要服务
   # 注意：禁用 fail2ban 会减少约 110MB (Python) 的体积，但会降低 SSH 安全性
@@ -80,6 +80,7 @@
   # 10. 极致精简 Shell 与核心工具 (目标 2GiB)
   # 禁用 Fish 以移除 Python 依赖 (110MB+)，切换主用户 Shell 到 Bash
   programs.fish.enable = lib.mkForce false;
+  programs.zsh.enable = lib.mkForce false;
   users.users.tippy.shell = lib.mkForce pkgs.bash;
 
   # 禁用 Mosh 以移除 Perl 依赖 (57MB+)
@@ -92,15 +93,15 @@
   services.bpftune.enable = lib.mkForce false;
 
   # 11. 移除 baseline-apps 中的非必要大包 (通过过滤)
-  environment.systemPackages = lib.mkForce [
-    pkgs.curl
-    pkgs.wget
-    pkgs.tmux
-    pkgs.htop # 替代 bottom
-    pkgs.neovim
-    pkgs.jq
-    pkgs.ripgrep
-    pkgs.fd
-    pkgs.age
-  ];
+  # environment.systemPackages = lib.mkForce [
+  #   pkgs.curl
+  #   pkgs.wget
+  #   pkgs.tmux
+  #   pkgs.htop # 替代 bottom
+  #   pkgs.neovim
+  #   pkgs.jq
+  #   pkgs.ripgrep
+  #   pkgs.fd
+  #   pkgs.age
+  # ];
 }
