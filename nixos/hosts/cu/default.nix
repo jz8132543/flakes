@@ -1,4 +1,10 @@
-{ nixosModules, pkgs, ... }:
+{
+  nixosModules,
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 {
   imports =
     nixosModules.cloud.all
@@ -7,9 +13,21 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.small
-      # nixosModules.services.derp
-      # nixosModules.services.realm
+      nixosModules.services.derp
+      nixosModules.services.realm
     ];
+
+  services.openssh.ports = [
+    config.ports.ssh
+    22
+  ];
+  environment.isNAT = true;
+  environment.isCN = true;
+
+  ports.derp-stun = lib.mkForce 50568;
+  environment.altHTTPS = 50569;
+
+  nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
 
   environment.systemPackages = with pkgs; [
     kxy-script

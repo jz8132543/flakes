@@ -25,7 +25,8 @@
       NoNewPrivileges = true;
       ProtectSystem = "strict";
       ProtectHome = true;
-      ReadWritePaths = [ "/var/log/realm" ];
+      LogsDirectory = "realm";
+      WorkingDirectory = "/var/log/realm";
       ReadOnlyPaths = [ "/etc/realm" ];
     };
   };
@@ -38,9 +39,7 @@
 
   users.groups.realm = { };
 
-  # Create log directory
   systemd.tmpfiles.rules = [
-    "d /var/log/realm 0755 realm realm -"
     "d /etc/realm 0755 root root -"
   ];
 
