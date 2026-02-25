@@ -13,7 +13,7 @@ let
   xrayPort = 8555;
   destSite = "${config.networking.fqdn}:443";
   serverName = config.networking.fqdn;
-  fakeSni = "itunes.apple.com";
+  fakeSni = "gateway.icloud.com";
 in
 {
   sops.secrets = {

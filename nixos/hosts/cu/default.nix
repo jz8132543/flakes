@@ -6,7 +6,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
-      nixosModules.services.dev
+      nixosModules.services.small
       # nixosModules.services.derp
       # nixosModules.services.realm
     ];

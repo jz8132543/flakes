@@ -4,6 +4,7 @@
   ...
 }:
 {
+  utils.btrfsMixed = true;
   # 1. 移除 Nix 注册表中的源码副本 (nixpkgs, home-manager 等)
   # 以及清理 NIX_PATH 引用，防止 200MB+ 的源码目录入镜像
   nix.registry = lib.mkForce { };
