@@ -5,9 +5,9 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.services.small
       nixosModules.services.traefik
       nixosModules.services.derp
-      nixosModules.services.small
       # nixosModules.services.stun
       (import nixosModules.services.xray {
         needProxy = true;
