@@ -5,7 +5,7 @@ diskon:
 build:
   nix --experimental-features 'nix-command flakes' build --builders "ssh://${builder}" .#nixosConfigurations.${host}.config.system.build.toplevel
 nixos-anywhere:
-  nix run github:nix-community/nixos-anywhere -- --flake .#${host} root@${host} --no-substitute-on-destination
+  nix run github:nix-community/nixos-anywhere -- --no-substitute-on-destination --no-disko-deps --flake .#${host} root@${host}
 mount:
   nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:

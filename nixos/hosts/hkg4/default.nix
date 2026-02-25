@@ -8,6 +8,7 @@
       nixosModules.services.traefik
       nixosModules.services.telegraf
       nixosModules.services.derp
+      nixosModules.services.small
       # nixosModules.services.stun
       (import nixosModules.services.xray {
         needProxy = true;
