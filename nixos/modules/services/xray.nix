@@ -13,7 +13,7 @@ let
   xrayPort = 8555;
   destSite = "${config.networking.fqdn}:443";
   serverName = config.networking.fqdn;
-
+  fakeSni = "itunes.apple.com";
 in
 {
   sops.secrets = {
@@ -77,7 +77,7 @@ in
               xver = 0;
               serverNames = [
                 serverName
-                "itunes.apple.com"
+                fakeSni
               ];
               privateKey = config.sops.placeholder."xray/private_key";
               shortIds = [ config.sops.placeholder."xray/short_id" ];
@@ -120,7 +120,7 @@ in
               fingerprint = "chrome";
 
               # 必须与 Server B inbound 中的 serverNames 保持一致
-              serverName = proxyHost;
+              serverName = fakeSni;
 
               # ⚠️ 重要：这里必须填 Server B 的【公钥 Public Key】
               # 也就是 Server B 生成 privateKey 时对应的那个 public key

@@ -43,45 +43,43 @@
     };
   };
 
-  environment.systemPackages =
-    with pkgs;
-    [
-      curlFull
-      wget
-      neofetch
-      screen
-      tcpdump
-      wireguard-tools
-      openssl
-      gptfdisk
-      lsof
-      vim
-      dig
-      whois
-      netcat-openbsd
-      expect
-      iperf
-      jq
-      nmap
-      colmena
-      deploy-rs
-      nixos-anywhere
-      # tools
-      yq-go
-      fd
-      age
-      # backblaze-b2 # Broken in nixpkgs unstable (docutils dependency conflict)
-      # neovim
-      p7zip
-      unzip
-      # Tools
-      coreutils
-      inetutils
-      findutils
-      dnsutils
+  environment.systemPackages = with pkgs; [
+    curlFull
+    wget
+    neofetch
+    screen
+    tcpdump
+    wireguard-tools
+    openssl
+    gptfdisk
+    lsof
+    vim
+    dig
+    whois
+    netcat-openbsd
+    expect
+    iperf
+    jq
+    nmap
+    colmena
+    deploy-rs
+    nixos-anywhere
+    # tools
+    yq-go
+    fd
+    age
+    # backblaze-b2 # Broken in nixpkgs unstable (docutils dependency conflict)
+    # neovim
+    p7zip
+    unzip
+    # Tools
+    coreutils
+    inetutils
+    findutils
+    dnsutils
 
-      nixos-install-tools
-    ];
+    nixos-install-tools
+  ];
   environment.global-persistence = {
     files = [
       # Systemd requires /usr dir to be populated
