@@ -217,7 +217,8 @@ with lib;
       dynamicConfigOptions = {
         tls = {
           options.default = { };
-        } // lib.optionalAttrs config.environment.isNAT {
+        }
+        // lib.optionalAttrs config.environment.isNAT {
           certificates = [
             {
               certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";

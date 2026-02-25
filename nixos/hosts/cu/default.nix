@@ -25,6 +25,8 @@
   environment.isCN = true;
 
   ports.derp-stun = lib.mkForce 50568;
+  ports.derp = lib.mkForce 50567;
+  # ports.turn-stun = lib.mkForce 50568;
   environment.altHTTPS = 50569;
 
   nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
