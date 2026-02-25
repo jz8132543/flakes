@@ -43,6 +43,8 @@ with lib.strings;
           serverAliveCountMax = 6;
           compression = false;
           controlMaster = "auto";
+          controlPath = "~/.ssh/master-%r@%n:%p";
+          controlPersist = "10m";
         };
         "canonical" = {
           match = concatStrings [

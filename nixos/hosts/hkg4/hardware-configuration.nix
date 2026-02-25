@@ -38,4 +38,5 @@
       size = 4096;
     }
   ];
+  hardware.enableRedistributableFirmware = lib.mkForce false;
 }

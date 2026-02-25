@@ -13,6 +13,7 @@
       ./_steam
       nixosModules.services.ddns
       nixosModules.services.traefik
+      nixosModules.services.dev
       # nixosModules.services.postgres
       nixosModules.services.derp
       nixosModules.services.homepage-machine

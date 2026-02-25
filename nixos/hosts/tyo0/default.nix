@@ -6,5 +6,6 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.dev
     ];
 }

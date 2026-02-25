@@ -7,6 +7,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.dev
       nixosModules.services.doraim
       nixosModules.services.headscale
       # nixosModules.services.derp

@@ -69,46 +69,16 @@
       # tools
       yq-go
       fd
-      nix-output-monitor
-      nix-tree
       age
       # backblaze-b2 # Broken in nixpkgs unstable (docutils dependency conflict)
       # neovim
       p7zip
       unzip
-      gnumake
-      gcc
-      clang
-      direnv
       # Tools
       coreutils
       inetutils
       findutils
       dnsutils
-      dnsutils
-      # lsps
-      nil
-      nixd
-      lua-language-server
-      terraform-ls
-      vscode-langservers-extracted # css,eslint,html,json,markdown
-      nodePackages.typescript
-      nodePackages.typescript-language-server
-      nodePackages.bash-language-server
-      dockerfile-language-server
-      lua-language-server
-      efm-langserver
-      shellcheck
-      shfmt
-      taplo
-      yaml-language-server
-      # formatters
-      eslint_d
-      prettierd
-      nodePackages.prettier
-      nixfmt
-      stylua
-      alejandra
 
       nix-output-monitor
       nix-tree

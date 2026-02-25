@@ -34,7 +34,7 @@ in
   nix.settings.trusted-users = [ name ];
   environment.global-persistence.user.users = [ name ];
   programs.nh.flake = "${homeDirectory}/source/flakes";
-  environment.etc."nixos".source = "${homeDirectory}/source/flakes";
+  # environment.etc."nixos".source = "${homeDirectory}/source/flakes";
   home-manager.users.${name} =
     {
       hmModules,

@@ -12,6 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.dev
     ];
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [

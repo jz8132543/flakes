@@ -1,6 +1,8 @@
 {
   pkgs,
   config,
+  lib,
+  osConfig ? { },
   ...
 }:
 let
@@ -13,17 +15,18 @@ in
     viAlias = false;
     vimAlias = true;
     vimdiffAlias = true;
-    withNodeJs = true;
-    withRuby = true;
-    withPython3 = true;
+    withNodeJs = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
+    withRuby = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
+    withPython3 = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
     coc.enable = false;
     extraPackages = with pkgs; [
-      clang
+      # clang
       luarocks
       lua
-      nodejs
+      # nodejs
       tree-sitter
-    ];
+    ] ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) clang
+      ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) nodejs;
   };
 
   home.sessionVariables = {
