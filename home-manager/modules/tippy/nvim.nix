@@ -7,6 +7,7 @@
 }:
 let
   mkSymlink = config.lib.file.mkOutOfStoreSymlink;
+  isDesktop = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
 in
 {
   programs.neovim = {
@@ -15,21 +16,20 @@ in
     viAlias = false;
     vimAlias = true;
     vimdiffAlias = true;
-    withNodeJs = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
-    withRuby = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
-    withPython3 = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
+    withNodeJs = isDesktop;
+    withRuby = isDesktop;
+    withPython3 = isDesktop;
     coc.enable = false;
     extraPackages =
       with pkgs;
       [
-        # clang
-        luarocks
-        lua
-        # nodejs
+        # nodejs - Moved to conditional
         tree-sitter
       ]
-      ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) clang
-      ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) nodejs;
+      ++ lib.optional isDesktop clang
+      ++ lib.optional isDesktop nodejs
+      ++ lib.optional isDesktop luarocks
+      ++ lib.optional isDesktop lua;
   };
 
   home.sessionVariables = {
@@ -124,6 +124,5 @@ in
       # ".config/coc"
     ];
   };
-  home.packages = with pkgs; [
-  ];
+  home.packages = with pkgs; [ ];
 }

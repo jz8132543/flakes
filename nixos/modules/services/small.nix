@@ -77,9 +77,30 @@
   # 注意：禁用 fail2ban 会减少约 110MB (Python) 的体积，但会降低 SSH 安全性
   services.fail2ban.enable = lib.mkForce false;
 
+  # 10. 极致精简 Shell 与核心工具 (目标 2GiB)
+  # 禁用 Fish 以移除 Python 依赖 (110MB+)，切换主用户 Shell 到 Bash
+  programs.fish.enable = lib.mkForce false;
+  users.users.tippy.shell = lib.mkForce pkgs.bash;
+
+  # 禁用 Mosh 以移除 Perl 依赖 (57MB+)
+  programs.mosh.enable = lib.mkForce false;
+
   # 移除 command-not-found 和内核交互工具
   programs.command-not-found.enable = lib.mkForce false;
   boot.enableContainers = lib.mkForce false;
   security.rtkit.enable = lib.mkForce false;
   services.bpftune.enable = lib.mkForce false;
+
+  # 11. 移除 baseline-apps 中的非必要大包 (通过过滤)
+  environment.systemPackages = lib.mkForce [
+    pkgs.curl
+    pkgs.wget
+    pkgs.tmux
+    pkgs.htop # 替代 bottom
+    pkgs.neovim
+    pkgs.jq
+    pkgs.ripgrep
+    pkgs.fd
+    pkgs.age
+  ];
 }

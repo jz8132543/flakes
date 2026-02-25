@@ -47,7 +47,6 @@
       keep-derivations = true;
       fallback = true;
       allowed-users = [ "@users" ];
-      compression = "zstd";
       trusted-users = [
         "root"
         "@wheel"

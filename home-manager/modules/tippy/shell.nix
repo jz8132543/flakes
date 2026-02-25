@@ -13,8 +13,9 @@ let
   # inherit (pkgs) catppuccin;
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
+  flavor = config.home.catppuccin.flavor;
+  isDesktop = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
 in
-with config.home.catppuccin;
 {
   programs = {
     fish = {
@@ -91,7 +92,7 @@ with config.home.catppuccin;
       dotDir = "${config.xdg.configHome}/zsh";
       defaultKeymap = "emacs";
 
-      enableVteIntegration = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
+      enableVteIntegration = isDesktop;
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       autocd = true;
@@ -146,7 +147,7 @@ with config.home.catppuccin;
         bindkey "$key[Down]" down-line-or-beginning-search
 
         alias -g ...='../..'
-        alias -g ....='../../..'
+        alias -s ....='../../..'
         alias -g .....='../../../..'
         alias -g ......='../../../../..'
         while read -r option
@@ -168,7 +169,7 @@ with config.home.catppuccin;
       '';
     };
     starship = {
-      enable = true;
+      enable = isDesktop;
       enableBashIntegration = true;
       enableZshIntegration = true;
       enableFishIntegration = true;
@@ -201,7 +202,7 @@ with config.home.catppuccin;
       # // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
     atuin = {
-      enable = true;
+      enable = isDesktop;
       enableBashIntegration = true;
       enableZshIntegration = true;
       enableFishIntegration = true;

@@ -80,13 +80,8 @@
       findutils
       dnsutils
 
-      nix-output-monitor
-      nix-tree
-      nurl
-      manix
       nixos-install-tools
-    ]
-    ++ (lib.filter lib.isDerivation (lib.attrValues unixtools));
+    ];
   environment.global-persistence = {
     files = [
       # Systemd requires /usr dir to be populated
