@@ -398,7 +398,7 @@ resource "cloudflare_dns_record" "dora_cuv6" {
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cmv6" {
-  name    = "cuv6.${cloudflare_zone.im_dora.name}"
+  name    = "cmv6.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "AAAA"

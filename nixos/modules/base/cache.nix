@@ -13,7 +13,6 @@
       "https://cuda-maintainers.cachix.org"
       "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store?priority=100"
     ];
-    connect-timeout = 1;
     max-substitution-jobs = 128;
     http-connections = 128;
     download-buffer-size = 134217728;

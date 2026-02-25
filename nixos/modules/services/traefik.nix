@@ -215,17 +215,20 @@ with lib;
         };
       };
       dynamicConfigOptions = {
-        tls.certificates =
-          if config.environment.isNAT then
-            [
-              {
-                certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
-                keyFile = "${config.security.acme.certs."main".directory}/key.pem";
-              }
-            ]
-          else
-            [ ];
-        tls.options.default = { };
+        tls = {
+          options.default = { };
+        } // lib.optionalAttrs config.environment.isNAT {
+          certificates = [
+            {
+              certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
+              keyFile = "${config.security.acme.certs."main".directory}/key.pem";
+            }
+          ];
+          stores.default.defaultCertificate = {
+            certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
+            keyFile = "${config.security.acme.certs."main".directory}/key.pem";
+          };
+        };
         http = {
           middlewares.limit.buffering = {
             maxRequestBodyBytes = 4 * 1024 * 1024;

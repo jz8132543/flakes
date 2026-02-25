@@ -11,12 +11,14 @@
     serviceConfig = {
       Restart = "always";
       DynamicUser = true;
-      ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.turn-port} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
-      # ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='\${HOSTNAME}' -c /tmp/derper.conf -verify-clients";
-      # ExecStart = "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev";
-      # if !config.environment.isNAT
-      # then "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev"
-      # else "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} -http-port='-1' --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -certdir '$CREDENTIALS_DIRECTORY' -certmode manual -verify-clients -dev";
+      ExecStart =
+        # ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.turn-port} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients";
+        # ExecStart = "${pkgs.tailscale}/bin/derp -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='\${HOSTNAME}' -c /tmp/derper.conf -verify-clients";
+        # ExecStart = "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev";
+        if !config.environment.isNAT then
+          "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -verify-clients -dev"
+        else
+          "${pkgs.tailscale}/bin/derper -a ':${toString config.ports.derp}' -stun-port ${toString config.ports.derp-stun} -http-port='-1' --hostname='${config.networking.fqdn}' -c /tmp/derper.conf -certdir '$CREDENTIALS_DIRECTORY' -certmode manual -verify-clients -dev";
       LoadCredential = [
         "${config.networking.fqdn}.crt:${config.security.acme.certs."main".directory}/full.pem"
         "${config.networking.fqdn}.key:${config.security.acme.certs."main".directory}/key.pem"

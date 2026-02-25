@@ -20,7 +20,21 @@
   boot.extraModulePackages = [ ];
 
   # Basic networking - DHCP by default
-  networking.useDHCP = true;
+  systemd.network = {
+    enable = true;
+    networks."10-lan" = {
+      matchConfig.Name = "e*";
+      networkConfig.DHCP = "yes";
+      address = [
+        "43.255.120.157/24"
+        "2401:2660:1:9b::/64"
+      ];
+      routes = [
+        { Gateway = "43.255.120.1"; }
+        { Gateway = "2401:2660:1:9b::a"; }
+      ];
+    };
+  };
 
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)
   # Though the actual format etc is done by dd over the raw image.
