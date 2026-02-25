@@ -91,7 +91,7 @@ with config.home.catppuccin;
       dotDir = "${config.xdg.configHome}/zsh";
       defaultKeymap = "emacs";
 
-      enableVteIntegration = true;
+      enableVteIntegration = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       autocd = true;
