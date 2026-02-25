@@ -67,7 +67,7 @@ with lib;
       if config.environment.isNAT then
         {
           https-alt = {
-            address = ":${toString config.environment.altHTTPS}";
+            address = lib.mkForce ":${toString config.environment.altHTTPS}";
             # asDefault = true;
             inherit (config.services.traefik.staticConfigOptions.entryPoints.https)
               forwardedHeaders
