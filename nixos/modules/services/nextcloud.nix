@@ -206,7 +206,7 @@ in
     middlewares = [ "nextcloud" ];
   };
 
-  services.traefik.dynamic.files.nixos.settings.http.middlewares.nextcloud = {
+  services.traefik.dynamicConfigOptions.http.middlewares.nextcloud = {
     headers.customRequestHeaders.Host = "${cfg.hostName}";
   };
 }

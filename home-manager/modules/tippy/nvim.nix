@@ -19,13 +19,16 @@ in
     withRuby = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
     withPython3 = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
     coc.enable = false;
-    extraPackages = with pkgs; [
-      # clang
-      luarocks
-      lua
-      # nodejs
-      tree-sitter
-    ] ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) clang
+    extraPackages =
+      with pkgs;
+      [
+        # clang
+        luarocks
+        lua
+        # nodejs
+        tree-sitter
+      ]
+      ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) clang
       ++ lib.optional (lib.attrByPath [ "services" "xserver" "enable" ] false osConfig) nodejs;
   };
 

@@ -137,19 +137,7 @@ in
               };
             }
           ];
-          downloadClients = [
-            {
-              name = "qBittorrent";
-              implementationName = "qBittorrent";
-              apiKey = "";
-              host = "127.0.0.1";
-              port = config.ports.qbittorrent;
-              username = "i";
-              password = {
-                _secret = config.sops.secrets."password".path;
-              };
-            }
-          ];
+
         };
       };
 
@@ -171,27 +159,27 @@ in
         };
       };
 
-      sabnzbd = {
-        enable = true;
-        group = "media";
-        settings = {
-          misc = {
-            port = config.ports.sabnzbd;
-            api_key = {
-              _secret = config.sops.secrets."media/sabnzbd_api_key".path;
-            };
-            nzb_key = {
-              _secret = config.sops.secrets."media/sabnzbd_nzb_key".path;
-            };
-            host_whitelist = [
-              domain
-              "localhost"
-              "127.0.0.1"
-              config.networking.fqdn
-            ];
-          };
-        };
-      };
+      # sabnzbd = {
+      #   enable = true;
+      #   group = "media";
+      #   settings = {
+      #     misc = {
+      #       port = config.ports.sabnzbd;
+      #       api_key = {
+      #         _secret = config.sops.secrets."media/sabnzbd_api_key".path;
+      #       };
+      #       nzb_key = {
+      #         _secret = config.sops.secrets."media/sabnzbd_nzb_key".path;
+      #       };
+      #       host_whitelist = [
+      #         domain
+      #         "localhost"
+      #         "127.0.0.1"
+      #         config.networking.fqdn
+      #       ];
+      #     };
+      #   };
+      # };
 
       recyclarr = {
         enable = true;
@@ -336,7 +324,7 @@ in
           };
         };
 
-        dynamic.files.nixos.settings.http.middlewares = {
+        dynamicConfigOptions.http.middlewares = {
           strip-tv.stripPrefix.prefixes = [ "/tv" ];
         };
       };

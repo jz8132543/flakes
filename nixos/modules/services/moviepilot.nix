@@ -164,7 +164,7 @@ in
     };
   };
 
-  services.traefik.dynamic.files.nixos.settings.http.middlewares = {
+  services.traefik.dynamicConfigOptions.http.middlewares = {
     moviepilot-stripprefix.stripPrefix.prefixes = [ "/moviepilot" ];
     qbittorrent-stripprefix.stripPrefix.prefixes = [ "/qbit" ];
   };

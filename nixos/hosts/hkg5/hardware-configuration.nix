@@ -25,6 +25,7 @@
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)
   # Though the actual format etc is done by dd over the raw image.
   utils.disk = "/dev/vda";
+  utils.btrfsMixed = true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   swapDevices = [
     {

@@ -16,6 +16,7 @@
   ];
 
   # utils.disk = "/dev/sda";
+  utils.btrfsMixed = true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   networking = {
     interfaces.eth0 = {

@@ -39,7 +39,7 @@
             end = "-0";
             content = {
               type = "btrfs";
-              extraArgs = [ "-f" ];
+              extraArgs = [ "-f" ] ++ lib.optional config.utils.btrfsMixed "-M";
               subvolumes = {
                 "/nix" = {
                   mountpoint = "/nix";
@@ -48,7 +48,7 @@
                     "noatime"
                     "nodiratime"
                     "ssd_spread"
-                    "compress-force=zstd"
+                    "compress=zstd"
                     "space_cache=v2"
                   ];
                 };
@@ -59,7 +59,7 @@
                     "noatime"
                     "nodiratime"
                     "ssd_spread"
-                    "compress-force=zstd"
+                    "compress=zstd"
                     "space_cache=v2"
                   ];
                 };
@@ -70,7 +70,7 @@
                     "noatime"
                     "nodiratime"
                     "ssd_spread"
-                    "compress-force=zstd"
+                    "compress=zstd"
                     "space_cache=v2"
                   ];
                 };
@@ -81,7 +81,7 @@
                     "noatime"
                     "nodiratime"
                     "ssd_spread"
-                    "compress-force=zstd"
+                    "compress=zstd"
                     "space_cache=v2"
                   ];
                 };
@@ -92,7 +92,7 @@
                     "noatime"
                     "nodiratime"
                     "ssd_spread"
-                    "compress-force=zstd"
+                    "compress=zstd"
                     "space_cache=v2"
                   ];
                 };

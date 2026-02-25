@@ -1,6 +1,5 @@
 {
   lib,
-  config,
   pkgs,
   ...
 }:
@@ -62,7 +61,7 @@
   # 7. 强制替换重型工具为最小化版本 (Overlay 策略)
   programs.git.package = lib.mkForce pkgs.gitMinimal;
   nixpkgs.overlays = [
-    (final: prev: {
+    (_final: prev: {
       # 使用 Overlay 替换 curlFull 为基础级 curl
       curlFull = prev.curl;
       # 替换 gitFull 避免拉取 SVN/Python/Perl
@@ -77,7 +76,7 @@
   # 9. 移除非必要服务
   # 注意：禁用 fail2ban 会减少约 110MB (Python) 的体积，但会降低 SSH 安全性
   services.fail2ban.enable = lib.mkForce false;
-  
+
   # 移除 command-not-found 和内核交互工具
   programs.command-not-found.enable = lib.mkForce false;
   boot.enableContainers = lib.mkForce false;
