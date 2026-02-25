@@ -11,6 +11,7 @@
     isSystemUser = true;
   };
   users.groups.qbittorrent.gid = config.ids.gids.qbittorrent;
+  users.groups.media = { };
 
   services.qbittorrent = {
     enable = true;

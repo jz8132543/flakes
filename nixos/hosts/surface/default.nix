@@ -8,10 +8,10 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.desktop.all
-    ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.media.qbittorrent
     ];
 
   # hardware.microsoft-surface.kernelVersion = "stable";

@@ -25,7 +25,7 @@
     };
     nvidia = {
       package = config.boot.kernelPackages.nvidiaPackages.stable;
-      open = false;
+      # open = false;
     };
   };
 
