@@ -90,7 +90,10 @@ let
     {
       inherit name;
       value = {
-        inherit (config.home-manager.users.${name}.home.global-persistence) home directories files;
+        inherit (config.home-manager.users.${name}.home.global-persistence) home;
+        directories =
+          config.home-manager.users.${name}.home.global-persistence.directories ++ cfg.user.directories;
+        files = config.home-manager.users.${name}.home.global-persistence.files ++ cfg.user.files;
       };
     };
   usersCfg = lib.listToAttrs (map mkUserCfg cfg.user.users);

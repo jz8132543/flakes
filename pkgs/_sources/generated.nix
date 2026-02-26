@@ -242,4 +242,20 @@
       sha256 = "sha256-wkiXDN6vPFtx88krcQ4szK6dJNjtrDxrsNa3ZvHlfMQ=";
     };
   };
+  rime-wanxiang-base = {
+    pname = "rime-wanxiang-base";
+    version = "13.4.6";
+    src = fetchurl {
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v13.4.6/rime-wanxiang-base.zip";
+      sha256 = "sha256-R2ftvMHEy9sEnaKGoxYT+nCI+5vDCNdIpc1f6khT+V4=";
+    };
+  };
+  rime-wanxiang-gram = {
+    pname = "rime-wanxiang-gram";
+    version = "LTS";
+    src = fetchurl {
+      url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
+      sha256 = "sha256-kbkK5qxjOvWTlgmpTuz4Et+edTQBYli6FW1VCNMYwWo=";
+    };
+  };
 }
