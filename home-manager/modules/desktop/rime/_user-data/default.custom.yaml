@@ -1,5 +1,9 @@
 patch:
   __include: rime_ice_suggestion.yaml:/
+  schema_list:
+    - schema: rime_mint
+    - schema: wanxiang
+    - schema: rime_ice
   switcher/hotkeys:
     - F4
   key_binder/bindings/+:

@@ -26,8 +26,13 @@ in
       fcitx5.addons = with pkgs; [
         (fcitx5-rime.override { inherit (cfg.rime) rimeDataPkgs; })
         fcitx5-mozc
+        qt6Packages.fcitx5-chinese-addons
       ];
-      rime.rimeDataPkgs = with pkgs.nur.repos.linyinfeng.rimePackages; [ rime-ice ];
+      rime.rimeDataPkgs = [
+        pkgs.nur.repos.linyinfeng.rimePackages.rime-ice
+        pkgs.rime-mint
+        pkgs.rime-wanxiang
+      ];
     };
     environment.global-persistence.user.directories = [
       ".config/ibus"

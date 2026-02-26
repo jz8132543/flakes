@@ -189,6 +189,30 @@
       sha256 = "sha256-Yiky0h63TRaD3HG/WWInA4zo9ysBqneQbomb5Ui7N5I=";
     };
   };
+  rime-mint = {
+    pname = "rime-mint";
+    version = "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde";
+    src = fetchFromGitHub {
+      owner = "Mintimate";
+      repo = "oh-my-rime";
+      rev = "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde";
+      fetchSubmodules = false;
+      sha256 = "sha256-qiZ5O+I4fmYeUM6EppCdhXakIdyAF+cGQjMESx9VmP0=";
+    };
+    date = "2026-02-17";
+  };
+  rime-wanxiang = {
+    pname = "rime-wanxiang";
+    version = "6e847d3a5b408e672f8108b9b18614ca74f430fa";
+    src = fetchFromGitHub {
+      owner = "amzxyz";
+      repo = "rime_wanxiang";
+      rev = "6e847d3a5b408e672f8108b9b18614ca74f430fa";
+      fetchSubmodules = false;
+      sha256 = "sha256-dOt4BzP5nb4BD3xjaDlZAC481nmsIWMor9dP0zoh0dU=";
+    };
+    date = "2026-02-26";
+  };
   sickbeard-mp4-automator = {
     pname = "sickbeard-mp4-automator";
     version = "e3db46613bba5724ab298b64a9214f6f6ae863b1";
@@ -206,7 +230,7 @@
     version = "latest";
     src = fetchurl {
       url = "https://cf.trackerslist.com/best_aria2.txt";
-      sha256 = "sha256-i8OYb7n/2hlKnurJ8uBdZzBW+oMKRLqzy0Fov9BO1O0=";
+      sha256 = "sha256-TS6b9a6TOEDSJh2U/H96tk3t43MSpTeoo7+UZ4/3h7E=";
     };
   };
   wallpaper = {

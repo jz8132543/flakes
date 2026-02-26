@@ -96,3 +96,11 @@ fetch.url = "https://github.com/zhboner/realm/releases/download/$ver/realm-x86_6
 [kxy-script]
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"
+
+[rime-mint]
+fetch.github = "Mintimate/oh-my-rime"
+src.git = "https://github.com/Mintimate/oh-my-rime"
+
+[rime-wanxiang]
+fetch.github = "amzxyz/rime_wanxiang"
+src.git = "https://github.com/amzxyz/rime_wanxiang"
