@@ -128,7 +128,6 @@ with lib;
     services.traefik = {
       enable = true;
       staticConfigOptions = {
-        providers.file.directory = "/var/lib/traefik/dynamic";
         log = {
           level = "DEBUG";
           filePath = "/var/lib/traefik/traefik.log";
@@ -246,6 +245,10 @@ with lib;
                   entryPoints
                   ;
                 service = name;
+                # For non-NAT machines, explicitly set certresolver on each router to trigger ACME DNS Challenge.
+                # Traefik v3 requires routers to reference certresolver explicitly;
+                # entrypoint-level certresolver alone does not trigger certificate acquisition.
+                tls = if config.environment.isNAT then null else { certResolver = "zerossl"; };
               })
             ) config.services.traefik.proxies)
             {
@@ -272,7 +275,7 @@ with lib;
                   "https-alt"
                 ];
                 middlewares = [ "auth" ];
-                tls = { }; # Enable TLS to ensure it matches the HTTPS entrypoint correctly
+                tls = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
               };
             }
           ];
@@ -348,6 +351,7 @@ with lib;
 
     systemd.tmpfiles.rules = [
       "d '/var/lib/traefik' 0770 traefik traefik - -"
+      "d '/var/lib/traefik/dynamic' 0770 traefik traefik - -"
       "d '/var/lib/traefik-certs' 0770 traefik traefik - -"
       "f '/var/lib/traefik/acme.json' 0600 traefik traefik - -"
     ];

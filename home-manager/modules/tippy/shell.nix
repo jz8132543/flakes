@@ -14,7 +14,6 @@ let
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
   inherit (config.home.catppuccin) flavor;
-  isDesktop = lib.attrByPath [ "services" "xserver" "enable" ] false osConfig;
 in
 {
   programs = {
@@ -92,7 +91,7 @@ in
       dotDir = "${config.xdg.configHome}/zsh";
       defaultKeymap = "emacs";
 
-      enableVteIntegration = isDesktop;
+      enableVteIntegration = true;
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       autocd = true;
@@ -169,7 +168,7 @@ in
       '';
     };
     starship = {
-      enable = isDesktop;
+      enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
       enableFishIntegration = true;
@@ -202,7 +201,7 @@ in
       # // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
     atuin = {
-      enable = isDesktop;
+      enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
       enableFishIntegration = true;

@@ -21,7 +21,7 @@
     config.ports.ssh
     22
   ];
-  environment.isNAT = true;
+  # environment.isNAT = true;
   environment.isCN = true;
 
   ports.derp-stun = lib.mkForce 50568;

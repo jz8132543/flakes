@@ -28,7 +28,7 @@ in
             Turns = [
               {
                 Proto = "udp";
-                URI = "turn:turn.${domain}:${toString config.ports.turn-port}";
+                URI = "turn:turn.${domain}:${toString config.ports.derp-stun}";
                 Username = "netbird";
                 Password._secret = config.sops.secrets."netbird/Password".path;
               }
