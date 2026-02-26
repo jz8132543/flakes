@@ -106,7 +106,7 @@ fetch.github = "amzxyz/rime_wanxiang"
 src.git = "https://github.com/amzxyz/rime_wanxiang"
 
 [rime-wanxiang-base]
-src.manual = "13.4.6"
+src.github = "amzxyz/rime_wanxiang"
 fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v$ver/rime-wanxiang-base.zip"
 
 [rime-wanxiang-gram]
