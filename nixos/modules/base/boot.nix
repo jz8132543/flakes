@@ -16,6 +16,7 @@
       # Performence Improvement
       "nowatchdog"
       "mitigations=off"
+      "usbcore.autosuspend=-1"
     ];
   };
   systemd.settings.Manager = {
