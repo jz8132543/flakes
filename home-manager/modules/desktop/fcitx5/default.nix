@@ -13,8 +13,20 @@ let
       ascii_composer:
         good_old_caps_lock: true
         switch_key:
-          Shift_L: toggle
-          Shift_R: toggle
+          Shift_L: commit_code
+          Shift_R: commit_code
+      # Rime internal per-app settings
+      app_options:
+        # Default to English (ASCII) for these apps
+        # The key is usually the binary name or WM_CLASS
+        kitty:
+          ascii_mode: true
+        alacritty:
+          ascii_mode: true
+        foot:
+          ascii_mode: true
+        neovide:
+          ascii_mode: true
   '';
 
   rimeMergedData = pkgs.runCommand "rime-merged-data" { } ''
@@ -30,6 +42,8 @@ let
     printf "%s" ${lib.escapeShellArg defaultCustomYaml} > $out/default.custom.yaml
     cp -f ${./wanxiang.custom.yaml} $out/wanxiang.custom.yaml
   '';
+  # Keep filters empty if we want Rime to handle state instead of killing Rime
+  disabledApps = [ ];
 in
 {
   home.packages = with pkgs; [
@@ -42,6 +56,17 @@ in
     recursive = true;
   };
 
+  xdg.configFile."fcitx5/config" = {
+    text = ''
+      [Behavior]
+      # Do not share input state between any windows/apps
+      ShareInputState=No
+      # Disable Fcitx5-level app filtering to let Rime handle it
+      EnableApplicationFilter=False
+    '';
+    force = true;
+  };
+
   xdg.configFile."fcitx5/profile" = {
     text = ''
       [Groups/0]
@@ -50,10 +75,6 @@ in
       DefaultIM=rime
 
       [Groups/0/Items/0]
-      Name=keyboard-us
-      Layout=
-
-      [Groups/0/Items/1]
       Name=rime
       Layout=
     '';

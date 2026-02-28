@@ -15,6 +15,7 @@ patch:
   switches:
     - name: ascii_mode # 中英输入状态
       states: [中文, 英文]
+      reset: 1
     - name: ascii_punct # 中英标点，可以在中文输入状态输入英文符号
       states: [中标, 英标]
     - name: full_shape #全角、半角字符输出
@@ -43,7 +44,7 @@ patch:
       states: [词组先, 单字先]
     - options: [mixed, zh_only, en_only]
       states: [混合输入, 仅中文, 仅英文]
-      reset: 1
+      reset: 0
 
   #在8105基础上你可以通过黑白名单微调你自己的字符集过滤清单，主数据库位于lua/charset.bin不可编辑
   charsetlist: [你]
