@@ -8,6 +8,7 @@
     (modulesPath + "/profiles/qemu-guest.nix")
   ];
 
+  # disko.devices.disk.main.imageSize = "8G";
   boot.initrd.availableKernelModules = [
     "ata_piix"
     "uhci_hcd"
