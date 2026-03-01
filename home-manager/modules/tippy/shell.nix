@@ -297,6 +297,7 @@ in
       ".local/share/zoxide"
       ".local/share/direnv"
       ".local/share/fish"
+      ".local/share/atuin"
     ];
   };
 }

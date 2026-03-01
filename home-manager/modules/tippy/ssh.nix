@@ -98,4 +98,7 @@ with lib.strings;
       done
     fi
   '';
+  home.global-persistence.directories = [
+    ".ssh"
+  ];
 }

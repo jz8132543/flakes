@@ -29,6 +29,7 @@
     google-chrome
     code-cursor
     codex
+    gnome-connections
     # CD/DVD Burning
     kdePackages.k3b
     vcdimager
@@ -162,6 +163,24 @@
       ".local/share/opencode"
       ".opencode"
       ".codex"
+      ".local/share/connections"
+      ".config/connections"
+      ".cache/connections"
+      ".local/share/remmina"
+      ".config/remmina"
+      ".config/libreoffice"
+      ".config/google-chrome"
+      ".cache/google-chrome"
+      ".config/Mumble"
+      ".config/TeamSpeak"
+      ".config/jellyfin-desktop"
+      ".config/Cursor"
+      ".cache/Cursor"
+      ".local/share/okular"
+      ".config/linux-wifi-hotspot"
+      ".config/zathura"
+      ".local/share/zathura"
+      ".config/dconf"
     ];
     files = [
       ".config/monitors.xml"
