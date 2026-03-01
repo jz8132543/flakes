@@ -9,10 +9,12 @@ patch:
   # Rime internal per-app settings
   app_options:
     # Default to English (ASCII) for these apps
-    # The key is usually the binary name or WM_CLASS
+    # The key is usually the binary name or WM_CLASS (case-sensitive)
     kitty:
       ascii_mode: true
     alacritty:
+      ascii_mode: true
+    Alacritty:
       ascii_mode: true
     foot:
       ascii_mode: true
