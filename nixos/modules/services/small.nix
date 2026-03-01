@@ -1,10 +1,61 @@
 {
   lib,
   pkgs,
+  config,
   ...
 }:
 {
-  utils.btrfsMixed = true;
+  # Btrfs 优化：显著降低 CPU 占用并优化磁盘空间
+  # 1. 挂载优化：动态从 Disko 提取挂载点并应用参数，避免递归，减少 CPU 计算
+  fileSystems =
+    let
+      commonOptions = [
+        "noatime"
+        "compress=zstd:1" # 使用最低压缩级别以减少 CPU 负载
+        "commit=120" # 延长提交间隔，减少元数据写入频率
+        "discard=async" # 异步丢弃，降低写入高峰时的延迟
+        "space_cache=v2" # 确保使用更高效的 v2 缓存
+      ];
+      # 从 disko 提取所有 btrfs 挂载点（安全地避开了对 config.fileSystems 的直接引用）
+      btrfsMounts = lib.concatLists (
+        lib.mapAttrsToList (
+          _: disk:
+          lib.concatLists (
+            lib.mapAttrsToList (
+              _: part:
+              if part.content.type or "" == "btrfs" then
+                lib.filter (m: m != null) (
+                  lib.mapAttrsToList (_: subvol: subvol.mountpoint or null) (part.content.subvolumes or { })
+                )
+              else
+                [ ]
+            ) (disk.content.partitions or { })
+          )
+        ) config.disko.devices.disk
+      );
+    in
+    lib.genAttrs btrfsMounts (mountpoint: {
+      options = lib.mkForce (
+        (
+          if mountpoint == "/swap" then
+            [
+              "noatime"
+              "nodiratime"
+              "nodatacow"
+            ]
+          else
+            commonOptions
+        )
+        ++ [ (if mountpoint == "/" then "subvol=rootfs" else "subvol=${lib.removePrefix "/" mountpoint}") ]
+      );
+    });
+
+  # 2. 替代 utils.btrfsMixed：针对主分区追加 -M 参数实现全盘 mixed block groups
+  disko.devices.disk.main.content.partitions.NIXOS.content.extraArgs = lib.mkAfter [ "-M" ];
+
+  # 3. 服务优化：禁用耗费 CPU 的定期后台任务
+  services.btrfs.autoScrub.enable = lib.mkForce false;
+
   # 1. 移除 Nix 注册表中的源码副本 (nixpkgs, home-manager 等)
   # 以及清理 NIX_PATH 引用，防止 200MB+ 的源码目录入镜像
   nix.registry = lib.mkForce { };

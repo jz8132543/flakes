@@ -30,20 +30,6 @@ in
   services.resolved.enable = true;
   networking.useNetworkd = false;
   # TODO: tailscale cannot connect to some derp when firewall is enabled
-  networking.firewall = {
-    allowedUDPPortRanges = [
-      {
-        from = 0;
-        to = 65535;
-      }
-    ];
-    allowedTCPPortRanges = [
-      {
-        from = 0;
-        to = 65535;
-      }
-    ];
-  };
 
   sops.secrets.tailscale_preauth_key = { };
 

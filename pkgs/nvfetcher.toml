@@ -16,9 +16,6 @@ fetch.url = "https://github.com/OpenListTeam/OpenList/releases/download/$ver/ope
 src.git = "https://github.com/MetaCubeX/Yacd-meta"
 src.branch = "gh-pages"
 fetch.url = "https://github.com/MetaCubeX/Yacd-meta/archive/$ver.zip"
-[trackerslist]
-fetch.url = "https://cf.trackerslist.com/best_aria2.txt"
-src.manual = "latest"
 [ebook-sender-bot]
 fetch.github = "qcgzxw/ebook-sender-bot"
 src.git = "https://github.com/qcgzxw/ebook-sender-bot"
@@ -29,9 +26,6 @@ src.git = "https://github.com/jz8132543/ttf-ms-win10"
 fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 url.name = "wallpaper.jpg"
 src.manual = "latest"
-[jellyfin-plugin-reports]
-src.manual = "18.0.0.0"
-fetch.url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_$ver.zip"
 [jellyfin-plugin-intro-skipper]
 src.manual = "1.10.11.14"
 fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v$ver/intro-skipper-v$ver.zip"
@@ -77,17 +71,6 @@ fetch.url = "https://github.com/Libitum/jellyfin-plugin-douban/releases/download
 fetch.url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_$ver.zip"
 src.manual = "14.0.0.0"
 
-[sickbeard-mp4-automator]
-fetch.github = "mdhiggins/sickbeard_mp4_automator"
-src.git = "https://github.com/mdhiggins/sickbeard_mp4_automator"
-# [iyuuplus]
-# src.git = "https://gitee.com/ledc/iyuuplus"
-# fetch.git = "https://gitee.com/ledc/iyuuplus"
-# src.branch = "master"
-# [vertex]
-# src.git = "https://github.com/vertex-app/vertex"
-# fetch.git = "https://github.com/vertex-app/vertex"
-# src.branch = "master"
 
 [realm]
 src.github = "zhboner/realm"
@@ -97,13 +80,7 @@ fetch.url = "https://github.com/zhboner/realm/releases/download/$ver/realm-x86_6
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"
 
-[rime-mint]
-fetch.github = "Mintimate/oh-my-rime"
-src.git = "https://github.com/Mintimate/oh-my-rime"
 
-[rime-wanxiang]
-fetch.github = "amzxyz/rime_wanxiang"
-src.git = "https://github.com/amzxyz/rime_wanxiang"
 
 [rime-wanxiang-base]
 src.github = "amzxyz/rime_wanxiang"

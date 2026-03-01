@@ -12,6 +12,10 @@
         needProxy = true;
         proxyHost = "nue0.dora.im";
       })
-
     ];
+
+  boot.kernelParams = [
+    "console=ttyS0"
+    "console=tty0"
+  ];
 }

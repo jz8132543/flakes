@@ -38,4 +38,3 @@ stdenv.mkDerivation {
     cp -rf rime-data/* $out/share/rime-data/
   '';
 }
-

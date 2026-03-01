@@ -49,6 +49,7 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
     ];
+
   environment.seedbox = {
     enable = true;
     proxyHost = "shg0.mag";

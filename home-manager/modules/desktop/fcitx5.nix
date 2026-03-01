@@ -109,4 +109,3 @@
       "${config.home.homeDirectory}/.local/share/fcitx5"
   '';
 }
-

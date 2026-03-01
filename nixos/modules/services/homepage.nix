@@ -10,7 +10,7 @@ in
   services.homepage-dashboard = {
     enable = lib.mkForce true;
     listenPort = config.ports.homepage;
-    environmentFile = config.sops.templates."homepage.env".path;
+    environmentFiles = [ config.sops.templates."homepage.env".path ];
     allowedHosts = domain;
     services = [
       {

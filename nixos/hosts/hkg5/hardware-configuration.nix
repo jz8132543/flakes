@@ -12,11 +12,14 @@
     "ata_piix"
     "uhci_hcd"
     "virtio_pci"
+    "virtio_scsi"
+    "ahci"
+    "sd_mod"
     "sr_mod"
     "virtio_blk"
   ];
   boot.initrd.kernelModules = [ ];
-  boot.kernelModules = [ "kvm-amd" ];
+  boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
   # Basic networking - DHCP by default
@@ -39,12 +42,11 @@
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)
   # Though the actual format etc is done by dd over the raw image.
   utils.disk = "/dev/vda";
-  utils.btrfsMixed = true;
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   swapDevices = [
     {
       device = "/swap/swapfile";
-      size = 32768;
+      size = 1024;
     }
   ];
   nix.gc.automatic = lib.mkForce true;

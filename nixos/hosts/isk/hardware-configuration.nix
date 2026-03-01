@@ -35,11 +35,6 @@
   # Prevent laptop from sleeping on lid close
   services.logind.settings.Login.HandleLidSwitch = "ignore";
 
-  networking = {
-    useNetworkd = lib.mkForce true;
-    useDHCP = false;
-  };
-
   systemd.network = {
     enable = true;
     networks."10-lan" = {

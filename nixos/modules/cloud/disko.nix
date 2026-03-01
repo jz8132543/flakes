@@ -2,6 +2,7 @@
   inputs,
   lib,
   config,
+  pkgs,
   ...
 }:
 {
@@ -18,14 +19,12 @@
         partitions = {
           BIOS = {
             label = "BIOS";
+            size = "1M";
             type = "EF02";
-            start = "0";
-            end = "+1M";
           };
           EFI = {
             label = "EFI";
-            start = "4096";
-            end = "+200M";
+            size = "200M";
             type = "EF00";
             content = {
               type = "filesystem";
@@ -38,7 +37,7 @@
             end = "-0";
             content = {
               type = "btrfs";
-              extraArgs = [ "-f" ] ++ lib.optional config.utils.btrfsMixed "-M";
+              extraArgs = [ "-f" ];
               subvolumes = {
                 "/nix" = {
                   mountpoint = "/nix";
@@ -76,12 +75,9 @@
                 "/swap" = {
                   mountpoint = "/swap";
                   mountOptions = [
-                    "discard"
                     "noatime"
                     "nodiratime"
-                    "ssd_spread"
-                    "compress=zstd"
-                    "space_cache=v2"
+                    "nodatacow"
                   ];
                 };
                 "/rootfs" = {
@@ -110,6 +106,8 @@
   };
 
   fileSystems."/persist".neededForBoot = true;
+  fileSystems."/nix".neededForBoot = true;
+  fileSystems."/boot".neededForBoot = true;
 
   services.btrfs.autoScrub = {
     enable = true;
@@ -119,6 +117,9 @@
   };
 
   boot = {
+    # 自动在启动时修复 GPT 错误并扩展分区
+    growPartition = lib.mkDefault true;
+
     loader = {
       timeout = 2;
       efi.efiSysMountPoint = "/boot/efi";
@@ -138,25 +139,48 @@
 
         wantedBy = [ "initrd.target" ];
         before = [ "sysroot.mount" ];
-        requires = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
         after = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
+        requires = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
+        path = with pkgs; [
+          btrfs-progs
+          coreutils
+          util-linux
+        ];
 
         script = ''
           mkdir -p /mnt
-          mount -t btrfs /dev/disk/by-partlabel/NIXOS /mnt
-          btrfs subvolume list -o /mnt/rootfs |
-            cut -f9 -d' ' |
-            while read subvolume; do
-              echo "deleting /$subvolume subvolume..."
-              btrfs subvolume delete "/mnt/$subvolume"
-            done &&
-            echo "deleting /rootfs subvolume..." &&
-            btrfs subvolume delete /mnt/rootfs
+          # Use label just in case partlabel is not settles
+          mount -t btrfs /dev/disk/by-partlabel/NIXOS /mnt || mount -t btrfs /dev/disk/by-label/NIXOS /mnt
+
+          if [ -e /mnt/rootfs ]; then
+            btrfs subvolume list -o /mnt/rootfs |
+              cut -f9 -d' ' |
+              while read subvolume; do
+                echo "deleting /$subvolume subvolume..."
+                btrfs subvolume delete "/mnt/$subvolume"
+              done &&
+              echo "deleting /rootfs subvolume..." &&
+              btrfs subvolume delete /mnt/rootfs
+          fi
           echo "restoring blank /rootfs subvolume..."
           btrfs subvolume create /mnt/rootfs
           umount /mnt
         '';
       };
     };
+  };
+
+  systemd.services.btrfs-resize = {
+    description = "Auto-resize Btrfs filesystems to fill partition";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "grow-partition.service" ]; # 确保从 boot.growPartition 启动的服务完成后执行
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    # 动态找到所有 Btrfs 挂载点并扩容
+    script = ''
+      ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max /nix
+    '';
   };
 }
