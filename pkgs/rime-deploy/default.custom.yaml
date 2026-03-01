@@ -1,0 +1,20 @@
+patch:
+  schema_list:
+    - schema: wanxiang
+  ascii_composer:
+    good_old_caps_lock: true
+    switch_key:
+      Shift_L: noop
+      Shift_R: noop
+  # Rime internal per-app settings
+  app_options:
+    # Default to English (ASCII) for these apps
+    # The key is usually the binary name or WM_CLASS
+    kitty:
+      ascii_mode: true
+    alacritty:
+      ascii_mode: true
+    foot:
+      ascii_mode: true
+    neovide:
+      ascii_mode: true
