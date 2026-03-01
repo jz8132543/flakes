@@ -13,8 +13,8 @@ let
       ascii_composer:
         good_old_caps_lock: true
         switch_key:
-          Shift_L: commit_code
-          Shift_R: commit_code
+          Shift_L: noop
+          Shift_R: noop
       # Rime internal per-app settings
       app_options:
         # Default to English (ASCII) for these apps
@@ -63,6 +63,20 @@ in
       ShareInputState=No
       # Disable Fcitx5-level app filtering to let Rime handle it
       EnableApplicationFilter=False
+
+      [Hotkey]
+      # TriggerKeys=Shift_L;Shift_R
+      # NextIM 也要留着，保证在组内循环
+      # NextIM=Shift_L;Shift_R
+      # 必须开启，否则 Shift 无法作为单按键生效
+      EnumerateWithTriggerKeys=True
+      [Hotkey/TriggerKeys]
+      0=Control+space
+      1=Shift_R
+      2=Shift_L
+      [Hotkey/EnumerateForwardKeys]
+      0=Shift_L
+      1=Shift_R
     '';
     force = true;
   };
@@ -72,9 +86,13 @@ in
       [Groups/0]
       Name=Default
       Default Layout=us
-      DefaultIM=rime
+      DefaultIM=keyboard-us
 
       [Groups/0/Items/0]
+      Name=keyboard-us
+      Layout=
+
+      [Groups/0/Items/1]
       Name=rime
       Layout=
     '';
@@ -103,5 +121,13 @@ in
       "${config.home.homeDirectory}/.config/fcitx5" \
       "${config.home.homeDirectory}/.config/rime" \
       "${config.home.homeDirectory}/.local/share/fcitx5"
+    echo 1
+    # 运行 librime 提供的命令行部署工具
+    # ~/.local/share/fcitx5/rime 是 Fcitx5-Rime 默认的用户数据目录
+    ${pkgs.librime}/bin/rime_deployer --build ~/.local/share/fcitx5/rime
+    echo 2
+    # 可选：如果部署后 fcitx5 正在运行，让其重新加载
+    ${pkgs.fcitx5}/bin/fcitx5-remote -r || true
+    echo 3
   '';
 }
