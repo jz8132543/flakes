@@ -66,6 +66,8 @@ with lib.strings;
     };
   };
 
+  home.file.".ssh/config".force = true;
+
   home.activation.sshConfigPermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ssh_dir="$HOME/.ssh"
     if [ -d "$ssh_dir" ]; then

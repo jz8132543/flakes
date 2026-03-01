@@ -143,73 +143,64 @@ let
     };
 in
 {
-  passthru = {
-    inherit nixosModules hmModules;
+  options.flake.homeConfigurations = lib.mkOption {
+    type = lib.types.attrsOf lib.types.unspecified;
+    default = { };
   };
+  config = {
+    passthru = {
+      inherit nixosModules hmModules;
+    };
+    flake.nixosConfigurations = lib.mkMerge [
+      (mkHost {
+        name = "surface";
+        system = "x86_64-linux";
+        extraModules = with inputs.nixos-hardware.nixosModules; [
+          microsoft-surface-common
+        ];
+      })
+      (mkHost {
+        name = "arx8";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "hkg4";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "nue0";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "isk";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "tyo0";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "hkg5";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "cu";
+        system = "x86_64-linux";
+      })
+    ];
 
-  flake.nixosConfigurations = lib.mkMerge [
-    (mkHost {
-      name = "surface";
-      system = "x86_64-linux";
-      extraModules = with inputs.nixos-hardware.nixosModules; [
-        microsoft-surface-common
-      ];
-    })
-    (mkHost {
-      name = "arx8";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "hkg4";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "nue0";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "isk";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "tyo0";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "hkg5";
-      system = "x86_64-linux";
-    })
-    (mkHost {
-      name = "cu";
-      system = "x86_64-linux";
-    })
-  ];
-
-  flake.homeConfigurations =
-    (mkHome {
-      name = "localhost";
-      user = "tippy";
-      system = "x86_64-linux";
-      configurationName = null;
-    })
-    // (mkHome {
-      name = "shg0";
-      user = "tippy";
-      system = "x86_64-linux";
-    })
-    // (mkHome {
-      name = "tyo0";
-      user = "tippy";
-      system = "x86_64-linux";
-    })
-    // (mkHome {
-      name = "tyo0";
-      user = "tippy";
-      system = "x86_64-linux";
-    })
-    // (mkHome {
-      name = "cu";
-      user = "tippy";
-      system = "x86_64-linux";
-    });
+    flake.homeConfigurations = lib.mkMerge [
+      (mkHome {
+        name = "localhost";
+        user = "tippy";
+        system = "x86_64-linux";
+        configurationName = null;
+      })
+      (mkHome {
+        name = "shg0";
+        user = "tippy";
+        system = "x86_64-linux";
+      })
+    ];
+  };
 }

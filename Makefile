@@ -3,13 +3,19 @@ disko:
 diskon:
 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.diskoNoDeps
 build:
-  nix --experimental-features 'nix-command flakes' build --builders "ssh://${builder}" .#nixosConfigurations.${host}.config.system.build.toplevel
+	nix --experimental-features 'nix-command flakes' build --builders "ssh://${builder}" .#nixosConfigurations.${host}.config.system.build.toplevel
 nixos-anywhere:
-  nix run github:nix-community/nixos-anywhere -- --no-substitute-on-destination --no-disko-deps --flake .#${host} root@${host}
+	nix run github:nix-community/nixos-anywhere -- --no-substitute-on-destination --no-disko-deps --flake .#${host} root@${host}
 mount:
-  nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
+	nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:
-  nixos-enter --root /mnt -- nixos-rebuild boot --flake 'https://github.com/jz8132543/flakes'#${host} --install-bootloader
+	nixos-enter --root /mnt -- nixos-rebuild boot --flake 'https://github.com/jz8132543/flakes'#${host} --install-bootloader
+
+generate-hardware:
+	nix run github:nix-community/nixos-anywhere -- \
+		--flake .#${host} \
+		--generate-hardware-config nixos-generate-config ./nixos/hosts/${host}/hardware.nix \
+		root@${IP}
 
 
 deploy-home: install-nix
@@ -26,22 +32,22 @@ install-nix:
 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make install-nix host=<host>"; exit 1; fi
 	./scripts/install-nix-remote.sh ${host} ${user} ${port}
 
-img-deploy-image:
-	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.sdImage -o result
+# img-deploy-image:
+# 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.sdImage -o result
 
-img-deploy:
-	$(eval user ?= root)
-	$(eval port ?= 22)
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make img-deploy host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make img-deploy host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	./scripts/img-deploy.sh --target .#nixosConfigurations.${host}.config.system.build.sdImage --host ${host} --user ${user} --port ${port} --device ${device}
+# img-deploy:
+# 	$(eval user ?= root)
+# 	$(eval port ?= 22)
+# 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make img-deploy host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
+# 	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make img-deploy host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
+# 	./scripts/img-deploy.sh --target .#nixosConfigurations.${host}.config.system.build.sdImage --host ${host} --user ${user} --port ${port} --device ${device}
 
-deploy-raw:
-	$(eval user ?= root)
-	$(eval port ?= 22)
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --host ${host} --user ${user} --port ${port} --device ${device}
+# deploy-raw:
+# 	$(eval user ?= root)
+# 	$(eval port ?= 22)
+# 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
+# 	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
+# 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --host ${host} --user ${user} --port ${port} --device ${device}
 
 # Phase 1: Only build the image
 build-raw:

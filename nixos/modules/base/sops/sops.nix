@@ -44,5 +44,7 @@ in
         );
       };
     };
+
+    systemd.tmpfiles.rules = lib.optional config.environment.global-persistence.enable "d /persist/var/lib/sops-nix 0755 tippy users -";
   };
 }

@@ -28,6 +28,14 @@ in
         "root"
       ];
 
+      # Synchronize nixflix internal IDs with system ID management
+      globals = {
+        inherit (config.ids) uids;
+        inherit (config.ids) gids;
+      };
+
+      downloadsDir = "/data/downloads";
+
       theme = {
         enable = true;
         name = "nord";
@@ -184,7 +192,7 @@ in
       recyclarr = {
         enable = true;
         group = "media";
-        cleanupUnmanagedProfiles = true;
+        cleanupUnmanagedProfiles.enable = true;
       };
 
       jellyseerr = {
@@ -344,7 +352,7 @@ in
           map
             (name: {
               inherit name;
-              value.serviceConfig.Restart = lib.mkForce "on-failure";
+              value.serviceConfig.Restart = lib.mkDefault "on-failure";
             })
             [
               "jellyseerr"
