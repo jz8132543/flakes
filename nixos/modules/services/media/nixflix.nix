@@ -419,7 +419,7 @@ in
               "radarr"
               "prowlarr"
               "lidarr"
-              "sabnzbd"
+              # "sabnzbd"
             ]
         ))
         // (lib.listToAttrs (
@@ -444,7 +444,7 @@ in
               "radarr-delayprofiles"
               "lidarr-delayprofiles"
               "prowlarr-applications"
-              "sabnzbd-categories"
+              # "sabnzbd-categories"
               "jellyseerr-setup"
               "jellyseerr-sonarr"
               "jellyseerr-radarr"
@@ -456,7 +456,7 @@ in
           radarr.serviceConfig.UMask = "0002";
           prowlarr.serviceConfig.UMask = "0002";
           lidarr.serviceConfig.UMask = "0002";
-          sabnzbd.serviceConfig.UMask = "0002";
+          # sabnzbd.serviceConfig.UMask = "0002";
           jellyseerr.serviceConfig.UMask = "0002";
           sonarr-anime.serviceConfig.UMask = "0002";
         };

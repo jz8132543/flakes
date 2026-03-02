@@ -20,13 +20,11 @@
       Restart = "on-failure";
       RestartSec = "5s";
       # realm reads all *.toml files in a directory when given a directory path
-      ExecStart = "${pkgs.realm}/bin/realm -c /etc/realm/config.toml";
+      ExecStart = "${pkgs.realm-latest}/bin/realm -n 1048576 -p 256 -c /etc/realm/config.toml";
       # Security hardening
-      DynamicUser = false;
-      User = "realm";
-      Group = "realm";
+      # User = "realm";
+      # Group = "realm";
       # Allow binding to privileged ports if needed
-      AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
       CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
       NoNewPrivileges = true;
       ProtectSystem = "strict";
@@ -34,6 +32,18 @@
       LogsDirectory = "realm";
       WorkingDirectory = "/var/log/realm";
       ReadOnlyPaths = [ "/etc/realm" ];
+      DynamicUser = true;
+      MemoryDenyWriteExecute = true;
+      PrivateDevices = true;
+      ProtectClock = true;
+      ProtectKernelLogs = true;
+      ProtectKernelModules = true;
+      ProtectProc = "invisible";
+      ProtectKernelTunables = true;
+      AmbientCapabilities = [
+        "CAP_NET_ADMIN"
+        "CAP_NET_BIND_SERVICE"
+      ];
     };
   };
 

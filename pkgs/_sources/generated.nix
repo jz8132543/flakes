@@ -121,14 +121,6 @@
       sha256 = "sha256-4aNsqFpm8El+DIVke6ESNe8sBQa96872WetjU+cgRXM=";
     };
   };
-  jellyfin-plugin-reports = {
-    pname = "jellyfin-plugin-reports";
-    version = "18.0.0.0";
-    src = fetchurl {
-      url = "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_18.0.0.0.zip";
-      sha256 = "sha256-4DIszP6GAQRQv9Ky10sC2HVEjRJRkPiZT3oqq1csI/c=";
-    };
-  };
   jellyfin-plugin-shokofin = {
     pname = "jellyfin-plugin-shokofin";
     version = "6.0.3.0";
@@ -181,56 +173,23 @@
       sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
     };
   };
-  realm = {
-    pname = "realm";
+  realm-latest = {
+    pname = "realm-latest";
     version = "v2.9.3";
+    src = fetchFromGitHub {
+      owner = "zhboner";
+      repo = "realm";
+      rev = "v2.9.3";
+      fetchSubmodules = false;
+      sha256 = "sha256-anvVkOhxiAeKf2pPwlwfyf4CwXJ5MxPL0dWrFLdXHIU=";
+    };
+  };
+  rime-wanxiang-gram = {
+    pname = "rime-wanxiang-gram";
+    version = "LTS";
     src = fetchurl {
-      url = "https://github.com/zhboner/realm/releases/download/v2.9.3/realm-x86_64-unknown-linux-musl.tar.gz";
-      sha256 = "sha256-Yiky0h63TRaD3HG/WWInA4zo9ysBqneQbomb5Ui7N5I=";
-    };
-  };
-  rime-mint = {
-    pname = "rime-mint";
-    version = "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde";
-    src = fetchFromGitHub {
-      owner = "Mintimate";
-      repo = "oh-my-rime";
-      rev = "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde";
-      fetchSubmodules = false;
-      sha256 = "sha256-qiZ5O+I4fmYeUM6EppCdhXakIdyAF+cGQjMESx9VmP0=";
-    };
-    date = "2026-02-17";
-  };
-  rime-wanxiang = {
-    pname = "rime-wanxiang";
-    version = "6e847d3a5b408e672f8108b9b18614ca74f430fa";
-    src = fetchFromGitHub {
-      owner = "amzxyz";
-      repo = "rime_wanxiang";
-      rev = "6e847d3a5b408e672f8108b9b18614ca74f430fa";
-      fetchSubmodules = false;
-      sha256 = "sha256-dOt4BzP5nb4BD3xjaDlZAC481nmsIWMor9dP0zoh0dU=";
-    };
-    date = "2026-02-26";
-  };
-  sickbeard-mp4-automator = {
-    pname = "sickbeard-mp4-automator";
-    version = "e3db46613bba5724ab298b64a9214f6f6ae863b1";
-    src = fetchFromGitHub {
-      owner = "mdhiggins";
-      repo = "sickbeard_mp4_automator";
-      rev = "e3db46613bba5724ab298b64a9214f6f6ae863b1";
-      fetchSubmodules = false;
-      sha256 = "sha256-pSCBAJ2pPfnNfQCvkC8Qy6IshK3J8oACRbFJolor3AU=";
-    };
-    date = "2026-02-23";
-  };
-  trackerslist = {
-    pname = "trackerslist";
-    version = "latest";
-    src = fetchurl {
-      url = "https://cf.trackerslist.com/best_aria2.txt";
-      sha256 = "sha256-TS6b9a6TOEDSJh2U/H96tk3t43MSpTeoo7+UZ4/3h7E=";
+      url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
+      sha256 = "sha256-VVCFbxHxNxvGfnPBXolG9/lm4WnDjZl6LGneL+FmVZo=";
     };
   };
   wallpaper = {
@@ -240,22 +199,6 @@
       url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg";
       name = "wallpaper.jpg";
       sha256 = "sha256-wkiXDN6vPFtx88krcQ4szK6dJNjtrDxrsNa3ZvHlfMQ=";
-    };
-  };
-  rime-wanxiang-base = {
-    pname = "rime-wanxiang-base";
-    version = "13.4.6";
-    src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v13.4.6/rime-wanxiang-base.zip";
-      sha256 = "sha256-R2ftvMHEy9sEnaKGoxYT+nCI+5vDCNdIpc1f6khT+V4=";
-    };
-  };
-  rime-wanxiang-gram = {
-    pname = "rime-wanxiang-gram";
-    version = "LTS";
-    src = fetchurl {
-      url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-kbkK5qxjOvWTlgmpTuz4Et+edTQBYli6FW1VCNMYwWo=";
     };
   };
 }

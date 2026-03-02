@@ -21,12 +21,12 @@
     # nixflix media stack
     jellyfin = 600;
     jellyseerr = 601;
-    sonarr = 602;
-    radarr = 603;
-    prowlarr = 604;
-    lidarr = 605;
-    sabnzbd = 606;
-    recyclarr = 607;
+    # sonarr = 602;
+    # radarr = 603;
+    # prowlarr = 604;
+    # lidarr = 605;
+    # sabnzbd = 606;
+    # recyclarr = 607;
     qbittorrent = 608;
     bazarr = 609;
     autobrr = 610;

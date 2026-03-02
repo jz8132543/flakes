@@ -23,8 +23,7 @@ rec {
         sources = final.callPackage ./_sources/generated.nix { };
         package = import ./${name};
         source = if builtins.hasAttr name sources then sources.${name} else { };
-        args = builtins.intersectAttrs (builtins.functionArgs package) { inherit source; };
       in
-      final.callPackage package args
+      final.callPackage package { inherit source; }
     );
 }

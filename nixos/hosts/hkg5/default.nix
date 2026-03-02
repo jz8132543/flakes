@@ -6,6 +6,8 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
+      nixosModules.services.traefik
+      nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
         proxyHost = "nue0.dora.im";

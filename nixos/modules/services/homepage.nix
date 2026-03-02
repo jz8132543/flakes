@@ -132,18 +132,6 @@ in
             };
           }
           {
-            "Sabnzbd" = {
-              href = "https://tv.${config.networking.domain}/sabnzbd";
-              icon = "sabnzbd.png";
-              description = "Usenet Downloader";
-              widget = {
-                type = "sabnzbd";
-                url = "http://localhost:${toString config.ports.sabnzbd}";
-                key = "{{HOMEPAGE_VAR_SABNZBD_KEY}}";
-              };
-            };
-          }
-          {
             "Vertex" = {
               href = "https://tv.${config.networking.domain}/vertex";
               icon = "vertex.png"; # Homepage will try to find it, or show default if missing
@@ -464,7 +452,6 @@ in
       HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
-      HOMEPAGE_VAR_SABNZBD_KEY=${config.sops.placeholder."media/sabnzbd_api_key"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
     '';
   };

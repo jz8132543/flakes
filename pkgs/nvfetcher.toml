@@ -72,19 +72,18 @@ fetch.url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/downloa
 src.manual = "14.0.0.0"
 
 
-[realm]
+[realm-latest]
 src.github = "zhboner/realm"
-fetch.url = "https://github.com/zhboner/realm/releases/download/$ver/realm-x86_64-unknown-linux-musl.tar.gz"
+fetch.github = "zhboner/realm"
 
 [kxy-script]
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"
 
 
-
-[rime-wanxiang-base]
-src.github = "amzxyz/rime_wanxiang"
-fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v$ver/rime-wanxiang-base.zip"
+#[rime-wanxiang-base]
+#src.github = "amzxyz/rime_wanxiang"
+#fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v$ver/rime-wanxiang-base.zip"
 
 [rime-wanxiang-gram]
 src.manual = "LTS"

@@ -212,21 +212,6 @@
     },
     "version": "17.0.0.0"
   },
-  "jellyfin-plugin-reports": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "jellyfin-plugin-reports",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-4DIszP6GAQRQv9Ky10sC2HVEjRJRkPiZT3oqq1csI/c=",
-      "type": "url",
-      "url": "https://github.com/jellyfin/jellyfin-plugin-reports/releases/download/v18/reports_18.0.0.0.zip"
-    },
-    "version": "18.0.0.0"
-  },
   "jellyfin-plugin-shokofin": {
     "cargoLock": null,
     "date": null,
@@ -323,98 +308,41 @@
     },
     "version": "V1.2"
   },
-  "realm": {
+  "realm-latest": {
     "cargoLock": null,
     "date": null,
     "extract": null,
-    "name": "realm",
+    "name": "realm-latest",
     "passthru": null,
     "pinned": false,
     "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
       "name": null,
-      "sha256": "sha256-Yiky0h63TRaD3HG/WWInA4zo9ysBqneQbomb5Ui7N5I=",
-      "type": "url",
-      "url": "https://github.com/zhboner/realm/releases/download/v2.9.3/realm-x86_64-unknown-linux-musl.tar.gz"
+      "owner": "zhboner",
+      "repo": "realm",
+      "rev": "v2.9.3",
+      "sha256": "sha256-anvVkOhxiAeKf2pPwlwfyf4CwXJ5MxPL0dWrFLdXHIU=",
+      "sparseCheckout": [],
+      "type": "github"
     },
     "version": "v2.9.3"
   },
-  "rime-mint": {
-    "cargoLock": null,
-    "date": "2026-02-17",
-    "extract": null,
-    "name": "rime-mint",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "Mintimate",
-      "repo": "oh-my-rime",
-      "rev": "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde",
-      "sha256": "sha256-qiZ5O+I4fmYeUM6EppCdhXakIdyAF+cGQjMESx9VmP0=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "e7e9562e542fdbb147b9a9cf9b773ac9ff370cde"
-  },
-  "rime-wanxiang": {
-    "cargoLock": null,
-    "date": "2026-02-26",
-    "extract": null,
-    "name": "rime-wanxiang",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "amzxyz",
-      "repo": "rime_wanxiang",
-      "rev": "6e847d3a5b408e672f8108b9b18614ca74f430fa",
-      "sha256": "sha256-dOt4BzP5nb4BD3xjaDlZAC481nmsIWMor9dP0zoh0dU=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "6e847d3a5b408e672f8108b9b18614ca74f430fa"
-  },
-  "sickbeard-mp4-automator": {
-    "cargoLock": null,
-    "date": "2026-02-23",
-    "extract": null,
-    "name": "sickbeard-mp4-automator",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "mdhiggins",
-      "repo": "sickbeard_mp4_automator",
-      "rev": "e3db46613bba5724ab298b64a9214f6f6ae863b1",
-      "sha256": "sha256-pSCBAJ2pPfnNfQCvkC8Qy6IshK3J8oACRbFJolor3AU=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "e3db46613bba5724ab298b64a9214f6f6ae863b1"
-  },
-  "trackerslist": {
+  "rime-wanxiang-gram": {
     "cargoLock": null,
     "date": null,
     "extract": null,
-    "name": "trackerslist",
+    "name": "rime-wanxiang-gram",
     "passthru": null,
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-TS6b9a6TOEDSJh2U/H96tk3t43MSpTeoo7+UZ4/3h7E=",
+      "sha256": "sha256-VVCFbxHxNxvGfnPBXolG9/lm4WnDjZl6LGneL+FmVZo=",
       "type": "url",
-      "url": "https://cf.trackerslist.com/best_aria2.txt"
+      "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },
-    "version": "latest"
+    "version": "LTS"
   },
   "wallpaper": {
     "cargoLock": null,

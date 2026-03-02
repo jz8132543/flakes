@@ -81,7 +81,9 @@ in
             security = "reality";
             sockopt = {
               # 开启 TCP Fast Open，减少首次连接建立时的一个 RTT
-              tcpFastOpen = true;
+              # tcpFastOpen = true;
+              # 开启 MPTCP
+              mptcp = true;
               # 应用层 keepalive，60s 探测一次，让内核 SO_KEEPALIVE 真正生效
               # 解决运营商 NAT 超时（卷 30分钟自动断开）
               tcpKeepAliveInterval = 60;
@@ -92,7 +94,8 @@ in
               xver = 0;
               serverNames = [
                 serverName
-              ] ++ fakeSnis;
+              ]
+              ++ fakeSnis;
               privateKey = config.sops.placeholder."xray/private_key";
               shortIds = [ config.sops.placeholder."xray/short_id" ];
             };
@@ -130,7 +133,8 @@ in
             network = "tcp";
             security = "reality";
             sockopt = {
-              tcpFastOpen = true;
+              # tcpFastOpen = true;
+              mptcp = true;
               tcpKeepAliveInterval = 60;
             };
             realitySettings = {
