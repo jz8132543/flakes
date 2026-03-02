@@ -5,7 +5,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.services.small
+      nixosModules.optimize.minimal
       nixosModules.services.traefik
       nixosModules.services.derp
       # nixosModules.services.stun
@@ -20,4 +20,5 @@
       # nixosModules.services.headscale
       # (import nixosModules.services.alist { })
     ];
+
 }

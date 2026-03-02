@@ -38,60 +38,52 @@
             content = {
               type = "btrfs";
               extraArgs = [ "-f" ];
-              subvolumes = {
-                "/nix" = {
-                  mountpoint = "/nix";
-                  mountOptions = [
-                    "discard"
-                    "noatime"
-                    "nodiratime"
-                    "ssd_spread"
-                    "compress=zstd"
-                    "space_cache=v2"
-                  ];
+              subvolumes =
+                let
+                  btrfsOptions =
+                    if config.environment.minimal or false then
+                      [
+                        "discard=async"
+                        "noatime"
+                        "compress=zstd:1"
+                        "space_cache=v2"
+                        "commit=120"
+                      ]
+                    else
+                      [
+                        "discard=async"
+                        "noatime"
+                        "compress-force=zstd"
+                        "space_cache=v2"
+                        "commit=60"
+                      ];
+                in
+                {
+                  "/nix" = {
+                    mountpoint = "/nix";
+                    mountOptions = btrfsOptions;
+                  };
+                  "/persist" = {
+                    mountpoint = "/persist";
+                    mountOptions = btrfsOptions;
+                  };
+                  "/boot" = {
+                    mountpoint = "/boot";
+                    mountOptions = btrfsOptions;
+                  };
+                  "/swap" = {
+                    mountpoint = "/swap";
+                    mountOptions = [
+                      "noatime"
+                      "nodatacow"
+                      "commit=${if config.environment.minimal or false then "120" else "60"}"
+                    ];
+                  };
+                  "/rootfs" = {
+                    mountpoint = "/";
+                    mountOptions = btrfsOptions;
+                  };
                 };
-                "/persist" = {
-                  mountpoint = "/persist";
-                  mountOptions = [
-                    "discard"
-                    "noatime"
-                    "nodiratime"
-                    "ssd_spread"
-                    "compress=zstd"
-                    "space_cache=v2"
-                  ];
-                };
-                "/boot" = {
-                  mountpoint = "/boot";
-                  mountOptions = [
-                    "discard"
-                    "noatime"
-                    "nodiratime"
-                    "ssd_spread"
-                    "compress=zstd"
-                    "space_cache=v2"
-                  ];
-                };
-                "/swap" = {
-                  mountpoint = "/swap";
-                  mountOptions = [
-                    "noatime"
-                    "nodiratime"
-                    "nodatacow"
-                  ];
-                };
-                "/rootfs" = {
-                  mountpoint = "/";
-                  mountOptions = [
-                    "discard"
-                    "noatime"
-                    "nodiratime"
-                    "ssd_spread"
-                    "compress=zstd"
-                    "space_cache=v2"
-                  ];
-                };
-              };
             };
           };
         };
@@ -148,22 +140,31 @@
         ];
 
         script = ''
+          # 强制等待 udev 彻底完成设备节点（符号链接）的创建
+          udevadm settle
+
           mkdir -p /mnt
-          # Use label just in case partlabel is not settles
-          mount -t btrfs /dev/disk/by-partlabel/NIXOS /mnt || mount -t btrfs /dev/disk/by-label/NIXOS /mnt
+
+          # 移除 -t btrfs，让内置的 mount 自动推断，减少对外部 helper 的依赖
+          mount /dev/disk/by-partlabel/NIXOS /mnt \
+            || mount /dev/disk/by-label/NIXOS /mnt
 
           if [ -e /mnt/rootfs ]; then
-            btrfs subvolume list -o /mnt/rootfs |
-              cut -f9 -d' ' |
-              while read subvolume; do
-                echo "deleting /$subvolume subvolume..."
-                btrfs subvolume delete "/mnt/$subvolume"
-              done &&
-              echo "deleting /rootfs subvolume..." &&
-              btrfs subvolume delete /mnt/rootfs
+            # 核心修改：使用 Bash 内置的 read 替代 cut 命令，彻底消除对 coreutils 的依赖
+            # btrfs subvolume list 输出的第9列是路径，我们用 _ 跳过前8列
+            btrfs subvolume list -o /mnt/rootfs \
+              | while read -r _ _ _ _ _ _ _ _ subvolume; do
+                echo "deleting /''$subvolume subvolume..."
+                btrfs subvolume delete "/mnt/''$subvolume"
+              done
+
+            echo "deleting /rootfs subvolume..."
+            btrfs subvolume delete /mnt/rootfs
           fi
+
           echo "restoring blank /rootfs subvolume..."
           btrfs subvolume create /mnt/rootfs
+
           umount /mnt
         '';
       };

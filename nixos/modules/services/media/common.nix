@@ -40,8 +40,6 @@
       "Z /var/lib/autobrr 0777 autobrr media -"
     ];
 
-
-
     networking.hosts."127.0.0.1" = [
       "sonarr"
       "radarr"

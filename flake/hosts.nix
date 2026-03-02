@@ -187,6 +187,10 @@ in
         name = "cu";
         system = "x86_64-linux";
       })
+      (mkHost {
+        name = "tyo1";
+        system = "x86_64-linux";
+      })
     ];
 
     flake.homeConfigurations = lib.mkMerge [

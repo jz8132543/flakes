@@ -11,8 +11,8 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.minimal
       nixosModules.services.traefik
-      nixosModules.services.small
       nixosModules.services.derp
       nixosModules.services.realm
     ];

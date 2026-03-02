@@ -1,5 +1,11 @@
-{ pkgs, ... }:
 {
+  pkgs,
+  nixosModules,
+  ...
+}:
+{
+  imports = [ nixosModules.services.restic ];
+
   # Realm relay service
   # Configuration is read from /etc/realm/*.toml (or any config format realm supports)
   # Users should manually manage files in /etc/realm/
@@ -49,4 +55,6 @@
       "/etc/realm"
     ];
   };
+
+  services.restic.backups.borgbase.paths = [ "/etc/realm" ];
 }

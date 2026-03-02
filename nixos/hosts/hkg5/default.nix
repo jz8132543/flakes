@@ -5,9 +5,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.services.small
-      nixosModules.services.traefik
-      nixosModules.services.derp
+      nixosModules.optimize.minimal
       (import nixosModules.services.xray {
         needProxy = true;
         proxyHost = "nue0.dora.im";
@@ -18,4 +16,5 @@
     "console=ttyS0"
     "console=tty0"
   ];
+
 }

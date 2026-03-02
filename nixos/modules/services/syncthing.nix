@@ -36,6 +36,19 @@ let
       versioning = null;
     };
   };
+  hmUsers = config.home-manager.users;
+
+  mkObsidianMount = user: {
+    name = "/home/${user}/Sync";
+    value = {
+      device = "/var/lib/syncthing/data";
+      options = [
+        "bind"
+        "nofail"
+        "x-systemd.requires=syncthing.service"
+      ];
+    };
+  };
 in
 {
   imports = [ ./rclone-bisync.nix ];
@@ -115,4 +128,5 @@ in
 
   environment.global-persistence.directories = [ config.services.syncthing.configDir ];
   services.restic.backups.borgbase.paths = [ config.services.syncthing.configDir ];
+  fileSystems = lib.listToAttrs (map mkObsidianMount (builtins.attrNames hmUsers));
 }

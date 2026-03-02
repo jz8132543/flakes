@@ -77,6 +77,24 @@
       "endpoints_v4": [],
       "endpoints_v6": [],
       "host_indices": [30]
+    },
+    "tyo0": {
+      "dn42_addresses_v4": ["172.23.224.101"],
+      "dn42_addresses_v6": ["fd72:db83:badd:5::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:5::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [5]
+    },
+    "tyo1": {
+      "dn42_addresses_v4": ["172.23.224.100"],
+      "dn42_addresses_v6": ["fd72:db83:badd:4::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:4::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [4]
     }
   },
   "service_cname_mappings": {
@@ -113,6 +131,10 @@
       "proxy": false
     },
     "dash": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "frp": {
       "on": "nue0",
       "proxy": false
     },

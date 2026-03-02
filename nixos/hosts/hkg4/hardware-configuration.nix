@@ -17,7 +17,20 @@
   ];
   # utils.disk = "/dev/sda";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  networking.defaultGateway = "123.254.105.158";
+  networking = {
+    # useDHCP = false;
+    # useNetworkd = true;
+    interfaces.eth0 = {
+      useDHCP = false;
+      ipv4.addresses = [
+        {
+          address = "123.254.105.134";
+          prefixLength = 24;
+        }
+      ];
+    };
+    defaultGateway = "123.254.105.158";
+  };
 
   swapDevices = [
     {

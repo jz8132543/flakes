@@ -18,6 +18,37 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    tyo1 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "82.40.41.218"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "2a13:edc0:24:1d5::a"
+        }
+      }
+      ddns_records = {}
+      host_indices = [4]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
+    tyo0 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "45.66.129.234"
+        }
+      }
+      ddns_records = {}
+      host_indices = [5]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     hkg4 = {
       records = {
         a = {

@@ -293,14 +293,6 @@ resource "cloudflare_dns_record" "dora_matrix_v6" {
   zone_id = cloudflare_zone.im_dora.id
 }
 
-resource "cloudflare_dns_record" "dora_tyo0" {
-  name    = "tyo0.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  content = "45.66.129.234"
-  zone_id = cloudflare_zone.im_dora.id
-}
 resource "cloudflare_dns_record" "dora_lax0" {
   name    = "lax0.${cloudflare_zone.im_dora.name}"
   proxied = false

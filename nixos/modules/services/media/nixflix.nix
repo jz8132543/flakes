@@ -1,6 +1,5 @@
 {
   lib,
-  pkgs,
   config,
   inputs,
   nixosModules,
@@ -58,7 +57,9 @@ in
             };
             urlBase = "/sonarr";
           };
-
+          rootFolders = [
+            { path = "/data/media/tv"; }
+          ];
         };
       };
 
@@ -76,7 +77,9 @@ in
             };
             urlBase = "/radarr";
           };
-
+          rootFolders = [
+            { path = "/data/media/movies"; }
+          ];
         };
       };
 
@@ -102,6 +105,8 @@ in
               apiKey = {
                 _secret = config.sops.secrets."media/sonarr_api_key".path;
               };
+              baseUrl = "http://127.0.0.1:${toString config.ports.sonarr}/sonarr";
+              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
             {
               name = "Radarr";
@@ -109,6 +114,8 @@ in
               apiKey = {
                 _secret = config.sops.secrets."media/radarr_api_key".path;
               };
+              baseUrl = "http://127.0.0.1:${toString config.ports.radarr}/radarr";
+              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
             {
               name = "Lidarr";
@@ -116,33 +123,54 @@ in
               apiKey = {
                 _secret = config.sops.secrets."media/lidarr_api_key".path;
               };
+              baseUrl = "http://127.0.0.1:${toString config.ports.lidarr}/lidarr";
+              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
+            }
+            {
+              name = "Sonarr Anime";
+              implementationName = "Sonarr";
+              apiKey = {
+                _secret = config.sops.secrets."media/sonarr_api_key".path;
+              };
+              baseUrl = "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime";
+              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
           ];
           # PT Indexers
           indexers = [
             {
-              id = 0;
               name = "M-Team - TP";
               enable = true;
-              freeleechOnly = false;
-              baseUrl = "https://kp.m-team.cc/";
-              apiKey = {
-                _secret = config.sops.secrets."media/mteam_api_key".path;
-              };
+              implementationName = "Gazelle";
+              fields = [
+                {
+                  name = "baseUrl";
+                  value = "https://kp.m-team.cc/";
+                }
+                {
+                  name = "apiKey";
+                  value = {
+                    _secret = config.sops.secrets."media/mteam_api_key".path;
+                  };
+                }
+              ];
             }
             {
-              # id = 1;
               name = "PTTime";
               enable = true;
-              baseUrl = "https://www.pttime.org/";
-              # freeleechOnly = true;
-              # searchFreeleechOnly = true;
-              username = {
-                _secret = config.sops.secrets."media/pttime_username".path;
-              };
-              password = {
-                _secret = config.sops.secrets."password".path;
-              };
+              implementationName = "Unit3D";
+              fields = [
+                {
+                  name = "baseUrl";
+                  value = "https://www.pttime.org/";
+                }
+                {
+                  name = "apiKey";
+                  value = {
+                    _secret = config.sops.secrets."media/pttime_rss_url".path; # Unit3D often uses RSS/API key interchangeably in some implementations, but here we likely need a real key.
+                  };
+                }
+              ];
             }
           ];
 
@@ -163,31 +191,11 @@ in
             };
             urlBase = "/lidarr";
           };
-
+          rootFolders = [
+            { path = "/data/media/music"; }
+          ];
         };
       };
-
-      # sabnzbd = {
-      #   enable = true;
-      #   group = "media";
-      #   settings = {
-      #     misc = {
-      #       port = config.ports.sabnzbd;
-      #       api_key = {
-      #         _secret = config.sops.secrets."media/sabnzbd_api_key".path;
-      #       };
-      #       nzb_key = {
-      #         _secret = config.sops.secrets."media/sabnzbd_nzb_key".path;
-      #       };
-      #       host_whitelist = [
-      #         domain
-      #         "localhost"
-      #         "127.0.0.1"
-      #         config.networking.fqdn
-      #       ];
-      #     };
-      #   };
-      # };
 
       recyclarr = {
         enable = true;
@@ -216,6 +224,9 @@ in
           apiKey = {
             _secret = config.sops.secrets."media/sonarr_api_key".path;
           };
+          rootFolders = [
+            { path = "/data/media/anime"; }
+          ];
         };
       };
     };
@@ -266,7 +277,7 @@ in
 
             # --- Custom Services (not managed by nixflix) ---
             "/bazarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.bazarr}";
+              proxyPass = "http://127.0.0.1:${toString config.ports.bazarr}/";
               proxyWebsockets = true;
               extraConfig = ''
                 # Bazarr handles url_base via its config.xml
@@ -314,7 +325,55 @@ in
               return = "301 /jellyfin/";
             };
 
-            # Services delegated to nixflix nginx: sonarr, radarr, lidarr, sabnzbd, jellyseerr, prowlarr, sonarr-anime
+            # Direct proxies to internal Arr services
+            "/sonarr/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.sonarr}/sonarr/";
+              proxyWebsockets = true;
+            };
+            "/sonarr" = {
+              return = "301 /sonarr/";
+            };
+
+            "/radarr/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.radarr}/radarr/";
+              proxyWebsockets = true;
+            };
+            "/radarr" = {
+              return = "301 /radarr/";
+            };
+
+            "/lidarr/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.lidarr}/lidarr/";
+              proxyWebsockets = true;
+            };
+            "/lidarr" = {
+              return = "301 /lidarr/";
+            };
+
+            "/prowlarr/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr/";
+              proxyWebsockets = true;
+            };
+            "/prowlarr" = {
+              return = "301 /prowlarr/";
+            };
+
+            "/sonarr-anime/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime/";
+              proxyWebsockets = true;
+            };
+            "/sonarr-anime" = {
+              return = "301 /sonarr-anime/";
+            };
+
+            "/jellyseerr/" = {
+              proxyPass = "http://127.0.0.1:${toString config.ports.jellyseerr}/";
+              proxyWebsockets = true;
+            };
+            "/jellyseerr" = {
+              return = "301 /jellyseerr/";
+            };
+
           };
         };
       };
@@ -393,83 +452,6 @@ in
             ]
         ))
         // {
-          sabnzbd-categories.enable = lib.mkForce false;
-
-          media-stack-init = {
-            description = "Automated configuration for media stack connections";
-            after = [
-              "sonarr.service"
-              "radarr.service"
-              "prowlarr.service"
-              "bazarr.service"
-              "qbittorrent.service"
-              "podman-vertex.service"
-              "postgresql-ready.target"
-            ];
-            wants = [
-              "sonarr.service"
-              "radarr.service"
-              "prowlarr.service"
-              "bazarr.service"
-              "qbittorrent.service"
-              "podman-vertex.service"
-            ];
-            wantedBy = [ "multi-user.target" ];
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              Restart = "on-failure";
-              RestartSec = "30s";
-              TimeoutStartSec = "1min";
-            };
-            path = [
-              pkgs.curl
-              pkgs.coreutils
-              pkgs.systemd
-            ];
-            script = ''
-              # Wait for all services to be healthy
-              for service in sonarr:${toString config.ports.sonarr}/sonarr \
-                             radarr:${toString config.ports.radarr}/radarr \
-                             lidarr:${toString config.ports.lidarr}/lidarr \
-                             prowlarr:${toString config.ports.prowlarr}/prowlarr \
-                             bazarr:${toString config.ports.bazarr}/ \
-                             autobrr:${toString config.ports.autobrr}/autobrr \
-                             qbittorrent:${toString config.ports.qbittorrent}/ \
-                             jellyfin:${toString config.ports.jellyfin}/health \
-                             sonarr-anime:${toString config.ports.sonarr-anime}/sonarr-anime; do
-                host="''${service%%:*}"
-                path_port="''${service#*:}"
-                until curl -s "http://127.0.0.1:$path_port" > /dev/null; do
-                  echo "Waiting for $host on $path_port..."
-                  sleep 5
-                done
-              done
-
-              # Run unified setup script
-              ${pkgs.python3.withPackages (ps: [ ps.requests ])}/bin/python3 ${navHtmlDir}/setup.py \
-                --bazarr-url "http://127.0.0.1:${toString config.ports.bazarr}/api" \
-                --prowlarr-url "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr" \
-                --sonarr-url "http://127.0.0.1:${toString config.ports.sonarr}/sonarr" \
-                --radarr-url "http://127.0.0.1:${toString config.ports.radarr}/radarr" \
-                --sonarr-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
-                --radarr-key-file "${config.sops.secrets."media/radarr_api_key".path}" \
-                --prowlarr-key-file "${config.sops.secrets."media/prowlarr_api_key".path}" \
-                --password-file "${config.sops.secrets."password".path}" \
-                --qbit-port "${toString config.ports.qbittorrent}" \
-                --sonarr-port "${toString config.ports.sonarr}" \
-                --radarr-port "${toString config.ports.radarr}" \
-                --sonarr-anime-url "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime" \
-                --sonarr-anime-key-file "${config.sops.secrets."media/sonarr_api_key".path}" \
-                --mteam-rss-file "${config.sops.secrets."media/mteam_rss_url".path}" \
-                --pttime-rss-file "${config.sops.secrets."media/pttime_rss_url".path}" \
-                --lidarr-url "http://127.0.0.1:${toString config.ports.lidarr}/lidarr" \
-                --lidarr-key-file "${config.sops.secrets."media/lidarr_api_key".path}" \
-                --jellyfin-url "http://127.0.0.1:${toString config.ports.jellyfin}/jellyfin" \
-                --jellyfin-env-file "/var/lib/homepage/jellyfin.env"
-            '';
-          };
-
           sonarr.serviceConfig.UMask = "0002";
           radarr.serviceConfig.UMask = "0002";
           prowlarr.serviceConfig.UMask = "0002";
