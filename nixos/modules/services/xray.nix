@@ -13,7 +13,15 @@ let
   xrayPort = 8555;
   destSite = "${config.networking.fqdn}:443";
   serverName = config.networking.fqdn;
-  fakeSni = "gateway.icloud.com";
+  fakeSnis = [
+    "gateway.icloud.com"
+    "www.apple.com"
+    "images.apple.com"
+    "appleid.apple.com"
+    "swcdn.apple.com"
+    "speedtest.cn"
+    "speedtest.net"
+  ];
 in
 {
   sops.secrets = {
@@ -71,14 +79,20 @@ in
           streamSettings = {
             network = "tcp";
             security = "reality";
+            sockopt = {
+              # 开启 TCP Fast Open，减少首次连接建立时的一个 RTT
+              tcpFastOpen = true;
+              # 应用层 keepalive，60s 探测一次，让内核 SO_KEEPALIVE 真正生效
+              # 解决运营商 NAT 超时（卷 30分钟自动断开）
+              tcpKeepAliveInterval = 60;
+            };
             realitySettings = {
               show = false;
               target = destSite;
               xver = 0;
               serverNames = [
                 serverName
-                fakeSni
-              ];
+              ] ++ fakeSnis;
               privateKey = config.sops.placeholder."xray/private_key";
               shortIds = [ config.sops.placeholder."xray/short_id" ];
             };
@@ -115,15 +129,18 @@ in
           streamSettings = {
             network = "tcp";
             security = "reality";
+            sockopt = {
+              tcpFastOpen = true;
+              tcpKeepAliveInterval = 60;
+            };
             realitySettings = {
-              # 指纹，通常用 chrome 或 firefox
-              fingerprint = "chrome";
+              # iOS 指纺，模拟 iPhone/iPad 的 TLS 行为，比 chrome 更难被识别
+              fingerprint = "ios";
 
               # 必须与 Server B inbound 中的 serverNames 保持一致
-              serverName = fakeSni;
+              serverName = builtins.head fakeSnis;
 
-              # ⚠️ 重要：这里必须填 Server B 的【公钥 Public Key】
-              # 也就是 Server B 生成 privateKey 时对应的那个 public key
+              # ⚠️ 重要：这里必须填 Server B 的『公鑰 Public Key』
               publicKey = config.sops.placeholder."xray/public_key";
 
               # 必须与 Server B inbound 中的 shortIds 保持一致
