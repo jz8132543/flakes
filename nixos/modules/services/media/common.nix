@@ -40,16 +40,7 @@
       "Z /var/lib/autobrr 0777 autobrr media -"
     ];
 
-    # Other system settings (Boot, Networking, Users, SOPs, Containers)
-    boot.kernel.sysctl = {
-      "net.ipv4.tcp_max_orphans" = lib.mkDefault 65535;
-      "net.ipv4.tcp_sack" = lib.mkDefault 1;
-      "net.ipv4.tcp_timestamps" = lib.mkDefault 1;
-      "net.core.optmem_max" = lib.mkDefault 65535;
-      "fs.nr_open" = lib.mkDefault 2097152;
-      "net.ipv4.tcp_mem" = lib.mkDefault "786432 1048576 134217728";
-      "net.ipv4.udp_mem" = lib.mkDefault "786432 1048576 134217728";
-    };
+
 
     networking.hosts."127.0.0.1" = [
       "sonarr"
