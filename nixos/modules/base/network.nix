@@ -91,16 +91,35 @@
         "net.ipv4.tcp_sack" = 1;
         # 时间戳：精确测量 RTT（BBR 重度依赖），同时启用 PAWS 防旧重复包
         "net.ipv4.tcp_timestamps" = 1;
-        # 关闭 ECN：大陆运营商/GFW 中间设备常丢弃 ECN 标记的包，开启反增丢包
-        "net.ipv4.tcp_ecn" = 0;
-        # 关闭 F-RTO：高丢包时易将真实超时误判为虚假超时，从而压制合理重传
-        "net.ipv4.tcp_frto" = 0;
+        # 显式拥塞通知 (ECN)：1 表示全面开启，配合 BBR 可有效降低抖动
+        "net.ipv4.tcp_ecn" = 1;
+        # ECN 回退：保持开启，兼容不支持 ECN 的链路
+        "net.ipv4.tcp_ecn_fallback" = 1;
+        # 保持 3 以启用 TLP (Tail Loss Probe)，比旧版更加先进
+        "net.ipv4.tcp_early_retrans" = 3;
+        # F-RTO：处理超时伪重传，保持 2 (现代内核默认)
+        "net.ipv4.tcp_frto" = 2;
+        # 乱序重排：在容易乱序的网络（多路径/无线/国际链路）下减少误判重传，建议 15
+        "net.ipv4.tcp_reordering" = 15;
         # 不缓存历史路由指标（RTT/cwnd）：线路质量波动大时旧指标会误导新连接速率
         "net.ipv4.tcp_no_metrics_save" = 1;
         # 路径 MTU 探测：1=检测到黑洞后触发，GFW 屏蔽 ICMP 时自动恢复大包传输
         "net.ipv4.tcp_mtu_probing" = 1;
         # 空闲后不降速重新慢启动，代理/长连接恢复发送时维持原拥塞窗口
         "net.ipv4.tcp_slow_start_after_idle" = 0;
+        # 开启 RACK 丢失检测算法
+        "net.ipv4.tcp_recovery" = 1;
+        # TCP 重传折叠：保持开启
+        "net.ipv4.tcp_retrans_collapse" = 1;
+
+        # ── 故障响应 & 多路径 ─────────────────────────────────────────────
+        # 缩短僵死连接的存活时间到约 2 分钟，加速故障转移
+        "net.ipv4.tcp_retries2" = 12;
+
+        # 多路径 TCP (MPTCP) 支持 (如果内核支持)
+        "net.mptcp.enabled" = 1;
+        "net.mptcp.checksum_enabled" = 1;
+        "net.mptcp.scheduler" = "default";
 
         # ── 转发（Tailscale / 容器）──────────────────────────────────────
         # 允许内核在不同接口间转发 IPv4 数据包，Tailscale 子网路由必须
