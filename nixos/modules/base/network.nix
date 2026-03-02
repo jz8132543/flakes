@@ -25,22 +25,23 @@
         "net.ipv4.tcp_congestion_control" = "bbr";
 
         # ── Socket 缓冲区 ─────────────────────────────────────────────────
+        # [由 network-auto-tune.nix 在启动时根据硬件动态设置]
         # Socket 接收/发送缓冲区上限，决定单连接最大可缓存数据量（128 MB 支撑 5 Gbps × 200 ms BDP）
-        "net.core.rmem_max" = 134217728;
-        "net.core.wmem_max" = 134217728;
+        # "net.core.rmem_max" = 134217728;
+        # "net.core.wmem_max" = 134217728;
         # 网卡收包中断时内核输入队列深度，万兆网卡突发时防丢包
-        "net.core.netdev_max_backlog" = 300000;
+        # "net.core.netdev_max_backlog" = 300000;
         # 每个 socket 的辅助选项内存上限（ancillary data / cmsg）
-        "net.core.optmem_max" = 65535;
+        # "net.core.optmem_max" = 65535;
         # TCP 接收/发送缓冲区三档（最小/默认/最大），内核根据实际流量动态调整
-        "net.ipv4.tcp_rmem" = "4096 131072 134217728";
-        "net.ipv4.tcp_wmem" = "4096 131072 134217728";
+        # "net.ipv4.tcp_rmem" = "4096 131072 134217728";
+        # "net.ipv4.tcp_wmem" = "4096 131072 134217728";
         # TCP/UDP 协议栈全局总内存上限（页为单位），超出压力档内核开始回收，防 OOM
-        "net.ipv4.tcp_mem" = "786432 1048576 134217728";
-        "net.ipv4.udp_mem" = "786432 1048576 134217728";
+        # "net.ipv4.tcp_mem" = "786432 1048576 134217728";
+        # "net.ipv4.udp_mem" = "786432 1048576 134217728";
         # UDP socket 接收/发送最小保证缓冲，内存紧张时防止缓冲被压得过小（WireGuard/QUIC）
-        "net.ipv4.udp_rmem_min" = 8192;
-        "net.ipv4.udp_wmem_min" = 8192;
+        # "net.ipv4.udp_rmem_min" = 8192;
+        # "net.ipv4.udp_wmem_min" = 8192;
         # 允许内核根据实际吞吐自动缩减 TCP 接收缓冲，低速连接节省内存
         "net.ipv4.tcp_moderate_rcvbuf" = 1;
         # 接收窗口缩放因子：值为 2 时应用缓冲占 1/4，内核协议栈占 3/4，通告窗口更激进
@@ -49,22 +50,24 @@
         "net.ipv4.tcp_window_scaling" = 1;
 
         # ── 文件描述符 ────────────────────────────────────────────────────
+        # [由 network-auto-tune.nix 在启动时根据硬件动态设置]
         # 内核全局可打开 fd 总数（连接/文件/管道均消耗 fd）
-        "fs.file-max" = 2097152;
+        # "fs.file-max" = 2097152;
         # 单进程可打开 fd 上限，是 nofile 硬限制的天花板，须 ≥ file-max
-        "fs.nr_open" = 10485760;
+        # "fs.nr_open" = 10485760;
         # 允许的最大管道大小 (以字节为单位)
-        "fs.pipe-max-size" = 4194304;
+        # "fs.pipe-max-size" = 4194304;
 
         # ── 连接队列容量 ──────────────────────────────────────────────────
+        # [由 network-auto-tune.nix 在启动时根据硬件动态设置]
         # SYN 半连接队列（三次握手未完成），抗 SYN flood 时能撑住更多新请求
-        "net.ipv4.tcp_max_syn_backlog" = 262144;
+        # "net.ipv4.tcp_max_syn_backlog" = 262144;
         # listen() 全连接队列上限，应用层 backlog 不能超过此值
-        "net.core.somaxconn" = 65535;
+        # "net.core.somaxconn" = 65535;
         # TIME-WAIT 连接最大数量，超出后内核强制销毁最老的，防连接表耗尽
-        "net.ipv4.tcp_max_tw_buckets" = 2000000;
+        # "net.ipv4.tcp_max_tw_buckets" = 2000000;
         # 孤儿连接（fd 已关闭但 TCP 未断）上限，超出强制 RST，防内存泄漏
-        "net.ipv4.tcp_max_orphans" = 65535;
+        # "net.ipv4.tcp_max_orphans" = 65535;
 
         # ── 握手 & 连接复用 ───────────────────────────────────────────────
         # TCP Fast Open：SYN 阶段直接携带数据，省去一个 RTT（3=客户端+服务端同时启用）

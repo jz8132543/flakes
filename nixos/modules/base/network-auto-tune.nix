@@ -1,0 +1,143 @@
+# 开机自动检测硬件（内存/CPU/网速），按 BDP 公式计算最优网络 sysctl 参数。
+# 策略：尽可能给网络分配最大资源，同时防止 OOM。
+# 与 bpftune 协作：本脚本设「激进初始值」，bpftune 在此基础上做细粒度微调。
+{ pkgs, ... }:
+{
+  systemd.services.network-auto-tune = {
+    description = "Auto-tune network sysctl based on detected hardware";
+    after = [
+      "network-pre.target"
+      "systemd-sysctl.service"
+    ];
+    before = [
+      "network.target"
+      "bpftune.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    path = with pkgs; [
+      gawk
+      coreutils
+      iproute2
+      procps
+      gnugrep
+    ];
+    script = ''
+      set -euo pipefail
+
+      # ── 1. 读取硬件参数 ────────────────────────────────────────────
+      MEM_KB=$(awk '/^MemTotal/ {print $2}' /proc/meminfo)
+      MEM_MB=$((MEM_KB / 1024))
+      NCPU=$(nproc)
+
+      # 检测首个活跃网卡速度 (Mbps)
+      IFACE=$(ip -o link show up | awk -F': ' '!/lo/ {print $2; exit}')
+      SPEED=1000
+      if [ -n "$IFACE" ] && [ -f "/sys/class/net/$IFACE/speed" ]; then
+        SPEED=$(cat "/sys/class/net/$IFACE/speed" 2>/dev/null || echo 1000)
+        [ "$SPEED" -le 0 ] 2>/dev/null && SPEED=1000
+      fi
+
+      echo "[network-auto-tune] RAM=''${MEM_MB}MB, CPU=''${NCPU}, NIC=$IFACE@''${SPEED}Mbps"
+
+      # ── 2. BDP 计算 (假设国际线路 RTT=150ms，激进) ─────────────────
+      RTT_MS=130
+      # BDP = bandwidth(bytes/s) × RTT(s)
+      BDP=$(( SPEED * 125000 * RTT_MS / 1000 ))
+
+      # buffer 上限 = max(BDP*8, 64MB)，为了极高的峰值速率
+      # 上限为 RAM 的 50%（极其激进，网络绝对优先）
+      IDEAL=$(( BDP * 8 ))
+      MIN_BUF=67108864  # 64 MB
+      [ "$IDEAL" -lt "$MIN_BUF" ] && IDEAL=$MIN_BUF
+      MEM_LIMIT=$(( MEM_KB * 1024 / 2 ))  # 50% of RAM
+      [ "$IDEAL" -gt "$MEM_LIMIT" ] && IDEAL=$MEM_LIMIT
+      # 绝对下限 32MB
+      [ "$IDEAL" -lt 33554432 ] && IDEAL=33554432
+      MAX_BUF=$IDEAL
+
+      # ── 3. tcp_mem / udp_mem (页=4096 bytes) ──────────────────────
+      # 激进分配：最高允许 75% 内存用于网络
+      TOTAL_PAGES=$(( MEM_KB * 1024 / 4096 ))
+      TCP_MEM_LOW=$(( TOTAL_PAGES / 4 ))
+      TCP_MEM_MID=$(( TOTAL_PAGES / 2 ))
+      TCP_MEM_HIGH=$(( TOTAL_PAGES * 3 / 4 ))
+
+      # ── 4. 连接队列 — 尽量大 ──────────────────────────────────────
+      if [ "$MEM_MB" -ge 8192 ]; then
+        BACKLOG=500000; SYN_BACKLOG=524288; TW_BUCKETS=2000000; ORPHANS=131072
+      elif [ "$MEM_MB" -ge 4096 ]; then
+        BACKLOG=300000; SYN_BACKLOG=262144; TW_BUCKETS=1000000; ORPHANS=65535
+      elif [ "$MEM_MB" -ge 2048 ]; then
+        BACKLOG=200000; SYN_BACKLOG=131072; TW_BUCKETS=500000;  ORPHANS=32768
+      elif [ "$MEM_MB" -ge 1024 ]; then
+        BACKLOG=100000; SYN_BACKLOG=65536;  TW_BUCKETS=200000;  ORPHANS=16384
+      else
+        BACKLOG=50000;  SYN_BACKLOG=32768;  TW_BUCKETS=100000;  ORPHANS=8192
+      fi
+
+      # ── 5. somaxconn / file-max / nr_open ──────────────────────────
+      SOMAXCONN=65535  # 直接拉满
+      FILE_MAX=$(( MEM_MB * 2048 ))
+      [ "$FILE_MAX" -lt 262144 ] && FILE_MAX=262144
+      NR_OPEN=10485760  # 10M，保持激进
+
+      # ── 6. 额外网络加速参数 ────────────────────────────────────────
+      # optmem — 辅助选项内存
+      OPTMEM=65535
+      [ "$MEM_MB" -ge 4096 ] && OPTMEM=131072
+
+      # pipe-max-size
+      PIPE_MAX=4194304
+      [ "$MEM_MB" -ge 4096 ] && PIPE_MAX=8388608
+
+      # ── 7. Busy Polling — 牺牲少量 CPU 换低延迟 ─────────────────────
+      BUSY_POLL=50       # 微秒，非零启用 busy poll
+      BUSY_READ=50       # socket 级别 busy read
+
+      # ── 8. 写入 sysctl ────────────────────────────────────────────
+      sysctl -w \
+        net.core.rmem_max=$MAX_BUF \
+        net.core.wmem_max=$MAX_BUF \
+        net.core.rmem_default=$((MAX_BUF / 4)) \
+        net.core.wmem_default=$((MAX_BUF / 4)) \
+        net.ipv4.tcp_rmem="4096 $((MAX_BUF / 16)) $MAX_BUF" \
+        net.ipv4.tcp_wmem="4096 $((MAX_BUF / 16)) $MAX_BUF" \
+        net.ipv4.tcp_mem="$TCP_MEM_LOW $TCP_MEM_MID $TCP_MEM_HIGH" \
+        net.ipv4.udp_mem="$TCP_MEM_LOW $TCP_MEM_MID $TCP_MEM_HIGH" \
+        net.core.netdev_max_backlog=$BACKLOG \
+        net.core.optmem_max=$OPTMEM \
+        net.ipv4.tcp_max_syn_backlog=$SYN_BACKLOG \
+        net.ipv4.tcp_max_tw_buckets=$TW_BUCKETS \
+        net.ipv4.tcp_max_orphans=$ORPHANS \
+        net.core.somaxconn=$SOMAXCONN \
+        fs.file-max=$FILE_MAX \
+        fs.nr_open=$NR_OPEN \
+        fs.pipe-max-size=$PIPE_MAX \
+        net.core.busy_poll=$BUSY_POLL \
+        net.core.busy_read=$BUSY_READ \
+        net.ipv4.udp_rmem_min=8192 \
+        net.ipv4.udp_wmem_min=8192 \
+        net.ipv4.tcp_slow_start_after_idle=0
+
+      echo "[network-auto-tune] Applied sysctl: MAX_BUF=''${MAX_BUF} BACKLOG=''${BACKLOG} TCP_MEM=''${TCP_MEM_LOW}/''${TCP_MEM_MID}/''${TCP_MEM_HIGH} BUSY_POLL=''${BUSY_POLL}us"
+
+      # ── 9. 激进起步：倍增初始拥塞窗口 (initcwnd) ────────────────────
+      # 默认 initcwnd 是 10，这里直接拉到 100，让大文件下载起速极快
+      # 获取物理网卡的默认路由，避免修改 docker/wireguard 路由
+      DEF_ROUTE=$(ip -4 route show default dev "$IFACE" 2>/dev/null || true)
+      if [ -n "$DEF_ROUTE" ] && ! echo "$DEF_ROUTE" | grep -q "initcwnd"; then
+        ip route change $DEF_ROUTE initcwnd 100 initrwnd 100 || true
+        echo "[network-auto-tune] Set initcwnd=100 initrwnd=100 on $IFACE default route"
+      fi
+
+      DEF_ROUTE6=$(ip -6 route show default dev "$IFACE" 2>/dev/null || true)
+      if [ -n "$DEF_ROUTE6" ] && ! echo "$DEF_ROUTE6" | grep -q "initcwnd"; then
+        ip -6 route change $DEF_ROUTE6 initcwnd 100 initrwnd 100 || true
+      fi
+    '';
+  };
+}

@@ -58,7 +58,7 @@ in
 
       boot.enableContainers = lib.mkForce false;
       security.rtkit.enable = lib.mkForce false;
-      services.bpftune.enable = lib.mkForce false;
+      # bpftune 保持启用 — 开销仅 2-3MB，低配机器更需要动态调优防 OOM
 
       # 允许在使用 minimal 模式时禁用用户的默认 Shell
       users.users.tippy.ignoreShellProgramCheck = true;

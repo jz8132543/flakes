@@ -5,6 +5,9 @@
   ...
 }:
 {
+  imports = [
+    ./network-auto-tune.nix
+  ];
   time.timeZone = "Asia/Shanghai";
   time.hardwareClockInLocalTime = true;
 
@@ -22,6 +25,7 @@
   security.rtkit.enable = true;
   services.dbus.implementation = "broker";
   services.bpftune.enable = true;
+  services.irqbalance.enable = true;
   services.earlyoom.enable = true;
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;

@@ -20,7 +20,7 @@
       Restart = "on-failure";
       RestartSec = "5s";
       # realm reads all *.toml files in a directory when given a directory path
-      ExecStart = "${pkgs.realm-latest}/bin/realm -n 1048576 -p 256 -c /etc/realm/config.toml";
+      ExecStart = "${pkgs.realm-latest}/bin/realm -n 500000 -p 256 -c /etc/realm/config.toml";
       # Security hardening
       # User = "realm";
       # Group = "realm";
