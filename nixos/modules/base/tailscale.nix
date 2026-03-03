@@ -1,4 +1,5 @@
 {
+  lib,
   config,
   pkgs,
   nixosModules,
@@ -10,7 +11,7 @@ in
 {
   imports = [ nixosModules.services.restic ];
   services.tailscale = {
-    enable = true;
+    enable = lib.mkDefault true;
     openFirewall = true;
     useRoutingFeatures = "both";
     extraSetFlags = [ "--netfilter-mode=nodivert" ];
@@ -34,6 +35,7 @@ in
   sops.secrets.tailscale_preauth_key = { };
 
   systemd.services.tailscale-setup = {
+    enable = lib.mkDefault true;
     description = "Tailscale automatic login";
     after = [
       "tailscaled.service"
@@ -59,8 +61,10 @@ in
 
       echo "Tailscale not authenticated (state: $status), logging in..."
       tailscale up \
+        --reset \
         --login-server https://ts.${config.networking.domain} \
-        --auth-key "file:${config.sops.secrets.tailscale_preauth_key.path}"
+        --auth-key "file:${config.sops.secrets.tailscale_preauth_key.path}" \
+        ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags}
     '';
     serviceConfig = {
       Type = "oneshot";

@@ -25,7 +25,9 @@
       #   -p 1024     : pipe 容量 = 1024 页 × 4096B = 4MB/连接，覆盖 30% BDP，
       #                 减少 splice() 系统调用次数，降低单核 CPU 负载；
       #                 2GB RAM 下建议不超过 2048（避免大量连接耗尽内存）。
-      ExecStart = "${pkgs.realm-latest}/bin/realm -n 1048576 -p 1024 -c /etc/realm/config.toml";
+      # ExecStart = "${pkgs.realm-latest}/bin/realm -n 500000 -p 1024 -c /etc/realm/config.toml";
+      ExecStart = "${pkgs.realm-latest}/bin/realm -c /etc/realm/config.toml";
+      LimitNOFILE = 1048576;
       # Security hardening
       # User = "realm";
       # Group = "realm";

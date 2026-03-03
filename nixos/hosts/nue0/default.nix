@@ -6,7 +6,6 @@
     ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.network
       nixosModules.services.traefik
       nixosModules.services.dev
       nixosModules.services.doraim

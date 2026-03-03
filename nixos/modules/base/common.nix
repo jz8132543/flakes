@@ -25,7 +25,7 @@
   boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
   security.rtkit.enable = true;
   services.dbus.implementation = "broker";
-  services.bpftune.enable = true;
+  services.bpftune.enable = false;
   services.irqbalance.enable = true;
   services.earlyoom.enable = true;
   boot.kernel.sysctl = {

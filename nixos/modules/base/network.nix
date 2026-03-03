@@ -1,204 +1,390 @@
-{ lib, ... }:
 {
-  networking = {
-    nftables.enable = true;
-    firewall.enable = true;
-    nameservers = lib.mkDefault [
-      "1.1.1.1"
-      "1.0.0.1"
-      "223.5.5.5"
-    ];
-    domain = "dora.im";
-    search = [ "dora.im" ];
-    # search = ["ts.dora.im" "users.dora.im"];
-    dhcpcd.extraConfig = "nohook resolv.conf";
-    # networkmanager.dns = lib.mkDefault "none";
+  lib,
+  config,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.environment.networkTune;
+
+  # ── 辅助：整数 clamp ────────────────────────────────────────────────
+  clamp =
+    lo: hi: v:
+    if v < lo then
+      lo
+    else if v > hi then
+      hi
+    else
+      v;
+
+  # ── 核心：BDP（带宽延迟积）──────────────────────────────────────────
+  bdp = cfg.bandwidth * cfg.rtt * 125;
+
+  # ── Socket 缓冲区上限 (rmem_max / wmem_max) ─────────────────────────
+  rmem_max_raw = bdp * 2;
+  rmem_max_pct = cfg.ram * 131072; # 12.5% of RAM in bytes
+  rmem_max_limit = 128 * 1024 * 1024; # 128 MB absolute ceiling
+  rmem_max = clamp (16 * 1024 * 1024) rmem_max_limit (
+    if rmem_max_raw < rmem_max_pct then rmem_max_raw else rmem_max_pct
+  );
+
+  # ── 默认缓冲区 (rmem_default / wmem_default) ─────────────────────────
+  rmem_default_raw = bdp / 2;
+  rmem_default = clamp (4 * 1024 * 1024) (rmem_max / 2) rmem_default_raw;
+
+  # ── 待发送队列唤醒下限 (tcp_notsent_lowat) ──────────────────────────
+  notsent_lowat_raw = bdp / 4;
+  notsent_lowat = if notsent_lowat_raw < 2097152 then 2097152 else notsent_lowat_raw;
+
+  # ── TCP/UDP 全局内存池（单位：页，1 页 = 4096 B）──────────────────
+  tcp_mem_low = cfg.ram * 256 * 15 / 100; # = ram * 38
+  tcp_mem_mid = cfg.ram * 256 * 30 / 100; # = ram * 77
+  tcp_mem_high_raw = cfg.ram * 256 * 50 / 100; # = ram * 128
+  tcp_mem_high_bw = rmem_max * 64 / 4096; # 64× max-conn cap in pages
+  tcp_mem_high = if tcp_mem_high_raw < tcp_mem_high_bw then tcp_mem_high_raw else tcp_mem_high_bw;
+  udp_mem_low = tcp_mem_low / 2;
+  udp_mem_mid = tcp_mem_mid / 2;
+  udp_mem_high = tcp_mem_high / 2;
+
+  # ── 连接队列 ────────────────────────────────────────────────────────
+  netdev_backlog =
+    if cfg.bandwidth >= 5000 then
+      500000
+    else if cfg.bandwidth >= 2000 then
+      300000
+    else if cfg.bandwidth >= 1000 then
+      100000
+    else
+      50000;
+
+  syn_backlog =
+    if cfg.ram >= 8192 then
+      524288
+    else if cfg.ram >= 4096 then
+      262144
+    else if cfg.ram >= 2048 then
+      131072
+    else if cfg.ram >= 1024 then
+      65536
+    else
+      32768;
+
+  tw_buckets =
+    if cfg.ram >= 8192 then
+      2000000
+    else if cfg.ram >= 4096 then
+      1000000
+    else if cfg.ram >= 2048 then
+      500000
+    else if cfg.ram >= 1024 then
+      200000
+    else
+      100000;
+
+  max_orphans =
+    if cfg.ram >= 8192 then
+      131072
+    else if cfg.ram >= 2048 then
+      65536
+    else if cfg.ram >= 1024 then
+      32768
+    else
+      16384;
+
+  # ── 文件描述符 & 管道 ───────────────────────────────────────────────
+  file_max =
+    if cfg.ram >= 8192 then
+      2097152
+    else if cfg.ram >= 2048 then
+      1048576
+    else
+      524288;
+
+  pipe_max = if cfg.ram >= 4096 then 8388608 else 4194304;
+
+  # ── CPU 专项：NAPI 批处理 ────────────────────────────────────────────
+  napi_budget =
+    if cfg.cpus == 1 then
+      1200
+    else if cfg.cpus <= 4 then
+      2000
+    else
+      3000;
+
+  dev_weight = if cfg.cpus == 1 then 128 else 256;
+
+  busy_poll = 0;
+
+  # ── nf_conntrack ────────────────────────────────────────────────────
+  conntrack_raw = cfg.ram * 1048576 * 5 / 100 / 300;
+  conntrack_max = clamp 65536 2097152 conntrack_raw;
+
+  # ── 重试次数 ────────────────────────────────────────────────────────
+  syn_retries =
+    if cfg.highLoss && cfg.cpus == 1 then
+      3
+    else if cfg.highLoss then
+      4
+    else
+      6;
+
+  synack_retries = if cfg.highLoss then 3 else 5;
+  tcp_retries2 = if cfg.cpus == 1 && cfg.ram < 1024 then 6 else 8;
+
+  # ── 内存/Swap ────────────────────────────────────────────────────────
+  vm_swappiness = if cfg.ram >= 8192 then 5 else 10;
+
+in
+{
+  options.environment.networkTune = {
+    enable = (lib.mkEnableOption "hardware-aware network sysctl tuning") // {
+      default = true;
+    };
+
+    bandwidth = lib.mkOption {
+      type = lib.types.int;
+      default = 1000;
+      description = "单向目标带宽（Mbps）。";
+    };
+
+    rtt = lib.mkOption {
+      type = lib.types.int;
+      default = 200;
+      description = "主要流量路径的预期 RTT（毫秒）。";
+    };
+
+    ram = lib.mkOption {
+      type = lib.types.int;
+      default = 1024;
+      description = "可用物理内存（MB）。";
+    };
+
+    cpus = lib.mkOption {
+      type = lib.types.int;
+      default = 1;
+      description = "CPU 核心/线程数。";
+    };
+
+    highLoss = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "是否针对高丢包国际链路优化。";
+    };
   };
 
-  boot = {
-    kernel = {
-      sysctl = {
-        # ── 拥塞控制 & 发包队列 ──────────────────────────────────────────
-        # FQ（Fair Queue）：按流独立排队，防止大流占满队列头阻塞小流，BBR 的标准搭档
+  config = lib.mkMerge [
+    {
+      networking = {
+        nftables.enable = true;
+        firewall.enable = true;
+        nameservers = lib.mkDefault [
+          "1.1.1.1"
+          "1.0.0.1"
+          "223.5.5.5"
+        ];
+        domain = "dora.im";
+        search = [ "dora.im" ];
+        dhcpcd.extraConfig = "nohook resolv.conf";
+      };
+
+      environment.etc."gai.conf".text = ''
+        label  ::1/128       0
+        label  ::/0          1
+        label  2002::/16     2
+        label ::/96          3
+        label ::ffff:0:0/96  4
+        precedence  ::1/128       50
+        precedence  ::/0          40
+        precedence  2002::/16     30
+        precedence ::/96          20
+        precedence ::ffff:0:0/96  100
+      '';
+
+      # ── 全局始终生效的静态参数 ──────────────────────────────
+      boot.kernel.sysctl = {
         "net.core.default_qdisc" = "fq";
-        # BBR：基于带宽+RTT 建速率模型，不依赖丢包信号，高延迟/高丢包下远优于 CUBIC
         "net.ipv4.tcp_congestion_control" = "bbr";
 
-        # ── Socket 缓冲区 ─────────────────────────────────────────────────
-        # 设计依据（RTT=150ms，目标 2.5 Gbps 单向）：
-        #   单连接 BDP = 2500 × 125000 × 0.150 = 46,875,000 B ≈ 44.7 MB
-        #   rmem_max = 128 MB ≈ 2.7×BDP，覆盖 CUBIC 对端（需 2×BDP）及多流场景
-        #   rmem_default = 8 MB：高速连接快速起步，内核自动扩张到实际所需
-        # Socket 接收/发送缓冲区单连接上限（128 MB 支撑 2.5Gbps×150ms BDP 2.7 倍余量）
-        "net.core.rmem_max" = 134217728; # 128 MB
-        "net.core.wmem_max" = 134217728; # 128 MB
-        # 新连接默认缓冲（8 MB：高速线路快速起步，远大于低配机的 256KB）
-        "net.core.rmem_default" = 8388608; # 8 MB
-        "net.core.wmem_default" = 8388608; # 8 MB
-        # TCP 三档缓冲（min / init / max）：init=8MB，高速连接无需冷启动等待
-        "net.ipv4.tcp_rmem" = "4096 8388608 134217728";
-        "net.ipv4.tcp_wmem" = "4096 8388608 134217728";
-        # 限制单连接待发送队列深度，防大流饿死其他流（256KB 足够多Gbps场景）
-        "net.ipv4.tcp_notsent_lowat" = 262144; # 256 KB
-        # UDP 最小保证（WireGuard/QUIC），不被内存压力压缩
-        "net.ipv4.udp_rmem_min" = 16384;
-        "net.ipv4.udp_wmem_min" = 16384;
-        # 允许内核根据实际吞吐自动缩减 TCP 接收缓冲，低速连接节省内存
         "net.ipv4.tcp_moderate_rcvbuf" = 1;
-        # 接收窗口缩放因子：值为 2 时应用缓冲占 1/4，内核协议栈占 3/4，通告窗口更激进
         "net.ipv4.tcp_adv_win_scale" = 2;
-        # 允许接收窗口超过 64 KB，高带宽高延迟（BDP 大）场景下必须开启
         "net.ipv4.tcp_window_scaling" = 1;
 
-        # ── TCP/UDP 全局内存池（页 = 4096 B）──────────────────────────────
-        # !! 原注释中 134217728 若作为页数 = 512 GB，是错误的（应为字节）
-        # 正确做法：以页数为单位，假设机器 ≥ 16GB RAM，分配约 30% 给 TCP
-        # LOW = 524288 页 = 2 GB  → 低于此内核不限速
-        # MID = 786432 页 = 3 GB  → 开始内存压力回收
-        # HIGH = 1048576 页 = 4 GB → 硬上限（≈ 16GB RAM 的 25%）
-        # 如果机器 RAM > 32GB，可按比例翻倍（mkForce 在 host 级覆盖即可）
-        "net.ipv4.tcp_mem" = "524288 786432 1048576";
-        # UDP 池约为 TCP 的一半
-        "net.ipv4.udp_mem" = "262144 393216 524288";
-
-        # ── 文件描述符 ────────────────────────────────────────────────────
-        "fs.file-max" = 2097152; # 2M fd（大型代理/容器场景）
-        "fs.nr_open" = 10485760; # 10M（单进程上限）
-        "fs.pipe-max-size" = 8388608; # 8 MB（大管道加速数据中转）
-
-        # ── 连接队列容量 ──────────────────────────────────────────────────
-        # NIC 入口环形队列：10Gbps 级 NIC 需要深队列防突发丢包
-        "net.core.netdev_max_backlog" = 300000;
-        # SYN 半连接队列：大型代理服务器高并发新建
-        "net.ipv4.tcp_max_syn_backlog" = 524288;
-        # listen() 全连接队列上限（内核硬限）
-        "net.core.somaxconn" = 65535;
-        # TIME-WAIT 上限：高频短连接场景防连接表耗尽
-        "net.ipv4.tcp_max_tw_buckets" = 2000000;
-        # 孤儿连接上限（每条约占 4KB 内核内存）
-        "net.ipv4.tcp_max_orphans" = 131072;
-
-        # ── 软中断（NAPI）批处理 ──────────────────────────────────────────
-        # 多核机器每核软中断处理量，2.5Gbps+ 需要更大批次减少切换开销
-        "net.core.netdev_budget" = 1000;
-        "net.core.netdev_budget_usecs" = 8000; # 8ms 时间窗（默认 2ms）
-        "net.core.dev_weight" = 128;
-
-        # ── 辅助选项内存 ──────────────────────────────────────────────────
-        # 多核机器可以给更大的 cmsg/ancdata 缓冲
-        "net.core.optmem_max" = 131072; # 128 KB
-
-        # ── nf_conntrack：大机器可以给更大表 ─────────────────────────────
-        # 每条约 300B；1048576 × 300B ≈ 300MB（对 ≥32GB 机器可接受）
-        # 代理 10000 并发 × 4 方向 = 40000 条目，1048576 有 26× 余量
-        "net.netfilter.nf_conntrack_max" = 1048576;
-        # established 超时缩短：代理连接不会空闲 5 天
-        "net.netfilter.nf_conntrack_tcp_timeout_established" = 3600;
-        # 关闭状态超时缩短：加速条目回收
-        "net.netfilter.nf_conntrack_tcp_timeout_time_wait" = 15;
-        "net.netfilter.nf_conntrack_tcp_timeout_fin_wait" = 15;
-        "net.netfilter.nf_conntrack_tcp_timeout_close_wait" = 15;
-        "net.netfilter.nf_conntrack_tcp_timeout_close" = 5;
-
-        # ── 握手 & 连接复用 ───────────────────────────────────────────────
-        # TCP Fast Open：在我们的代理场景是负优化（SYN 携带数据容易被流量识别），显式禁用
-        # "net.ipv4.tcp_fastopen" = 3;   ← 保持注释
-        # 作为客户端时复用 TIME-WAIT 连接用于新出向连接，减少端口耗尽
         "net.ipv4.tcp_tw_reuse" = 1;
-        # RFC1337 保护：忽略 TIME-WAIT 期间收到的 RST，防伪造 RST 提前终止连接
         "net.ipv4.tcp_rfc1337" = 1;
-        # SYN Cookie：SYN 队列满时用加密 cookie 代替表项，仍能接受合法连接
         "net.ipv4.tcp_syncookies" = 1;
-        # 出向临时端口范围，决定单机并发出向连接上限
         "net.ipv4.ip_local_port_range" = "1024 65535";
 
-        # ── SYN/孤儿重试次数 ──────────────────────────────────────────────
-        # SYN 重试次数：默认 6（约 127s），高延迟高丢包线路 4 次（约 31s）足够
-        # 比 minimal 的 3 次略宽松，适合大机器承接更多入向新连接尝试
-        "net.ipv4.tcp_syn_retries" = 4;
-        # SYNACK 重试次数：默认 5（约 190s），3 次（约 46s）更快释放半连接
-        "net.ipv4.tcp_synack_retries" = 3;
-        # 孤儿连接重试：默认 0→内核映射为 8，显式设 2 加快孤儿释放（4KB/条内核内存）
-        "net.ipv4.tcp_orphan_retries" = 2;
-
-        # ── Busy Polling（吞吐场景明确禁用）─────────────────────────────
-        # 代理/转发场景目标是最大吞吐而非极低延迟，busy poll 浪费 CPU 周期
-        # 如果此机器同时承担低延迟实时业务（trading 等），可改为 10-50µs
-        "net.core.busy_poll" = 0;
-        "net.core.busy_read" = 0;
-
-        # ── 内存/Swap 亲和性 ──────────────────────────────────────────────
-        # 高性能机器 RAM 充裕，几乎不走 swap；Swap I/O 会增加网络处理抖动
-        "vm.swappiness" = 5;
-
-        # ── Keepalive & 超时 ──────────────────────────────────────────────
-        # 连接空闲 60s 后开始发 keepalive 探测（默认 7200s），快速发现断线
         "net.ipv4.tcp_keepalive_time" = 60;
-        # 两次 keepalive 探测间隔
         "net.ipv4.tcp_keepalive_intvl" = 10;
-        # 连续失败 6 次（共 60s）后判定连接断开
         "net.ipv4.tcp_keepalive_probes" = 6;
-        # FIN-WAIT-2 超时（默认 60s），主动关闭方等待对端 FIN 的时长
         "net.ipv4.tcp_fin_timeout" = 10;
 
-        # ── 高延迟 / 高丢包线路专项 ──────────────────────────────────────
-        # SACK（选择确认）：丢包时只重传缺失的段，高丢包线路带宽利用率大幅提升
+        # ── 针对高丢包极瘦流（Thin Streams）机制 ──────────────────────
+        # 对于代理类的长连接且偶尔发几个包的“瘦流”，遇到丢包时不要指数级后退超时，
+        # 而是线性重试。这能大幅降低操作卡顿感（例如 SSH / 网页零星请求）。
+        "net.ipv4.tcp_thin_linear_timeouts" = 1;
+
         "net.ipv4.tcp_sack" = 1;
-        # 时间戳：精确测量 RTT（BBR 重度依赖），同时启用 PAWS 防旧重复包
         "net.ipv4.tcp_timestamps" = 1;
-        # 加速 SACK 处理：关闭选择性确认的延迟合并，让网卡接收到失序确认时立即被处理
-        "net.ipv4.tcp_comp_sack_delay_ns" = 0;
-        # 显式拥塞通知 (ECN)：1 表示全面开启，配合 BBR 可有效降低抖动
+
+        # ── 显式定义内核默认值（不依赖隐式默认） ───────────────────────
+        # TCP Fast Open: 国内代理场景禁用 (0)，带数据的 SYN 包极易被墙或运营商丢弃/重置拖累速度
+        "net.ipv4.tcp_fastopen" = 0;
+        # 加速 SACK 处理：高延迟高丢包线路必须保留延迟合并（默认 1ms = 1000000 ns），
+        # 否则会引发单核 CPU 100% 的 SACK 风暴。千万不能设为 0。
+        "net.ipv4.tcp_comp_sack_delay_ns" = 1000000;
+
         "net.ipv4.tcp_ecn" = 1;
-        # ECN 回退：保持开启，兼容不支持 ECN 的链路
         "net.ipv4.tcp_ecn_fallback" = 1;
-        # 尾部丢包探测 (TLP)：4 为激进策略，比旧版更加先进，更快地在丢包时补发数据
         "net.ipv4.tcp_early_retrans" = 4;
-        # F-RTO：处理超时伪重传，保持 2 (现代内核默认)
         "net.ipv4.tcp_frto" = 2;
-        # 乱序重排：在容易乱序的高丢包网络下极大减少误判重传，设置为高乱序容忍 300
         "net.ipv4.tcp_reordering" = 300;
         "net.ipv4.tcp_max_reordering" = 300;
-        # 不缓存历史路由指标（RTT/cwnd）：线路质量波动大时旧指标会误导新连接速率
         "net.ipv4.tcp_no_metrics_save" = 1;
-        # 路径 MTU 探测：1=检测到黑洞后触发，GFW 屏蔽 ICMP 时自动恢复大包传输
+
+        # ── MTU / 分片究极防御 (MSS Clamping) ──────────────────────────
+        # ── MTU / 分片究极防御 (动态与内核探测结合) ───────────────────────
+        # 恢复内核智能的 PLPMTUD (Packetization Layer PMTU Discovery, 靠 TCP 超时重传检测 MTU)
+        # 不再写死 1360，由下面的 systemd 启动脚本结合物理探测下发最优雅的初始 advmss。
         "net.ipv4.tcp_mtu_probing" = 1;
-        # 空闲后不降速重新慢启动，代理/长连接恢复发送时维持原拥塞窗口
+
         "net.ipv4.tcp_slow_start_after_idle" = 0;
-        # 开启 RACK 丢失检测算法
-        "net.ipv4.tcp_recovery" = 1;
+
+        # ── 丢包容忍度极限放大 ─────────────────────────────────────────
+        # tcp_recovery: 默认 1（只用 RACK）。
+        # 改为 3（RACK + 开启尾部丢包的快速探测与恢复 TLP）。
+        # 这意味着在遇到极高丢包时，内核敢于在连 ACK 都没收到的情况下，“盲猜”并暴力重传，
+        # 让 BBR 算法在恶劣网络下表现得像 UDP 一样不屈不挠，极大增强抗压能力。
+        "net.ipv4.tcp_recovery" = 3;
+
         # TCP 重传折叠：保持开启
         "net.ipv4.tcp_retrans_collapse" = 1;
 
-        # ── 故障响应 & 多路径 ─────────────────────────────────────────────
-        # 缩短僵死连接的存活时间，从 12 降低到 8（约不到 1 分钟即可判定断线），加速代理重连
-        "net.ipv4.tcp_retries2" = 8;
+        # ── 暴力提速机制（极限 BBR / PAWS） ──────────────────────────────
+        # 让 BBR 探测周期更短，更暴力占据带宽（如果支持 tcp_bbr 模块参数）
+        # FQ Pacing：放开 BBR 依赖的 FQ 发包速率硬上限，防止被网卡 qdisc 截流
+        "net.core.netdev_tstamp_prequeue" = 0;
+        # 禁用 tcp_autocorking，发送端绝不等待攒包，只要应用层推数据立刻打头发送（降延迟，提初速）
+        "net.ipv4.tcp_autocorking" = 0;
+        # 即使网卡支持 TSO，也交给内核拆包，提升小包乱序时的响应平滑度
+        "net.ipv4.tcp_tso_win_divisor" = 3;
 
-        # 多路径 TCP (MPTCP) 支持 (如果内核支持)
         "net.mptcp.enabled" = 1;
-        "net.mptcp.checksum_enabled" = 0; # 关闭MPTCP附加校验和以节省 CPU
-        "net.netfilter.nf_conntrack_checksum" = 0; # 关闭 netfilter 的校验和验证以节省 CPU
+        "net.mptcp.checksum_enabled" = 0;
+        "net.netfilter.nf_conntrack_checksum" = 0;
         "net.mptcp.scheduler" = "default";
 
-        # ── 转发（Tailscale / 容器）──────────────────────────────────────
-        # 允许内核在不同接口间转发 IPv4 数据包，Tailscale 子网路由必须
         "net.ipv4.ip_forward" = 1;
-        # IPv6 转发，同上
         "net.ipv6.conf.all.forwarding" = 1;
       };
-    };
-  };
-  # IPv4 first
-  environment.etc."gai.conf".text = ''
-    label  ::1/128       0
-    label  ::/0          1
-    label  2002::/16     2
-    label ::/96          3
-    label ::ffff:0:0/96  4
-    precedence  ::1/128       50
-    precedence  ::/0          40
-    precedence  2002::/16     30
-    precedence ::/96          20
-    precedence ::ffff:0:0/96  100 # increase the precedence of ipv4 addresses
-  '';
+    }
+
+    # ── 启用 tuner 时应用的动态参数 ──────────────────────────────
+    (lib.mkIf cfg.enable {
+      boot.kernel.sysctl = {
+        "net.core.rmem_max" = rmem_max;
+        "net.core.wmem_max" = rmem_max;
+        "net.core.rmem_default" = rmem_default;
+        "net.core.wmem_default" = rmem_default;
+        "net.ipv4.tcp_rmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
+        "net.ipv4.tcp_wmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
+        "net.ipv4.tcp_notsent_lowat" = notsent_lowat;
+        "net.ipv4.udp_rmem_min" = 16384;
+        "net.ipv4.udp_wmem_min" = 16384;
+
+        "net.ipv4.tcp_mem" = "${toString tcp_mem_low} ${toString tcp_mem_mid} ${toString tcp_mem_high}";
+        "net.ipv4.udp_mem" = "${toString udp_mem_low} ${toString udp_mem_mid} ${toString udp_mem_high}";
+
+        "fs.file-max" = file_max;
+        "fs.nr_open" = 10485760;
+        "fs.pipe-max-size" = pipe_max;
+
+        "net.core.netdev_max_backlog" = netdev_backlog;
+        "net.ipv4.tcp_max_syn_backlog" = syn_backlog;
+        "net.core.somaxconn" = 65535;
+        "net.ipv4.tcp_max_tw_buckets" = tw_buckets;
+        "net.ipv4.tcp_max_orphans" = max_orphans;
+
+        "net.core.netdev_budget" = napi_budget;
+        "net.core.netdev_budget_usecs" = 8000;
+        "net.core.dev_weight" = dev_weight;
+        "net.core.busy_poll" = busy_poll;
+        "net.core.busy_read" = busy_poll;
+
+        "net.core.optmem_max" = if cfg.cpus > 1 then 131072 else 65536;
+
+        "net.netfilter.nf_conntrack_max" = conntrack_max;
+        "net.netfilter.nf_conntrack_tcp_timeout_established" = 3600;
+        "net.netfilter.nf_conntrack_tcp_timeout_time_wait" = 10;
+        "net.netfilter.nf_conntrack_tcp_timeout_fin_wait" = 10;
+        "net.netfilter.nf_conntrack_tcp_timeout_close_wait" = 10;
+        "net.netfilter.nf_conntrack_tcp_timeout_close" = 5;
+
+        "net.ipv4.tcp_syn_retries" = syn_retries;
+        "net.ipv4.tcp_synack_retries" = synack_retries;
+        "net.ipv4.tcp_orphan_retries" = 2;
+        "net.ipv4.tcp_retries2" = tcp_retries2;
+
+        "vm.swappiness" = vm_swappiness;
+      };
+
+      systemd.services.set-initcwnd = {
+        description = "Set TCP initcwnd/initrwnd=150 and dynamic MSS on default routes";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+
+        # Oneshot 服务不支持 reload，必须通过 restartTriggers 强制 NixOS 重启它
+        restartTriggers = [
+          (builtins.hashString "sha256" config.systemd.services.set-initcwnd.script)
+        ];
+
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = with pkgs; [
+          iproute2
+          gawk
+        ];
+        script = ''
+          # 动态探测最佳出口接口和网关
+          TARGET="1.1.1.1"
+          GW_INFO=$(ip -4 route get $TARGET 2>/dev/null | head -n 1)
+          IFACE=$(echo "$GW_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
+          [ -z "$IFACE" ] && exit 0
+
+          # 动态脚本测试探测真实可用 MTU (防分片 / 黑洞)
+          BEST_PAYLOAD=1472
+          for size in $(seq 1472 -10 1200); do
+            if ping -I "$IFACE" -c 1 -M do -s $size -W 1 $TARGET >/dev/null 2>&1; then
+              BEST_PAYLOAD=$size
+              break
+            fi
+          done
+          # IPv4 TCP MSS = MTU - 40 = Ping Payload - 12
+          MSS=$((BEST_PAYLOAD - 12))
+
+          # 获取默认路由的完整原始项
+          DEF4=$(ip -4 route show default dev "$IFACE" | head -n 1)
+          if [ -n "$DEF4" ]; then
+            # 使用 change 之前先确保我们没有重复的核心参数
+            ip route change $DEF4 initcwnd 150 initrwnd 150 advmss $MSS || true
+          fi
+
+          # IPv6 探测
+          TARGET6="2606:4700:4700::1111"
+          GW6_INFO=$(ip -6 route get $TARGET6 2>/dev/null | head -n 1)
+          IFACE6=$(echo "$GW6_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
+          if [ -n "$IFACE6" ]; then
+            MSS6=$((MSS - 20))
+            DEF6=$(ip -6 route show default dev "$IFACE6" | head -n 1)
+            [ -n "$DEF6" ] && ip -6 route change $DEF6 initcwnd 150 initrwnd 150 advmss $MSS6 || true
+          fi
+
+          echo "[set-initcwnd] Evaluated dynamic MSS=$MSS on $IFACE. Applied initcwnd=150 initrwnd=150."
+        '';
+      };
+    })
+  ];
 }

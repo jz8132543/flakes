@@ -12,11 +12,50 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.optimize.network
       nixosModules.services.traefik
       nixosModules.services.derp
-      nixosModules.services.realm
+      nixosModules.services.kernel-relay
     ];
+
+  services.kernel-relay = {
+    enable = true;
+    dnsInterval = "3min";
+    enableFlowtable = true;
+    ipFamily = "ipv4";
+    mappings = [
+      {
+        listenPort = 50561;
+        remoteAddr = "nue0.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50562;
+        remoteAddr = "hkg4.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50563;
+        remoteAddr = "tyo0.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50564;
+        remoteAddr = "hkg5.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50565;
+        remoteAddr = "82.40.41.218";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50566;
+        remoteAddr = "2a13:edc0:24:1d5::a";
+        remotePort = 8555;
+        ipFamily = "ipv6";
+      }
+    ];
+  };
 
   services.openssh.ports = [
     config.ports.ssh
@@ -41,8 +80,8 @@
     virt-what
     xz # 解压 .tar.xz 格式的系统镜像
   ];
-  networking.firewall.allowedTCPPorts = lib.range 50560 50569;
-  networking.firewall.allowedUDPPorts = lib.range 50560 50569;
+  # networking.firewall.allowedTCPPorts = lib.range 50560 50569;
+  # networking.firewall.allowedUDPPorts = lib.range 50560 50569;
 
   environment.networkTune = {
     enable = true;
@@ -52,4 +91,7 @@
     cpus = 1; # vCPU 数
     highLoss = true; # 高丢包国际线路
   };
+  services.tailscale.enable = lib.mkForce true;
+  systemd.services.tailscale-setup.enable = lib.mkForce true;
+
 }

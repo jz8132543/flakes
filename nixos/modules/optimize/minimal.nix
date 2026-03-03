@@ -59,8 +59,8 @@ in
       boot.enableContainers = lib.mkForce false;
       security.rtkit.enable = lib.mkForce false;
       zramSwap.enable = lib.mkForce false;
-      services.tailscale.enable = lib.mkForce false;
-      systemd.services.tailscale-setup.enable = lib.mkForce false;
+      services.tailscale.enable = false;
+      systemd.services.tailscale-setup.enable = false;
 
       # 限制 Journald 内存占用
       services.journald.extraConfig = lib.mkForce ''
@@ -77,7 +77,7 @@ in
       services.bpftune.enable = lib.mkForce false;
       services.irqbalance.enable = lib.mkForce false;
 
-      # 网络调优（sysctl/initcwnd）已移至 nixos/modules/optimize/network.nix。
+      # 网络调优（sysctl/initcwnd）已直接合入 nixos/modules/base/network.nix 的动态配置中。
       # 在各主机的 configuration.nix 中通过 environment.networkTune 声明硬件参数，
       # 模块会在 Nix 求值时自动计算所有 sysctl 值。
     })
