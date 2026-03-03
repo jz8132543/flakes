@@ -6,8 +6,8 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.services.traefik
-      nixosModules.services.derp
+      # nixosModules.services.traefik
+      # nixosModules.services.derp
       (import nixosModules.services.xray {
       })
     ];

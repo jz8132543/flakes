@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 {
   ids.uids = {
     # human users
@@ -19,18 +19,18 @@
     nextcloud = 501;
 
     # nixflix media stack
-    jellyfin = 600;
-    jellyseerr = 601;
-    # sonarr = 602;
-    # radarr = 603;
-    # prowlarr = 604;
-    # lidarr = 605;
-    # sabnzbd = 606;
-    # recyclarr = 607;
-    qbittorrent = 608;
-    bazarr = 609;
-    autobrr = 610;
-    iyuu = 611;
+    jellyfin = lib.mkForce 600;
+    jellyseerr = lib.mkForce 601;
+    sonarr = lib.mkForce 602;
+    radarr = lib.mkForce 603;
+    prowlarr = lib.mkForce 604;
+    lidarr = lib.mkForce 605;
+    sabnzbd = lib.mkForce 606;
+    recyclarr = lib.mkForce 607;
+    qbittorrent = lib.mkForce 608;
+    bazarr = lib.mkForce 609;
+    autobrr = lib.mkForce 610;
+    iyuu = lib.mkForce 611;
   };
   ids.gids = {
     # service groups
@@ -44,18 +44,18 @@
     steam = 407;
 
     # nixflix media stack
-    media = 600;
-    jellyfin = 600;
-    jellyseerr = 601;
-    sonarr = 602;
-    radarr = 603;
-    prowlarr = 604;
-    lidarr = 605;
-    sabnzbd = 606;
-    recyclarr = 607;
-    qbittorrent = 608;
-    bazarr = 609;
-    autobrr = 610;
-    iyuu = 611;
+    media = lib.mkForce 600;
+    jellyfin = lib.mkForce 600;
+    jellyseerr = lib.mkForce 601;
+    sonarr = lib.mkForce 602;
+    radarr = lib.mkForce 603;
+    prowlarr = lib.mkForce 604;
+    lidarr = lib.mkForce 605;
+    sabnzbd = lib.mkForce 606;
+    recyclarr = lib.mkForce 607;
+    qbittorrent = lib.mkForce 608;
+    bazarr = lib.mkForce 609;
+    autobrr = lib.mkForce 610;
+    iyuu = lib.mkForce 611;
   };
 }

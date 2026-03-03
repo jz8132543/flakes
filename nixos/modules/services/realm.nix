@@ -20,7 +20,12 @@
       Restart = "on-failure";
       RestartSec = "5s";
       # realm reads all *.toml files in a directory when given a directory path
-      ExecStart = "${pkgs.realm-latest}/bin/realm -n 500000 -p 256 -c /etc/realm/config.toml";
+      # 参数说明（1C2G800M 单向：BDP = 800×125×130/1000 ≈ 13MB）：
+      #   -n 1048576  : nofile 上限 = fs.file-max，支撑大量并发连接
+      #   -p 1024     : pipe 容量 = 1024 页 × 4096B = 4MB/连接，覆盖 30% BDP，
+      #                 减少 splice() 系统调用次数，降低单核 CPU 负载；
+      #                 2GB RAM 下建议不超过 2048（避免大量连接耗尽内存）。
+      ExecStart = "${pkgs.realm-latest}/bin/realm -n 1048576 -p 1024 -c /etc/realm/config.toml";
       # Security hardening
       # User = "realm";
       # Group = "realm";

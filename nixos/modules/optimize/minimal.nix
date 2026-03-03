@@ -58,10 +58,28 @@ in
 
       boot.enableContainers = lib.mkForce false;
       security.rtkit.enable = lib.mkForce false;
-      # bpftune 保持启用 — 开销仅 2-3MB，低配机器更需要动态调优防 OOM
+      zramSwap.enable = lib.mkForce false;
+      services.tailscale.enable = lib.mkForce false;
+      systemd.services.tailscale-setup.enable = lib.mkForce false;
+
+      # 限制 Journald 内存占用
+      services.journald.extraConfig = lib.mkForce ''
+        SystemMaxUse=10M
+        RuntimeMaxUse=10M
+      '';
+
+      # 登出时杀死用户所有的后台进程 (释放 systemd --user 及残留程序大约 26MB 的内存)
+      services.logind.killUserProcesses = lib.mkForce true;
 
       # 允许在使用 minimal 模式时禁用用户的默认 Shell
       users.users.tippy.ignoreShellProgramCheck = true;
+
+      services.bpftune.enable = lib.mkForce false;
+      services.irqbalance.enable = lib.mkForce false;
+
+      # 网络调优（sysctl/initcwnd）已移至 nixos/modules/optimize/network.nix。
+      # 在各主机的 configuration.nix 中通过 environment.networkTune 声明硬件参数，
+      # 模块会在 Nix 求值时自动计算所有 sysctl 值。
     })
   ];
 }

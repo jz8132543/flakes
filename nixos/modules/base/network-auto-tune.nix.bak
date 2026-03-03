@@ -53,18 +53,18 @@
       IDEAL=$(( BDP * 8 ))
       MIN_BUF=67108864  # 64 MB
       [ "$IDEAL" -lt "$MIN_BUF" ] && IDEAL=$MIN_BUF
-      MEM_LIMIT=$(( MEM_KB * 1024 / 2 ))  # 50% of RAM
+      MEM_LIMIT=$(( MEM_KB * 1024 * 3 / 5 ))  # 60% of RAM (略微收敛)
       [ "$IDEAL" -gt "$MEM_LIMIT" ] && IDEAL=$MEM_LIMIT
       # 绝对下限 32MB
       [ "$IDEAL" -lt 33554432 ] && IDEAL=33554432
       MAX_BUF=$IDEAL
 
       # ── 3. tcp_mem / udp_mem (页=4096 bytes) ──────────────────────
-      # 激进分配：最高允许 75% 内存用于网络
+      # 分配：最高允许 80% 内存页用于网络
       TOTAL_PAGES=$(( MEM_KB * 1024 / 4096 ))
-      TCP_MEM_LOW=$(( TOTAL_PAGES / 4 ))
-      TCP_MEM_MID=$(( TOTAL_PAGES / 2 ))
-      TCP_MEM_HIGH=$(( TOTAL_PAGES * 3 / 4 ))
+      TCP_MEM_LOW=$(( TOTAL_PAGES * 4 / 10 ))
+      TCP_MEM_MID=$(( TOTAL_PAGES * 6 / 10 ))
+      TCP_MEM_HIGH=$(( TOTAL_PAGES * 8 / 10 ))
 
       # ── 4. 连接队列 — 尽量大 ──────────────────────────────────────
       if [ "$MEM_MB" -ge 8192 ]; then

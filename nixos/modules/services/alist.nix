@@ -27,8 +27,9 @@
     groups.alist = { };
   };
   systemd.tmpfiles.rules = [
+    "d '${config.users.users.alist.home}' 0777 alist alist - -"
+    "d '${config.users.users.alist.home}/temp' 0777 alist alist - -"
     "d '${config.users.users.alist.home}/temp/aria2' 0777 aria2 aria2 - -"
-    "d '${config.users.users.alist.home}/' 0777 alist alist - -"
   ];
 
   systemd.services.alist = {

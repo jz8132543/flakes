@@ -6,6 +6,7 @@
     ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.network
       nixosModules.services.traefik
       nixosModules.services.dev
       nixosModules.services.doraim
@@ -54,5 +55,13 @@
     enable = true;
     proxyHost = "shg0.mag";
     # proxyPort = 10080;
+  };
+  environment.networkTune = {
+    enable = true;
+    bandwidth = 2500; # Mbps 单向
+    rtt = 180; # ms，国际线路
+    ram = 4096; # MB，可用内存
+    cpus = 4; # vCPU 数
+    highLoss = true; # 高丢包国际线路
   };
 }

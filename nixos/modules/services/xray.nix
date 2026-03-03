@@ -5,23 +5,24 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }:
 
 let
   # 端口定义
   xrayPort = 8555;
-  destSite = "${config.networking.fqdn}:443";
-  serverName = config.networking.fqdn;
   fakeSnis = [
     "gateway.icloud.com"
-    "www.apple.com"
-    "images.apple.com"
-    "appleid.apple.com"
-    "swcdn.apple.com"
-    "speedtest.cn"
-    "speedtest.net"
+    # "www.apple.com"
+    # "images.apple.com"
+    # "appleid.apple.com"
+    # "swcdn.apple.com"
+    # "speedtest.cn"
+    # "speedtest.net"
   ];
+  serverName = builtins.head fakeSnis;
+  destSite = "${serverName}:443";
 in
 {
   sops.secrets = {
@@ -58,6 +59,17 @@ in
           "quic"
         ];
         routeOnly = true;
+      };
+
+      policy = lib.mkIf config.environment.minimal {
+        system = {
+          stats = {
+            inboundUplink = false;
+            inboundDownlink = false;
+            outboundUplink = false;
+            outboundDownlink = false;
+          };
+        };
       };
 
       inbounds = [

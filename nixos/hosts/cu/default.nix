@@ -12,6 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
+      nixosModules.optimize.network
       nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.realm
@@ -43,4 +44,12 @@
   networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   networking.firewall.allowedUDPPorts = lib.range 50560 50569;
 
+  environment.networkTune = {
+    enable = true;
+    bandwidth = 1000; # Mbps 单向，如 tyo1
+    rtt = 150; # ms，国际线路
+    ram = 2048; # MB，可用内存
+    cpus = 1; # vCPU 数
+    highLoss = true; # 高丢包国际线路
+  };
 }
