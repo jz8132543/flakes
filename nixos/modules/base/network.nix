@@ -18,7 +18,8 @@ let
       v;
 
   # ── 核心：BDP（带宽延迟积）──────────────────────────────────────────
-  bdp = cfg.bandwidth * cfg.rtt * 125;
+  # 使用 realBandwidth 来计算缓冲和窗口参数，避免基于理论上限产生溢出包风暴
+  bdp = cfg.realBandwidth * cfg.rtt * 125;
 
   # ── Socket 缓冲区上限 (rmem_max / wmem_max) ─────────────────────────
   rmem_max_raw = bdp * 2;
@@ -119,6 +120,20 @@ let
   conntrack_raw = cfg.ram * 1048576 * 5 / 100 / 300;
   conntrack_max = clamp 65536 2097152 conntrack_raw;
 
+  # ── 初期接收窗口 (initrwnd) ──────────────────────────────────────────
+  # 激进地基于 BDP 预留初始接收窗口。BDP(包数) = bdp(字节) / 1400。
+  # 我们取 BDP 的 1/4 作为起步，并限定在 150 - 1024 之间。
+  # 1024 个 MSS (约 1.4MB) 对现代内核的 initrwnd 是一个很激进但安全的上限。
+  bdp_pkts = bdp / 1400;
+  initrwnd_raw = bdp_pkts / 4;
+  initrwnd =
+    if initrwnd_raw < 150 then
+      150
+    else if initrwnd_raw > 1024 then
+      1024
+    else
+      initrwnd_raw;
+
   # ── 重试次数 ────────────────────────────────────────────────────────
   syn_retries =
     if cfg.highLoss && cfg.cpus == 1 then
@@ -144,7 +159,13 @@ in
     bandwidth = lib.mkOption {
       type = lib.types.int;
       default = 1000;
-      description = "单向目标带宽（Mbps）。";
+      description = "单向目标带宽上限（Mbps）。";
+    };
+
+    realBandwidth = lib.mkOption {
+      type = lib.types.int;
+      default = builtins.floor (cfg.bandwidth * 0.6);
+      description = "用于 BDP 和窗口计算的实际可用/持续带宽（Mbps）。默认取标称带的 60% 防止拥塞。";
     };
 
     rtt = lib.mkOption {
@@ -249,6 +270,7 @@ in
         "net.ipv4.tcp_mtu_probing" = 1;
 
         "net.ipv4.tcp_slow_start_after_idle" = 0;
+        "net.ipv4.tcp_quickack" = 0; # 高延迟线路关闭 quickack，强制合包 (Delayed ACK)
 
         # ── 丢包容忍度极限放大 ─────────────────────────────────────────
         # tcp_recovery: 默认 1（只用 RACK）。
@@ -328,6 +350,52 @@ in
         "vm.swappiness" = vm_swappiness;
       };
 
+      # 健壮的网卡卸载 (NIC Offloads) 开启服务
+      systemd.services.enable-nic-offloads = {
+        description = "Gracefully enable all possible NIC offload features (tso/gso/gro/lro/sg/rx/tx)";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+
+        restartTriggers = [
+          (builtins.hashString "sha256" config.systemd.services.enable-nic-offloads.script)
+        ];
+
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = with pkgs; [
+          iproute2
+          ethtool
+          gawk
+        ];
+        script = ''
+          # 动态探测默认出口接口
+          TARGET="1.1.1.1"
+          GW_INFO=$(ip -4 route get $TARGET 2>/dev/null | head -n 1)
+          IFACE=$(echo "$GW_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
+
+          if [ -z "$IFACE" ]; then
+            echo "No default gateway interface found. Skipping NIC offload."
+            exit 0
+          fi
+
+          echo "Found interface $IFACE. Attempting to enable offloads..."
+
+          # 逐个尝试开启，不支持的自动跳过，不影响后续
+          for feature in rx tx sg tso gso gro lro; do
+            if ethtool -K "$IFACE" "$feature" on 2>/dev/null; then
+               echo "Enabled $feature on $IFACE."
+            else
+               echo "Feature $feature not supported or failed to enable on $IFACE. Skipping."
+            fi
+          done
+
+          echo "NIC offload tuning complete."
+        '';
+      };
+
       systemd.services.set-initcwnd = {
         description = "Set TCP initcwnd/initrwnd=150 and dynamic MSS on default routes";
         after = [ "network-online.target" ];
@@ -369,7 +437,7 @@ in
           DEF4=$(ip -4 route show default dev "$IFACE" | head -n 1)
           if [ -n "$DEF4" ]; then
             # 使用 change 之前先确保我们没有重复的核心参数
-            ip route change $DEF4 initcwnd 150 initrwnd 150 advmss $MSS || true
+            ip route change $DEF4 initcwnd 150 initrwnd ${toString initrwnd} advmss $MSS || true
           fi
 
           # IPv6 探测
@@ -379,10 +447,10 @@ in
           if [ -n "$IFACE6" ]; then
             MSS6=$((MSS - 20))
             DEF6=$(ip -6 route show default dev "$IFACE6" | head -n 1)
-            [ -n "$DEF6" ] && ip -6 route change $DEF6 initcwnd 150 initrwnd 150 advmss $MSS6 || true
+            [ -n "$DEF6" ] && ip -6 route change $DEF6 initcwnd 150 initrwnd ${toString initrwnd} advmss $MSS6 || true
           fi
 
-          echo "[set-initcwnd] Evaluated dynamic MSS=$MSS on $IFACE. Applied initcwnd=150 initrwnd=150."
+          echo "[set-initcwnd] Evaluated dynamic MSS=$MSS on $IFACE. Applied initcwnd=150 initrwnd=${toString initrwnd}."
         '';
       };
     })

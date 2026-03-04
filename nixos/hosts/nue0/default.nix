@@ -58,6 +58,7 @@
   environment.networkTune = {
     enable = true;
     bandwidth = 2500; # Mbps 单向
+    realBandwidth = 2500;
     rtt = 180; # ms，国际线路
     ram = 4096; # MB，可用内存
     cpus = 4; # vCPU 数

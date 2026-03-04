@@ -113,10 +113,6 @@ let
     echo "Using network device: $DEFAULT_DEV"
     echo "Local IPv4: $LOCAL_IP4, Local IPv6: $LOCAL_IP6"
 
-    # ── 强制开启网卡卸载加速 (GSO/TSO/GRO/SG/LRO) ──────────────────
-    echo "Ensuring NIC offloads are enabled..."
-    ethtool -K "$DEFAULT_DEV" rx on tx on sg on gso on tso on gro on lro on 2>/dev/null || true
-
     # ── 极致峰值优化：系统参数微调 ──────────────────────────────
     echo "Tuning conntrack for high-speed relay..."
     sysctl -w net.netfilter.nf_conntrack_tcp_timeout_established=1200 >/dev/null || true

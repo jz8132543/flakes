@@ -86,6 +86,7 @@
   environment.networkTune = {
     enable = true;
     bandwidth = 1000; # Mbps 单向，如 tyo1
+    realBandwidth = 600;
     rtt = 150; # ms，国际线路
     ram = 2048; # MB，可用内存
     cpus = 1; # vCPU 数
@@ -93,5 +94,4 @@
   };
   services.tailscale.enable = lib.mkForce true;
   systemd.services.tailscale-setup.enable = lib.mkForce true;
-
 }

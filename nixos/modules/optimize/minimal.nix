@@ -60,7 +60,7 @@ in
       security.rtkit.enable = lib.mkForce false;
       zramSwap.enable = lib.mkForce false;
       services.tailscale.enable = false;
-      systemd.services.tailscale-setup.enable = false;
+      systemd.services.tKillUserProcessesailscale-setup.enable = false;
 
       # 限制 Journald 内存占用
       services.journald.extraConfig = lib.mkForce ''
@@ -69,7 +69,7 @@ in
       '';
 
       # 登出时杀死用户所有的后台进程 (释放 systemd --user 及残留程序大约 26MB 的内存)
-      services.logind.killUserProcesses = lib.mkForce true;
+      services.logind.settings.Login.KillUserProcesses = lib.mkForce true;
 
       # 允许在使用 minimal 模式时禁用用户的默认 Shell
       users.users.tippy.ignoreShellProgramCheck = true;
