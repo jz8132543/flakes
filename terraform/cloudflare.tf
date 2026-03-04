@@ -380,7 +380,7 @@ resource "cloudflare_dns_record" "dora_cuv6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2408:8207:25b1:2701:6666:16:3efc:9adf"
+  content = "2408:8207:25b1:2701:6666:0016:3efc:9adf"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cmv6" {
@@ -388,7 +388,7 @@ resource "cloudflare_dns_record" "dora_cmv6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2409:8a00:2640:4e01:6666:16:3efc:9adf"
+  content = "2409:8a00:2643:c551:6666:0016:3efc:9adf"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cu" {
