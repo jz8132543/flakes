@@ -81,9 +81,9 @@ fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"
 
 
-#[rime-wanxiang-base]
-#src.github = "amzxyz/rime_wanxiang"
-#fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v$ver/rime-wanxiang-base.zip"
+[rime-wanxiang-base]
+src.github = "amzxyz/rime_wanxiang"
+fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/$ver/rime-wanxiang-base.zip"
 
 [rime-wanxiang-gram]
 src.manual = "LTS"
