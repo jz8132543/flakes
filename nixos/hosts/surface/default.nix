@@ -10,6 +10,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.network-desktop
       nixosModules.services.traefik
       nixosModules.services.dev
       nixosModules.services.media.qbittorrent

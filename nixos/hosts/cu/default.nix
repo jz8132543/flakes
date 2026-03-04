@@ -18,6 +18,8 @@
       nixosModules.services.fakehttp
     ];
 
+  boot.loader.grub.device = lib.mkForce "nodev";
+
   services.kernel-relay = {
     enable = true;
     dnsInterval = "3min";
