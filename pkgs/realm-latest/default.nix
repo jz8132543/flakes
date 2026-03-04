@@ -6,6 +6,7 @@
   cmake,
   perl,
   llvmPackages,
+  ...
 }:
 rustPlatform.buildRustPackage {
   pname = "realm";

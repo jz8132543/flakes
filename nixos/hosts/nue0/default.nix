@@ -7,6 +7,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.fakehttp
       nixosModules.services.dev
       nixosModules.services.doraim
       nixosModules.services.headscale
@@ -68,5 +69,12 @@
     ram = 4096; # MB，可用内存
     cpus = 4; # vCPU 数
     highLoss = true; # 高丢包国际线路
+  };
+  services.fakehttp = {
+    enable = true;
+    # 自动利用内置的 domainPool 域名池（包括 jsinfo 等测速和视频域名）
+    # 在服务启动时生成真实 HTTP 和 TLS ClientHello 进行并发混淆
+    # cu 作为客户端主动发起的出站 TCP 流量会被混淆（如 iperf3 -c 从 cu 发起）
+    # 注：若要解除用户到 cu 的反向上传限速，需在用户侧路由器运行 FakeHTTP
   };
 }

@@ -12,6 +12,7 @@
   nexttrace,
   lib,
   bash,
+  ...
 }:
 stdenv.mkDerivation {
   inherit (source) pname version src;

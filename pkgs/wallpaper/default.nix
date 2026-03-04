@@ -1,6 +1,7 @@
 {
   fetchurl,
   stdenv,
+  ...
 }:
 stdenv.mkDerivation {
   name = "wallpaper";

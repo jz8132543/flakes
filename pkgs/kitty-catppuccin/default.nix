@@ -1,6 +1,7 @@
 {
   source,
   stdenv,
+  ...
 }:
 stdenv.mkDerivation {
   inherit (source) pname version src;

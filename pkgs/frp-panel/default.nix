@@ -1,7 +1,6 @@
 {
-  stdenv,
-  lib,
   callPackage,
+  ...
 }:
 let
   sources = callPackage ../_sources/generated.nix { };

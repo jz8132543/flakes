@@ -2,6 +2,7 @@
   stdenvNoCC,
   source,
   lib,
+  ...
 }:
 stdenvNoCC.mkDerivation {
   pname = "fakehttp";
