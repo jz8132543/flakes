@@ -218,4 +218,12 @@
       sha256 = "sha256-wkiXDN6vPFtx88krcQ4szK6dJNjtrDxrsNa3ZvHlfMQ=";
     };
   };
+  fakehttp = {
+    pname = "fakehttp";
+    version = "0.9.18";
+    src = fetchurl {
+      url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
+      sha256 = "sha256-DN3jQndYe+n/gRfmEw1duY1xa7nFiUNEC4SlJ+0dW8k=";
+    };
+  };
 }

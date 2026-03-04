@@ -244,12 +244,14 @@ in
 
     fqMaxrate = lib.mkOption {
       type = lib.types.int;
-      default = 0;
+      # 默认取 realBandwidth × 95%，主动整形略低于令牌桶上限，永不触发尾丢包。
+      # 各主机可覆盖：设为 0 关闭整形，设为具体值覆盖自动计算结果。
+      default = builtins.floor (cfg.realBandwidth * 95 / 100);
       description = ''
-        FQ 队列主动整形速率上限（Mbps）。0 表示不限制。
-        建议设为实测带宽上限的 95%，例如 1Gbps 链路设为 950。
+        FQ 队列主动整形速率上限（Mbps）。
+        默认自动取 realBandwidth × 95%。设为 0 则关闭整形。
         原理：主动把发包速率卡在运营商令牌桶限速以下，永不触发硬件尾丢包，
-        反比不限速的连接有更高的净吞吐。
+        净吞吐反比不限速 + 频繁 RTO 重传的连接更高。
       '';
     };
   };
@@ -330,9 +332,10 @@ in
 
         "net.ipv4.tcp_early_retrans" = 4; # 更积极的早期重传触发
         "net.ipv4.tcp_frto" = 2; # F-RTO：虚假超时检测（高延迟线路减少不必要重传）
-        # tcp_reordering = 127：显式设为内核实际 cap 值（旧值 300 超限无效）
-        # 允许接收窗口内最多 127 个乱序包后才触发快速重传
-        "net.ipv4.tcp_reordering" = 127;
+        # tcp_reordering = 64：允许最多 64 个乱序包后再触发快速重传。
+        # 旧值 127 是内核 cap，但在高丢包场景下乱序误判过多，
+        # 会导致不必要的快速重传风暴；64 是高丢包国际链路的稳定平衡点。
+        "net.ipv4.tcp_reordering" = 64;
         # tcp_max_reordering = 300：新内核（5.x+）此上限更高，保留激进值
         "net.ipv4.tcp_max_reordering" = 300;
         "net.ipv4.tcp_no_metrics_save" = 1; # 不缓存连接历史指标，每次重新测量
@@ -365,10 +368,33 @@ in
         # 牺牲一点上行带宽，换取 10 倍速的 RTT 测量和拥塞窗口增长
         "net.ipv4.tcp_quickack" = 1;
 
+        # ── 小包 / SSH bufferbloat 消除 ──────────────────────────────────
+        # tcp_limit_output_bytes = 32768（32KB）：限制 TSQ（TCP Small Queues）单次输出。
+        # 默认 256KB 会让大流包堵在 qdisc 队列头，SSH/ACK 等小包等待数百 ms。
+        # 32KB ≈ 22×MSS，让小包能随时插队，p99 延迟显著下降。
+        "net.ipv4.tcp_limit_output_bytes" = 32768;
+
+        # ── 稳定性 / 抗 GFW RST 注入 ────────────────────────────────────
+        # tcp_challenge_ack_limit：每秒允许发送的 challenge ACK 上限。
+        # GFW 会伪造 RST/ACK 包触发连接重置，低上限（默认旧版 100）容易被攻破。
+        # 设为 1000，提高抗 RST 注入能力，不影响正常连接重置。
+        "net.ipv4.tcp_challenge_ack_limit" = 1000;
+
+        # ── 运营商 QoS 规避：TTL 伪装 ───────────────────────────────────
+        # Linux 默认 TTL=64，是运营商 DPI 识别 Linux 服务器流量的特征之一。
+        # 改为 128（Windows / CDN 特征值），让限速策略难以精准命中本机流量。
+        # 副作用：traceroute 显示跳数多 64，正常通信完全不受影响。
+        "net.ipv4.ip_default_ttl" = 128;
+
+        # ── 接收时间戳预队列 ─────────────────────────────────────────────
+        # 禁用软中断前的包时间戳记录，减少接收路径 overhead，降低接收延迟。
+        "net.core.netdev_tstamp_prequeue" = 0;
+
         # ── pacing 激进优化 (配合 BBR / FQ) ──────────────────────────────
         # 允许内核缓冲大量待发 pacing 数据，避免发送端应用层 block
-        "net.ipv4.tcp_pacing_ss_ratio" = 200; # Slow Start 时 pacing_rate = 200% cwnd
-        "net.ipv4.tcp_pacing_ca_ratio" = 120; # 拥塞避免时 pacing_rate = 120% cwnd
+        # 暴力竞争模式：300% / 150%，Slow Start 抢先填满管道，CA 阶段持续压制竞争对手
+        "net.ipv4.tcp_pacing_ss_ratio" = 300; # Slow Start 时 pacing_rate = 300% cwnd（激进抢带宽）
+        "net.ipv4.tcp_pacing_ca_ratio" = 150; # 拥塞避免时 pacing_rate = 150% cwnd
 
         # ── MPTCP（多路径 TCP）──────────────────────────────────────────
         "net.mptcp.enabled" = 1;
@@ -591,14 +617,64 @@ in
           IFACE=$(echo "$GW_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
           [ -z "$IFACE" ] && exit 0
 
-          # 替换（replace）而非添加（add），确保幂等，重启服务不会叠加规则
-          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit
-          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit on $IFACE"
+          # 替换（replace）而非添加（add），确保幂等，重启服务不会叠加规则。
+          # flow_limit 200：允许单个 FQ flow 积压 200 个包（默认 100）。
+          # kernel-relay 场景所有转发流量 src IP 相同，FQ 视为同一 flow，
+          # 提高上限防止合法转发流量被 FQ 自身限速。
+          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200
+          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 on $IFACE"
         '';
       };
+
+      # ── 服务四：清零出口 DSCP 标记（规避运营商 QoS 分级限速）────────
+      # 原理：运营商 DPI 读取 IP 头中的 DSCP/TOS 字段对流量分级限速；
+      #        主动将所有出口包 DSCP 清零（CS0 = Best-Effort），
+      #        让限速策略无法按 QoS 标记定向命中本机流量。
+      systemd.services.clear-dscp = {
+        description = "Clear DSCP/TOS on all egress packets to evade ISP QoS classification";
+        after = [
+          "network-online.target"
+          "nftables.service"
+        ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+
+        restartTriggers = [
+          (builtins.hashString "sha256" config.systemd.services.clear-dscp.script)
+        ];
+
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = with pkgs; [ nftables ];
+        script = ''
+          # 用独立表管理 DSCP 清零，与其他 nftables 规则完全隔离
+          nft -f - <<'NFTEOF'
+          table ip clear_dscp
+          delete table ip clear_dscp
+          table ip clear_dscp {
+            chain postrouting {
+              type filter hook postrouting priority mangle; policy accept;
+              ip dscp != cs0 ip dscp set cs0
+            }
+          }
+          table ip6 clear_dscp6
+          delete table ip6 clear_dscp6
+          table ip6 clear_dscp6 {
+            chain postrouting {
+              type filter hook postrouting priority mangle; policy accept;
+              ip6 dscp != cs0 ip6 dscp set cs0
+            }
+          }
+          NFTEOF
+          echo "[clear-dscp] DSCP CS0 applied on all egress (IPv4 + IPv6)."
+        '';
+      };
+
       # 10. 内核与网络调优
       # 使用 XanMod 核心以获得最新的 BBR 优化 (包括 v3) 和更好的网络吞吐
-      boot.kernelPackages = pkgs.linuxPackages_xanmod_latest;
+      # boot.kernelPackages = pkgs.linuxPackages_xanmod_latest;
     })
   ];
 }

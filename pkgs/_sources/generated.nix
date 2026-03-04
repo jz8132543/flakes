@@ -57,6 +57,14 @@
     };
     date = "2024-12-28";
   };
+  fakehttp = {
+    pname = "fakehttp";
+    version = "0.9.18";
+    src = fetchurl {
+      url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
+      sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
+    };
+  };
   jellyfin-plugin-ani-sync = {
     pname = "jellyfin-plugin-ani-sync";
     version = "3.8.0.0";

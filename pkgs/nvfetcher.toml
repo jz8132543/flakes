@@ -88,3 +88,7 @@ fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/$ver/rime
 [rime-wanxiang-gram]
 src.manual = "LTS"
 fetch.url = "https://github.com/amzxyz/RIME-LMDG/releases/download/$ver/wanxiang-lts-zh-hans.gram"
+
+[fakehttp]
+src.github = "MikeWang000000/FakeHTTP"
+fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"

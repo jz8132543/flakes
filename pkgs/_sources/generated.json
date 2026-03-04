@@ -92,6 +92,21 @@
     },
     "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
   },
+  "fakehttp": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "fakehttp",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=",
+      "type": "url",
+      "url": "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz"
+    },
+    "version": "0.9.18"
+  },
   "jellyfin-plugin-ani-sync": {
     "cargoLock": null,
     "date": null,

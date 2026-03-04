@@ -15,6 +15,7 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.kernel-relay
+      nixosModules.services.fakehttp
     ];
 
   services.kernel-relay = {
@@ -85,13 +86,23 @@
 
   environment.networkTune = {
     enable = true;
-    bandwidth = 1000; # Mbps 单向，如 tyo1
-    realBandwidth = 600;
+    bandwidth = 1000; # Mbps 单向
+    realBandwidth = 600; # 持续可用带宽
     rtt = 150; # ms，国际线路
     ram = 2048; # MB，可用内存
     cpus = 1; # vCPU 数
     highLoss = true; # 高丢包国际线路
+    # fqMaxrate = realBandwidth × 95% = 570，主动整形防令牌桶尾丢包
+    # （已是默认公式，此处显式写出便于各主机理解和覆盖）
+    fqMaxrate = 570;
   };
   services.tailscale.enable = lib.mkForce true;
   systemd.services.tailscale-setup.enable = lib.mkForce true;
+
+  services.fakehttp = {
+    enable = true;
+    httpHost = "speedtest.jsinfo.net"; # 江苏联通测速白名单
+    # cu 作为客户端主动发起的出站 TCP 流量会被混淆（如 iperf3 -c 从 cu 发起）
+    # 注：若要解除用户到 cu 的反向上传限速，需在用户侧路由器运行 FakeHTTP
+  };
 }
