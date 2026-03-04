@@ -152,8 +152,12 @@ let
   # 1024 个 MSS（约 1.4MB）是现代内核 initrwnd 激进但安全的上限。
   # ──────────────────────────────────────────────────────────────────────────
   bdp_pkts = bdp / 1400;
-  initrwnd_raw = bdp_pkts / 4;
-  initrwnd = clamp 150 1024 initrwnd_raw;
+  initrwnd_raw = bdp_pkts / 2; # 更激进，原来是 / 4
+  initrwnd = clamp 150 2048 initrwnd_raw; # 上限放宽到 2048
+
+  # 极其激进的初始拥塞窗口 (initcwnd)
+  # 默认 10 对应 14KB，我们直接暴力给 250 (约 350KB)，让 BBR 瞬间起飞
+  initcwnd = 250;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 9  重试次数
@@ -357,8 +361,14 @@ in
         # tso_win_divisor = 3：即使网卡支持 TSO，也交由内核拆包，
         # 提升小包乱序时的响应平滑度（与 FQ pacing 配合）
         "net.ipv4.tcp_tso_win_divisor" = 3;
-        # tcp_quickack = 0：高延迟线路强制延迟 ACK（合包），减少 ACK 流量占用带宽
-        "net.ipv4.tcp_quickack" = 0;
+        # tcp_quickack = 1：开启全局 quickack (不延迟 ACK)，配合 BBR 极速测量带宽
+        # 牺牲一点上行带宽，换取 10 倍速的 RTT 测量和拥塞窗口增长
+        "net.ipv4.tcp_quickack" = 1;
+
+        # ── pacing 激进优化 (配合 BBR / FQ) ──────────────────────────────
+        # 允许内核缓冲大量待发 pacing 数据，避免发送端应用层 block
+        "net.ipv4.tcp_pacing_ss_ratio" = 200; # Slow Start 时 pacing_rate = 200% cwnd
+        "net.ipv4.tcp_pacing_ca_ratio" = 120; # 拥塞避免时 pacing_rate = 120% cwnd
 
         # ── MPTCP（多路径 TCP）──────────────────────────────────────────
         "net.mptcp.enabled" = 1;
@@ -529,10 +539,10 @@ in
           done
           MSS=$((BEST_PAYLOAD - 12))
 
-          # 应用 IPv4 默认路由：initcwnd=150，initrwnd=${toString initrwnd}，advmss=$MSS
+          # 应用 IPv4 默认路由：initcwnd=250，initrwnd=${toString initrwnd}，advmss=$MSS
           DEF4=$(ip -4 route show default dev "$IFACE" | head -n 1)
           if [ -n "$DEF4" ]; then
-            ip route change $DEF4 initcwnd 150 initrwnd ${toString initrwnd} advmss $MSS || true
+            ip route change $DEF4 initcwnd ${toString initcwnd} initrwnd ${toString initrwnd} advmss $MSS || true
           fi
 
           # IPv6：IPv6 头比 IPv4 多 20B，MSS 相应减少 20
@@ -542,10 +552,10 @@ in
           if [ -n "$IFACE6" ]; then
             MSS6=$((MSS - 20))
             DEF6=$(ip -6 route show default dev "$IFACE6" | head -n 1)
-            [ -n "$DEF6" ] && ip -6 route change $DEF6 initcwnd 150 initrwnd ${toString initrwnd} advmss $MSS6 || true
+            [ -n "$DEF6" ] && ip -6 route change $DEF6 initcwnd ${toString initcwnd} initrwnd ${toString initrwnd} advmss $MSS6 || true
           fi
 
-          echo "[set-initcwnd] iface=$IFACE MSS=$MSS initcwnd=150 initrwnd=${toString initrwnd}"
+          echo "[set-initcwnd] iface=$IFACE MSS=$MSS initcwnd=${toString initcwnd} initrwnd=${toString initrwnd}"
         '';
       };
 
