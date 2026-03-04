@@ -1,4 +1,4 @@
-{ nixosModules, ... }:
+{ nixosModules, inputs, ... }:
 {
   imports =
     nixosModules.cloud.all
@@ -26,7 +26,9 @@
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
       nixosModules.services.searx
-      nixosModules.services.ai.openclaw
+      nixosModules.services.openclaw.default
+      nixosModules.services.litellm.default
+      inputs.openclaw-nix.nixosModules.openclaw-gateway
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
@@ -49,6 +51,9 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
     ];
+
+  services.openclaw.enable = true;
+  services.ai.litellm.enable = true;
 
   environment.seedbox = {
     enable = true;

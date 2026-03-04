@@ -3,7 +3,6 @@
   librime,
   rime-wanxiang-base,
   rime-wanxiang-gram,
-  source ? { },
 }:
 stdenv.mkDerivation {
   pname = "rime-deploy";

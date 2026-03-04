@@ -102,6 +102,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "ai": {
+      "on": "nue0",
+      "proxy": false
+    },
     "alist": {
       "on": "nue0",
       "proxy": false

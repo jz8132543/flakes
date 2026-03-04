@@ -11,8 +11,10 @@ in
     "grafana/secret_key" = {
       owner = "grafana";
     };
-    "alertmanager/telegram_bot" = {
-      owner = "grafana";
+    "telegram/token" = {
+      owner = "tippy";
+      group = "grafana";
+      mode = "0440";
     };
     "password" = {
       mode = "0444";
@@ -84,7 +86,7 @@ in
                   uid = "telegram-default";
                   type = "telegram";
                   settings = {
-                    bottoken = "$__file{${config.sops.secrets."alertmanager/telegram_bot".path}}";
+                    bottoken = "$__file{${config.sops.secrets."telegram/token".path}}";
                     chatid = "-5282327602";
                     parse_mode = "HTML";
                   };

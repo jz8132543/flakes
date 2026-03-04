@@ -33,8 +33,8 @@ with open(file_path, 'r') as f:
             
             m = re.match(r'^(\s*[-\w]+:\s+)(ENC\[.+\])(\s*)$', line)
             if m:
-                # Reconstruct with quotes
-                new_line = f'{m.group(1)}"{m.group(2)}"{m.group(3)}'
+                val = m.group(2).replace('type:int', 'type:str')
+                new_line = f'{m.group(1)}"{val}"{m.group(3)}'
                 new_lines.append(new_line)
                 modified_count += 1
                 continue

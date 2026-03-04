@@ -51,15 +51,6 @@ in
       log = {
         loglevel = "warning";
       };
-      sniffing = {
-        enabled = true;
-        destOverride = [
-          "http"
-          "tls"
-          "quic"
-        ];
-        routeOnly = true;
-      };
 
       policy = lib.mkIf config.environment.minimal {
         system = {
@@ -78,6 +69,16 @@ in
           listen = "0.0.0.0";
           protocol = "vless";
           # tag = "vless_reality";
+          # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
+          sniffing = {
+            enabled = true;
+            destOverride = [
+              "http"
+              "tls"
+              "quic"
+            ];
+            routeOnly = true;
+          };
           settings = {
             clients = [
               {
@@ -92,12 +93,11 @@ in
             network = "tcp";
             security = "reality";
             sockopt = {
-              # 开启 TCP Fast Open，减少首次连接建立时的一个 RTT
+              # 入站（国内客户端→本机）：保持 tcpFastOpen 关闭
+              # 国内运营商/GFW 会丢弃/RST 带数据的 SYN 包，开启反而增加连接失败率
               # tcpFastOpen = true;
-              # 开启 MPTCP
               mptcp = true;
-              # 应用层 keepalive，60s 探测一次，让内核 SO_KEEPALIVE 真正生效
-              # 解决运营商 NAT 超时（卷 30分钟自动断开）
+              # 应用层 keepalive，解决运营商 NAT 30 分钟自动断开问题
               tcpKeepAliveInterval = 60;
             };
             realitySettings = {
@@ -145,7 +145,10 @@ in
             network = "tcp";
             security = "reality";
             sockopt = {
-              # tcpFastOpen = true;
+              # 出站（本机→境外服务器）：开启 TFO 降低首包延迟（目标在境外，运营商干扰少）
+              tcpFastOpen = true;
+              # 禁用 Nagle 算法，有数据立刻转发，降低协议延迟（与内核 tcp_autocorking=0 协同）
+              tcpNoDelay = true;
               mptcp = true;
               tcpKeepAliveInterval = 60;
             };
