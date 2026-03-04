@@ -101,7 +101,9 @@
 
   services.fakehttp = {
     enable = true;
-    httpHost = "speedtest.jsinfo.net"; # 江苏联通测速白名单
+    # 使用由 Wireshark/tcpdump 提取的二进制 payload (Host: speedtest.jsinfo.net)
+    # 比 httpHost 更难被 DPI 发现，模拟真实测速站点的第一个 TLS/HTTP 包
+    payloadFile = ../../modules/services/fakehttp_payloads/http_jsinfo_net.bin;
     # cu 作为客户端主动发起的出站 TCP 流量会被混淆（如 iperf3 -c 从 cu 发起）
     # 注：若要解除用户到 cu 的反向上传限速，需在用户侧路由器运行 FakeHTTP
   };

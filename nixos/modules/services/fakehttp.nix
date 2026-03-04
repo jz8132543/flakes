@@ -79,6 +79,22 @@ in
         IPv6 方向的 ISP QoS 策略通常与 IPv4 不同，混淆不当可能影响连通性。
       '';
     };
+
+    payloadFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+      description = ''
+        用于混淆的自定义二进制 payload 文件路径（-b 参数）。
+        如果设置了此项，将使用该文件中的原始内容作为 TCP 混淆负载，
+        这通常比单纯设置 -h 域名更难被运营商识别（可以使用 Wireshark 抓取真实请求导出）。
+      '';
+    };
+
+    extraArgs = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "传递给 fakehttp 的额外命令行参数。";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -108,15 +124,19 @@ in
             "-d" # 守护进程模式
             "-s" # 静默（日志写 journald 即可）
           ]
-          ++ (
-            if cfg.interface != null then [ "-i ${lib.escapeShellArg cfg.interface}" ] else [ "-a" ] # 所有接口
-          )
+          ++ (if cfg.interface != null then [ "-i ${lib.escapeShellArg cfg.interface}" ] else [ "-a" ])
           ++ (lib.optional cfg.ipv4Only "-4")
-          ++ [ "-1" ] # 出站方向（服务器作为发起端时解除上传限速）
-          ++ [ "-h ${lib.escapeShellArg cfg.httpHost}" ]
+          ++ [ "-1" ] # 出站方向
+          ++ (
+            if cfg.payloadFile != null then
+              [ "-b ${lib.escapeShellArg (toString cfg.payloadFile)}" ]
+            else
+              [ "-h ${lib.escapeShellArg cfg.httpHost}" ]
+          )
           ++ (lib.optional (cfg.httpsHost != null) "-e ${lib.escapeShellArg cfg.httpsHost}")
           ++ (lib.optional (cfg.ttl != null) "-t ${toString cfg.ttl}")
           ++ [ "-r ${toString cfg.repeat}" ]
+          ++ cfg.extraArgs
         );
         # 停止时清理防火墙规则
         ExecStop = "${pkgs.fakehttp}/bin/fakehttp -k";

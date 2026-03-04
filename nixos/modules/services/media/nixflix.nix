@@ -142,35 +142,19 @@ in
               name = "M-Team - TP";
               enable = true;
               implementationName = "Gazelle";
-              fields = [
-                {
-                  name = "baseUrl";
-                  value = "https://kp.m-team.cc/";
-                }
-                {
-                  name = "apiKey";
-                  value = {
-                    _secret = config.sops.secrets."media/mteam_api_key".path;
-                  };
-                }
-              ];
+              baseUrl = "https://kp.m-team.cc/";
+              apiKey = {
+                _secret = config.sops.secrets."media/mteam_api_key".path;
+              };
             }
             {
               name = "PTTime";
               enable = true;
               implementationName = "Unit3D";
-              fields = [
-                {
-                  name = "baseUrl";
-                  value = "https://www.pttime.org/";
-                }
-                {
-                  name = "apiKey";
-                  value = {
-                    _secret = config.sops.secrets."media/pttime_rss_url".path; # Unit3D often uses RSS/API key interchangeably in some implementations, but here we likely need a real key.
-                  };
-                }
-              ];
+              baseUrl = "https://www.pttime.org/";
+              apiKey = {
+                _secret = config.sops.secrets."media/pttime_api_key".path;
+              };
             }
           ];
 

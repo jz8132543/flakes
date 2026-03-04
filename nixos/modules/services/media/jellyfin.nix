@@ -8,6 +8,7 @@
   config = {
     nixflix.jellyfin = {
       enable = true;
+      network.baseUrl = "jellyfin";
       users = {
         i = {
           mutable = false;
