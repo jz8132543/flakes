@@ -57,6 +57,20 @@ in
               api_key = "os.environ/GITHUB_TOKEN";
             };
           }
+          {
+            model_name = "gemini-2.5-flash";
+            litellm_params = {
+              model = "gemini/gemini-2.0-flash";
+              api_key = "os.environ/GEMINI_API_KEY";
+            };
+          }
+          {
+            model_name = "claude-opus-4-6";
+            litellm_params = {
+              model = "gemini/gemini-2.0-flash";
+              api_key = "os.environ/GEMINI_API_KEY";
+            };
+          }
         ];
         litellm_settings = {
           master_key = "os.environ/LITELLM_MASTER_KEY";

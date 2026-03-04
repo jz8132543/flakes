@@ -23,26 +23,6 @@ in
   options.services.fakehttp = {
     enable = lib.mkEnableOption "FakeHTTP ISP whitelist QoS bypass";
 
-    httpHost = lib.mkOption {
-      type = lib.types.str;
-      default = "www.speedtest.cn";
-      description = ''
-        用于 HTTP 混淆的白名单域名（DPI 检测 Host 字段）。
-        - 电信/移动：www.speedtest.cn（最常见）
-        - 江苏联通：speedtest.jsinfo.net（联通自营测速域名）
-        建议通过 nexttrace/mtr 确认 ISP QoS 路由跳数后再调整 ttl。
-      '';
-    };
-
-    httpsHost = lib.mkOption {
-      type = lib.types.nullOr lib.types.str;
-      default = null;
-      description = ''
-        用于 HTTPS/TLS ClientHello SNI 混淆的白名单域名（TCP 443 端口有效）。
-        null 表示不启用 HTTPS 混淆，仅使用 HTTP 混淆。
-      '';
-    };
-
     ttl = lib.mkOption {
       type = lib.types.nullOr lib.types.int;
       default = null;
@@ -55,7 +35,7 @@ in
 
     repeat = lib.mkOption {
       type = lib.types.int;
-      default = 1;
+      default = 2;
       description = ''
         重复发送伪造包的次数（-r 参数）。
         部分情况下单次发送不一定命中所有 DPI 节点，增加到 2-3 可提高成功率。
@@ -73,7 +53,7 @@ in
 
     ipv4Only = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = false;
       description = ''
         仅处理 IPv4 连接（推荐）。
         IPv6 方向的 ISP QoS 策略通常与 IPv4 不同，混淆不当可能影响连通性。
@@ -83,10 +63,26 @@ in
     payloadFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
+      description = "自定义二进制 payload 文件路径。一般建议使用 domainPool。";
+    };
+
+    domainPool = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "vd3.bdstatic.com"
+        "creator.douyin.com"
+        "p3-pc-sign.douyinpic.com"
+        "i1.hdslb.com"
+        "i0.hdslb.com"
+        "www.speedtest.cn"
+        "upos-sz-mirrorcos.bilivideo.com"
+        "member.bilibili.com"
+      ];
       description = ''
-        用于混淆的自定义二进制 payload 文件路径（-b 参数）。
-        如果设置了此项，将使用该文件中的原始内容作为 TCP 混淆负载，
-        这通常比单纯设置 -h 域名更难被运营商识别（可以使用 Wireshark 抓取真实请求导出）。
+        需要进行混淆的域名池。
+        系统会在服务启动时使用 Python 的 SSL 模块自动捕获真实 TLS ClientHello，
+        并生成带完整 Header 的 HTTP GET 请求，通过多个 -b 参数加载进 FakeHTTP。
+        内置白名单剔除了运营商专有域名。
       '';
     };
 
@@ -115,7 +111,46 @@ in
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
+      preStart = lib.mkIf (cfg.domainPool != [ ]) ''
+                ${pkgs.python3}/bin/python3 -c "
+        import sys, socket, ssl, threading, os
+        domains = sys.argv[1:]
+        os.makedirs('/run/fakehttp', exist_ok=True)
+        for sni in domains:
+            s = socket.socket()
+            s.bind(('127.0.0.1', 0))
+            s.listen(1)
+            port = s.getsockname()[1]
+            cap = []
+            def server():
+                try:
+                    conn, _ = s.accept()
+                    conn.settimeout(0.5)
+                    cap.append(conn.recv(4096))
+                    conn.close()
+                except: pass
+                s.close()
+            threading.Thread(target=server).start()
+            try:
+                ctx = ssl.create_default_context()
+                ctx.check_hostname = False
+                ctx.verify_mode = ssl.CERT_NONE
+                conn = ctx.wrap_socket(socket.socket(), server_hostname=sni)
+                conn.settimeout(1.0)
+                conn.connect(('127.0.0.1', port))
+            except Exception: pass
+            if cap and cap[0]:
+                with open(f'/run/fakehttp/tls_{sni}.bin', 'wb') as f:
+                    f.write(cap[0])
+            http_str = f'GET / HTTP/1.1\r\nHost: {sni}\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+            with open(f'/run/fakehttp/http_{sni}.bin', 'wb') as f:
+                f.write(http_str.encode('utf-8'))
+                " ${lib.concatStringsSep " " cfg.domainPool}
+      '';
+
       serviceConfig = {
+        RuntimeDirectory = "fakehttp";
+        RuntimeDirectoryMode = "0755";
         Type = "forking";
         # FakeHTTP 以守护进程模式运行（-d），自行 fork 后台
         ExecStart = lib.concatStringsSep " " (
@@ -126,14 +161,17 @@ in
           ]
           ++ (if cfg.interface != null then [ "-i ${lib.escapeShellArg cfg.interface}" ] else [ "-a" ])
           ++ (lib.optional cfg.ipv4Only "-4")
-          ++ [ "-1" ] # 出站方向
-          ++ (
-            if cfg.payloadFile != null then
-              [ "-b ${lib.escapeShellArg (toString cfg.payloadFile)}" ]
-            else
-              [ "-h ${lib.escapeShellArg cfg.httpHost}" ]
-          )
-          ++ (lib.optional (cfg.httpsHost != null) "-e ${lib.escapeShellArg cfg.httpsHost}")
+          ++ [
+            "-1" # 出站方向
+            "-0" # 入站方向
+          ]
+          ++ (lib.concatMap (d: [
+            "-b"
+            "/run/fakehttp/tls_${d}.bin"
+            "-b"
+            "/run/fakehttp/http_${d}.bin"
+          ]) cfg.domainPool)
+          ++ (lib.optional (cfg.payloadFile != null) "-b ${lib.escapeShellArg (toString cfg.payloadFile)}")
           ++ (lib.optional (cfg.ttl != null) "-t ${toString cfg.ttl}")
           ++ [ "-r ${toString cfg.repeat}" ]
           ++ cfg.extraArgs

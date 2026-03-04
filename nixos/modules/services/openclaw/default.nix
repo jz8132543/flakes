@@ -37,7 +37,7 @@ in
     };
     users.groups.openclaw = { };
 
-    # 4. Use the native NixOS module for the gateway
+    # 5. Use the native NixOS module for the gateway
     services.openclaw-gateway = {
       enable = true;
       user = "openclaw";
@@ -49,11 +49,23 @@ in
           auth.token = "$__file{${config.sops.secrets."openclaw/gateway_token".path}}";
         };
 
-        # Move profiles under auth.profiles
-        auth.profiles.litellm = {
-          provider = "openai";
-          baseUrl = "http://127.0.0.1:18790/v1";
-          apiKey = "sk-fast-secure-openclaw-key";
+        # Force all major providers to proxy through our local LiteLLM instance.
+        providers = {
+          openai = {
+            api = "openai-responses";
+            baseUrl = "http://127.0.0.1:18790/v1";
+            apiKey = "sk-fast-secure-openclaw-key";
+          };
+          google = {
+            api = "openai-responses";
+            baseUrl = "http://127.0.0.1:18790/v1";
+            apiKey = "sk-fast-secure-openclaw-key";
+          };
+          anthropic = {
+            api = "openai-responses";
+            baseUrl = "http://127.0.0.1:18790/v1";
+            apiKey = "sk-fast-secure-openclaw-key";
+          };
         };
 
         channels.telegram = {
@@ -86,9 +98,10 @@ in
       };
     };
 
-    # 6. Ensure the directory is persistent
+    # 6. Ensure the directory is persistent and link personalities
     systemd.tmpfiles.rules = [
       "d /var/lib/openclaw/.openclaw 0750 openclaw openclaw -"
+      "L+ /var/lib/openclaw/documents - - - - ${./documents}"
     ];
   };
 }
