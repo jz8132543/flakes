@@ -586,6 +586,9 @@ in
           echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit on $IFACE"
         '';
       };
+      # 10. 内核与网络调优
+      # 使用 XanMod 核心以获得最新的 BBR 优化 (包括 v3) 和更好的网络吞吐
+      boot.kernelPackages = pkgs.linuxPackages_xanmod_latest;
     })
   ];
 }

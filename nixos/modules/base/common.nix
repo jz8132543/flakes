@@ -1,6 +1,5 @@
 {
   pkgs,
-  lib,
   config,
   ...
 }:
@@ -22,7 +21,7 @@
   };
   programs.command-not-found.enable = false;
 
-  boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
+  # boot.kernelPackages = lib.mkDefault pkgs.linuxPackages_latest;
   security.rtkit.enable = true;
   services.dbus.implementation = "broker";
   services.bpftune.enable = false;
