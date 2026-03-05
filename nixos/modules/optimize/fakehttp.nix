@@ -21,7 +21,11 @@ in
   # ─────────────────────────────────────────────────────────────────────────
 
   options.services.fakehttp = {
-    enable = lib.mkEnableOption "FakeHTTP ISP whitelist QoS bypass";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "FakeHTTP ISP whitelist QoS bypass";
+    };
 
     ttl = lib.mkOption {
       type = lib.types.nullOr lib.types.int;
@@ -69,11 +73,31 @@ in
     domainPool = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "vd3.bdstatic.com"
+        # 字节/抖音系
+        "creator.douyin.com"
         "p3-pc-sign.douyinpic.com"
-        "www.speedtest.cn"
+        # 腾讯系
+        "cloud.tencent.com"
+        "www.weiyun.com"
+        # B站
         "upos-sz-mirrorcos.bilivideo.com"
-        # "member.bilibili.com"
+        "member.bilibili.com"
+        "i0.hdslb.com"
+        # 阿里系/其他网盘类
+        "www.aliyundrive.com"
+        "pan.quark.cn"
+        "www.123pan.com"
+        "pan.xunlei.com"
+        "www.jianguoyun.com"
+        "www.lanzoui.com"
+        # 百度系
+        "vd3.bdstatic.com"
+        # 公共测速/教育网测试
+        "www.speedtest.cn"
+        "www.speedtest.net"
+        "test.ustc.edu.cn"
+        "speed.cloudflare.com"
+        "fast.com"
       ];
       description = ''
         需要进行混淆的域名池。
@@ -106,6 +130,9 @@ in
         pkgs.openssl
         pkgs.coreutils
         pkgs.gnused
+        pkgs.iptables
+        pkgs.nftables
+        pkgs.python3
       ];
 
       after = [
@@ -122,75 +149,86 @@ in
 
         domains=(${lib.concatStringsSep " " (map lib.escapeShellArg cfg.domainPool)})
 
-        # ── 辅助函数：等待 nc 监听端口就绪（轮询 /proc/net/tcp）────────────
-        wait_port() {
-          local port_hex
-          port_hex=$(printf "%04X" "$1")
-          for _ in $(seq 1 20); do
-            grep -qi "$port_hex" /proc/net/tcp 2>/dev/null && return 0
-            sleep 0.05
-          done
-          return 1  # 超时仍未就绪
-        }
+        cat <<'EOF' > /var/lib/fakehttp/generate_payloads.py
+        import socket
+        import ssl
+        import threading
+        import sys
+        import os
+        import time
 
-        # ── 1. HTTP GET payload ───────────────────────────────────────────────
-        # 格式：GET / HTTP/1.1\r\nHost: <domain>\r\nConnection: close\r\n\r\n
-        for domain in "''${domains[@]}"; do
-          printf 'GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n' "$domain" \
-            > "/var/lib/fakehttp/http_$domain.bin"
-          echo "Generated HTTP payload for $domain"
-        done
+        domains = sys.argv[1:]
+        out_dir = "/var/lib/fakehttp"
 
-        # ── 2. TLS ClientHello payload ────────────────────────────────────────
-        # 原理：nc -l 模拟哑服务器，openssl s_client 向其发 ClientHello，
-        #       nc 捕获到原始字节后因无应答而超时退出，
-        #       得到的二进制就是完整的 TLS ClientHello record。
-        # 全程在本机回环，无需外网连接，系统开销极低。
+        for domain in domains:
+            # 1. HTTP Payload
+            http_payload = f"GET / HTTP/1.1\r\nHost: {domain}\r\nConnection: close\r\n\r\n"
+            with open(os.path.join(out_dir, f"http_{domain}.bin"), "wb") as f:
+                f.write(http_payload.encode("utf-8"))
+            
+            # 2. TLS Payload Capture
+            def dummy_server(port, result_box):
+                try:
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        s.bind(('127.0.0.1', port))
+                        s.listen(1)
+                        s.settimeout(2.0)
+                        conn, addr = s.accept()
+                        with conn:
+                            conn.settimeout(2.0)
+                            data = conn.recv(4096)
+                            if data:
+                                result_box.append(data)
+                except Exception as e:
+                    pass
 
-        for domain in "''${domains[@]}"; do
-          ok=0
-          for i in $(seq 1 5); do
-            # 随机高位端口，规避端口复用冲突
-            PORT=$(( (RANDOM % 20000) + 40000 ))
+            for attempt in range(5):
+                # find free port
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(("", 0))
+                    port = s.getsockname()[1]
+                
+                result_box = []
+                server_thread = threading.Thread(target=dummy_server, args=(port, result_box))
+                server_thread.start()
+                
+                time.sleep(0.1) # wait for server to listen
 
-            # 启动哑服务器：收到数据后自动退出（timeout 防止永久阻塞）
-            timeout 3s nc -l -p "$PORT" > "/var/lib/fakehttp/tls_$domain.bin" 2>/dev/null &
-            NC_PID=$!
+                try:
+                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    context.maximum_version = ssl.TLSVersion.TLSv1_2
+                    context.options |= ssl.OP_NO_TICKET
+                    context.check_hostname = False
+                    context.verify_mode = ssl.CERT_NONE
+                    with socket.create_connection(('127.0.0.1', port), timeout=2.0) as sock:
+                        with context.wrap_socket(sock, server_hostname=domain) as ssock:
+                            pass
+                except Exception as e:
+                    # Expected to fail since dummy server doesn't complete SSL handshake
+                    pass
+                
+                server_thread.join(timeout=3.0)
+                
+                if result_box and len(result_box[0]) > 0:
+                    payload = result_box[0]
+                    if len(payload) > 1200:
+                        print(f"WARNING: Captured TLS ClientHello for {domain} is too large ({len(payload)} bytes > 1200), discarding.")
+                        break # Skip this domain
+                    
+                    with open(os.path.join(out_dir, f"tls_{domain}.bin"), "wb") as f:
+                        f.write(payload)
+                    print(f"Captured TLS ClientHello for {domain} ({len(payload)} bytes)")
+                    break
+                else:
+                    print(f"TLS capture empty for {domain}, retry {attempt+1}/5...")
+                    time.sleep(0.5)
+            else:
+                print(f"WARNING: Failed to capture TLS ClientHello for {domain} after 5 attempts, skipping.")
 
-            # 等待端口实际就绪后再连接，避免竞态
-            if ! wait_port "$PORT"; then
-              echo "Port $PORT not ready, retrying ($i/5)..."
-              kill "$NC_PID" 2>/dev/null
-              wait "$NC_PID" 2>/dev/null
-              sleep 0.5
-              continue
-            fi
+        EOF
 
-            # openssl s_client 发 ClientHello；-servername 确保 SNI 正确
-            # 无应答时迅速超时退出
-            timeout 2s openssl s_client \
-              -connect "127.0.0.1:$PORT" \
-              -servername "$domain" \
-              -noservername_infer \
-              < /dev/null > /dev/null 2>&1 || true
-
-            wait "$NC_PID" 2>/dev/null
-
-            if [ -s "/var/lib/fakehttp/tls_$domain.bin" ]; then
-              echo "Captured TLS ClientHello for $domain ($(wc -c < "/var/lib/fakehttp/tls_$domain.bin") bytes)"
-              ok=1
-              break
-            fi
-
-            echo "TLS capture empty for $domain, retry $i/5..."
-            sleep 0.5
-          done
-
-          if [ "$ok" -eq 0 ]; then
-            echo "WARNING: Failed to capture TLS ClientHello for $domain after 5 attempts, skipping."
-            rm -f "/var/lib/fakehttp/tls_$domain.bin"
-          fi
-        done
+        python3 /var/lib/fakehttp/generate_payloads.py "''${domains[@]}"
 
         # ── 汇总 ─────────────────────────────────────────────────────────────
         http_count=$(ls /var/lib/fakehttp/http_*.bin 2>/dev/null | wc -l)
@@ -208,6 +246,7 @@ in
           pkgs.writeShellScript "start-fakehttp" ''
             args=(
               "${pkgs.fakehttp}/bin/fakehttp"
+              "-s"
               # "-d" # 调试期间不进入后台
             )
             ${lib.optionalString (cfg.interface != null) ''args+=("-i" ${lib.escapeShellArg cfg.interface})''}
@@ -251,14 +290,17 @@ in
         ExecStop = "${pkgs.fakehttp}/bin/fakehttp -k";
         Restart = "on-failure";
         RestartSec = "5s";
+        TimeoutStartSec = "5min";
         # 需要 CAP_NET_ADMIN 来操作 nftables/iptables 及 NFQUEUE
         AmbientCapabilities = [
           "CAP_NET_ADMIN"
           "CAP_NET_RAW"
+          "CAP_SYS_NICE"
         ];
         CapabilityBoundingSet = [
           "CAP_NET_ADMIN"
           "CAP_NET_RAW"
+          "CAP_SYS_NICE"
         ];
         # 基础沙箱（不能用 PrivateNetwork，否则无法操作 netfilter）
         ProtectSystem = "strict";

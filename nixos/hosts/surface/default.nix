@@ -11,8 +11,9 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.network-desktop
+      nixosModules.optimize.fakehttp
       nixosModules.services.traefik
-      nixosModules.services.dev
+      nixosModules.optimize.dev
       nixosModules.services.media.qbittorrent
     ];
 

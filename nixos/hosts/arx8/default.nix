@@ -11,9 +11,10 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.fakehttp
       nixosModules.optimize.network-desktop
       nixosModules.services.traefik
-      nixosModules.services.dev
+      nixosModules.optimize.dev
     ];
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
