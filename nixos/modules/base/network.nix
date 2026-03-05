@@ -22,11 +22,13 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   # § 2  带宽/延迟基础量（BDP）
   #
-  # 使用 realBandwidth（持续可用带宽，非标称峰值）计算缓冲区，
-  # 避免基于理论上限产生突发包风暴触发运营商令牌桶剪切。
-  # BDP（字节）= 持续带宽(Mbps) × RTT(ms) × 125
+  # steady/legacy 使用 realBandwidth；berserk 使用接近标称带宽的计算基准，
+  # 以获得更高单流峰值上限。
+  # BDP（字节）= 带宽(Mbps) × RTT(ms) × 125
   # ──────────────────────────────────────────────────────────────────────────
-  bdp = cfg.realBandwidth * cfg.rtt * 125;
+  bdpBasisBandwidth =
+    if cfg.profile == "berserk" then builtins.floor (cfg.bandwidth * 95 / 100) else cfg.realBandwidth;
+  bdp = bdpBasisBandwidth * cfg.rtt * 125;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 3  Socket 缓冲区参数
@@ -35,25 +37,26 @@ let
   # Socket 缓冲区上限 (rmem_max / wmem_max)
   # 取 "2×BDP" 与 "12.5% RAM" 两者的较小值，硬上限 128MB
   rmem_max_raw = bdp * 2;
-  rmem_max_pct = cfg.ram * 131072; # 12.5% of RAM in bytes
-  rmem_max_limit = 128 * 1024 * 1024; # 128 MB absolute ceiling
-  rmem_max = clamp (16 * 1024 * 1024) rmem_max_limit (
+  rmem_max_pct = cfg.ram * rmemRamPctFactor;
+  rmem_max = clamp rmemMinFloor rmemMaxLimit (
     if rmem_max_raw < rmem_max_pct then rmem_max_raw else rmem_max_pct
   );
 
   # 默认缓冲区 (rmem_default / wmem_default)：取 BDP/2，夹在 [4MB, rmem_max/2]
   rmem_default_raw = bdp / 2;
-  rmem_default = clamp (4 * 1024 * 1024) (rmem_max / 2) rmem_default_raw;
+  rmem_default = clamp rmemDefaultFloor (
+    rmem_max * rmemDefaultCeilFactor / rmemDefaultCeilDiv
+  ) rmem_default_raw;
 
   # 待发送队列唤醒下限 (tcp_notsent_lowat)
   # 下限 128KB（而非 2MB），让小内存机器也能得到合理值
   notsent_lowat_raw = bdp / 4;
-  notsent_lowat = clamp (128 * 1024) (rmem_max / 2) notsent_lowat_raw;
+  notsent_lowat = clamp (128 * 1024) notsentLowatCap notsent_lowat_raw;
 
   # TCP/UDP 全局内存池（单位：页，1 页 = 4096 B）
   tcp_mem_low = cfg.ram * 256 * 15 / 100; # = ram * 38
   tcp_mem_mid = cfg.ram * 256 * 30 / 100; # = ram * 77
-  tcp_mem_high_raw = cfg.ram * 256 * 50 / 100; # = ram * 128
+  tcp_mem_high_raw = cfg.ram * 256 * tcpMemHighPct / 100;
   tcp_mem_high_bw = rmem_max * 64 / 4096; # 64× max-conn cap in pages
   tcp_mem_high = if tcp_mem_high_raw < tcp_mem_high_bw then tcp_mem_high_raw else tcp_mem_high_bw;
   udp_mem_low = tcp_mem_low / 2;
@@ -65,14 +68,37 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   isBerserk = cfg.profile == "berserk";
   isLegacy = cfg.profile == "legacy";
-  connBudgetRam = cfg.ram * (if isBerserk then 20 else 10);
-  connBudgetCpu = cfg.cpus * (if isBerserk then 18000 else 7000);
-  connBudgetBw = cfg.realBandwidth * (if isBerserk then 60 else 24);
+  # Profile constants: centralize tuning knobs for readability/maintainability.
+  rmemRamPctFactor = if isBerserk then 393216 else 131072;
+  rmemMaxLimit = if isBerserk then 512 * 1024 * 1024 else 128 * 1024 * 1024;
+  rmemMinFloor = if isBerserk then 32 * 1024 * 1024 else 16 * 1024 * 1024;
+  rmemDefaultFloor = if isBerserk then 16 * 1024 * 1024 else 4 * 1024 * 1024;
+  rmemDefaultCeilFactor = if isBerserk then 4 else 2;
+  rmemDefaultCeilDiv = if isBerserk then 5 else 2;
+  notsentLowatCap = if isBerserk then 2 * 1024 * 1024 else rmem_max / 2;
+  tcpMemHighPct = if isBerserk then 85 else 50;
+
+  connBudgetRamFactor = if isBerserk then 52 else 10;
+  connBudgetCpuFactor = if isBerserk then 36000 else 7000;
+  connBudgetBwFactor = if isBerserk then 120 else 24;
+  stableConnCap = if isBerserk then 1400000 else 600000;
+  netdevBacklogBwFactor = if isBerserk then 460 else 110;
+  netdevBacklogCpuFactor = if isBerserk then 48000 else 20000;
+  netdevBacklogCap = if isBerserk then 2200000 else 1200000;
+  synBacklogCap = if isBerserk then 2097152 else 1048576;
+  twBucketsCap = if isBerserk then 8000000 else 4000000;
+  maxOrphansCap = if isBerserk then 1048576 else 524288;
+  fileMaxCap = if isBerserk then 10485760 else 6291456;
+  conntrackCap = if isBerserk then 12582912 else 4194304;
+
+  connBudgetRam = cfg.ram * connBudgetRamFactor;
+  connBudgetCpu = cfg.cpus * connBudgetCpuFactor;
+  connBudgetBw = cfg.realBandwidth * connBudgetBwFactor;
   stableConnBudget =
     if isLegacy then
       clamp 4096 300000 (cfg.ram * 24)
     else
-      clamp 4096 600000 (lib.min connBudgetRam (lib.min connBudgetCpu connBudgetBw));
+      clamp 4096 stableConnCap (lib.min connBudgetRam (lib.min connBudgetCpu connBudgetBw));
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 5  连接队列参数（由稳定连接预算推导）
@@ -90,7 +116,9 @@ let
           50000
       )
     else
-      clamp 50000 1200000 ((cfg.realBandwidth * (if isBerserk then 260 else 110)) + (cfg.cpus * 20000));
+      clamp 50000 netdevBacklogCap (
+        (cfg.realBandwidth * netdevBacklogBwFactor) + (cfg.cpus * netdevBacklogCpuFactor)
+      );
   syn_backlog =
     if isLegacy then
       (
@@ -106,7 +134,7 @@ let
           32768
       )
     else
-      clamp 16384 1048576 (stableConnBudget / 2);
+      clamp 16384 synBacklogCap (stableConnBudget * 4 / 5);
   tw_buckets =
     if isLegacy then
       (
@@ -122,7 +150,7 @@ let
           100000
       )
     else
-      clamp 200000 4000000 (stableConnBudget * 8);
+      clamp 200000 twBucketsCap (stableConnBudget * 12);
   max_orphans =
     if isLegacy then
       (
@@ -136,7 +164,7 @@ let
           16384
       )
     else
-      clamp 8192 524288 (stableConnBudget / 6);
+      clamp 8192 maxOrphansCap (stableConnBudget / 4);
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 6  文件描述符 & 管道
@@ -152,7 +180,7 @@ let
           524288
       )
     else
-      clamp 524288 6291456 (stableConnBudget * 6);
+      clamp 524288 fileMaxCap (stableConnBudget * 10);
 
   pipe_max = if cfg.ram >= 4096 then 8388608 else 4194304;
 
@@ -160,16 +188,31 @@ let
   # § 7  CPU / NAPI 参数
   # ──────────────────────────────────────────────────────────────────────────
   napi_budget =
-    if cfg.cpus == 1 then
+    if isBerserk then
+      if cfg.cpus == 1 then
+        4200
+      else if cfg.cpus <= 4 then
+        7600
+      else
+        10000
+    else if cfg.cpus == 1 then
       1200
     else if cfg.cpus <= 4 then
       2000
     else
       3000;
 
-  dev_weight = if cfg.cpus == 1 then 128 else 256;
+  dev_weight =
+    if isBerserk then
+      if cfg.cpus == 1 then 384 else 768
+    else if cfg.cpus == 1 then
+      128
+    else
+      256;
 
-  busy_poll = 0; # 专用服务器可改为 50 启用忙等轮询，降低软中断延迟
+  busy_poll = if isBerserk then 120 else 0;
+  netdev_budget_usecs = if isBerserk then 32000 else 8000;
+  rpsSockFlowEntries = if isBerserk then 262144 else 65536;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 8  nf_conntrack
@@ -178,7 +221,7 @@ let
     if isLegacy then
       clamp 65536 2097152 (cfg.ram * 1048576 * 5 / 100 / 300)
     else
-      clamp 65536 4194304 (stableConnBudget * 3 / 2);
+      clamp 65536 conntrackCap (stableConnBudget * 5 / 2);
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 9  路由参数（initrwnd / initcwnd）
@@ -194,21 +237,21 @@ let
     if isLegacy then
       250
     else if isBerserk then
-      480
+      760
     else
       220;
   pacingSsRatio =
     if isLegacy then
       300
     else if isBerserk then
-      500
+      720
     else
       280;
   pacingCaRatio =
     if isLegacy then
       150
     else if isBerserk then
-      220
+      300
     else
       145;
 
@@ -358,6 +401,42 @@ in
         default = true;
         description = "将各 policy 的最小频率直接钉到最大频率，追求最低升频延迟。";
       };
+
+      cpuidleDisableLatencyUs = lib.mkOption {
+        type = lib.types.int;
+        default = 5;
+        description = "禁用 exit latency >= 此阈值(us) 的 C-state。值越小越激进。";
+      };
+
+      holdDmaLatency = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "保持 /dev/cpu_dma_latency=0，强制低延迟唤醒（功耗更高）。";
+      };
+
+      rebalanceIRQs = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "在禁用 irqbalance 场景下手动轮询分配 IRQ 到多核，提高并行处理能力。";
+      };
+
+      disableSchedulerAutogroup = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "关闭 CFS autogroup，减少交互式策略对网络负载调度的干扰。";
+      };
+
+      disableTimerMigration = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "关闭 timer migration，减少跨核迁移抖动并加速本核响应。";
+      };
+
+      boostKernelNetThreads = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "提升 ksoftirqd/irq 线程调度优先级，抢占式优先处理网络包。";
+      };
     };
 
     stableConnBudget = lib.mkOption {
@@ -472,18 +551,9 @@ in
         "net.ipv4.tcp_comp_sack_delay_ns" = 1000000;
         # tcp_autocorking = 0：关闭内核自动合包，有数据立刻发，降低初速延迟
         "net.ipv4.tcp_autocorking" = 0;
-        # tso_win_divisor = 3：即使网卡支持 TSO，也交由内核拆包，
-        # 提升小包乱序时的响应平滑度（与 FQ pacing 配合）
-        "net.ipv4.tcp_tso_win_divisor" = 3;
         # tcp_quickack = 1：开启全局 quickack (不延迟 ACK)，配合 BBR 极速测量带宽
         # 牺牲一点上行带宽，换取 10 倍速的 RTT 测量和拥塞窗口增长
         "net.ipv4.tcp_quickack" = 1;
-
-        # ── 小包 / SSH bufferbloat 消除 ──────────────────────────────────
-        # tcp_limit_output_bytes = 32768（32KB）：限制 TSQ（TCP Small Queues）单次输出。
-        # 默认 256KB 会让大流包堵在 qdisc 队列头，SSH/ACK 等小包等待数百 ms。
-        # 32KB ≈ 22×MSS，让小包能随时插队，p99 延迟显著下降。
-        "net.ipv4.tcp_limit_output_bytes" = 32768;
 
         # ── 稳定性 / 抗 GFW RST 注入 ────────────────────────────────────
         # tcp_challenge_ack_limit：每秒允许发送的 challenge ACK 上限。
@@ -544,6 +614,10 @@ in
         "net.ipv4.tcp_rmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
         "net.ipv4.tcp_wmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
         "net.ipv4.tcp_notsent_lowat" = notsent_lowat;
+        # 减少每连接发送侧积压，缓解高峰期排队时延
+        "net.ipv4.tcp_limit_output_bytes" = if isBerserk then 524288 else 262144;
+        # 降低单次 TSO 聚合突发，换取更低排队抖动
+        "net.ipv4.tcp_tso_win_divisor" = if isBerserk then 8 else 4;
         "net.ipv4.udp_rmem_min" = 16384;
         "net.ipv4.udp_wmem_min" = 16384;
 
@@ -566,10 +640,11 @@ in
 
         # ── CPU & NAPI 批处理 ────────────────────────────────────────────
         "net.core.netdev_budget" = napi_budget;
-        "net.core.netdev_budget_usecs" = 8000;
+        "net.core.netdev_budget_usecs" = netdev_budget_usecs;
         "net.core.dev_weight" = dev_weight;
         "net.core.busy_poll" = busy_poll;
         "net.core.busy_read" = busy_poll;
+        "net.core.rps_sock_flow_entries" = rpsSockFlowEntries;
 
         # optmem_max：每个 socket 的辅助内存上限（cmsg、过滤器等）
         "net.core.optmem_max" = if cfg.cpus > 1 then 131072 else 65536;
@@ -635,6 +710,55 @@ in
           done
 
           echo "NIC offload tuning complete."
+        '';
+      };
+
+      # ── 服务一补充：RPS/XPS 多核分流（提高 CPU 使用率与并行包处理）────
+      systemd.services.tune-rps-xps = {
+        description = "Aggressive RPS/XPS fan-out for multi-core packet processing";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = with pkgs; [
+          iproute2
+          coreutils
+          gawk
+        ];
+        script = ''
+          set -euo pipefail
+          TARGET="1.1.1.1"
+          GW_INFO=$(ip -4 route get "$TARGET" 2>/dev/null | head -n 1)
+          IFACE=$(echo "$GW_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
+          [ -z "$IFACE" ] && exit 0
+
+          ncpu=$(nproc 2>/dev/null || echo 1)
+          if [ "$ncpu" -ge 64 ]; then
+            mask="ffffffff,ffffffff"
+          elif [ "$ncpu" -ge 32 ]; then
+            mask="ffffffff"
+          else
+            mask=$(printf "%x" $(( (1 << ncpu) - 1 )))
+          fi
+
+          flow_cnt=$(( ${toString rpsSockFlowEntries} / ncpu ))
+          [ "$flow_cnt" -lt 1024 ] && flow_cnt=1024
+
+          for q in /sys/class/net/"$IFACE"/queues/rx-*; do
+            [ -d "$q" ] || continue
+            [ -w "$q/rps_cpus" ] && echo "$mask" > "$q/rps_cpus" || true
+            [ -w "$q/rps_flow_cnt" ] && echo "$flow_cnt" > "$q/rps_flow_cnt" || true
+          done
+
+          for q in /sys/class/net/"$IFACE"/queues/tx-*; do
+            [ -d "$q" ] || continue
+            [ -w "$q/xps_cpus" ] && echo "$mask" > "$q/xps_cpus" || true
+          done
+
+          echo "[tune-rps-xps] iface=$IFACE ncpu=$ncpu mask=$mask flow_cnt=$flow_cnt"
         '';
       };
 
@@ -742,8 +866,8 @@ in
           # flow_limit 200：允许单个 FQ flow 积压 200 个包（默认 100）。
           # kernel-relay 场景所有转发流量 src IP 相同，FQ 视为同一 flow，
           # 提高上限防止合法转发流量被 FQ 自身限速。
-          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200
-          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 on $IFACE"
+          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200 quantum 3000 initial_quantum 9000
+          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 quantum=3000 on $IFACE"
         '';
       };
 
@@ -858,20 +982,20 @@ in
                     bad=$(cat "$STATE_DIR/bad" 2>/dev/null || echo 0)
                     good=$(cat "$STATE_DIR/good" 2>/dev/null || echo 0)
                     last_change=$(cat "$STATE_DIR/last_change" 2>/dev/null || echo 0)
-                    min_dwell=45
+                    min_dwell=30
                     if [ "$state" = "RED" ]; then
-                      min_dwell=75
+                      min_dwell=50
                     fi
 
                     if [ "${cfg.profile}" = "berserk" ]; then
-                      moderate_retrans=900
-                      severe_retrans=2200
-                      moderate_drop=25
-                      severe_drop=70
-                      moderate_jitter=40
-                      severe_jitter=85
-                      moderate_loss=8
-                      severe_loss=18
+                      moderate_retrans=2200
+                      severe_retrans=5200
+                      moderate_drop=70
+                      severe_drop=170
+                      moderate_jitter=65
+                      severe_jitter=130
+                      moderate_loss=14
+                      severe_loss=28
                     else
                       moderate_retrans=280
                       severe_retrans=900
@@ -917,35 +1041,35 @@ in
                       case "$next" in
                         GREEN)
                           cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} + 60 ))
-                          ca=$(( ${toString pacingCaRatio} + 20 ))
-                          icwnd=$(( ${toString initcwnd} + 40 ))
-                          irwnd=$(( ${toString initrwnd} + 256 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 112 / 100 ))
+                          ss=$(( ${toString pacingSsRatio} + 140 ))
+                          ca=$(( ${toString pacingCaRatio} + 60 ))
+                          icwnd=$(( ${toString initcwnd} + 120 ))
+                          irwnd=$(( ${toString initrwnd} + 640 ))
+                          fqrate=$(( ${toString cfg.fqMaxrate} * 125 / 100 ))
                           ;;
                         YELLOW)
                           cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} * 92 / 100 ))
-                          ca=$(( ${toString pacingCaRatio} * 94 / 100 ))
-                          icwnd=$(( ${toString initcwnd} * 88 / 100 ))
-                          irwnd=$(( ${toString initrwnd} * 88 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 98 / 100 ))
-                          global_rate=4000
-                          global_burst=6000
-                          per_ip_rate=220
-                          per_ip_burst=320
+                          ss=$(( ${toString pacingSsRatio} * 96 / 100 ))
+                          ca=$(( ${toString pacingCaRatio} * 97 / 100 ))
+                          icwnd=$(( ${toString initcwnd} * 94 / 100 ))
+                          irwnd=$(( ${toString initrwnd} * 94 / 100 ))
+                          fqrate=$(( ${toString cfg.fqMaxrate} * 105 / 100 ))
+                          global_rate=6500
+                          global_burst=9000
+                          per_ip_rate=360
+                          per_ip_burst=520
                           ;;
                         RED)
                           cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} * 72 / 100 ))
-                          ca=$(( ${toString pacingCaRatio} * 82 / 100 ))
-                          icwnd=$(( ${toString initcwnd} * 60 / 100 ))
-                          irwnd=$(( ${toString initrwnd} * 60 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 88 / 100 ))
-                          global_rate=1600
-                          global_burst=2500
-                          per_ip_rate=90
-                          per_ip_burst=150
+                          ss=$(( ${toString pacingSsRatio} * 84 / 100 ))
+                          ca=$(( ${toString pacingCaRatio} * 90 / 100 ))
+                          icwnd=$(( ${toString initcwnd} * 76 / 100 ))
+                          irwnd=$(( ${toString initrwnd} * 76 / 100 ))
+                          fqrate=$(( ${toString cfg.fqMaxrate} * 95 / 100 ))
+                          global_rate=3600
+                          global_burst=5000
+                          per_ip_rate=180
+                          per_ip_burst=260
                           ;;
                       esac
 
@@ -973,7 +1097,7 @@ in
                       fi
 
                     if [ "${toString cfg.fqMaxrate}" -gt 0 ]; then
-                      tc qdisc replace dev "$IFACE" root fq maxrate ''${fqrate}mbit flow_limit 200
+                      tc qdisc replace dev "$IFACE" root fq maxrate ''${fqrate}mbit flow_limit 200 quantum 3000 initial_quantum 9000
                     fi
 
                     if [ "$next" = "GREEN" ] || [ "$next" = "YELLOW" ]; then
@@ -996,13 +1120,13 @@ in
 
                     next_state="$state"
                     if [ $(( now - last_change )) -ge "$min_dwell" ]; then
-                      if [ "$state" = "GREEN" ] && [ "$bad" -ge 5 ]; then
+                      if [ "$state" = "GREEN" ] && [ "$bad" -ge 8 ]; then
                         next_state="YELLOW"
-                      elif [ "$state" = "YELLOW" ] && [ "$bad" -ge 10 ]; then
+                      elif [ "$state" = "YELLOW" ] && [ "$bad" -ge 16 ]; then
                         next_state="RED"
-                      elif [ "$state" = "RED" ] && [ "$good" -ge 3 ] && [ "$bad" -le 4 ]; then
+                      elif [ "$state" = "RED" ] && [ "$good" -ge 2 ] && [ "$bad" -le 3 ]; then
                         next_state="YELLOW"
-                      elif [ "$state" = "YELLOW" ] && [ "$good" -ge 8 ] && [ "$bad" -eq 0 ]; then
+                      elif [ "$state" = "YELLOW" ] && [ "$good" -ge 5 ] && [ "$bad" -eq 0 ]; then
                         next_state="GREEN"
                       fi
                     fi
