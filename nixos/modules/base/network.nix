@@ -284,6 +284,12 @@ in
       description = "是否针对高丢包国际链路优化。";
     };
 
+    cca = lib.mkOption {
+      type = lib.types.str;
+      default = "bbrv1";
+      description = "TCP 拥塞控制算法（如 bbrv1 / bbr / cubic）。";
+    };
+
     mptcpScheduler = lib.mkOption {
       type = lib.types.str;
       default = "default";
@@ -398,7 +404,7 @@ in
         # FQ（Fair Queuing）+ BBR 组合：FQ 负责平滑 pacing，BBR 负责速率估算。
         # FQ 的 pacing 能将 BBR 的突发包均匀分布到时间轴上，避免触发运营商令牌桶丢包。
         "net.core.default_qdisc" = "fq";
-        "net.ipv4.tcp_congestion_control" = "bbr";
+        "net.ipv4.tcp_congestion_control" = cfg.cca;
 
         # ── 接收窗口 & 缓冲自适应 ────────────────────────────────────────
         "net.ipv4.tcp_moderate_rcvbuf" = 1; # 允许内核自动调节接收缓冲区
@@ -515,53 +521,12 @@ in
       };
     }
     {
-      # 固定 XanMod + BBRv1：自动从当前 nixpkgs 主线内核提取 tcp_bbr.c，
-      # 注入到 XanMod 源码，避免手动 sha256/版本号维护。
-      boot.kernelPackages = lib.mkForce (
-        let
-          mainlineBbrSource = pkgs.runCommand "tcp_bbr_v1.c" { } ''
-            set -euo pipefail
-            src="${pkgs.linuxPackages_latest.kernel.src}"
-            found=""
-
-            if [ -d "$src" ]; then
-              found="$(find "$src" -path "*/net/ipv4/tcp_bbr.c" | head -n 1 || true)"
-            else
-              found="$(tar -tf "$src" | grep -m1 '/net/ipv4/tcp_bbr.c$' || true)"
-              [ -n "$found" ] && tar -xOf "$src" "$found" > "$out"
-            fi
-
-            if [ -n "$found" ] && [ ! -f "$out" ]; then
-              cp "$found" "$out"
-            fi
-
-            [ -s "$out" ] || {
-              echo "ERROR: failed to locate tcp_bbr.c in linuxPackages_latest source" >&2
-              exit 1
-            }
-          '';
-
-          xanmodWithBbrV1 = pkgs.linux_xanmod_latest.overrideAttrs (old: {
-            postPatch = (old.postPatch or "") + ''
-              echo "Injecting mainline BBRv1 tcp_bbr.c into XanMod source tree..."
-              cp ${mainlineBbrSource} net/ipv4/tcp_bbr.c
-            '';
-          });
-        in
-        pkgs.linuxPackagesFor xanmodWithBbrV1
-      );
-      # 强制重编译内核并覆盖拥塞控制选项，确保存在并默认使用 BBRv1。
-      boot.kernelPatches = [
-        {
-          name = "force-bbrv1-on-xanmod";
-          patch = null;
-          extraConfig = ''
-            TCP_CONG_BBR y
-            DEFAULT_BBR y
-            DEFAULT_CUBIC n
-          '';
-        }
+      # 固定 XanMod 内核 + 外置 bbrv1 模块，避免每次重编整内核。
+      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_xanmod_latest;
+      boot.extraModulePackages = lib.mkIf (cfg.cca == "bbrv1") [
+        (config.boot.kernelPackages.callPackage ../../../pkgs/bbrv1-kmod { })
       ];
+      boot.kernelModules = lib.mkIf (cfg.cca == "bbrv1") [ "tcp_bbrv1" ];
     }
 
     # ════════════════════════════════════════════════════════════════════════
@@ -951,7 +916,7 @@ in
                       local cca ss ca icwnd irwnd fqrate global_rate global_burst per_ip_rate per_ip_burst
                       case "$next" in
                         GREEN)
-                          cca="bbr"
+                          cca="${cfg.cca}"
                           ss=$(( ${toString pacingSsRatio} + 60 ))
                           ca=$(( ${toString pacingCaRatio} + 20 ))
                           icwnd=$(( ${toString initcwnd} + 40 ))
@@ -959,7 +924,7 @@ in
                           fqrate=$(( ${toString cfg.fqMaxrate} * 112 / 100 ))
                           ;;
                         YELLOW)
-                          cca="bbr"
+                          cca="${cfg.cca}"
                           ss=$(( ${toString pacingSsRatio} * 92 / 100 ))
                           ca=$(( ${toString pacingCaRatio} * 94 / 100 ))
                           icwnd=$(( ${toString initcwnd} * 88 / 100 ))
@@ -971,7 +936,7 @@ in
                           per_ip_burst=320
                           ;;
                         RED)
-                          cca="bbr"
+                          cca="${cfg.cca}"
                           ss=$(( ${toString pacingSsRatio} * 72 / 100 ))
                           ca=$(( ${toString pacingCaRatio} * 82 / 100 ))
                           icwnd=$(( ${toString initcwnd} * 60 / 100 ))
