@@ -8,6 +8,8 @@ let
   cfg = config.environment.minimal;
 in
 {
+  imports = [ ./cpu.nix ];
+
   config = lib.mkMerge [
     { environment.minimal = lib.mkDefault true; }
     (lib.mkIf cfg {
