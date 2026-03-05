@@ -11,7 +11,7 @@
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         # needProxy = true;
-        # proxyHost = "nue0.dora.im";
+        # proxyHosts = [ "nue0.dora.im" "tyo0.dora.im" ];
       })
     ];
 

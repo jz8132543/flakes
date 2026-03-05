@@ -1,6 +1,9 @@
 {
   needProxy ? false,
-  proxyHost ? "127.0.0.1",
+  proxyHosts ? [
+    "nue0.dora.im"
+    "tyo0.dora.im"
+  ],
 }:
 {
   config,
@@ -50,6 +53,12 @@ in
     content = builtins.toJSON {
       log = {
         loglevel = "warning";
+      };
+
+      observatory = {
+        subjectSelector = [ "proxy-" ];
+        probeURL = "https://cp.cloudflare.com/generate_204";
+        probeInterval = "1m";
       };
 
       policy = lib.mkIf config.environment.minimal {
@@ -121,52 +130,54 @@ in
           tag = "direct";
           protocol = "freedom";
         }
-        {
-          tag = "proxy";
-          protocol = "vless";
-          settings = {
-            vnext = [
-              {
-                address = proxyHost; # 替换为 Server B 的真实 IP
-                port = 8555; # Server B 的监听端口
-                users = [
-                  {
-                    # 这里填 Server B 认可的 UUID
-                    # 如果 A 和 B 共享同一个 secrets 文件，可以用同一个 placeholder
-                    id = config.sops.placeholder."xray/uuid";
-                    flow = "xtls-rprx-vision"; # 必须保留，以支持 Vision 流控
-                    encryption = "none";
-                  }
-                ];
-              }
-            ];
+      ]
+      ++ (lib.imap0 (i: host: {
+        tag = "proxy-${toString i}";
+        protocol = "vless";
+        settings = {
+          vnext = [
+            {
+              address = host; # 替换为 Server B 的真实 IP
+              port = 8555; # Server B 的监听端口
+              users = [
+                {
+                  # 这里填 Server B 认可的 UUID
+                  # 如果 A 和 B 共享同一个 secrets 文件，可以用同一个 placeholder
+                  id = config.sops.placeholder."xray/uuid";
+                  flow = "xtls-rprx-vision"; # 必须保留，以支持 Vision 流控
+                  encryption = "none";
+                }
+              ];
+            }
+          ];
+        };
+        streamSettings = {
+          network = "tcp";
+          security = "reality";
+          sockopt = {
+            # 出站（本机→境外服务器）：开启 TFO 降低首包延迟（目标在境外，运营商干扰少）
+            tcpFastOpen = true;
+            # 禁用 Nagle 算法，有数据立刻转发，降低协议延迟（与内核 tcp_autocorking=0 协同）
+            tcpNoDelay = true;
+            mptcp = true;
+            tcpKeepAliveInterval = 60;
           };
-          streamSettings = {
-            network = "tcp";
-            security = "reality";
-            sockopt = {
-              # 出站（本机→境外服务器）：开启 TFO 降低首包延迟（目标在境外，运营商干扰少）
-              tcpFastOpen = true;
-              # 禁用 Nagle 算法，有数据立刻转发，降低协议延迟（与内核 tcp_autocorking=0 协同）
-              tcpNoDelay = true;
-              mptcp = true;
-              tcpKeepAliveInterval = 60;
-            };
-            realitySettings = {
-              # iOS 指纺，模拟 iPhone/iPad 的 TLS 行为，比 chrome 更难被识别
-              fingerprint = "ios";
+          realitySettings = {
+            # iOS 指纺，模拟 iPhone/iPad 的 TLS 行为，比 chrome 更难被识别
+            fingerprint = "ios";
 
-              # 必须与 Server B inbound 中的 serverNames 保持一致
-              serverName = builtins.head fakeSnis;
+            # 必须与 Server B inbound 中的 serverNames 保持一致
+            serverName = builtins.head fakeSnis;
 
-              # ⚠️ 重要：这里必须填 Server B 的『公鑰 Public Key』
-              publicKey = config.sops.placeholder."xray/public_key";
+            # ⚠️ 重要：这里必须填 Server B 的『公鑰 Public Key』
+            publicKey = config.sops.placeholder."xray/public_key";
 
-              # 必须与 Server B inbound 中的 shortIds 保持一致
-              shortId = config.sops.placeholder."xray/short_id";
-            };
+            # 必须与 Server B inbound 中的 shortIds 保持一致
+            shortId = config.sops.placeholder."xray/short_id";
           };
-        }
+        };
+      }) proxyHosts)
+      ++ [
         {
           tag = "cf-tunnel";
           protocol = "wireguard";
@@ -206,13 +217,22 @@ in
 
       routing = {
         domainStrategy = "IPIfNonMatch";
+        balancers = [
+          {
+            tag = "proxy-balancer";
+            selector = [ "proxy-" ];
+            strategy = {
+              type = "leastPing";
+            };
+          }
+        ];
         rules = [
           # 规则：Copilot 和 OpenAI 流量走 Proxy
           (
             if needProxy then
               {
                 type = "field";
-                outboundTag = "proxy";
+                balancerTag = "proxy-balancer";
                 domain = [
                   "skk.moe"
                   "geosite:category-ai-!cn"

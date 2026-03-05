@@ -39,7 +39,7 @@ in
 
     repeat = lib.mkOption {
       type = lib.types.int;
-      default = 2;
+      default = 1;
       description = ''
         重复发送伪造包的次数（-r 参数）。
         部分情况下单次发送不一定命中所有 DPI 节点，增加到 2-3 可提高成功率。
@@ -165,7 +165,7 @@ in
             http_payload = f"GET / HTTP/1.1\r\nHost: {domain}\r\nConnection: close\r\n\r\n"
             with open(os.path.join(out_dir, f"http_{domain}.bin"), "wb") as f:
                 f.write(http_payload.encode("utf-8"))
-            
+
             # 2. TLS Payload Capture
             def dummy_server(port, result_box):
                 try:
@@ -188,11 +188,11 @@ in
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                     s.bind(("", 0))
                     port = s.getsockname()[1]
-                
+
                 result_box = []
                 server_thread = threading.Thread(target=dummy_server, args=(port, result_box))
                 server_thread.start()
-                
+
                 time.sleep(0.1) # wait for server to listen
 
                 try:
@@ -207,15 +207,15 @@ in
                 except Exception as e:
                     # Expected to fail since dummy server doesn't complete SSL handshake
                     pass
-                
+
                 server_thread.join(timeout=3.0)
-                
+
                 if result_box and len(result_box[0]) > 0:
                     payload = result_box[0]
                     if len(payload) > 1200:
                         print(f"WARNING: Captured TLS ClientHello for {domain} is too large ({len(payload)} bytes > 1200), discarding.")
                         break # Skip this domain
-                    
+
                     with open(os.path.join(out_dir, f"tls_{domain}.bin"), "wb") as f:
                         f.write(payload)
                     print(f"Captured TLS ClientHello for {domain} ({len(payload)} bytes)")
@@ -279,7 +279,7 @@ in
             args+=("-r" ${lib.escapeShellArg (toString cfg.repeat)})
 
             ${lib.concatMapStrings (arg: ''
-              args+=(${lib.escapeShellArg arg})
+              args+=( ${lib.escapeShellArg arg} )
             '') cfg.extraArgs}
 
             echo "Final command: ''${args[*]}"

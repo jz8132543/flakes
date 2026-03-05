@@ -12,7 +12,10 @@
       # nixosModules.services.stun
       (import nixosModules.services.xray {
         needProxy = true;
-        proxyHost = "nue0.dora.im";
+        proxyHosts = [
+          "nue0.dora.im"
+          "tyo0.dora.im"
+        ];
       })
       # nixosModules.services.tuic
       # nixosModules.services.perplexica

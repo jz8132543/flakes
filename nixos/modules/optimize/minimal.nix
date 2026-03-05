@@ -77,9 +77,74 @@ in
       services.bpftune.enable = lib.mkForce false;
       services.irqbalance.enable = lib.mkForce false;
 
-      # 网络调优（sysctl/initcwnd）已直接合入 nixos/modules/base/network.nix 的动态配置中。
-      # 在各主机的 configuration.nix 中通过 environment.networkTune 声明硬件参数，
-      # 模块会在 Nix 求值时自动计算所有 sysctl 值。
+      #       # --- 激进资源优化 (针对极低资源服务器如 tyo0) ---
+      #
+      #       # 1. 内存回收优化 (基于脚本以防内核不支持)
+      #       boot.kernel.sysctl = {
+      #         "vm.vfs_cache_pressure" = lib.mkForce 200;
+      #         "vm.swappiness" = lib.mkForce 100;
+      #         "vm.dirty_ratio" = lib.mkForce 10;
+      #         "vm.dirty_background_ratio" = lib.mkForce 5;
+      #       };
+      #
+      #       systemd.services.tune-mglru = {
+      #         description = "Enable MGLRU if supported by kernel";
+      #         after = [ "systemd-sysctl.service" ];
+      #         wantedBy = [ "multi-user.target" ];
+      #         serviceConfig = {
+      #           Type = "oneshot";
+      #           TimeoutStartSec = "60s";
+      #         };
+      #         script = ''
+      #           if [ -f /sys/kernel/mm/lru_gen/enabled ]; then
+      #             echo 5 > /sys/kernel/mm/lru_gen/enabled
+      #           elif [ -f /proc/sys/vm/lru_gen_enabled ]; then
+      #             echo 5 > /proc/sys/vm/lru_gen_enabled
+      #           fi
+      #           exit 0
+      #         '';
+      #       };
+      #
+      #       # 2. 禁用透明大页 (THP)
+      #       boot.kernelParams = [ "transparent_hugepage=never" ];
+      #
+      #       # 3. CPU 转发加速 (Flow Offload)
+      #       systemd.services.apply-flow-offload = {
+      #         description = "Apply nftables flow offload at runtime";
+      #         after = [ "network-online.target" "nftables.service" ];
+      #         wants = [ "network-online.target" "nftables.service" ];
+      #         wantedBy = [ "multi-user.target" ];
+      #         serviceConfig = {
+      #           Type = "oneshot";
+      #           RemainAfterExit = true;
+      #           TimeoutStartSec = "60s";
+      #         };
+      #         path = [ pkgs.nftables pkgs.iproute2 pkgs.gawk pkgs.gnugrep ];
+      #         script = ''
+      #           # 尝试获取外网网卡
+      #           IFACE=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+' || true)
+      #           [ -z "$IFACE" ] && IFACE=$(ip link show | grep -v "lo" | awk -F': ' '/^[0-9]+: / {print $2; exit}' | tr -d ' ')
+      #
+      #           if [ -n "$IFACE" ]; then
+      #             echo "Applying flow offload on $IFACE"
+      #             nft -f - <<EOF || true
+      #             table inet minimal-optimize {
+      #               flowtable f {
+      #                 hook ingress priority 0
+      #                 devices = { $IFACE }
+      #               }
+      #               chain forward {
+      #                 type filter hook forward priority 0; policy accept;
+      #                 ct state established flow add @f
+      #               }
+      #             }
+      # EOF
+      #           else
+      #             echo "No suitable interface found for flow offload."
+      #           fi
+      #           exit 0
+      #         '';
+      #       };
     })
   ];
 }
