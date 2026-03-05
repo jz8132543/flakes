@@ -69,27 +69,27 @@ let
   isBerserk = cfg.profile == "berserk";
   isLegacy = cfg.profile == "legacy";
   # Profile constants: centralize tuning knobs for readability/maintainability.
-  rmemRamPctFactor = if isBerserk then 393216 else 131072;
-  rmemMaxLimit = if isBerserk then 512 * 1024 * 1024 else 128 * 1024 * 1024;
-  rmemMinFloor = if isBerserk then 32 * 1024 * 1024 else 16 * 1024 * 1024;
-  rmemDefaultFloor = if isBerserk then 16 * 1024 * 1024 else 4 * 1024 * 1024;
-  rmemDefaultCeilFactor = if isBerserk then 4 else 2;
-  rmemDefaultCeilDiv = if isBerserk then 5 else 2;
-  notsentLowatCap = if isBerserk then 2 * 1024 * 1024 else rmem_max / 2;
-  tcpMemHighPct = if isBerserk then 85 else 50;
+  rmemRamPctFactor = if isBerserk then 655360 else 131072;
+  rmemMaxLimit = if isBerserk then 1024 * 1024 * 1024 else 128 * 1024 * 1024;
+  rmemMinFloor = if isBerserk then 64 * 1024 * 1024 else 16 * 1024 * 1024;
+  rmemDefaultFloor = if isBerserk then 32 * 1024 * 1024 else 4 * 1024 * 1024;
+  rmemDefaultCeilFactor = if isBerserk then 19 else 2;
+  rmemDefaultCeilDiv = if isBerserk then 20 else 2;
+  notsentLowatCap = if isBerserk then 16 * 1024 * 1024 else rmem_max / 2;
+  tcpMemHighPct = if isBerserk then 95 else 50;
 
-  connBudgetRamFactor = if isBerserk then 52 else 10;
-  connBudgetCpuFactor = if isBerserk then 36000 else 7000;
-  connBudgetBwFactor = if isBerserk then 120 else 24;
-  stableConnCap = if isBerserk then 1400000 else 600000;
-  netdevBacklogBwFactor = if isBerserk then 460 else 110;
-  netdevBacklogCpuFactor = if isBerserk then 48000 else 20000;
-  netdevBacklogCap = if isBerserk then 2200000 else 1200000;
-  synBacklogCap = if isBerserk then 2097152 else 1048576;
-  twBucketsCap = if isBerserk then 8000000 else 4000000;
-  maxOrphansCap = if isBerserk then 1048576 else 524288;
-  fileMaxCap = if isBerserk then 10485760 else 6291456;
-  conntrackCap = if isBerserk then 12582912 else 4194304;
+  connBudgetRamFactor = if isBerserk then 120 else 10;
+  connBudgetCpuFactor = if isBerserk then 70000 else 7000;
+  connBudgetBwFactor = if isBerserk then 260 else 24;
+  stableConnCap = if isBerserk then 3200000 else 600000;
+  netdevBacklogBwFactor = if isBerserk then 820 else 110;
+  netdevBacklogCpuFactor = if isBerserk then 96000 else 20000;
+  netdevBacklogCap = if isBerserk then 4500000 else 1200000;
+  synBacklogCap = if isBerserk then 4194304 else 1048576;
+  twBucketsCap = if isBerserk then 14000000 else 4000000;
+  maxOrphansCap = if isBerserk then 2097152 else 524288;
+  fileMaxCap = if isBerserk then 16777216 else 6291456;
+  conntrackCap = if isBerserk then 25165824 else 4194304;
 
   connBudgetRam = cfg.ram * connBudgetRamFactor;
   connBudgetCpu = cfg.cpus * connBudgetCpuFactor;
@@ -190,11 +190,11 @@ let
   napi_budget =
     if isBerserk then
       if cfg.cpus == 1 then
-        4200
-      else if cfg.cpus <= 4 then
         7600
+      else if cfg.cpus <= 4 then
+        12800
       else
-        10000
+        16800
     else if cfg.cpus == 1 then
       1200
     else if cfg.cpus <= 4 then
@@ -204,15 +204,15 @@ let
 
   dev_weight =
     if isBerserk then
-      if cfg.cpus == 1 then 384 else 768
+      if cfg.cpus == 1 then 768 else 1536
     else if cfg.cpus == 1 then
       128
     else
       256;
 
-  busy_poll = if isBerserk then 120 else 0;
-  netdev_budget_usecs = if isBerserk then 32000 else 8000;
-  rpsSockFlowEntries = if isBerserk then 262144 else 65536;
+  busy_poll = if isBerserk then 300 else 0;
+  netdev_budget_usecs = if isBerserk then 80000 else 8000;
+  rpsSockFlowEntries = if isBerserk then 1048576 else 65536;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 8  nf_conntrack
@@ -232,26 +232,26 @@ let
     if isLegacy then
       clamp 150 2048 initrwnd_raw
     else
-      clamp 150 (if isBerserk then 4096 else 2048) initrwnd_raw;
+      clamp 150 (if isBerserk then 16384 else 2048) initrwnd_raw;
   initcwnd =
     if isLegacy then
       250
     else if isBerserk then
-      760
+      2400
     else
       220;
   pacingSsRatio =
     if isLegacy then
       300
     else if isBerserk then
-      720
+      1000
     else
       280;
   pacingCaRatio =
     if isLegacy then
       150
     else if isBerserk then
-      300
+      760
     else
       145;
 
@@ -259,15 +259,26 @@ let
   # § 10  重试次数
   # ──────────────────────────────────────────────────────────────────────────
   syn_retries =
-    if cfg.highLoss && cfg.cpus == 1 then
-      3
+    if isBerserk then
+      9
     else if cfg.highLoss then
       4
     else
       6;
-
-  synack_retries = if cfg.highLoss then 3 else 5;
-  tcp_retries2 = if cfg.cpus == 1 && cfg.ram < 1024 then 6 else 8;
+  synack_retries =
+    if isBerserk then
+      8
+    else if cfg.highLoss then
+      3
+    else
+      5;
+  tcp_retries2 =
+    if isBerserk then
+      18
+    else if cfg.cpus == 1 && cfg.ram < 1024 then
+      6
+    else
+      8;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 11  内存/Swap
@@ -388,6 +399,19 @@ in
         type = lib.types.str;
         default = "1.1.1.1";
         description = "主动探测目的地址。";
+      };
+
+      strategy = lib.mkOption {
+        type = lib.types.enum [
+          "ignore"
+          "adaptive"
+        ];
+        default = "ignore";
+        description = ''
+          QoS 策略：
+          - ignore：无视 QoS 信号，不启用闭环降档（默认，最暴力）
+          - adaptive：启用 QoS 探测与 GREEN/YELLOW/RED 自适应收敛
+        '';
       };
     };
 
@@ -545,8 +569,6 @@ in
 
         # ── 发包行为优化 ─────────────────────────────────────────────────
         "net.ipv4.tcp_slow_start_after_idle" = 0; # 空闲后不重置拥塞窗口，保持满速
-        # tcp_fastopen = 0：国内代理场景关闭，带数据 SYN 包极易被运营商/GFW 丢弃
-        "net.ipv4.tcp_fastopen" = 0;
         # SACK 合并延迟 1ms：防止高丢包高延迟时单核 100% 的 SACK 风暴。绝不能设为 0。
         "net.ipv4.tcp_comp_sack_delay_ns" = 1000000;
         # tcp_autocorking = 0：关闭内核自动合包，有数据立刻发，降低初速延迟
@@ -614,10 +636,12 @@ in
         "net.ipv4.tcp_rmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
         "net.ipv4.tcp_wmem" = "4096 ${toString rmem_default} ${toString rmem_max}";
         "net.ipv4.tcp_notsent_lowat" = notsent_lowat;
-        # 减少每连接发送侧积压，缓解高峰期排队时延
-        "net.ipv4.tcp_limit_output_bytes" = if isBerserk then 524288 else 262144;
-        # 降低单次 TSO 聚合突发，换取更低排队抖动
-        "net.ipv4.tcp_tso_win_divisor" = if isBerserk then 8 else 4;
+        # berserk: TFO 打开 client+server，提升短连接首包速度
+        "net.ipv4.tcp_fastopen" = if isBerserk then 3 else 0;
+        # 提升每连接发送积压上限：berserk 优先爆发爬坡
+        "net.ipv4.tcp_limit_output_bytes" = if isBerserk then 8388608 else 262144;
+        # 控制单次 TSO 聚合突发：berserk 更偏向爆发，steady 更偏向时延
+        "net.ipv4.tcp_tso_win_divisor" = if isBerserk then 1 else 4;
         "net.ipv4.udp_rmem_min" = 16384;
         "net.ipv4.udp_wmem_min" = 16384;
 
@@ -866,304 +890,308 @@ in
           # flow_limit 200：允许单个 FQ flow 积压 200 个包（默认 100）。
           # kernel-relay 场景所有转发流量 src IP 相同，FQ 视为同一 flow，
           # 提高上限防止合法转发流量被 FQ 自身限速。
-          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200 quantum 3000 initial_quantum 9000
-          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 quantum=3000 on $IFACE"
+          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200 quantum 12000 initial_quantum 65536
+          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 quantum=12000 on $IFACE"
         '';
       };
 
       # ── 服务四：QoS 反制闭环（持续探测 + 自动切档）──────────────────────
-      systemd.services.network-qos-controller = lib.mkIf cfg.qosProbe.enable {
-        description = "QoS closed-loop controller (GREEN/YELLOW/RED)";
-        after = [
-          "network-online.target"
-          "set-initcwnd.service"
-        ];
-        wants = [ "network-online.target" ];
-        wantedBy = [ "multi-user.target" ];
+      systemd.services.network-qos-controller =
+        lib.mkIf (cfg.qosProbe.enable && cfg.qosProbe.strategy == "adaptive")
+          {
+            description = "QoS closed-loop controller (GREEN/YELLOW/RED)";
+            after = [
+              "network-online.target"
+              "set-initcwnd.service"
+            ];
+            wants = [ "network-online.target" ];
+            wantedBy = [ "multi-user.target" ];
 
-        restartTriggers = [
-          (builtins.hashString "sha256" config.systemd.services.network-qos-controller.script)
-        ];
+            restartTriggers = [
+              (builtins.hashString "sha256" config.systemd.services.network-qos-controller.script)
+            ];
 
-        serviceConfig = {
-          Type = "oneshot";
-          RuntimeDirectory = "network-qos";
-        };
-        path = with pkgs; [
-          iproute2
-          iputils
-          procps
-          coreutils
-          gawk
-          gnugrep
-          nftables
-        ];
-        script = ''
-                    set -euo pipefail
+            serviceConfig = {
+              Type = "oneshot";
+              RuntimeDirectory = "network-qos";
+            };
+            path = with pkgs; [
+              iproute2
+              iputils
+              procps
+              coreutils
+              gawk
+              gnugrep
+              nftables
+            ];
+            script = ''
+                        set -euo pipefail
 
-                    STATE_DIR="/run/network-qos"
-                    mkdir -p "$STATE_DIR"
+                        STATE_DIR="/run/network-qos"
+                        mkdir -p "$STATE_DIR"
 
-                    TARGET="${cfg.qosProbe.probeTarget}"
-                    SAMPLE_INTERVAL=${toString cfg.qosProbe.intervalSec}
-                    ACTIVE_EVERY=$(( ${toString cfg.qosProbe.activeProbeEvery} / SAMPLE_INTERVAL ))
-                    [ "$ACTIVE_EVERY" -lt 1 ] && ACTIVE_EVERY=1
-                    IFACE=$(ip -4 route get "$TARGET" 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="dev"){print $(i+1); exit}}')
-                    [ -z "$IFACE" ] && exit 0
+                        TARGET="${cfg.qosProbe.probeTarget}"
+                        SAMPLE_INTERVAL=${toString cfg.qosProbe.intervalSec}
+                        ACTIVE_EVERY=$(( ${toString cfg.qosProbe.activeProbeEvery} / SAMPLE_INTERVAL ))
+                        [ "$ACTIVE_EVERY" -lt 1 ] && ACTIVE_EVERY=1
+                        IFACE=$(ip -4 route get "$TARGET" 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="dev"){print $(i+1); exit}}')
+                        [ -z "$IFACE" ] && exit 0
 
-                    read_tcp_ext() {
-                      local key="$1"
-                      awk -v key="$key" '
-                        /^TcpExt:/{
-                          if (!header_done) {
-                            for (i=1; i<=NF; i++) hdr[i]=$i
-                            header_done=1
-                          } else {
-                            for (i=1; i<=NF; i++) if (hdr[i]==key) { print $i; exit }
-                          }
+                        read_tcp_ext() {
+                          local key="$1"
+                          awk -v key="$key" '
+                            /^TcpExt:/{
+                              if (!header_done) {
+                                for (i=1; i<=NF; i++) hdr[i]=$i
+                                header_done=1
+                              } else {
+                                for (i=1; i<=NF; i++) if (hdr[i]==key) { print $i; exit }
+                              }
+                            }
+                          ' /proc/net/netstat
                         }
-                      ' /proc/net/netstat
-                    }
 
-                    now=$(date +%s)
-                    prev_now=$(cat "$STATE_DIR/prev_now" 2>/dev/null || echo "$now")
-                    elapsed=$(( now - prev_now ))
-                    [ "$elapsed" -le 0 ] && elapsed=$SAMPLE_INTERVAL
+                        now=$(date +%s)
+                        prev_now=$(cat "$STATE_DIR/prev_now" 2>/dev/null || echo "$now")
+                        elapsed=$(( now - prev_now ))
+                        [ "$elapsed" -le 0 ] && elapsed=$SAMPLE_INTERVAL
 
-                    retrans=$(read_tcp_ext TCPRetransSegs)
-                    passive=$(read_tcp_ext PassiveOpens)
-                    qdisc_drop=$(tc -s qdisc show dev "$IFACE" 2>/dev/null | awk '/dropped/ {for(i=1;i<=NF;i++) if($i=="dropped"){gsub(",","",$(i+1)); sum+=$(i+1)}} END{print sum+0}')
-                    softnet_drop=$(awk '{sum += strtonum("0x"$2)} END{print sum+0}' /proc/net/softnet_stat)
-                    tx_bytes=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes" 2>/dev/null || echo 0)
-                    conn_count=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo 0)
-                    conn_max=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo 1)
+                        retrans=$(read_tcp_ext TCPRetransSegs)
+                        passive=$(read_tcp_ext PassiveOpens)
+                        qdisc_drop=$(tc -s qdisc show dev "$IFACE" 2>/dev/null | awk '/dropped/ {for(i=1;i<=NF;i++) if($i=="dropped"){gsub(",","",$(i+1)); sum+=$(i+1)}} END{print sum+0}')
+                        softnet_drop=$(awk '{sum += strtonum("0x"$2)} END{print sum+0}' /proc/net/softnet_stat)
+                        tx_bytes=$(cat "/sys/class/net/$IFACE/statistics/tx_bytes" 2>/dev/null || echo 0)
+                        conn_count=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo 0)
+                        conn_max=$(cat /proc/sys/net/netfilter/nf_conntrack_max 2>/dev/null || echo 1)
 
-                    prev_retrans=$(cat "$STATE_DIR/prev_retrans" 2>/dev/null || echo "$retrans")
-                    prev_passive=$(cat "$STATE_DIR/prev_passive" 2>/dev/null || echo "$passive")
-                    prev_qdisc_drop=$(cat "$STATE_DIR/prev_qdisc_drop" 2>/dev/null || echo "$qdisc_drop")
-                    prev_softnet_drop=$(cat "$STATE_DIR/prev_softnet_drop" 2>/dev/null || echo "$softnet_drop")
-                    prev_tx_bytes=$(cat "$STATE_DIR/prev_tx_bytes" 2>/dev/null || echo "$tx_bytes")
+                        prev_retrans=$(cat "$STATE_DIR/prev_retrans" 2>/dev/null || echo "$retrans")
+                        prev_passive=$(cat "$STATE_DIR/prev_passive" 2>/dev/null || echo "$passive")
+                        prev_qdisc_drop=$(cat "$STATE_DIR/prev_qdisc_drop" 2>/dev/null || echo "$qdisc_drop")
+                        prev_softnet_drop=$(cat "$STATE_DIR/prev_softnet_drop" 2>/dev/null || echo "$softnet_drop")
+                        prev_tx_bytes=$(cat "$STATE_DIR/prev_tx_bytes" 2>/dev/null || echo "$tx_bytes")
 
-                    d_retrans=$(( retrans - prev_retrans ))
-                    d_passive=$(( passive - prev_passive ))
-                    d_drop=$(( (qdisc_drop - prev_qdisc_drop) + (softnet_drop - prev_softnet_drop) ))
-                    d_tx=$(( tx_bytes - prev_tx_bytes ))
-                    [ "$d_retrans" -lt 0 ] && d_retrans=0
-                    [ "$d_passive" -lt 0 ] && d_passive=0
-                    [ "$d_drop" -lt 0 ] && d_drop=0
-                    [ "$d_tx" -lt 0 ] && d_tx=0
+                        d_retrans=$(( retrans - prev_retrans ))
+                        d_passive=$(( passive - prev_passive ))
+                        d_drop=$(( (qdisc_drop - prev_qdisc_drop) + (softnet_drop - prev_softnet_drop) ))
+                        d_tx=$(( tx_bytes - prev_tx_bytes ))
+                        [ "$d_retrans" -lt 0 ] && d_retrans=0
+                        [ "$d_passive" -lt 0 ] && d_passive=0
+                        [ "$d_drop" -lt 0 ] && d_drop=0
+                        [ "$d_tx" -lt 0 ] && d_tx=0
 
-                    retrans_rate=$(( d_retrans / elapsed ))
-                    conn_rate=$(( d_passive / elapsed ))
-                    drop_rate=$(( d_drop / elapsed ))
-                    tx_mbps=$(( d_tx * 8 / elapsed / 1000000 ))
-                    conn_pct=$(( conn_count * 100 / conn_max ))
+                        retrans_rate=$(( d_retrans / elapsed ))
+                        conn_rate=$(( d_passive / elapsed ))
+                        drop_rate=$(( d_drop / elapsed ))
+                        tx_mbps=$(( d_tx * 8 / elapsed / 1000000 ))
+                        conn_pct=$(( conn_count * 100 / conn_max ))
 
-                    probe_tick=$(cat "$STATE_DIR/probe_tick" 2>/dev/null || echo 0)
-                    probe_tick=$(( probe_tick + 1 ))
-                    if [ "$probe_tick" -ge "$ACTIVE_EVERY" ]; then
-                      probe_tick=0
-                      probe_out=$(ping -c 4 -i 0.2 -s 32 -W 1 "$TARGET" 2>/dev/null || true)
-                      loss_pct=$(echo "$probe_out" | awk -F', ' '/packet loss/ {gsub("%","",$3); print $3+0; exit}')
-                      read -r rtt_avg rtt_mdev <<<"$(echo "$probe_out" | awk -F'=' '/^rtt/ {gsub(" ms","",$2); split($2,a,"/"); print a[2]+0, a[4]+0; exit}')"
-                      : ''${loss_pct:=0}
-                      : ''${rtt_avg:=0}
-                      : ''${rtt_mdev:=0}
-                      echo "$loss_pct" > "$STATE_DIR/probe_loss"
-                      echo "$rtt_avg" > "$STATE_DIR/probe_rtt"
-                      echo "$rtt_mdev" > "$STATE_DIR/probe_jitter"
-                    else
-                      loss_pct=$(cat "$STATE_DIR/probe_loss" 2>/dev/null || echo 0)
-                      rtt_avg=$(cat "$STATE_DIR/probe_rtt" 2>/dev/null || echo 0)
-                      rtt_mdev=$(cat "$STATE_DIR/probe_jitter" 2>/dev/null || echo 0)
-                    fi
+                        probe_tick=$(cat "$STATE_DIR/probe_tick" 2>/dev/null || echo 0)
+                        probe_tick=$(( probe_tick + 1 ))
+                        if [ "$probe_tick" -ge "$ACTIVE_EVERY" ]; then
+                          probe_tick=0
+                          probe_out=$(ping -c 4 -i 0.2 -s 32 -W 1 "$TARGET" 2>/dev/null || true)
+                          loss_pct=$(echo "$probe_out" | awk -F', ' '/packet loss/ {gsub("%","",$3); print $3+0; exit}')
+                          read -r rtt_avg rtt_mdev <<<"$(echo "$probe_out" | awk -F'=' '/^rtt/ {gsub(" ms","",$2); split($2,a,"/"); print a[2]+0, a[4]+0; exit}')"
+                          : ''${loss_pct:=0}
+                          : ''${rtt_avg:=0}
+                          : ''${rtt_mdev:=0}
+                          echo "$loss_pct" > "$STATE_DIR/probe_loss"
+                          echo "$rtt_avg" > "$STATE_DIR/probe_rtt"
+                          echo "$rtt_mdev" > "$STATE_DIR/probe_jitter"
+                        else
+                          loss_pct=$(cat "$STATE_DIR/probe_loss" 2>/dev/null || echo 0)
+                          rtt_avg=$(cat "$STATE_DIR/probe_rtt" 2>/dev/null || echo 0)
+                          rtt_mdev=$(cat "$STATE_DIR/probe_jitter" 2>/dev/null || echo 0)
+                        fi
 
-                    state=$(cat "$STATE_DIR/state" 2>/dev/null || echo "GREEN")
-                    bad=$(cat "$STATE_DIR/bad" 2>/dev/null || echo 0)
-                    good=$(cat "$STATE_DIR/good" 2>/dev/null || echo 0)
-                    last_change=$(cat "$STATE_DIR/last_change" 2>/dev/null || echo 0)
-                    min_dwell=30
-                    if [ "$state" = "RED" ]; then
-                      min_dwell=50
-                    fi
+                        state=$(cat "$STATE_DIR/state" 2>/dev/null || echo "GREEN")
+                        bad=$(cat "$STATE_DIR/bad" 2>/dev/null || echo 0)
+                        good=$(cat "$STATE_DIR/good" 2>/dev/null || echo 0)
+                        last_change=$(cat "$STATE_DIR/last_change" 2>/dev/null || echo 0)
+                        min_dwell=30
+                        if [ "$state" = "RED" ]; then
+                          min_dwell=50
+                        fi
 
-                    if [ "${cfg.profile}" = "berserk" ]; then
-                      moderate_retrans=2200
-                      severe_retrans=5200
-                      moderate_drop=70
-                      severe_drop=170
-                      moderate_jitter=65
-                      severe_jitter=130
-                      moderate_loss=14
-                      severe_loss=28
-                    else
-                      moderate_retrans=280
-                      severe_retrans=900
-                      moderate_drop=6
-                      severe_drop=20
-                      moderate_jitter=16
-                      severe_jitter=35
-                      moderate_loss=3
-                      severe_loss=8
-                    fi
+                        if [ "${cfg.profile}" = "berserk" ]; then
+                          moderate_retrans=2200
+                          severe_retrans=5200
+                          moderate_drop=70
+                          severe_drop=170
+                          moderate_jitter=65
+                          severe_jitter=130
+                          moderate_loss=14
+                          severe_loss=28
+                        else
+                          moderate_retrans=280
+                          severe_retrans=900
+                          moderate_drop=6
+                          severe_drop=20
+                          moderate_jitter=16
+                          severe_jitter=35
+                          moderate_loss=3
+                          severe_loss=8
+                        fi
 
-                    qos_moderate=0
-                    qos_severe=0
-                    if [ "$tx_mbps" -gt $(( ${
-                      (toString (if isBerserk then cfg.bandwidth else cfg.realBandwidth))
-                    } * 75 / 100 )) ] &&
-                       { [ "$retrans_rate" -ge "$moderate_retrans" ] || [ "''${loss_pct%.*}" -ge "$moderate_loss" ] || [ "''${rtt_mdev%.*}" -ge "$moderate_jitter" ]; }; then
-                      qos_moderate=1
-                    fi
-                    if [ "$tx_mbps" -gt $(( ${
-                      (toString (if isBerserk then cfg.bandwidth else cfg.realBandwidth))
-                    } * 90 / 100 )) ] &&
-                       { [ "$retrans_rate" -ge "$severe_retrans" ] || [ "''${loss_pct%.*}" -ge "$severe_loss" ] || [ "''${rtt_mdev%.*}" -ge "$severe_jitter" ]; }; then
-                      qos_severe=1
-                    fi
+                        qos_moderate=0
+                        qos_severe=0
+                        if [ "$tx_mbps" -gt $(( ${
+                          (toString (if isBerserk then cfg.bandwidth else cfg.realBandwidth))
+                        } * 75 / 100 )) ] &&
+                           { [ "$retrans_rate" -ge "$moderate_retrans" ] || [ "''${loss_pct%.*}" -ge "$moderate_loss" ] || [ "''${rtt_mdev%.*}" -ge "$moderate_jitter" ]; }; then
+                          qos_moderate=1
+                        fi
+                        if [ "$tx_mbps" -gt $(( ${
+                          (toString (if isBerserk then cfg.bandwidth else cfg.realBandwidth))
+                        } * 90 / 100 )) ] &&
+                           { [ "$retrans_rate" -ge "$severe_retrans" ] || [ "''${loss_pct%.*}" -ge "$severe_loss" ] || [ "''${rtt_mdev%.*}" -ge "$severe_jitter" ]; }; then
+                          qos_severe=1
+                        fi
 
-                    severity=0
-                    if [ "$conn_pct" -ge 97 ] || [ "$drop_rate" -ge "$severe_drop" ] || [ "$retrans_rate" -ge "$severe_retrans" ] || [ "$qos_severe" -eq 1 ]; then
-                      severity=2
-                    elif [ "$conn_pct" -ge 90 ] || [ "$drop_rate" -ge "$moderate_drop" ] || [ "$retrans_rate" -ge "$moderate_retrans" ] || [ "$qos_moderate" -eq 1 ]; then
-                      severity=1
-                    fi
+                        severity=0
+                        if [ "$conn_pct" -ge 97 ] || [ "$drop_rate" -ge "$severe_drop" ] || [ "$retrans_rate" -ge "$severe_retrans" ] || [ "$qos_severe" -eq 1 ]; then
+                          severity=2
+                        elif [ "$conn_pct" -ge 90 ] || [ "$drop_rate" -ge "$moderate_drop" ] || [ "$retrans_rate" -ge "$moderate_retrans" ] || [ "$qos_moderate" -eq 1 ]; then
+                          severity=1
+                        fi
 
-                    case "$severity" in
-                      2) bad=$(( bad + 2 )); good=0 ;;
-                      1) bad=$(( bad + 1 )); good=$(( good > 0 ? good - 1 : 0 )) ;;
-                      0) good=$(( good + 1 )); bad=$(( bad > 0 ? bad - 1 : 0 )) ;;
-                    esac
+                        case "$severity" in
+                          2) bad=$(( bad + 2 )); good=0 ;;
+                          1) bad=$(( bad + 1 )); good=$(( good > 0 ? good - 1 : 0 )) ;;
+                          0) good=$(( good + 1 )); bad=$(( bad > 0 ? bad - 1 : 0 )) ;;
+                        esac
 
-                    apply_state() {
-                      local next="$1"
-                      local cca ss ca icwnd irwnd fqrate global_rate global_burst per_ip_rate per_ip_burst
-                      case "$next" in
-                        GREEN)
-                          cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} + 140 ))
-                          ca=$(( ${toString pacingCaRatio} + 60 ))
-                          icwnd=$(( ${toString initcwnd} + 120 ))
-                          irwnd=$(( ${toString initrwnd} + 640 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 125 / 100 ))
-                          ;;
-                        YELLOW)
-                          cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} * 96 / 100 ))
-                          ca=$(( ${toString pacingCaRatio} * 97 / 100 ))
-                          icwnd=$(( ${toString initcwnd} * 94 / 100 ))
-                          irwnd=$(( ${toString initrwnd} * 94 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 105 / 100 ))
-                          global_rate=6500
-                          global_burst=9000
-                          per_ip_rate=360
-                          per_ip_burst=520
-                          ;;
-                        RED)
-                          cca="${cfg.cca}"
-                          ss=$(( ${toString pacingSsRatio} * 84 / 100 ))
-                          ca=$(( ${toString pacingCaRatio} * 90 / 100 ))
-                          icwnd=$(( ${toString initcwnd} * 76 / 100 ))
-                          irwnd=$(( ${toString initrwnd} * 76 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 95 / 100 ))
-                          global_rate=3600
-                          global_burst=5000
-                          per_ip_rate=180
-                          per_ip_burst=260
-                          ;;
-                      esac
+                        apply_state() {
+                          local next="$1"
+                          local cca ss ca icwnd irwnd fqrate global_rate global_burst per_ip_rate per_ip_burst
+                          case "$next" in
+                            GREEN)
+                              cca="${cfg.cca}"
+                              ss=$(( ${toString pacingSsRatio} + 140 ))
+                              ca=$(( ${toString pacingCaRatio} + 60 ))
+                              icwnd=$(( ${toString initcwnd} + 120 ))
+                              irwnd=$(( ${toString initrwnd} + 640 ))
+                              fqrate=$(( ${toString cfg.fqMaxrate} * 125 / 100 ))
+                              ;;
+                            YELLOW)
+                              cca="${cfg.cca}"
+                              ss=$(( ${toString pacingSsRatio} * 96 / 100 ))
+                              ca=$(( ${toString pacingCaRatio} * 97 / 100 ))
+                              icwnd=$(( ${toString initcwnd} * 94 / 100 ))
+                              irwnd=$(( ${toString initrwnd} * 94 / 100 ))
+                              fqrate=$(( ${toString cfg.fqMaxrate} * 105 / 100 ))
+                              global_rate=6500
+                              global_burst=9000
+                              per_ip_rate=360
+                              per_ip_burst=520
+                              ;;
+                            RED)
+                              cca="${cfg.cca}"
+                              ss=$(( ${toString pacingSsRatio} * 84 / 100 ))
+                              ca=$(( ${toString pacingCaRatio} * 90 / 100 ))
+                              icwnd=$(( ${toString initcwnd} * 76 / 100 ))
+                              irwnd=$(( ${toString initrwnd} * 76 / 100 ))
+                              fqrate=$(( ${toString cfg.fqMaxrate} * 95 / 100 ))
+                              global_rate=3600
+                              global_burst=5000
+                              per_ip_rate=180
+                              per_ip_burst=260
+                              ;;
+                          esac
 
-                      [ "$fqrate" -lt 100 ] && fqrate=100
-                      [ "$icwnd" -lt 32 ] && icwnd=32
-                      [ "$irwnd" -lt 150 ] && irwnd=150
+                          [ "$fqrate" -lt 100 ] && fqrate=100
+                          [ "$icwnd" -lt 32 ] && icwnd=32
+                          [ "$irwnd" -lt 150 ] && irwnd=150
 
-                      sysctl -w \
-                        net.ipv4.tcp_congestion_control="$cca" \
-                        net.ipv4.tcp_pacing_ss_ratio="$ss" \
-                        net.ipv4.tcp_pacing_ca_ratio="$ca" >/dev/null || true
+                          sysctl -w \
+                            net.ipv4.tcp_congestion_control="$cca" \
+                            net.ipv4.tcp_pacing_ss_ratio="$ss" \
+                            net.ipv4.tcp_pacing_ca_ratio="$ca" >/dev/null || true
 
-                      DEF4=$(ip -4 route show default dev "$IFACE" | head -n 1)
-                      if [ -n "$DEF4" ]; then
-                        CUR_MSS=$(echo "$DEF4" | awk '{for(i=1;i<NF;i++) if($i=="advmss"){print $(i+1); exit}}')
-                        [ -z "$CUR_MSS" ] && CUR_MSS=1460
-                        ip route change $DEF4 initcwnd "$icwnd" initrwnd "$irwnd" advmss "$CUR_MSS" || true
-                      fi
+                          DEF4=$(ip -4 route show default dev "$IFACE" | head -n 1)
+                          if [ -n "$DEF4" ]; then
+                            CUR_MSS=$(echo "$DEF4" | awk '{for(i=1;i<NF;i++) if($i=="advmss"){print $(i+1); exit}}')
+                            [ -z "$CUR_MSS" ] && CUR_MSS=1460
+                            ip route change $DEF4 initcwnd "$icwnd" initrwnd "$irwnd" advmss "$CUR_MSS" || true
+                          fi
 
-                      DEF6=$(ip -6 route show default dev "$IFACE" | head -n 1)
-                      if [ -n "$DEF6" ]; then
-                        CUR_MSS6=$(echo "$DEF6" | awk '{for(i=1;i<NF;i++) if($i=="advmss"){print $(i+1); exit}}')
-                        [ -z "$CUR_MSS6" ] && CUR_MSS6=1440
-                        ip -6 route change $DEF6 initcwnd "$icwnd" initrwnd "$irwnd" advmss "$CUR_MSS6" || true
-                      fi
+                          DEF6=$(ip -6 route show default dev "$IFACE" | head -n 1)
+                          if [ -n "$DEF6" ]; then
+                            CUR_MSS6=$(echo "$DEF6" | awk '{for(i=1;i<NF;i++) if($i=="advmss"){print $(i+1); exit}}')
+                            [ -z "$CUR_MSS6" ] && CUR_MSS6=1440
+                            ip -6 route change $DEF6 initcwnd "$icwnd" initrwnd "$irwnd" advmss "$CUR_MSS6" || true
+                          fi
 
-                    if [ "${toString cfg.fqMaxrate}" -gt 0 ]; then
-                      tc qdisc replace dev "$IFACE" root fq maxrate ''${fqrate}mbit flow_limit 200 quantum 3000 initial_quantum 9000
-                    fi
+                        if [ "${toString cfg.fqMaxrate}" -gt 0 ]; then
+                          tc qdisc replace dev "$IFACE" root fq maxrate ''${fqrate}mbit flow_limit 200 quantum 12000 initial_quantum 65536
+                        fi
 
-                    if [ "$next" = "GREEN" ] || [ "$next" = "YELLOW" ]; then
-                      nft delete table inet qos_guard 2>/dev/null || true
-                    else
-                        nft -f - <<EOF
-          table inet qos_guard
-          delete table inet qos_guard
-          table inet qos_guard {
-            chain input {
-              type filter hook input priority filter; policy accept;
-              tcp dport { 8443, 8444, 8555 } ct state new limit rate over $global_rate/second burst $global_burst packets drop
-              tcp dport { 8443, 8444, 8555 } ct state new meter per_ip4 { ip saddr limit rate over $per_ip_rate/second burst $per_ip_burst packets } drop
-              tcp dport { 8443, 8444, 8555 } ct state new meter per_ip6 { ip6 saddr limit rate over $per_ip_rate/second burst $per_ip_burst packets } drop
-            }
-          }
-          EOF
-                      fi
-                    }
+                        if [ "$next" = "GREEN" ] || [ "$next" = "YELLOW" ]; then
+                          nft delete table inet qos_guard 2>/dev/null || true
+                        else
+                            nft -f - <<EOF
+              table inet qos_guard
+              delete table inet qos_guard
+              table inet qos_guard {
+                chain input {
+                  type filter hook input priority filter; policy accept;
+                  tcp dport { 8443, 8444, 8555 } ct state new limit rate over $global_rate/second burst $global_burst packets drop
+                  tcp dport { 8443, 8444, 8555 } ct state new meter per_ip4 { ip saddr limit rate over $per_ip_rate/second burst $per_ip_burst packets } drop
+                  tcp dport { 8443, 8444, 8555 } ct state new meter per_ip6 { ip6 saddr limit rate over $per_ip_rate/second burst $per_ip_burst packets } drop
+                }
+              }
+              EOF
+                          fi
+                        }
 
-                    next_state="$state"
-                    if [ $(( now - last_change )) -ge "$min_dwell" ]; then
-                      if [ "$state" = "GREEN" ] && [ "$bad" -ge 8 ]; then
-                        next_state="YELLOW"
-                      elif [ "$state" = "YELLOW" ] && [ "$bad" -ge 16 ]; then
-                        next_state="RED"
-                      elif [ "$state" = "RED" ] && [ "$good" -ge 2 ] && [ "$bad" -le 3 ]; then
-                        next_state="YELLOW"
-                      elif [ "$state" = "YELLOW" ] && [ "$good" -ge 5 ] && [ "$bad" -eq 0 ]; then
-                        next_state="GREEN"
-                      fi
-                    fi
+                        next_state="$state"
+                        if [ $(( now - last_change )) -ge "$min_dwell" ]; then
+                          if [ "$state" = "GREEN" ] && [ "$bad" -ge 8 ]; then
+                            next_state="YELLOW"
+                          elif [ "$state" = "YELLOW" ] && [ "$bad" -ge 16 ]; then
+                            next_state="RED"
+                          elif [ "$state" = "RED" ] && [ "$good" -ge 2 ] && [ "$bad" -le 3 ]; then
+                            next_state="YELLOW"
+                          elif [ "$state" = "YELLOW" ] && [ "$good" -ge 5 ] && [ "$bad" -eq 0 ]; then
+                            next_state="GREEN"
+                          fi
+                        fi
 
-                    if [ "$next_state" != "$state" ]; then
-                      apply_state "$next_state"
-                      state="$next_state"
-                      last_change=$now
-                      bad=0
-                      good=0
-                    else
-                      apply_state "$state"
-                    fi
+                        if [ "$next_state" != "$state" ]; then
+                          apply_state "$next_state"
+                          state="$next_state"
+                          last_change=$now
+                          bad=0
+                          good=0
+                        else
+                          apply_state "$state"
+                        fi
 
-                    echo "$now" > "$STATE_DIR/prev_now"
-                    echo "$probe_tick" > "$STATE_DIR/probe_tick"
-                    echo "$retrans" > "$STATE_DIR/prev_retrans"
-                    echo "$passive" > "$STATE_DIR/prev_passive"
-                    echo "$qdisc_drop" > "$STATE_DIR/prev_qdisc_drop"
-                    echo "$softnet_drop" > "$STATE_DIR/prev_softnet_drop"
-                    echo "$tx_bytes" > "$STATE_DIR/prev_tx_bytes"
-                    echo "$state" > "$STATE_DIR/state"
-                    echo "$bad" > "$STATE_DIR/bad"
-                    echo "$good" > "$STATE_DIR/good"
-                    echo "$last_change" > "$STATE_DIR/last_change"
-        '';
-      };
+                        echo "$now" > "$STATE_DIR/prev_now"
+                        echo "$probe_tick" > "$STATE_DIR/probe_tick"
+                        echo "$retrans" > "$STATE_DIR/prev_retrans"
+                        echo "$passive" > "$STATE_DIR/prev_passive"
+                        echo "$qdisc_drop" > "$STATE_DIR/prev_qdisc_drop"
+                        echo "$softnet_drop" > "$STATE_DIR/prev_softnet_drop"
+                        echo "$tx_bytes" > "$STATE_DIR/prev_tx_bytes"
+                        echo "$state" > "$STATE_DIR/state"
+                        echo "$bad" > "$STATE_DIR/bad"
+                        echo "$good" > "$STATE_DIR/good"
+                        echo "$last_change" > "$STATE_DIR/last_change"
+            '';
+          };
 
-      systemd.timers.network-qos-controller = lib.mkIf cfg.qosProbe.enable {
-        description = "Timer for QoS closed-loop controller";
-        wantedBy = [ "timers.target" ];
-        timerConfig = {
-          OnBootSec = "45s";
-          OnUnitActiveSec = "${toString cfg.qosProbe.intervalSec}s";
-          AccuracySec = "1s";
-        };
-      };
+      systemd.timers.network-qos-controller =
+        lib.mkIf (cfg.qosProbe.enable && cfg.qosProbe.strategy == "adaptive")
+          {
+            description = "Timer for QoS closed-loop controller";
+            wantedBy = [ "timers.target" ];
+            timerConfig = {
+              OnBootSec = "45s";
+              OnUnitActiveSec = "${toString cfg.qosProbe.intervalSec}s";
+              AccuracySec = "1s";
+            };
+          };
 
       # ── 服务五：清零出口 DSCP 标记（规避运营商 QoS 分级限速）────────
       # 原理：运营商 DPI 读取 IP 头中的 DSCP/TOS 字段对流量分级限速；
