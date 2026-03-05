@@ -70,13 +70,10 @@ in
       type = lib.types.listOf lib.types.str;
       default = [
         "vd3.bdstatic.com"
-        "creator.douyin.com"
         "p3-pc-sign.douyinpic.com"
-        "i1.hdslb.com"
-        "i0.hdslb.com"
         "www.speedtest.cn"
         "upos-sz-mirrorcos.bilivideo.com"
-        "member.bilibili.com"
+        # "member.bilibili.com"
       ];
       description = ''
         需要进行混淆的域名池。
@@ -104,6 +101,13 @@ in
       description = "FakeHTTP — ISP whitelist QoS bypass via HTTP obfuscation";
       documentation = [ "https://github.com/MikeWang000000/FakeHTTP" ];
 
+      path = [
+        pkgs.netcat-gnu
+        pkgs.openssl
+        pkgs.coreutils
+        pkgs.gnused
+      ];
+
       after = [
         "network-online.target"
         "nftables.service"
@@ -112,69 +116,136 @@ in
       wantedBy = [ "multi-user.target" ];
 
       preStart = lib.mkIf (cfg.domainPool != [ ]) ''
-                ${pkgs.python3}/bin/python3 -c "
-        import sys, socket, ssl, threading, os
-        domains = sys.argv[1:]
-        os.makedirs('/run/fakehttp', exist_ok=True)
-        for sni in domains:
-            s = socket.socket()
-            s.bind(('127.0.0.1', 0))
-            s.listen(1)
-            port = s.getsockname()[1]
-            cap = []
-            def server():
-                try:
-                    conn, _ = s.accept()
-                    conn.settimeout(0.5)
-                    cap.append(conn.recv(4096))
-                    conn.close()
-                except: pass
-                s.close()
-            threading.Thread(target=server).start()
-            try:
-                ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
-                conn = ctx.wrap_socket(socket.socket(), server_hostname=sni)
-                conn.settimeout(1.0)
-                conn.connect(('127.0.0.1', port))
-            except Exception: pass
-            if cap and cap[0]:
-                with open(f'/run/fakehttp/tls_{sni}.bin', 'wb') as f:
-                    f.write(cap[0])
-            http_str = f'GET / HTTP/1.1\r\nHost: {sni}\r\nUser-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
-            with open(f'/run/fakehttp/http_{sni}.bin', 'wb') as f:
-                f.write(http_str.encode('utf-8'))
-                " ${lib.concatStringsSep " " cfg.domainPool}
+        # ── 初始化目录，清理旧文件 ────────────────────────────────────────────
+        mkdir -p /var/lib/fakehttp
+        rm -f /var/lib/fakehttp/*.bin
+
+        domains=(${lib.concatStringsSep " " (map lib.escapeShellArg cfg.domainPool)})
+
+        # ── 辅助函数：等待 nc 监听端口就绪（轮询 /proc/net/tcp）────────────
+        wait_port() {
+          local port_hex
+          port_hex=$(printf "%04X" "$1")
+          for _ in $(seq 1 20); do
+            grep -qi "$port_hex" /proc/net/tcp 2>/dev/null && return 0
+            sleep 0.05
+          done
+          return 1  # 超时仍未就绪
+        }
+
+        # ── 1. HTTP GET payload ───────────────────────────────────────────────
+        # 格式：GET / HTTP/1.1\r\nHost: <domain>\r\nConnection: close\r\n\r\n
+        for domain in "''${domains[@]}"; do
+          printf 'GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n' "$domain" \
+            > "/var/lib/fakehttp/http_$domain.bin"
+          echo "Generated HTTP payload for $domain"
+        done
+
+        # ── 2. TLS ClientHello payload ────────────────────────────────────────
+        # 原理：nc -l 模拟哑服务器，openssl s_client 向其发 ClientHello，
+        #       nc 捕获到原始字节后因无应答而超时退出，
+        #       得到的二进制就是完整的 TLS ClientHello record。
+        # 全程在本机回环，无需外网连接，系统开销极低。
+
+        for domain in "''${domains[@]}"; do
+          ok=0
+          for i in $(seq 1 5); do
+            # 随机高位端口，规避端口复用冲突
+            PORT=$(( (RANDOM % 20000) + 40000 ))
+
+            # 启动哑服务器：收到数据后自动退出（timeout 防止永久阻塞）
+            timeout 3s nc -l -p "$PORT" > "/var/lib/fakehttp/tls_$domain.bin" 2>/dev/null &
+            NC_PID=$!
+
+            # 等待端口实际就绪后再连接，避免竞态
+            if ! wait_port "$PORT"; then
+              echo "Port $PORT not ready, retrying ($i/5)..."
+              kill "$NC_PID" 2>/dev/null
+              wait "$NC_PID" 2>/dev/null
+              sleep 0.5
+              continue
+            fi
+
+            # openssl s_client 发 ClientHello；-servername 确保 SNI 正确
+            # 无应答时迅速超时退出
+            timeout 2s openssl s_client \
+              -connect "127.0.0.1:$PORT" \
+              -servername "$domain" \
+              -noservername_infer \
+              < /dev/null > /dev/null 2>&1 || true
+
+            wait "$NC_PID" 2>/dev/null
+
+            if [ -s "/var/lib/fakehttp/tls_$domain.bin" ]; then
+              echo "Captured TLS ClientHello for $domain ($(wc -c < "/var/lib/fakehttp/tls_$domain.bin") bytes)"
+              ok=1
+              break
+            fi
+
+            echo "TLS capture empty for $domain, retry $i/5..."
+            sleep 0.5
+          done
+
+          if [ "$ok" -eq 0 ]; then
+            echo "WARNING: Failed to capture TLS ClientHello for $domain after 5 attempts, skipping."
+            rm -f "/var/lib/fakehttp/tls_$domain.bin"
+          fi
+        done
+
+        # ── 汇总 ─────────────────────────────────────────────────────────────
+        http_count=$(ls /var/lib/fakehttp/http_*.bin 2>/dev/null | wc -l)
+        tls_count=$(ls /var/lib/fakehttp/tls_*.bin 2>/dev/null | wc -l)
+        echo "Payload generation done: $http_count HTTP, $tls_count TLS payload(s) ready."
       '';
 
       serviceConfig = {
-        RuntimeDirectory = "fakehttp";
-        RuntimeDirectoryMode = "0755";
-        Type = "forking";
-        # FakeHTTP 以守护进程模式运行（-d），自行 fork 后台
-        ExecStart = lib.concatStringsSep " " (
-          [
-            "${pkgs.fakehttp}/bin/fakehttp"
-            "-d" # 守护进程模式
-            "-s" # 静默（日志写 journald 即可）
-          ]
-          ++ (if cfg.interface != null then [ "-i ${lib.escapeShellArg cfg.interface}" ] else [ "-a" ])
-          ++ (lib.optional cfg.ipv4Only "-4")
-          ++ [
-            "-1" # 出站方向
-            "-0" # 入站方向
-          ]
-          ++ (lib.concatMap (d: [
-            "-b"
-            "/run/fakehttp/tls_${d}.bin"
-            "-b"
-            "/run/fakehttp/http_${d}.bin"
-          ]) cfg.domainPool)
-          ++ (lib.optional (cfg.payloadFile != null) "-b ${lib.escapeShellArg (toString cfg.payloadFile)}")
-          ++ (lib.optional (cfg.ttl != null) "-t ${toString cfg.ttl}")
-          ++ [ "-r ${toString cfg.repeat}" ]
-          ++ cfg.extraArgs
+        StateDirectory = "fakehttp";
+        StateDirectoryMode = "0755";
+        Type = "simple";
+        # 动态根据成功获取到的 payload 文件生成命令行参数
+        # 调试模式：不带 -d，不带 -s，输出最终拼接的命令
+        ExecStart = toString (
+          pkgs.writeShellScript "start-fakehttp" ''
+            args=(
+              "${pkgs.fakehttp}/bin/fakehttp"
+              # "-d" # 调试期间不进入后台
+            )
+            ${lib.optionalString (cfg.interface != null) ''args+=("-i" ${lib.escapeShellArg cfg.interface})''}
+            ${lib.optionalString (cfg.interface == null) ''args+=("-a")''}
+            ${lib.optionalString cfg.ipv4Only ''args+=("-4")''}
+            args+=("-1" "-0")
+
+            target_dir="/var/lib/fakehttp"
+            if [ -d "$target_dir" ]; then
+              for f in "$target_dir"/tls_*.bin; do
+                [ -e "$f" ] || continue
+                domain=''${f#*tls_}
+                domain=''${domain%.bin}
+                echo "Found TLS payload for $domain"
+                args+=("-b" "$f" "-e" "$domain")
+              done
+              for f in "$target_dir"/http_*.bin; do
+                [ -e "$f" ] || continue
+                domain=''${f#*http_}
+                domain=''${domain%.bin}
+                echo "Found HTTP payload for $domain"
+                args+=("-b" "$f" "-h" "$domain")
+              done
+            fi
+
+            ${lib.optionalString (
+              cfg.payloadFile != null
+            ) ''args+=("-b" ${lib.escapeShellArg (toString cfg.payloadFile)})''}
+            ${lib.optionalString (cfg.ttl != null) ''args+=("-t" ${lib.escapeShellArg (toString cfg.ttl)})''}
+            args+=("-r" ${lib.escapeShellArg (toString cfg.repeat)})
+
+            ${lib.concatMapStrings (arg: ''
+              args+=(${lib.escapeShellArg arg})
+            '') cfg.extraArgs}
+
+            echo "Final command: ''${args[*]}"
+            exec "''${args[@]}"
+          ''
         );
         # 停止时清理防火墙规则
         ExecStop = "${pkgs.fakehttp}/bin/fakehttp -k";
