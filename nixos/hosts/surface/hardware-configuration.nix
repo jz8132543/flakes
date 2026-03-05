@@ -22,12 +22,16 @@
     kernelModules = [
       "kvm-intel"
       "v4l2loopback"
+      "ms912x"
       # "vfio"
       # "vfio_iommu_type1"
       # "vfio_pci"
       # "vfio_virqfd"
     ];
-    extraModulePackages = [ config.boot.kernelPackages.v4l2loopback ];
+    extraModulePackages = [
+      config.boot.kernelPackages.v4l2loopback
+      (config.boot.kernelPackages.callPackage ../../../pkgs/ms912x { })
+    ];
     kernelParams = [
       "intel_iommu=on"
       "iommu=pt"

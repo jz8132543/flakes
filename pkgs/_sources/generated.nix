@@ -181,6 +181,17 @@
       sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
     };
   };
+  ms912x = {
+    pname = "ms912x";
+    version = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4";
+    src = fetchFromGitHub {
+      owner = "rhgndf";
+      repo = "ms912x";
+      rev = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4";
+      fetchSubmodules = false;
+      sha256 = "sha256-5SMMVXftgfpf/pfRCTvirMO9Ey4cMD3x/5ganxBYdaA=";
+    };
+  };
   realm-latest = {
     pname = "realm-latest";
     version = "v2.9.3";
@@ -194,10 +205,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.0.2";
+    version = "v15.0.3";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.2/rime-wanxiang-base.zip";
-      sha256 = "sha256-18VsX0DEu57xLFUpECGlw7jYzUIq4FdmwLKvFqYvU1M=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip";
+      sha256 = "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=";
     };
   };
   rime-wanxiang-gram = {

@@ -82,7 +82,7 @@ src.manual = "V1.2"
 
 
 [rime-wanxiang-base]
-src.github = "amzxyz/rime_wanxiang"
+src.manual = "v15.0.3"
 fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/$ver/rime-wanxiang-base.zip"
 
 [rime-wanxiang-gram]
@@ -92,3 +92,7 @@ fetch.url = "https://github.com/amzxyz/RIME-LMDG/releases/download/$ver/wanxiang
 [fakehttp]
 src.github = "MikeWang000000/FakeHTTP"
 fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"
+
+[ms912x]
+src.manual = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4"
+fetch.github = "rhgndf/ms912x"

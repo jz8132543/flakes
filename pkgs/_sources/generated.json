@@ -323,6 +323,27 @@
     },
     "version": "V1.2"
   },
+  "ms912x": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "ms912x",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "rhgndf",
+      "repo": "ms912x",
+      "rev": "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4",
+      "sha256": "sha256-5SMMVXftgfpf/pfRCTvirMO9Ey4cMD3x/5ganxBYdaA=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4"
+  },
   "realm-latest": {
     "cargoLock": null,
     "date": null,
@@ -353,11 +374,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-18VsX0DEu57xLFUpECGlw7jYzUIq4FdmwLKvFqYvU1M=",
+      "sha256": "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.2/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip"
     },
-    "version": "v15.0.2"
+    "version": "v15.0.3"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
