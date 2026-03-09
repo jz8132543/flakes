@@ -15,12 +15,9 @@ in
     enable = true;
     user = "tippy";
     port = config.ports.code;
-    disableGettingStartedOverride = true;
+    auth = "password";
     disableTelemetry = true;
     disableUpdateCheck = true;
-    disableWorkspaceTrust = true;
-    hashedPassword = "$argon2i$v=19$m=4096,t=3,p=1$bElKaGtpd1RnMEpOK3psNmpyU2dwcDFHU0U0PQ$ZCgtKICfKUwPFsChiEIqcmVDRGafF1JEZAN9Fu5klQA";
-    #auth = "";
     package = pkgs.vscode-with-extensions.override {
       vscode = pkgs.code-server;
       vscodeExtensions =
@@ -177,7 +174,7 @@ in
           # rust
           jscearcy.rust-doc-viewer
           #zhangyue.rust-mod-generator
-          swellaby.vscode-rust-test-adapter
+          #swellaby.vscode-rust-test-adapter
           conradludgate.rust-playground
 
           # R
@@ -271,19 +268,14 @@ in
   ];
   systemd.services.code-server.environment = {
     LANG = "zh_CN.UTF-8";
+    EXTENSIONS_GALLERY = ''{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items","controlUrl":"","recommendationsUrl":""}'';
   };
   sops.templates."code-server-environment" = {
     content = ''
-      # CODER_OIDC_ISSUER_URL="https://sso.dora.im/realms/users"
-      # CODER_OIDC_CLIENT_ID="code-server"
-      # CODER_OIDC_CLIENT_SECRET=${config.sops.placeholder."code-server/oidc-secret"}
-      # CODER_OIDC_SCOPES="openid,profile,email"
-      # CODER_DISABLE_PASSWORD_AUTH=true
       HASHED_PASSWORD=${config.sops.placeholder."code-server/hashed-password"}
     '';
   };
   sops.secrets = {
-    "code-server/oidc-secret" = { };
     "code-server/hashed-password" = { };
   };
 

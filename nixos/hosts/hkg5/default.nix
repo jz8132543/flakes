@@ -11,10 +11,6 @@
       nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
-        proxyHosts = [
-          "nue0.dora.im"
-          "tyo0.dora.im"
-        ];
       })
     ];
 
@@ -26,7 +22,7 @@
     enable = true;
     bandwidth = 1000; # Mbps 单向
     realBandwidth = 500;
-    rtt = 110; # ms，国际线路
+    rtt = 130; # ms，国际线路
     ram = 500; # MB，可用内存
     cpus = 1; # vCPU 数
     highLoss = true; # 高丢包国际线路

@@ -6,7 +6,7 @@
 }:
 let
   tune = config.environment.networkTune;
-  enabled = tune.enable && tune.cpuBerserk.enable && tune.profile == "berserk";
+  enabled = tune.enable && tune.cpuBerserk.enable;
 in
 {
   config = lib.mkIf enabled {

@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 # These variables will be passed as arguments
 TARBALL_NAME=$1
@@ -14,16 +14,23 @@ fi
 mkdir -p ~/nix-install
 tar -xf ~/"$TARBALL_NAME" -C ~/nix-install
 cd ~/nix-install/nix-"${NIX_VERSION}"-"${SYSTEM}"
-echo "Installing Nix in Single User Mode (--no-daemon)..."
-echo "Note: implicit sudo access may be requested to create /nix directory if it doesn't exist."
 
-# Use --no-channel-add to skip network operations for offline install
-./install --no-daemon --yes --no-channel-add
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Installing Nix in Multi User Mode (--daemon) because current user is root..."
+  # Root installation must use daemon mode.
+  ./install --daemon --yes --no-channel-add
+  NIX_PROFILE="/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+else
+  echo "Installing Nix in Single User Mode (--no-daemon)..."
+  echo "Note: implicit sudo access may be requested to create /nix directory if it doesn't exist."
+  ./install --no-daemon --yes --no-channel-add
+  NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
+fi
+
 rm -rf ~/nix-install ~/"$TARBALL_NAME"
 
 # Configure shell to source Nix profile
 echo "Configuring shell environment..."
-NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
 
 if [ -f "$NIX_PROFILE" ]; then
   # Add to .zshenv for non-interactive Zsh

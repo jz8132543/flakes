@@ -407,3 +407,19 @@ resource "cloudflare_dns_record" "dora_cm" {
   content = "fastm.kxy.ovh"
   zone_id = cloudflare_zone.im_dora.id
 }
+resource "cloudflare_dns_record" "dora_cu" {
+  name    = "cu.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "fastu.kxy.ovh"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_can1" {
+  name    = "can1.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "dix.yiandrive.com"
+  zone_id = cloudflare_zone.im_dora.id
+}

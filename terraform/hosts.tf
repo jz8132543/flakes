@@ -23,7 +23,7 @@ locals {
         a = {
           proxied = false
           type    = "A"
-          value   = "82.40.41.218"
+          value   = "216.23.85.218"
         }
         aaaa = {
           proxied = false
@@ -67,7 +67,12 @@ locals {
         a = {
           proxied = false
           type    = "A"
-          value   = "43.255.120.157"
+          value   = "216.23.92.172"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "2401:2660:1:9b::a"
         }
       }
       ddns_records = {}
@@ -104,6 +109,26 @@ locals {
       records      = {}
       ddns_records = {}
       host_indices = [6]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
+    can0 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "45.66.129.234"
+        }
+      }
+      ddns_records = {}
+      host_indices = [11]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
+    can1 = {
+      records      = {}
+      ddns_records = {}
+      host_indices = [12]
       endpoints_v4 = []
       endpoints_v6 = []
     }

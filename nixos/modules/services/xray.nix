@@ -283,6 +283,9 @@ in
     serviceConfig = {
       # 让 xray 的 fd 上限跟随稳定连接预算，避免用户态先于内核变瓶颈。
       LimitNOFILE = xrayLimitNOFILE;
+      # 进程退出后持续自动重启（包括 exit）。
+      Restart = "always";
+      RestartSec = "2s";
     };
     environment =
       let
