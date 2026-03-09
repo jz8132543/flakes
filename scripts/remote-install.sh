@@ -34,7 +34,7 @@ echo "Configuring shell environment..."
 
 if [ -f "$NIX_PROFILE" ]; then
   # Add to .zshenv for non-interactive Zsh
-  if [ -n "$ZSH_VERSION" ] || [ "$(basename "$SHELL")" = "zsh" ] || [ -f ~/.zshenv ]; then
+  if [ -n "${ZSH_VERSION:-}" ] || [ "$(basename "${SHELL:-}")" = "zsh" ] || [ -f ~/.zshenv ]; then
     if ! grep -q "source $NIX_PROFILE" ~/.zshenv 2>/dev/null; then
       echo "Adding source $NIX_PROFILE to ~/.zshenv"
       echo "if [ -f $NIX_PROFILE ]; then source $NIX_PROFILE; fi" >>~/.zshenv
