@@ -126,13 +126,12 @@ in
       documentation = [ "https://github.com/MikeWang000000/FakeHTTP" ];
 
       path = [
-        pkgs.netcat-gnu
-        pkgs.openssl
         pkgs.coreutils
         pkgs.gnused
+        pkgs.netcat-gnu
+        pkgs.openssl
         pkgs.iptables
         pkgs.nftables
-        pkgs.python3
       ];
 
       after = [
@@ -143,96 +142,61 @@ in
       wantedBy = [ "multi-user.target" ];
 
       preStart = lib.mkIf (cfg.domainPool != [ ]) ''
-        # ── 初始化目录，清理旧文件 ────────────────────────────────────────────
         mkdir -p /var/lib/fakehttp
         rm -f /var/lib/fakehttp/*.bin
 
+        capture_tls_payload() {
+          local domain="$1"
+          local out="$2"
+          local tmp port size attempt
+
+          for attempt in 1 2 3 4 5; do
+            port="$(shuf -i 30000-45000 -n 1)"
+            tmp="$(mktemp /var/lib/fakehttp/tls_capture.XXXXXX)"
+
+            export DOMAIN="$domain"
+            export PORT="$port"
+            export TMP_CAPTURE="$tmp"
+            export NC_BIN="${pkgs.netcat-gnu}/bin/nc"
+            export OPENSSL_BIN="${pkgs.openssl}/bin/openssl"
+
+            timeout 5s bash -c '
+              "$NC_BIN" -l -p "$PORT" -s 127.0.0.1 -w 2 > "$TMP_CAPTURE" &
+              pid=$!
+              sleep 0.2
+              "$OPENSSL_BIN" s_client -connect 127.0.0.1:"$PORT" -servername "$DOMAIN" -tls1_2 < /dev/null > /dev/null 2>&1 || true
+              wait "$pid" || true
+            ' || true
+
+            if [ -s "$tmp" ]; then
+              size="$(wc -c < "$tmp")"
+              if [ "$size" -le 1200 ]; then
+                mv "$tmp" "$out"
+                return 0
+              fi
+            fi
+
+            rm -f "$tmp"
+            sleep 0.5
+          done
+
+          return 1
+        }
+
         domains=(${lib.concatStringsSep " " (map lib.escapeShellArg cfg.domainPool)})
 
-        cat <<'EOF' > /var/lib/fakehttp/generate_payloads.py
-        import socket
-        import ssl
-        import threading
-        import sys
-        import os
-        import time
+        for domain in "''${domains[@]}"; do
+          printf 'GET / HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n' "$domain" > "/var/lib/fakehttp/http_$domain.bin"
 
-        domains = sys.argv[1:]
-        out_dir = "/var/lib/fakehttp"
+          if capture_tls_payload "$domain" "/var/lib/fakehttp/tls_$domain.bin"; then
+            echo "Captured TLS ClientHello for $domain"
+          else
+            echo "WARNING: Failed to capture TLS ClientHello for $domain"
+          fi
+        done
 
-        for domain in domains:
-            # 1. HTTP Payload
-            http_payload = f"GET / HTTP/1.1\r\nHost: {domain}\r\nConnection: close\r\n\r\n"
-            with open(os.path.join(out_dir, f"http_{domain}.bin"), "wb") as f:
-                f.write(http_payload.encode("utf-8"))
-
-            # 2. TLS Payload Capture
-            def dummy_server(port, result_box):
-                try:
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                        s.bind(('127.0.0.1', port))
-                        s.listen(1)
-                        s.settimeout(2.0)
-                        conn, addr = s.accept()
-                        with conn:
-                            conn.settimeout(2.0)
-                            data = conn.recv(4096)
-                            if data:
-                                result_box.append(data)
-                except Exception as e:
-                    pass
-
-            for attempt in range(5):
-                # find free port
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.bind(("", 0))
-                    port = s.getsockname()[1]
-
-                result_box = []
-                server_thread = threading.Thread(target=dummy_server, args=(port, result_box))
-                server_thread.start()
-
-                time.sleep(0.1) # wait for server to listen
-
-                try:
-                    context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-                    context.maximum_version = ssl.TLSVersion.TLSv1_2
-                    context.options |= ssl.OP_NO_TICKET
-                    context.check_hostname = False
-                    context.verify_mode = ssl.CERT_NONE
-                    with socket.create_connection(('127.0.0.1', port), timeout=2.0) as sock:
-                        with context.wrap_socket(sock, server_hostname=domain) as ssock:
-                            pass
-                except Exception as e:
-                    # Expected to fail since dummy server doesn't complete SSL handshake
-                    pass
-
-                server_thread.join(timeout=3.0)
-
-                if result_box and len(result_box[0]) > 0:
-                    payload = result_box[0]
-                    if len(payload) > 1200:
-                        print(f"WARNING: Captured TLS ClientHello for {domain} is too large ({len(payload)} bytes > 1200), discarding.")
-                        break # Skip this domain
-
-                    with open(os.path.join(out_dir, f"tls_{domain}.bin"), "wb") as f:
-                        f.write(payload)
-                    print(f"Captured TLS ClientHello for {domain} ({len(payload)} bytes)")
-                    break
-                else:
-                    print(f"TLS capture empty for {domain}, retry {attempt+1}/5...")
-                    time.sleep(0.5)
-            else:
-                print(f"WARNING: Failed to capture TLS ClientHello for {domain} after 5 attempts, skipping.")
-
-        EOF
-
-        python3 /var/lib/fakehttp/generate_payloads.py "''${domains[@]}"
-
-        # ── 汇总 ─────────────────────────────────────────────────────────────
-        http_count=$(ls /var/lib/fakehttp/http_*.bin 2>/dev/null | wc -l)
-        tls_count=$(ls /var/lib/fakehttp/tls_*.bin 2>/dev/null | wc -l)
+        http_count=$(find /var/lib/fakehttp -maxdepth 1 -name 'http_*.bin' | wc -l)
+        tls_count=$(find /var/lib/fakehttp -maxdepth 1 -name 'tls_*.bin' | wc -l)
         echo "Payload generation done: $http_count HTTP, $tls_count TLS payload(s) ready."
       '';
 

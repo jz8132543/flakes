@@ -21,6 +21,9 @@ in
         info.enable = lib.mkForce false;
         nixos.enable = lib.mkForce false;
       };
+      environment.systemPackages = lib.mkForce [ ];
+      environment.defaultPackages = lib.mkForce [ ];
+      system.disableInstallerTools = lib.mkForce true;
 
       # 2. Btrfs 额外优化 (联动 Disko 参数外的部分)
       services.btrfs.autoScrub.enable = lib.mkForce false;
@@ -48,9 +51,19 @@ in
 
       # 7. 强制替换重型工具为最小化版本
       programs.git.package = lib.mkForce pkgs.gitMinimal;
+      programs.nix-index.enable = lib.mkForce false;
+      programs.tmux.enable = lib.mkForce false;
+      programs.mtr.enable = lib.mkForce false;
+      programs.traceroute.enable = lib.mkForce false;
+      programs.nh.enable = lib.mkForce false;
+      programs.nix-ld.enable = lib.mkForce false;
+      programs.bash.vteIntegration = lib.mkForce false;
 
       # 8. 移除非必要服务
       services.fail2ban.enable = lib.mkForce false;
+      security.polkit.enable = lib.mkForce false;
+      services.eternal-terminal.enable = lib.mkForce false;
+      services.restic.backups = lib.mkForce { };
 
       # 9. 精简 Shell 与核心工具，移除 Python/Perl 依赖
       programs.fish.enable = lib.mkForce false;
@@ -74,7 +87,33 @@ in
       services.logind.settings.Login.KillUserProcesses = lib.mkForce true;
 
       # 允许在使用 minimal 模式时禁用用户的默认 Shell
+      users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;
       users.users.tippy.ignoreShellProgramCheck = true;
+
+      home-manager.users.tippy = {
+        home.packages = lib.mkForce [ ];
+        home.file = lib.mkForce { };
+        xdg.configFile = lib.mkForce { };
+        home.sessionVariables = lib.mkForce { };
+        programs = {
+          git.enable = lib.mkForce false;
+          delta.enable = lib.mkForce false;
+          fish.enable = lib.mkForce false;
+          zsh.enable = lib.mkForce false;
+          tmux.enable = lib.mkForce false;
+          neovim.enable = lib.mkForce false;
+          gpg.enable = lib.mkForce false;
+          direnv.enable = lib.mkForce false;
+          fzf.enable = lib.mkForce false;
+          zoxide.enable = lib.mkForce false;
+          eza.enable = lib.mkForce false;
+          bat.enable = lib.mkForce false;
+          atuin.enable = lib.mkForce false;
+          starship.enable = lib.mkForce false;
+          skim.enable = lib.mkForce false;
+        };
+        services.gpg-agent.enable = lib.mkForce false;
+      };
 
       services.bpftune.enable = lib.mkForce false;
       services.irqbalance.enable = lib.mkForce false;
