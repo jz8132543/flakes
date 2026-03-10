@@ -12,6 +12,7 @@
   disko.enableConfig = true;
   disko.devices = {
     disk.main = {
+      imageSize = "5G";
       type = "disk";
       device = "${config.utils.disk}";
       content = {

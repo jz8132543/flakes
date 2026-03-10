@@ -17,7 +17,6 @@
   ];
 
   utils.disk = "/dev/sda";
-  networkConfig.DHCP = "yes";
 
   swapDevices = [
     {

@@ -51,6 +51,14 @@
       enableOpencc = false;
       qtwebengine = null;
     };
+
+    python3Packages = prev.python3Packages.overrideScope (
+      pyFinal: pyPrev: {
+        kde-material-you-colors = pyPrev.kde-material-you-colors.overridePythonAttrs (old: {
+          propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ pyFinal.python-magic ];
+        });
+      }
+    );
   })
   (import "${self}/pkgs").overlay
 ]

@@ -34,6 +34,7 @@ let
     hmModules.base.all
     ++ hmModules.services.all
     ++ [
+      inputs.plasma-manager.homeModules.plasma-manager
       {
         lib.self = selfLib;
       }

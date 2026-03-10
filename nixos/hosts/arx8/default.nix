@@ -16,12 +16,14 @@
       nixosModules.services.traefik
       nixosModules.optimize.dev
     ];
+  desktop.environment = "kde";
+
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
   ];
-  boot.kernelPackages = lib.mkForce pkgs.linuxPackages;
+  boot.kernelPackages = lib.mkOverride 0 pkgs.linuxPackages;
   # services.create_ap = {
   #   enable = true;
   #   settings = {

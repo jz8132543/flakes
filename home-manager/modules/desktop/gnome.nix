@@ -5,6 +5,7 @@
   ...
 }:
 let
+  cfg = config.desktop;
   extensionPkgs = with pkgs.gnomeExtensions; [
     gsconnect
     appindicator
@@ -37,7 +38,7 @@ let
     type
     ;
 in
-{
+lib.mkIf (cfg.environment == "gnome") {
   home.packages =
     extensionPkgs
     ++ (with pkgs; [

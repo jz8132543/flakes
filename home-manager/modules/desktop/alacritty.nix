@@ -24,7 +24,11 @@
           # opacity = 0.8;
           decorations = "none";
         };
-        env.TERM = "xterm-256color";
+        env = {
+          TERM = "xterm-256color";
+          # Force X11/XWayland under GNOME for a dedicated fcitx5 input context.
+          WINIT_UNIX_BACKEND = "x11";
+        };
       };
     };
   };

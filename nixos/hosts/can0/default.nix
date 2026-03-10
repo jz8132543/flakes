@@ -12,13 +12,11 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.services.traefik
-      nixosModules.services.derp
+      # nixosModules.services.traefik
+      # nixosModules.services.derp
       nixosModules.services.kernel-relay
       nixosModules.optimize.fakehttp
     ];
-
-  disko.devices.disk.main.imageSize = "6G";
 
   services.kernel-relay = {
     enable = true;
