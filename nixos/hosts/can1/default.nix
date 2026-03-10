@@ -18,6 +18,8 @@
       nixosModules.optimize.fakehttp
     ];
 
+  disko.devices.disk.main.imageSize = "6G";
+
   services.kernel-relay = {
     enable = true;
     dnsInterval = "3min";
