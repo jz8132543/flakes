@@ -61,6 +61,10 @@ build-raw:
 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make build-raw host=<host>"; exit 1; fi
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --only-build
 
+build-repart:
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make build-repart host=<host>"; exit 1; fi
+	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.image --only-build
+
 # Phase 2: Only stream the image
 stream-raw:
 	$(eval port ?= 22)
@@ -69,6 +73,14 @@ stream-raw:
 	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make stream-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make stream-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" --device "${device}" --only-stream
+
+stream-repart:
+	$(eval port ?= 22)
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make stream-repart host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make stream-repart host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make stream-repart host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.image --target-host "${deploy_target}" --port "${port}" --device "${device}" --only-stream
 
 # Special: Overwrite a running Linux system (e.g. Debian/Ubuntu) with NixOS
 deploy-live:
