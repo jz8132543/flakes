@@ -3,10 +3,26 @@
   config,
   ...
 }:
+let
+  alacrittyPackage =
+    if config.desktop.environment == "gnome" then
+      pkgs.symlinkJoin {
+        name = "alacritty-x11";
+        paths = [ pkgs.alacritty ];
+        nativeBuildInputs = [ pkgs.makeWrapper ];
+        postBuild = ''
+          wrapProgram $out/bin/alacritty \
+            --set WINIT_UNIX_BACKEND x11
+        '';
+      }
+    else
+      pkgs.alacritty;
+in
 {
   programs = {
     alacritty = {
       enable = true;
+      package = alacrittyPackage;
       settings = {
         general.import = [ "${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml" ];
         terminal.shell = {
@@ -26,8 +42,6 @@
         };
         env = {
           TERM = "xterm-256color";
-          # Force X11/XWayland under GNOME for a dedicated fcitx5 input context.
-          WINIT_UNIX_BACKEND = "x11";
         };
       };
     };

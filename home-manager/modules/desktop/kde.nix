@@ -16,8 +16,8 @@ let
     cyan = "125,207,255";
     orange = "255,158,100";
     pink = "245,194,231";
+    green = "166,227,161";
   };
-  kdeMaterialYouColors = pkgs.python3Packages.kde-material-you-colors;
 
   mkBarMonitor = label: sensor: color: {
     systemMonitor = {
@@ -38,61 +38,24 @@ let
     };
   };
 
-  frostedPanelWidget = {
-    plasmaPanelColorizer = {
-      general = {
-        enable = true;
-        hideWidget = true;
-      };
-      panelBackground = {
-        originalBackground = {
-          hide = true;
-        };
-        customBackground = {
-          enable = true;
-          colorSource = "system";
-          system = {
-            color = "background";
-            colorSet = "header";
-          };
-          opacity = 0.72;
-          radius = 24;
-          outline = {
-            colorSource = "system";
-            system = {
-              color = "focus";
-              colorSet = "selection";
-            };
-            opacity = 0.22;
-            width = 1;
-          };
-          shadow = {
-            color = "#3a000000";
-            size = 18;
-            horizontalOffset = 0;
-            verticalOffset = 4;
-          };
-        };
-      };
-      layout = {
-        enable = true;
-        backgroundMargin = {
-          horizontal = 10;
-          vertical = 8;
-        };
-      };
+  mkLineMonitor = sensorDefs: {
+    systemMonitor = {
+      displayStyle = "org.kde.ksysguard.linechart";
+      showLegend = false;
+      showTitle = false;
+      totalSensors = map (sensor: sensor.name) sensorDefs;
+      sensors = sensorDefs;
     };
   };
 in
 lib.mkIf (cfg.environment == "kde") {
   home.packages = with pkgs; [
+    klassy
     kdePackages.partitionmanager
     kdePackages.plasma-browser-integration
     kdePackages.plasma-systemmonitor
     kdePackages.koi
-    plasma-panel-colorizer
     tela-circle-icon-theme
-    kdeMaterialYouColors
   ];
 
   gtk = {
@@ -102,7 +65,7 @@ lib.mkIf (cfg.environment == "kde") {
       package = orchis-theme;
     };
     iconTheme = {
-      name = "Tela-circle-dark";
+      name = "Tela-circle";
       package = pkgs.tela-circle-icon-theme;
     };
     cursorTheme = {
@@ -115,8 +78,8 @@ lib.mkIf (cfg.environment == "kde") {
     enable = true;
     platformTheme.name = "kde";
     style = {
-      name = "breeze";
-      package = pkgs.kdePackages.breeze;
+      name = "klassy";
+      package = pkgs.klassy;
     };
   };
 
@@ -126,49 +89,18 @@ lib.mkIf (cfg.environment == "kde") {
     NIXOS_OZONE_WL = "1";
   };
 
-  xdg.configFile."kde-material-you-colors/config.conf".text = ''
-    [CUSTOM]
-    monitor = 0
-    iconslight = Tela-circle-light
-    iconsdark = Tela-circle-dark
-    disable_konsole = True
-    use_startup_delay = True
-    startup_delay = 4
-    main_loop_delay = 2
-    screenshot_delay = 900
-    once_after_change = True
-    scheme_variant = 6
-    chroma_multiplier = 1.15
-    tone_multiplier = 0.95
-    manual_fetch = False
-  '';
-
-  systemd.user.services.kde-material-you-colors = {
-    Unit = {
-      Description = "Wallpaper-driven KDE Material You colors";
-      Wants = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-    Service = {
-      ExecStart = "${kdeMaterialYouColors}/bin/kde-material-you-colors";
-      Restart = "on-failure";
-      RestartSec = 5;
-    };
-  };
-
   programs.plasma = {
     enable = true;
 
     workspace = {
       clickItemTo = "select";
+      theme = "kite-light";
+      widgetStyle = "klassy";
       cursor = {
         theme = "Bibata-Modern-Ice";
         size = 24;
       };
-      iconTheme = "Tela-circle-dark";
-      lookAndFeel = "org.kde.breezedark.desktop";
+      iconTheme = "Tela-circle";
       wallpaper = "${pkgs.wallpaper}/wallpaper.jpg";
       wallpaperBackground = {
         blur = true;
@@ -223,11 +155,22 @@ lib.mkIf (cfg.environment == "kde") {
         lengthMode = "fit";
         height = 38;
         widgets = [
-          frostedPanelWidget
           (mkBarMonitor "CPU" "cpu/all/usage" accentColors.blue)
           (mkBarMonitor "RAM" "memory/physical/usedPercent" accentColors.cyan)
           (mkBarMonitor "GPU" "gpu/gpu0/usage" accentColors.orange)
           (mkBarMonitor "TEMP" "cpu/all/averageTemperature" accentColors.pink)
+          (mkLineMonitor [
+            {
+              name = "network/all/download";
+              color = accentColors.green;
+              label = "NET D";
+            }
+            {
+              name = "network/all/upload";
+              color = accentColors.blue;
+              label = "NET U";
+            }
+          ])
           "org.kde.plasma.marginsseparator"
           {
             systemTray.items = {
@@ -258,7 +201,6 @@ lib.mkIf (cfg.environment == "kde") {
         lengthMode = "fit";
         height = 50;
         widgets = [
-          frostedPanelWidget
           {
             kickoff = {
               sortAlphabetically = true;
@@ -318,15 +260,13 @@ lib.mkIf (cfg.environment == "kde") {
       "dolphinrc"."General"."RememberOpenedTabs" = false;
       "kwinrc"."Desktops"."Number" = 6;
       "kwinrc"."Plugins"."slideEnabled" = true;
-      "kdeglobals"."Icons"."Theme" = "Tela-circle-dark";
+      "kwinrc"."Wayland"."InputMethod[$e]" = "${pkgs.fcitx5}/share/applications/org.fcitx.Fcitx5.desktop";
+      "kwinrc"."Wayland"."VirtualKeyboardEnabled" = "true";
+      "kdeglobals"."Icons"."Theme" = "Tela-circle";
     };
   };
 
   home.global-persistence = {
-    directories = [
-      ".cache/kde-material-you-colors"
-      ".config/kde-material-you-colors"
-      ".local/share/color-schemes"
-    ];
+    directories = [ ".local/share/color-schemes" ];
   };
 }

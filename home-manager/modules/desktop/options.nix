@@ -4,7 +4,7 @@
   ...
 }:
 let
-  defaultEnvironment = lib.attrByPath [ "desktop" "environment" ] "kde" osConfig;
+  defaultEnvironment = lib.attrByPath [ "desktop" "environment" ] "gnome" osConfig;
 in
 {
   options.desktop.environment = lib.mkOption {

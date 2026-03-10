@@ -4,15 +4,17 @@
   lib,
   ...
 }:
+let
+  cfg = config.desktop;
+in
 {
   home.packages = with pkgs; [
-    rime-deploy
+    qt6Packages.fcitx5-configtool
   ];
 
-  home.file.".local/share/fcitx5/rime" = {
-    source = "${pkgs.rime-deploy}/share/rime-data";
+  xdg.dataFile."fcitx5/rime" = {
+    source = "${pkgs.fcitx5-rime}/share/rime-data";
     recursive = true;
-    onChange = "${pkgs.fcitx5}/bin/fcitx5-remote -r || true";
   };
 
   xdg.configFile."fcitx5/config" = {
@@ -66,16 +68,40 @@
       Match=wm_class
       String=kitty
 
+      [Groups/1/Rules/4]
+      Match=app_id
+      String=kitty
+
       [Groups/1/Rules/1]
       Match=wm_class
       String=Alacritty
+
+      [Groups/1/Rules/5]
+      Match=app_id
+      String=Alacritty
+
+      [Groups/1/Rules/8]
+      Match=wm_class
+      String=alacritty
+
+      [Groups/1/Rules/9]
+      Match=app_id
+      String=alacritty
 
       [Groups/1/Rules/2]
       Match=wm_class
       String=foot
 
+      [Groups/1/Rules/6]
+      Match=app_id
+      String=foot
+
       [Groups/1/Rules/3]
       Match=wm_class
+      String=neovide
+
+      [Groups/1/Rules/7]
+      Match=app_id
       String=neovide
 
       [GroupOrder]
@@ -85,27 +111,40 @@
     force = true;
   };
 
-  # Use NixOS level input method configuration
-  # These session variables are typically set by the NixOS module when fcitx5 is enabled.
-  home.sessionVariables = {
-    GTK_IM_MODULE = "fcitx";
-    QT_IM_MODULE = "fcitx";
-    XMODIFIERS = "@im=fcitx";
-    XIM = "fcitx";
+  xdg.configFile."autostart/org.fcitx.Fcitx5.desktop" = lib.mkIf (cfg.environment == "kde") {
+    text = ''
+      [Desktop Entry]
+      Hidden=true
+    '';
+    force = true;
   };
 
-  home.activation.removeExistingFcitx5Profile = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-    # Remove existing fcitx5 and rime configs/data to prevent conflicts
-    # This runs before symlinking to ensure a clean state
-    rm --recursive --force \
-      "${config.xdg.configHome}/fcitx5/profile" \
-      "${config.xdg.configHome}/fcitx5/config" \
-      "${config.xdg.configHome}/fcitx5/conf" \
-      "${config.xdg.configHome}/fcitx5/rime" \
-      "${config.xdg.dataHome}/fcitx5/rime" \
-      "${config.home.homeDirectory}/.config/fcitx" \
-      "${config.home.homeDirectory}/.config/fcitx5" \
-      "${config.home.homeDirectory}/.config/rime" \
-      "${config.home.homeDirectory}/.local/share/fcitx5"
-  '';
+  systemd.user.services."app-org.fcitx.Fcitx5@autostart" = lib.mkIf (cfg.environment == "kde") {
+    Unit.ConditionPathExists = "/run/fcitx5-autostart-disabled";
+  };
+
+  home.activation.maskFcitxAutostartUnit = lib.hm.dag.entryAfter [ "writeBoundary" ] (
+    lib.optionalString (cfg.environment == "kde") ''
+      mkdir -p "${config.xdg.configHome}/systemd/user"
+      ln -sfn /dev/null "${config.xdg.configHome}/systemd/user/app-org.fcitx.Fcitx5@autostart.service"
+    ''
+  );
+
+  # Use NixOS level input method configuration
+  home.sessionVariables = lib.mkMerge [
+    {
+      SDL_IM_MODULE = "fcitx";
+      XMODIFIERS = "@im=fcitx";
+      XIM = "fcitx";
+    }
+    (lib.mkIf (cfg.environment == "gnome") {
+      # GNOME Wayland uses fcitx5 through the ibus frontend / text-input-v3 path.
+      # Keep GTK on the desktop default path instead of forcing fcitx IM module
+      # globally, which is explicitly discouraged by upstream docs.
+      QT_IM_MODULE = "fcitx";
+    })
+    (lib.mkIf (cfg.environment == "kde") {
+      QT_IM_MODULES = "wayland;fcitx;ibus";
+    })
+  ];
 }

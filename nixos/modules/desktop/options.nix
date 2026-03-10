@@ -13,7 +13,7 @@ in
       "gnome"
       "kde"
     ];
-    default = "kde";
+    default = "gnome";
     description = "Desktop session to preselect at login and tailor user settings for.";
   };
 
@@ -25,6 +25,6 @@ in
     if cfg.environment == "kde" then
       "${pkgs.kdePackages.ksshaskpass}/bin/ksshaskpass"
     else
-      "${config.programs.seahorse.package}/libexec/seahorse/ssh-askpass"
+      "${pkgs.seahorse}/libexec/seahorse/ssh-askpass"
   );
 }
