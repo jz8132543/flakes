@@ -130,7 +130,15 @@ setup_ssh_mux() {
 }
 
 remote_ssh() {
-  ssh -o ControlPath="$CONTROL_PATH" -p "$PORT" "$TARGET_HOST" "$@"
+  local cmd="$1"
+  ssh -T -o RequestTTY=no -o ControlPath="$CONTROL_PATH" -p "$PORT" "$TARGET_HOST" \
+    env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c "$cmd"
+}
+
+remote_ssh_quiet() {
+  local cmd="$1"
+  ssh -T -o RequestTTY=no -o ControlPath="$CONTROL_PATH" -p "$PORT" "$TARGET_HOST" \
+    env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c "$cmd" >/dev/null 2>&1
 }
 
 detect_local_tool() {
@@ -234,10 +242,10 @@ finish_deployment() {
   if is_true "$LIVE_OVERWRITE"; then
     log "LIVE OVERWRITE: Sending forced reboot signal..."
     if [ -n "$REMOTE_BUSYBOX" ]; then
-      remote_ssh "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
+      remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
         log "Busybox reboot dispatched (connection loss is expected)"
     else
-      remote_ssh "echo b >/proc/sysrq-trigger" ||
+      remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
         log "Sysrq reboot dispatched (connection loss is expected)"
     fi
     log "Deployment finished. Target should be rebooting into NixOS now."
