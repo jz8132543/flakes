@@ -63,16 +63,18 @@ build-raw:
 
 # Phase 2: Only stream the image
 stream-raw:
-	$(eval user ?= root)
 	$(eval port ?= 22)
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make stream-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make stream-raw host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --host ${host} --user ${user} --port ${port} --device ${device} --only-stream
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make stream-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make stream-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make stream-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" --device "${device}" --only-stream
 
 # Special: Overwrite a running Linux system (e.g. Debian/Ubuntu) with NixOS
 deploy-live:
-	$(eval user ?= root)
 	$(eval port ?= 22)
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live host=<host> user=<user> device=<device> [port=22]"; exit 1; fi
-	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --host ${host} --user ${user} --port ${port} --device ${device} --live-overwrite
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" --device "${device}" --live-overwrite
