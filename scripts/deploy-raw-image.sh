@@ -15,6 +15,7 @@ LIVE_OVERWRITE=no
 LAST_BUILT_IMAGE_FILE=".last_built_image"
 CONTROL_PATH=""
 IMG=""
+REMOTE_BUSYBOX=""
 
 usage() {
   cat <<'EOF'
@@ -187,11 +188,33 @@ prepare_pipeline_tools() {
 
 prepare_live_overwrite() {
   log "LIVE OVERWRITE MODE: Preparing remote system..."
-  remote_ssh "
-    echo 'Caching vitals to RAM...'
-    cat /bin/sync /sbin/reboot /bin/sh /bin/cat /usr/bin/sudo >/dev/null 2>&1
-    echo 'Remote system prepared.'
-  "
+  REMOTE_BUSYBOX="$(
+    remote_ssh '
+      set -eu
+      dst_dir=/run
+      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        dst_dir=/dev/shm
+      fi
+
+      if ! command -v busybox >/dev/null 2>&1; then
+        exit 0
+      fi
+
+      src=$(command -v busybox)
+      dst="${dst_dir}/nixos-live-busybox"
+      rm -f "$dst"
+      cp "$src" "$dst" 2>/dev/null || cat "$src" >"$dst"
+      chmod 0755 "$dst"
+      printf "%s" "$dst"
+    '
+  )"
+
+  if [ -n "$REMOTE_BUSYBOX" ]; then
+    log "Prepared in-memory busybox at ${REMOTE_BUSYBOX}"
+    return
+  fi
+
+  log "Remote busybox not found; will fall back to sysrq reboot"
 }
 
 stream_image() {
@@ -210,7 +233,13 @@ finish_deployment() {
   log "Syncing remote disk..."
   if is_true "$LIVE_OVERWRITE"; then
     log "LIVE OVERWRITE: Sending forced reboot signal..."
-    remote_ssh "sync && reboot -f" || log "Reboot signal sent (connection loss is expected)"
+    if [ -n "$REMOTE_BUSYBOX" ]; then
+      remote_ssh "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
+        log "Busybox reboot dispatched (connection loss is expected)"
+    else
+      remote_ssh "echo b >/proc/sysrq-trigger" ||
+        log "Sysrq reboot dispatched (connection loss is expected)"
+    fi
     log "Deployment finished. Target should be rebooting into NixOS now."
     return
   fi
