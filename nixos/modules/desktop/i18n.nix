@@ -1,6 +1,5 @@
 {
   pkgs,
-  config,
   ...
 }:
 {
@@ -22,7 +21,7 @@
       # GNOME Wayland primarily integrates third-party IMEs via the ibus frontend.
       # Keep the native Wayland frontend for Plasma, where the KWin virtual keyboard
       # path is better integrated.
-      waylandFrontend = config.desktop.environment == "kde";
+      # waylandFrontend = config.desktop.environment == "kde";
     };
   };
 }

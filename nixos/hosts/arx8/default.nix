@@ -18,7 +18,6 @@
     ];
 
   # environment.isCN = true;
-  desktop.environment = "gnome";
 
   environment.systemPackages = with pkgs; [
     lenovo-legion

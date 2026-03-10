@@ -1,19 +1,15 @@
 {
   pkgs,
-  config,
   lib,
   ...
 }:
-let
-  cfg = config.desktop;
-in
 {
   home.packages = with pkgs; [
     qt6Packages.fcitx5-configtool
   ];
 
   xdg.dataFile."fcitx5/rime" = {
-    source = "${pkgs.fcitx5-rime}/share/rime-data";
+    source = "${pkgs.rime-deploy}/share/rime-data";
     recursive = true;
   };
 
@@ -111,25 +107,6 @@ in
     force = true;
   };
 
-  xdg.configFile."autostart/org.fcitx.Fcitx5.desktop" = lib.mkIf (cfg.environment == "kde") {
-    text = ''
-      [Desktop Entry]
-      Hidden=true
-    '';
-    force = true;
-  };
-
-  systemd.user.services."app-org.fcitx.Fcitx5@autostart" = lib.mkIf (cfg.environment == "kde") {
-    Unit.ConditionPathExists = "/run/fcitx5-autostart-disabled";
-  };
-
-  home.activation.maskFcitxAutostartUnit = lib.hm.dag.entryAfter [ "writeBoundary" ] (
-    lib.optionalString (cfg.environment == "kde") ''
-      mkdir -p "${config.xdg.configHome}/systemd/user"
-      ln -sfn /dev/null "${config.xdg.configHome}/systemd/user/app-org.fcitx.Fcitx5@autostart.service"
-    ''
-  );
-
   # Use NixOS level input method configuration
   home.sessionVariables = lib.mkMerge [
     {
@@ -137,14 +114,11 @@ in
       XMODIFIERS = "@im=fcitx";
       XIM = "fcitx";
     }
-    (lib.mkIf (cfg.environment == "gnome") {
+    {
       # GNOME Wayland uses fcitx5 through the ibus frontend / text-input-v3 path.
       # Keep GTK on the desktop default path instead of forcing fcitx IM module
       # globally, which is explicitly discouraged by upstream docs.
       QT_IM_MODULE = "fcitx";
-    })
-    (lib.mkIf (cfg.environment == "kde") {
-      QT_IM_MODULES = "wayland;fcitx;ibus";
-    })
+    }
   ];
 }

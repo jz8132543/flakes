@@ -4,19 +4,15 @@
   ...
 }:
 let
-  alacrittyPackage =
-    if config.desktop.environment == "gnome" then
-      pkgs.symlinkJoin {
-        name = "alacritty-x11";
-        paths = [ pkgs.alacritty ];
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-        postBuild = ''
-          wrapProgram $out/bin/alacritty \
-            --set WINIT_UNIX_BACKEND x11
-        '';
-      }
-    else
-      pkgs.alacritty;
+  alacrittyPackage = pkgs.symlinkJoin {
+    name = "alacritty-x11";
+    paths = [ pkgs.alacritty ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      wrapProgram $out/bin/alacritty \
+        --set WINIT_UNIX_BACKEND x11
+    '';
+  };
 in
 {
   programs = {
