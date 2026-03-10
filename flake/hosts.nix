@@ -191,6 +191,14 @@ in
         name = "tyo1";
         system = "x86_64-linux";
       })
+      (mkHost {
+        name = "can0";
+        system = "x86_64-linux";
+      })
+      (mkHost {
+        name = "can1";
+        system = "x86_64-linux";
+      })
     ];
 
     flake.homeConfigurations = lib.mkMerge [

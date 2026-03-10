@@ -4,8 +4,13 @@ diskon:
 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.diskoNoDeps
 build:
 	nix --experimental-features 'nix-command flakes' build --builders "ssh://${builder}" .#nixosConfigurations.${host}.config.system.build.toplevel
+
 nixos-anywhere:
-	nix run github:nix-community/nixos-anywhere -- --no-substitute-on-destination --no-disko-deps --flake .#${host} root@${host}
+	$(eval port ?= 22)
+	@if [ -z "$(hostname)" ]; then echo "Error: 'hostname' not specified. Usage: make nixos-anywhere hostname=<flake-name> target-host=<user@host> [port=22] [extras='...'] [no_substitute=1]"; exit 1; fi
+	@if [ -z "$(target-host)" ]; then echo "Error: 'target-host' not specified. Usage: make nixos-anywhere hostname=<flake-name> target-host=<user@host> [port=22] [extras='...'] [no_substitute=1]"; exit 1; fi
+	# Call helper script (keeps Makefile short). Pass no_substitute variable through.
+	bash ./scripts/nixos-anywhere-deploy.sh --hostname "$(hostname)" --target "$(target-host)" --port "$(port)" --extras "$(extras)" --no-substitute-on-destination=$(no_substitute)
 mount:
 	nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:

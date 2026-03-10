@@ -43,6 +43,7 @@
                 ".envrc"
                 "**/.envrc"
               ];
+              options = [ "--severity=error" ];
             };
             keep-sorted = {
               includes = lib.mkForce [ "*.nix" ];
