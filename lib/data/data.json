@@ -24,6 +24,24 @@
   "ldap": "ldap://ldap.dora.im:389",
   "database": "postgres.mag",
   "hosts": {
+    "can0": {
+      "dn42_addresses_v4": ["172.23.224.107"],
+      "dn42_addresses_v6": ["fd72:db83:badd:b::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:b::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [11]
+    },
+    "can1": {
+      "dn42_addresses_v4": ["172.23.224.108"],
+      "dn42_addresses_v6": ["fd72:db83:badd:c::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:c::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [12]
+    },
     "cu": {
       "dn42_addresses_v4": ["172.23.224.102"],
       "dn42_addresses_v6": ["fd72:db83:badd:6::1"],

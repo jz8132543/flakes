@@ -7,10 +7,12 @@ build:
 
 nixos-anywhere:
 	$(eval port ?= 22)
-	@if [ -z "$(hostname)" ]; then echo "Error: 'hostname' not specified. Usage: make nixos-anywhere hostname=<flake-name> target-host=<user@host> [port=22] [extras='...'] [no_substitute=1]"; exit 1; fi
-	@if [ -z "$(target-host)" ]; then echo "Error: 'target-host' not specified. Usage: make nixos-anywhere hostname=<flake-name> target-host=<user@host> [port=22] [extras='...'] [no_substitute=1]"; exit 1; fi
-	# Call helper script (keeps Makefile short). Pass no_substitute variable through.
-	bash ./scripts/nixos-anywhere-deploy.sh --hostname "$(hostname)" --target "$(target-host)" --port "$(port)" --extras "$(extras)" --no-substitute-on-destination=$(no_substitute)
+	$(eval flake_host ?= $(if $(host),$(host),$(hostname)))
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(flake_host)" ]; then echo "Error: 'host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [no_substitute=1]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [no_substitute=1]"; exit 1; fi
+	# host = flake machine name, target-host = remote SSH address/IP
+	bash ./scripts/nixos-anywhere-deploy.sh --host "$(flake_host)" --target-host "$(deploy_target)" --port "$(port)" --no-substitute-on-destination=$(no_substitute)
 mount:
 	nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:

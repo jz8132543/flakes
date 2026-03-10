@@ -3,12 +3,12 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: nixos-anywhere-deploy.sh --hostname NAME --target user@host [--port PORT] [--extras "attr1 attr2"] [--no-substitute-on-destination=0|1]
+Usage: nixos-anywhere-deploy.sh --host NAME --target-host user@host [--port PORT] [--no-substitute-on-destination=0|1]
 
-This script performs an offline-first nixos-anywhere deployment:
-1. Build all required deployment artifacts on the build host.
-2. Compute and push the combined /nix/store closure to the target host.
-3. Run a locally built nixos-anywhere binary so the target host does not need GitHub access.
+This script performs an offline-first nixos-anywhere deployment by:
+1. Building nixos-anywhere, the target toplevel, and the disko script on the build host.
+2. Passing those store paths to nixos-anywhere via --store-paths.
+3. Letting nixos-anywhere copy the required closures at the correct install phase.
 EOF
   exit 1
 }
@@ -22,39 +22,35 @@ die() {
   exit 1
 }
 
-HOSTNAME=""
-TARGET=""
+HOST=""
+TARGET_HOST=""
 PORT=22
-EXTRAS=""
 NO_SUBSTITUTE="1"
-TMPDIR="$(mktemp -d /tmp/nixos-anywhere-deploy.XXXXXX)"
-CLOSURE_FILE="${TMPDIR}/closure.txt"
 BUILD_SYSTEM=""
 NIXOS_ANYWHERE_BIN=""
+TOPLEVEL_PATH=""
+DISKO_SCRIPT_PATH=""
 
-cleanup() {
-  rm -rf "$TMPDIR"
+is_true() {
+  case "${1:-}" in
+  1 | true | TRUE | yes | YES | on | ON) return 0 ;;
+  *) return 1 ;;
+  esac
 }
-
-trap cleanup EXIT
 
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
-    --hostname)
-      HOSTNAME="$2"
+    --host | --hostname)
+      HOST="$2"
       shift 2
       ;;
-    --target)
-      TARGET="$2"
+    --target-host | --target)
+      TARGET_HOST="$2"
       shift 2
       ;;
     --port)
       PORT="$2"
-      shift 2
-      ;;
-    --extras)
-      EXTRAS="$2"
       shift 2
       ;;
     --no-substitute-on-destination=*)
@@ -74,7 +70,7 @@ parse_args() {
     esac
   done
 
-  if [ -z "$HOSTNAME" ] || [ -z "$TARGET" ]; then
+  if [ -z "$HOST" ] || [ -z "$TARGET_HOST" ]; then
     usage
   fi
 }
@@ -88,51 +84,12 @@ build_attr_path() {
     "$attr"
 }
 
-append_closure_for_path() {
-  local store_path="$1"
-  nix-store --query --requisites "$store_path" >>"$CLOSURE_FILE"
-}
-
-append_closure_for_attr() {
-  local attr="$1"
-  local store_path
-  log "Building ${attr}"
-  store_path="$(build_attr_path "$attr")"
-  append_closure_for_path "$store_path"
-}
-
-collect_target_artifacts() {
-  local artifact_attrs=(
-    ".#nixosConfigurations.${HOSTNAME}.config.system.build.toplevel"
-    ".#nixosConfigurations.${HOSTNAME}.config.system.build.nixos-install"
-    ".#nixosConfigurations.${HOSTNAME}.config.system.build.installBootLoader"
-    ".#nixosConfigurations.${HOSTNAME}.config.system.build.diskoNoDeps"
-    ".#nixosConfigurations.${HOSTNAME}.config.system.build.diskoScriptNoDeps"
-  )
-  local attr
-
-  for attr in "${artifact_attrs[@]}"; do
-    append_closure_for_attr "$attr"
-  done
-}
-
-collect_extra_artifacts() {
-  local extra
-
-  if [ -z "$EXTRAS" ]; then
-    return
-  fi
-
-  log "Building extras: $EXTRAS"
-  for extra in $EXTRAS; do
-    append_closure_for_attr "$extra"
-  done
-}
-
 prepare_local_nixos_anywhere() {
-  BUILD_SYSTEM="$(nix eval --impure --raw --expr builtins.currentSystem)"
-  local package_attr=".#packages.${BUILD_SYSTEM}.nixos-anywhere"
+  local package_attr
   local package_path
+
+  BUILD_SYSTEM="$(nix eval --impure --raw --expr builtins.currentSystem)"
+  package_attr=".#packages.${BUILD_SYSTEM}.nixos-anywhere"
 
   log "Building local nixos-anywhere package (${package_attr})"
   package_path="$(build_attr_path "$package_attr")"
@@ -143,52 +100,48 @@ prepare_local_nixos_anywhere() {
   fi
 }
 
-finalize_closure_manifest() {
-  sort -u "$CLOSURE_FILE" -o "$CLOSURE_FILE"
-  log "Prepared $(wc -l <"$CLOSURE_FILE") store paths for offline push"
-}
+prepare_target_artifacts() {
+  log "Building target toplevel for ${HOST}"
+  TOPLEVEL_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.toplevel")"
 
-push_closure() {
-  log "Checking whether the target has rsync"
-  if ssh -p "$PORT" "$TARGET" 'command -v rsync >/dev/null 2>&1'; then
-    log "Target has rsync; pushing closure with rsync"
-    rsync -aHAXz --numeric-ids -e "ssh -p ${PORT}" --files-from="$CLOSURE_FILE" / "${TARGET}":/
-  else
-    log "Target lacks rsync; streaming closure with tar over ssh"
-    tar -czf - -T "$CLOSURE_FILE" -P -C / | ssh -p "$PORT" "$TARGET" 'tar xzpf - -P -C /'
+  log "Building disko script for ${HOST}"
+  DISKO_SCRIPT_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.diskoScriptNoDeps")"
+
+  if [ ! -e "$TOPLEVEL_PATH" ]; then
+    die "Missing toplevel store path: ${TOPLEVEL_PATH}"
+  fi
+
+  if [ ! -e "$DISKO_SCRIPT_PATH" ]; then
+    die "Missing disko script store path: ${DISKO_SCRIPT_PATH}"
   fi
 }
 
 run_nixos_anywhere() {
   local cmd=(
     "$NIXOS_ANYWHERE_BIN"
-    "--no-disko-deps"
   )
 
-  if [ "$NO_SUBSTITUTE" = "1" ] || [ "$NO_SUBSTITUTE" = "true" ]; then
+  if is_true "$NO_SUBSTITUTE"; then
     cmd+=("--no-substitute-on-destination")
   fi
 
   cmd+=(
-    "--flake"
-    ".#${HOSTNAME}"
-    "$TARGET"
+    "--store-paths"
+    "$DISKO_SCRIPT_PATH"
+    "$TOPLEVEL_PATH"
+    "$TARGET_HOST"
     "-p"
     "$PORT"
   )
 
-  log "Running locally built nixos-anywhere in offline-first mode"
+  log "Running nixos-anywhere with prebuilt store paths"
   "${cmd[@]}"
 }
 
 main() {
-  : >"$CLOSURE_FILE"
   parse_args "$@"
   prepare_local_nixos_anywhere
-  collect_target_artifacts
-  collect_extra_artifacts
-  finalize_closure_manifest
-  push_closure
+  prepare_target_artifacts
   run_nixos_anywhere
   log "Done."
 }
