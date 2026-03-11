@@ -19,8 +19,9 @@ REMOTE_BUSYBOX=""
 TEMP_DIR=""
 SSH_CMD=()
 SSH_AUTH_OPTS=()
-LIVE_SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
-LIVE_SSH_PUBLIC_KEY_FILE="${LIVE_SSH_IDENTITY_FILE}.pub"
+SSH_IDENTITY_FILE=""
+LIVE_SSH_IDENTITY_FILE=""
+LIVE_SSH_PUBLIC_KEY_FILE=""
 LIVE_SSH_HOSTKEY_OPTS=(-o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no)
 LIVE_SSH_PORT=""
 LIVE_SSH_INTERNAL_PORT=""
@@ -42,6 +43,8 @@ Arguments:
   --target-host  Remote SSH target in user@host form
   --device       Remote block device to overwrite
   --port         Remote SSH port, defaults to 22
+  --identity-file
+                 SSH private key to use for both the initial connection and the in-memory live SSH
   --live-ssh-port
                  Run the in-memory live SSH server directly on this port instead of redirecting the original SSH port
   --only-build   Build image locally and stop
@@ -64,10 +67,45 @@ quote_for_sh() {
   printf "'%s'" "${value//\'/\'\\\'\'}"
 }
 
+detect_identity_file() {
+  local candidate
+
+  if [ -n "$SSH_IDENTITY_FILE" ]; then
+    return 0
+  fi
+
+  while IFS= read -r candidate; do
+    case "$candidate" in
+    none | "")
+      continue
+      ;;
+    "~/"*)
+      candidate="${HOME}/${candidate#~/}"
+      ;;
+    esac
+
+    if [ -f "$candidate" ] && [ -f "${candidate}.pub" ]; then
+      SSH_IDENTITY_FILE="$candidate"
+      return 0
+    fi
+  done < <(ssh -G -p "$PORT" "$TARGET_HOST" | awk '/^identityfile / { print $2 }')
+
+  if [ -f "${HOME}/.ssh/id_ed25519" ] && [ -f "${HOME}/.ssh/id_ed25519.pub" ]; then
+    SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
+    return 0
+  fi
+
+  die "Could not determine an SSH identity file for ${TARGET_HOST}; pass --identity-file explicitly"
+}
+
 setup_ssh_command() {
   if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
     export SSHPASS="${SSH_PASSWORD}"
   fi
+
+  detect_identity_file
+  LIVE_SSH_IDENTITY_FILE="$SSH_IDENTITY_FILE"
+  LIVE_SSH_PUBLIC_KEY_FILE="${SSH_IDENTITY_FILE}.pub"
 
   SSH_CMD=()
   if [ -n "${SSHPASS:-}" ]; then
@@ -79,7 +117,7 @@ setup_ssh_command() {
   else
     SSH_CMD=(ssh)
   fi
-  SSH_AUTH_OPTS=()
+  SSH_AUTH_OPTS=(-i "$SSH_IDENTITY_FILE" -o IdentitiesOnly=yes)
 }
 
 detect_target_system() {
@@ -140,6 +178,10 @@ parse_args() {
       ;;
     --port)
       PORT="$2"
+      shift 2
+      ;;
+    --identity-file)
+      SSH_IDENTITY_FILE="$2"
       shift 2
       ;;
     --device)
@@ -217,6 +259,7 @@ setup_ssh_mux() {
   CONTROL_PATH="/tmp/ssh-control-$(printf '%s' "$TARGET_HOST" | tr '@:/' '---')"
   log "Establishing master SSH connection..."
   "${SSH_CMD[@]}" -p "$PORT" -M -f -N \
+    "${SSH_AUTH_OPTS[@]}" \
     -o StrictHostKeyChecking=accept-new \
     -o ControlPath="$CONTROL_PATH" \
     -o ControlPersist=600 \
