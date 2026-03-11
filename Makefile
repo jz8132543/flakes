@@ -93,7 +93,7 @@ deploy-live:
 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
-	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" $(if $(identity_file),--identity-file "$(identity_file)",) --device "${device}" --live-overwrite
+	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(live_ssh_port),--live-ssh-port "$(live_ssh_port)",) --device "${device}" --live-overwrite
 
 deploy-live-kexec:
 	$(eval port ?= 22)

@@ -19,6 +19,7 @@ REMOTE_BUSYBOX=""
 TEMP_DIR=""
 SSH_CMD=()
 SSH_AUTH_OPTS=()
+SSH_LOGIN_DESC=""
 SSH_IDENTITY_FILE=""
 LIVE_SSH_IDENTITY_FILE=""
 LIVE_SSH_PUBLIC_KEY_FILE=""
@@ -31,6 +32,7 @@ REMOTE_LIVE_DIR=""
 STATIC_BUSYBOX_LOCAL=""
 STATIC_DROPBEAR_LOCAL=""
 STATIC_DROPBEARKEY_LOCAL=""
+LIVE_SSH_AUTHORIZED_KEYS_FILE=""
 
 usage() {
   cat <<'EOF'
@@ -98,6 +100,47 @@ detect_identity_file() {
   die "Could not determine an SSH identity file for ${TARGET_HOST}; pass --identity-file explicitly"
 }
 
+collect_live_authorized_keys() {
+  local auth_keys_file
+  local candidate
+
+  prepare_temp_dir
+  auth_keys_file="${TEMP_DIR}/live-authorized_keys"
+  : >"$auth_keys_file"
+
+  if [ -n "$SSH_IDENTITY_FILE" ] && [ -f "${SSH_IDENTITY_FILE}.pub" ]; then
+    cat "${SSH_IDENTITY_FILE}.pub" >>"$auth_keys_file"
+    printf '\n' >>"$auth_keys_file"
+  fi
+
+  while IFS= read -r candidate; do
+    case "$candidate" in
+    none | "")
+      continue
+      ;;
+    "~/"*)
+      candidate="${HOME}/${candidate#~/}"
+      ;;
+    esac
+
+    if [ -f "${candidate}.pub" ]; then
+      cat "${candidate}.pub" >>"$auth_keys_file"
+      printf '\n' >>"$auth_keys_file"
+    fi
+  done < <(ssh -G -p "$PORT" "$TARGET_HOST" | awk '/^identityfile / { print $2 }')
+
+  if command -v ssh-add >/dev/null 2>&1; then
+    ssh-add -L 2>/dev/null >>"$auth_keys_file" || true
+    printf '\n' >>"$auth_keys_file"
+  fi
+
+  awk 'NF && !seen[$0]++' "$auth_keys_file" >"${auth_keys_file}.dedup"
+  mv "${auth_keys_file}.dedup" "$auth_keys_file"
+
+  [ -s "$auth_keys_file" ] || die "No public keys available for live SSH authorization"
+  LIVE_SSH_AUTHORIZED_KEYS_FILE="$auth_keys_file"
+}
+
 setup_ssh_command() {
   if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
     export SSHPASS="${SSH_PASSWORD}"
@@ -106,6 +149,7 @@ setup_ssh_command() {
   detect_identity_file
   LIVE_SSH_IDENTITY_FILE="$SSH_IDENTITY_FILE"
   LIVE_SSH_PUBLIC_KEY_FILE="${SSH_IDENTITY_FILE}.pub"
+  collect_live_authorized_keys
 
   SSH_CMD=()
   if [ -n "${SSHPASS:-}" ]; then
@@ -117,7 +161,13 @@ setup_ssh_command() {
   else
     SSH_CMD=(ssh)
   fi
-  SSH_AUTH_OPTS=(-i "$SSH_IDENTITY_FILE" -o IdentitiesOnly=yes)
+  SSH_AUTH_OPTS=()
+  if [ -n "$SSH_IDENTITY_FILE" ] && [ -f "$SSH_IDENTITY_FILE" ]; then
+    SSH_AUTH_OPTS+=(-i "$SSH_IDENTITY_FILE")
+    SSH_LOGIN_DESC="$SSH_IDENTITY_FILE + agent/default keys"
+  else
+    SSH_LOGIN_DESC="agent/default keys"
+  fi
 }
 
 detect_target_system() {
@@ -257,7 +307,7 @@ cleanup() {
 
 setup_ssh_mux() {
   CONTROL_PATH="/tmp/ssh-control-$(printf '%s' "$TARGET_HOST" | tr '@:/' '---')"
-  log "Establishing master SSH connection..."
+  log "Establishing master SSH connection using ${SSH_LOGIN_DESC}..."
   "${SSH_CMD[@]}" -p "$PORT" -M -f -N \
     "${SSH_AUTH_OPTS[@]}" \
     -o StrictHostKeyChecking=accept-new \
@@ -316,12 +366,11 @@ wait_for_live_ssh() {
   for ((i = 1; i <= attempts; i++)); do
     if ssh \
       -T \
-      -i "$LIVE_SSH_IDENTITY_FILE" \
       -o BatchMode=yes \
-      -o IdentitiesOnly=yes \
       -o ControlMaster=no \
       -o ControlPath=none \
       -o RequestTTY=no \
+      "${SSH_AUTH_OPTS[@]}" \
       "${LIVE_SSH_HOSTKEY_OPTS[@]}" \
       -p "$live_port" \
       "$TARGET_HOST" \
@@ -339,7 +388,12 @@ switch_to_live_ssh() {
   cleanup
   PORT="$LIVE_SSH_EXTERNAL_PORT"
   SSH_CMD=(ssh)
-  SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes "${LIVE_SSH_HOSTKEY_OPTS[@]}")
+  if [ -n "$LIVE_SSH_IDENTITY_FILE" ] && [ -f "$LIVE_SSH_IDENTITY_FILE" ]; then
+    SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE")
+  else
+    SSH_AUTH_OPTS=()
+  fi
+  SSH_AUTH_OPTS+=(-o BatchMode=yes "${LIVE_SSH_HOSTKEY_OPTS[@]}")
   setup_ssh_mux
 }
 
@@ -432,8 +486,8 @@ prepare_live_overwrite() {
   local force_shell_local
 
   log "LIVE OVERWRITE MODE: Preparing remote system..."
-  [ -f "$LIVE_SSH_PUBLIC_KEY_FILE" ] || die "Missing live SSH public key: ${LIVE_SSH_PUBLIC_KEY_FILE}"
   [ -f "$LIVE_SSH_IDENTITY_FILE" ] || die "Missing live SSH private key: ${LIVE_SSH_IDENTITY_FILE}"
+  [ -f "$LIVE_SSH_AUTHORIZED_KEYS_FILE" ] || die "Missing live SSH authorized keys file: ${LIVE_SSH_AUTHORIZED_KEYS_FILE}"
 
   prepare_temp_dir
   target_system="$(detect_target_system)"
@@ -486,7 +540,7 @@ EOF
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
   upload_remote_file "$STATIC_DROPBEARKEY_LOCAL" "${REMOTE_LIVE_DIR}/dropbearkey" 0755
-  upload_remote_file "$LIVE_SSH_PUBLIC_KEY_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
+  upload_remote_file "$LIVE_SSH_AUTHORIZED_KEYS_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
   upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
 
   remote_ssh "
