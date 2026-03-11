@@ -29,7 +29,7 @@ LIVE_SSH_INTERNAL_PORT=""
 LIVE_SSH_REDIRECT_PORT=""
 LIVE_SSH_EXTERNAL_PORT=""
 LIVE_SSH_WINDOW_SIZE="${LIVE_SSH_WINDOW_SIZE:-4194304}"
-LIVE_STREAM_PORT="${LIVE_STREAM_PORT:-2223}"
+LIVE_STREAM_PORT="${LIVE_STREAM_PORT:-2233}"
 REMOTE_LIVE_DIR=""
 STATIC_BUSYBOX_LOCAL=""
 STATIC_DROPBEAR_LOCAL=""
@@ -55,7 +55,7 @@ Arguments:
   --live-ssh-window-size
                  Dropbear receive window size in bytes for the in-memory live SSH server, defaults to 4194304
   --live-stream-port
-                 Direct TCP port used to stream image data during live overwrite, defaults to 2223
+                 Direct TCP port used to stream image data during live overwrite, defaults to 2233
   --only-build   Build image locally and stop
   --only-stream  Skip the build step and stream the last built image
   --live-overwrite
@@ -702,58 +702,71 @@ EOF
 }
 
 stream_image() {
-  local bs="4M"
-  local direct_host
-  local remote_stream_pid_file
-  local remote_stream_log
-  local remote_stream_cmd
-
   if is_true "$LIVE_OVERWRITE" && [ -n "$REMOTE_BUSYBOX" ] && [ -n "$REMOTE_LIVE_DIR" ]; then
-    direct_host="${TARGET_HOST#*@}"
-    remote_stream_pid_file="${REMOTE_LIVE_DIR}/stream.pid"
-    remote_stream_log="${REMOTE_LIVE_DIR}/stream.log"
-    remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
-
-    log "Phase 2: Streaming image to ${direct_host}:${LIVE_STREAM_PORT} -> ${DEVICE} ..."
-    remote_ssh "
-      set -eu
-      rm -f $(quote_for_sh "$remote_stream_pid_file") $(quote_for_sh "$remote_stream_log")
-      $(quote_for_sh "$REMOTE_BUSYBOX") sh -c $(quote_for_sh "$remote_stream_cmd") >$(quote_for_sh "$remote_stream_log") 2>&1 &
-      echo \$! >$(quote_for_sh "$remote_stream_pid_file")
-    "
-
-    sleep 1
-
-    "${READ_CMD[@]}" |
-      "$PV_BIN" -N Read -s "$SIZE_BYTES" |
-      zstd -1 -T0 |
-      "$PV_BIN" -N Transfer |
-      nc -N "$direct_host" "$LIVE_STREAM_PORT" ||
-      die "Direct live stream failed"
-
-    for _ in $(seq 1 300); do
-      if remote_ssh_quiet "
-        pid=\$(cat $(quote_for_sh "$remote_stream_pid_file") 2>/dev/null || true)
-        [ -n \"\${pid:-}\" ] && kill -0 \"\$pid\" 2>/dev/null
-      "; then
-        sleep 1
-      else
-        break
-      fi
-    done
-
-    if remote_ssh_quiet "
-      pid=\$(cat $(quote_for_sh "$remote_stream_pid_file") 2>/dev/null || true)
-      [ -n \"\${pid:-}\" ] && kill -0 \"\$pid\" 2>/dev/null
-    "; then
-      print_live_ssh_debug
-      remote_ssh "cat $(quote_for_sh "$remote_stream_log") 2>/dev/null || true" || true
-      die "Timed out waiting for remote live stream receiver to finish"
-    fi
+    stream_image_via_live_tcp
     return
   fi
 
+  stream_image_via_ssh
+}
+
+wait_for_remote_pid_exit() {
+  local pid_file="$1"
+
+  for _ in $(seq 1 300); do
+    if remote_ssh_quiet "
+      pid=\$(cat $(quote_for_sh "$pid_file") 2>/dev/null || true)
+      [ -n \"\${pid:-}\" ] && kill -0 \"\$pid\" 2>/dev/null
+    "; then
+      sleep 1
+    else
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+stream_image_via_live_tcp() {
+  local bs="4M"
+  local direct_host="${TARGET_HOST#*@}"
+  local remote_stream_pid_file="${REMOTE_LIVE_DIR}/stream.pid"
+  local remote_stream_log="${REMOTE_LIVE_DIR}/stream.log"
+  local remote_stream_cmd
+
+  remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
+
+  log "Phase 2: Streaming image to ${direct_host}:${LIVE_STREAM_PORT} -> ${DEVICE} ..."
+  log "Data plane: direct TCP via busybox nc + zstd"
+  log "Control plane: SSH on ${TARGET_HOST}:${PORT}"
+  remote_ssh "
+    set -eu
+    rm -f $(quote_for_sh "$remote_stream_pid_file") $(quote_for_sh "$remote_stream_log")
+    $(quote_for_sh "$REMOTE_BUSYBOX") sh -c $(quote_for_sh "$remote_stream_cmd") >$(quote_for_sh "$remote_stream_log") 2>&1 &
+    echo \$! >$(quote_for_sh "$remote_stream_pid_file")
+  "
+
+  sleep 1
+
+  "${READ_CMD[@]}" |
+    "$PV_BIN" -N Read -s "$SIZE_BYTES" |
+    zstd -1 -T0 |
+    "$PV_BIN" -N Transfer |
+    nc -N "$direct_host" "$LIVE_STREAM_PORT" ||
+    die "Direct live stream failed"
+
+  if ! wait_for_remote_pid_exit "$remote_stream_pid_file"; then
+    print_live_ssh_debug
+    remote_ssh "cat $(quote_for_sh "$remote_stream_log") 2>/dev/null || true" || true
+    die "Timed out waiting for remote live stream receiver to finish"
+  fi
+}
+
+stream_image_via_ssh() {
+  local bs="4M"
+
   log "Phase 2: Streaming image to ${TARGET_HOST}:${DEVICE} ..."
+  log "Data plane: SSH stdin -> ${DECOMPRESS_CMD} -> dd"
   "${READ_CMD[@]}" |
     "$PV_BIN" -N Read -s "$SIZE_BYTES" |
     "${COMPRESS_CMD[@]}" |

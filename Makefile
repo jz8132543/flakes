@@ -1,3 +1,10 @@
+port ?= 22
+device ?= /dev/vda
+identity_file ?= /home/tippy/.ssh/id_ed25519
+live_ssh_port ?= 2222
+live_ssh_window_size ?= 4194304
+live_stream_port ?= 2233
+
 disko:
 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.disko
 diskon:
@@ -88,11 +95,9 @@ stream-repart:
 # Before dd begins, the script launches a tiny SSH server from RAM and redirects
 # new SSH sessions to it, so you can reconnect even after the on-disk sshd dies.
 deploy-live:
-	$(eval port ?= 22)
 	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> [device=$(device)] [port=$(port)]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> [device=$(device)] [port=$(port)]"; exit 1; fi
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(live_ssh_port),--live-ssh-port "$(live_ssh_port)",) $(if $(live_ssh_window_size),--live-ssh-window-size "$(live_ssh_window_size)",) $(if $(live_stream_port),--live-stream-port "$(live_stream_port)",) --device "${device}" --live-overwrite
 
 deploy-live-kexec:
