@@ -84,11 +84,24 @@ stream-repart:
 	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make stream-repart host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.image --target-host "${deploy_target}" --port "${port}" --device "${device}" --only-stream
 
-# Special: Overwrite a running Linux system (e.g. Debian/Ubuntu) with NixOS
+# Special: Install onto a running Linux host via kexec into an in-memory installer.
+# This keeps SSH available on the installer side, so transient client disconnects
+# do not abort the whole deployment like raw disk streaming does.
 deploy-live:
 	$(eval port ?= 22)
 	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
-	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	$(eval target_cache ?= off)
+	$(eval kexec_local_only ?= on)
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
+	bash ./scripts/nixos-anywhere-deploy.sh --host "$(host)" --target-host "$(deploy_target)" --port "$(port)" --target-cache "$(target_cache)" --kexec-local-only "$(kexec_local_only)" $(if $(kexec_url),--kexec-url "$(kexec_url)",) $(if $(kexec_attr),--kexec-attr "$(kexec_attr)",)
+
+# Legacy raw live overwrite mode. This writes the image directly over the
+# running system via a single SSH pipeline and cannot safely survive disconnects.
+deploy-live-raw:
+	$(eval port ?= 22)
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live-raw host=<flake-name> target-host=<user@ip> device=<device> [port=22]"; exit 1; fi
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" --device "${device}" --live-overwrite
