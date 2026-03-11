@@ -34,6 +34,11 @@ in
     sops = {
       defaultSopsFile = config.sops-file.get "common.yaml";
       gnupg.sshKeyPaths = [ ];
+      # Image builds run `nixos-install` inside a VM and execute activation scripts.
+      # When the SOPS key file lives on /persist (impermanence), it may not exist yet,
+      # causing the install to fail. Use a systemd unit instead so secrets are
+      # installed at boot/switch time once mounts and keys are in place.
+      useSystemdActivation = lib.mkDefault true;
       age = {
         sshKeyPaths = [ ];
         keyFile = lib.mkDefault (

@@ -27,9 +27,9 @@ in
     hashedPassword = "$6$0gRnTBQjBv9ipXZz$AEBVrBbWXgzZ0IICD1HVWeCwqELFe85.ePsOOdkvFM1E6/sKvQUUesvXhQN519Ud33RsqA3h5z.4luO8Jk4Ls/";
   };
   security.sudo.wheelNeedsPassword = false;
-  sops.secrets."ssh/id_ed25519" = {
-    neededForUsers = true;
-  };
+  # Keep this as a regular secret (not `neededForUsers`) so image builds that
+  # run `nixos-install` don't fail when the SOPS key on /persist isn't present yet.
+  sops.secrets."ssh/id_ed25519" = { };
 
   nix.settings.trusted-users = [ name ];
   environment.global-persistence.user.users = [ name ];

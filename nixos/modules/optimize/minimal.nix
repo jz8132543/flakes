@@ -21,7 +21,10 @@ in
         info.enable = lib.mkForce false;
         nixos.enable = lib.mkForce false;
       };
-      environment.systemPackages = lib.mkForce [ ];
+      # `nixos-install` (used by disko image builds) enters the target via
+      # `/nix/var/nix/profiles/system/sw/bin/bash`. If we force all packages away,
+      # that path is missing and the install fails.
+      environment.systemPackages = lib.mkForce [ pkgs.bashInteractive ];
       environment.defaultPackages = lib.mkForce [ ];
       system.disableInstallerTools = lib.mkForce true;
 
