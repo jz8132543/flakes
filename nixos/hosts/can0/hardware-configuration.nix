@@ -16,8 +16,6 @@
   boot.kernelModules = [ ];
   boot.extraModulePackages = [ ];
 
-  # utils.disk = "/dev/sda";
-  # boot.loader.grub.device = lib.mkForce "nodev";
   networking.useDHCP = true;
 
   swapDevices = [

@@ -200,6 +200,10 @@ in
         name = "can1";
         system = "x86_64-linux";
       })
+      (mkHost {
+        name = "can2";
+        system = "x86_64-linux";
+      })
     ];
 
     flake.homeConfigurations = lib.mkMerge [

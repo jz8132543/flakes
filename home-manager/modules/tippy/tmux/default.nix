@@ -4,12 +4,30 @@
   ...
 }:
 let
+  tmuxSshStatusScript =
+    builtins.replaceStrings
+      [
+        "@procps@"
+        "@gnugrep@"
+        "@gawk@"
+        "@coreutils@"
+        "@iproute2@"
+        "@gnused@"
+        "@ssh@"
+      ]
+      [
+        "${pkgs.procps}"
+        "${pkgs.gnugrep}"
+        "${pkgs.gawk}"
+        "${pkgs.coreutils}"
+        "${pkgs.iproute2}"
+        "${pkgs.gnused}"
+        "${pkgs.openssh}/bin/ssh"
+      ]
+      (builtins.readFile ./tmux-ssh-status.sh);
   # tmuxDevspaceHelper = pkgs.writeShellScriptBin "tmux-devspace" (
   #   builtins.readFile ./tmux-devspace.sh
   # );
-  # 1. 定义工具路径
-  tcping = "${pkgs.tcping-rs}/bin/tcping";
-  ssh = "${pkgs.openssh}/bin/ssh";
   tmux-net-speed = pkgs.writeShellScriptBin "tmux-net-speed" ''
     export PATH="${pkgs.coreutils}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.procps}/bin:$PATH"
     STATE_FILE="/tmp/tmux-net-speed-$USER"
@@ -29,72 +47,7 @@ let
     }
     printf "↓%s ↑%s" "$(format_speed $((rx_now - rx_old)) $dt)" "$(format_speed $((tx_now - tx_old)) $dt)"
   '';
-  tmux-ssh-status = pkgs.writeShellScriptBin "tmux-ssh-status" ''
-    tty=$1
-    export PATH="${pkgs.procps}/bin:${pkgs.gnugrep}/bin:${pkgs.gawk}/bin:${pkgs.coreutils}/bin:${pkgs.nettools}/bin:${pkgs.gnused}/bin:$PATH"
-
-    # --- Catppuccin Mocha 配色 (Lavender) ---
-    COLOR_ICON_BG="#b4befe"
-    COLOR_ICON_FG="#11111b"
-    COLOR_TEXT_BG="#313244"
-    COLOR_TEXT_FG="#cdd6f4"
-
-    # 1. 默认状态：显示本地主机名
-    ICON="  "
-    display_text=$(hostname)
-
-    # 2. 获取进程 (使用 ps -e 配合 awk 匹配 TTY，解决 NixOS/Fish 下抓不到进程的问题)
-    tty_clean=''${tty#/dev/}
-    raw_cmd=$(ps -e -o tty,args= | awk -v t="$tty_clean" '$1 == t { $1=""; print $0 }' | grep "ssh" | grep -v "tmux-ssh-status" | head -n 1)
-
-    if [ -n "$raw_cmd" ]; then
-      ICON="  "
-
-      # 3. 提取显示用的别名 (Alias) - 用于状态栏显示
-      target_alias=$(echo "$raw_cmd" | \
-        sed -E 's/^.*ssh\s+//' | \
-        sed -E 's/ -[a-zA-Z0-9] [^ ]+ / /g' | \
-        sed -E 's/ -[a-zA-Z0-9] / /g' | \
-        awk '{print $1}' | \
-        cut -d@ -f2)
-
-      display_text="$target_alias"
-
-      # 4. 提取真实连接参数 - 用于 ssh -G 解析
-      # 去除 /nix/store/.../ssh 前缀，只保留参数
-      pure_args=$(echo "$raw_cmd" | sed -E 's/^.*ssh\s+//')
-
-      ssh_config=$(${ssh} -G $pure_args 2>/dev/null)
-      config_host=$(echo "$ssh_config" | awk '/^hostname / {print $2}')
-      config_port=$(echo "$ssh_config" | awk '/^port / {print $2}')
-
-      # 优先使用命令行指定的端口
-      explicit_port=$(echo "$raw_cmd" | grep -oE " -p ?[0-9]+" | sed 's/[^0-9]*//g' | head -n 1)
-
-      final_host="$config_host"
-      if [ -n "$explicit_port" ]; then
-        final_port="$explicit_port"
-      else
-        final_port="$config_port"
-      fi
-
-      # 5. 执行延迟测试
-      if [ -n "$final_host" ] && [ -n "$final_port" ]; then
-         # 使用你确认过的参数: --timeout-ms 500 和 host:port
-         tcping_out=$(${tcping} -c 1 --timeout-ms 500 "$final_host":"$final_port" 2>&1)
-
-         # 提取 " - open - " 前面的数字
-         latency=$(echo "$tcping_out" | awk '/ - open - / {print $(NF-1)}' | cut -d. -f1)
-
-         if [ -n "$latency" ]; then
-           display_text="$target_alias $latency"
-         fi
-      fi
-    fi
-
-    # 输出 Catppuccin 风格的状态栏组件
-    echo "#[fg=''${COLOR_ICON_BG}]#{E:@catppuccin_status_left_separator}#[fg=''${COLOR_ICON_FG},bg=''${COLOR_ICON_BG}]''${ICON}#{E:@catppuccin_status_middle_separator}#[fg=''${COLOR_TEXT_FG},bg=''${COLOR_TEXT_BG}] $display_text#[fg=''${COLOR_TEXT_BG}]#{E:@catppuccin_status_right_separator}"
-  '';
+  tmux-ssh-status = pkgs.writeShellScriptBin "tmux-ssh-status" tmuxSshStatusScript;
 in
 {
   programs.tmux = {
@@ -197,7 +150,7 @@ in
       set -g status-interval 3
 
       set -g status-right \
-        "#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_tty})"
+        "#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_pid})"
 
       set -ag status-right \
         "#[fg=#94e2d5]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#94e2d5]󰓅  #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${tmux-net-speed}/bin/tmux-net-speed)#[fg=#313244]#{E:@catppuccin_status_right_separator}"

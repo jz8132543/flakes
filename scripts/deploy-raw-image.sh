@@ -779,13 +779,13 @@ finish_deployment() {
   log "Syncing remote disk..."
   if is_true "$LIVE_OVERWRITE"; then
     log "LIVE OVERWRITE: Sending forced reboot signal..."
-    if [ -n "$REMOTE_BUSYBOX" ]; then
-      remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
-        log "Busybox reboot dispatched (connection loss is expected)"
-    else
-      remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
-        log "Sysrq reboot dispatched (connection loss is expected)"
-    fi
+    # if [ -n "$REMOTE_BUSYBOX" ]; then
+    #   remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
+    #     log "Busybox reboot dispatched (connection loss is expected)"
+    # else
+    #   remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
+    #     log "Sysrq reboot dispatched (connection loss is expected)"
+    # fi
     log "Deployment finished. Target should be rebooting into NixOS now."
     return
   fi

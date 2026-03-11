@@ -14,42 +14,9 @@
       nixosModules.optimize.minimal
       # nixosModules.services.traefik
       # nixosModules.services.derp
-      (import nixosModules.services.xray {
-        xrayPort = 16811;
-      })
-      nixosModules.services.kernel-relay
-      nixosModules.optimize.fakehttp
+      # nixosModules.services.kernel-relay
+      # nixosModules.optimize.fakehttp
     ];
-
-  services.kernel-relay = {
-    enable = true;
-    dnsInterval = "3min";
-    enableFlowtable = true;
-    ipFamily = "ipv4";
-    mappings = [
-      # SSH
-      {
-        listenPort = 2022;
-        remoteAddr = "138.252.162.101";
-        remotePort = 16810;
-      }
-      {
-        listenPort = 8555;
-        remoteAddr = "138.252.162.101";
-        remotePort = 16811;
-      }
-      {
-        listenPort = 16812;
-        remoteAddr = "138.252.162.101";
-        remotePort = 16812;
-      }
-      {
-        listenPort = 16813;
-        remoteAddr = "138.252.162.101";
-        remotePort = 16813;
-      }
-    ];
-  };
 
   services.openssh.ports = [
     config.ports.ssh
@@ -57,10 +24,6 @@
   ];
   # environment.isNAT = true;
   environment.isCN = true;
-  ports.derp-stun = lib.mkForce 8445;
-  ports.derp = lib.mkForce 8444;
-  # ports.turn-stun = lib.mkForce 50568;
-  environment.altHTTPS = 8443;
 
   nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
 

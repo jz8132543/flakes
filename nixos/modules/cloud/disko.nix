@@ -12,7 +12,7 @@
   disko.enableConfig = true;
   disko.devices = {
     disk.main = {
-      imageSize = "8G";
+      imageSize = "6G";
       type = "disk";
       device = "${config.utils.disk}";
       content = {

@@ -1,8 +1,18 @@
 {
   needProxy ? false,
+  xrayPort ? 8555,
   proxyHosts ? [
     "nue0.dora.im"
     "tyo0.dora.im"
+  ],
+  fakeSnis ? [
+    "gateway.icloud.com"
+    # "www.apple.com"
+    # "images.apple.com"
+    # "appleid.apple.com"
+    # "swcdn.apple.com"
+    # "speedtest.cn"
+    # "speedtest.net"
   ],
 }:
 {
@@ -13,8 +23,6 @@
 }:
 
 let
-  # 端口定义
-  xrayPort = 8555;
   tune = config.environment.networkTune;
   isBerserk = tune.profile == "berserk";
   connBudgetRam = tune.ram * (if isBerserk then 20 else 10);
@@ -24,15 +32,6 @@ let
     lib.min 600000 (lib.min connBudgetRam (lib.min connBudgetCpu connBudgetBw))
   );
   xrayLimitNOFILE = lib.max 131072 (lib.min 1048576 (stableConnBudget * 4));
-  fakeSnis = [
-    "gateway.icloud.com"
-    # "www.apple.com"
-    # "images.apple.com"
-    # "appleid.apple.com"
-    # "swcdn.apple.com"
-    # "speedtest.cn"
-    # "speedtest.net"
-  ];
   serverName = builtins.head fakeSnis;
   destSite = "${serverName}:443";
 in
@@ -176,7 +175,7 @@ in
             fingerprint = "ios";
 
             # 必须与 Server B inbound 中的 serverNames 保持一致
-            serverName = builtins.head fakeSnis;
+            inherit serverName;
 
             # ⚠️ 重要：这里必须填 Server B 的『公鑰 Public Key』
             publicKey = config.sops.placeholder."xray/public_key";
@@ -305,11 +304,11 @@ in
   networking.firewall.allowedTCPPorts = [
     8443
     8444
-    8555
+    xrayPort
   ];
   networking.firewall.allowedUDPPorts = [
     8443
     8444
-    8555
+    xrayPort
   ];
 }

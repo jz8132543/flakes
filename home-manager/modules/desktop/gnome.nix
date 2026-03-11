@@ -134,6 +134,9 @@ in
               ])
               # (mkTuple [(mkString "xkb") (mkString "us")])
             ];
+        # GNOME Wayland reads XKB options from dconf; keep it aligned with the
+        # system-level XKB setting so the swap applies to built-in and USB/BT keyboards.
+        xkb-options = mkArray type.string [ (mkString "caps:swapescape") ];
       };
       "org/gnome/shell/extensions/customize-ibus" = {
         use-custom-font = true;
