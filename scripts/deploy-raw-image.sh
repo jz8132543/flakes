@@ -21,6 +21,7 @@ SSH_CMD=()
 SSH_AUTH_OPTS=()
 LIVE_SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
 LIVE_SSH_PUBLIC_KEY_FILE="${LIVE_SSH_IDENTITY_FILE}.pub"
+LIVE_SSH_HOSTKEY_OPTS=(-o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no)
 LIVE_SSH_PORT=""
 LIVE_SSH_INTERNAL_PORT=""
 LIVE_SSH_REDIRECT_PORT=""
@@ -278,7 +279,7 @@ wait_for_live_ssh() {
       -o ControlMaster=no \
       -o ControlPath=none \
       -o RequestTTY=no \
-      -o StrictHostKeyChecking=accept-new \
+      "${LIVE_SSH_HOSTKEY_OPTS[@]}" \
       -p "$live_port" \
       "$TARGET_HOST" \
       true >/dev/null 2>&1; then
@@ -295,7 +296,7 @@ switch_to_live_ssh() {
   cleanup
   PORT="$LIVE_SSH_EXTERNAL_PORT"
   SSH_CMD=(ssh)
-  SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes)
+  SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes "${LIVE_SSH_HOSTKEY_OPTS[@]}")
   setup_ssh_mux
 }
 
