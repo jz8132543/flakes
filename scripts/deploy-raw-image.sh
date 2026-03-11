@@ -28,10 +28,13 @@ LIVE_SSH_PORT=""
 LIVE_SSH_INTERNAL_PORT=""
 LIVE_SSH_REDIRECT_PORT=""
 LIVE_SSH_EXTERNAL_PORT=""
+LIVE_SSH_WINDOW_SIZE="${LIVE_SSH_WINDOW_SIZE:-4194304}"
+LIVE_STREAM_PORT="${LIVE_STREAM_PORT:-2223}"
 REMOTE_LIVE_DIR=""
 STATIC_BUSYBOX_LOCAL=""
 STATIC_DROPBEAR_LOCAL=""
 STATIC_DROPBEARKEY_LOCAL=""
+STATIC_ZSTD_LOCAL=""
 LIVE_SSH_AUTHORIZED_KEYS_FILE=""
 
 usage() {
@@ -49,6 +52,10 @@ Arguments:
                  SSH private key to use for both the initial connection and the in-memory live SSH
   --live-ssh-port
                  Run the in-memory live SSH server directly on this port instead of redirecting the original SSH port
+  --live-ssh-window-size
+                 Dropbear receive window size in bytes for the in-memory live SSH server, defaults to 4194304
+  --live-stream-port
+                 Direct TCP port used to stream image data during live overwrite, defaults to 2223
   --only-build   Build image locally and stop
   --only-stream  Skip the build step and stream the last built image
   --live-overwrite
@@ -227,18 +234,30 @@ build_static_live_tools() {
   local target_system="$1"
   local dropbear_path
   local busybox_path
+  local zstd_path
 
   log "Building static live SSH tools for ${target_system}"
   dropbear_path="$(nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.dropbear")"
   busybox_path="$(nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.busybox")"
+  zstd_path="$(
+    nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.zstd" |
+      while IFS= read -r path; do
+        if [ -x "${path}/bin/zstd" ]; then
+          printf '%s\n' "$path"
+          break
+        fi
+      done
+  )"
 
   STATIC_DROPBEAR_LOCAL="${dropbear_path}/bin/dropbear"
   STATIC_DROPBEARKEY_LOCAL="${dropbear_path}/bin/dropbearkey"
   STATIC_BUSYBOX_LOCAL="${busybox_path}/bin/busybox"
+  STATIC_ZSTD_LOCAL="${zstd_path}/bin/zstd"
 
   [ -x "$STATIC_DROPBEAR_LOCAL" ] || die "Missing static dropbear binary: ${STATIC_DROPBEAR_LOCAL}"
   [ -x "$STATIC_DROPBEARKEY_LOCAL" ] || die "Missing static dropbearkey binary: ${STATIC_DROPBEARKEY_LOCAL}"
   [ -x "$STATIC_BUSYBOX_LOCAL" ] || die "Missing static busybox binary: ${STATIC_BUSYBOX_LOCAL}"
+  [ -x "$STATIC_ZSTD_LOCAL" ] || die "Missing static zstd binary: ${STATIC_ZSTD_LOCAL}"
 }
 
 remote_shell_prefix() {
@@ -280,6 +299,14 @@ parse_args() {
       ;;
     --live-ssh-port)
       LIVE_SSH_PORT="$2"
+      shift 2
+      ;;
+    --live-ssh-window-size)
+      LIVE_SSH_WINDOW_SIZE="$2"
+      shift 2
+      ;;
+    --live-stream-port)
+      LIVE_STREAM_PORT="$2"
       shift 2
       ;;
     --only-build)
@@ -613,6 +640,7 @@ EOF
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
   upload_remote_file "$STATIC_DROPBEARKEY_LOCAL" "${REMOTE_LIVE_DIR}/dropbearkey" 0755
+  upload_remote_file "$STATIC_ZSTD_LOCAL" "${REMOTE_LIVE_DIR}/zstd" 0755
   upload_remote_file "$LIVE_SSH_AUTHORIZED_KEYS_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
   upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
 
@@ -638,6 +666,7 @@ EOF
       -P $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") \
       -r $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") \
       -D $(quote_for_sh "$REMOTE_LIVE_DIR/auth") \
+      -W $(quote_for_sh "$LIVE_SSH_WINDOW_SIZE") \
       -c $(quote_for_sh "$REMOTE_LIVE_DIR/force-shell.sh") \
       >$(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>&1 &
 
@@ -674,6 +703,55 @@ EOF
 
 stream_image() {
   local bs="4M"
+  local direct_host
+  local remote_stream_pid_file
+  local remote_stream_log
+  local remote_stream_cmd
+
+  if is_true "$LIVE_OVERWRITE" && [ -n "$REMOTE_BUSYBOX" ] && [ -n "$REMOTE_LIVE_DIR" ]; then
+    direct_host="${TARGET_HOST#*@}"
+    remote_stream_pid_file="${REMOTE_LIVE_DIR}/stream.pid"
+    remote_stream_log="${REMOTE_LIVE_DIR}/stream.log"
+    remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
+
+    log "Phase 2: Streaming image to ${direct_host}:${LIVE_STREAM_PORT} -> ${DEVICE} ..."
+    remote_ssh "
+      set -eu
+      rm -f $(quote_for_sh "$remote_stream_pid_file") $(quote_for_sh "$remote_stream_log")
+      $(quote_for_sh "$REMOTE_BUSYBOX") sh -c $(quote_for_sh "$remote_stream_cmd") >$(quote_for_sh "$remote_stream_log") 2>&1 &
+      echo \$! >$(quote_for_sh "$remote_stream_pid_file")
+    "
+
+    sleep 1
+
+    "${READ_CMD[@]}" |
+      "$PV_BIN" -N Read -s "$SIZE_BYTES" |
+      zstd -1 -T0 |
+      "$PV_BIN" -N Transfer |
+      nc -N "$direct_host" "$LIVE_STREAM_PORT" ||
+      die "Direct live stream failed"
+
+    for _ in $(seq 1 300); do
+      if remote_ssh_quiet "
+        pid=\$(cat $(quote_for_sh "$remote_stream_pid_file") 2>/dev/null || true)
+        [ -n \"\${pid:-}\" ] && kill -0 \"\$pid\" 2>/dev/null
+      "; then
+        sleep 1
+      else
+        break
+      fi
+    done
+
+    if remote_ssh_quiet "
+      pid=\$(cat $(quote_for_sh "$remote_stream_pid_file") 2>/dev/null || true)
+      [ -n \"\${pid:-}\" ] && kill -0 \"\$pid\" 2>/dev/null
+    "; then
+      print_live_ssh_debug
+      remote_ssh "cat $(quote_for_sh "$remote_stream_log") 2>/dev/null || true" || true
+      die "Timed out waiting for remote live stream receiver to finish"
+    fi
+    return
+  fi
 
   log "Phase 2: Streaming image to ${TARGET_HOST}:${DEVICE} ..."
   "${READ_CMD[@]}" |
