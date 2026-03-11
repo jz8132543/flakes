@@ -16,6 +16,7 @@ LAST_BUILT_IMAGE_FILE=".last_built_image"
 CONTROL_PATH=""
 IMG=""
 REMOTE_BUSYBOX=""
+SSH_CMD=()
 
 usage() {
   cat <<'EOF'
@@ -41,6 +42,28 @@ is_true() {
   yes | true | TRUE | 1 | on | ON) return 0 ;;
   *) return 1 ;;
   esac
+}
+
+quote_for_sh() {
+  local value="$1"
+  printf "'%s'" "${value//\'/\'\\\'\'}"
+}
+
+setup_ssh_command() {
+  if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
+    export SSHPASS="${SSH_PASSWORD}"
+  fi
+
+  SSH_CMD=()
+  if [ -n "${SSHPASS:-}" ]; then
+    if command -v sshpass >/dev/null 2>&1; then
+      SSH_CMD=(sshpass -e ssh)
+    else
+      die "SSHPASS is set but sshpass is not available in PATH"
+    fi
+  else
+    SSH_CMD=(ssh)
+  fi
 }
 
 parse_args() {
@@ -116,7 +139,7 @@ resolve_cached_image() {
 cleanup() {
   if [ -n "$CONTROL_PATH" ] && [ -n "$TARGET_HOST" ]; then
     log "Closing master SSH connection..."
-    ssh -p "$PORT" -o ControlPath="$CONTROL_PATH" -O exit "$TARGET_HOST" >/dev/null 2>&1 || true
+    "${SSH_CMD[@]}" -p "$PORT" -o StrictHostKeyChecking=accept-new -o ControlPath="$CONTROL_PATH" -O exit "$TARGET_HOST" >/dev/null 2>&1 || true
     rm -f "$CONTROL_PATH"
   fi
 }
@@ -124,21 +147,35 @@ cleanup() {
 setup_ssh_mux() {
   CONTROL_PATH="/tmp/ssh-control-$(printf '%s' "$TARGET_HOST" | tr '@:/' '---')"
   log "Establishing master SSH connection..."
-  ssh -p "$PORT" -M -f -N -o ControlPath="$CONTROL_PATH" -o ControlPersist=600 "$TARGET_HOST" ||
+  "${SSH_CMD[@]}" -p "$PORT" -M -f -N \
+    -o StrictHostKeyChecking=accept-new \
+    -o ControlPath="$CONTROL_PATH" \
+    -o ControlPersist=600 \
+    "$TARGET_HOST" ||
     die "Failed to establish master SSH connection"
   trap cleanup EXIT INT TERM
 }
 
 remote_ssh() {
   local cmd="$1"
-  ssh -T -o RequestTTY=no -o ControlPath="$CONTROL_PATH" -p "$PORT" "$TARGET_HOST" \
-    env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c "$cmd"
+  "${SSH_CMD[@]}" -T \
+    -o RequestTTY=no \
+    -o StrictHostKeyChecking=accept-new \
+    -o ControlPath="$CONTROL_PATH" \
+    -p "$PORT" \
+    "$TARGET_HOST" \
+    "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c $(quote_for_sh "$cmd")"
 }
 
 remote_ssh_quiet() {
   local cmd="$1"
-  ssh -T -o RequestTTY=no -o ControlPath="$CONTROL_PATH" -p "$PORT" "$TARGET_HOST" \
-    env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c "$cmd" >/dev/null 2>&1
+  "${SSH_CMD[@]}" -T \
+    -o RequestTTY=no \
+    -o StrictHostKeyChecking=accept-new \
+    -o ControlPath="$CONTROL_PATH" \
+    -p "$PORT" \
+    "$TARGET_HOST" \
+    "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c $(quote_for_sh "$cmd")" >/dev/null 2>&1
 }
 
 detect_local_tool() {
@@ -272,6 +309,7 @@ main() {
     resolve_cached_image
   fi
 
+  setup_ssh_command
   setup_ssh_mux
   prepare_pipeline_tools
 
