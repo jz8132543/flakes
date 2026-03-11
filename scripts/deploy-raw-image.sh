@@ -17,6 +17,14 @@ CONTROL_PATH=""
 IMG=""
 REMOTE_BUSYBOX=""
 SSH_CMD=()
+SSH_AUTH_OPTS=()
+LIVE_SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
+LIVE_SSH_PUBLIC_KEY_FILE="${LIVE_SSH_IDENTITY_FILE}.pub"
+LIVE_SSH_INTERNAL_PORT=""
+LIVE_SSH_REDIRECT_PORT=""
+REMOTE_LIVE_DIR=""
+STATIC_BUSYBOX_LOCAL=""
+STATIC_DROPBEAR_LOCAL=""
 
 usage() {
   cat <<'EOF'
@@ -63,6 +71,44 @@ setup_ssh_command() {
     fi
   else
     SSH_CMD=(ssh)
+  fi
+  SSH_AUTH_OPTS=()
+}
+
+detect_target_system() {
+  local flake_host
+
+  if [[ $FLAKE_TARGET =~ ^\.#nixosConfigurations\.([^.]+)\.config\.system\.build\..+$ ]]; then
+    flake_host="${BASH_REMATCH[1]}"
+    nix eval --raw --experimental-features 'nix-command flakes' \
+      ".#nixosConfigurations.${flake_host}.pkgs.stdenv.hostPlatform.system"
+    return
+  fi
+
+  nix eval --impure --raw --expr builtins.currentSystem
+}
+
+build_static_live_tools() {
+  local target_system="$1"
+  local dropbear_path
+  local busybox_path
+
+  log "Building static live SSH tools for ${target_system}"
+  dropbear_path="$(nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.dropbear")"
+  busybox_path="$(nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.busybox")"
+
+  STATIC_DROPBEAR_LOCAL="${dropbear_path}/bin/dropbear"
+  STATIC_BUSYBOX_LOCAL="${busybox_path}/bin/busybox"
+
+  [ -x "$STATIC_DROPBEAR_LOCAL" ] || die "Missing static dropbear binary: ${STATIC_DROPBEAR_LOCAL}"
+  [ -x "$STATIC_BUSYBOX_LOCAL" ] || die "Missing static busybox binary: ${STATIC_BUSYBOX_LOCAL}"
+}
+
+remote_shell_prefix() {
+  if [ -n "$REMOTE_BUSYBOX" ]; then
+    printf "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin %s sh -c" "$(quote_for_sh "$REMOTE_BUSYBOX")"
+  else
+    printf '%s' "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c"
   fi
 }
 
@@ -159,23 +205,74 @@ setup_ssh_mux() {
 remote_ssh() {
   local cmd="$1"
   "${SSH_CMD[@]}" -T \
+    "${SSH_AUTH_OPTS[@]}" \
     -o RequestTTY=no \
     -o StrictHostKeyChecking=accept-new \
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c $(quote_for_sh "$cmd")"
+    "$(remote_shell_prefix) $(quote_for_sh "$cmd")"
 }
 
 remote_ssh_quiet() {
   local cmd="$1"
   "${SSH_CMD[@]}" -T \
+    "${SSH_AUTH_OPTS[@]}" \
     -o RequestTTY=no \
     -o StrictHostKeyChecking=accept-new \
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c $(quote_for_sh "$cmd")" >/dev/null 2>&1
+    "$(remote_shell_prefix) $(quote_for_sh "$cmd")" >/dev/null 2>&1
+}
+
+upload_remote_file() {
+  local local_path="$1"
+  local remote_path="$2"
+  local mode="${3:-0600}"
+
+  "${SSH_CMD[@]}" -T \
+    "${SSH_AUTH_OPTS[@]}" \
+    -o RequestTTY=no \
+    -o StrictHostKeyChecking=accept-new \
+    -o ControlPath="$CONTROL_PATH" \
+    -p "$PORT" \
+    "$TARGET_HOST" \
+    "cat > $(quote_for_sh "$remote_path") && chmod ${mode} $(quote_for_sh "$remote_path")" <"$local_path"
+}
+
+wait_for_live_ssh() {
+  local attempts="${1:-30}"
+  local delay="${2:-1}"
+  local i
+
+  for ((i = 1; i <= attempts; i++)); do
+    if ssh \
+      -T \
+      -i "$LIVE_SSH_IDENTITY_FILE" \
+      -o BatchMode=yes \
+      -o IdentitiesOnly=yes \
+      -o ControlMaster=no \
+      -o ControlPath=none \
+      -o RequestTTY=no \
+      -o StrictHostKeyChecking=accept-new \
+      -p "$PORT" \
+      "$TARGET_HOST" \
+      true >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+
+  return 1
+}
+
+switch_to_live_ssh() {
+  log "Switching deployment traffic to in-memory SSH on port ${PORT}"
+  cleanup
+  SSH_CMD=(ssh)
+  SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes)
+  setup_ssh_mux
 }
 
 detect_local_tool() {
@@ -232,34 +329,101 @@ prepare_pipeline_tools() {
 }
 
 prepare_live_overwrite() {
+  local target_system
+  local force_shell_local
+
   log "LIVE OVERWRITE MODE: Preparing remote system..."
-  REMOTE_BUSYBOX="$(
+  [ -f "$LIVE_SSH_PUBLIC_KEY_FILE" ] || die "Missing live SSH public key: ${LIVE_SSH_PUBLIC_KEY_FILE}"
+  [ -f "$LIVE_SSH_IDENTITY_FILE" ] || die "Missing live SSH private key: ${LIVE_SSH_IDENTITY_FILE}"
+
+  prepare_temp_dir
+  target_system="$(detect_target_system)"
+  build_static_live_tools "$target_system"
+
+  LIVE_SSH_REDIRECT_PORT="$(
     remote_ssh '
-      set -eu
-      dst_dir=/run
-      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
-        dst_dir=/dev/shm
+      set -- ${SSH_CLIENT:-}
+      if [ $# -ge 3 ]; then
+        printf "%s" "$3"
+      else
+        printf "22"
       fi
-
-      if ! command -v busybox >/dev/null 2>&1; then
-        exit 0
-      fi
-
-      src=$(command -v busybox)
-      dst="${dst_dir}/nixos-live-busybox"
-      rm -f "$dst"
-      cp "$src" "$dst" 2>/dev/null || cat "$src" >"$dst"
-      chmod 0755 "$dst"
-      printf "%s" "$dst"
     '
   )"
-
-  if [ -n "$REMOTE_BUSYBOX" ]; then
-    log "Prepared in-memory busybox at ${REMOTE_BUSYBOX}"
-    return
+  LIVE_SSH_INTERNAL_PORT="${LIVE_SSH_INTERNAL_PORT:-2222}"
+  if [ "$LIVE_SSH_INTERNAL_PORT" = "$LIVE_SSH_REDIRECT_PORT" ]; then
+    LIVE_SSH_INTERNAL_PORT=22022
   fi
 
-  log "Remote busybox not found; will fall back to sysrq reboot"
+  REMOTE_LIVE_DIR="$(
+    remote_ssh '
+      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        printf "%s" "/dev/shm/nixos-live-ssh"
+      else
+        printf "%s" "/run/nixos-live-ssh"
+      fi
+    '
+  )"
+  force_shell_local="${TEMP_DIR}/live-force-shell.sh"
+  cat >"$force_shell_local" <<EOF
+#!/bin/sh
+set -eu
+BUSYBOX='${REMOTE_LIVE_DIR}/busybox'
+if [ -n "\${SSH_ORIGINAL_COMMAND:-}" ]; then
+  exec "\$BUSYBOX" sh -c "\$SSH_ORIGINAL_COMMAND"
+fi
+exec "\$BUSYBOX" sh
+EOF
+
+  remote_ssh "
+    set -eu
+    rm -rf $(quote_for_sh "$REMOTE_LIVE_DIR")
+    mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
+  "
+  upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
+  upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
+  upload_remote_file "$LIVE_SSH_PUBLIC_KEY_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
+  upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
+
+  remote_ssh "
+    set -eu
+
+    if [ -f $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") ]; then
+      pid=\$(cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") 2>/dev/null || true)
+      if [ -n \"\${pid:-}\" ]; then
+        kill \"\$pid\" 2>/dev/null || true
+      fi
+    fi
+
+    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -R -m -s -g -j -k \
+      -p $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") \
+      -P $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") \
+      -r $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") \
+      -D $(quote_for_sh "$REMOTE_LIVE_DIR/auth") \
+      -c $(quote_for_sh "$REMOTE_LIVE_DIR/force-shell.sh") \
+      >$(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>&1 &
+
+    if command -v nft >/dev/null 2>&1; then
+      nft list table ip nixos_live_ssh >/dev/null 2>&1 || nft add table ip nixos_live_ssh
+      nft list chain ip nixos_live_ssh prerouting >/dev/null 2>&1 \
+        || nft 'add chain ip nixos_live_ssh prerouting { type nat hook prerouting priority dstnat; policy accept; }'
+      nft flush chain ip nixos_live_ssh prerouting
+      nft add rule ip nixos_live_ssh prerouting tcp dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") redirect to :$(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+    elif command -v iptables >/dev/null 2>&1; then
+      iptables -t nat -D PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") 2>/dev/null || true
+      iptables -t nat -A PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+    else
+      exit 1
+    fi
+  "
+
+  if ! wait_for_live_ssh; then
+    die "Timed out waiting for in-memory live SSH on ${TARGET_HOST}:${PORT}"
+  fi
+
+  switch_to_live_ssh
+  REMOTE_BUSYBOX="${REMOTE_LIVE_DIR}/busybox"
+  log "In-memory live SSH is ready on ${TARGET_HOST}:${PORT}"
 }
 
 stream_image() {
