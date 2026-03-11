@@ -289,6 +289,8 @@ prepare_kexec_tarball() {
 }
 
 prepare_target_cache_config() {
+  local base_substituters
+  local base_trusted_public_keys
   local substituters
   local trusted_public_keys
 
@@ -298,24 +300,21 @@ prepare_target_cache_config() {
 
   prepare_temp_dir
   INSTALLER_NIX_CONF_PATH="${TEMP_DIR}/installer-nix.conf"
+  base_substituters="https://cache.nixos.org https://nix-community.cachix.org https://mirrors.ustc.edu.cn/nix-channels/store"
+  base_trusted_public_keys="cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
   substituters="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.substituters")"
   trusted_public_keys="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.trusted-public-keys")"
 
-  case " ${substituters} " in
-  *" https://mirrors.ustc.edu.cn/nix-channels/store "*) ;;
-  *)
-    substituters="${substituters} https://mirrors.ustc.edu.cn/nix-channels/store"
-    ;;
-  esac
-
-  substituters="$(dedupe_words "${substituters}")"
-  trusted_public_keys="$(dedupe_words "${trusted_public_keys}")"
+  substituters="$(dedupe_words "${base_substituters} ${substituters}")"
+  trusted_public_keys="$(dedupe_words "${base_trusted_public_keys} ${trusted_public_keys}")"
 
   {
     printf 'extra-substituters = %s\n' "${substituters}"
     printf 'extra-trusted-public-keys = %s\n' "${trusted_public_keys}"
     printf 'connect-timeout = 1\n'
     printf 'stalled-download-timeout = 1\n'
+    printf 'download-attempts = 1\n'
+    printf 'require-sigs = false\n'
     printf 'fallback = true\n'
   } >"${INSTALLER_NIX_CONF_PATH}"
 
