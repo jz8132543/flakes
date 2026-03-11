@@ -618,6 +618,13 @@ EOF
 
   remote_ssh "
     set -eu
+    rm -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
+    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbearkey") -t ed25519 -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") >/dev/null
+    chmod 600 $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
+  "
+
+  remote_ssh "
+    set -eu
 
     if [ -f $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") ]; then
       pid=\$(cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") 2>/dev/null || true)
@@ -626,7 +633,7 @@ EOF
       fi
     fi
 
-    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -E -R -m -s -g -j -k \
+    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -E -m -s -g -j -k \
       -p $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") \
       -P $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") \
       -r $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") \
@@ -648,12 +655,6 @@ EOF
         exit 1
       fi
     fi
-  "
-
-  remote_ssh "
-    set -eu
-    rm -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
-    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbearkey") -t ed25519 -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") >/dev/null
   "
 
   probe_live_ssh_port "$LIVE_SSH_INTERNAL_PORT" "direct live SSH" || true
