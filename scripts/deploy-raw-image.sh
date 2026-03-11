@@ -584,10 +584,12 @@ prepare_live_overwrite() {
 
   REMOTE_LIVE_DIR="$(
     remote_ssh '
-      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
-        printf "%s" "/dev/shm/nixos-live-ssh"
-      else
+      if [ -d /run ] && [ -w /run ]; then
         printf "%s" "/run/nixos-live-ssh"
+      elif [ -d /root ] && [ -w /root ]; then
+        printf "%s" "/root/.nixos-live-ssh"
+      else
+        printf "%s" "/tmp/nixos-live-ssh"
       fi
     '
   )"
@@ -606,6 +608,7 @@ EOF
     set -eu
     rm -rf $(quote_for_sh "$REMOTE_LIVE_DIR")
     mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
+    chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
   "
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
@@ -623,7 +626,7 @@ EOF
       fi
     fi
 
-    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -R -m -s -g -j -k \
+    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -E -R -m -s -g -j -k \
       -p $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") \
       -P $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") \
       -r $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") \
