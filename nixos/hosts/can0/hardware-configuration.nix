@@ -10,13 +10,14 @@
 
   boot.initrd.availableKernelModules = [
     "ata_piix"
-    "uhci_hcd"
     "virtio_pci"
-    "virtio_blk"
   ];
+  boot.initrd.kernelModules = [ ];
+  boot.kernelModules = [ ];
+  boot.extraModulePackages = [ ];
 
   # utils.disk = "/dev/sda";
-  boot.loader.grub.device = lib.mkForce "nodev";
+  # boot.loader.grub.device = lib.mkForce "nodev";
   networking.useDHCP = true;
 
   swapDevices = [

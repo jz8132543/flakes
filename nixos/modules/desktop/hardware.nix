@@ -1,6 +1,5 @@
-{ inputs, ... }:
 {
-  imports = [ inputs.xremap-flake.nixosModules.default ];
+  console.useXkbConfig = true;
   services = {
     xserver = {
       enable = true;
@@ -12,24 +11,8 @@
       #   tapping = true;
       #   tappingDragLock = false;
       # };
-      # xkb.options = "caps:swapescape,caps:escape";
-    };
-    xremap = {
-      enable = true;
-      config.modmap = [
-        {
-          name = "Global";
-          remap = {
-            "CapsLock" = "Esc";
-          }; # globally remap CapsLock to Esc
-        }
-        {
-          name = "Global";
-          remap = {
-            "ESC" = "CapsLock";
-          }; # globally remap CapsLock to Esc
-        }
-      ];
+      # Swap CapsLock and Escape for all keyboards via XKB (hotplug-safe).
+      xkb.options = "caps:swapescape";
     };
     # Ignore auto hibernate
     logind.settings.Login = {
