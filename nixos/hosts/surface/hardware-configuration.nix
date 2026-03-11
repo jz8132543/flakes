@@ -10,7 +10,7 @@
     inputs.grub2-themes.nixosModules.default
   ];
   boot = {
-    kernelPackages = lib.mkForce pkgs.linuxPackages;
+    kernelPackages = lib.mkOverride 9999 pkgs.linuxPackages;
     initrd = {
       availableKernelModules = [
         "xhci_pci"
@@ -22,15 +22,10 @@
     kernelModules = [
       "kvm-intel"
       "v4l2loopback"
-      "ms912x"
       # "vfio"
       # "vfio_iommu_type1"
       # "vfio_pci"
       # "vfio_virqfd"
-    ];
-    extraModulePackages = [
-      config.boot.kernelPackages.v4l2loopback
-      (config.boot.kernelPackages.callPackage ../../../pkgs/ms912x { })
     ];
     kernelParams = [
       "intel_iommu=on"

@@ -46,42 +46,28 @@ in
         '')
         (lib.mkAfter ''
           ${pkgs.nix-your-shell}/bin/nix-your-shell --nom fish | source
-          function backward_kill_path_component
-              set -l cmd (commandline)
-              set -l cursor (commandline -C)
-              if test $cursor -eq 0
-                  return
-              end
-              set -l before (string sub -l $cursor -- $cmd)
-              set -l after (string sub -s (math $cursor + 1) -- $cmd)
-              set -l delimiters '.' '/' '#' ' ' '-' '_' '"' '{' '}' '[' ']'
-              set -l found_pos 0
-              set -l char_pos $cursor
-              while test $char_pos -gt 0
-                  set -l char (string sub -s $char_pos -l 1 -- $before)
-                  if not contains -- $char $delimiters
-                      break
-                  end
-                  set char_pos (math $char_pos - 1)
-              end
-              while test $char_pos -gt 0
-                  set -l char (string sub -s $char_pos -l 1 -- $before)
-                  if contains -- $char $delimiters
-                      set found_pos $char_pos
-                      break
-                  end
-                  set char_pos (math $char_pos - 1)
-              end
-              set -l new_before (string sub -l $found_pos -- $before)
-              set -l new_cmd "$new_before$after"
-              commandline -r $new_cmd
-              commandline -C $found_pos
+          # Make Ctrl+W treat host separators like '@' and '.' as word boundaries.
+          if not string match -q '*@*' -- $fish_word_delimiters
+            set -g fish_word_delimiters "$fish_word_delimiters@"
+          end
+          if not string match -q '*.*' -- $fish_word_delimiters
+            set -g fish_word_delimiters "$fish_word_delimiters."
           end
           fish_vi_key_bindings insert
           # quickly open text file
           bind -M insert \co 'fzf | xargs -r $EDITOR'
           bind -M insert \ca beginning-of-line
-          bind -M insert \cw backward_kill_path_component
+          bind -M insert \cw backward-kill-word
+          # Ctrl+←/→ jump by fish_word_delimiters (includes '@' and '.')
+          bind -M insert \e\[1\;5D backward-word
+          bind -M insert \e\[1\;5C forward-word
+          bind -M insert \e\[5D backward-word
+          bind -M insert \e\[5C forward-word
+          bind -M default \cw backward-kill-word
+          bind -M default \e\[1\;5D backward-word
+          bind -M default \e\[1\;5C forward-word
+          bind -M default \e\[5D backward-word
+          bind -M default \e\[5C forward-word
         '')
       ];
     };

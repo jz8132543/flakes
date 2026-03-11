@@ -53,13 +53,13 @@
   nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
 
   environment.systemPackages = with pkgs; [
-    kxy-script
-    nexttrace # 选项10: 路由追踪
-    gawk # OsMutation.sh / nws.sh 用到 gawk
-    fio # 磁盘性能测试（yabs 优先用本地 fio，否则自动下载）
-    iperf3 # 网络性能测试（yabs 优先用本地 iperf3，否则自动下载）
-    virt-what
-    xz # 解压 .tar.xz 格式的系统镜像
+    # kxy-script
+    # nexttrace # 选项10: 路由追踪
+    # gawk # OsMutation.sh / nws.sh 用到 gawk
+    # fio # 磁盘性能测试（yabs 优先用本地 fio，否则自动下载）
+    # iperf3 # 网络性能测试（yabs 优先用本地 iperf3，否则自动下载）
+    # virt-what
+    # xz # 解压 .tar.xz 格式的系统镜像
   ];
   # networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   # networking.firewall.allowedUDPPorts = lib.range 50560 50569;
