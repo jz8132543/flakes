@@ -18,8 +18,12 @@
         enable = true;
         autoSuspend = false;
       };
+      sddm.enable = lib.mkForce false;
     };
-    desktopManager.gnome.enable = true;
+    desktopManager = {
+      gnome.enable = true;
+      plasma6.enable = lib.mkForce false;
+    };
   };
 
   environment.systemPackages = with pkgs; [

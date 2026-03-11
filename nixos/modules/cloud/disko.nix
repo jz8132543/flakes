@@ -137,11 +137,12 @@
         path = with pkgs; [
           btrfs-progs
           coreutils
+          systemd
           util-linux
         ];
 
         script = ''
-          # 强制等待 udev 彻底完成设备节点（符号链接）的创建
+          # 等待 udev 完成设备节点与 by-label/by-partlabel 符号链接创建
           udevadm settle
 
           mkdir -p /mnt

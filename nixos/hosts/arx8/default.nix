@@ -16,9 +16,9 @@
       nixosModules.services.traefik
       nixosModules.optimize.dev
     ];
-  desktop.environment = "kde";
 
   # environment.isCN = true;
+
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
