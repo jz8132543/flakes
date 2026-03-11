@@ -69,6 +69,26 @@ quote_for_sh() {
   printf "'%s'" "${value//\'/\'\\\'\'}"
 }
 
+log_file_preview() {
+  local path="$1"
+  local limit="${2:-5}"
+
+  if [ ! -f "$path" ]; then
+    return
+  fi
+
+  awk -v limit="$limit" 'NF { print; count++; if (count >= limit) exit }' "$path"
+}
+
+fingerprint_public_key_file() {
+  local path="$1"
+  ssh-keygen -lf "$path" 2>/dev/null || true
+}
+
+fingerprint_public_key_text() {
+  ssh-keygen -lf /dev/stdin 2>/dev/null || true
+}
+
 detect_identity_file() {
   local candidate
 
@@ -141,6 +161,25 @@ collect_live_authorized_keys() {
   LIVE_SSH_AUTHORIZED_KEYS_FILE="$auth_keys_file"
 }
 
+log_live_ssh_inputs() {
+  log "Live SSH identity file: ${LIVE_SSH_IDENTITY_FILE:-<none>}"
+  if [ -n "${LIVE_SSH_PUBLIC_KEY_FILE}" ] && [ -f "${LIVE_SSH_PUBLIC_KEY_FILE}" ]; then
+    log "Live SSH identity fingerprint:"
+    fingerprint_public_key_file "${LIVE_SSH_PUBLIC_KEY_FILE}"
+  fi
+
+  if command -v ssh-add >/dev/null 2>&1; then
+    log "ssh-agent public keys:"
+    ssh-add -L 2>/dev/null | while IFS= read -r line; do
+      [ -n "$line" ] || continue
+      printf '%s\n' "$line" | fingerprint_public_key_text
+    done
+  fi
+
+  log "Live SSH authorized_keys preview:"
+  log_file_preview "${LIVE_SSH_AUTHORIZED_KEYS_FILE}" 10
+}
+
 setup_ssh_command() {
   if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
     export SSHPASS="${SSH_PASSWORD}"
@@ -150,6 +189,7 @@ setup_ssh_command() {
   LIVE_SSH_IDENTITY_FILE="$SSH_IDENTITY_FILE"
   LIVE_SSH_PUBLIC_KEY_FILE="${SSH_IDENTITY_FILE}.pub"
   collect_live_authorized_keys
+  log_live_ssh_inputs
 
   SSH_CMD=()
   if [ -n "${SSHPASS:-}" ]; then
@@ -411,6 +451,12 @@ print_live_ssh_debug() {
     cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") 2>/dev/null || true
     echo '== dropbear log =='
     cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>/dev/null || true
+    echo '== authorized_keys =='
+    sed -n '1,20p' $(quote_for_sh "$REMOTE_LIVE_DIR/auth/authorized_keys") 2>/dev/null || true
+    echo '== hostkey fingerprint =='
+    if command -v ssh-keygen >/dev/null 2>&1; then
+      ssh-keygen -lf $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey.pub") 2>/dev/null || true
+    fi
     echo '== listeners =='
     if command -v ss >/dev/null 2>&1; then
       ss -ltnp || true
@@ -426,6 +472,30 @@ print_live_ssh_debug() {
       iptables -t nat -S PREROUTING 2>/dev/null || true
     fi
   " || true
+}
+
+probe_live_ssh_port() {
+  local probe_port="$1"
+  local label="$2"
+
+  log "Probing ${label} on ${TARGET_HOST}:${probe_port}"
+  if ssh \
+    -T \
+    -o BatchMode=yes \
+    -o ControlMaster=no \
+    -o ControlPath=none \
+    -o RequestTTY=no \
+    "${SSH_AUTH_OPTS[@]}" \
+    "${LIVE_SSH_HOSTKEY_OPTS[@]}" \
+    -p "$probe_port" \
+    "$TARGET_HOST" \
+    'echo live-ssh-ok' 2>&1; then
+    log "Probe succeeded for ${label} on ${TARGET_HOST}:${probe_port}"
+    return 0
+  fi
+
+  log "Probe failed for ${label} on ${TARGET_HOST}:${probe_port}"
+  return 1
 }
 
 detect_local_tool() {
@@ -582,6 +652,11 @@ EOF
     rm -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
     $(quote_for_sh "$REMOTE_LIVE_DIR/dropbearkey") -t ed25519 -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") >/dev/null
   "
+
+  probe_live_ssh_port "$LIVE_SSH_INTERNAL_PORT" "direct live SSH" || true
+  if [ "$LIVE_SSH_EXTERNAL_PORT" != "$LIVE_SSH_INTERNAL_PORT" ]; then
+    probe_live_ssh_port "$LIVE_SSH_EXTERNAL_PORT" "external live SSH" || true
+  fi
 
   if ! wait_for_live_ssh 60 1 "$LIVE_SSH_EXTERNAL_PORT"; then
     print_live_ssh_debug
