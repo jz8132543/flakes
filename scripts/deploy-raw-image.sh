@@ -16,6 +16,7 @@ LAST_BUILT_IMAGE_FILE=".last_built_image"
 CONTROL_PATH=""
 IMG=""
 REMOTE_BUSYBOX=""
+TEMP_DIR=""
 SSH_CMD=()
 SSH_AUTH_OPTS=()
 LIVE_SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
@@ -112,6 +113,12 @@ remote_shell_prefix() {
   fi
 }
 
+prepare_temp_dir() {
+  if [ -z "$TEMP_DIR" ]; then
+    TEMP_DIR="$(mktemp -d)"
+  fi
+}
+
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -183,6 +190,10 @@ resolve_cached_image() {
 }
 
 cleanup() {
+  if [ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ]; then
+    rm -rf "$TEMP_DIR"
+  fi
+
   if [ -n "$CONTROL_PATH" ] && [ -n "$TARGET_HOST" ]; then
     log "Closing master SSH connection..."
     "${SSH_CMD[@]}" -p "$PORT" -o StrictHostKeyChecking=accept-new -o ControlPath="$CONTROL_PATH" -O exit "$TARGET_HOST" >/dev/null 2>&1 || true
