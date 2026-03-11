@@ -9,6 +9,7 @@ Options:
   --port PORT                    SSH port for the target host (default: 22)
   --target-cache on|off          Whether the target installer may use binary caches (default: off)
   --kexec-url URL_OR_PATH        Kexec tarball URL or local file path
+  --kexec-attr ATTR              Nix build attr that produces a local kexec tarball directory
   --kexec-local-only on|off      Require kexec tarball to exist on the build host first (default: on)
 
 Behavior:
@@ -33,6 +34,7 @@ TARGET_HOST=""
 PORT=22
 TARGET_CACHE="off"
 KEXEC_URL=""
+KEXEC_ATTR=""
 KEXEC_LOCAL_ONLY="on"
 
 BUILD_SYSTEM=""
@@ -81,6 +83,14 @@ parse_args() {
       ;;
     --kexec-url=*)
       KEXEC_URL="${1#*=}"
+      shift 1
+      ;;
+    --kexec-attr)
+      KEXEC_ATTR="$2"
+      shift 2
+      ;;
+    --kexec-attr=*)
+      KEXEC_ATTR="${1#*=}"
       shift 1
       ;;
     --kexec-local-only)
@@ -209,6 +219,18 @@ default_kexec_package_attr() {
   esac
 }
 
+find_kexec_tarball() {
+  local package_path="$1"
+  local tarball
+
+  tarball="$(find "${package_path}" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+  if [ -z "${tarball}" ]; then
+    die "Could not find a kexec tarball in ${package_path}"
+  fi
+
+  printf '%s\n' "${tarball}"
+}
+
 prepare_temp_dir() {
   if [ -z "${TEMP_DIR}" ]; then
     TEMP_DIR="$(mktemp -d)"
@@ -224,14 +246,20 @@ prepare_kexec_tarball() {
   prepare_temp_dir
 
   source="${KEXEC_URL}"
+  if [ -n "${KEXEC_ATTR}" ]; then
+    package_attr="${KEXEC_ATTR}"
+    log "Building custom kexec tarball on build host from ${package_attr}"
+    package_path="$(build_out_path "${package_attr}")"
+    KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
+    log "Using built custom kexec tarball ${KEXEC_TARBALL_PATH}"
+    return
+  fi
+
   if [ -z "${source}" ]; then
     package_attr="$(default_kexec_package_attr "${HOST_SYSTEM}")"
     log "Building default kexec tarball on build host from ${package_attr}"
     package_path="$(build_out_path "${package_attr}")"
-    KEXEC_TARBALL_PATH="${package_path}/nixos-kexec-installer-noninteractive-${HOST_SYSTEM}.tar.gz"
-    if [ ! -f "${KEXEC_TARBALL_PATH}" ]; then
-      die "Expected kexec tarball at ${KEXEC_TARBALL_PATH}"
-    fi
+    KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
     log "Using built kexec tarball ${KEXEC_TARBALL_PATH}"
     return
   fi

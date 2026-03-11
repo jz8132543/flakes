@@ -10,6 +10,7 @@
       inputs.flake-parts.follows = "flake-parts";
     };
     nixos-hardware.url = "github:nixos/nixos-hardware";
+    nixos-images.url = "github:nix-community/nixos-images";
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";
