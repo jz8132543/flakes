@@ -9,10 +9,12 @@ nixos-anywhere:
 	$(eval port ?= 22)
 	$(eval flake_host ?= $(if $(host),$(host),$(hostname)))
 	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
-	@if [ -z "$(flake_host)" ]; then echo "Error: 'host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [no_substitute=1]"; exit 1; fi
-	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [no_substitute=1]"; exit 1; fi
+	$(eval target_cache ?= off)
+	$(eval kexec_local_only ?= on)
+	@if [ -z "$(flake_host)" ]; then echo "Error: 'host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_local_only=on|off]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make nixos-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_local_only=on|off]"; exit 1; fi
 	# host = flake machine name, target-host = remote SSH address/IP
-	bash ./scripts/nixos-anywhere-deploy.sh --host "$(flake_host)" --target-host "$(deploy_target)" --port "$(port)" --no-substitute-on-destination=$(no_substitute)
+	bash ./scripts/nixos-anywhere-deploy.sh --host "$(flake_host)" --target-host "$(deploy_target)" --port "$(port)" --target-cache "$(target_cache)" --kexec-local-only "$(kexec_local_only)" $(if $(kexec_url),--kexec-url "$(kexec_url)",)
 mount:
 	nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
 rebuild-boot:

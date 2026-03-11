@@ -16,6 +16,7 @@
     "sd_mod"
   ];
 
+  boot.loader.grub.device = lib.mkForce "nodev";
   utils.disk = "/dev/sda";
 
   swapDevices = [

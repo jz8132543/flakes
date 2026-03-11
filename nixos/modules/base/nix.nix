@@ -20,6 +20,7 @@
     };
     settings = {
       allow-import-from-derivation = true;
+      accept-flake-config = true;
       nix-path = [
         "nixpkgs=${inputs.nixpkgs}"
         # "nixpkgs-master=${inputs.latest.outPath}"
