@@ -21,11 +21,14 @@ SSH_CMD=()
 SSH_AUTH_OPTS=()
 LIVE_SSH_IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
 LIVE_SSH_PUBLIC_KEY_FILE="${LIVE_SSH_IDENTITY_FILE}.pub"
+LIVE_SSH_PORT=""
 LIVE_SSH_INTERNAL_PORT=""
 LIVE_SSH_REDIRECT_PORT=""
+LIVE_SSH_EXTERNAL_PORT=""
 REMOTE_LIVE_DIR=""
 STATIC_BUSYBOX_LOCAL=""
 STATIC_DROPBEAR_LOCAL=""
+STATIC_DROPBEARKEY_LOCAL=""
 
 usage() {
   cat <<'EOF'
@@ -38,6 +41,8 @@ Arguments:
   --target-host  Remote SSH target in user@host form
   --device       Remote block device to overwrite
   --port         Remote SSH port, defaults to 22
+  --live-ssh-port
+                 Run the in-memory live SSH server directly on this port instead of redirecting the original SSH port
   --only-build   Build image locally and stop
   --only-stream  Skip the build step and stream the last built image
   --live-overwrite
@@ -99,9 +104,11 @@ build_static_live_tools() {
   busybox_path="$(nix build --no-link --print-out-paths "nixpkgs#legacyPackages.${target_system}.pkgsStatic.busybox")"
 
   STATIC_DROPBEAR_LOCAL="${dropbear_path}/bin/dropbear"
+  STATIC_DROPBEARKEY_LOCAL="${dropbear_path}/bin/dropbearkey"
   STATIC_BUSYBOX_LOCAL="${busybox_path}/bin/busybox"
 
   [ -x "$STATIC_DROPBEAR_LOCAL" ] || die "Missing static dropbear binary: ${STATIC_DROPBEAR_LOCAL}"
+  [ -x "$STATIC_DROPBEARKEY_LOCAL" ] || die "Missing static dropbearkey binary: ${STATIC_DROPBEARKEY_LOCAL}"
   [ -x "$STATIC_BUSYBOX_LOCAL" ] || die "Missing static busybox binary: ${STATIC_BUSYBOX_LOCAL}"
 }
 
@@ -136,6 +143,10 @@ parse_args() {
       ;;
     --device)
       DEVICE="$2"
+      shift 2
+      ;;
+    --live-ssh-port)
+      LIVE_SSH_PORT="$2"
       shift 2
       ;;
     --only-build)
@@ -255,6 +266,7 @@ upload_remote_file() {
 wait_for_live_ssh() {
   local attempts="${1:-30}"
   local delay="${2:-1}"
+  local live_port="$3"
   local i
 
   for ((i = 1; i <= attempts; i++)); do
@@ -267,7 +279,7 @@ wait_for_live_ssh() {
       -o ControlPath=none \
       -o RequestTTY=no \
       -o StrictHostKeyChecking=accept-new \
-      -p "$PORT" \
+      -p "$live_port" \
       "$TARGET_HOST" \
       true >/dev/null 2>&1; then
       return 0
@@ -279,11 +291,43 @@ wait_for_live_ssh() {
 }
 
 switch_to_live_ssh() {
-  log "Switching deployment traffic to in-memory SSH on port ${PORT}"
+  log "Switching deployment traffic to in-memory SSH on port ${LIVE_SSH_EXTERNAL_PORT}"
   cleanup
+  PORT="$LIVE_SSH_EXTERNAL_PORT"
   SSH_CMD=(ssh)
   SSH_AUTH_OPTS=(-i "$LIVE_SSH_IDENTITY_FILE" -o IdentitiesOnly=yes -o BatchMode=yes)
   setup_ssh_mux
+}
+
+print_live_ssh_debug() {
+  if [ -z "${REMOTE_LIVE_DIR}" ]; then
+    return
+  fi
+
+  log "Collecting live SSH debug information from target..."
+  remote_ssh "
+    set -eu
+    echo '== live dir =='
+    ls -la $(quote_for_sh "$REMOTE_LIVE_DIR") 2>/dev/null || true
+    echo '== dropbear pid =='
+    cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") 2>/dev/null || true
+    echo '== dropbear log =='
+    cat $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>/dev/null || true
+    echo '== listeners =='
+    if command -v ss >/dev/null 2>&1; then
+      ss -ltnp || true
+    elif command -v netstat >/dev/null 2>&1; then
+      netstat -ltnp || true
+    fi
+    echo '== nft =='
+    if command -v nft >/dev/null 2>&1; then
+      nft list table ip nixos_live_ssh 2>/dev/null || true
+    fi
+    echo '== iptables nat prerouting =='
+    if command -v iptables >/dev/null 2>&1; then
+      iptables -t nat -S PREROUTING 2>/dev/null || true
+    fi
+  " || true
 }
 
 detect_local_tool() {
@@ -362,7 +406,11 @@ prepare_live_overwrite() {
     '
   )"
   LIVE_SSH_INTERNAL_PORT="${LIVE_SSH_INTERNAL_PORT:-2222}"
-  if [ "$LIVE_SSH_INTERNAL_PORT" = "$LIVE_SSH_REDIRECT_PORT" ]; then
+  LIVE_SSH_EXTERNAL_PORT="${LIVE_SSH_PORT:-$PORT}"
+
+  if [ -n "$LIVE_SSH_PORT" ]; then
+    LIVE_SSH_INTERNAL_PORT="$LIVE_SSH_PORT"
+  elif [ "$LIVE_SSH_INTERNAL_PORT" = "$LIVE_SSH_REDIRECT_PORT" ]; then
     LIVE_SSH_INTERNAL_PORT=22022
   fi
 
@@ -393,6 +441,7 @@ EOF
   "
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
+  upload_remote_file "$STATIC_DROPBEARKEY_LOCAL" "${REMOTE_LIVE_DIR}/dropbearkey" 0755
   upload_remote_file "$LIVE_SSH_PUBLIC_KEY_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
   upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
 
@@ -414,22 +463,31 @@ EOF
       -c $(quote_for_sh "$REMOTE_LIVE_DIR/force-shell.sh") \
       >$(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>&1 &
 
-    if command -v nft >/dev/null 2>&1; then
-      nft list table ip nixos_live_ssh >/dev/null 2>&1 || nft add table ip nixos_live_ssh
-      nft list chain ip nixos_live_ssh prerouting >/dev/null 2>&1 \
-        || nft 'add chain ip nixos_live_ssh prerouting { type nat hook prerouting priority dstnat; policy accept; }'
-      nft flush chain ip nixos_live_ssh prerouting
-      nft add rule ip nixos_live_ssh prerouting tcp dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") redirect to :$(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
-    elif command -v iptables >/dev/null 2>&1; then
-      iptables -t nat -D PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") 2>/dev/null || true
-      iptables -t nat -A PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
-    else
-      exit 1
+    if [ -z $(quote_for_sh "$LIVE_SSH_PORT") ]; then
+      if command -v nft >/dev/null 2>&1; then
+        nft list table ip nixos_live_ssh >/dev/null 2>&1 || nft add table ip nixos_live_ssh
+        nft list chain ip nixos_live_ssh prerouting >/dev/null 2>&1 \
+          || nft 'add chain ip nixos_live_ssh prerouting { type nat hook prerouting priority dstnat; policy accept; }'
+        nft flush chain ip nixos_live_ssh prerouting
+        nft add rule ip nixos_live_ssh prerouting tcp dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") redirect to :$(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+      elif command -v iptables >/dev/null 2>&1; then
+        iptables -t nat -D PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") 2>/dev/null || true
+        iptables -t nat -A PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+      else
+        exit 1
+      fi
     fi
   "
 
-  if ! wait_for_live_ssh; then
-    die "Timed out waiting for in-memory live SSH on ${TARGET_HOST}:${PORT}"
+  remote_ssh "
+    set -eu
+    rm -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
+    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbearkey") -t ed25519 -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") >/dev/null
+  "
+
+  if ! wait_for_live_ssh 60 1 "$LIVE_SSH_EXTERNAL_PORT"; then
+    print_live_ssh_debug
+    die "Timed out waiting for in-memory live SSH on ${TARGET_HOST}:${LIVE_SSH_EXTERNAL_PORT}"
   fi
 
   switch_to_live_ssh
