@@ -988,22 +988,65 @@ sync_remote_disk() {
     return
   fi
 
-  remote_ssh "sync"
+  log "Skipping explicit remote sync because no bootstrap busybox is available"
+}
+
+wait_for_ssh_disconnect() {
+  local attempts="${1:-45}"
+  local delay="${2:-2}"
+  local i
+
+  for ((i = 1; i <= attempts; i++)); do
+    if ssh \
+      -T \
+      -o BatchMode=yes \
+      -o ConnectTimeout=2 \
+      -o ConnectionAttempts=1 \
+      -o ControlMaster=no \
+      -o ControlPath=none \
+      -o RequestTTY=no \
+      "${SSH_AUTH_OPTS[@]}" \
+      "${LIVE_SSH_HOSTKEY_OPTS[@]}" \
+      -p "$PORT" \
+      "$TARGET_HOST" \
+      true >/dev/null 2>&1; then
+      sleep "$delay"
+    else
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+dispatch_live_reboot() {
+  [ -n "$REMOTE_BUSYBOX" ] || return 1
+
+  # Let buffered writes settle before forcing the reboot.
+  remote_ssh_quiet "
+    $(quote_for_sh "$REMOTE_BUSYBOX") sh -c $(quote_for_sh "
+      $(quote_for_sh "$REMOTE_BUSYBOX") sync
+      $(quote_for_sh "$REMOTE_BUSYBOX") sleep 10
+      exec $(quote_for_sh "$REMOTE_BUSYBOX") reboot -f
+    ") >/dev/null 2>&1 &
+  "
 }
 
 finish_deployment() {
   log "Syncing remote disk..."
   if is_true "$LIVE_OVERWRITE"; then
     log "LIVE OVERWRITE: Sending forced reboot signal..."
-    if [ -n "$REMOTE_BUSYBOX" ]; then
-      remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
-        remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
-        log "Reboot dispatch failed; the target may need a manual power cycle"
+    if dispatch_live_reboot; then
+      if wait_for_ssh_disconnect 60 2; then
+        log "Deployment finished. The target has disconnected and should be rebooting."
+      else
+        log "Reboot was dispatched via busybox, but the host stayed reachable longer than expected."
+        log "The target may still be flushing writes before rebooting."
+      fi
     else
-      remote_ssh_quiet "sync && echo b >/proc/sysrq-trigger" ||
-        log "Reboot dispatch failed; the target may need a manual power cycle"
+      log "Reboot dispatch failed because no bootstrap busybox is available."
+      log "The target may need a manual power cycle."
     fi
-    log "Deployment finished. Reboot signal sent; connection loss is expected."
     return
   fi
 
