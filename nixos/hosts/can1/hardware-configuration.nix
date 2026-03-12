@@ -16,6 +16,30 @@
     "sd_mod"
   ];
 
+  networking = {
+    useDHCP = true;
+    interfaces.ens18 = {
+      ipv4.addresses = [
+        {
+          address = "192.168.11.67";
+          prefixLength = 24;
+        }
+      ];
+    };
+    interfaces.ens19 = {
+      ipv4.addresses = [
+        {
+          address = "192.168.11.67";
+          prefixLength = 24;
+        }
+      ];
+    };
+    defaultGateway = {
+      address = "192.168.11.1";
+      interface = "ens18";
+    };
+  };
+
   utils.disk = "/dev/sda";
 
   swapDevices = [
