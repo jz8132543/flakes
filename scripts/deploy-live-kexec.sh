@@ -200,47 +200,22 @@ setup_initial_ssh() {
     -p "$PORT"
   )
 
-  if [ -n "$IDENTITY_FILE" ]; then
-    INITIAL_AUTH_MODE="key"
-    INITIAL_AUTH_OPTS=(-i "$IDENTITY_FILE")
-    SSH_CMD=(ssh)
-  else
-    INITIAL_AUTH_MODE="password"
-    if [ -z "${SSHPASS:-}" ] && [ -z "${SSH_PASSWORD:-}" ]; then
-      printf 'SSH password for %s: ' "$TARGET_HOST" >&2
-      stty -echo
-      IFS= read -r SSH_PASSWORD
-      stty echo
-      printf '\n' >&2
-      export SSH_PASSWORD
-    fi
-    if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
-      export SSHPASS="${SSH_PASSWORD}"
-    fi
-    command -v sshpass >/dev/null 2>&1 || die "sshpass is required for password-based deployment"
-    INITIAL_AUTH_OPTS=()
-    SSH_CMD=(sshpass -e ssh)
-  fi
+  # Always attempt key auth first.
+  INITIAL_AUTH_MODE="key"
+  INITIAL_AUTH_OPTS=()
+  [ -n "$IDENTITY_FILE" ] && INITIAL_AUTH_OPTS=(-i "$IDENTITY_FILE")
+  SSH_CMD=(ssh)
 }
 
-prompt_for_ssh_password() {
-  if [ -z "${SSHPASS:-}" ] && [ -z "${SSH_PASSWORD:-}" ]; then
-    printf 'SSH password for %s: ' "$TARGET_HOST" >&2
-    stty -echo
-    IFS= read -r SSH_PASSWORD
-    stty echo
-    printf '\n' >&2
-    export SSH_PASSWORD
-  fi
+install_pubkey_via_password() {
+  # Use ssh-copy-id which prompts for password interactively – no sshpass needed.
+  local key_opt=()
+  [ -n "$IDENTITY_FILE" ] && key_opt=(-i "${IDENTITY_FILE}.pub")
 
-  if [ -n "${SSH_PASSWORD:-}" ] && [ -z "${SSHPASS:-}" ]; then
-    export SSHPASS="${SSH_PASSWORD}"
-  fi
-
-  command -v sshpass >/dev/null 2>&1 || die "sshpass is required for password-based deployment"
-  INITIAL_AUTH_MODE="password"
-  INITIAL_AUTH_OPTS=()
-  SSH_CMD=(sshpass -e ssh)
+  log "Key auth failed – running ssh-copy-id to install public key (password prompt follows)"
+  ssh-copy-id "${SSH_BASE_OPTS[@]}" "${key_opt[@]}" "$TARGET_HOST" ||
+    die "ssh-copy-id failed for ${TARGET_HOST}"
+  log "Public key installed via ssh-copy-id"
 }
 
 initial_ssh() {
@@ -255,31 +230,51 @@ upload_initial_file() {
 }
 
 ensure_initial_access() {
-  # Try key auth first; if that fails, fall back to password (one prompt).
-  if ! initial_ssh 'true' >/dev/null 2>&1; then
-    log "SSH to ${TARGET_HOST} failed; prompting for password"
-    prompt_for_ssh_password
-    initial_ssh 'true' >/dev/null 2>&1 || die "SSH authentication failed for ${TARGET_HOST}"
+  # Fast path: key auth works already (with retry for MaxStartups transients).
+  local retries=10 delay=8 i
+  local key_ok=no
+  for ((i = 1; i <= retries; i++)); do
+    if "${SSH_CMD[@]}" "${SSH_BASE_OPTS[@]}" "${INITIAL_AUTH_OPTS[@]}" -o BatchMode=yes "$TARGET_HOST" true >/dev/null 2>&1; then
+      key_ok=yes
+      break
+    fi
+    log "SSH attempt ${i}/${retries} to ${TARGET_HOST} failed; retrying in ${delay}s"
+    sleep "$delay"
+  done
+
+  if [ "$key_ok" = "no" ]; then
+    # Key auth failed – install the public key via ssh-copy-id (interactive password).
+    install_pubkey_via_password
+    # Retry key auth after key installation.
+    for ((i = 1; i <= retries; i++)); do
+      if "${SSH_CMD[@]}" "${SSH_BASE_OPTS[@]}" "${INITIAL_AUTH_OPTS[@]}" -o BatchMode=yes "$TARGET_HOST" true >/dev/null 2>&1; then
+        key_ok=yes
+        break
+      fi
+      log "Post-install SSH attempt ${i}/${retries} failed; retrying in ${delay}s"
+      sleep "$delay"
+    done
+    [ "$key_ok" = "yes" ] ||
+      die "SSH key auth still failing after ssh-copy-id for ${TARGET_HOST}"
   fi
 
-  # Always upload the public key (idempotent) so all subsequent connections
-  # in this script and future runs can use key-based auth without any prompts.
+  log "Key-based SSH to ${TARGET_HOST} succeeded"
+
+  # Idempotently ensure our pubkey is present (defensive).
+  local pub_key=""
   if [ -n "$IDENTITY_FILE" ] && [ -f "${IDENTITY_FILE}.pub" ]; then
-    local pub_key
     pub_key="$(cat "${IDENTITY_FILE}.pub")"
+  elif command -v ssh-add >/dev/null 2>&1; then
+    pub_key="$(ssh-add -L 2>/dev/null | head -1 || true)"
+  fi
+  if [ -n "$pub_key" ]; then
     initial_ssh "
       mkdir -p ~/.ssh && chmod 700 ~/.ssh
       touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
       grep -qxF $(printf '%q' "$pub_key") ~/.ssh/authorized_keys 2>/dev/null \
         || printf '%s\n' $(printf '%q' "$pub_key") >> ~/.ssh/authorized_keys
-    " && log "Public key ensured on ${TARGET_HOST}"
+    " >/dev/null 2>&1 && log "Public key ensured on ${TARGET_HOST}" || true
   fi
-
-  # From this point on, always use key-based auth.
-  SSH_CMD=(ssh)
-  INITIAL_AUTH_OPTS=(-i "$IDENTITY_FILE")
-  INITIAL_AUTH_MODE="key"
-  unset SSHPASS SSH_PASSWORD 2>/dev/null || true
 }
 
 collect_initial_authorized_keys() {
@@ -395,7 +390,19 @@ prepare_local_artifacts() {
     ln -s busybox "${overlay_root}/bin/${symlink}"
   done
 
-  cat "${TRAMPOLINE_IDENTITY_FILE}.pub" >"${overlay_root}/root/.ssh/authorized_keys"
+  # Seed authorized_keys with:
+  # 1. the ephemeral trampoline key (used by this script to drive the deployment)
+  # 2. the operator's own public key (allows reconnect if the script is interrupted)
+  {
+    cat "${TRAMPOLINE_IDENTITY_FILE}.pub"
+    printf '\n'
+    if [ -n "$IDENTITY_FILE" ] && [ -f "${IDENTITY_FILE}.pub" ]; then
+      cat "${IDENTITY_FILE}.pub"
+      printf '\n'
+    fi
+    # Also pull in any keys from the SSH agent so the operator can reconnect manually.
+    ssh-add -L 2>/dev/null || true
+  } | awk 'NF && !seen[$0]++' >"${overlay_root}/root/.ssh/authorized_keys"
   chmod 0700 "${overlay_root}/root/.ssh"
   chmod 0600 "${overlay_root}/root/.ssh/authorized_keys"
 
@@ -474,63 +481,91 @@ EOF
   init_script_file="${overlay_root}/init"
   cat >"$init_script_file" <<EOF
 #!/bin/busybox sh
-set -eu
+# PID 1 – must never exit.  No set -e here: a failed command must not kill init.
 PATH=/bin:/sbin
-export HOME=/root
-export USER=root
-export LOGNAME=root
+export HOME=/root USER=root LOGNAME=root
 
-exec >/dev/console 2>&1
+# Redirect output as early as possible; use /dev/console if it exists (kernel
+# guarantees at least the device node), or fall back to nothing.
+[ -c /dev/console ] && exec >/dev/console 2>&1
 
-mount -t devtmpfs devtmpfs /dev || true
-mkdir -p /proc /sys /run /tmp /dev/pts /root /etc /var/log
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devpts devpts /dev/pts || true
-mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
-mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp
+say() { echo "[trampoline] \$*"; }
 
-echo /bin/mdev > /proc/sys/kernel/hotplug
-mdev -s
+say "--- init started ---"
 
-for mod in virtio_pci virtio_blk virtio_scsi virtio_net e1000 e1000e ixgbe vmxnet3 ahci nvme sd_mod sr_mod; do
-  /bin/modprobe "\$mod" >/dev/null 2>&1 || true
+# ── 1. essential mounts ──────────────────────────────────────────────────────
+say "mounting devtmpfs"
+mount -t devtmpfs devtmpfs /dev 2>/dev/null || true
+# Now /dev/console is definitely a real chardev; re-attach if needed.
+[ -c /dev/console ] && exec >/dev/console 2>&1
+
+mkdir -p /proc /sys /run /tmp /dev/pts /dev/shm /root
+
+say "mounting proc"
+mount -t proc    proc    /proc   2>/dev/null || true
+say "mounting sysfs"
+mount -t sysfs   sysfs   /sys    2>/dev/null || true
+mount -t devpts  devpts  /dev/pts 2>/dev/null || true
+mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run  2>/dev/null || true
+mount -t tmpfs -o mode=1777,nosuid,nodev tmpfs /tmp  2>/dev/null || true
+
+# Static device nodes (fallback if devtmpfs didn't create them)
+for n in "null c 1 3" "zero c 1 5" "full c 1 7" "random c 1 8" "urandom c 1 9" "tty c 5 0" "console c 5 1"; do
+  set -- \$n
+  [ -e "/dev/\$1" ] || mknod -m 666 "/dev/\$1" \$2 \$3 \$4 2>/dev/null || true
 done
 
-mdev -s
-/bin/ip link set lo up || true
+# ── 2. kernel hotplug / module loading ──────────────────────────────────────
+say "setting up mdev"
+echo /bin/mdev > /proc/sys/kernel/hotplug 2>/dev/null || true
+mdev -s 2>/dev/null || true
 
+say "loading drivers"
+for mod in virtio_pci virtio_blk virtio_scsi virtio_net \
+           e1000 e1000e ixgbe vmxnet3 xen_netfront \
+           ahci libahci nvme nvme_core sd_mod; do
+  modprobe "\$mod" 2>/dev/null || true
+done
+mdev -s 2>/dev/null || true
+
+# ── 3. networking ─────────────────────────────────────────────────────────
+say "configuring network"
+ip link set lo up 2>/dev/null || true
+
+net_ok=no
+# Give udev/mdev a moment to finish renaming interfaces
+sleep 1
 for devpath in /sys/class/net/*; do
   [ -e "\$devpath" ] || continue
   iface="\${devpath##*/}"
   [ "\$iface" = lo ] && continue
-  /bin/ip link set "\$iface" up || true
-  if /bin/udhcpc -n -q -t 12 -T 3 -i "\$iface"; then
+  say "trying DHCP on \$iface"
+  ip link set "\$iface" up 2>/dev/null || true
+  # -t attempts, -T timeout per attempt, -A initial hold-off, -n exit on failure
+  if udhcpc -n -q -t 15 -T 3 -A 1 -i "\$iface" 2>/dev/null; then
+    say "DHCP OK on \$iface"
+    net_ok=yes
     break
   fi
+  say "DHCP failed on \$iface (continuing)"
 done
 
-echo "nixos-kexec-trampoline networking:"
-/bin/ip addr show || true
-/bin/ip route show || true
+say "network state:"
+ip addr show 2>/dev/null || true
+ip route show 2>/dev/null || true
 
-if [ ! -c /dev/null ]; then
-  mknod -m 666 /dev/null c 1 3 || true
-fi
-if [ ! -c /dev/zero ]; then
-  mknod -m 666 /dev/zero c 1 5 || true
-fi
-if [ ! -c /dev/random ]; then
-  mknod -m 666 /dev/random c 1 8 || true
-fi
-if [ ! -c /dev/urandom ]; then
-  mknod -m 666 /dev/urandom c 1 9 || true
+if [ "\$net_ok" = no ]; then
+  say "WARNING: no DHCP lease obtained – SSH will be unreachable"
 fi
 
-echo "nixos-kexec-trampoline ready"
-while :; do
-  /bin/dropbear -E -F -s -g -p ${TRAMPOLINE_PORT} -r /etc/dropbear/dropbear_ed25519_host_key
-  /bin/sleep 2
+# ── 4. dropbear SSH ──────────────────────────────────────────────────────────
+say "starting dropbear on port ${TRAMPOLINE_PORT}"
+while true; do
+  # -E log to stderr  -F foreground  -s no-password  -g allow-root-without-key
+  dropbear -E -F -s -g -p ${TRAMPOLINE_PORT} \
+    -r /etc/dropbear/dropbear_ed25519_host_key 2>&1 || true
+  say "dropbear exited – restarting in 2s"
+  sleep 2
 done
 EOF
   chmod 0755 "$init_script_file"
@@ -617,7 +652,9 @@ upload_kexec_payload() {
 enter_trampoline() {
   local cmdline
 
-  cmdline="console=ttyS0 console=tty0 panic=30 ip=dhcp init=/init"
+  # nomodeset: avoids VGA mode-switch hang on some hypervisors (Alibaba Cloud KVM)
+  # ip=dhcp removed: our custom /init handles DHCP; having both causes races/hangs
+  cmdline="console=ttyS0 console=tty0 nomodeset panic=30 init=/init"
 
   log "Loading Alpine trampoline with kexec"
   initial_ssh "
@@ -637,24 +674,57 @@ enter_trampoline() {
 wait_for_trampoline() {
   local i
 
-  TRAMPOLINE_AUTH_OPTS=(-i "$TRAMPOLINE_IDENTITY_FILE" -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null)
+  # Auth options for trampoline: try ephemeral key first, fall back to user identity
+  TRAMPOLINE_AUTH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null)
+  # Build list of identity files to try: ephemeral key + user's own key
+  local trampoline_id_files=()
+  [ -f "$TRAMPOLINE_IDENTITY_FILE" ] && trampoline_id_files+=("$TRAMPOLINE_IDENTITY_FILE")
+  [ -n "$IDENTITY_FILE" ] && [ -f "$IDENTITY_FILE" ] && trampoline_id_files+=("$IDENTITY_FILE")
 
   log "Waiting for in-memory trampoline SSH on ${TARGET_HOST}:${TRAMPOLINE_PORT}"
-  for ((i = 1; i <= 120; i++)); do
-    if timeout 6 ssh \
-      -T \
-      -o ConnectTimeout=3 \
-      -o ConnectionAttempts=1 \
-      -o ControlMaster=no \
-      -o ControlPath=none \
-      -o RequestTTY=no \
-      "${TRAMPOLINE_AUTH_OPTS[@]}" \
-      -p "$TRAMPOLINE_PORT" \
-      "$TARGET_HOST" \
-      'echo trampoline-ok' >/dev/null 2>&1; then
-      log "Trampoline SSH is ready"
-      return 0
+  for ((i = 1; i <= 180; i++)); do
+    local ok=no
+    if [ ${#trampoline_id_files[@]} -gt 0 ]; then
+      # Try each available identity file
+      local id_file
+      for id_file in "${trampoline_id_files[@]}"; do
+        if timeout 6 ssh \
+          -T \
+          -o ConnectTimeout=3 \
+          -o ConnectionAttempts=1 \
+          -o ControlMaster=no \
+          -o ControlPath=none \
+          -o RequestTTY=no \
+          "${TRAMPOLINE_AUTH_OPTS[@]}" \
+          -i "$id_file" \
+          -p "$TRAMPOLINE_PORT" \
+          "$TARGET_HOST" \
+          'echo trampoline-ok' >/dev/null 2>&1; then
+          log "Trampoline SSH is ready (key: ${id_file})"
+          # Update TRAMPOLINE_IDENTITY_FILE to whichever worked
+          TRAMPOLINE_IDENTITY_FILE="$id_file"
+          ok=yes
+          break
+        fi
+      done
+    else
+      # Rely on ssh-agent when no explicit identity files available
+      if timeout 6 ssh \
+        -T \
+        -o ConnectTimeout=3 \
+        -o ConnectionAttempts=1 \
+        -o ControlMaster=no \
+        -o ControlPath=none \
+        -o RequestTTY=no \
+        "${TRAMPOLINE_AUTH_OPTS[@]}" \
+        -p "$TRAMPOLINE_PORT" \
+        "$TARGET_HOST" \
+        'echo trampoline-ok' >/dev/null 2>&1; then
+        log "Trampoline SSH is ready (via ssh-agent)"
+        ok=yes
+      fi
     fi
+    [ "$ok" = yes ] && return 0
     sleep 2
   done
 
@@ -663,23 +733,28 @@ wait_for_trampoline() {
 
 stream_image_from_trampoline() {
   log "Streaming raw image from the in-memory trampoline"
+  local id_file_arg=()
+  [ -n "$TRAMPOLINE_IDENTITY_FILE" ] && [ -f "$TRAMPOLINE_IDENTITY_FILE" ] && id_file_arg=(--identity-file "$TRAMPOLINE_IDENTITY_FILE")
   ./scripts/deploy-raw-image.sh \
     --target ".#nixosConfigurations.${HOST}.config.system.build.diskoImages" \
     --target-host "$TARGET_HOST" \
     --port "$TRAMPOLINE_PORT" \
-    --identity-file "$TRAMPOLINE_IDENTITY_FILE" \
+    "${id_file_arg[@]+${id_file_arg[@]}}" \
     --device "$DEVICE" \
     --only-stream
 }
 
 reboot_final_system() {
   log "Rebooting the trampoline after disk sync"
+  local id_opts=()
+  [ -n "$TRAMPOLINE_IDENTITY_FILE" ] && [ -f "$TRAMPOLINE_IDENTITY_FILE" ] && id_opts=(-i "$TRAMPOLINE_IDENTITY_FILE")
   ssh \
     -T \
     -o CanonicalizeHostname=no \
     -o ControlMaster=no \
     -o ControlPath=none \
     "${TRAMPOLINE_AUTH_OPTS[@]}" \
+    "${id_opts[@]+${id_opts[@]}}" \
     -p "$TRAMPOLINE_PORT" \
     "$TARGET_HOST" \
     '/bin/busybox sh -c "/bin/busybox sync; /bin/busybox sleep 15; exec /bin/busybox reboot -f"' || true
