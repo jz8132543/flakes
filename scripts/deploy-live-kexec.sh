@@ -14,7 +14,7 @@ Options:
   --alpine-release NAME        Alpine release path (default: latest-stable)
   --alpine-mirror URL          Alpine mirror root (default: https://dl-cdn.alpinelinux.org/alpine)
   --alpine-flavor NAME         Alpine netboot flavor (default: virt)
-  --trampoline-port PORT       SSH port exposed by the in-memory trampoline (default: 2222)
+  --trampoline-port PORT       SSH port exposed by the in-memory trampoline (default: same as --port)
 
 Behavior:
 1. Build or reuse the target raw image locally.
@@ -45,13 +45,13 @@ USE_SWAP="yes"
 ALPINE_RELEASE="latest-stable"
 ALPINE_MIRROR="https://dl-cdn.alpinelinux.org/alpine"
 ALPINE_FLAVOR="virt"
-TRAMPOLINE_PORT=2222
+TRAMPOLINE_PORT=""
 
 TARGET_SYSTEM=""
 ALPINE_ARCH=""
 TEMP_DIR=""
 INITIAL_AUTH_MODE=""
-REMOTE_ROOT="/tmp/nixos-kexec"
+REMOTE_ROOT="/run/nixos-kexec"
 REMOTE_BUSYBOX="${REMOTE_ROOT}/busybox"
 REMOTE_KEXEC="${REMOTE_ROOT}/kexec"
 REMOTE_KERNEL="${REMOTE_ROOT}/vmlinuz"
@@ -77,67 +77,90 @@ cleanup() {
   fi
 }
 
+cleanup_remote() {
+  log "Cleaning up stale remote state from previous runs"
+  initial_ssh '
+    # Kill leftover kexec / dropbear from a previous trampoline attempt.
+    # We deliberately do NOT kill sshd (the current session carrier).
+    for proc in kexec dropbear; do
+      pids=$(pgrep -x "$proc" 2>/dev/null || true)
+      [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+    done
+    # Remove stale work directory (under /run so always a plain tmpfs dir).
+    rm -rf /run/nixos-kexec
+    # Also clean up the old /tmp location in case it is accessible.
+    rm -rf /tmp/nixos-kexec 2>/dev/null || true
+    # Remove an old swapfile left by a previous run.
+    swapoff /swapfile.nixos-kexec 2>/dev/null || true
+    rm -f /swapfile.nixos-kexec 2>/dev/null || true
+  ' || log "Warning: remote cleanup encountered errors (continuing)"
+}
+
 trap cleanup EXIT
 
 parse_args() {
   while [ "$#" -gt 0 ]; do
     case "$1" in
-      --host|--hostname)
-        HOST="$2"
-        shift 2
-        ;;
-      --target-host|--target)
-        TARGET_HOST="$2"
-        shift 2
-        ;;
-      --port)
-        PORT="$2"
-        shift 2
-        ;;
-      --identity-file)
-        IDENTITY_FILE="$2"
-        shift 2
-        ;;
-      --device)
-        DEVICE="$2"
-        shift 2
-        ;;
-      --swap-size-mb)
-        SWAP_SIZE_MB="$2"
-        shift 2
-        ;;
-      --no-swap)
-        USE_SWAP="no"
-        shift 1
-        ;;
-      --alpine-release)
-        ALPINE_RELEASE="$2"
-        shift 2
-        ;;
-      --alpine-mirror)
-        ALPINE_MIRROR="$2"
-        shift 2
-        ;;
-      --alpine-flavor)
-        ALPINE_FLAVOR="$2"
-        shift 2
-        ;;
-      --trampoline-port)
-        TRAMPOLINE_PORT="$2"
-        shift 2
-        ;;
-      -h|--help)
-        usage
-        ;;
-      *)
-        die "Unknown arg: $1"
-        ;;
+    --host | --hostname)
+      HOST="$2"
+      shift 2
+      ;;
+    --target-host | --target)
+      TARGET_HOST="$2"
+      shift 2
+      ;;
+    --port)
+      PORT="$2"
+      shift 2
+      ;;
+    --identity-file)
+      IDENTITY_FILE="$2"
+      shift 2
+      ;;
+    --device)
+      DEVICE="$2"
+      shift 2
+      ;;
+    --swap-size-mb)
+      SWAP_SIZE_MB="$2"
+      shift 2
+      ;;
+    --no-swap)
+      USE_SWAP="no"
+      shift 1
+      ;;
+    --alpine-release)
+      ALPINE_RELEASE="$2"
+      shift 2
+      ;;
+    --alpine-mirror)
+      ALPINE_MIRROR="$2"
+      shift 2
+      ;;
+    --alpine-flavor)
+      ALPINE_FLAVOR="$2"
+      shift 2
+      ;;
+    --trampoline-port)
+      TRAMPOLINE_PORT="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      ;;
+    *)
+      die "Unknown arg: $1"
+      ;;
     esac
   done
 
   [ -n "$HOST" ] || die "--host is required"
   [ -n "$TARGET_HOST" ] || die "--target-host is required"
   [ -n "$DEVICE" ] || die "--device is required"
+
+  if [ -z "$TRAMPOLINE_PORT" ]; then
+    TRAMPOLINE_PORT="$PORT"
+  fi
 }
 
 prepare_temp_dir() {
@@ -172,6 +195,8 @@ setup_initial_ssh() {
     -o StrictHostKeyChecking=accept-new
     -o ServerAliveInterval=15
     -o ServerAliveCountMax=4
+    -o ControlMaster=no
+    -o ControlPath=none
     -p "$PORT"
   )
 
@@ -230,18 +255,31 @@ upload_initial_file() {
 }
 
 ensure_initial_access() {
-  if initial_ssh 'true' >/dev/null 2>&1; then
-    return
-  fi
-
-  if [ "$INITIAL_AUTH_MODE" = "key" ]; then
-    log "Key-based SSH failed for ${TARGET_HOST}; falling back to a single password prompt"
+  # Try key auth first; if that fails, fall back to password (one prompt).
+  if ! initial_ssh 'true' >/dev/null 2>&1; then
+    log "SSH to ${TARGET_HOST} failed; prompting for password"
     prompt_for_ssh_password
-    initial_ssh 'true' >/dev/null 2>&1 || die "Initial SSH authentication failed for ${TARGET_HOST}"
-    return
+    initial_ssh 'true' >/dev/null 2>&1 || die "SSH authentication failed for ${TARGET_HOST}"
   fi
 
-  die "Initial SSH authentication failed for ${TARGET_HOST}"
+  # Always upload the public key (idempotent) so all subsequent connections
+  # in this script and future runs can use key-based auth without any prompts.
+  if [ -n "$IDENTITY_FILE" ] && [ -f "${IDENTITY_FILE}.pub" ]; then
+    local pub_key
+    pub_key="$(cat "${IDENTITY_FILE}.pub")"
+    initial_ssh "
+      mkdir -p ~/.ssh && chmod 700 ~/.ssh
+      touch ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys
+      grep -qxF $(printf '%q' "$pub_key") ~/.ssh/authorized_keys 2>/dev/null \
+        || printf '%s\n' $(printf '%q' "$pub_key") >> ~/.ssh/authorized_keys
+    " && log "Public key ensured on ${TARGET_HOST}"
+  fi
+
+  # From this point on, always use key-based auth.
+  SSH_CMD=(ssh)
+  INITIAL_AUTH_OPTS=(-i "$IDENTITY_FILE")
+  INITIAL_AUTH_MODE="key"
+  unset SSHPASS SSH_PASSWORD 2>/dev/null || true
 }
 
 collect_initial_authorized_keys() {
@@ -259,12 +297,12 @@ collect_initial_authorized_keys() {
 
   while IFS= read -r candidate; do
     case "$candidate" in
-      ""|none)
-        continue
-        ;;
-      \~/*)
-        candidate="${HOME}/${candidate#~/}"
-        ;;
+    "" | none)
+      continue
+      ;;
+    \~/*)
+      candidate="${HOME}/${candidate#~/}"
+      ;;
     esac
 
     if [ -f "${candidate}.pub" ]; then
@@ -294,12 +332,12 @@ collect_initial_authorized_keys() {
 determine_target_system() {
   TARGET_SYSTEM="$(nix eval --raw --experimental-features 'nix-command flakes' ".#nixosConfigurations.${HOST}.pkgs.stdenv.hostPlatform.system")"
   case "$TARGET_SYSTEM" in
-    x86_64-linux)
-      ALPINE_ARCH="x86_64"
-      ;;
-    *)
-      die "Unsupported target system for Alpine trampoline: ${TARGET_SYSTEM}"
-      ;;
+  x86_64-linux)
+    ALPINE_ARCH="x86_64"
+    ;;
+  *)
+    die "Unsupported target system for Alpine trampoline: ${TARGET_SYSTEM}"
+    ;;
   esac
 }
 
@@ -357,26 +395,26 @@ prepare_local_artifacts() {
     ln -s busybox "${overlay_root}/bin/${symlink}"
   done
 
-  cat "${TRAMPOLINE_IDENTITY_FILE}.pub" > "${overlay_root}/root/.ssh/authorized_keys"
+  cat "${TRAMPOLINE_IDENTITY_FILE}.pub" >"${overlay_root}/root/.ssh/authorized_keys"
   chmod 0700 "${overlay_root}/root/.ssh"
   chmod 0600 "${overlay_root}/root/.ssh/authorized_keys"
 
   hostkey_file="${overlay_root}/etc/dropbear/dropbear_ed25519_host_key"
   "$LOCAL_DROPBEARKEY" -t ed25519 -f "$hostkey_file" >/dev/null 2>&1
 
-  cat > "${overlay_root}/etc/passwd" <<'EOF'
+  cat >"${overlay_root}/etc/passwd" <<'EOF'
 root:x:0:0:root:/root:/bin/sh
 EOF
-  cat > "${overlay_root}/etc/group" <<'EOF'
+  cat >"${overlay_root}/etc/group" <<'EOF'
 root:x:0:
 EOF
-  cat > "${overlay_root}/etc/resolv.conf" <<'EOF'
+  cat >"${overlay_root}/etc/resolv.conf" <<'EOF'
 nameserver 1.1.1.1
 nameserver 8.8.8.8
 EOF
 
   udhcpc_script_file="${overlay_root}/usr/share/udhcpc/default.script"
-  cat > "$udhcpc_script_file" <<'EOF'
+  cat >"$udhcpc_script_file" <<'EOF'
 #!/bin/sh
 set -eu
 PATH=/bin:/sbin
@@ -434,7 +472,7 @@ EOF
   chmod 0755 "$udhcpc_script_file"
 
   init_script_file="${overlay_root}/init"
-  cat > "$init_script_file" <<EOF
+  cat >"$init_script_file" <<EOF
 #!/bin/busybox sh
 set -eu
 PATH=/bin:/sbin
@@ -499,10 +537,10 @@ EOF
 
   (
     cd "$overlay_root"
-    find . -print0 | LC_ALL=C sort -z | cpio --null -o -H newc | gzip -1 > "$LOCAL_OVERLAY"
+    find . -print0 | LC_ALL=C sort -z | cpio --null -o -H newc | gzip -1 >"$LOCAL_OVERLAY"
   ) >/dev/null 2>&1
 
-  cat "${alpine_dir}/initramfs" "$LOCAL_OVERLAY" > "$LOCAL_INITRAMFS"
+  cat "${alpine_dir}/initramfs" "$LOCAL_OVERLAY" >"$LOCAL_INITRAMFS"
 }
 
 prepare_remote_bootstrap() {
@@ -638,6 +676,9 @@ reboot_final_system() {
   log "Rebooting the trampoline after disk sync"
   ssh \
     -T \
+    -o CanonicalizeHostname=no \
+    -o ControlMaster=no \
+    -o ControlPath=none \
     "${TRAMPOLINE_AUTH_OPTS[@]}" \
     -p "$TRAMPOLINE_PORT" \
     "$TARGET_HOST" \
@@ -650,9 +691,9 @@ report_memory_footprint() {
   local overlay_bytes
   local initramfs_unpacked_bytes
 
-  kernel_bytes="$(wc -c < "$LOCAL_KERNEL")"
-  initramfs_bytes="$(wc -c < "$LOCAL_INITRAMFS")"
-  overlay_bytes="$(wc -c < "$LOCAL_OVERLAY")"
+  kernel_bytes="$(wc -c <"$LOCAL_KERNEL")"
+  initramfs_bytes="$(wc -c <"$LOCAL_INITRAMFS")"
+  overlay_bytes="$(wc -c <"$LOCAL_OVERLAY")"
   initramfs_unpacked_bytes="$(gzip -l "$LOCAL_INITRAMFS" | awk 'NR==2 { print $2 }')"
 
   log "Trampoline artifact sizes: kernel=$((kernel_bytes / 1024 / 1024))MiB initramfs-compressed=$((initramfs_bytes / 1024 / 1024))MiB overlay=$((overlay_bytes / 1024 / 1024))MiB initramfs-unpacked~= $((initramfs_unpacked_bytes / 1024 / 1024))MiB"
@@ -663,6 +704,7 @@ main() {
   resolve_identity_file
   setup_initial_ssh
   ensure_initial_access
+  cleanup_remote
   determine_target_system
   prepare_local_artifacts
   report_memory_footprint

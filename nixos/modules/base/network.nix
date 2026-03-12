@@ -227,9 +227,9 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   # § 10  重试次数
   # ──────────────────────────────────────────────────────────────────────────
-  syn_retries = if cfg.highLoss then 9 else 7;
-  synack_retries = if cfg.highLoss then 8 else 6;
-  tcp_retries2 = if cfg.highLoss then 20 else 14;
+  syn_retries = if cfg.highLoss then 6 else 5;
+  synack_retries = if cfg.highLoss then 5 else 4;
+  tcp_retries2 = if cfg.highLoss then 15 else 10;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 11  内存/Swap

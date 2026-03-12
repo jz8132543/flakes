@@ -34,7 +34,7 @@
           sqlite.path = "/var/lib/headscale/db.sqlite";
         };
         dns = {
-          override_local_dns = true;
+          override_local_dns = false;
           base_domain = "mag";
           magic_dns = true;
           inherit (config.environment) domains;
