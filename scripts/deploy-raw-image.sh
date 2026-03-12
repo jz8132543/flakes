@@ -581,6 +581,7 @@ prepare_pipeline_tools() {
 prepare_live_overwrite() {
   local target_system
   local force_shell_local
+  local hostkey_local
 
   log "LIVE OVERWRITE MODE: Preparing remote system..."
   [ -f "$LIVE_SSH_IDENTITY_FILE" ] || die "Missing live SSH private key: ${LIVE_SSH_IDENTITY_FILE}"
@@ -611,7 +612,9 @@ prepare_live_overwrite() {
 
   REMOTE_LIVE_DIR="$(
     remote_ssh '
-      if [ -d /run ] && [ -w /run ]; then
+      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        printf "%s" "/dev/shm/nixos-live-ssh"
+      elif [ -d /run ] && [ -w /run ]; then
         printf "%s" "/run/nixos-live-ssh"
       elif [ -d /root ] && [ -w /root ]; then
         printf "%s" "/root/.nixos-live-ssh"
@@ -630,6 +633,9 @@ if [ -n "\${SSH_ORIGINAL_COMMAND:-}" ]; then
 fi
 exec "\$BUSYBOX" sh
 EOF
+  hostkey_local="${TEMP_DIR}/live-dropbear-hostkey"
+  "$STATIC_DROPBEARKEY_LOCAL" -t ed25519 -f "$hostkey_local" >/dev/null 2>&1
+  chmod 600 "$hostkey_local"
 
   remote_ssh "
     set -eu
@@ -638,16 +644,18 @@ EOF
     chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
   "
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
+  REMOTE_BUSYBOX="${REMOTE_LIVE_DIR}/busybox"
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
-  upload_remote_file "$STATIC_DROPBEARKEY_LOCAL" "${REMOTE_LIVE_DIR}/dropbearkey" 0755
   upload_remote_file "$STATIC_ZSTD_LOCAL" "${REMOTE_LIVE_DIR}/zstd" 0755
   upload_remote_file "$LIVE_SSH_AUTHORIZED_KEYS_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
   upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
+  upload_remote_file "$hostkey_local" "${REMOTE_LIVE_DIR}/hostkey" 0600
+  if [ -f "${hostkey_local}.pub" ]; then
+    upload_remote_file "${hostkey_local}.pub" "${REMOTE_LIVE_DIR}/hostkey.pub" 0644
+  fi
 
   remote_ssh "
     set -eu
-    rm -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
-    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbearkey") -t ed25519 -f $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") >/dev/null
     chmod 600 $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
   "
 
@@ -697,7 +705,6 @@ EOF
   fi
 
   switch_to_live_ssh
-  REMOTE_BUSYBOX="${REMOTE_LIVE_DIR}/busybox"
   log "In-memory live SSH is ready on ${TARGET_HOST}:${PORT}"
 }
 
@@ -734,7 +741,7 @@ stream_image_via_live_tcp() {
   local remote_stream_log="${REMOTE_LIVE_DIR}/stream.log"
   local remote_stream_cmd
 
-  remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
+  remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | $(quote_for_sh "$REMOTE_BUSYBOX") dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
 
   log "Phase 2: Streaming image to ${direct_host}:${LIVE_STREAM_PORT} -> ${DEVICE} ..."
   log "Data plane: direct TCP via busybox nc + zstd"
@@ -764,6 +771,11 @@ stream_image_via_live_tcp() {
 
 stream_image_via_ssh() {
   local bs="4M"
+  local remote_dd_cmd='dd'
+
+  if [ -n "$REMOTE_BUSYBOX" ]; then
+    remote_dd_cmd="$(quote_for_sh "$REMOTE_BUSYBOX") dd"
+  fi
 
   log "Phase 2: Streaming image to ${TARGET_HOST}:${DEVICE} ..."
   log "Data plane: SSH stdin -> ${DECOMPRESS_CMD} -> dd"
@@ -771,8 +783,17 @@ stream_image_via_ssh() {
     "$PV_BIN" -N Read -s "$SIZE_BYTES" |
     "${COMPRESS_CMD[@]}" |
     "$PV_BIN" -N Transfer |
-    remote_ssh "$DECOMPRESS_CMD | dd of=$DEVICE bs=$bs conv=fsync status=none" ||
+    remote_ssh "$DECOMPRESS_CMD | $remote_dd_cmd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none" ||
     die "Remote dd failed"
+}
+
+sync_remote_disk() {
+  if [ -n "$REMOTE_BUSYBOX" ]; then
+    remote_ssh "$REMOTE_BUSYBOX sync"
+    return
+  fi
+
+  remote_ssh "sync"
 }
 
 finish_deployment() {
@@ -790,7 +811,7 @@ finish_deployment() {
     return
   fi
 
-  remote_ssh "sync"
+  sync_remote_disk
   log "Deployment finished successfully. You may now reboot the target manually."
 }
 

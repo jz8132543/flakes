@@ -19,6 +19,8 @@
   boot.kernelModules = [ ];
   boot.extraModulePackages = [ ];
 
+  utils.disk = "/dev/sda";
+
   networking = {
     useDHCP = false;
     interfaces.eth0 = {
