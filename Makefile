@@ -101,10 +101,17 @@ deploy-live:
 	./scripts/deploy-raw-image.sh --target .#nixosConfigurations.${host}.config.system.build.diskoImages --target-host "${deploy_target}" --port "${port}" $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(live_ssh_port),--live-ssh-port "$(live_ssh_port)",) $(if $(live_ssh_window_size),--live-ssh-window-size "$(live_ssh_window_size)",) $(if $(live_stream_port),--live-stream-port "$(live_stream_port)",) --device "${device}" --live-overwrite
 
 deploy-live-kexec:
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live-kexec host=<flake-name> target-host=<user@ip> device=<device> [port=22] [identity_file=...] [swap_size_mb=1024]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live-kexec host=<flake-name> target-host=<user@ip> device=<device> [port=22] [identity_file=...] [swap_size_mb=1024]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-live-kexec host=<flake-name> target-host=<user@ip> device=<device> [port=22] [identity_file=...] [swap_size_mb=1024]"; exit 1; fi
+	bash ./scripts/deploy-live-kexec.sh --host "$(host)" --target-host "$(deploy_target)" --port "$(port)" --device "$(device)" $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(swap_size_mb),--swap-size-mb "$(swap_size_mb)",)
+
+deploy-live-kexec-anywhere:
 	$(eval port ?= 22)
 	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
 	$(eval target_cache ?= off)
 	$(eval kexec_local_only ?= on)
-	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live-kexec host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
-	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live-kexec host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live-kexec-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live-kexec-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
 	bash ./scripts/nixos-anywhere-deploy.sh --host "$(host)" --target-host "$(deploy_target)" --port "$(port)" --target-cache "$(target_cache)" --kexec-local-only "$(kexec_local_only)" $(if $(kexec_url),--kexec-url "$(kexec_url)",) $(if $(kexec_attr),--kexec-attr "$(kexec_attr)",)
