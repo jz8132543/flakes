@@ -21,6 +21,9 @@ SSH_CMD=()
 SSH_AUTH_OPTS=()
 SSH_LOGIN_DESC=""
 SSH_IDENTITY_FILE=""
+REMOTE_SYSTEM_SHELL=""
+SCP_CMD=()
+REMOTE_BUSYBOX_BIN_DIR=""
 LIVE_SSH_IDENTITY_FILE=""
 LIVE_SSH_PUBLIC_KEY_FILE=""
 LIVE_SSH_HOSTKEY_OPTS=(-o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no)
@@ -208,6 +211,11 @@ setup_ssh_command() {
   else
     SSH_CMD=(ssh)
   fi
+  if [ -n "${SSHPASS:-}" ]; then
+    SCP_CMD=(sshpass -e scp)
+  else
+    SCP_CMD=(scp)
+  fi
   SSH_AUTH_OPTS=()
   if [ -n "$SSH_IDENTITY_FILE" ] && [ -f "$SSH_IDENTITY_FILE" ]; then
     SSH_AUTH_OPTS+=(-i "$SSH_IDENTITY_FILE")
@@ -215,6 +223,28 @@ setup_ssh_command() {
   else
     SSH_LOGIN_DESC="agent/default keys"
   fi
+}
+
+bootstrap_remote_busybox() {
+  local bootstrap_path="/root/.nixos-live-bootstrap-busybox"
+  local bootstrap_bin_dir="/root/.nixos-live-bootstrap-bin"
+
+  log "Bootstrapping static busybox to target..."
+  "${SCP_CMD[@]}" \
+    -P "$PORT" \
+    "${SSH_AUTH_OPTS[@]}" \
+    -o StrictHostKeyChecking=accept-new \
+    "$STATIC_BUSYBOX_LOCAL" \
+    "${TARGET_HOST}:${bootstrap_path}" ||
+    die "Failed to bootstrap static busybox to ${TARGET_HOST}"
+
+  REMOTE_BUSYBOX="$bootstrap_path"
+  REMOTE_BUSYBOX_BIN_DIR="$bootstrap_bin_dir"
+  remote_ssh "
+    $(quote_for_sh "$REMOTE_BUSYBOX") chmod 755 $(quote_for_sh "$REMOTE_BUSYBOX")
+    $(quote_for_sh "$REMOTE_BUSYBOX") mkdir -p $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
+    $(quote_for_sh "$REMOTE_BUSYBOX") --install -s $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
+  "
 }
 
 detect_target_system() {
@@ -261,10 +291,16 @@ build_static_live_tools() {
 }
 
 remote_shell_prefix() {
+  local path_prefix="/run/current-system/sw/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+  if [ -n "$REMOTE_BUSYBOX_BIN_DIR" ]; then
+    path_prefix="${REMOTE_BUSYBOX_BIN_DIR}:${path_prefix}"
+  fi
+
   if [ -n "$REMOTE_BUSYBOX" ]; then
-    printf "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin %s sh -c" "$(quote_for_sh "$REMOTE_BUSYBOX")"
+    printf "PATH=%s %s sh -c" "$(quote_for_sh "$path_prefix")" "$(quote_for_sh "$REMOTE_BUSYBOX")"
   else
-    printf '%s' "env -i PATH=/usr/sbin:/usr/bin:/sbin:/bin /bin/sh -c"
+    printf "PATH=%s %s -c" "$(quote_for_sh "$path_prefix")" "$(quote_for_sh "$REMOTE_SYSTEM_SHELL")"
   fi
 }
 
@@ -385,6 +421,27 @@ setup_ssh_mux() {
   trap cleanup EXIT INT TERM
 }
 
+detect_remote_system_shell() {
+  REMOTE_SYSTEM_SHELL="$(
+    "${SSH_CMD[@]}" -T \
+      "${SSH_AUTH_OPTS[@]}" \
+      -o RequestTTY=no \
+      -o StrictHostKeyChecking=accept-new \
+      -o ControlPath="$CONTROL_PATH" \
+      -p "$PORT" \
+      "$TARGET_HOST" \
+      'for shell in "${SHELL:-}" /run/current-system/sw/bin/sh /bin/sh sh; do
+         if [ -n "$shell" ] && command -v "$shell" >/dev/null 2>&1; then
+           printf "%s" "$shell"
+           exit 0
+         fi
+       done
+       exit 1'
+  )" || die "Could not determine a usable remote shell on ${TARGET_HOST}"
+
+  log "Remote shell: ${REMOTE_SYSTEM_SHELL}"
+}
+
 remote_ssh() {
   local cmd="$1"
   "${SSH_CMD[@]}" -T \
@@ -421,7 +478,7 @@ upload_remote_file() {
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "cat > $(quote_for_sh "$remote_path") && chmod ${mode} $(quote_for_sh "$remote_path")" <"$local_path"
+    "$(remote_shell_prefix) $(quote_for_sh "cat > $(quote_for_sh "$remote_path") && chmod ${mode} $(quote_for_sh "$remote_path")")" <"$local_path"
 }
 
 wait_for_live_ssh() {
@@ -485,10 +542,10 @@ print_live_ssh_debug() {
       ssh-keygen -lf $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey.pub") 2>/dev/null || true
     fi
     echo '== listeners =='
-    if command -v ss >/dev/null 2>&1; then
-      ss -ltnp || true
-    elif command -v netstat >/dev/null 2>&1; then
+    if command -v netstat >/dev/null 2>&1; then
       netstat -ltnp || true
+    elif command -v ss >/dev/null 2>&1; then
+      ss -ltnp || true
     fi
     echo '== nft =='
     if command -v nft >/dev/null 2>&1; then
@@ -590,6 +647,7 @@ prepare_live_overwrite() {
   prepare_temp_dir
   target_system="$(detect_target_system)"
   build_static_live_tools "$target_system"
+  bootstrap_remote_busybox
 
   LIVE_SSH_REDIRECT_PORT="$(
     remote_ssh '
@@ -640,11 +698,16 @@ EOF
   remote_ssh "
     set -eu
     rm -rf $(quote_for_sh "$REMOTE_LIVE_DIR")
-    mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
-    chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
+    mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth") $(quote_for_sh "$REMOTE_LIVE_DIR/bin")
+    chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth") $(quote_for_sh "$REMOTE_LIVE_DIR/bin")
   "
   upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
   REMOTE_BUSYBOX="${REMOTE_LIVE_DIR}/busybox"
+  REMOTE_BUSYBOX_BIN_DIR="${REMOTE_LIVE_DIR}/bin"
+  remote_ssh "
+    set -eu
+    $(quote_for_sh "$REMOTE_BUSYBOX") --install -s $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
+  "
   upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
   upload_remote_file "$STATIC_ZSTD_LOCAL" "${REMOTE_LIVE_DIR}/zstd" 0755
   upload_remote_file "$LIVE_SSH_AUTHORIZED_KEYS_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
@@ -657,6 +720,7 @@ EOF
   remote_ssh "
     set -eu
     chmod 600 $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
+    rm -rf /root/.nixos-live-bootstrap-busybox /root/.nixos-live-bootstrap-bin
   "
 
   remote_ssh "
@@ -833,6 +897,7 @@ main() {
 
   setup_ssh_command
   setup_ssh_mux
+  detect_remote_system_shell
   prepare_pipeline_tools
 
   if is_true "$LIVE_OVERWRITE"; then
