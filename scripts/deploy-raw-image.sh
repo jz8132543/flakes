@@ -24,6 +24,7 @@ SSH_IDENTITY_FILE=""
 REMOTE_SYSTEM_SHELL=""
 SCP_CMD=()
 REMOTE_BUSYBOX_BIN_DIR=""
+REMOTE_EXEC_DIR=""
 LIVE_SSH_IDENTITY_FILE=""
 LIVE_SSH_PUBLIC_KEY_FILE=""
 LIVE_SSH_HOSTKEY_OPTS=(-o UserKnownHostsFile=/dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=no)
@@ -39,6 +40,9 @@ STATIC_DROPBEAR_LOCAL=""
 STATIC_DROPBEARKEY_LOCAL=""
 STATIC_ZSTD_LOCAL=""
 LIVE_SSH_AUTHORIZED_KEYS_FILE=""
+DIRECT_STREAM_HOST=""
+NC_BIN=""
+LIVE_SSH_READY="no"
 
 usage() {
   cat <<'EOF'
@@ -226,8 +230,31 @@ setup_ssh_command() {
 }
 
 bootstrap_remote_busybox() {
-  local bootstrap_path="/root/.nixos-live-bootstrap-busybox"
-  local bootstrap_bin_dir="/root/.nixos-live-bootstrap-bin"
+  local bootstrap_base
+  local bootstrap_debug_dir
+  local bootstrap_path
+  local bootstrap_exec_dir
+  local bootstrap_bin_dir
+  local bootstrap_suffix
+
+  bootstrap_base="$(
+    remote_ssh '
+      if [ -d /tmp ] && [ -w /tmp ]; then
+        printf "%s" "/tmp"
+      elif [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        printf "%s" "/dev/shm"
+      elif [ -d /root ] && [ -w /root ]; then
+        printf "%s" "/root"
+      else
+        exit 1
+      fi
+    '
+  )" || die "Could not find a writable remote directory for bootstrap tools on ${TARGET_HOST}"
+  bootstrap_debug_dir="${bootstrap_base}/nixos-live-bootstrap"
+  bootstrap_suffix="${PPID:-$$}-${RANDOM}"
+  bootstrap_path="${bootstrap_base}/.nixos-live-bootstrap-busybox-${bootstrap_suffix}"
+  bootstrap_exec_dir="${bootstrap_debug_dir}/exec-${bootstrap_suffix}"
+  bootstrap_bin_dir="${bootstrap_exec_dir}/bin"
 
   log "Bootstrapping static busybox to target..."
   "${SCP_CMD[@]}" \
@@ -237,14 +264,21 @@ bootstrap_remote_busybox() {
     "$STATIC_BUSYBOX_LOCAL" \
     "${TARGET_HOST}:${bootstrap_path}" ||
     die "Failed to bootstrap static busybox to ${TARGET_HOST}"
-
   REMOTE_BUSYBOX="$bootstrap_path"
   REMOTE_BUSYBOX_BIN_DIR="$bootstrap_bin_dir"
+  REMOTE_EXEC_DIR="$bootstrap_exec_dir"
   remote_ssh "
+    $(quote_for_sh "$REMOTE_BUSYBOX") rm -rf $(quote_for_sh "$REMOTE_EXEC_DIR")
     $(quote_for_sh "$REMOTE_BUSYBOX") chmod 755 $(quote_for_sh "$REMOTE_BUSYBOX")
+    $(quote_for_sh "$REMOTE_BUSYBOX") mkdir -p $(quote_for_sh "$bootstrap_debug_dir")
+    $(quote_for_sh "$REMOTE_BUSYBOX") mkdir -p $(quote_for_sh "$REMOTE_EXEC_DIR")
     $(quote_for_sh "$REMOTE_BUSYBOX") mkdir -p $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
+    $(quote_for_sh "$REMOTE_BUSYBOX") ln -sf $(quote_for_sh "$REMOTE_BUSYBOX") $(quote_for_sh "$bootstrap_debug_dir/busybox")
+    $(quote_for_sh "$REMOTE_BUSYBOX") ln -sfn $(quote_for_sh "$REMOTE_EXEC_DIR") $(quote_for_sh "$bootstrap_debug_dir/exec")
     $(quote_for_sh "$REMOTE_BUSYBOX") --install -s $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
   "
+  log "Remote bootstrap busybox: ${bootstrap_debug_dir}/busybox"
+  log "Remote bootstrap exec dir: ${bootstrap_debug_dir}/exec"
 }
 
 detect_target_system() {
@@ -291,17 +325,29 @@ build_static_live_tools() {
 }
 
 remote_shell_prefix() {
+  if [ -n "$REMOTE_BUSYBOX" ]; then
+    printf "%s sh -c" "$(quote_for_sh "$REMOTE_BUSYBOX")"
+  else
+    printf "%s -c" "$(quote_for_sh "$REMOTE_SYSTEM_SHELL")"
+  fi
+}
+
+remote_path_prefix() {
   local path_prefix="/run/current-system/sw/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
   if [ -n "$REMOTE_BUSYBOX_BIN_DIR" ]; then
     path_prefix="${REMOTE_BUSYBOX_BIN_DIR}:${path_prefix}"
   fi
 
-  if [ -n "$REMOTE_BUSYBOX" ]; then
-    printf "PATH=%s %s sh -c" "$(quote_for_sh "$path_prefix")" "$(quote_for_sh "$REMOTE_BUSYBOX")"
-  else
-    printf "PATH=%s %s -c" "$(quote_for_sh "$path_prefix")" "$(quote_for_sh "$REMOTE_SYSTEM_SHELL")"
-  fi
+  printf '%s\n' "$path_prefix"
+}
+
+wrap_remote_cmd() {
+  local cmd="$1"
+  local path_prefix
+
+  path_prefix="$(remote_path_prefix)"
+  printf 'export PATH=%s; %s' "$(quote_for_sh "$path_prefix")" "$cmd"
 }
 
 prepare_temp_dir() {
@@ -451,7 +497,7 @@ remote_ssh() {
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "$(remote_shell_prefix) $(quote_for_sh "$cmd")"
+    "$(remote_shell_prefix) $(quote_for_sh "$(wrap_remote_cmd "$cmd")")"
 }
 
 remote_ssh_quiet() {
@@ -463,7 +509,7 @@ remote_ssh_quiet() {
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "$(remote_shell_prefix) $(quote_for_sh "$cmd")" >/dev/null 2>&1
+    "$(remote_shell_prefix) $(quote_for_sh "$(wrap_remote_cmd "$cmd")")" >/dev/null 2>&1
 }
 
 upload_remote_file() {
@@ -478,7 +524,7 @@ upload_remote_file() {
     -o ControlPath="$CONTROL_PATH" \
     -p "$PORT" \
     "$TARGET_HOST" \
-    "$(remote_shell_prefix) $(quote_for_sh "cat > $(quote_for_sh "$remote_path") && chmod ${mode} $(quote_for_sh "$remote_path")")" <"$local_path"
+    "$(remote_shell_prefix) $(quote_for_sh "$(wrap_remote_cmd "cat > $(quote_for_sh "$remote_path") && chmod ${mode} $(quote_for_sh "$remote_path")")")" <"$local_path"
 }
 
 wait_for_live_ssh() {
@@ -491,6 +537,8 @@ wait_for_live_ssh() {
     if ssh \
       -T \
       -o BatchMode=yes \
+      -o ConnectTimeout=2 \
+      -o ConnectionAttempts=1 \
       -o ControlMaster=no \
       -o ControlPath=none \
       -o RequestTTY=no \
@@ -558,6 +606,34 @@ print_live_ssh_debug() {
   " || true
 }
 
+resolve_direct_stream_host() {
+  local ssh_config
+  local ssh_host
+  local proxy_jump
+  local proxy_command
+
+  ssh_config="$(ssh -G -p "$PORT" "$TARGET_HOST" 2>/dev/null || true)"
+  ssh_host="$(printf '%s\n' "$ssh_config" | awk '/^hostname / { print $2; exit }')"
+  proxy_jump="$(printf '%s\n' "$ssh_config" | awk '/^proxyjump / { print $2; exit }')"
+  proxy_command="$(printf '%s\n' "$ssh_config" | awk '/^proxycommand / { $1=""; sub(/^ /, ""); print; exit }')"
+
+  if [ -n "$ssh_host" ] && [ "$ssh_host" != "(none)" ]; then
+    DIRECT_STREAM_HOST="$ssh_host"
+  else
+    DIRECT_STREAM_HOST="${TARGET_HOST#*@}"
+  fi
+
+  if [ -n "$proxy_jump" ] && [ "$proxy_jump" != "none" ]; then
+    log "Warning: ssh config uses ProxyJump=${proxy_jump}; live data stream will try a direct TCP connection to ${DIRECT_STREAM_HOST}:${LIVE_STREAM_PORT}"
+  fi
+
+  if [ -n "$proxy_command" ] && [ "$proxy_command" != "none" ]; then
+    log "Warning: ssh config uses ProxyCommand; live data stream will try a direct TCP connection to ${DIRECT_STREAM_HOST}:${LIVE_STREAM_PORT}"
+  fi
+
+  log "Live stream direct target: ${DIRECT_STREAM_HOST}:${LIVE_STREAM_PORT}"
+}
+
 probe_live_ssh_port() {
   local probe_port="$1"
   local label="$2"
@@ -566,6 +642,8 @@ probe_live_ssh_port() {
   if ssh \
     -T \
     -o BatchMode=yes \
+    -o ConnectTimeout=2 \
+    -o ConnectionAttempts=1 \
     -o ControlMaster=no \
     -o ControlPath=none \
     -o RequestTTY=no \
@@ -600,6 +678,10 @@ prepare_pipeline_tools() {
   PV_BIN="$(detect_local_tool pv pv)"
   ZSTD_BIN="$(detect_local_tool zstd zstd)"
   SIZE_BYTES=$(stat -c%s "$IMG")
+  if is_true "$LIVE_OVERWRITE"; then
+    NC_BIN="$(command -v nc || true)"
+    [ -n "$NC_BIN" ] || die "nc is required for live streaming but was not found in PATH"
+  fi
 
   log "Detecting remote decompressor..."
   REMOTE_COMP="$(remote_ssh '
@@ -639,6 +721,7 @@ prepare_live_overwrite() {
   local target_system
   local force_shell_local
   local hostkey_local
+  local redirect_live_ssh_cmd=""
 
   log "LIVE OVERWRITE MODE: Preparing remote system..."
   [ -f "$LIVE_SSH_IDENTITY_FILE" ] || die "Missing live SSH private key: ${LIVE_SSH_IDENTITY_FILE}"
@@ -668,16 +751,34 @@ prepare_live_overwrite() {
     LIVE_SSH_INTERNAL_PORT=22022
   fi
 
+  if [ -z "$LIVE_SSH_PORT" ]; then
+    redirect_live_ssh_cmd="
+    if command -v nft >/dev/null 2>&1; then
+      nft list table ip nixos_live_ssh >/dev/null 2>&1 || nft add table ip nixos_live_ssh
+      nft list chain ip nixos_live_ssh prerouting >/dev/null 2>&1 \
+        || nft 'add chain ip nixos_live_ssh prerouting { type nat hook prerouting priority dstnat; policy accept; }'
+      nft flush chain ip nixos_live_ssh prerouting
+      nft add rule ip nixos_live_ssh prerouting tcp dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") redirect to :$(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+    elif command -v iptables >/dev/null 2>&1; then
+      iptables -t nat -D PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") 2>/dev/null || true
+      iptables -t nat -A PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
+    else
+      exit 1
+    fi"
+  fi
+
   REMOTE_LIVE_DIR="$(
     remote_ssh '
-      if [ -d /dev/shm ] && [ -w /dev/shm ]; then
-        printf "%s" "/dev/shm/nixos-live-ssh"
-      elif [ -d /run ] && [ -w /run ]; then
+      if [ -d /run ] && [ -w /run ]; then
         printf "%s" "/run/nixos-live-ssh"
       elif [ -d /root ] && [ -w /root ]; then
         printf "%s" "/root/.nixos-live-ssh"
-      else
+      elif [ -d /dev/shm ] && [ -w /dev/shm ]; then
+        printf "%s" "/dev/shm/nixos-live-ssh"
+      elif [ -d /tmp ] && [ -w /tmp ]; then
         printf "%s" "/tmp/nixos-live-ssh"
+      else
+        exit 1
       fi
     '
   )"
@@ -685,7 +786,7 @@ prepare_live_overwrite() {
   cat >"$force_shell_local" <<EOF
 #!/bin/sh
 set -eu
-BUSYBOX='${REMOTE_LIVE_DIR}/busybox'
+BUSYBOX='${REMOTE_BUSYBOX}'
 if [ -n "\${SSH_ORIGINAL_COMMAND:-}" ]; then
   exec "\$BUSYBOX" sh -c "\$SSH_ORIGINAL_COMMAND"
 fi
@@ -698,18 +799,11 @@ EOF
   remote_ssh "
     set -eu
     rm -rf $(quote_for_sh "$REMOTE_LIVE_DIR")
-    mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth") $(quote_for_sh "$REMOTE_LIVE_DIR/bin")
-    chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth") $(quote_for_sh "$REMOTE_LIVE_DIR/bin")
+    mkdir -p $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
+    chmod 700 $(quote_for_sh "$REMOTE_LIVE_DIR") $(quote_for_sh "$REMOTE_LIVE_DIR/auth")
   "
-  upload_remote_file "$STATIC_BUSYBOX_LOCAL" "${REMOTE_LIVE_DIR}/busybox" 0755
-  REMOTE_BUSYBOX="${REMOTE_LIVE_DIR}/busybox"
-  REMOTE_BUSYBOX_BIN_DIR="${REMOTE_LIVE_DIR}/bin"
-  remote_ssh "
-    set -eu
-    $(quote_for_sh "$REMOTE_BUSYBOX") --install -s $(quote_for_sh "$REMOTE_BUSYBOX_BIN_DIR")
-  "
-  upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_LIVE_DIR}/dropbear" 0755
-  upload_remote_file "$STATIC_ZSTD_LOCAL" "${REMOTE_LIVE_DIR}/zstd" 0755
+  upload_remote_file "$STATIC_DROPBEAR_LOCAL" "${REMOTE_EXEC_DIR}/dropbear" 0755
+  upload_remote_file "$STATIC_ZSTD_LOCAL" "${REMOTE_EXEC_DIR}/zstd" 0755
   upload_remote_file "$LIVE_SSH_AUTHORIZED_KEYS_FILE" "${REMOTE_LIVE_DIR}/auth/authorized_keys" 0600
   upload_remote_file "$force_shell_local" "${REMOTE_LIVE_DIR}/force-shell.sh" 0755
   upload_remote_file "$hostkey_local" "${REMOTE_LIVE_DIR}/hostkey" 0600
@@ -720,7 +814,6 @@ EOF
   remote_ssh "
     set -eu
     chmod 600 $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey")
-    rm -rf /root/.nixos-live-bootstrap-busybox /root/.nixos-live-bootstrap-bin
   "
 
   remote_ssh "
@@ -733,47 +826,58 @@ EOF
       fi
     fi
 
-    $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear") -E -m -s -g -j -k \
+    for pid in \$(
+      $(quote_for_sh "$REMOTE_BUSYBOX") netstat -ltnp 2>/dev/null |
+        while IFS= read -r line; do
+          set -- \$line
+          local_addr=\${4:-}
+          pid_prog=\${7:-}
+          case \"\$local_addr\" in
+            *:${LIVE_SSH_INTERNAL_PORT})
+              pid=\${pid_prog%%/*}
+              case \"\$pid\" in
+                ''|'-') ;;
+                *) printf '%s\n' \"\$pid\" ;;
+              esac
+              ;;
+          esac
+        done
+    ); do
+      kill \"\$pid\" 2>/dev/null || true
+    done
+
+    $(quote_for_sh "$REMOTE_EXEC_DIR/dropbear") -E -m -s -g -j -k \
       -p $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") \
       -P $(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.pid") \
       -r $(quote_for_sh "$REMOTE_LIVE_DIR/hostkey") \
       -D $(quote_for_sh "$REMOTE_LIVE_DIR/auth") \
       -W $(quote_for_sh "$LIVE_SSH_WINDOW_SIZE") \
-      -c $(quote_for_sh "$REMOTE_LIVE_DIR/force-shell.sh") \
+      -c $(quote_for_sh "$REMOTE_BUSYBOX sh $REMOTE_LIVE_DIR/force-shell.sh") \
       >$(quote_for_sh "$REMOTE_LIVE_DIR/dropbear.log") 2>&1 &
 
-    if [ -z $(quote_for_sh "$LIVE_SSH_PORT") ]; then
-      if command -v nft >/dev/null 2>&1; then
-        nft list table ip nixos_live_ssh >/dev/null 2>&1 || nft add table ip nixos_live_ssh
-        nft list chain ip nixos_live_ssh prerouting >/dev/null 2>&1 \
-          || nft 'add chain ip nixos_live_ssh prerouting { type nat hook prerouting priority dstnat; policy accept; }'
-        nft flush chain ip nixos_live_ssh prerouting
-        nft add rule ip nixos_live_ssh prerouting tcp dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") redirect to :$(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
-      elif command -v iptables >/dev/null 2>&1; then
-        iptables -t nat -D PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT") 2>/dev/null || true
-        iptables -t nat -A PREROUTING -p tcp --dport $(quote_for_sh "$LIVE_SSH_REDIRECT_PORT") -j REDIRECT --to-ports $(quote_for_sh "$LIVE_SSH_INTERNAL_PORT")
-      else
-        exit 1
-      fi
-    fi
+    ${redirect_live_ssh_cmd}
   "
 
+  resolve_direct_stream_host
   probe_live_ssh_port "$LIVE_SSH_INTERNAL_PORT" "direct live SSH" || true
   if [ "$LIVE_SSH_EXTERNAL_PORT" != "$LIVE_SSH_INTERNAL_PORT" ]; then
     probe_live_ssh_port "$LIVE_SSH_EXTERNAL_PORT" "external live SSH" || true
   fi
 
-  if ! wait_for_live_ssh 60 1 "$LIVE_SSH_EXTERNAL_PORT"; then
+  if ! wait_for_live_ssh 10 1 "$LIVE_SSH_EXTERNAL_PORT"; then
     print_live_ssh_debug
-    die "Timed out waiting for in-memory live SSH on ${TARGET_HOST}:${LIVE_SSH_EXTERNAL_PORT}"
+    log "Warning: timed out waiting for in-memory live SSH on ${TARGET_HOST}:${LIVE_SSH_EXTERNAL_PORT}; continuing with the original SSH control connection"
+    LIVE_SSH_READY="no"
+    return
   fi
 
+  LIVE_SSH_READY="yes"
   switch_to_live_ssh
   log "In-memory live SSH is ready on ${TARGET_HOST}:${PORT}"
 }
 
 stream_image() {
-  if is_true "$LIVE_OVERWRITE" && [ -n "$REMOTE_BUSYBOX" ] && [ -n "$REMOTE_LIVE_DIR" ]; then
+  if is_true "$LIVE_OVERWRITE" && [ "$LIVE_SSH_READY" = "yes" ] && [ -n "$REMOTE_BUSYBOX" ] && [ -n "$REMOTE_LIVE_DIR" ]; then
     stream_image_via_live_tcp
     return
   fi
@@ -800,19 +904,46 @@ wait_for_remote_pid_exit() {
 
 stream_image_via_live_tcp() {
   local bs="4M"
-  local direct_host="${TARGET_HOST#*@}"
+  local direct_host="${DIRECT_STREAM_HOST:-${TARGET_HOST#*@}}"
   local remote_stream_pid_file="${REMOTE_LIVE_DIR}/stream.pid"
   local remote_stream_log="${REMOTE_LIVE_DIR}/stream.log"
   local remote_stream_cmd
 
-  remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_LIVE_DIR/zstd") -d --stdout | $(quote_for_sh "$REMOTE_BUSYBOX") dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
+  remote_stream_cmd="exec $(quote_for_sh "$REMOTE_BUSYBOX") nc -l -p $(quote_for_sh "$LIVE_STREAM_PORT") | $(quote_for_sh "$REMOTE_EXEC_DIR/zstd") -d --stdout | $(quote_for_sh "$REMOTE_BUSYBOX") dd of=$(quote_for_sh "$DEVICE") bs=$bs conv=fsync status=none"
 
   log "Phase 2: Streaming image to ${direct_host}:${LIVE_STREAM_PORT} -> ${DEVICE} ..."
   log "Data plane: direct TCP via busybox nc + zstd"
   log "Control plane: SSH on ${TARGET_HOST}:${PORT}"
   remote_ssh "
     set -eu
+    if [ -f $(quote_for_sh "$remote_stream_pid_file") ]; then
+      old_pid=\$(cat $(quote_for_sh "$remote_stream_pid_file") 2>/dev/null || true)
+      if [ -n \"\${old_pid:-}\" ]; then
+        kill \"\$old_pid\" 2>/dev/null || true
+      fi
+    fi
     rm -f $(quote_for_sh "$remote_stream_pid_file") $(quote_for_sh "$remote_stream_log")
+
+    for pid in \$(
+      $(quote_for_sh "$REMOTE_BUSYBOX") netstat -ltnp 2>/dev/null |
+        while IFS= read -r line; do
+          set -- \$line
+          local_addr=\${4:-}
+          pid_prog=\${7:-}
+          case \"\$local_addr\" in
+            *:${LIVE_STREAM_PORT})
+              pid=\${pid_prog%%/*}
+              case \"\$pid\" in
+                ''|'-') ;;
+                *) printf '%s\n' \"\$pid\" ;;
+              esac
+              ;;
+          esac
+        done
+    ); do
+      kill \"\$pid\" 2>/dev/null || true
+    done
+
     $(quote_for_sh "$REMOTE_BUSYBOX") sh -c $(quote_for_sh "$remote_stream_cmd") >$(quote_for_sh "$remote_stream_log") 2>&1 &
     echo \$! >$(quote_for_sh "$remote_stream_pid_file")
   "
@@ -821,9 +952,9 @@ stream_image_via_live_tcp() {
 
   "${READ_CMD[@]}" |
     "$PV_BIN" -N Read -s "$SIZE_BYTES" |
-    zstd -1 -T0 |
+    "$ZSTD_BIN" -1 -T0 |
     "$PV_BIN" -N Transfer |
-    nc -N "$direct_host" "$LIVE_STREAM_PORT" ||
+    "$NC_BIN" -N "$direct_host" "$LIVE_STREAM_PORT" ||
     die "Direct live stream failed"
 
   if ! wait_for_remote_pid_exit "$remote_stream_pid_file"; then
@@ -864,14 +995,15 @@ finish_deployment() {
   log "Syncing remote disk..."
   if is_true "$LIVE_OVERWRITE"; then
     log "LIVE OVERWRITE: Sending forced reboot signal..."
-    # if [ -n "$REMOTE_BUSYBOX" ]; then
-    #   remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
-    #     log "Busybox reboot dispatched (connection loss is expected)"
-    # else
-    #   remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
-    #     log "Sysrq reboot dispatched (connection loss is expected)"
-    # fi
-    log "Deployment finished. Target should be rebooting into NixOS now."
+    if [ -n "$REMOTE_BUSYBOX" ]; then
+      remote_ssh_quiet "$REMOTE_BUSYBOX sync && $REMOTE_BUSYBOX reboot -f" ||
+        remote_ssh_quiet "echo b >/proc/sysrq-trigger" ||
+        log "Reboot dispatch failed; the target may need a manual power cycle"
+    else
+      remote_ssh_quiet "sync && echo b >/proc/sysrq-trigger" ||
+        log "Reboot dispatch failed; the target may need a manual power cycle"
+    fi
+    log "Deployment finished. Reboot signal sent; connection loss is expected."
     return
   fi
 
