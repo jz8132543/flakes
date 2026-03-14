@@ -12,6 +12,9 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
+      (import nixosModules.services.xray {
+        xrayPort = 16811;
+      })
       # nixosModules.services.traefik
       # nixosModules.services.derp
       # nixosModules.services.kernel-relay

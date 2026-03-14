@@ -115,3 +115,11 @@ deploy-live-kexec-anywhere:
 	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make deploy-live-kexec-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
 	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-live-kexec-anywhere host=<flake-name> target-host=<user@ip> [port=22] [target_cache=on|off] [kexec_url=...] [kexec_attr=...] [kexec_local_only=on|off]"; exit 1; fi
 	bash ./scripts/nixos-anywhere-deploy.sh --host "$(host)" --target-host "$(deploy_target)" --port "$(port)" --target-cache "$(target_cache)" --kexec-local-only "$(kexec_local_only)" $(if $(kexec_url),--kexec-url "$(kexec_url)",) $(if $(kexec_attr),--kexec-attr "$(kexec_attr)",)
+
+deploy-reinstall-dd:
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(target_host)))
+	$(eval port ?= 22)
+	$(eval dd_only ?= off)
+	@if [ -z "$(deploy_target)" ]; then echo "Error: 'target-host' not specified. Usage: make deploy-reinstall-dd host=<flake-name> target-host=<user@ip> device=<device> [port=22] [reinstall_ssh_port=<port>] [identity_file=...] [password=...] [dd_only=on|off]"; exit 1; fi
+	@if [ -z "$(device)" ]; then echo "Error: 'device' not specified. Usage: make deploy-reinstall-dd host=<flake-name> target-host=<user@ip> device=<device> [port=22] [reinstall_ssh_port=<port>] [identity_file=...] [password=...] [dd_only=on|off]"; exit 1; fi
+	bash ./scripts/deploy-reinstall-dd.sh $(if $(host),--host "$(host)",) --target-host "$(deploy_target)" --device "$(device)" --port "$(port)" $(if $(reinstall_ssh_port),--reinstall-ssh-port "$(reinstall_ssh_port)",) $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(password),--password "$(password)",) $(if $(img_url),--img-url "$(img_url)",) $(if $(filter on ON true TRUE yes YES 1,$(dd_only)),--dd-only,)
