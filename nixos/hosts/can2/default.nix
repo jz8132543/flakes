@@ -14,6 +14,7 @@
       nixosModules.optimize.minimal
       (import nixosModules.services.xray {
         xrayPort = 16811;
+        ss = true;
       })
       # nixosModules.services.traefik
       # nixosModules.services.derp

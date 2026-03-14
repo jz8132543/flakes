@@ -48,12 +48,12 @@
       }
       {
         listenPort = 50565;
-        remoteAddr = "82.40.41.218";
+        remoteAddr = "tyo1.dora.im";
         remotePort = 8555;
       }
       {
         listenPort = 50566;
-        remoteAddr = "2a13:edc0:24:1d5::a";
+        remoteAddr = "tyo1.dora.im";
         remotePort = 8555;
         ipFamily = "ipv6";
       }

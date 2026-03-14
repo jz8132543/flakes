@@ -5,18 +5,21 @@ set -uo pipefail
 # Default interval is 0.5s to catch short spikes during startup ramp.
 
 INTERVAL="0.5"
+INTERVAL_SET="0"
 SAMPLES="0"
 IFACE=""
 TARGET_IP="1.1.1.1"
 PROC_PATTERN="xray"
 PROC_REQUIRED="1"
+MODE="default"
 
 usage() {
   cat <<'EOF'
 Usage:
-  network-bottleneck-watch.sh [--interval SEC] [--samples N] [--iface IFACE] [--target IP] [--proc-pattern REGEX] [--proc-optional]
+  network-bottleneck-watch.sh [--mode MODE] [--interval SEC] [--samples N] [--iface IFACE] [--target IP] [--proc-pattern REGEX] [--proc-optional]
 
 Options:
+  --mode MODE      Sampling profile: default | tyo1-tune (default: default)
   --interval SEC   Sampling interval in seconds (default: 0.5)
   --samples N      Number of samples, 0 means infinite (default: 0)
   --iface IFACE    Interface to watch (default: auto-detect via route get)
@@ -29,8 +32,13 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+  --mode)
+    MODE="${2:-}"
+    shift 2
+    ;;
   --interval)
     INTERVAL="${2:-}"
+    INTERVAL_SET="1"
     shift 2
     ;;
   --samples)
@@ -77,6 +85,23 @@ need_cmd ip
 need_cmd date
 need_cmd sed
 need_cmd ps
+
+case "$MODE" in
+default) ;;
+tyo1-tune)
+  if [[ $INTERVAL_SET == "0" ]]; then
+    INTERVAL="1"
+  fi
+  if [[ ${PROC_PATTERN} == "xray" ]]; then
+    PROC_PATTERN="(xray|xray-wrapped|/xray( |$))"
+  fi
+  ;;
+*)
+  echo "Unknown mode: $MODE" >&2
+  usage
+  exit 1
+  ;;
+esac
 
 if [[ -z $IFACE ]]; then
   IFACE="$(ip -4 route get "$TARGET_IP" 2>/dev/null | awk '{for(i=1;i<NF;i++) if($i=="dev"){print $(i+1); exit}}' || true)"
@@ -258,6 +283,36 @@ find_xray_pid() {
     return 0
   fi
 
+  if [[ $PROC_PATTERN =~ xray ]]; then
+    if command -v systemctl >/dev/null 2>&1; then
+      local spid
+      spid="$(systemctl show -p MainPID --value xray.service 2>/dev/null || true)"
+      if [[ -n $spid && $spid =~ ^[0-9]+$ && $spid -gt 1 && -r "/proc/$spid/stat" ]]; then
+        echo "$spid"
+        return 0
+      fi
+      spid="$(systemctl show -p MainPID --value xray 2>/dev/null || true)"
+      if [[ -n $spid && $spid =~ ^[0-9]+$ && $spid -gt 1 && -r "/proc/$spid/stat" ]]; then
+        echo "$spid"
+        return 0
+      fi
+    fi
+
+    if command -v pgrep >/dev/null 2>&1; then
+      local ppid
+      ppid="$(pgrep -xo xray 2>/dev/null || true)"
+      if [[ -n $ppid && -r "/proc/$ppid/stat" ]]; then
+        echo "$ppid"
+        return 0
+      fi
+      ppid="$(pgrep -fo '/nix/store/.*/bin/xray([[:space:]]|$)' 2>/dev/null || true)"
+      if [[ -n $ppid && -r "/proc/$ppid/stat" ]]; then
+        echo "$ppid"
+        return 0
+      fi
+    fi
+  fi
+
   # NixOS path example:
   # /nix/store/.../bin/xray -config ...
   # Also supports custom process regex via --proc-pattern.
@@ -313,11 +368,15 @@ read_xray_proc_stats() {
 }
 
 print_header() {
-  echo "iface=$IFACE interval=${INTERVAL}s"
+  echo "iface=$IFACE interval=${INTERVAL}s mode=$MODE"
   read -r ricw rirw rmss <<<"$(read_default_route_params)"
   echo "route.v4 default: initcwnd=$ricw initrwnd=$rirw advmss=$rmss"
   echo "sysctl: cc=$(sysctl_get net.ipv4.tcp_congestion_control) ssr=$(sysctl_get net.ipv4.tcp_pacing_ss_ratio) car=$(sysctl_get net.ipv4.tcp_pacing_ca_ratio) lout=$(sysctl_get net.ipv4.tcp_limit_output_bytes) bp=$(sysctl_get net.core.busy_poll) ndb=$(sysctl_get net.core.netdev_budget) ndu=$(sysctl_get net.core.netdev_budget_usecs) ctmax=$(sysctl_get net.netfilter.nf_conntrack_max)"
-  echo "time                cpu% soft% iow% mem% swp% slabM txMb rxMb retr/s qdrp/s sdrp/s conn% xfd% xcpu xrssM th nRx/s nTx/s qKB ld1 psiC psiM psiI pmaj/s astl/s estb sret lDr/s lOv/s to/s rxdp txdp rxer txer"
+  if [[ $MODE == "tyo1-tune" ]]; then
+    printf "time\tcpu%%\tsoft%%\tiow%%\tmem%%\tswp%%\tslabM\ttxMb\trxMb\tretr_s\tqdrp_s\tsdrp_s\tconn%%\txfd%%\txcpu\txrssM\tthr\tnRx_s\tnTx_s\tqKB\tld1\tpsiC\tpsiM\tpsiI\tpmaj_s\tastl_s\testb\tsret\tlDr_s\tlOv_s\tto_s\trxdp_s\ttxdp_s\trxer_s\ttxer_s\n"
+  else
+    echo "time                cpu% soft% iow% mem% swp% slabM txMb rxMb retr/s qdrp/s sdrp/s conn% xfd% xcpu xrssM th nRx/s nTx/s qKB ld1 psiC psiM psiI pmaj/s astl/s estb sret lDr/s lOv/s to/s rxdp txdp rxer txer"
+  fi
 }
 
 read -r prev_total prev_idle prev_iowait prev_softirq <<<"$(read_cpu_fields)"
@@ -412,11 +471,19 @@ while true; do
   fi
 
   now_hms="$(date +%H:%M:%S)"
-  printf "%-19s %5s %5s %5s %5s %5s %6s %5s %5s %6s %6s %6s %5s %5s %5s %6s %3s %6s %6s %5s %5s %5s %5s %5s %6s %6s %5s %5s %5s %5s %5s %5s %5s %5s %5s\n" \
-    "$now_hms" "$cpu_pct" "$soft_pct" "$iow_pct" "$mem_pct" "$swap_pct" "$slab_mb" \
-    "$tx_mbps" "$rx_mbps" "$retr_rate" "$qdrop_rate" "$sdrop_rate" "$conn_pct" \
-    "$xfd_pct" "$xcpu" "$xrss_mb" "$xthr" "$netrx_rate" "$nettx_rate" "$qback_kb" "$load1" "$psi_cpu" "$psi_mem" \
-    "$psi_io" "$pmaj_rate" "$astl_rate" "$ss_estab" "$ss_retr" "$ldrop_rate" "$lovf_rate" "$to_rate" "$rxdp_rate" "$txdp_rate" "$rxer_rate" "$txer_rate"
+  if [[ $MODE == "tyo1-tune" ]]; then
+    printf "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" \
+      "$now_hms" "$cpu_pct" "$soft_pct" "$iow_pct" "$mem_pct" "$swap_pct" "$slab_mb" \
+      "$tx_mbps" "$rx_mbps" "$retr_rate" "$qdrop_rate" "$sdrop_rate" "$conn_pct" \
+      "$xfd_pct" "$xcpu" "$xrss_mb" "$xthr" "$netrx_rate" "$nettx_rate" "$qback_kb" "$load1" "$psi_cpu" "$psi_mem" \
+      "$psi_io" "$pmaj_rate" "$astl_rate" "$ss_estab" "$ss_retr" "$ldrop_rate" "$lovf_rate" "$to_rate" "$rxdp_rate" "$txdp_rate" "$rxer_rate" "$txer_rate"
+  else
+    printf "%-19s %5s %5s %5s %5s %5s %6s %5s %5s %6s %6s %6s %5s %5s %5s %6s %3s %6s %6s %5s %5s %5s %5s %5s %6s %6s %5s %5s %5s %5s %5s %5s %5s %5s %5s\n" \
+      "$now_hms" "$cpu_pct" "$soft_pct" "$iow_pct" "$mem_pct" "$swap_pct" "$slab_mb" \
+      "$tx_mbps" "$rx_mbps" "$retr_rate" "$qdrop_rate" "$sdrop_rate" "$conn_pct" \
+      "$xfd_pct" "$xcpu" "$xrss_mb" "$xthr" "$netrx_rate" "$nettx_rate" "$qback_kb" "$load1" "$psi_cpu" "$psi_mem" \
+      "$psi_io" "$pmaj_rate" "$astl_rate" "$ss_estab" "$ss_retr" "$ldrop_rate" "$lovf_rate" "$to_rate" "$rxdp_rate" "$txdp_rate" "$rxer_rate" "$txer_rate"
+  fi
 
   # Diagnosis hints
   hint=""

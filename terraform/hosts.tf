@@ -132,6 +132,13 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    can2 = {
+      records      = {}
+      ddns_records = {}
+      host_indices = [13]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
   }
 }
 

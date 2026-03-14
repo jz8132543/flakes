@@ -14,6 +14,7 @@
     # "speedtest.cn"
     # "speedtest.net"
   ],
+  ss ? false,
 }:
 {
   config,
@@ -80,57 +81,79 @@ in
         };
       };
 
-      inbounds = [
-        {
-          port = xrayPort;
-          listen = "0.0.0.0";
-          protocol = "vless";
-          # tag = "vless_reality";
-          # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
-          sniffing = {
-            enabled = true;
-            destOverride = [
-              "http"
-              "tls"
-              "quic"
-            ];
-            routeOnly = true;
-          };
-          settings = {
-            clients = [
-              {
-                # 这里的语法是 sops-nix template 的占位符
-                id = config.sops.placeholder."xray/uuid";
-                flow = "xtls-rprx-vision";
-              }
-            ];
-            decryption = "none";
-          };
-          streamSettings = {
-            network = "tcp";
-            security = "reality";
-            sockopt = {
-              # 入站（国内客户端→本机）：保持 tcpFastOpen 关闭
-              # 国内运营商/GFW 会丢弃/RST 带数据的 SYN 包，开启反而增加连接失败率
-              # tcpFastOpen = true;
-              mptcp = true;
-              # 应用层 keepalive，解决运营商 NAT 30 分钟自动断开问题
-              tcpKeepAliveInterval = 60;
-            };
-            realitySettings = {
-              show = false;
-              target = destSite;
-              xver = 0;
-              serverNames = [
-                serverName
-              ]
-              ++ fakeSnis;
-              privateKey = config.sops.placeholder."xray/private_key";
-              shortIds = [ config.sops.placeholder."xray/short_id" ];
-            };
-          };
-        }
-      ];
+      inbounds = if ss then
+          [
+            {
+              port = xrayPort;
+              listen = "0.0.0.0";
+              protocol = "shadowsocks";
+              settings = {
+                method = "2022";
+                password = config.sops.placeholder."xray/uuid";
+              };
+              streamSettings = {
+                network = "tcp";
+                security = "reality";
+                sockopt = {
+                  mptcp = true;
+                  tcpKeepAliveInterval = 60;
+                };
+                realitySettings = {
+                  show = false;
+                  target = destSite;
+                  xver = 0;
+                  serverNames = [ serverName ] ++ fakeSnis;
+                  privateKey = config.sops.placeholder."xray/private_key";
+                  shortIds = [ config.sops.placeholder."xray/short_id" ];
+                };
+              };
+            }
+          ]
+        else
+          [
+            {
+              port = xrayPort;
+              listen = "0.0.0.0";
+              protocol = "vless";
+              # tag = "vless_reality";
+              # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
+              sniffing = {
+                enabled = true;
+                destOverride = [
+                  "http"
+                  "tls"
+                  "quic"
+                ];
+                routeOnly = true;
+              };
+              settings = {
+                clients = [
+                  {
+                    # 这里的语法是 sops-nix template 的占位符
+                    id = config.sops.placeholder."xray/uuid";
+                    flow = "xtls-rprx-vision";
+                  }
+                ];
+                decryption = "none";
+              };
+              streamSettings = {
+                network = "tcp";
+                security = "reality";
+                sockopt = {
+                  mptcp = true;
+                  tcpKeepAliveInterval = 60;
+                };
+                realitySettings = {
+                  show = false;
+                  target = destSite;
+                  xver = 0;
+                  serverNames = [ serverName ] ++ fakeSnis;
+                  privateKey = config.sops.placeholder."xray/private_key";
+                  shortIds = [ config.sops.placeholder."xray/short_id" ];
+                };
+              };
+            }
+          ];
 
       outbounds = [
         # 默认直连出口
