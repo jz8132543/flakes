@@ -33,6 +33,8 @@ Options:
   --cache-dir DIR           Local cache dir for downloaded images (default: /tmp/deploy-reinstall-dd-cache)
   --zstd-level N            Local zstd compression level for streaming (default: 1)
   --zstd-threads N          Local zstd threads: 0=auto, 1..N=fixed (default: 0)
+  --retry-max N             Max retries for network-sensitive SSH actions (default: 0, infinite)
+  --retry-interval SEC      Retry interval seconds (default: 5)
   --no-progress             Disable local transfer progress bar (pv)
   --hold-time SEC           Wait time after dispatching reboot-to-alpine (default: 15)
   --wait-timeout SEC        Max wait for Alpine SSH to come up (default: 900)
@@ -67,8 +69,10 @@ IMG_URL=""
 IMAGE_PATH=""
 FLAKE_TARGET=""
 CACHE_DIR="/tmp/deploy-reinstall-dd-cache"
-ZSTD_LEVEL=1
+ZSTD_LEVEL=10
 ZSTD_THREADS=0
+RETRY_MAX=0
+RETRY_INTERVAL=5
 HOLD_TIME=15
 WAIT_TIMEOUT=900
 SKIP_ALPINE_STEP="no"
@@ -163,6 +167,29 @@ is_nonnegative_integer() {
 
 is_positive_integer() {
   [[ $1 =~ ^[1-9][0-9]*$ ]]
+}
+
+retry_log_and_wait() {
+  local action="$1"
+  local attempt="$2"
+  local rc="$3"
+
+  if [ "$RETRY_MAX" -gt 0 ]; then
+    log "$action failed (rc=$rc), retrying in ${RETRY_INTERVAL}s (attempt ${attempt}/${RETRY_MAX})"
+  else
+    log "$action failed (rc=$rc), retrying in ${RETRY_INTERVAL}s (attempt ${attempt}, max=infinite)"
+  fi
+  sleep "$RETRY_INTERVAL"
+}
+
+retry_limit_reached() {
+  local attempt="$1"
+  [ "$RETRY_MAX" -gt 0 ] && [ "$attempt" -ge "$RETRY_MAX" ]
+}
+
+is_retryable_ssh_rc() {
+  local rc="$1"
+  [ "$rc" -eq 255 ]
 }
 
 refresh_ssh_opts() {
@@ -290,6 +317,14 @@ parse_args() {
       ZSTD_THREADS="$2"
       shift 2
       ;;
+    --retry-max)
+      RETRY_MAX="$2"
+      shift 2
+      ;;
+    --retry-interval)
+      RETRY_INTERVAL="$2"
+      shift 2
+      ;;
     --hold-time)
       HOLD_TIME="$2"
       shift 2
@@ -355,6 +390,8 @@ parse_args() {
     die "--zstd-level must be between 1 and 22"
   fi
   is_nonnegative_integer "$ZSTD_THREADS" || die "--zstd-threads must be >= 0 (0 means auto)"
+  is_nonnegative_integer "$RETRY_MAX" || die "--retry-max must be >= 0 (0 means infinite)"
+  is_positive_integer "$RETRY_INTERVAL" || die "--retry-interval must be > 0"
 
   resolve_public_key_text
   resolve_identity_file
@@ -406,8 +443,12 @@ check_local_deps() {
 
 check_remote_deps() {
   local out=""
-  out="$(
-    run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "sh -s" <<'EOF' || true
+  local attempt=0
+  local rc=0
+
+  while true; do
+    if out="$(
+      run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "sh -s" <<'EOF'
 set -eu
 for c in dd sync; do
   command -v "$c" >/dev/null 2>&1 || echo "$c"
@@ -423,7 +464,20 @@ else
   echo "cat"
 fi
 EOF
-  )"
+    )"; then
+      break
+    fi
+
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "check_remote_deps failed with non-retryable rc=$rc"
+    fi
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "check_remote_deps failed after ${attempt} attempts (rc=$rc)"
+    fi
+    retry_log_and_wait "check_remote_deps" "$attempt" "$rc"
+  done
 
   REMOTE_STREAM_CODEC=""
   REMOTE_ZSTD_DECODER_CMD="zstd"
@@ -450,6 +504,8 @@ upload_remote_zstd_if_needed() {
   local static_zstd
   local static_out
   local remote_tmp
+  local attempt=0
+  local rc=0
 
   [ "$UPLOAD_ZSTD_IF_MISSING" = "yes" ] || return 0
   [ "$REMOTE_STREAM_CODEC" = "zstd" ] && return 0
@@ -471,16 +527,44 @@ upload_remote_zstd_if_needed() {
 
   log "Remote zstd missing, uploading local zstd binary ($local_zstd) to $REMOTE_ZSTD_PATH"
   remote_tmp="${REMOTE_ZSTD_PATH}.tmp.$$"
-  cat "$local_zstd" | run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" \
-    "export PATH=/sbin:/bin:/usr/sbin:/usr/bin:\$PATH; rm -f $(quote_for_sh "$REMOTE_ZSTD_PATH") $(quote_for_sh "$remote_tmp"); cat >$(quote_for_sh "$remote_tmp") && chmod 0755 $(quote_for_sh "$remote_tmp") && mv -f $(quote_for_sh "$remote_tmp") $(quote_for_sh "$REMOTE_ZSTD_PATH")" || return 0
+  while true; do
+    if cat "$local_zstd" | run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" \
+      "export PATH=/sbin:/bin:/usr/sbin:/usr/bin:\$PATH; rm -f $(quote_for_sh "$REMOTE_ZSTD_PATH") $(quote_for_sh "$remote_tmp"); cat >$(quote_for_sh "$remote_tmp") && chmod 0755 $(quote_for_sh "$remote_tmp") && mv -f $(quote_for_sh "$remote_tmp") $(quote_for_sh "$REMOTE_ZSTD_PATH")"; then
+      break
+    fi
 
-  if run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "$(quote_for_sh "$REMOTE_ZSTD_PATH") -V >/dev/null 2>&1"; then
-    REMOTE_STREAM_CODEC="zstd"
-    REMOTE_ZSTD_DECODER_CMD="$REMOTE_ZSTD_PATH"
-    log "Uploaded zstd works on remote; switching stream codec back to zstd"
-  else
-    log "Uploaded zstd is not runnable on remote (likely libc/arch mismatch), keep fallback codec=$REMOTE_STREAM_CODEC"
-  fi
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "upload_remote_zstd_if_needed failed with non-retryable rc=$rc"
+    fi
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "upload_remote_zstd_if_needed failed after ${attempt} attempts (rc=$rc)"
+    fi
+    retry_log_and_wait "upload_remote_zstd_if_needed" "$attempt" "$rc"
+  done
+
+  attempt=0
+  while true; do
+    if run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "$(quote_for_sh "$REMOTE_ZSTD_PATH") -V >/dev/null 2>&1"; then
+      REMOTE_STREAM_CODEC="zstd"
+      REMOTE_ZSTD_DECODER_CMD="$REMOTE_ZSTD_PATH"
+      log "Uploaded zstd works on remote; switching stream codec back to zstd"
+      return 0
+    fi
+
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      log "Uploaded zstd verification failed with non-retryable rc=$rc, keep fallback codec=$REMOTE_STREAM_CODEC"
+      return 0
+    fi
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      log "Uploaded zstd verification failed after ${attempt} attempts (rc=$rc), keep fallback codec=$REMOTE_STREAM_CODEC"
+      return 0
+    fi
+    retry_log_and_wait "verify_uploaded_zstd" "$attempt" "$rc"
+  done
 }
 
 report_missing_deps() {
@@ -520,19 +604,49 @@ ensure_reinstall_script() {
 }
 
 run_alpine_hold() {
+  local attempt=0
+  local rc=0
+
   ensure_reinstall_script
 
   log "Stage 1: rebooting target into Alpine Live OS (--hold 1, key login enabled)"
-  if ! run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" \
-    "bash -s -- alpine --hold 1 --ssh-port '$REINSTALL_SSH_PORT' --ssh-key $(quote_for_sh "$PUBLIC_KEY_TEXT") ${PASSWORD:+--password $(quote_for_sh "$PASSWORD")}" \
-    <"$REINSTALL_SCRIPT"; then
-    die "Stage 1 failed: cannot execute reinstall.sh on target"
-  fi
+  while true; do
+    if run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" \
+      "bash -s -- alpine --hold 1 --ssh-port '$REINSTALL_SSH_PORT' --ssh-key $(quote_for_sh "$PUBLIC_KEY_TEXT") ${PASSWORD:+--password $(quote_for_sh "$PASSWORD")}" \
+      <"$REINSTALL_SCRIPT"; then
+      break
+    fi
+
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "Stage 1 failed: cannot execute reinstall.sh on target (rc=$rc)"
+    fi
+
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "Stage 1 failed after ${attempt} attempts (rc=$rc)"
+    fi
+    retry_log_and_wait "stage1_dispatch" "$attempt" "$rc"
+  done
 
   log "Stage 1 command dispatched, triggering reboot now"
-  if ! run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "nohup sh -c 'sleep 1; reboot' >/dev/null 2>&1 &"; then
-    die "Stage 1 failed: unable to trigger reboot"
-  fi
+  attempt=0
+  while true; do
+    if run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "nohup sh -c 'sleep 1; reboot' >/dev/null 2>&1 &"; then
+      break
+    fi
+
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "Stage 1 failed: unable to trigger reboot (rc=$rc)"
+    fi
+
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "Stage 1 reboot trigger failed after ${attempt} attempts (rc=$rc)"
+    fi
+    retry_log_and_wait "stage1_reboot_trigger" "$attempt" "$rc"
+  done
 }
 
 remote_os_id() {
@@ -734,13 +848,8 @@ resolve_local_pv_cmd() {
   SHOW_PROGRESS="no"
 }
 
-stream_dd_to_remote() {
+stream_dd_once() {
   local local_img="$1"
-
-  if [ -z "$REMOTE_STREAM_CODEC" ]; then
-    check_remote_deps
-  fi
-  upload_remote_zstd_if_needed
 
   case "$REMOTE_STREAM_CODEC" in
   zstd)
@@ -765,7 +874,36 @@ stream_dd_to_remote() {
     ;;
   esac
 
-  log "DD completed"
+  return 0
+}
+
+stream_dd_to_remote() {
+  local local_img="$1"
+  local attempt=0
+  local rc=0
+
+  while true; do
+    check_remote_deps
+    upload_remote_zstd_if_needed
+
+    if stream_dd_once "$local_img"; then
+      log "DD completed"
+      return 0
+    fi
+
+    rc=$?
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "Stage 2 failed with non-retryable rc=$rc"
+    fi
+
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "Stage 2 failed after ${attempt} retry attempts (rc=$rc)"
+    fi
+
+    retry_log_and_wait "stage2_stream_dd" "$attempt" "$rc"
+    log "Retrying Stage 2 from beginning (full stream retransmit)"
+  done
 }
 
 main() {

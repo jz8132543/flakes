@@ -30,11 +30,11 @@
       matchConfig.Name = "e*";
       networkConfig.DHCP = "yes";
       address = [
-        "82.40.41.218/24"
+        "216.23.85.218/24"
         "2a13:edc0:24:1d5::a/64"
       ];
       routes = [
-        { Gateway = "82.40.41.1"; }
+        { Gateway = "216.23.85.1"; }
         { Gateway = "2a13:edc0:24::1"; }
       ];
     };
