@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -121,9 +122,9 @@ in
       services.irqbalance.enable = lib.mkForce false;
 
       boot.kernel.sysctl = {
-        # 用绝对字节而不是比例，避免 300MB 这种机器被脏页吃太多内存
-        "vm.dirty_background_bytes" = 4 * 1024 * 1024; # 4 MiB
-        "vm.dirty_bytes" = 16 * 1024 * 1024; # 16 MiB
+        # 尽早回写，减少突然一大波刷盘
+        "vm.dirty_background_bytes" = 16 * 1024 * 1024; # 16 MiB
+        "vm.dirty_bytes" = 64 * 1024 * 1024; # 64 MiB
 
         # 尽早回写，减少突然一大波刷盘
         "vm.dirty_writeback_centisecs" = 1500; # 15 秒
@@ -132,10 +133,23 @@ in
         "vm.overcommit_ratio" = 100; # 允许使用 100% 内存
         "vm.swappiness" = lib.mkForce 1; # 减少 swap 使用
       };
-      # 限制 VM 内部 I/O 抢占，尽量保护自己的磁盘性能
-      boot.kernelParams = [ "elevator=noop" ]; # 简化调度器，降低虚拟机 I/O 抢占
-      # 禁用 virtio-balloon 驱动
-      boot.kernelModules = lib.filter (m: m != "virtio_balloon") [ "virtio_balloon" ];
+      # 限制 VM 内部 I/O 抢占，并禁用透明大页提升稳定性
+      boot.kernelParams = [
+        "elevator=mq-deadline"
+        "transparent_hugepage=never"
+      ];
+
+      # 针对虚拟化磁盘使用 mq-deadline 调度器并增加预读
+      services.udev.extraRules = ''
+        ACTION=="add|change", KERNEL=="vd[a-z]*", ATTR{queue/scheduler}="mq-deadline"
+        ACTION=="add|change", KERNEL=="vd[a-z]*", ATTR{queue/read_ahead_kb}="2048"
+      '';
+
+      # ── 虚拟化增强 ────────────────────────────────────────────────
+      # 1. 启用 virtio-rng 解决加密握手熵值瓶颈
+      # 2. 移除 virtio-balloon 驱动 (防止宿主机回收内存导致 Guest 突然卡顿)
+      boot.kernelModules = [ "virtio_rng" ];
+      services.haveged.enable = true;
 
       #       # --- 激进资源优化 (针对极低资源服务器如 tyo0) ---
       #
@@ -164,47 +178,58 @@ in
       #           exit 0
       #         '';
       #       };
-      #
-      #       # 2. 禁用透明大页 (THP)
-      #       boot.kernelParams = [ "transparent_hugepage=never" ];
-      #
-      #       # 3. CPU 转发加速 (Flow Offload)
-      #       systemd.services.apply-flow-offload = {
-      #         description = "Apply nftables flow offload at runtime";
-      #         after = [ "network-online.target" "nftables.service" ];
-      #         wants = [ "network-online.target" "nftables.service" ];
-      #         wantedBy = [ "multi-user.target" ];
-      #         serviceConfig = {
-      #           Type = "oneshot";
-      #           RemainAfterExit = true;
-      #           TimeoutStartSec = "60s";
-      #         };
-      #         path = [ pkgs.nftables pkgs.iproute2 pkgs.gawk pkgs.gnugrep ];
-      #         script = ''
-      #           # 尝试获取外网网卡
-      #           IFACE=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+' || true)
-      #           [ -z "$IFACE" ] && IFACE=$(ip link show | grep -v "lo" | awk -F': ' '/^[0-9]+: / {print $2; exit}' | tr -d ' ')
-      #
-      #           if [ -n "$IFACE" ]; then
-      #             echo "Applying flow offload on $IFACE"
-      #             nft -f - <<EOF || true
-      #             table inet minimal-optimize {
-      #               flowtable f {
-      #                 hook ingress priority 0
-      #                 devices = { $IFACE }
-      #               }
-      #               chain forward {
-      #                 type filter hook forward priority 0; policy accept;
-      #                 ct state established flow add @f
-      #               }
-      #             }
-      # EOF
-      #           else
-      #             echo "No suitable interface found for flow offload."
-      #           fi
-      #           exit 0
-      #         '';
-      #       };
+      # 2. 禁用透明大页 (THP)
+      # 在超售严重的 VPS 上，THP 往往会导致严重的内存碎片和 Guest 停顿。
+
+      # 3. CPU 转发加速 (Flow Offload)
+      # 利用 nftables 将已建立的连接从 Linux 网络栈卸载，极大降低加密代理转发时的 CPU 负载。
+      systemd.services.apply-flow-offload = {
+        description = "Apply nftables flow offload at runtime";
+        after = [
+          "network-online.target"
+          "nftables.service"
+        ];
+        wants = [
+          "network-online.target"
+          "nftables.service"
+        ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          TimeoutStartSec = "60s";
+        };
+        path = [
+          pkgs.nftables
+          pkgs.iproute2
+          pkgs.gawk
+          pkgs.gnugrep
+        ];
+        script = ''
+          # 尝试获取外网网卡
+          IFACE=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'dev \K\S+' || true)
+          [ -z "$IFACE" ] && IFACE=$(ip link show | grep -v "lo" | awk -F': ' '/^[0-9]+: / {print $2; exit}' | tr -d ' ')
+
+          if [ -n "$IFACE" ]; then
+            echo "Applying flow offload on $IFACE"
+            nft -f - <<EOF || true
+            table inet minimal-optimize {
+              flowtable f {
+                hook ingress priority 0
+                devices = { $IFACE }
+              }
+              chain forward {
+                type filter hook forward priority 0; policy accept;
+                ct state established flow add @f
+              }
+            }
+          EOF
+          else
+            echo "No suitable interface found for flow offload."
+          fi
+          exit 0
+        '';
+      };
     })
   ];
 }

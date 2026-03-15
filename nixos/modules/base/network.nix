@@ -63,19 +63,28 @@ let
   udp_mem_mid = tcp_mem_mid / 2;
   udp_mem_high = tcp_mem_high / 2;
 
+  tcpMemHighPct = if isBerserk then clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600) else 50;
+
   # ──────────────────────────────────────────────────────────────────────────
   # § 4  稳定连接预算（核心）
   # ──────────────────────────────────────────────────────────────────────────
   # 保持单一高性能配置，不再区分 profile 档位。
   isBerserk = true;
+  # 既然引用此配置的均为 VPS，强制开启 VPS 模式
+  isVpsMode = true;
+
   # Profile constants: centralize tuning knobs for readability/maintainability.
   rmemMaxLimit = if isBerserk then ramBytes * 85 / 100 else ramBytes * 20 / 100;
-  rmemMinFloor = if isBerserk then ramBytes * 25 / 100 else 16 * 1024 * 1024;
+  # 如果是 VPS 且内存小，保命优先，下限降低但保持合理比例
+  rmemMinFloor =
+    if isVpsMode then
+      ramBytes * 15 / 100
+    else
+      (if isBerserk then ramBytes * 25 / 100 else 16 * 1024 * 1024);
   rmemDefaultFloor = if isBerserk then ramBytes * 10 / 100 else 4 * 1024 * 1024;
   rmemDefaultCeilFactor = if isBerserk then 19 else 2;
   rmemDefaultCeilDiv = if isBerserk then 20 else 2;
   notsentLowatCap = if isBerserk then ramBytes * 20 / 100 else rmem_max / 2;
-  tcpMemHighPct = if isBerserk then clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600) else 50;
 
   connBudgetRamFactor = if isBerserk then 280 else 10;
   connBudgetCpuFactor = if isBerserk then 150000 else 7000;
@@ -136,16 +145,18 @@ let
 
   dev_weight =
     if isBerserk then
-      if cfg.cpus == 1 then 1024 else 2048
+      if cfg.cpus == 1 then (if isVpsMode then 512 else 1024) else 2048
     else if cfg.cpus == 1 then
       128
     else
       256;
 
   # 单核主机上 busy-poll 过高会放大 CPU 抢占与抖动，适度下调。
-  busy_poll = if isBerserk then if cfg.cpus == 1 then 50 else 150 else 0;
+  # 对于 VPS 且单核，busy_poll 设为 0 以防由于宿主机调度延迟导致的 Guest CPU 假死。
+  busy_poll = if isBerserk then if cfg.cpus == 1 then (if isVpsMode then 0 else 50) else 150 else 0;
   # 单核主机避免 NAPI 长时间占满一个调度周期，降低 PSI 抖动。
-  netdev_budget_usecs = if isBerserk then if cfg.cpus == 1 then 45000 else 90000 else 8000;
+  netdev_budget_usecs =
+    if isBerserk then if cfg.cpus == 1 then (if isVpsMode then 30000 else 45000) else 90000 else 8000;
   rpsSockFlowEntries = if isBerserk then 2097152 else 65536;
 
   # ──────────────────────────────────────────────────────────────────────────
@@ -163,7 +174,7 @@ let
   initcwnd_from_first_rtt = (firstRttPayloadBytes + 1459) / 1460;
   initcwnd_from_bdp = bdp_pkts;
   initcwnd_from_cpu = cfg.cpus * 320;
-  initcwnd_floor = if cfg.highLoss then 2800 else 2600;
+  initcwnd_floor = if cfg.highLoss then 150 else 120;
   initcwnd_bw_boost =
     if cfg.bandwidth >= 5000 then
       700
