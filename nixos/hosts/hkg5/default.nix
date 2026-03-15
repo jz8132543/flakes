@@ -6,9 +6,9 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.optimize.fakehttp
-      nixosModules.services.traefik
-      nixosModules.services.derp
+      # nixosModules.optimize.fakehttp
+      # nixosModules.services.traefik
+      # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
       })
@@ -20,11 +20,11 @@
   ];
   environment.networkTune = {
     enable = true;
-    bandwidth = 1000; # Mbps 单向
+    bandwidth = 500; # Mbps 单向
     realBandwidth = 500;
-    rtt = 130; # ms，国际线路
+    rtt = 100; # ms，国际线路
     ram = 500; # MB，可用内存
     cpus = 1; # vCPU 数
-    highLoss = true; # 高丢包国际线路
+    highLoss = false; # 高丢包国际线路
   };
 }

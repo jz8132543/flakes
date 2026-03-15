@@ -44,19 +44,19 @@
                   btrfsOptions =
                     if config.environment.minimal or false then
                       [
-                        "discard=async"
                         "noatime"
                         "compress=zstd:1"
                         "space_cache=v2"
                         "commit=120"
+                        "ssd_spread"
                       ]
                     else
                       [
-                        "discard=async"
                         "noatime"
                         "compress-force=zstd"
                         "space_cache=v2"
                         "commit=60"
+                        "ssd_spread"
                       ];
                 in
                 {

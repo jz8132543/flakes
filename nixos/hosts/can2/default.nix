@@ -12,13 +12,13 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      (import nixosModules.services.xray {
-        xrayPort = 16811;
-        ss = true;
-      })
+      # (import nixosModules.services.xray {
+      #   xrayPort = 16811;
+      #   ss = true;
+      # })
       # nixosModules.services.traefik
       # nixosModules.services.derp
-      # nixosModules.services.kernel-relay
+      nixosModules.services.kernel-relay
       # nixosModules.optimize.fakehttp
     ];
 
@@ -26,6 +26,25 @@
     config.ports.ssh
     22
   ];
+  services.kernel-relay = {
+    enable = true;
+    dnsInterval = "3min";
+    enableFlowtable = true;
+    ipFamily = "ipv4";
+    mappings = [
+      {
+        listenPort = 16811;
+        remoteAddr = "hkg5.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 16812;
+        remoteAddr = "hinet.tizz.yt";
+        remotePort = 55470;
+      }
+    ];
+  };
+
   # environment.isNAT = true;
   environment.isCN = true;
 

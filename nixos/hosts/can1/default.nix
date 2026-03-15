@@ -26,14 +26,19 @@
     mappings = [
       # SSH
       {
-        listenPort = 2022;
+        listenPort = 2022; # 26696
         remoteAddr = "138.252.162.101";
         remotePort = 16810;
       }
       {
-        listenPort = 8555;
+        listenPort = 8555; # 51685
         remoteAddr = "138.252.162.101";
         remotePort = 16811;
+      }
+      {
+        listenPort = 16812; # 56071
+        remoteAddr = "138.252.162.101";
+        remotePort = 16812;
       }
     ];
   };

@@ -81,31 +81,16 @@ in
         };
       };
 
-      inbounds = if ss then
+      inbounds =
+        if ss then
           [
             {
               port = xrayPort;
               listen = "0.0.0.0";
               protocol = "shadowsocks";
               settings = {
-                method = "2022";
+                method = "2022-blake3-aes-128-gcm";
                 password = config.sops.placeholder."xray/uuid";
-              };
-              streamSettings = {
-                network = "tcp";
-                security = "reality";
-                sockopt = {
-                  mptcp = true;
-                  tcpKeepAliveInterval = 60;
-                };
-                realitySettings = {
-                  show = false;
-                  target = destSite;
-                  xver = 0;
-                  serverNames = [ serverName ] ++ fakeSnis;
-                  privateKey = config.sops.placeholder."xray/private_key";
-                  shortIds = [ config.sops.placeholder."xray/short_id" ];
-                };
               };
             }
           ]
@@ -302,11 +287,12 @@ in
 
   # 确保 Xray 能读到 geo 数据库
   systemd.services.xray = {
+    startLimitIntervalSec = lib.mkForce 0;
     serviceConfig = {
       # 让 xray 的 fd 上限跟随稳定连接预算，避免用户态先于内核变瓶颈。
       LimitNOFILE = xrayLimitNOFILE;
-      # 进程退出后持续自动重启（包括 exit）。
-      Restart = "always";
+      # 进程失败或被 OOM 杀死后自动重启（正常退出不重启）。
+      Restart = lib.mkForce "on-failure";
       RestartSec = "2s";
     };
     environment =

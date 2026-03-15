@@ -25,7 +25,7 @@ in
       # that path is missing and the install fails.
       # environment.systemPackages = lib.mkForce [ pkgs.bashInteractive ];
       # environment.defaultPackages = lib.mkForce [ ];
-      # system.disableInstallerTools = lib.mkForce true;
+      system.disableInstallerTools = lib.mkForce true;
 
       # 2. Btrfs 额外优化 (联动 Disko 参数外的部分)
       services.btrfs.autoScrub.enable = lib.mkForce false;
@@ -75,9 +75,9 @@ in
 
       boot.enableContainers = lib.mkForce false;
       security.rtkit.enable = lib.mkForce false;
-      # zramSwap.enable = lib.mkForce false;
-      # services.tailscale.enable = false;
-      # systemd.services.tailscale-setup.enable = false;
+      zramSwap.enable = lib.mkForce false;
+      services.tailscale.enable = false;
+      systemd.services.tailscale-setup.enable = false;
 
       # 限制 Journald 内存占用
       services.journald.extraConfig = lib.mkForce ''
@@ -92,33 +92,50 @@ in
       # users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;
       # users.users.tippy.ignoreShellProgramCheck = true;
 
-      # home-manager.users.tippy = {
-      #   home.packages = lib.mkForce [ ];
-      #   home.file = lib.mkForce { };
-      #   xdg.configFile = lib.mkForce { };
-      #   home.sessionVariables = lib.mkForce { };
-      #   programs = {
-      #     git.enable = lib.mkforce false;
-      #     delta.enable = lib.mkforce false;
-      #     fish.enable = lib.mkforce false;
-      #     zsh.enable = lib.mkforce false;
-      #     tmux.enable = lib.mkforce false;
-      #     neovim.enable = lib.mkforce false;
-      #     gpg.enable = lib.mkforce false;
-      #     direnv.enable = lib.mkforce false;
-      #     fzf.enable = lib.mkforce false;
-      #     zoxide.enable = lib.mkforce false;
-      #     eza.enable = lib.mkforce false;
-      #     bat.enable = lib.mkforce false;
-      #     atuin.enable = lib.mkforce false;
-      #     starship.enable = lib.mkforce false;
-      #     skim.enable = lib.mkforce false;
-      #   };
-      #   services.gpg-agent.enable = lib.mkforce false;
-      # };
+      home-manager.users.tippy = {
+        #   home.packages = lib.mkForce [ ];
+        #   home.file = lib.mkForce { };
+        #   xdg.configFile = lib.mkForce { };
+        #   home.sessionVariables = lib.mkForce { };
+        programs = {
+          #     git.enable = lib.mkforce false;
+          #     delta.enable = lib.mkforce false;
+          #     fish.enable = lib.mkforce false;
+          #     zsh.enable = lib.mkforce false;
+          #     tmux.enable = lib.mkforce false;
+          #     neovim.enable = lib.mkforce false;
+          #     gpg.enable = lib.mkforce false;
+          #     direnv.enable = lib.mkforce false;
+          #     fzf.enable = lib.mkforce false;
+          #     zoxide.enable = lib.mkforce false;
+          #     eza.enable = lib.mkforce false;
+          #     bat.enable = lib.mkforce false;
+          atuin.enable = lib.mkForce false;
+          #     starship.enable = lib.mkforce false;
+          #     skim.enable = lib.mkforce false;
+        };
+        services.gpg-agent.enable = lib.mkForce false;
+      };
 
       services.bpftune.enable = lib.mkForce false;
       services.irqbalance.enable = lib.mkForce false;
+
+      boot.kernel.sysctl = {
+        # 用绝对字节而不是比例，避免 300MB 这种机器被脏页吃太多内存
+        "vm.dirty_background_bytes" = 4 * 1024 * 1024; # 4 MiB
+        "vm.dirty_bytes" = 16 * 1024 * 1024; # 16 MiB
+
+        # 尽早回写，减少突然一大波刷盘
+        "vm.dirty_writeback_centisecs" = 1500; # 15 秒
+        "vm.dirty_expire_centisecs" = 3000; # 30 秒
+        "vm.overcommit_memory" = 2; # 禁止内存过度分配
+        "vm.overcommit_ratio" = 100; # 允许使用 100% 内存
+        "vm.swappiness" = lib.mkForce 1; # 减少 swap 使用
+      };
+      # 限制 VM 内部 I/O 抢占，尽量保护自己的磁盘性能
+      boot.kernelParams = [ "elevator=noop" ]; # 简化调度器，降低虚拟机 I/O 抢占
+      # 禁用 virtio-balloon 驱动
+      boot.kernelModules = lib.filter (m: m != "virtio_balloon") [ "virtio_balloon" ];
 
       #       # --- 激进资源优化 (针对极低资源服务器如 tyo0) ---
       #

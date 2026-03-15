@@ -12,13 +12,14 @@
   ];
   systemd.services.xray = {
     wantedBy = [ "multi-user.target" ];
+    startLimitIntervalSec = 0;
     after = [
       "network.target"
       "traefik.service"
     ];
     serviceConfig = {
       DynamicUser = true;
-      Restart = "always";
+      Restart = "on-failure";
       # ExecStart = "${pkgs.sing-box}/bin/sing-box run -C /etc/sing-box";
       ExecStart = "${pkgs.xray}/bin/xray -config /etc/xray/config.json";
     };

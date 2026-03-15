@@ -47,7 +47,7 @@
   swapDevices = [
     {
       device = "/swap/swapfile";
-      size = 1024;
+      size = 512;
     }
   ];
   nix.gc.automatic = lib.mkForce true;
