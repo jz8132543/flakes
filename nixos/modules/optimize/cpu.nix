@@ -19,6 +19,13 @@ in
       "processor.max_cstate=1"
     ]);
 
+    # VPS 专属：声明式内核参数，在 cpu-berserk 脚本运行前已生效。
+    boot.kernel.sysctl = lib.mkIf isVM {
+      # VPS 通常为单 NUMA 节点，NUMA 自动均衡只会在后台反复扫描内存页、
+      # 触发 TLB 刷新和页面迁移，纯粹是额外开销，对延迟无益。
+      "kernel.numa_balancing" = 0;
+    };
+
     # 物理机：锁定 /dev/cpu_dma_latency=0；VPS 无硬件 DMA，跳过。
     systemd.services.cpu-dma-latency = lib.mkIf (tune.cpuBerserk.holdDmaLatency && !isVM) {
       description = "Hold /dev/cpu_dma_latency at 0 for lowest wake latency";
@@ -112,6 +119,13 @@ in
         write_if_writable /proc/sys/kernel/sched_util_clamp_max 1024
         write_if_writable /proc/sys/kernel/sched_util_clamp_min_rt_default 1024
 
+        ${lib.optionalString isVM ''
+        # ── VPS 专属：虚拟化环境运行时调优 ────────────────────────────────
+        # 禁用 NUMA 自动均衡（boot.kernel.sysctl 已在早期设置，此处为兜底保障）。
+        # VPS 通常为单 NUMA 节点，持续的内存扫描与页迁移只产生噪声。
+        write_if_writable /proc/sys/kernel/numa_balancing 0
+        ''}
+
         ${lib.optionalString (!isVM) ''
         # ── 物理机专属：cpufreq Boost / Turbo ──────────────────────────────
         # 在 VPS 中 hypervisor 管控实际主频，这些路径通常不存在，跳过。
@@ -175,7 +189,7 @@ in
           if isVM then "1" else "0"
         } irq_rebalance=${if tune.cpuBerserk.rebalanceIRQs then "1" else "0"} kthreads_boost=${
           if tune.cpuBerserk.boostKernelNetThreads then "1" else "0"
-        }${lib.optionalString (!isVM) " governor=performance boost=on min_freq_pinned=${
+        }${lib.optionalString isVM " numa_balancing=off"}${lib.optionalString (!isVM) " governor=performance boost=on min_freq_pinned=${
           if tune.cpuBerserk.pinMaxFreq then "1" else "0"
         } cpuidle_cutoff_us=${toString tune.cpuBerserk.cpuidleDisableLatencyUs}"}"
       '';
