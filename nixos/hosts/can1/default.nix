@@ -80,6 +80,7 @@
     # fqMaxrate = realBandwidth × 95% = 570，主动整形防令牌桶尾丢包
     # （已是默认公式，此处显式写出便于各主机理解和覆盖）
     # fqMaxrate = 570;
+    cpuBerserk.isVirtualMachine = true; # VPS：跳过物理机专属 cpufreq/C-state 调优
   };
   services.tailscale.enable = lib.mkForce true;
   systemd.services.tailscale-setup.enable = lib.mkForce true;

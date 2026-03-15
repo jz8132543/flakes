@@ -391,6 +391,17 @@ in
         default = true;
         description = "提升 ksoftirqd/irq 线程调度优先级，抢占式优先处理网络包。";
       };
+
+      isVirtualMachine = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          是否运行在虚拟机（VPS/QEMU/VMware/KVM 无透传）中。
+          启用后跳过物理机专属调优（cpufreq 调速器、C-state、DMA 延迟锁定、
+          intel_pstate/amd_pstate、energy_perf_bias），仅保留对虚拟化
+          环境同样有效的内核调度器优化（sched_* 参数、ksoftirqd 优先级提升等）。
+        '';
+      };
     };
 
     stableConnBudget = lib.mkOption {

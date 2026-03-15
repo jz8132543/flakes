@@ -134,8 +134,8 @@ in
       };
       # 限制 VM 内部 I/O 抢占，尽量保护自己的磁盘性能
       boot.kernelParams = [ "elevator=noop" ]; # 简化调度器，降低虚拟机 I/O 抢占
-      # 禁用 virtio-balloon 驱动
-      boot.kernelModules = lib.filter (m: m != "virtio_balloon") [ "virtio_balloon" ];
+      # 禁用 virtio-balloon 驱动，防止 hypervisor 动态回收 guest 内存而导致性能抖动。
+      boot.blacklistedKernelModules = [ "virtio_balloon" ];
 
       #       # --- 激进资源优化 (针对极低资源服务器如 tyo0) ---
       #

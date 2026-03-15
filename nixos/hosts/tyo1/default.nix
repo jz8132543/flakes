@@ -30,6 +30,7 @@
     highLoss = true; # 高丢包国际线路
     # 主动整形到千兆口的 95%，减少尾丢包与重传风暴。
     # fqMaxrate = 950;
+    cpuBerserk.isVirtualMachine = true; # VPS：跳过物理机专属 cpufreq/C-state 调优
   };
 
   # tyo1 单核 CPU 护栏：保留激进发包能力，同时抑制 ksoftirqd 常驻高占用。
