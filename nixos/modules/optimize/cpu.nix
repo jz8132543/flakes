@@ -7,16 +7,20 @@
 let
   tune = config.environment.networkTune;
   enabled = tune.enable && tune.cpuBerserk.enable;
+  isVM = tune.cpuBerserk.isVirtualMachine;
 in
 {
   config = lib.mkIf enabled {
-    powerManagement.cpuFreqGovernor = lib.mkForce "performance";
-    boot.kernelParams = lib.mkAfter [
+    # 物理机：强制使用 performance 调速器；VPS 上 cpufreq sysfs 通常不存在，跳过。
+    powerManagement.cpuFreqGovernor = lib.mkIf (!isVM) (lib.mkForce "performance");
+    # 物理机：禁用 C-state 以消除升频延迟；VPS 上这些参数由 hypervisor 控制，无需设置。
+    boot.kernelParams = lib.mkIf (!isVM) (lib.mkAfter [
       "intel_idle.max_cstate=0"
       "processor.max_cstate=1"
-    ];
+    ]);
 
-    systemd.services.cpu-dma-latency = lib.mkIf tune.cpuBerserk.holdDmaLatency {
+    # 物理机：锁定 /dev/cpu_dma_latency=0；VPS 无硬件 DMA，跳过。
+    systemd.services.cpu-dma-latency = lib.mkIf (tune.cpuBerserk.holdDmaLatency && !isVM) {
       description = "Hold /dev/cpu_dma_latency at 0 for lowest wake latency";
       after = [ "multi-user.target" ];
       wantedBy = [ "multi-user.target" ];
@@ -95,7 +99,7 @@ in
         cpu_vendor=$(awk -F: '/vendor_id/ {gsub(/^[ \t]+/, "", $2); print $2; exit}' /proc/cpuinfo 2>/dev/null || true)
         [ -z "$cpu_vendor" ] && cpu_vendor="unknown"
 
-        # Kernel scheduler knobs: push toward low-latency/high-reactivity behavior.
+        # ── 内核调度器旋钮：对物理机和 VPS 均有效 ─────────────────────────────
         if [ "${if tune.cpuBerserk.disableSchedulerAutogroup then "1" else "0"}" = "1" ]; then
           write_if_writable /proc/sys/kernel/sched_autogroup_enabled 0
         fi
@@ -108,7 +112,9 @@ in
         write_if_writable /proc/sys/kernel/sched_util_clamp_max 1024
         write_if_writable /proc/sys/kernel/sched_util_clamp_min_rt_default 1024
 
-        # Global knobs, safe on both vendors (non-existing paths are skipped).
+        ${lib.optionalString (!isVM) ''
+        # ── 物理机专属：cpufreq Boost / Turbo ──────────────────────────────
+        # 在 VPS 中 hypervisor 管控实际主频，这些路径通常不存在，跳过。
         write_if_writable /sys/devices/system/cpu/cpufreq/boost 1
         write_if_writable /sys/devices/system/cpu/intel_pstate/no_turbo 0
         write_if_writable /sys/devices/system/cpu/intel_pstate/min_perf_pct 100
@@ -117,7 +123,8 @@ in
         write_if_writable /sys/devices/system/cpu/amd_pstate/min_perf 255
         write_if_writable /sys/devices/system/cpu/amd_pstate/lowest_nonlinear_freq 0
 
-        # Aggressive cpuidle trimming for lower ramp latency.
+        # ── 物理机专属：C-state 裁剪 ──────────────────────────────────────
+        # VPS 上 cpuidle state 由 hypervisor 管理，guest 无法（也无需）干预。
         for d in /sys/devices/system/cpu/cpu*/cpuidle/state*; do
           [ -d "$d" ] || continue
           latency=$(cat "$d/latency" 2>/dev/null || echo 0)
@@ -126,11 +133,12 @@ in
           fi
         done
 
-        # Prefer performance bias where available.
+        # ── 物理机专属：energy_perf_bias ──────────────────────────────────
         for e in /sys/devices/system/cpu/cpu*/power/energy_perf_bias; do
           write_if_writable "$e" 0
         done
 
+        # ── 物理机专属：per-policy cpufreq 设置 ──────────────────────────
         for p in /sys/devices/system/cpu/cpufreq/policy*; do
           [ -d "$p" ] || continue
           write_if_writable "$p/scaling_governor" performance
@@ -154,6 +162,7 @@ in
             cat "$p/scaling_max_freq" > "$p/scaling_min_freq" || true
           fi
         done
+        ''}
 
         if [ "${if tune.cpuBerserk.rebalanceIRQs then "1" else "0"}" = "1" ]; then
           set_irq_affinity_round_robin
@@ -162,11 +171,13 @@ in
           boost_kernel_net_threads
         fi
 
-        echo "[cpu-berserk] vendor=$cpu_vendor governor=performance boost=on min_freq_pinned=${
-          if tune.cpuBerserk.pinMaxFreq then "1" else "0"
+        echo "[cpu-berserk] vendor=$cpu_vendor is_vm=${
+          if isVM then "1" else "0"
         } irq_rebalance=${if tune.cpuBerserk.rebalanceIRQs then "1" else "0"} kthreads_boost=${
           if tune.cpuBerserk.boostKernelNetThreads then "1" else "0"
-        } cpuidle_cutoff_us=${toString tune.cpuBerserk.cpuidleDisableLatencyUs}"
+        }${lib.optionalString (!isVM) " governor=performance boost=on min_freq_pinned=${
+          if tune.cpuBerserk.pinMaxFreq then "1" else "0"
+        } cpuidle_cutoff_us=${toString tune.cpuBerserk.cpuidleDisableLatencyUs}"}"
       '';
     };
   };

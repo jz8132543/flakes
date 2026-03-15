@@ -26,5 +26,6 @@
     ram = 500; # MB，可用内存
     cpus = 1; # vCPU 数
     highLoss = false; # 高丢包国际线路
+    cpuBerserk.isVirtualMachine = true; # VPS：跳过物理机专属 cpufreq/C-state 调优
   };
 }
