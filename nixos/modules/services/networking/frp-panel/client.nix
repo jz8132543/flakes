@@ -7,6 +7,17 @@
 with lib;
 let
   cfg = config.services.frp-panel.client;
+  clientEnv = ''
+    GIN_MODE=release
+    CLIENT_API_URL=http://${cfg.masterAddress}:${toString cfg.masterApiPort}
+    CLIENT_RPC_URL=grpc://${cfg.masterAddress}:${toString cfg.masterRpcPort}
+  ''
+  + lib.optionalString (cfg.clientId != null) ''
+    CLIENT_ID=${cfg.clientId}
+  ''
+  + lib.optionalString (cfg.clientSecret != null) ''
+    CLIENT_SECRET=${cfg.clientSecret}
+  '';
 in
 {
   options.services.frp-panel.client = {
@@ -21,7 +32,11 @@ in
     };
     masterRpcPort = mkOption {
       type = types.port;
-      default = 5000;
+      default = 15000;
+    };
+    masterApiPort = mkOption {
+      type = types.port;
+      default = 18080;
     };
     joinToken = mkOption {
       type = types.nullOr types.str;
@@ -41,11 +56,10 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Automatically define the secret if joinToken is using sops placeholder
-    sops.secrets."frp_panel/join_token" = mkIf (
-      cfg.joinToken != null
-      && (builtins.isString cfg.joinToken && lib.strings.hasInfix "placeholder" cfg.joinToken)
-    ) { };
+    sops.secrets."frp_panel/join_token" = mkIf (cfg.joinToken != null) { };
+    sops.secrets."frp_panel/client_id" = { };
+    sops.secrets."frp_panel/client_secret" = { };
+    sops.templates."frp-panel-client.env".content = clientEnv;
 
     systemd.services.frp-panel-client = {
       description = "frp-panel client service";
@@ -59,11 +73,7 @@ in
       serviceConfig = {
         StateDirectory = "frp-panel";
         WorkingDirectory = "/var/lib/frp-panel";
-        # Map the hardcoded /etc/frpp/.env to a writable location in StateDirectory
-        BindPaths = [ "/var/lib/frp-panel/etc:/etc/frpp" ];
-
-        # Use '-' to skip if file doesn't exist yet
-        EnvironmentFile = [ "-/var/lib/frp-panel/etc/.env" ];
+        EnvironmentFile = config.sops.templates."frp-panel-client.env".path;
 
         ExecStartPre = mkIf (cfg.joinToken != null) (
           pkgs.writeShellScript "frp-panel-join" ''
@@ -73,7 +83,7 @@ in
               # Run join within the same namespace or just ensure the target exists
               ${cfg.package}/bin/frp-panel join \
                 --join-token "${cfg.joinToken}" \
-                --api-url "https://${cfg.masterAddress}" \
+                --api-url "http://${cfg.masterAddress}:${toString cfg.masterApiPort}" \
                 --rpc-url "grpc://${cfg.masterAddress}:${toString cfg.masterRpcPort}"
             fi
           ''
@@ -81,14 +91,6 @@ in
 
         ExecStart = "${cfg.package}/bin/frp-panel client";
         Restart = "always";
-        Environment = [
-          "GIN_MODE=release"
-          # These can be fallbacks if .env is missing or for initial join
-          "CLIENT_API_URL=https://${cfg.masterAddress}"
-          "CLIENT_RPC_URL=grpc://${cfg.masterAddress}:${toString cfg.masterRpcPort}"
-        ]
-        ++ (lib.optional (cfg.clientId != null) "CLIENT_ID=${cfg.clientId}")
-        ++ (lib.optional (cfg.clientSecret != null) "CLIENT_SECRET=${cfg.clientSecret}");
 
         # WireGuard needs some privileges
         CapabilityBoundingSet = "CAP_NET_ADMIN CAP_NET_RAW";

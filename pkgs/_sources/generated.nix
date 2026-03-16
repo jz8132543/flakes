@@ -26,12 +26,12 @@
   };
   clash-webui-yacd-meta = {
     pname = "clash-webui-yacd-meta";
-    version = "ac485b00be400b6c6efa3c73a579ac419bc439ec";
+    version = "91895a24836d03396a57be01343a98fecdca2631";
     src = fetchurl {
-      url = "https://github.com/MetaCubeX/Yacd-meta/archive/ac485b00be400b6c6efa3c73a579ac419bc439ec.zip";
-      sha256 = "sha256-8lktBjGpDPXapKFWb68XuzpUe2DNpuMlfH6P7Ry7Af4=";
+      url = "https://github.com/MetaCubeX/Yacd-meta/archive/91895a24836d03396a57be01343a98fecdca2631.zip";
+      sha256 = "sha256-KsyD2arbt9SKasAsB0gRf9eFhGFAU7QRPN3jjDmJ7Q8=";
     };
-    date = "2026-01-16";
+    date = "2026-03-15";
   };
   custom-win10-fonts = {
     pname = "custom-win10-fonts";
@@ -63,6 +63,22 @@
     src = fetchurl {
       url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
+    };
+  };
+  frp-panel-amd64 = {
+    pname = "frp-panel-amd64";
+    version = "v0.1.36";
+    src = fetchurl {
+      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-amd64";
+      sha256 = "sha256-fSxCn8NyDIvAOodL5y4mJBJwmrUxHx4KEIO7FiMYsdQ=";
+    };
+  };
+  frp-panel-arm64 = {
+    pname = "frp-panel-arm64";
+    version = "v0.1.36";
+    src = fetchurl {
+      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-arm64";
+      sha256 = "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=";
     };
   };
   jellyfin-plugin-ani-sync = {
@@ -216,7 +232,7 @@
     version = "LTS";
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-VVCFbxHxNxvGfnPBXolG9/lm4WnDjZl6LGneL+FmVZo=";
+      sha256 = "sha256-Ll7zRgRn6u0+Vpo2BQwhMTnjTHropbvVXKsyeg2A0Bc=";
     };
   };
   wallpaper = {

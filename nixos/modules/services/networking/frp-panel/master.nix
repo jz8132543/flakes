@@ -33,11 +33,11 @@ in
     };
     port = mkOption {
       type = types.port;
-      default = 8080;
+      default = 18080;
     };
     grpcPort = mkOption {
       type = types.port;
-      default = 5000;
+      default = 15000;
     };
     extraConfig = mkOption {
       type = types.attrs;
@@ -46,13 +46,20 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Automatically define secrets if using sops placeholders
-    sops.secrets."frp_panel/app_id" = mkIf (
-      builtins.isString cfg.appId && lib.strings.hasInfix "placeholder" cfg.appId
-    ) { };
-    sops.secrets."frp_panel/global_secret" = mkIf (
-      builtins.isString cfg.globalSecret && lib.strings.hasInfix "placeholder" cfg.globalSecret
-    ) { };
+    sops.secrets."frp_panel/app_id" = { };
+    sops.secrets."frp_panel/app_secret" = { };
+    sops.secrets."frp_panel/master_secret" = { };
+    sops.templates."frp-panel-master.env".content = ''
+      APP_ID=${cfg.appId}
+      APP_GLOBAL_SECRET=${cfg.globalSecret}
+      MASTER_SECRET=${cfg.masterSecret}
+      MASTER_API_PORT=${toString cfg.port}
+      MASTER_RPC_PORT=${toString cfg.grpcPort}
+      MASTER_RPC_HOST=${cfg.host}
+      DB_TYPE=sqlite3
+      DB_DSN=/var/lib/frp-panel/data.db?_pragma=journal_mode(WAL)
+      GIN_MODE=release
+    '';
 
     systemd.services.frp-panel-master = {
       description = "frp-panel master service";
@@ -62,15 +69,7 @@ in
         StateDirectory = "frp-panel";
         ExecStart = "${cfg.package}/bin/frp-panel master";
         Restart = "always";
-        Environment = [
-          "APP_GLOBAL_SECRET=${cfg.globalSecret}"
-          "MASTER_API_PORT=${toString cfg.port}"
-          "MASTER_RPC_PORT=${toString cfg.grpcPort}"
-          "MASTER_RPC_HOST=${cfg.host}"
-          "DB_TYPE=sqlite3"
-          "DB_DSN=/var/lib/frp-panel/data.db?_pragma=journal_mode(WAL)"
-          "GIN_MODE=release"
-        ];
+        EnvironmentFile = config.sops.templates."frp-panel-master.env".path;
       };
     };
 

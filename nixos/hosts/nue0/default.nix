@@ -1,4 +1,9 @@
-{ nixosModules, inputs, ... }:
+{
+  nixosModules,
+  inputs,
+  config,
+  ...
+}:
 {
   imports =
     nixosModules.cloud.all
@@ -6,6 +11,7 @@
     ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
+      ../../modules/services/networking/frp-panel/master.nix
       nixosModules.services.traefik
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
@@ -55,6 +61,15 @@
 
   services.openclaw.enable = true;
   services.ai.litellm.enable = true;
+
+  services.frp-panel.master = {
+    enable = true;
+    appId = config.sops.placeholder."frp_panel/app_id";
+    globalSecret = config.sops.placeholder."frp_panel/app_secret";
+    masterSecret = config.sops.placeholder."frp_panel/master_secret";
+    port = 18080;
+    grpcPort = 15000;
+  };
 
   environment.seedbox = {
     enable = true;

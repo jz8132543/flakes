@@ -96,3 +96,11 @@ fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/f
 [ms912x]
 src.manual = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4"
 fetch.github = "rhgndf/ms912x"
+
+[frp-panel-amd64]
+src.manual = "v0.1.36"
+fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-panel-linux-amd64"
+
+[frp-panel-arm64]
+src.manual = "v0.1.36"
+fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-panel-linux-arm64"
