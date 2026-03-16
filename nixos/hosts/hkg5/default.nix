@@ -6,6 +6,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
+      ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
       # nixosModules.services.traefik
       # nixosModules.services.derp
