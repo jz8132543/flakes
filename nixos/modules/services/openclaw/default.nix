@@ -33,24 +33,6 @@ let
       controlUi.enabled = true;
     };
 
-    providers = {
-      openai = {
-        api = "openai-responses";
-        baseUrl = upstreamBaseUrl;
-        apiKey = proxyApiKeyRef;
-      };
-      google = {
-        api = "openai-responses";
-        baseUrl = upstreamBaseUrl;
-        apiKey = proxyApiKeyRef;
-      };
-      anthropic = {
-        api = "openai-responses";
-        baseUrl = upstreamBaseUrl;
-        apiKey = proxyApiKeyRef;
-      };
-    };
-
     channels = lib.optionalAttrs cfg.telegram.enable {
       telegram = {
         tokenFile = config.sops.secrets."telegram/token".path;

@@ -56,7 +56,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    sops.secrets."frp_panel/join_token" = mkIf (cfg.joinToken != null) { };
+    sops.secrets."frp_panel/join_token" = { };
     sops.secrets."frp_panel/client_id" = { };
     sops.secrets."frp_panel/client_secret" = { };
     sops.templates."frp-panel-server.env".content = serverEnv;
