@@ -30,6 +30,8 @@ in
 
       # 2. Btrfs 额外优化 (联动 Disko 参数外的部分)
       services.btrfs.autoScrub.enable = lib.mkForce false;
+      systemd.timers.btrfsBalance.enable = lib.mkForce false;
+      systemd.services.btrfsBalance.enable = lib.mkForce false;
       disko.devices.disk.main.content.partitions.NIXOS.content.extraArgs = lib.mkAfter [ "-M" ];
 
       # 3. 移除 Nix 注册表中的源码副本，减少磁盘占用
@@ -129,9 +131,11 @@ in
         # 尽早回写，减少突然一大波刷盘
         "vm.dirty_writeback_centisecs" = 1500; # 15 秒
         "vm.dirty_expire_centisecs" = 3000; # 30 秒
-        "vm.overcommit_memory" = 2; # 禁止内存过度分配
+        # "vm.overcommit_memory" = 0;
         "vm.overcommit_ratio" = 100; # 允许使用 100% 内存
-        "vm.swappiness" = lib.mkForce 1; # 减少 swap 使用
+        "vm.swappiness" = lib.mkForce 8; # 减少 swap 使用
+        "vm.min_free_kbytes" = 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
+        "vm.watermark_scale_factor" = 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
       };
       # 限制 VM 内部 I/O 抢占，并禁用透明大页提升稳定性
       boot.kernelParams = [

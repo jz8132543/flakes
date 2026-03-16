@@ -28,7 +28,7 @@
     enable = true;
     networks."10-lan" = {
       matchConfig.Name = "e*";
-      networkConfig.DHCP = "yes";
+      # networkConfig.DHCP = "yes";
       address = [
         "216.23.92.172/24"
         "2401:2660:1:9b::a/64"

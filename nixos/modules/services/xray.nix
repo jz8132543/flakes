@@ -24,15 +24,6 @@
 }:
 
 let
-  tune = config.environment.networkTune;
-  isBerserk = tune.profile == "berserk";
-  connBudgetRam = tune.ram * (if isBerserk then 20 else 10);
-  connBudgetCpu = tune.cpus * (if isBerserk then 18000 else 7000);
-  connBudgetBw = tune.realBandwidth * (if isBerserk then 60 else 24);
-  stableConnBudget = lib.max 4096 (
-    lib.min 600000 (lib.min connBudgetRam (lib.min connBudgetCpu connBudgetBw))
-  );
-  xrayLimitNOFILE = lib.max 131072 (lib.min 1048576 (stableConnBudget * 4));
   serverName = builtins.head fakeSnis;
   destSite = "${serverName}:443";
 in
@@ -290,7 +281,7 @@ in
     startLimitIntervalSec = lib.mkForce 0;
     serviceConfig = {
       # 让 xray 的 fd 上限跟随稳定连接预算，避免用户态先于内核变瓶颈。
-      LimitNOFILE = xrayLimitNOFILE;
+      # LimitNOFILE = xrayLimitNOFILE;
       # 进程失败或被 OOM 杀死后自动重启（正常退出不重启）。
       Restart = lib.mkForce "on-failure";
       RestartSec = "2s";

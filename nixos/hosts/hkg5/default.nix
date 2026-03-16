@@ -20,11 +20,12 @@
   ];
   environment.networkTune = {
     enable = true;
-    bandwidth = 500; # Mbps 单向
+    bandwidth = 700; # 手动输入
     realBandwidth = 500;
-    rtt = 100; # ms，国际线路
-    ram = 500; # MB，可用内存
+    # fqMaxrate = 575; # 手动输入
+    rtt = 60; # ms，国际线路
+    ram = 350; # MB，可用内存
     cpus = 1; # vCPU 数
-    highLoss = false; # 高丢包国际线路
+    highLoss = true; # 高丢包国际线路
   };
 }

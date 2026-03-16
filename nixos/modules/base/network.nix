@@ -25,7 +25,8 @@ let
   # BDP（字节）= 带宽(Mbps) × RTT(ms) × 125
   # 单一激进策略：直接按接近标称带宽估算 BDP，上限更高。
   # ──────────────────────────────────────────────────────────────────────────
-  bdpBasisBandwidth = builtins.floor (cfg.bandwidth * 90 / 100);
+  bdpTargetBandwidth = lib.max cfg.bandwidth cfg.realBandwidth;
+  bdpBasisBandwidth = builtins.floor (bdpTargetBandwidth * 90 / 100);
   bdp = bdpBasisBandwidth * cfg.rtt * 125;
   ramBytes = cfg.ram * 1024 * 1024;
 
@@ -63,7 +64,14 @@ let
   udp_mem_mid = tcp_mem_mid / 2;
   udp_mem_high = tcp_mem_high / 2;
 
-  tcpMemHighPct = if isBerserk then clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600) else 50;
+  tcpMemHighPct =
+    if isBerserk then
+      if lowMemNode then
+        clamp 68 90 (70 + cfg.cpus * 2 + cfg.realBandwidth / 900)
+      else
+        clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600)
+    else
+      50;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 4  稳定连接预算（核心）
@@ -72,26 +80,42 @@ let
   isBerserk = true;
   # 既然引用此配置的均为 VPS，强制开启 VPS 模式
   isVpsMode = true;
+  # 小内存/单核机器走“轻收敛”分支：优先保吞吐，再小幅降内存放大项。
+  lowMemNode = cfg.ram <= 512 || cfg.cpus <= 1;
+  connBudgetRamFactorLowMem = clamp 180 240 (170 + cfg.ram / 8 + cfg.cpus * 6);
+  netdevBacklogBwFactorLowMem = clamp 1250 1500 (
+    1240 + cfg.ram / 4 + cfg.realBandwidth / 50 - cfg.cpus * 10
+  );
+  napiBudgetSingleCoreLowMem = clamp 6200 8200 (6600 + cfg.realBandwidth / 3 + cfg.ram / 4);
+  rpsSockFlowEntriesLowMem = clamp 131072 1048576 (
+    ((cfg.ram * 512) + (cfg.realBandwidth * 128)) / (lib.max 1 cfg.cpus)
+  );
 
   # Profile constants: centralize tuning knobs for readability/maintainability.
   rmemMaxLimit = if isBerserk then ramBytes * 85 / 100 else ramBytes * 20 / 100;
   # 如果是 VPS 且内存小，保命优先，下限降低但保持合理比例
   rmemMinFloor =
     if isVpsMode then
-      ramBytes * 15 / 100
+      if lowMemNode then ramBytes * 10 / 100 else ramBytes * 15 / 100
     else
       (if isBerserk then ramBytes * 25 / 100 else 16 * 1024 * 1024);
-  rmemDefaultFloor = if isBerserk then ramBytes * 10 / 100 else 4 * 1024 * 1024;
+  rmemDefaultFloor =
+    if isBerserk then
+      if lowMemNode then ramBytes * 8 / 100 else ramBytes * 10 / 100
+    else
+      4 * 1024 * 1024;
   rmemDefaultCeilFactor = if isBerserk then 19 else 2;
   rmemDefaultCeilDiv = if isBerserk then 20 else 2;
   notsentLowatCap = if isBerserk then ramBytes * 20 / 100 else rmem_max / 2;
 
-  connBudgetRamFactor = if isBerserk then 280 else 10;
+  connBudgetRamFactor =
+    if isBerserk then if lowMemNode then connBudgetRamFactorLowMem else 280 else 10;
   connBudgetCpuFactor = if isBerserk then 150000 else 7000;
   connBudgetBwFactor = if isBerserk then 380 else 24;
   stableConnCap =
     if isBerserk then lib.max 600000 (cfg.ram * cfg.cpus * cfg.realBandwidth * 20) else 600000;
-  netdevBacklogBwFactor = if isBerserk then 1600 else 110;
+  netdevBacklogBwFactor =
+    if isBerserk then if lowMemNode then netdevBacklogBwFactorLowMem else 1600 else 110;
   netdevBacklogCpuFactor = if isBerserk then 180000 else 20000;
   netdevBacklogCap =
     if isBerserk then lib.max 1200000 (cfg.realBandwidth * 3000 + cfg.cpus * 250000) else 1200000;
@@ -131,7 +155,7 @@ let
   napi_budget =
     if isBerserk then
       if cfg.cpus == 1 then
-        9000
+        if lowMemNode then napiBudgetSingleCoreLowMem else 9000
       else if cfg.cpus <= 4 then
         12800
       else
@@ -157,7 +181,8 @@ let
   # 单核主机避免 NAPI 长时间占满一个调度周期，降低 PSI 抖动。
   netdev_budget_usecs =
     if isBerserk then if cfg.cpus == 1 then (if isVpsMode then 30000 else 45000) else 90000 else 8000;
-  rpsSockFlowEntries = if isBerserk then 2097152 else 65536;
+  rpsSockFlowEntries =
+    if isBerserk then if lowMemNode then rpsSockFlowEntriesLowMem else 2097152 else 65536;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 8  nf_conntrack
@@ -233,7 +258,11 @@ let
   pacingSsKernelMax = lib.min 1000 (pacingSsMax + 40);
   pacingSsKernelMin = 100;
 
-  tcpLimitOutputBytes = clamp (512 * 1024) (ramBytes * 20 / 100) (bdp * 3 / 2 + 4 * 1024 * 1024);
+  tcpLimitOutputBytes =
+    if lowMemNode then
+      clamp (512 * 1024) (ramBytes * 16 / 100) (bdp + 2 * 1024 * 1024)
+    else
+      clamp (512 * 1024) (ramBytes * 20 / 100) (bdp * 3 / 2 + 4 * 1024 * 1024);
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 10  重试次数
@@ -246,6 +275,14 @@ let
   # § 11  内存/Swap
   # ──────────────────────────────────────────────────────────────────────────
   vm_swappiness = if cfg.ram >= 8192 then 5 else 1;
+
+  # fq 整形护栏：若启用整形，按资源与链路动态计算 headroom，
+  # 既确保能跑满，又保留更激进的突发空间以对抗运营商惩罚。
+  fqHeadroomPct = clamp 108 120 (
+    108 + (if cfg.highLoss then 2 else 0) + (if lowMemNode then 1 else 0) + cfg.realBandwidth / 2000
+  );
+  fqMinHeadroom = (cfg.realBandwidth * fqHeadroomPct + 99) / 100;
+  fqMaxrateEffective = if cfg.fqMaxrate > 0 then lib.max cfg.fqMaxrate fqMinHeadroom else 0;
 
 in
 {
@@ -319,7 +356,8 @@ in
       default = 0;
       description = ''
         FQ 队列主动整形速率上限（Mbps）。
-        默认自动取 realBandwidth × 95%。设为 0 则关闭整形。
+        设为 0 则关闭整形；设为 >0 时会自动按 CPU/RAM/丢包状态动态抬升下限（通常 >= realBandwidth × 108%）。
+        推荐设置在 realBandwidth 的 110%-120% 区间，用于“防惩罚但不保守”。
         原理：主动把发包速率卡在运营商令牌桶限速以下，永不触发硬件尾丢包，
         净吞吐反比不限速 + 频繁 RTO 重传的连接更高。
       '';
@@ -796,10 +834,10 @@ in
       };
 
       # ── 服务三：FQ Pacing 主动整形（可选，fqMaxrate > 0 时生效）────────
-      # 原理：主动将出口速率限制在运营商带宽上限的 ~95%，
+      # 原理：主动将出口速率限制在真实可用带宽略上方（通常 110%-120%），
       #        FQ 将包均匀分布到时间轴，永不触发运营商交换机硬件尾丢包，
       #        净吞吐反比不限速 + 频繁 RTO 重传的连接更高。
-      systemd.services.set-fq-pacing = lib.mkIf (cfg.fqMaxrate > 0) {
+      systemd.services.set-fq-pacing = lib.mkIf (fqMaxrateEffective > 0) {
         description = "Apply FQ pacing rate limit to smooth out burst and avoid token bucket drops";
         after = [
           "network-online.target"
@@ -831,8 +869,8 @@ in
           # flow_limit 200：允许单个 FQ flow 积压 200 个包（默认 100）。
           # kernel-relay 场景所有转发流量 src IP 相同，FQ 视为同一 flow，
           # 提高上限防止合法转发流量被 FQ 自身限速。
-          tc qdisc replace dev "$IFACE" root fq maxrate ${toString cfg.fqMaxrate}mbit flow_limit 200 quantum 12000 initial_quantum 65536
-          echo "[set-fq-pacing] Applied fq maxrate=${toString cfg.fqMaxrate}mbit flow_limit=200 quantum=12000 on $IFACE"
+          tc qdisc replace dev "$IFACE" root fq maxrate ${toString fqMaxrateEffective}mbit flow_limit 200 quantum 12000 initial_quantum 65536
+          echo "[set-fq-pacing] Applied fq maxrate=${toString fqMaxrateEffective}mbit flow_limit=200 quantum=12000 on $IFACE"
         '';
       };
 
@@ -1017,7 +1055,7 @@ in
                           ca=$(( ${toString pacingCaRatio} + 20 ))
                           icwnd=$(( ${toString initcwnd} + 64 ))
                           irwnd=$(( ${toString initrwnd} + 256 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 125 / 100 ))
+                          fqrate=$(( ${toString fqMaxrateEffective} * 125 / 100 ))
                           lout=$(( ${toString tcpLimitOutputBytes} * 110 / 100 ))
                           bp=$(( ${toString busy_poll} * 100 / 100 ))
                           ndb=$(( ${toString napi_budget} * 100 / 100 ))
@@ -1029,7 +1067,7 @@ in
                           ca=$(( ${toString pacingCaRatio} * 100 / 100 ))
                           icwnd=$(( ${toString initcwnd} * 100 / 100 ))
                           irwnd=$(( ${toString initrwnd} * 100 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 112 / 100 ))
+                          fqrate=$(( ${toString fqMaxrateEffective} * 112 / 100 ))
                           lout=$(( ${toString tcpLimitOutputBytes} * 80 / 100 ))
                           bp=$(( ${toString busy_poll} * 70 / 100 ))
                           ndb=$(( ${toString napi_budget} * 85 / 100 ))
@@ -1045,7 +1083,7 @@ in
                           ca=$(( ${toString pacingCaRatio} * 99 / 100 ))
                           icwnd=$(( ${toString initcwnd} * 99 / 100 ))
                           irwnd=$(( ${toString initrwnd} * 99 / 100 ))
-                          fqrate=$(( ${toString cfg.fqMaxrate} * 102 / 100 ))
+                          fqrate=$(( ${toString fqMaxrateEffective} * 102 / 100 ))
                           lout=$(( ${toString tcpLimitOutputBytes} * 60 / 100 ))
                           bp=$(( ${toString busy_poll} * 40 / 100 ))
                           ndb=$(( ${toString napi_budget} * 70 / 100 ))
@@ -1092,7 +1130,7 @@ in
                         ip -6 route change $DEF6 initcwnd "$icwnd" initrwnd "$irwnd" advmss "$CUR_MSS6" || true
                       fi
 
-                    if [ "${toString cfg.fqMaxrate}" -gt 0 ]; then
+                    if [ "${toString fqMaxrateEffective}" -gt 0 ]; then
                       tc qdisc replace dev "$IFACE" root fq maxrate ''${fqrate}mbit flow_limit 200 quantum 12000 initial_quantum 65536
                     fi
 
