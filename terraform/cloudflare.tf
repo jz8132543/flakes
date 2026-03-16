@@ -147,10 +147,11 @@ resource "cloudflare_dns_record" "dora" {
 
 # matrix SRV records
 resource "cloudflare_dns_record" "_matrix_tcp" {
-  name    = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
-  type    = "SRV"
-  ttl     = 1
-  zone_id = cloudflare_zone.im_dora.id
+  name     = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
+  type     = "SRV"
+  ttl      = 1
+  zone_id  = cloudflare_zone.im_dora.id
+  priority = 10
   data = {
     priority = 10
     weight   = 5
@@ -160,10 +161,11 @@ resource "cloudflare_dns_record" "_matrix_tcp" {
 }
 
 resource "cloudflare_dns_record" "_turn_udp" {
-  name    = "_turn._udp.${cloudflare_zone.im_dora.name}"
-  type    = "SRV"
-  ttl     = 1
-  zone_id = cloudflare_zone.im_dora.id
+  name     = "_turn._udp.${cloudflare_zone.im_dora.name}"
+  type     = "SRV"
+  ttl      = 1
+  zone_id  = cloudflare_zone.im_dora.id
+  priority = 10
   data = {
     priority = 10
     weight   = 5
@@ -172,44 +174,6 @@ resource "cloudflare_dns_record" "_turn_udp" {
   }
 }
 
-resource "cloudflare_dns_record" "_turns_udp" {
-  name    = "_turns._udp.${cloudflare_zone.im_dora.name}"
-  type    = "SRV"
-  ttl     = 1
-  zone_id = cloudflare_zone.im_dora.id
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 5349
-    target   = "nue0.dora.im"
-  }
-}
-
-resource "cloudflare_dns_record" "_turn_tcp" {
-  name    = "_turn._tcp.${cloudflare_zone.im_dora.name}"
-  type    = "SRV"
-  ttl     = 1
-  zone_id = cloudflare_zone.im_dora.id
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 3478
-    target   = "nue0.dora.im"
-  }
-}
-
-resource "cloudflare_dns_record" "_turns_tcp" {
-  name    = "_turns._tcp.${cloudflare_zone.im_dora.name}"
-  type    = "SRV"
-  ttl     = 1
-  zone_id = cloudflare_zone.im_dora.id
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 5349
-    target   = "nue0.dora.im"
-  }
-}
 
 # mail
 
@@ -381,7 +345,7 @@ resource "cloudflare_dns_record" "dora_cuv6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2408:8207:25b1:2701:6666:0016:3efc:9adf"
+  content = "2408:8207:25b1:2701:6666:16:3efc:9adf"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cmv6" {
@@ -389,7 +353,7 @@ resource "cloudflare_dns_record" "dora_cmv6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2409:8a00:2643:c551:6666:0016:3efc:9adf"
+  content = "2409:8a00:2643:c551:6666:16:3efc:9adf"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cu" {

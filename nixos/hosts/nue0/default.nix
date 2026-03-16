@@ -69,6 +69,12 @@
     masterSecret = config.sops.placeholder."frp_panel/master_secret";
     port = 18080;
     grpcPort = 15000;
+    bootstrapAdmin = {
+      enable = true;
+      username = "i";
+      email = "i@${config.networking.domain}";
+      passwordSecret = "password";
+    };
   };
 
   environment.seedbox = {
