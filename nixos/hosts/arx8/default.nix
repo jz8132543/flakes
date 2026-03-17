@@ -12,7 +12,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/modules/easytier-member.nix
+      ../../modules/base/easytier.nix
       nixosModules.optimize.fakehttp
       nixosModules.optimize.network-desktop
       nixosModules.services.traefik
@@ -42,9 +42,10 @@
 
   # Media services removed - use nue0 for media server
 
-  services.easytierMesh.member = {
+  services.easytierMesh = {
     enable = true;
-    bootstrapHost = "et.${config.networking.domain}";
+    role = "member";
+    bootstrap.host = "et.${config.networking.domain}";
     ipv4 = "10.144.0.22/24";
     lowResource = false;
     latencyFirst = true;

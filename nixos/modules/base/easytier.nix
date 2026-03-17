@@ -6,14 +6,15 @@
 let
   inherit (lib)
     mkEnableOption
-    mkForce
     mkIf
+    mkMerge
     mkOption
+    mkForce
     optionals
     types
     ;
-  cfg = config.services.easytierMesh.member;
-  envName = "easytier-member.env";
+  cfg = config.services.easytierMesh;
+  envName = "easytier-mesh.env";
   instanceName = "mesh";
 
   listenerUris =
@@ -34,21 +35,21 @@ let
     ++ optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ];
 
   bootstrapPeers =
-    (optionals (cfg.bootstrapHost != null) (
+    (optionals (cfg.role == "member" && cfg.bootstrap.host != null) (
       optionals cfg.protocols.wss.enable [
-        "wss://${cfg.bootstrapHost}:${toString cfg.protocols.wss.bootstrapPort}"
+        "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.tcp.enable [
-        "tcp://${cfg.bootstrapHost}:${toString cfg.protocols.tcp.bootstrapPort}"
+        "tcp://${cfg.bootstrap.host}:${toString cfg.protocols.tcp.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.udp.enable [
-        "udp://${cfg.bootstrapHost}:${toString cfg.protocols.udp.bootstrapPort}"
+        "udp://${cfg.bootstrap.host}:${toString cfg.protocols.udp.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.faketcp.enable [
-        "faketcp://${cfg.bootstrapHost}:${toString cfg.protocols.faketcp.bootstrapPort}"
+        "faketcp://${cfg.bootstrap.host}:${toString cfg.protocols.faketcp.bootstrapPort}"
       ]
     ))
-    ++ cfg.bootstrapPeers
+    ++ cfg.bootstrap.peers
     ++ cfg.extraPeers;
 
   commonArgs = [
@@ -76,7 +77,7 @@ let
     "--file-log-count"
     "2"
     "--enable-kcp-proxy=${if cfg.protocols.kcp.enable then "true" else "false"}"
-    "--disable-kcp-input=true"
+    "--disable-kcp-input=${if cfg.role == "bootstrap" then "false" else "true"}"
     "--enable-quic-proxy=${if cfg.protocols.quic.enable then "true" else "false"}"
     "--disable-quic-input=false"
     "--quic-listen-port"
@@ -99,9 +100,15 @@ let
   ++ cfg.extraArgs;
 in
 {
-  options.services.easytierMesh.member = {
-    enable = (mkEnableOption "EasyTier mesh member") // {
-      default = true;
+  options.services.easytierMesh = {
+    enable = mkEnableOption "EasyTier mesh";
+
+    role = mkOption {
+      type = types.enum [
+        "bootstrap"
+        "member"
+      ];
+      default = "member";
     };
 
     networkName = mkOption {
@@ -114,10 +121,10 @@ in
       default = "easytier/network_secret";
     };
 
-    bootstrapHost = mkOption {
+    ipv4 = mkOption {
       type = types.nullOr types.str;
-      default = "et.${config.networking.domain}";
-      description = "Convenience bootstrap host. Set to null if you only want to use bootstrapPeers.";
+      default = null;
+      description = "Static EasyTier address. Leave null to use DHCP-style auto assignment.";
     };
 
     defaultProtocol = mkOption {
@@ -131,27 +138,30 @@ in
       default = "wss";
     };
 
-    bootstrapPeers = mkOption {
-      type = types.listOf types.str;
-      default = [ ];
-      description = ''
-        Additional peer URIs used only by this machine to join the mesh.
-      '';
-      example = [
-        "wss://et.dora.im:443"
-        "faketcp://et.dora.im:11011"
-      ];
-    };
-
-    ipv4 = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "Static EasyTier address. Leave null to use DHCP-style auto assignment.";
-    };
-
     devName = mkOption {
       type = types.str;
       default = "easytier0";
+    };
+
+    publicHost = mkOption {
+      type = types.str;
+      default = "et.${config.networking.domain}";
+    };
+
+    bootstrap = {
+      host = mkOption {
+        type = types.nullOr types.str;
+        default = "et.${config.networking.domain}";
+      };
+      peers = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+      };
+      preStartText = mkOption {
+        type = types.lines;
+        default = "";
+        description = "Optional bootstrap preparation logic run before easytier-mesh starts on bootstrap nodes.";
+      };
     };
 
     protocols = {
@@ -169,7 +179,6 @@ in
           default = config.ports.easytier-tcp;
         };
       };
-
       udp = {
         enable = mkOption {
           type = types.bool;
@@ -184,7 +193,6 @@ in
           default = config.ports.easytier-udp;
         };
       };
-
       faketcp = {
         enable = mkOption {
           type = types.bool;
@@ -199,7 +207,6 @@ in
           default = config.ports.easytier-faketcp;
         };
       };
-
       wss = {
         enable = mkOption {
           type = types.bool;
@@ -214,7 +221,6 @@ in
           default = config.ports.https;
         };
       };
-
       quic = {
         enable = mkOption {
           type = types.bool;
@@ -225,12 +231,9 @@ in
           default = config.ports.easytier-quic;
         };
       };
-
-      kcp = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-        };
+      kcp.enable = mkOption {
+        type = types.bool;
+        default = false;
       };
     };
 
@@ -262,7 +265,6 @@ in
     exitNode = mkOption {
       type = types.nullOr types.str;
       default = null;
-      description = "Virtual EasyTier IPv4 address of the exit node to use.";
     };
 
     overlayCIDR = mkOption {
@@ -301,100 +303,121 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-    assertions = [
-      {
-        assertion =
-          cfg.protocols.wss.enable
-          || cfg.protocols.quic.enable
-          || cfg.protocols.tcp.enable
-          || cfg.protocols.udp.enable
-          || cfg.protocols.faketcp.enable;
-        message = "At least one EasyTier transport/proxy path should remain enabled.";
-      }
-      {
-        assertion =
-          (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
-          && (cfg.defaultProtocol != "quic" || cfg.protocols.quic.enable)
-          && (cfg.defaultProtocol != "tcp" || cfg.protocols.tcp.enable)
-          && (cfg.defaultProtocol != "udp" || cfg.protocols.udp.enable)
-          && (cfg.defaultProtocol != "faketcp" || cfg.protocols.faketcp.enable);
-        message = "services.easytierMesh.member.defaultProtocol must match an enabled protocol.";
-      }
-    ];
+  config = mkIf cfg.enable (mkMerge [
+    {
+      assertions = [
+        {
+          assertion =
+            cfg.protocols.wss.enable
+            || cfg.protocols.quic.enable
+            || cfg.protocols.tcp.enable
+            || cfg.protocols.udp.enable
+            || cfg.protocols.faketcp.enable;
+          message = "At least one EasyTier transport/proxy path should remain enabled.";
+        }
+        {
+          assertion =
+            (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
+            && (cfg.defaultProtocol != "quic" || cfg.protocols.quic.enable)
+            && (cfg.defaultProtocol != "tcp" || cfg.protocols.tcp.enable)
+            && (cfg.defaultProtocol != "udp" || cfg.protocols.udp.enable)
+            && (cfg.defaultProtocol != "faketcp" || cfg.protocols.faketcp.enable);
+          message = "services.easytierMesh.defaultProtocol must match an enabled protocol.";
+        }
+      ];
 
-    sops.secrets."${cfg.secretSopsKey}" = {
-      restartUnits = [ "easytier-${instanceName}.service" ];
-    };
+      sops.secrets."${cfg.secretSopsKey}" = {
+        restartUnits = [ "easytier-${instanceName}.service" ];
+      };
 
-    sops.templates."${envName}".content = ''
-      ET_NETWORK_SECRET=${config.sops.placeholder."${cfg.secretSopsKey}"}
-    '';
+      sops.templates."${envName}".content = ''
+        ET_NETWORK_SECRET=${config.sops.placeholder."${cfg.secretSopsKey}"}
+      '';
 
-    services.easytier = {
-      enable = true;
-      allowSystemForward = cfg.proxyForwardBySystem;
-      instances."${instanceName}" = {
-        environmentFiles = [ config.sops.templates."${envName}".path ];
-        settings = {
-          hostname = config.networking.hostName;
-          network_name = cfg.networkName;
-          inherit (cfg) ipv4;
-          dhcp = cfg.ipv4 == null;
-          listeners = listenerUris;
-          peers = bootstrapPeers;
+      services.easytier = {
+        enable = true;
+        allowSystemForward = cfg.proxyForwardBySystem || cfg.enableExitNode;
+        instances."${instanceName}" = {
+          environmentFiles = [ config.sops.templates."${envName}".path ];
+          settings = {
+            hostname = config.networking.hostName;
+            network_name = cfg.networkName;
+            inherit (cfg) ipv4;
+            dhcp = cfg.ipv4 == null;
+            listeners = listenerUris;
+            peers = if cfg.role == "bootstrap" then [ ] else bootstrapPeers;
+          };
+          extraArgs = commonArgs;
         };
-        extraArgs = commonArgs;
       };
-    };
 
-    networking.firewall = {
-      trustedInterfaces = [ cfg.devName ];
-      allowedTCPPorts = allowedTcpPorts;
-      allowedUDPPorts = allowedUdpPorts;
-    };
-
-    boot.kernel.sysctl = mkIf cfg.proxyForwardBySystem {
-      "net.ipv4.conf.all.forwarding" = mkForce true;
-      "net.ipv4.ip_forward" = mkForce 1;
-      "net.ipv6.conf.all.forwarding" = mkForce 1;
-    };
-
-    networking.nftables = mkIf cfg.proxyForwardBySystem {
-      enable = true;
-      tables.easytier-forward = {
-        family = "inet";
-        content = ''
-          chain forward {
-            type filter hook forward priority filter; policy accept;
-            iifname "${cfg.devName}" accept
-            oifname "${cfg.devName}" accept
-          }
-        '';
+      systemd.services.easytier-mesh = {
+        preStart = lib.mkIf (
+          cfg.role == "bootstrap" && cfg.bootstrap.preStartText != ""
+        ) cfg.bootstrap.preStartText;
+        serviceConfig = {
+          Restart = mkForce "always";
+          RestartSec = mkForce "2s";
+        };
       };
-      tables.easytier-masq = {
-        family = "ip";
-        content = ''
-          chain postrouting {
-            type nat hook postrouting priority srcnat; policy accept;
-            oifname != "${cfg.devName}" ip saddr ${cfg.overlayCIDR} masquerade
-          }
-        '';
+
+      networking.firewall = {
+        trustedInterfaces = [ cfg.devName ];
+        allowedTCPPorts = allowedTcpPorts;
+        allowedUDPPorts = allowedUdpPorts;
       };
-    };
 
-    services.traefik.proxies.easytier-member-rpc = mkIf (config.services.traefik.enable or false) {
-      rule = "Host(`${config.networking.fqdn}`) && (Path(`/et`) || PathPrefix(`/et/`))";
-      target = "http://${cfg.rpcPortal}";
-      middlewares = [
-        "auth"
-        "easytier-member-rpc-stripprefix"
-      ];
-    };
+      boot.kernel.sysctl = mkIf cfg.proxyForwardBySystem {
+        "net.ipv4.conf.all.forwarding" = mkForce true;
+        "net.ipv4.ip_forward" = mkForce 1;
+        "net.ipv6.conf.all.forwarding" = mkForce 1;
+      };
 
-    services.traefik.dynamicConfigOptions.http.middlewares.easytier-member-rpc-stripprefix.stripPrefix.prefixes =
-      [
-        "/et"
-      ];
-  };
+      networking.nftables = mkIf cfg.proxyForwardBySystem {
+        enable = true;
+        tables.easytier-forward = {
+          family = "inet";
+          content = ''
+            chain forward {
+              type filter hook forward priority filter; policy accept;
+              iifname "${cfg.devName}" accept
+              oifname "${cfg.devName}" accept
+            }
+          '';
+        };
+        tables.easytier-masq = {
+          family = "ip";
+          content = ''
+            chain postrouting {
+              type nat hook postrouting priority srcnat; policy accept;
+              oifname != "${cfg.devName}" ip saddr ${cfg.overlayCIDR} masquerade
+            }
+          '';
+        };
+      };
+
+      services.traefik.proxies.easytier-rpc = mkIf (config.services.traefik.enable or false) {
+        rule = "Host(`${config.networking.fqdn}`) && (Path(`/et`) || PathPrefix(`/et/`))";
+        target = "http://${cfg.rpcPortal}";
+        middlewares = [
+          "auth"
+          "easytier-rpc-stripprefix"
+        ];
+      };
+
+      services.traefik.dynamicConfigOptions.http.middlewares.easytier-rpc-stripprefix.stripPrefix.prefixes =
+        [
+          "/et"
+        ];
+    }
+
+    (mkIf (cfg.role == "bootstrap") {
+      services.traefik.tcpProxies.easytier-wss = mkIf (config.services.traefik.enable or false) {
+        rule = "HostSNI(`${cfg.publicHost}`)";
+        target = "127.0.0.1:${toString cfg.protocols.wss.port}";
+        entryPoints = [ "https" ];
+        tls = true;
+      };
+    })
+  ]);
 }

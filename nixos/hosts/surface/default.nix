@@ -11,7 +11,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/modules/easytier-member.nix
+      ../../modules/base/easytier.nix
       nixosModules.optimize.network-desktop
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -47,9 +47,10 @@
     v4l-utils
   ];
 
-  services.easytierMesh.member = {
+  services.easytierMesh = {
     enable = true;
-    bootstrapHost = "et.${config.networking.domain}";
+    role = "member";
+    bootstrap.host = "et.${config.networking.domain}";
     ipv4 = "10.144.0.21/24";
     lowResource = false;
     latencyFirst = true;

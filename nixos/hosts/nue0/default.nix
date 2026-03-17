@@ -11,6 +11,7 @@
     ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
+      ../../modules/base/easytier.nix
       nixosModules.services.traefik
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
@@ -61,7 +62,11 @@
   services.openclaw.enable = true;
   services.ai.litellm.enable = true;
 
-  services.easytierMesh.bootstrap.publicHost = "et.${config.networking.domain}";
+  services.easytierMesh = {
+    enable = true;
+    role = "bootstrap";
+    publicHost = "et.${config.networking.domain}";
+  };
 
   environment.seedbox = {
     enable = true;

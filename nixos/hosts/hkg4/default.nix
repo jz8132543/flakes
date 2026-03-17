@@ -9,7 +9,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/modules/easytier-member.nix
+      ../../modules/base/easytier.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -35,9 +35,10 @@
     highLoss = true; # 高丢包国际线路
   };
 
-  services.easytierMesh.member = {
+  services.easytierMesh = {
     enable = true;
-    bootstrapHost = "et.${config.networking.domain}";
+    role = "member";
+    bootstrap.host = "et.${config.networking.domain}";
     ipv4 = "10.144.0.4/24";
     lowResource = true;
     latencyFirst = true;
