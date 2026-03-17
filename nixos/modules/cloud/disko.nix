@@ -47,16 +47,18 @@
                         "noatime"
                         "compress=zstd:1"
                         "space_cache=v2"
-                        "commit=120"
+                        "commit=30"
                         "ssd_spread"
+                        "flushoncommit"
                       ]
                     else
                       [
                         "noatime"
                         "compress-force=zstd"
                         "space_cache=v2"
-                        "commit=60"
+                        "commit=30"
                         "ssd_spread"
+                        "flushoncommit"
                       ];
                 in
                 {

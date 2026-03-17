@@ -52,7 +52,9 @@ in
     restartUnits = [ "xray.service" ];
     content = builtins.toJSON {
       log = {
-        loglevel = "warning";
+        access = "none";
+        dnsLog = false;
+        loglevel = if config.environment.minimal or false then "error" else "warning";
       };
 
       observatory = {
@@ -242,7 +244,13 @@ in
                 balancerTag = "proxy-balancer";
                 domain = [
                   "skk.moe"
-                  "geosite:category-ai-!cn"
+                  "geosite:openai"
+                  "geosite:anthropic"
+                  "domain:chatgpt.com"
+                  "domain:oaistatic.com"
+                  "domain:oaiusercontent.com"
+                  "domain:claude.ai"
+                  "domain:anthropic.com"
                 ];
               }
             else

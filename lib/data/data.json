@@ -169,6 +169,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "frp-master": {
+      "on": "nue0",
+      "proxy": false
+    },
     "home": {
       "on": "nue0",
       "proxy": false
