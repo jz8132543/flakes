@@ -24,6 +24,13 @@ nixos-anywhere:
 	bash ./scripts/nixos-anywhere-deploy.sh --host "$(flake_host)" --target-host "$(deploy_target)" --port "$(port)" --target-cache "$(target_cache)" --kexec-local-only "$(kexec_local_only)" $(if $(kexec_url),--kexec-url "$(kexec_url)",) $(if $(kexec_attr),--kexec-attr "$(kexec_attr)",)
 mount:
 	nix --experimental-features 'nix-command flakes' run github:nix-community/disko -- --mode mount -f .#${host}
+upload-key:
+	$(eval deploy_target ?= $(if $(target-host),$(target-host),$(if $(target_host),$(target_host),$(if $(ip),root@$(ip),))))
+	$(eval target_disk ?= $(if $(disk),$(disk),$(device)))
+	@if [ -z "$(host)" ]; then echo "Error: 'host' not specified. Usage: make upload-key host=<flake-name> ip=<target-ip> [port=22] disk=<device> [identity_file=...]"; exit 1; fi
+	@if [ -z "$(deploy_target)" ]; then echo "Error: target missing. Usage: make upload-key host=<flake-name> ip=<target-ip> [port=22] disk=<device> [identity_file=...]"; exit 1; fi
+	@if [ -z "$(target_disk)" ]; then echo "Error: disk missing. Usage: make upload-key host=<flake-name> ip=<target-ip> [port=22] disk=<device> [identity_file=...]"; exit 1; fi
+	bash ./scripts/upload-key.sh --host "$(host)" --target-host "$(deploy_target)" --port "$(port)" --device "$(target_disk)" $(if $(identity_file),--identity-file "$(identity_file)",) $(if $(key_src),--key-src "$(key_src)",)
 rebuild-boot:
 	nixos-enter --root /mnt -- nixos-rebuild boot --flake 'https://github.com/jz8132543/flakes'#${host} --install-bootloader
 
