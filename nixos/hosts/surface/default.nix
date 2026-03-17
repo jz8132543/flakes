@@ -11,7 +11,7 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/services/networking/frp-panel/client.nix
+      ../../modules/base/modules/easytier-member.nix
       nixosModules.optimize.network-desktop
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -47,11 +47,12 @@
     v4l-utils
   ];
 
-  services.frp-panel.client = {
+  services.easytierMesh.member = {
     enable = true;
-    masterAddress = "frp.dora.im";
-    masterApiPort = 18080;
-    masterRpcPort = 15000;
-    joinToken = config.sops.placeholder."frp_panel/join_token";
+    bootstrapHost = "et.${config.networking.domain}";
+    ipv4 = "10.144.0.21/24";
+    lowResource = false;
+    latencyFirst = true;
+    privateMode = true;
   };
 }

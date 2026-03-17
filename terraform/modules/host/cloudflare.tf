@@ -85,23 +85,3 @@ resource "cloudflare_dns_record" "enpoint_v6_records" {
   content  = each.value
   zone_id  = var.cloudflare_zone_id
 }
-
-resource "cloudflare_dns_record" "dn42_v4_records" {
-  name     = "${var.name}.dn42.${var.cloudflare_zone_name}"
-  for_each = toset(local.dn42_addresses_v4)
-  ttl      = 1 # default ttl
-  proxied  = false
-  type     = "A"
-  content  = each.value
-  zone_id  = var.cloudflare_zone_id
-}
-
-resource "cloudflare_dns_record" "dn42_v6_records" {
-  name     = "${var.name}.dn42.${var.cloudflare_zone_name}"
-  for_each = toset(local.dn42_addresses_v6)
-  ttl      = 1 # default ttl
-  proxied  = false
-  type     = "AAAA"
-  content  = each.value
-  zone_id  = var.cloudflare_zone_id
-}

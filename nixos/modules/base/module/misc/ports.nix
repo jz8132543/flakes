@@ -68,17 +68,10 @@
       bird-lg-proxy = 3250;
       bird-lg-frontend = 3251;
       ipsec-nat-traversal = 4500;
-      babel = 6696;
       jellyfin = 8096;
       jellyfin-auto-discovery-1 = 1900;
       jellyfin-auto-discovery-2 = 7359;
       zerotier = 9993;
-      dn42-mesh-min = 19000;
-      # interval: no ports here
-      dn42-mesh-max = 19999;
-      dn42-peer-min = 20000;
-      # interval: no ports here
-      dn42-peer-max = 23999;
       minecraft = 25565;
       minecraft-rcon = 25566;
       minecraft-map = 25567;
@@ -111,6 +104,8 @@
       seafile-dav = 3061;
       morty = 3001;
       searx = 8888;
+      easytier-wss = 11012;
+      easytier-quic = 11030;
       headscale = 8085;
       headscale_metrics = 8095;
       headscale_grpc = 50443;

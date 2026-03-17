@@ -108,6 +108,9 @@
   };
   systemd.services.headscale.serviceConfig = {
     TimeoutStopSec = "5s";
+    ExecStartPre = [
+      "${pkgs.bash}/bin/bash -euc 'db=/var/lib/headscale/db.sqlite; [ -f \"$db\" ] || exit 0; ${pkgs.sqlite}/bin/sqlite3 \"$db\" \"DELETE FROM routes WHERE node_id IS NOT NULL AND node_id NOT IN (SELECT id FROM nodes);\"'"
+    ];
     LoadCredential = [
       "map.yaml:/etc/headscale/map.yaml"
       "acl.json:/etc/headscale/acl.json"

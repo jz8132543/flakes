@@ -46,7 +46,7 @@
   environment.systemPackages = with pkgs; [
     curlFull
     wget
-    neofetch
+    fastfetch
     screen
     tcpdump
     wireguard-tools

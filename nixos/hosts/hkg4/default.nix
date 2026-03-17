@@ -9,7 +9,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/services/networking/frp-panel/server.nix
+      ../../modules/base/modules/easytier-member.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -35,11 +35,13 @@
     highLoss = true; # 高丢包国际线路
   };
 
-  services.frp-panel.server = {
+  services.easytierMesh.member = {
     enable = true;
-    masterAddress = "frp.dora.im";
-    masterApiPort = 18080;
-    masterRpcPort = 15000;
-    joinToken = config.sops.placeholder."frp_panel/join_token";
+    bootstrapHost = "et.${config.networking.domain}";
+    ipv4 = "10.144.0.4/24";
+    lowResource = true;
+    latencyFirst = true;
+    privateMode = true;
+    disableIPv6 = true;
   };
 }
