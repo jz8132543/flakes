@@ -11,7 +11,6 @@
     ++ nixosModules.services.media.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/easytier.nix
       nixosModules.services.traefik
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
@@ -63,7 +62,6 @@
   services.ai.litellm.enable = true;
 
   services.easytierMesh = {
-    enable = true;
     role = "bootstrap";
     publicHost = "et.${config.networking.domain}";
   };

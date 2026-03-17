@@ -1,7 +1,6 @@
 {
   nixosModules,
   pkgs,
-  config,
   ...
 }:
 {
@@ -11,7 +10,6 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/easytier.nix
       nixosModules.optimize.network-desktop
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -46,14 +44,4 @@
     efibootmgr
     v4l-utils
   ];
-
-  services.easytierMesh = {
-    enable = true;
-    role = "member";
-    bootstrap.host = "et.${config.networking.domain}";
-    ipv4 = "10.144.0.21/24";
-    lowResource = false;
-    latencyFirst = true;
-    privateMode = true;
-  };
 }

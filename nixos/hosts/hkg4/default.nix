@@ -1,6 +1,5 @@
 {
   nixosModules,
-  config,
   ...
 }:
 {
@@ -9,7 +8,6 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      ../../modules/base/easytier.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
@@ -33,16 +31,5 @@
     ram = 4096; # MB，可用内存
     cpus = 4; # vCPU 数
     highLoss = true; # 高丢包国际线路
-  };
-
-  services.easytierMesh = {
-    enable = true;
-    role = "member";
-    bootstrap.host = "et.${config.networking.domain}";
-    ipv4 = "10.144.0.4/24";
-    lowResource = true;
-    latencyFirst = true;
-    privateMode = true;
-    disableIPv6 = true;
   };
 }

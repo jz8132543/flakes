@@ -101,7 +101,9 @@ let
 in
 {
   options.services.easytierMesh = {
-    enable = mkEnableOption "EasyTier mesh";
+    enable = (mkEnableOption "EasyTier mesh") // {
+      default = true;
+    };
 
     role = mkOption {
       type = types.enum [
@@ -145,7 +147,7 @@ in
 
     publicHost = mkOption {
       type = types.str;
-      default = "et.${config.networking.domain}";
+      default = config.networking.fqdn;
     };
 
     bootstrap = {
