@@ -172,6 +172,8 @@ in
         show-mounts = false;
         click-action = "focus-or-appspread";
         scroll-action = "switch-workspace";
+        autohide = true;
+        dock-fixed = false;
         intellihide-mode = "ALL_WINDOWS";
         show-dock-urgent-notify = false;
         show-trash = false;

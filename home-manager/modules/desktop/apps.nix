@@ -1,5 +1,5 @@
 {
-  lib,
+  config,
   pkgs,
   ...
 }:
@@ -156,7 +156,7 @@
         agreeEULA=true
       '';
     in
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    config.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
       mkdir -p "$HOME/.config/Kingsoft"
       conf="$HOME/.config/Kingsoft/Office.conf"
 
