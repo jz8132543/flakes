@@ -174,6 +174,7 @@ in
         scroll-action = "switch-workspace";
         autohide = true;
         dock-fixed = false;
+        intellihide = false;
         intellihide-mode = "ALL_WINDOWS";
         show-dock-urgent-notify = false;
         show-trash = false;

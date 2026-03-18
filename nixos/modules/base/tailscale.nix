@@ -19,6 +19,8 @@ in
   };
   networking = {
     networkmanager.unmanaged = [ interfaceName ];
+    # Let dnsmasq handle split DNS locally.
+    # Tailscale's magic DNS servers remain reachable via tailscale0.
     firewall = {
       # checkReversePath = false;
       trustedInterfaces = [ "tailscale0" ];
@@ -27,10 +29,10 @@ in
       ];
     };
   };
-  # https://github.com/tailscale/tailscale/issues/4254
-  services.resolved.enable = true;
-  networking.useNetworkd = false;
-  # TODO: tailscale cannot connect to some derp when firewall is enabled
+
+  services.dnsmasq.settings.server = lib.mkAfter [
+    "/mag/100.100.100.100@${interfaceName}"
+  ];
 
   sops.secrets.tailscale_preauth_key = { };
 
@@ -90,10 +92,7 @@ in
 
   systemd.services.tailscaled = {
     before = [ "network.target" ];
-    after = [
-      "dnscrypt-proxy2.service"
-      "systemd-resolved.service"
-    ];
+    after = [ "dnsmasq.service" ];
     serviceConfig = {
       Restart = "always";
       TimeoutStopSec = "5s";

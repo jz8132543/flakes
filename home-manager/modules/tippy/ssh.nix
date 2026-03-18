@@ -1,8 +1,12 @@
 {
   osConfig,
   lib,
+  pkgs,
   ...
 }:
+let
+  sshRace = pkgs.callPackage ../../../pkgs/ssh-race { };
+in
 with lib.strings;
 {
   programs = {
@@ -14,11 +18,6 @@ with lib.strings;
       extraOptionOverrides = {
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
-        "CanonicalizeHostname" = "yes";
-        "CanonicalDomains" = concatStringsSep " " (
-          [ osConfig.networking.domain ] ++ osConfig.environment.domains
-        );
-        "CanonicalizeMaxDots" = "0";
         # fix kde connection for android
         "HostKeyAlgorithms" = "+ssh-rsa";
       };
@@ -37,6 +36,7 @@ with lib.strings;
           user = "tippy";
           checkHostIP = false;
           forwardAgent = true;
+          proxyCommand = "${sshRace}/bin/ssh-race -domains et,mag,dora.im %h %p";
           # forwardX11 = true;
           userKnownHostsFile = "/dev/null";
           serverAliveInterval = 3;

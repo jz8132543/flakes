@@ -316,6 +316,12 @@ in
       default = "et.";
     };
 
+    dnsServer = mkOption {
+      type = types.str;
+      default = "100.100.100.101";
+      description = "EasyTier DNS server used for resolving mesh hostnames.";
+    };
+
     rpcPortal = mkOption {
       type = types.str;
       default = "127.0.0.1:15888";
@@ -334,6 +340,12 @@ in
 
   config = mkIf cfg.enable (mkMerge [
     {
+      networking.networkmanager.unmanaged = [ cfg.devName ];
+
+      services.dnsmasq.settings.server = lib.mkAfter [
+        "/et/${cfg.dnsServer}@${cfg.devName}"
+      ];
+
       assertions = [
         {
           assertion =

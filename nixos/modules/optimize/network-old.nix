@@ -52,9 +52,6 @@ let
   queueTheoryCurve =
     x: factor: divisor:
     factor / (1.0 - divisor) * x;
-  tcpCongestionCurve =
-    x: mode: base:
-    if mode == "slow_start" then lib.min (base * (1.0 + 0.5 * x)) (base + 10.0 * x) else base + 0.1 * x;
 
   gamingProfile = memoryMB: {
     responsiveness =

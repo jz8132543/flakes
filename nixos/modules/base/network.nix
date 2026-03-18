@@ -51,9 +51,6 @@ let
   queueTheoryCurve =
     x: factor: divisor:
     factor / (1.0 - divisor) * x;
-  tcpCongestionCurve =
-    x: mode: base:
-    if mode == "slow_start" then lib.min (base * (1.0 + 0.5 * x)) (base + 10.0 * x) else base + 0.1 * x;
 
   gamingProfile = memoryMB: {
     responsiveness =
@@ -671,6 +668,30 @@ in
         message = "environment.networkOmnitt.rampUpRate must be in the range 0.1..1.0.";
       }
     ];
+
+    services.resolved.enable = false;
+    networking.resolvconf.enable = false;
+    networking.networkmanager.dns = "none";
+    # Keep a dedicated loopback address for the local resolver so we do not
+    # collide with other services that may also want to bind 127.0.0.1:53.
+    networking.nameservers = [ "127.0.0.55" ];
+    environment.etc."resolv.conf".text = ''
+      nameserver 127.0.0.55
+    '';
+
+    services.dnsmasq = {
+      enable = true;
+      settings = {
+        domain-needed = true;
+        bogus-priv = true;
+        no-resolv = true;
+        listen-address = [ "127.0.0.55" ];
+        server = lib.mkBefore [
+          "1.1.1.1"
+          "1.0.0.1"
+        ];
+      };
+    };
 
     environment.etc."sysctl.d/99-network-omnitt.conf".text = lib.mkForce sysctlText;
   };
