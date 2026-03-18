@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   ...
 }:
@@ -137,16 +138,98 @@
       network-traffic = true;
     };
   };
-  xdg.configFile."Kingsoft/Office.conf".text = ''
-    [6.0]
-    FirstInstall=0
+  home.activation.wpsOfficeConf =
+    let
+      officeConf = pkgs.writeText "wps-office.conf" ''
+        [6.0]
+        FirstInstall=0
 
-    [common]
-    first_run=false
-    first_detect_file_association_while_startup=false
-    agreementshown=true
-    agree_privacy_policy=true
-  '';
+        [General]
+        language=zh_CN
+        languages=zh_CN
+
+        [common]
+        first_run=false
+        first_detect_file_association_while_startup=false
+        agreementshown=true
+        agree_privacy_policy=true
+        agreeEULA=true
+      '';
+    in
+    config.lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      mkdir -p "$HOME/.config/Kingsoft"
+      conf="$HOME/.config/Kingsoft/Office.conf"
+
+      if [ ! -f "$conf" ]; then
+        cp -f ${officeConf} "$conf"
+        chmod 0644 "$conf"
+      fi
+
+      upsert_ini_key() {
+        section="$1"
+        key="$2"
+        value="$3"
+        tmp="$(mktemp)"
+
+        awk -v section="$section" -v key="$key" -v value="$value" '
+          BEGIN {
+            in_section = 0
+            section_found = 0
+            key_done = 0
+          }
+
+          /^\[[^]]+\]$/ {
+            if (in_section && !key_done) {
+              print key "=" value
+              key_done = 1
+            }
+
+            if ($0 == "[" section "]") {
+              in_section = 1
+              section_found = 1
+            } else {
+              in_section = 0
+            }
+
+            print
+            next
+          }
+
+          {
+            if (in_section && $0 ~ ("^" key "=")) {
+              if (!key_done) {
+                print key "=" value
+                key_done = 1
+              }
+              next
+            }
+            print
+          }
+
+          END {
+            if (!key_done) {
+              if (!section_found) {
+                print "[" section "]"
+              }
+              print key "=" value
+            }
+          }
+        ' "$conf" > "$tmp"
+
+        mv "$tmp" "$conf"
+      }
+
+      upsert_ini_key "6.0" "FirstInstall" "0"
+      upsert_ini_key "General" "language" "zh_CN"
+      upsert_ini_key "General" "languages" "zh_CN"
+      upsert_ini_key "common" "first_run" "false"
+      upsert_ini_key "common" "first_detect_file_association_while_startup" "false"
+      upsert_ini_key "common" "agreementshown" "true"
+      upsert_ini_key "common" "agree_privacy_policy" "true"
+      upsert_ini_key "common" "agreeEULA" "true"
+
+      chmod 0644 "$conf"
+    '';
 
   # Set Chrome environment variables for Playwright/browser integration
   home.sessionVariables = {

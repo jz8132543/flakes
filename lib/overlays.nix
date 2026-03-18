@@ -97,6 +97,14 @@
                 sed -i 's|URL=.*|URL=/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.pptx|' \
                   "$out/share/templates/wps-office-wpp-template.desktop"
               fi
+
+              for exe in $out/bin/*; do
+                [ -x "$exe" ] || continue
+                wrapProgram "$exe" \
+                  --set-default LANG zh_CN.UTF-8 \
+                  --set-default LANGUAGE zh_CN:zh \
+                  --set-default LC_MESSAGES zh_CN.UTF-8
+              done
             '';
           });
         };
