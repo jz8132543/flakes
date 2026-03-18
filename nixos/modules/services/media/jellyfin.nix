@@ -152,19 +152,19 @@
           pluginDir = "${dataDir}/plugins";
 
           jellyfinPlugins = {
-            "IntroSkipper" = pkgs.jellyfin-plugins.intro-skipper;
-            "Jellyfin.Plugin.PlaybackReporting" = pkgs.jellyfin-plugins.playback-reporting;
-            "Jellyfin.Plugin.Bangumi" = pkgs.jellyfin-plugins.bangumi;
-            "Shokofin" = pkgs.jellyfin-plugins.shokofin;
-            "AniSync" = pkgs.jellyfin-plugins.ani-sync;
-            "Jellyfin.Plugin.Bazarr" = pkgs.jellyfin-plugins.bazarr;
-            "Jellyfin.Plugin.MergeVersions" = pkgs.jellyfin-plugins.merge-versions;
-            "Jellyfin.Plugin.SkinManager" = pkgs.jellyfin-plugins.skin-manager;
-            "MetaTube" = pkgs.jellyfin-plugins.metatube;
-            "Jellyfin.Plugin.TMDbBoxSets" = pkgs.jellyfin-plugins.tmdb-box-sets;
-            "Jellyfin.Plugin.Douban" = pkgs.jellyfin-plugins.douban;
-            "Jellyfin.Plugin.Fanart" = pkgs.jellyfin-plugins.fanart;
-            "Jellyfin.Plugin.SSO" = pkgs.jellyfin-plugins.sso;
+            # "IntroSkipper" = pkgs.jellyfin-plugins.intro-skipper;
+            # "Jellyfin.Plugin.PlaybackReporting" = pkgs.jellyfin-plugins.playback-reporting;
+            # "Jellyfin.Plugin.Bangumi" = pkgs.jellyfin-plugins.bangumi;
+            # "Shokofin" = pkgs.jellyfin-plugins.shokofin;
+            # "AniSync" = pkgs.jellyfin-plugins.ani-sync;
+            # "Jellyfin.Plugin.Bazarr" = pkgs.jellyfin-plugins.bazarr;
+            # "Jellyfin.Plugin.MergeVersions" = pkgs.jellyfin-plugins.merge-versions;
+            # "Jellyfin.Plugin.SkinManager" = pkgs.jellyfin-plugins.skin-manager;
+            # "MetaTube" = pkgs.jellyfin-plugins.metatube;
+            # "Jellyfin.Plugin.TMDbBoxSets" = pkgs.jellyfin-plugins.tmdb-box-sets;
+            # "Jellyfin.Plugin.Douban" = pkgs.jellyfin-plugins.douban;
+            # "Jellyfin.Plugin.Fanart" = pkgs.jellyfin-plugins.fanart;
+            # "Jellyfin.Plugin.SSO" = pkgs.jellyfin-plugins.sso;
           };
 
           mkSync = name: path: ''

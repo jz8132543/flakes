@@ -40,6 +40,7 @@
     devhelp
     dconf-editor
     gnome-sound-recorder
+    gnomeExtensions.dash-to-dock
     # gnomeExtensions.allow-locked-remote-desktop
   ];
   # services.gnome.gnome-remote-desktop.enable = true;
@@ -52,6 +53,34 @@
   services.gnome.gnome-browser-connector.enable = true;
   services.gnome.sushi.enable = true;
   services.gvfs.enable = true;
+
+  # System-wide dconf defaults for GNOME dash-to-dock (ensure autohide)
+  environment.etc."dconf/profile/user".text = ''
+    user-db:user
+    system-db:local
+  '';
+
+  environment.etc."dconf/db/local.d/00-dock".text = ''
+    [org/gnome/shell/extensions/dash-to-dock]
+    autohide=true
+    dock-fixed=false
+    intellihide-mode='ALL_WINDOWS'
+    apply-custom-theme=true
+    custom-theme-shrink=true
+  '';
+
+  # Optional: lock the autohide key so users cannot override it
+  environment.etc."dconf/db/local.d/locks/dash-to-dock".text = ''
+    /org/gnome/shell/extensions/dash-to-dock/autohide
+  '';
+
+  # Ensure the dconf database is rebuilt on system activation
+  system.activationScripts.dconf-update = {
+    text = ''
+      ${pkgs.dconf}/bin/dconf update || true
+    '';
+    deps = [ "users" ];
+  };
 
   systemd.targets = {
     sleep.enable = false;

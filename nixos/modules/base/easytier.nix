@@ -17,9 +17,15 @@ let
   cfg = config.services.easytierMesh;
   envName = "easytier-mesh.env";
   instanceName = "mesh";
+  easytierTraefikHosts = lib.unique [
+    config.networking.fqdn
+    "et.${config.networking.domain}"
+  ];
+  easytierTraefikRule = lib.concatMapStringsSep " || " (host: "Host(`${host}`)") easytierTraefikHosts;
 
   listenerUris =
-    optionals cfg.protocols.tcp.enable [ "tcp://0.0.0.0:${toString cfg.protocols.tcp.port}" ]
+    optionals cfg.protocols.ws.enable [ "ws://0.0.0.0:${toString cfg.protocols.ws.port}" ]
+    ++ optionals cfg.protocols.tcp.enable [ "tcp://0.0.0.0:${toString cfg.protocols.tcp.port}" ]
     ++ optionals cfg.protocols.udp.enable [ "udp://0.0.0.0:${toString cfg.protocols.udp.port}" ]
     ++ optionals cfg.protocols.faketcp.enable [
       "faketcp://0.0.0.0:${toString cfg.protocols.faketcp.port}"
@@ -37,7 +43,10 @@ let
 
   bootstrapPeers =
     (optionals (cfg.role == "member" && cfg.bootstrap.host != null) (
-      optionals cfg.protocols.wss.enable [
+      optionals cfg.protocols.ws.enable [
+        "wss://${cfg.bootstrap.host}:${toString cfg.protocols.ws.bootstrapPort}"
+      ]
+      ++ optionals cfg.protocols.wss.enable [
         "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.tcp.enable [
@@ -134,13 +143,14 @@ in
 
     defaultProtocol = mkOption {
       type = types.enum [
+        "ws"
         "faketcp"
         "wss"
         "quic"
         "tcp"
         "udp"
       ];
-      default = "wss";
+      default = "ws";
     };
 
     devName = mkOption {
@@ -170,6 +180,20 @@ in
     };
 
     protocols = {
+      ws = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+        };
+        port = mkOption {
+          type = types.port;
+          default = config.ports.easytier-wss;
+        };
+        bootstrapPort = mkOption {
+          type = types.port;
+          default = config.ports.easytier-traefik-wss;
+        };
+      };
       tcp = {
         enable = mkOption {
           type = types.bool;
@@ -215,7 +239,7 @@ in
       wss = {
         enable = mkOption {
           type = types.bool;
-          default = true;
+          default = false;
         };
         port = mkOption {
           type = types.port;
@@ -313,7 +337,8 @@ in
       assertions = [
         {
           assertion =
-            cfg.protocols.wss.enable
+            cfg.protocols.ws.enable
+            || cfg.protocols.wss.enable
             || cfg.protocols.quic.enable
             || cfg.protocols.tcp.enable
             || cfg.protocols.udp.enable
@@ -322,7 +347,8 @@ in
         }
         {
           assertion =
-            (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
+            (cfg.defaultProtocol != "ws" || cfg.protocols.ws.enable)
+            && (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
             && (cfg.defaultProtocol != "quic" || cfg.protocols.quic.enable)
             && (cfg.defaultProtocol != "tcp" || cfg.protocols.tcp.enable)
             && (cfg.defaultProtocol != "udp" || cfg.protocols.udp.enable)
@@ -417,12 +443,30 @@ in
     }
 
     (mkIf (cfg.role == "bootstrap") {
-      services.traefik.tcpProxies.easytier-wss = mkIf (config.services.traefik.enable or false) {
-        rule = "HostSNI(`${cfg.publicHost}`)";
-        target = "127.0.0.1:${toString cfg.protocols.wss.port}";
-        entryPoints = [ "https" ];
-        tls = true;
-      };
+      networking.firewall.allowedTCPPorts = lib.optional (config.services.traefik.enable or false
+      ) config.ports.easytier-traefik-wss;
+
+      services.traefik.staticConfigOptions.entryPoints.easytier-wss =
+        mkIf (config.services.traefik.enable or false)
+          {
+            address = ":${toString config.ports.easytier-traefik-wss}";
+            forwardedHeaders.insecure = true;
+            proxyProtocol.insecure = true;
+            transport.respondingTimeouts = {
+              readTimeout = 180;
+              writeTimeout = 180;
+              idleTimeout = 180;
+            };
+            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+          };
+
+      services.traefik.proxies.easytier-wss =
+        mkIf ((config.services.traefik.enable or false) && cfg.protocols.ws.enable)
+          {
+            rule = easytierTraefikRule;
+            target = "http://127.0.0.1:${toString cfg.protocols.ws.port}";
+            entryPoints = [ "easytier-wss" ];
+          };
     })
   ]);
 }

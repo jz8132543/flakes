@@ -104,6 +104,7 @@
       seafile-dav = 3061;
       morty = 3001;
       searx = 8888;
+      easytier-traefik-wss = 444;
       easytier-wss = 11012;
       easytier-quic = 11030;
       headscale = 8085;
