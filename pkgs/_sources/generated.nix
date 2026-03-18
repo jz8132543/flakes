@@ -16,34 +16,17 @@
     };
     date = "2024-10-28";
   };
-  alist = {
-    pname = "alist";
-    version = "v4.1.10";
-    src = fetchurl {
-      url = "https://github.com/OpenListTeam/OpenList/releases/download/v4.1.10/openlist-linux-musl-amd64.tar.gz";
-      sha256 = "sha256-Jexh84BBS56I7KuhJt/nW+s2Nxnl22IyHZgGxnAzo4M=";
-    };
-  };
-  clash-webui-yacd-meta = {
-    pname = "clash-webui-yacd-meta";
-    version = "91895a24836d03396a57be01343a98fecdca2631";
-    src = fetchurl {
-      url = "https://github.com/MetaCubeX/Yacd-meta/archive/91895a24836d03396a57be01343a98fecdca2631.zip";
-      sha256 = "sha256-KsyD2arbt9SKasAsB0gRf9eFhGFAU7QRPN3jjDmJ7Q8=";
-    };
-    date = "2026-03-15";
-  };
   custom-win10-fonts = {
     pname = "custom-win10-fonts";
-    version = "4adc0a4198cc090b63bcb667363c03101e8175eb";
+    version = "e96b88e94862845d05dc720ae496303ea5c2e002";
     src = fetchFromGitHub {
       owner = "jz8132543";
       repo = "ttf-ms-win10";
-      rev = "4adc0a4198cc090b63bcb667363c03101e8175eb";
+      rev = "e96b88e94862845d05dc720ae496303ea5c2e002";
       fetchSubmodules = false;
-      sha256 = "sha256-pymEG+Ygll+2YY8NyUj5Ky3ExRSlfFvthz5ap5scO4Y=";
+      sha256 = "sha256-JkkYQ927Ssg9Xxz6ZUCa/FbZ2YQSoHMl27xYnBnWh8k=";
     };
-    date = "2025-01-01";
+    date = "2026-03-18";
   };
   ebook-sender-bot = {
     pname = "ebook-sender-bot";
@@ -81,102 +64,6 @@
       sha256 = "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=";
     };
   };
-  jellyfin-plugin-ani-sync = {
-    pname = "jellyfin-plugin-ani-sync";
-    version = "3.8.0.0";
-    src = fetchurl {
-      url = "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_3.8.0.0.zip";
-      sha256 = "sha256-7Y9fBQtTixpw+6cEq3aYyZThkIcdsYPdoWjLZ53+NIA=";
-    };
-  };
-  jellyfin-plugin-bangumi = {
-    pname = "jellyfin-plugin-bangumi";
-    version = "1.7.5";
-    src = fetchurl {
-      url = "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/1.7.5/Jellyfin.Plugin.Bangumi.zip";
-      sha256 = "sha256-bVtzWYiK+m7qRryOxCM2B/FAaPBBGYdI13x7Y+w0hE8=";
-    };
-  };
-  jellyfin-plugin-bazarr = {
-    pname = "jellyfin-plugin-bazarr";
-    version = "1.1.2";
-    src = fetchurl {
-      url = "https://github.com/enoch85/bazarr-jellyfin/releases/download/v1.1.2/Jellyfin.Plugin.Bazarr.zip";
-      sha256 = "sha256-Rv3BMyBZT0bQr+axGe5J1GNZG0FhiiF7gdt6Ygnb+TM=";
-    };
-  };
-  jellyfin-plugin-douban = {
-    pname = "jellyfin-plugin-douban";
-    version = "2.0.0";
-    src = fetchurl {
-      url = "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v2.0.0/Jellyfin.Plugin.Douban.zip";
-      sha256 = "sha256-SOkdji33ejgfoVwtdfKu1wOdMrrm8dPBzqTIIbNO5tI=";
-    };
-  };
-  jellyfin-plugin-fanart = {
-    pname = "jellyfin-plugin-fanart";
-    version = "14.0.0.0";
-    src = fetchurl {
-      url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_14.0.0.0.zip";
-      sha256 = "sha256-y2pkeVmDEVspja0nd8kqXEMTCJHYhGSQfEWMDfQAvyk=";
-    };
-  };
-  jellyfin-plugin-intro-skipper = {
-    pname = "jellyfin-plugin-intro-skipper";
-    version = "1.10.11.14";
-    src = fetchurl {
-      url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v1.10.11.14/intro-skipper-v1.10.11.14.zip";
-      sha256 = "sha256-aoSZq8rUesV8U6fjWkDLNkdjOviPdAxppGpfJz8e3f8=";
-    };
-  };
-  jellyfin-plugin-merge-versions = {
-    pname = "jellyfin-plugin-merge-versions";
-    version = "10.11.0.1";
-    src = fetchurl {
-      url = "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/10.11.0.1/Jellyfin.Plugin.MergeVersions.zip";
-      sha256 = "sha256-ea/YAhkXbK3MsFdSlxByqfx03BEiMn3PN8PYxOvwgJs=";
-    };
-  };
-  jellyfin-plugin-playback-reporting = {
-    pname = "jellyfin-plugin-playback-reporting";
-    version = "17.0.0.0";
-    src = fetchurl {
-      url = "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_17.0.0.0.zip";
-      sha256 = "sha256-4aNsqFpm8El+DIVke6ESNe8sBQa96872WetjU+cgRXM=";
-    };
-  };
-  jellyfin-plugin-shokofin = {
-    pname = "jellyfin-plugin-shokofin";
-    version = "6.0.3.0";
-    src = fetchurl {
-      url = "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_6.0.3.0_for_10.10.zip";
-      sha256 = "sha256-tn6evlIB/tVCaelP0o4KlhX39dFiWNy9TSyfIQYcy5I=";
-    };
-  };
-  jellyfin-plugin-skin-manager = {
-    pname = "jellyfin-plugin-skin-manager";
-    version = "2.0.2";
-    src = fetchurl {
-      url = "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/2.0.2/Jellyfin-Plugin-SkinManager.zip";
-      sha256 = "sha256-0yy1QkVLFRuy4nSLZbw4nqc7Xu86NFBHNcHwMpn7F5w=";
-    };
-  };
-  jellyfin-plugin-sso = {
-    pname = "jellyfin-plugin-sso";
-    version = "4.0.0.3";
-    src = fetchurl {
-      url = "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v4.0.0.3/sso-authentication_4.0.0.3.zip";
-      sha256 = "sha256-3glRJVvsTtZGA3ZB5+CqEhCzoAoUFAZUgIe+2ZTLm90=";
-    };
-  };
-  jellyfin-plugin-tmdb-box-sets = {
-    pname = "jellyfin-plugin-tmdb-box-sets";
-    version = "12.0.0.0";
-    src = fetchurl {
-      url = "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_12.0.0.0.zip";
-      sha256 = "sha256-J5xYHv3xYOQeZNHkwbUAZ7Skd/x62KPaUQtSmTg1uhY=";
-    };
-  };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";
     version = "43098316202b84d6a71f71aaf8360f102f4d3f1a";
@@ -195,17 +82,6 @@
     src = fetchurl {
       url = "https://cdn.kxy.ovh/kxy.sh";
       sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
-    };
-  };
-  ms912x = {
-    pname = "ms912x";
-    version = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4";
-    src = fetchFromGitHub {
-      owner = "rhgndf";
-      repo = "ms912x";
-      rev = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4";
-      fetchSubmodules = false;
-      sha256 = "sha256-5SMMVXftgfpf/pfRCTvirMO9Ey4cMD3x/5ganxBYdaA=";
     };
   };
   realm-latest = {

@@ -144,32 +144,63 @@
         ];
 
         script = ''
+          set -eu
+
           # 等待 udev 完成设备节点与 by-label/by-partlabel 符号链接创建
-          udevadm settle
+          udevadm settle || true
 
-          mkdir -p /mnt
+          mkdir -p /mnt /mnt/rootfs
 
-          # 移除 -t btrfs，让内置的 mount 自动推断，减少对外部 helper 的依赖
-          mount /dev/disk/by-partlabel/NIXOS /mnt \
-            || mount /dev/disk/by-label/NIXOS /mnt
-
-          if [ -e /mnt/rootfs ]; then
-            # 核心修改：使用 Bash 内置的 read 替代 cut 命令，彻底消除对 coreutils 的依赖
-            # btrfs subvolume list 输出的第9列是路径，我们用 _ 跳过前8列
-            btrfs subvolume list -o /mnt/rootfs \
-              | while read -r _ _ _ _ _ _ _ _ subvolume; do
-                echo "deleting /''$subvolume subvolume..."
-                btrfs subvolume delete "/mnt/''$subvolume"
-              done
-
-            echo "deleting /rootfs subvolume..."
-            btrfs subvolume delete /mnt/rootfs
+          disk=""
+          if [ -e /dev/disk/by-partlabel/NIXOS ]; then
+            disk="/dev/disk/by-partlabel/NIXOS"
+          elif [ -e /dev/disk/by-label/NIXOS ]; then
+            disk="/dev/disk/by-label/NIXOS"
+          else
+            echo "rollback: cannot find NIXOS btrfs device" >&2
+            exit 1
           fi
 
-          echo "restoring blank /rootfs subvolume..."
-          btrfs subvolume create /mnt/rootfs
+          # 默认只挂载 rootfs 子卷到 /mnt/rootfs
+          if mount -o subvol=rootfs "$disk" /mnt/rootfs; then
+            mounted_rootfs=1
+          else
+            mounted_rootfs=0
+          fi
 
-          umount /mnt
+          cleanup() {
+            mountpoint -q /mnt/rootfs && umount /mnt/rootfs || true
+            mountpoint -q /mnt && umount /mnt || true
+          }
+          trap cleanup EXIT
+
+          if [ "$mounted_rootfs" -eq 1 ]; then
+            # 删除 rootfs 下子卷；按逆序删除，避免父子卷依赖导致删除失败
+            btrfs subvolume list -o /mnt/rootfs \
+              | cut -d ' ' -f 9- \
+              | sort -r \
+              | while read -r subvolume; do
+                [ -z "$subvolume" ] && continue
+
+                case "$subvolume" in
+                  /*|*".."*)
+                    echo "rollback: skip unsafe subvolume path: $subvolume" >&2
+                    continue
+                    ;;
+                esac
+
+                echo "deleting /''$subvolume subvolume..."
+                btrfs subvolume delete "/mnt/rootfs/''$subvolume"
+              done
+
+            echo "clearing /mnt/rootfs content..."
+            find /mnt/rootfs -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
+          else
+            # 仅当 rootfs 子卷不存在时，短暂挂载顶层创建 rootfs（不挂载 rootfs 本身）
+            mount -o subvolid=5 "$disk" /mnt
+            echo "rollback: rootfs subvolume not found, creating it from top-level..."
+            btrfs subvolume create /mnt/rootfs
+          fi
         '';
       };
     };

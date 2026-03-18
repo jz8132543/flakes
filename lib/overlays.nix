@@ -60,5 +60,48 @@
       }
     );
   })
+  (_final: prev: {
+    nur = prev.nur // {
+      repos = prev.nur.repos // {
+        fym998 = prev.nur.repos.fym998 // {
+          wpsoffice-cn-fcitx = prev.nur.repos.fym998.wpsoffice-cn-fcitx.overrideAttrs (old: {
+            postInstall = (old.postInstall or "") + ''
+              templatesDir=${../conf/wps/templates}
+
+              if [ -d "$templatesDir" ]; then
+                if [ -f "$templatesDir/newfile.docx" ]; then
+                  install -Dm644 "$templatesDir/newfile.docx" "$out/opt/kingsoft/wps-office/templates/newfile.docx"
+                  install -Dm644 "$templatesDir/newfile.docx" "$out/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.docx"
+                fi
+
+                if [ -f "$templatesDir/newfile.xlsx" ]; then
+                  install -Dm644 "$templatesDir/newfile.xlsx" "$out/opt/kingsoft/wps-office/templates/newfile.xlsx"
+                  install -Dm644 "$templatesDir/newfile.xlsx" "$out/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.xlsx"
+                fi
+
+                if [ -f "$templatesDir/newfile.pptx" ]; then
+                  install -Dm644 "$templatesDir/newfile.pptx" "$out/opt/kingsoft/wps-office/templates/newfile.pptx"
+                  install -Dm644 "$templatesDir/newfile.pptx" "$out/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.pptx"
+                fi
+              fi
+
+              if [ -f "$out/share/templates/wps-office-wps-template.desktop" ]; then
+                sed -i 's|URL=.*|URL=/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.docx|' \
+                  "$out/share/templates/wps-office-wps-template.desktop"
+              fi
+              if [ -f "$out/share/templates/wps-office-et-template.desktop" ]; then
+                sed -i 's|URL=.*|URL=/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.xlsx|' \
+                  "$out/share/templates/wps-office-et-template.desktop"
+              fi
+              if [ -f "$out/share/templates/wps-office-wpp-template.desktop" ]; then
+                sed -i 's|URL=.*|URL=/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.pptx|' \
+                  "$out/share/templates/wps-office-wpp-template.desktop"
+              fi
+            '';
+          });
+        };
+      };
+    };
+  })
   (import "${self}/pkgs").overlay
 ]

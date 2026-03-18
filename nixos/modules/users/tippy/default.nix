@@ -15,6 +15,9 @@ in
     extraGroups = [
       "wheel"
       "networkmanager"
+      "lp"
+      "lpadmin"
+      "scanner"
       "video"
       "render"
       "cdrom"

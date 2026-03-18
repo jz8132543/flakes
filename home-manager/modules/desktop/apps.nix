@@ -8,7 +8,7 @@
     ffmpeg
     thunderbird
     kdePackages.okular
-    wpsoffice-cn
+    nur.repos.fym998.wpsoffice-cn-fcitx
     # nur.repos.xddxdd.baidupcs-go
     # nur.repos.xddxdd.wechat-uos
     remmina
@@ -137,6 +137,17 @@
       network-traffic = true;
     };
   };
+  xdg.configFile."Kingsoft/Office.conf".text = ''
+    [6.0]
+    FirstInstall=0
+
+    [common]
+    first_run=false
+    first_detect_file_association_while_startup=false
+    agreementshown=true
+    agree_privacy_policy=true
+  '';
+
   # Set Chrome environment variables for Playwright/browser integration
   home.sessionVariables = {
     CHROME_BIN = "${pkgs.google-chrome}/bin/google-chrome-stable";

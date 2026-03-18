@@ -1,21 +1,9 @@
 [kitty-catppuccin]
 fetch.github = "catppuccin/kitty"
 src.git = "https://github.com/catppuccin/kitty"
-[jellyfin-plugin-sso]
-src.manual = "4.0.0.3"
-fetch.url = "https://github.com/9p4/jellyfin-plugin-sso/releases/download/v$ver/sso-authentication_$ver.zip"
 [alacritty-catppuccin]
 fetch.github = "catppuccin/alacritty"
 src.git = "https://github.com/catppuccin/alacritty"
-[alist]
-src.github = "OpenListTeam/OpenList"
-fetch.url = "https://github.com/OpenListTeam/OpenList/releases/download/$ver/openlist-linux-musl-amd64.tar.gz"
-# src.manual = "beta"
-# fetch.url = "https://github.com/OpenListTeam/OpenList/releases/download/beta/openlist-linux-musl-amd64.tar.gz"
-[clash-webui-yacd-meta]
-src.git = "https://github.com/MetaCubeX/Yacd-meta"
-src.branch = "gh-pages"
-fetch.url = "https://github.com/MetaCubeX/Yacd-meta/archive/$ver.zip"
 [ebook-sender-bot]
 fetch.github = "qcgzxw/ebook-sender-bot"
 src.git = "https://github.com/qcgzxw/ebook-sender-bot"
@@ -26,52 +14,6 @@ src.git = "https://github.com/jz8132543/ttf-ms-win10"
 fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 url.name = "wallpaper.jpg"
 src.manual = "latest"
-[jellyfin-plugin-intro-skipper]
-src.manual = "1.10.11.14"
-fetch.url = "https://github.com/intro-skipper/intro-skipper/releases/download/10.11/v$ver/intro-skipper-v$ver.zip"
-
-[jellyfin-plugin-playback-reporting]
-src.manual = "17.0.0.0"
-fetch.url = "https://github.com/jellyfin/jellyfin-plugin-playbackreporting/releases/download/v17/playback-reporting_$ver.zip"
-
-[jellyfin-plugin-bangumi]
-src.manual = "1.7.5"
-fetch.url = "https://github.com/kookxiang/jellyfin-plugin-bangumi/releases/download/$ver/Jellyfin.Plugin.Bangumi.zip"
-
-[jellyfin-plugin-shokofin]
-src.manual = "6.0.3.0"
-fetch.url = "https://github.com/ShokoAnime/Shokofin/releases/download/v6.0.3/shoko_$ver_for_10.10.zip"
-
-[jellyfin-plugin-ani-sync]
-src.manual = "3.8.0.0"
-fetch.url = "https://github.com/vosmiic/jellyfin-ani-sync/releases/download/v3.8/10.11.0.-.ani-sync_$ver.zip"
-
-[jellyfin-plugin-bazarr]
-src.manual = "1.1.2"
-fetch.url = "https://github.com/enoch85/bazarr-jellyfin/releases/download/v$ver/Jellyfin.Plugin.Bazarr.zip"
-
-[jellyfin-plugin-merge-versions]
-src.manual = "10.11.0.1"
-fetch.url = "https://github.com/danieladov/jellyfin-plugin-mergeversions/releases/download/$ver/Jellyfin.Plugin.MergeVersions.zip"
-
-[jellyfin-plugin-skin-manager]
-src.manual = "2.0.2"
-fetch.url = "https://github.com/danieladov/jellyfin-plugin-skin-manager/releases/download/$ver/Jellyfin-Plugin-SkinManager.zip"
-
-
-[jellyfin-plugin-tmdb-box-sets]
-src.manual = "12.0.0.0"
-fetch.url = "https://github.com/jellyfin/jellyfin-plugin-tmdbboxsets/releases/download/v12/tmdb-box-sets_$ver.zip"
-
-[jellyfin-plugin-douban]
-src.manual = "2.0.0"
-fetch.url = "https://github.com/Libitum/jellyfin-plugin-douban/releases/download/v$ver/Jellyfin.Plugin.Douban.zip"
-
-[jellyfin-plugin-fanart]
-fetch.url = "https://github.com/jellyfin/jellyfin-plugin-fanart/releases/download/v14/fanart_$ver.zip"
-src.manual = "14.0.0.0"
-
-
 [realm-latest]
 src.github = "zhboner/realm"
 fetch.github = "zhboner/realm"
@@ -92,10 +34,6 @@ fetch.url = "https://github.com/amzxyz/RIME-LMDG/releases/download/$ver/wanxiang
 [fakehttp]
 src.github = "MikeWang000000/FakeHTTP"
 fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"
-
-[ms912x]
-src.manual = "b502d3f2d7c513ccf37c3cceea51ca40abde4ca4"
-fetch.github = "rhgndf/ms912x"
 
 [frp-panel-amd64]
 src.manual = "v0.1.36"
