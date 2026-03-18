@@ -5,8 +5,8 @@
   ...
 }:
 let
-  tune = config.environment.networkTune;
-  enabled = tune.enable && tune.cpuBerserk.enable;
+  tune = config.environment.networkOmnitt;
+  enabled = tune.enable && tune.aggressiveMode;
 in
 {
   config = lib.mkIf enabled {
@@ -57,12 +57,8 @@ in
         }
 
         # Kernel scheduler knobs: push toward aggressive resource competition.
-        if [ "${if tune.cpuBerserk.disableSchedulerAutogroup then "1" else "0"}" = "1" ]; then
-          write_if_writable /proc/sys/kernel/sched_autogroup_enabled 0
-        fi
-        if [ "${if tune.cpuBerserk.disableTimerMigration then "1" else "0"}" = "1" ]; then
-          write_if_writable /proc/sys/kernel/timer_migration 0
-        fi
+        write_if_writable /proc/sys/kernel/sched_autogroup_enabled 0
+        write_if_writable /proc/sys/kernel/timer_migration 0
 
         # VPS 资源抢占：通过极短的时间片和极高的唤醒抢占频率，确保在宿主机调度中占优。
         # 极短的最小调度粒度
@@ -81,9 +77,7 @@ in
           write_if_writable "$e" 0
         done
 
-        if [ "${if tune.cpuBerserk.boostKernelNetThreads then "1" else "0"}" = "1" ]; then
-          boost_kernel_net_threads
-        fi
+        boost_kernel_net_threads
 
         echo "[cpu-berserk] mode=vps-competition-aggressive governor=performance mitigations=off sched_min_granularity=100k"
       '';

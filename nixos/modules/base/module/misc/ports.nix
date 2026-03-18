@@ -104,8 +104,12 @@
       seafile-dav = 3061;
       morty = 3001;
       searx = 8888;
+      easytier-tcp = 11010;
+      easytier-ws = 11011;
       easytier-traefik-wss = 444;
       easytier-wss = 11012;
+      easytier-udp = 11013;
+      easytier-faketcp = 11014;
       easytier-quic = 11030;
       headscale = 8085;
       headscale_metrics = 8095;

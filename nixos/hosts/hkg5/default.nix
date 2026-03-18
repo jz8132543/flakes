@@ -19,14 +19,11 @@
     "console=ttyS0"
     "console=tty0"
   ];
-  environment.networkTune = {
-    enable = true;
-    bandwidth = 700; # 手动输入
-    realBandwidth = 500;
-    # fqMaxrate = 575; # 手动输入
-    rtt = 60; # ms，国际线路
-    ram = 350; # MB，可用内存
-    cpus = 1; # vCPU 数
-    highLoss = true; # 高丢包国际线路
+
+  environment.networkOmnitt = {
+    bandwith = 700; # 手动输入
+    realbandwith = 500;
+    latencyMs = 60; # ms，国际线路
+    memoryMB = 350; # MB，可用内存
   };
 }

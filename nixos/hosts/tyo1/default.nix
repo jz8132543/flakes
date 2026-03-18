@@ -20,17 +20,11 @@
     "console=ttyS0"
     "console=tty0"
   ];
-  environment.networkTune = {
-    enable = true;
-    bandwidth = 1000; # Mbps 单向
-    # 单核弱机避免把“理论峰值”直接喂给推导器，否则会放大软中断与队列抖动。
-    realBandwidth = 500;
-    rtt = 180; # ms，国际线路
-    ram = 500; # MB，可用内存
-    cpus = 1; # vCPU 数
-    highLoss = true; # 高丢包国际线路
-    # 主动整形到千兆口的 95%，减少尾丢包与重传风暴。
-    # fqMaxrate = 950;
+
+  environment.networkOmnitt = {
+    realbandwith = 500;
+    latencyMs = 180; # ms，国际线路
+    memoryMB = 500; # MB，可用内存
   };
 
   # tyo1 单核 CPU 护栏：保留激进发包能力，同时抑制 ksoftirqd 常驻高占用。

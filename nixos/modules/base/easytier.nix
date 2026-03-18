@@ -187,7 +187,7 @@ in
         };
         port = mkOption {
           type = types.port;
-          default = config.ports.easytier-wss;
+          default = config.ports.easytier-ws;
         };
         bootstrapPort = mkOption {
           type = types.port;
@@ -225,7 +225,7 @@ in
       faketcp = {
         enable = mkOption {
           type = types.bool;
-          default = false;
+          default = true;
         };
         port = mkOption {
           type = types.port;
@@ -262,7 +262,7 @@ in
       };
       kcp.enable = mkOption {
         type = types.bool;
-        default = false;
+        default = true;
       };
     };
 
@@ -428,7 +428,7 @@ in
       };
 
       services.traefik.proxies.easytier-rpc = mkIf (config.services.traefik.enable or false) {
-        rule = "Host(`${cfg.publicHost}`) && (Path(`/et`) || PathPrefix(`/et/`))";
+        rule = "Host(`${config.networking.fqdn}`) && (Path(`/et`) || PathPrefix(`/et/`))";
         target = "http://${cfg.rpcPortal}";
         middlewares = [
           "auth"

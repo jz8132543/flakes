@@ -11,6 +11,7 @@
   ];
   time.timeZone = "Asia/Shanghai";
   time.hardwareClockInLocalTime = true;
+  networking.domain = "dora.im";
 
   documentation = {
     nixos.enable = false;

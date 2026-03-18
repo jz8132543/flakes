@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.environment.minimal;
+  mkTop = lib.mkOverride 0;
 in
 {
   imports = [ ./cpu.nix ];
@@ -125,17 +126,17 @@ in
 
       boot.kernel.sysctl = {
         # 尽早回写，减少突然一大波刷盘
-        "vm.dirty_background_bytes" = 16 * 1024 * 1024; # 16 MiB
-        "vm.dirty_bytes" = 64 * 1024 * 1024; # 64 MiB
+        "vm.dirty_background_bytes" = mkTop (16 * 1024 * 1024); # 16 MiB
+        "vm.dirty_bytes" = mkTop (64 * 1024 * 1024); # 64 MiB
 
         # 尽早回写，减少突然一大波刷盘
-        "vm.dirty_writeback_centisecs" = 1500; # 15 秒
-        "vm.dirty_expire_centisecs" = 3000; # 30 秒
+        "vm.dirty_writeback_centisecs" = mkTop 1500; # 15 秒
+        "vm.dirty_expire_centisecs" = mkTop 3000; # 30 秒
         # "vm.overcommit_memory" = 0;
-        "vm.overcommit_ratio" = 100; # 允许使用 100% 内存
-        "vm.swappiness" = lib.mkForce 8; # 减少 swap 使用
-        "vm.min_free_kbytes" = 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
-        "vm.watermark_scale_factor" = 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
+        "vm.overcommit_ratio" = mkTop 100; # 允许使用 100% 内存
+        "vm.swappiness" = mkTop 8; # 减少 swap 使用
+        "vm.min_free_kbytes" = mkTop 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
+        "vm.watermark_scale_factor" = mkTop 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
       };
       # 限制 VM 内部 I/O 抢占，并禁用透明大页提升稳定性
       boot.kernelParams = [

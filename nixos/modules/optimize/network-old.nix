@@ -4,6 +4,7 @@ let
     mkEnableOption
     mkIf
     mkOption
+    mkDefault
     types
     ;
 
@@ -168,8 +169,6 @@ let
     "net.ipv4.conf.default.secure_redirects" = 0;
     "net.ipv4.conf.all.accept_source_route" = 0;
     "net.ipv4.conf.default.accept_source_route" = 0;
-    "net.ipv4.conf.all.forwarding" = 0;
-    "net.ipv4.conf.default.forwarding" = 0;
     "net.ipv4.icmp_echo_ignore_broadcasts" = 1;
     "net.ipv4.icmp_ignore_bogus_error_responses" = 1;
     "net.ipv4.conf.all.rp_filter" = 1;
@@ -671,6 +670,12 @@ in
         message = "environment.networkOmnitt.rampUpRate must be in the range 0.1..1.0.";
       }
     ];
+
+    boot.kernel.sysctl = {
+      "net.ipv4.conf.all.forwarding" = mkDefault true;
+      "net.ipv4.ip_forward" = mkDefault 1;
+      "net.ipv6.conf.all.forwarding" = mkDefault 1;
+    };
 
     environment.etc."sysctl.d/99-network-omnitt.conf".text = lib.mkForce sysctlText;
   };

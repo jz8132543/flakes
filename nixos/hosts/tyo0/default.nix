@@ -12,13 +12,9 @@
       (import nixosModules.services.xray {
       })
     ];
-  environment.networkTune = {
-    enable = true;
-    bandwidth = 1000; # Mbps 单向
-    realBandwidth = 1000;
-    rtt = 200; # ms，国际线路
-    ram = 350; # MB，可用内存
-    cpus = 1; # vCPU 数
-    highLoss = true; # 高丢包国际线路
+
+  environment.networkOmnitt = {
+    latencyMs = 200; # ms, international link
+    memoryMB = 350; # available memory
   };
 }

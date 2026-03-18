@@ -71,13 +71,11 @@
     proxyHost = "shg0.mag";
     # proxyPort = 10080;
   };
-  environment.networkTune = {
-    enable = true;
-    bandwidth = 2500; # Mbps 单向
-    realBandwidth = 2500;
-    rtt = 180; # ms，国际线路
-    ram = 4096; # MB，可用内存
-    cpus = 4; # vCPU 数
-    highLoss = true; # 高丢包国际线路
+
+  environment.networkOmnitt = {
+    bandwith = 2500; # Mbps 单向
+    realbandwith = 2500;
+    latencyMs = 180; # ms，国际线路
+    memoryMB = 4096; # MB，可用内存
   };
 }
