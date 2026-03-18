@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  nixosModules,
   ...
 }:
 let
@@ -100,6 +101,8 @@ let
   ++ cfg.extraArgs;
 in
 {
+  imports = [ nixosModules.services.traefik ];
+
   options.services.easytierMesh = {
     enable = (mkEnableOption "EasyTier mesh") // {
       default = true;
@@ -399,7 +402,7 @@ in
       };
 
       services.traefik.proxies.easytier-rpc = mkIf (config.services.traefik.enable or false) {
-        rule = "Host(`${config.networking.fqdn}`) && (Path(`/et`) || PathPrefix(`/et/`))";
+        rule = "Host(`${cfg.publicHost}`) && (Path(`/et`) || PathPrefix(`/et/`))";
         target = "http://${cfg.rpcPortal}";
         middlewares = [
           "auth"

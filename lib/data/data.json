@@ -165,6 +165,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "et": {
+      "on": "nue0",
+      "proxy": false
+    },
     "frp": {
       "on": "nue0",
       "proxy": false
