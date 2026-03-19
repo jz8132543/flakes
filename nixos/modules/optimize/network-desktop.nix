@@ -3,7 +3,7 @@
   ...
 }:
 {
-  # 针对桌面/笔记本环境的优化，覆盖 base/network.nix 中的过于激进的服务器设置
+  # 针对桌面/笔记本环境的优化，覆盖 base/network-base.nix 中的过于激进的服务器设置
   # 解决连接手机热点时网络变差、断网、以及手机端断流的问题。
 
   systemd.services.set-initcwnd.script = lib.mkForce ''
@@ -48,18 +48,4 @@
 
   # 禁用自动 NIC Offloads 开启服务（硬件卸载可能导致某些 WiFi 驱动不稳定）
   systemd.services.enable-nic-offloads.enable = lib.mkForce false;
-
-  # 恢复更稳健的 IPv4/IPv6 优先级平衡，避免手机热点 IPv6 路径不畅导致的「断网」假象
-  environment.etc."gai.conf".text = lib.mkForce ''
-    label  ::1/128       0
-    label  ::/0          1
-    label  2002::/16     2
-    label ::/96          3
-    label ::ffff:0:0/96  4
-    precedence  ::1/128       50
-    precedence  ::/0          40
-    precedence  2002::/16     30
-    precedence ::/96          20
-    precedence ::ffff:0:0/96  10
-  '';
 }

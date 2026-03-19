@@ -268,13 +268,11 @@ in
 
       # Fish plugins from NixOS
       fishPlugins.autopair-fish
-      fishPlugins.done
       fishPlugins.fish-you-should-use
       fishPlugins.foreign-env
       fishPlugins.forgit
       fishPlugins.puffer
       # nur.repos.linyinfeng.fishPlugins.replay
-      libnotify # for done notification
     ]
     ++ lib.optional (pkgs ? comma-with-db) pkgs.comma-with-db;
   home.global-persistence = {
