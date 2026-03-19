@@ -107,13 +107,18 @@ in
     wantedBy = [ "multi-user.target" ];
     wants = [
       "tailscaled.service"
+      "tailscale-setup.service"
       "systemd-resolved.service"
     ];
     after = [
       "tailscaled.service"
+      "tailscale-setup.service"
       "systemd-resolved.service"
     ];
-    partOf = [ "tailscaled.service" ];
+    partOf = [
+      "tailscaled.service"
+      "tailscale-setup.service"
+    ];
     bindsTo = [ "tailscaled.service" ];
     path = [
       config.systemd.package
@@ -123,21 +128,43 @@ in
     script = ''
       while true; do
         if ip link show dev ${interfaceName} >/dev/null 2>&1; then
-          ${config.systemd.package}/bin/resolvectl dns ${interfaceName} 100.100.100.100
-          ${config.systemd.package}/bin/resolvectl domain ${interfaceName} ~${magicDomain}
-          ${config.systemd.package}/bin/resolvectl default-route ${interfaceName} no
-          break
-        fi
-        sleep 2
-      done
+          ifindex="$(${pkgs.iproute2}/bin/ip -o link show ${interfaceName} | ${pkgs.coreutils}/bin/cut -d: -f1 | ${pkgs.coreutils}/bin/tr -d ' ')"
 
-      exec sleep infinity
+          # Write the split-DNS state directly via resolve1 D-Bus so it
+          # survives resolvectl oddities on tailscale0 and can be re-applied
+          # if tailscale recreates the tunnel device.
+          ${config.systemd.package}/bin/busctl call \
+            org.freedesktop.resolve1 \
+            /org/freedesktop/resolve1 \
+            org.freedesktop.resolve1.Manager \
+            SetLinkDNS \
+            'ia(iay)' \
+            "$ifindex" 1 2 4 100 100 100 100
+
+          ${config.systemd.package}/bin/busctl call \
+            org.freedesktop.resolve1 \
+            /org/freedesktop/resolve1 \
+            org.freedesktop.resolve1.Manager \
+            SetLinkDomains \
+            'ia(sb)' \
+            "$ifindex" 1 ${magicDomain} 1
+
+          ${config.systemd.package}/bin/busctl call \
+            org.freedesktop.resolve1 \
+            /org/freedesktop/resolve1 \
+            org.freedesktop.resolve1.Manager \
+            SetLinkDefaultRoute \
+            'ib' \
+            "$ifindex" false
+        fi
+        sleep 10
+      done
     '';
     serviceConfig = {
       Type = "simple";
       Restart = "always";
       RestartSec = "2s";
-      ExecStop = "${config.systemd.package}/bin/resolvectl revert ${interfaceName}";
+      ExecStop = "${pkgs.runtimeShell} -lc '${config.systemd.package}/bin/resolvectl revert ${interfaceName} || true'";
     };
   };
   services.restic.backups.borgbase.paths = [

@@ -65,6 +65,8 @@ let
     "--latency-first=${if cfg.latencyFirst then "true" else "false"}"
     "--private-mode=${if cfg.privateMode then "true" else "false"}"
     "--multi-thread=true"
+    # Keep split DNS management in systemd-resolved under our control to avoid
+    # EasyTier racing with the dedicated easytier-resolved helper.
     "--accept-dns=true"
     "--tld-dns-zone"
     cfg.tldDnsZone
@@ -423,21 +425,45 @@ in
         script = ''
           while true; do
             if ip link show dev ${cfg.devName} >/dev/null 2>&1; then
-              ${pkgs.systemd}/bin/resolvectl dns ${cfg.devName} ${cfg.dnsServer}
-              ${pkgs.systemd}/bin/resolvectl domain ${cfg.devName} ~${easytierDomain}
-              ${pkgs.systemd}/bin/resolvectl default-route ${cfg.devName} no
-              break
-            fi
-            sleep 2
-          done
+              ifindex="$(${pkgs.iproute2}/bin/ip -o link show ${cfg.devName} | ${pkgs.coreutils}/bin/cut -d: -f1 | ${pkgs.coreutils}/bin/tr -d ' ')"
+              dns="${cfg.dnsServer}"
+              dns_a="$(${pkgs.coreutils}/bin/echo "$dns" | ${pkgs.coreutils}/bin/cut -d. -f1)"
+              dns_b="$(${pkgs.coreutils}/bin/echo "$dns" | ${pkgs.coreutils}/bin/cut -d. -f2)"
+              dns_c="$(${pkgs.coreutils}/bin/echo "$dns" | ${pkgs.coreutils}/bin/cut -d. -f3)"
+              dns_d="$(${pkgs.coreutils}/bin/echo "$dns" | ${pkgs.coreutils}/bin/cut -d. -f4)"
 
-          exec sleep infinity
+              ${pkgs.systemd}/bin/busctl call \
+                org.freedesktop.resolve1 \
+                /org/freedesktop/resolve1 \
+                org.freedesktop.resolve1.Manager \
+                SetLinkDNS \
+                'ia(iay)' \
+                "$ifindex" 1 2 4 "$dns_a" "$dns_b" "$dns_c" "$dns_d"
+
+              ${pkgs.systemd}/bin/busctl call \
+                org.freedesktop.resolve1 \
+                /org/freedesktop/resolve1 \
+                org.freedesktop.resolve1.Manager \
+                SetLinkDomains \
+                'ia(sb)' \
+                "$ifindex" 1 ${easytierDomain} 1
+
+              ${pkgs.systemd}/bin/busctl call \
+                org.freedesktop.resolve1 \
+                /org/freedesktop/resolve1 \
+                org.freedesktop.resolve1.Manager \
+                SetLinkDefaultRoute \
+                'ib' \
+                "$ifindex" false
+            fi
+            sleep 10
+          done
         '';
         serviceConfig = {
           Type = "simple";
           Restart = "always";
           RestartSec = "2s";
-          ExecStop = "${pkgs.systemd}/bin/resolvectl revert ${cfg.devName}";
+          ExecStop = "${pkgs.runtimeShell} -lc '${pkgs.systemd}/bin/resolvectl revert ${cfg.devName} || true'";
         };
       };
 
