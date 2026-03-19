@@ -36,6 +36,7 @@ with lib.strings;
           user = "tippy";
           checkHostIP = false;
           forwardAgent = true;
+          port = osConfig.ports.ssh;
           proxyCommand = "${sshRace}/bin/ssh-race -domains et,mag,dora.im %h %p";
           # forwardX11 = true;
           userKnownHostsFile = "/dev/null";

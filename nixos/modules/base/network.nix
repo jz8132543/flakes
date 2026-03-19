@@ -620,7 +620,7 @@ in
 
     latencyMs = mkOption {
       type = types.int;
-      default = 100;
+      default = 200;
       description = "Network RTT in milliseconds.";
     };
 
@@ -632,7 +632,8 @@ in
 
     rampUpRate = mkOption {
       type = types.float;
-      default = 0.79;
+      # default = 0.79;
+      default = 0.99;
       description = "Ramp-up curve factor.";
     };
 
@@ -672,6 +673,7 @@ in
     services.resolved.enable = false;
     networking.resolvconf.enable = false;
     networking.networkmanager.dns = "none";
+    services.dnsmasq.resolveLocalQueries = false;
     # Keep a dedicated loopback address for the local resolver so we do not
     # collide with other services that may also want to bind 127.0.0.1:53.
     networking.nameservers = [ "127.0.0.55" ];
@@ -685,6 +687,7 @@ in
         domain-needed = true;
         bogus-priv = true;
         no-resolv = true;
+        bind-interfaces = true;
         listen-address = [ "127.0.0.55" ];
         server = lib.mkBefore [
           "1.1.1.1"

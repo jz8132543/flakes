@@ -44,29 +44,9 @@
           ];
           extra_records = [
             {
-              name = "m.mag";
-              type = "A";
-              value = "100.64.0.2";
-            }
-            {
-              name = "m-admin.mag";
-              type = "A";
-              value = "100.64.0.2";
-            }
-            {
               name = "postgres.mag";
               type = "A";
-              value = "100.64.0.1";
-            }
-            {
-              name = "mysql.mag";
-              type = "A";
-              value = "100.64.0.1";
-            }
-            {
-              name = "tv.mag";
-              type = "A";
-              value = "100.64.0.1";
+              value = "100.64.0.3";
             }
           ];
         };

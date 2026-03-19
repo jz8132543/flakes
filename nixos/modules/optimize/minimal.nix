@@ -80,8 +80,8 @@ in
       boot.enableContainers = lib.mkForce false;
       security.rtkit.enable = lib.mkForce false;
       zramSwap.enable = lib.mkForce false;
-      services.tailscale.enable = false;
-      systemd.services.tailscale-setup.enable = false;
+      # services.tailscale.enable = false;
+      # systemd.services.tailscale-setup.enable = false;
 
       # 限制 Journald 内存占用
       services.journald.extraConfig = lib.mkForce ''
