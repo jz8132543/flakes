@@ -24,9 +24,13 @@
       # (import nixosModules.services.alist { })
     ];
 
-  environment.networkOmnitt = {
-    realbandwith = 200; # local bandwidth (Mbps)
-    latencyMs = 110; # ms，国际线路
-    memoryMB = 4096; # MB，可用内存
+  environment.networkTune = {
+    enable = true;
+    bandwidth = 1000; # Mbps 单向
+    realBandwidth = 200;
+    rtt = 110; # ms，国际线路
+    ram = 4096; # MB，可用内存
+    cpus = 4; # vCPU 数
+    highLoss = true; # 高丢包国际线路
   };
 }

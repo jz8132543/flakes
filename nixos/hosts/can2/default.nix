@@ -49,7 +49,6 @@
   environment.isCN = true;
 
   nix.settings.substituters = lib.mkForce [ "https://mirrors.ustc.edu.cn/nix-channels/store" ];
-
   environment.systemPackages = with pkgs; [
     # kxy-script
     # nexttrace # 选项10: 路由追踪
@@ -62,10 +61,14 @@
   # networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   # networking.firewall.allowedUDPPorts = lib.range 50560 50569;
 
-  environment.networkOmnitt = {
-    realbandwith = 200; # 持续可用带宽
-    latencyMs = 50; # ms，国际线路
-    aggressiveMode = false;
+  environment.networkTune = {
+    enable = true;
+    bandwidth = 1000; # Mbps 单向
+    realBandwidth = 1000;
+    rtt = 200; # ms，国际线路
+    ram = 350; # MB，可用内存
+    cpus = 1; # vCPU 数
+    highLoss = true; # 高丢包国际线路
   };
   services.tailscale.enable = lib.mkForce true;
   systemd.services.tailscale-setup.enable = lib.mkForce true;

@@ -1,9 +1,4 @@
-{
-  nixosModules,
-  inputs,
-  config,
-  ...
-}:
+{ nixosModules, inputs, ... }:
 {
   imports =
     nixosModules.cloud.all
@@ -61,17 +56,11 @@
   services.openclaw.enable = true;
   services.ai.litellm.enable = true;
 
-  services.easytierMesh = {
-    role = "bootstrap";
-    publicHost = "et.${config.networking.domain}";
-  };
-
   environment.seedbox = {
     enable = true;
     proxyHost = "shg0.mag";
     # proxyPort = 10080;
   };
-
   environment.networkOmnitt = {
     bandwith = 2500; # Mbps 单向
     realbandwith = 2500;
