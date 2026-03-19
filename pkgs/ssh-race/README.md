@@ -9,7 +9,7 @@ After selection, it prints the winning hostname to stderr as `ssh-race: selected
 
 ```sshconfig
 Host *
-  ProxyCommand ${pkgs."ssh-race"}/bin/ssh-race -domains et,mag,dora.im %h %p
+  ProxyCommand ${pkgs."ssh-race"}/bin/ssh-race -domains et,mag,dora.im %n %p
 ```
 
 ## Behavior

@@ -7,6 +7,7 @@
 }:
 let
   interfaceName = "tailscale0";
+  magicDomain = "mag";
 in
 {
   imports = [ nixosModules.services.restic ];
@@ -14,13 +15,18 @@ in
     enable = lib.mkDefault true;
     openFirewall = true;
     useRoutingFeatures = "both";
-    extraSetFlags = [ "--netfilter-mode=nodivert" ];
+    # Keep DNS management in systemd-resolved under our control so Tailscale
+    # does not occasionally promote 100.100.100.100 to the global resolver.
+    extraSetFlags = [
+      "--netfilter-mode=nodivert"
+      "--accept-dns=false"
+    ];
     extraDaemonFlags = [ "--no-logs-no-support" ];
   };
   networking = {
     networkmanager.unmanaged = [ interfaceName ];
-    # Let dnsmasq handle split DNS locally.
-    # Tailscale's magic DNS servers remain reachable via tailscale0.
+    # Keep the tunnel interface unmanaged and let systemd-resolved apply
+    # the split DNS rule once tailscale0 exists.
     firewall = {
       # checkReversePath = false;
       trustedInterfaces = [ "tailscale0" ];
@@ -29,10 +35,6 @@ in
       ];
     };
   };
-
-  services.dnsmasq.settings.server = lib.mkAfter [
-    "/mag/100.100.100.100@${interfaceName}"
-  ];
 
   sops.secrets.tailscale_preauth_key = { };
 
@@ -92,10 +94,50 @@ in
 
   systemd.services.tailscaled = {
     before = [ "network.target" ];
-    after = [ "dnsmasq.service" ];
+    after = [ "systemd-resolved.service" ];
+    wants = [ "systemd-resolved.service" ];
     serviceConfig = {
       Restart = "always";
       TimeoutStopSec = "5s";
+    };
+  };
+
+  systemd.services.tailscale-resolved = {
+    description = "Register Tailscale MagicDNS with systemd-resolved";
+    wantedBy = [ "multi-user.target" ];
+    wants = [
+      "tailscaled.service"
+      "systemd-resolved.service"
+    ];
+    after = [
+      "tailscaled.service"
+      "systemd-resolved.service"
+    ];
+    partOf = [ "tailscaled.service" ];
+    bindsTo = [ "tailscaled.service" ];
+    path = [
+      config.systemd.package
+      pkgs.iproute2
+      pkgs.coreutils
+    ];
+    script = ''
+      while true; do
+        if ip link show dev ${interfaceName} >/dev/null 2>&1; then
+          ${config.systemd.package}/bin/resolvectl dns ${interfaceName} 100.100.100.100
+          ${config.systemd.package}/bin/resolvectl domain ${interfaceName} ~${magicDomain}
+          ${config.systemd.package}/bin/resolvectl default-route ${interfaceName} no
+          break
+        fi
+        sleep 2
+      done
+
+      exec sleep infinity
+    '';
+    serviceConfig = {
+      Type = "simple";
+      Restart = "always";
+      RestartSec = "2s";
+      ExecStop = "${config.systemd.package}/bin/resolvectl revert ${interfaceName}";
     };
   };
   services.restic.backups.borgbase.paths = [

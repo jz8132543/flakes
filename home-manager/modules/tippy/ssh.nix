@@ -6,6 +6,11 @@
 }:
 let
   sshRace = pkgs.callPackage ../../../pkgs/ssh-race { };
+  sshRaceDomains = [
+    "et"
+    "mag"
+    "dora.im"
+  ];
 in
 with lib.strings;
 {
@@ -18,6 +23,8 @@ with lib.strings;
       extraOptionOverrides = {
         "StrictHostKeyChecking" = "no";
         "LogLevel" = "ERROR";
+        "CanonicalizeHostname" = "yes";
+        "CanonicalDomains" = concatStringsSep " " sshRaceDomains;
         # fix kde connection for android
         "HostKeyAlgorithms" = "+ssh-rsa";
       };
@@ -37,7 +44,7 @@ with lib.strings;
           checkHostIP = false;
           forwardAgent = true;
           port = osConfig.ports.ssh;
-          proxyCommand = "${sshRace}/bin/ssh-race -domains et,mag,dora.im %h %p";
+          proxyCommand = "${sshRace}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %n %p";
           # forwardX11 = true;
           userKnownHostsFile = "/dev/null";
           serverAliveInterval = 3;
@@ -56,7 +63,7 @@ with lib.strings;
                 "*."
                 x
               ]
-            ) ([ osConfig.networking.domain ] ++ osConfig.environment.domains))
+            ) sshRaceDomains)
           ];
           port = osConfig.ports.ssh;
         };

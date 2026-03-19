@@ -55,6 +55,7 @@
 
   services.openclaw.enable = true;
   services.ai.litellm.enable = true;
+  services.easytierMesh.role = "bootstrap";
 
   environment.seedbox = {
     enable = true;

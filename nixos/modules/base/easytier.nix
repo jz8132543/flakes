@@ -2,6 +2,7 @@
   config,
   lib,
   nixosModules,
+  pkgs,
   ...
 }:
 let
@@ -15,6 +16,7 @@ let
     types
     ;
   cfg = config.services.easytierMesh;
+  easytierDomain = lib.removeSuffix "." cfg.tldDnsZone;
   envName = "easytier-mesh.env";
   instanceName = "mesh";
   easytierTraefikHosts = lib.unique [
@@ -24,32 +26,19 @@ let
   easytierTraefikRule = lib.concatMapStringsSep " || " (host: "Host(`${host}`)") easytierTraefikHosts;
 
   listenerUris =
-    optionals cfg.protocols.ws.enable [ "ws://0.0.0.0:${toString cfg.protocols.ws.port}" ]
-    ++ optionals cfg.protocols.tcp.enable [ "tcp://0.0.0.0:${toString cfg.protocols.tcp.port}" ]
-    ++ optionals cfg.protocols.udp.enable [ "udp://0.0.0.0:${toString cfg.protocols.udp.port}" ]
+    optionals cfg.protocols.ws.enable [ "ws://127.0.0.1:${toString cfg.protocols.ws.port}" ]
+    ++ optionals cfg.protocols.quic.enable [ "quic://0.0.0.0:${toString cfg.protocols.quic.port}" ]
     ++ optionals cfg.protocols.faketcp.enable [
       "faketcp://0.0.0.0:${toString cfg.protocols.faketcp.port}"
-    ]
-    ++ optionals cfg.protocols.wss.enable [ "wss://0.0.0.0:${toString cfg.protocols.wss.port}" ];
+    ];
 
-  allowedTcpPorts =
-    optionals cfg.protocols.tcp.enable [ cfg.protocols.tcp.port ]
-    ++ optionals cfg.protocols.faketcp.enable [ cfg.protocols.faketcp.port ]
-    ++ optionals cfg.protocols.wss.enable [ cfg.protocols.wss.port ];
+  allowedTcpPorts = optionals cfg.protocols.faketcp.enable [ cfg.protocols.faketcp.port ];
 
-  allowedUdpPorts =
-    optionals cfg.protocols.udp.enable [ cfg.protocols.udp.port ]
-    ++ optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ];
+  allowedUdpPorts = optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ];
 
   bootstrapPeers =
     (optionals (cfg.role == "member" && cfg.bootstrap.host != null) (
-      optionals cfg.protocols.ws.enable [
-        "wss://${cfg.bootstrap.host}:${toString cfg.protocols.ws.bootstrapPort}"
-      ]
-      ++ optionals cfg.protocols.wss.enable [
-        "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.bootstrapPort}"
-      ]
-      ++ optionals cfg.protocols.tcp.enable [
+      optionals cfg.protocols.tcp.enable [
         "tcp://${cfg.bootstrap.host}:${toString cfg.protocols.tcp.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.udp.enable [
@@ -57,6 +46,12 @@ let
       ]
       ++ optionals cfg.protocols.faketcp.enable [
         "faketcp://${cfg.bootstrap.host}:${toString cfg.protocols.faketcp.bootstrapPort}"
+      ]
+      ++ optionals cfg.protocols.wss.enable [
+        "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.bootstrapPort}"
+      ]
+      ++ optionals cfg.protocols.quic.enable [
+        "quic://${cfg.bootstrap.host}:${toString cfg.protocols.quic.port}"
       ]
     ))
     ++ cfg.bootstrap.peers
@@ -87,13 +82,14 @@ let
     "--file-log-count"
     "2"
     "--enable-kcp-proxy=${if cfg.protocols.kcp.enable then "true" else "false"}"
-    "--disable-kcp-input=${if cfg.role == "bootstrap" then "false" else "true"}"
+    "--disable-kcp-input=false"
     "--enable-quic-proxy=${if cfg.protocols.quic.enable then "true" else "false"}"
     "--disable-quic-input=false"
     "--quic-listen-port"
     (toString cfg.protocols.quic.port)
     "--disable-udp-hole-punching=false"
     "--disable-tcp-hole-punching=false"
+    "--disable-sym-hole-punching=false"
     "--disable-relay-kcp=false"
   ]
   ++ optionals cfg.disableIPv6 [ "--disable-ipv6=true" ]
@@ -127,7 +123,7 @@ in
 
     networkName = mkOption {
       type = types.str;
-      default = "dora-mesh";
+      default = "Doraemon";
     };
 
     secretSopsKey = mkOption {
@@ -137,20 +133,17 @@ in
 
     ipv4 = mkOption {
       type = types.nullOr types.str;
-      default = null;
+      default = if cfg.role == "bootstrap" then "10.100.0.1" else null;
       description = "Static EasyTier address. Leave null to use DHCP-style auto assignment.";
     };
 
     defaultProtocol = mkOption {
       type = types.enum [
-        "ws"
         "faketcp"
         "wss"
         "quic"
-        "tcp"
-        "udp"
       ];
-      default = "ws";
+      default = "wss";
     };
 
     devName = mkOption {
@@ -239,7 +232,7 @@ in
       wss = {
         enable = mkOption {
           type = types.bool;
-          default = false;
+          default = true;
         };
         port = mkOption {
           type = types.port;
@@ -247,7 +240,7 @@ in
         };
         bootstrapPort = mkOption {
           type = types.port;
-          default = config.ports.https;
+          default = config.ports.easytier-traefik-wss;
         };
       };
       quic = {
@@ -298,7 +291,7 @@ in
 
     overlayCIDR = mkOption {
       type = types.str;
-      default = "10.144.0.0/24";
+      default = "10.100.0.0/24";
     };
 
     proxyNetworks = mkOption {
@@ -342,35 +335,26 @@ in
     {
       networking.networkmanager.unmanaged = [ cfg.devName ];
 
-      services.dnsmasq.settings.server = lib.mkAfter [
-        "/et/${cfg.dnsServer}@${cfg.devName}"
-      ];
-
       assertions = [
         {
           assertion =
             cfg.protocols.ws.enable
             || cfg.protocols.wss.enable
             || cfg.protocols.quic.enable
-            || cfg.protocols.tcp.enable
-            || cfg.protocols.udp.enable
             || cfg.protocols.faketcp.enable;
           message = "At least one EasyTier transport/proxy path should remain enabled.";
         }
         {
           assertion =
-            (cfg.defaultProtocol != "ws" || cfg.protocols.ws.enable)
-            && (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
+            (cfg.defaultProtocol != "wss" || cfg.protocols.wss.enable)
             && (cfg.defaultProtocol != "quic" || cfg.protocols.quic.enable)
-            && (cfg.defaultProtocol != "tcp" || cfg.protocols.tcp.enable)
-            && (cfg.defaultProtocol != "udp" || cfg.protocols.udp.enable)
             && (cfg.defaultProtocol != "faketcp" || cfg.protocols.faketcp.enable);
           message = "services.easytierMesh.defaultProtocol must match an enabled protocol.";
         }
       ];
 
       sops.secrets."${cfg.secretSopsKey}" = {
-        restartUnits = [ "easytier-${instanceName}.service" ];
+        restartUnits = [ "easytier.service" ];
       };
 
       sops.templates."${envName}".content = ''
@@ -395,12 +379,65 @@ in
       };
 
       systemd.services.easytier-mesh = {
+        aliases = [ "easytier.service" ];
+        after = lib.mkAfter [ "systemd-resolved.service" ];
+        wants = lib.mkAfter [ "systemd-resolved.service" ];
         preStart = lib.mkIf (
           cfg.role == "bootstrap" && cfg.bootstrap.preStartText != ""
         ) cfg.bootstrap.preStartText;
         serviceConfig = {
           Restart = mkForce "always";
           RestartSec = mkForce "2s";
+          AmbientCapabilities = [
+            "CAP_NET_ADMIN"
+            "CAP_NET_RAW"
+          ];
+          CapabilityBoundingSet = [
+            "CAP_NET_ADMIN"
+            "CAP_NET_RAW"
+          ];
+          PrivateDevices = false;
+          PrivateUsers = false;
+          RestrictAddressFamilies = "AF_INET AF_INET6 AF_NETLINK";
+        };
+      };
+
+      systemd.services.easytier-resolved = {
+        description = "Register EasyTier split DNS with systemd-resolved";
+        wantedBy = [ "multi-user.target" ];
+        wants = [
+          "easytier.service"
+          "systemd-resolved.service"
+        ];
+        after = [
+          "easytier.service"
+          "systemd-resolved.service"
+        ];
+        partOf = [ "easytier.service" ];
+        bindsTo = [ "easytier.service" ];
+        path = [
+          pkgs.systemd
+          pkgs.iproute2
+          pkgs.coreutils
+        ];
+        script = ''
+          while true; do
+            if ip link show dev ${cfg.devName} >/dev/null 2>&1; then
+              ${pkgs.systemd}/bin/resolvectl dns ${cfg.devName} ${cfg.dnsServer}
+              ${pkgs.systemd}/bin/resolvectl domain ${cfg.devName} ~${easytierDomain}
+              ${pkgs.systemd}/bin/resolvectl default-route ${cfg.devName} no
+              break
+            fi
+            sleep 2
+          done
+
+          exec sleep infinity
+        '';
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "2s";
+          ExecStop = "${pkgs.systemd}/bin/resolvectl revert ${cfg.devName}";
         };
       };
 
@@ -454,31 +491,55 @@ in
         ];
     }
 
-    (mkIf (cfg.role == "bootstrap") {
-      networking.firewall.allowedTCPPorts = lib.optional (config.services.traefik.enable or false
-      ) config.ports.easytier-traefik-wss;
+    (mkIf ((config.services.traefik.enable or false) && cfg.protocols.ws.enable) {
+      networking.firewall.allowedTCPPorts = [ config.ports.easytier-traefik-wss ];
 
-      services.traefik.staticConfigOptions.entryPoints.easytier-wss =
-        mkIf (config.services.traefik.enable or false)
-          {
-            address = ":${toString config.ports.easytier-traefik-wss}";
-            forwardedHeaders.insecure = true;
-            proxyProtocol.insecure = true;
-            transport.respondingTimeouts = {
-              readTimeout = 180;
-              writeTimeout = 180;
-              idleTimeout = 180;
-            };
-            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
-          };
+      services.traefik.staticConfigOptions.entryPoints.easytier-wss = {
+        address = ":${toString config.ports.easytier-traefik-wss}";
+        forwardedHeaders.insecure = true;
+        proxyProtocol.insecure = true;
+        transport.respondingTimeouts = {
+          readTimeout = 180;
+          writeTimeout = 180;
+          idleTimeout = 180;
+        };
+        http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+      };
 
-      services.traefik.proxies.easytier-wss =
-        mkIf ((config.services.traefik.enable or false) && cfg.protocols.ws.enable)
-          {
-            rule = easytierTraefikRule;
-            target = "http://127.0.0.1:${toString cfg.protocols.ws.port}";
-            entryPoints = [ "easytier-wss" ];
-          };
+      services.traefik.proxies.easytier-wss = {
+        rule = easytierTraefikRule;
+        target = "http://127.0.0.1:${toString cfg.protocols.ws.port}";
+        entryPoints = [ "easytier-wss" ];
+      };
+    })
+
+    (mkIf (cfg.role == "member") {
+      systemd.services.easytier-watchdog = {
+        description = "EasyTier Watchdog";
+        after = [ "easytier.service" ];
+        path = [
+          pkgs.iputils
+          pkgs.systemd
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = pkgs.writeShellScript "easytier-watchdog" ''
+            if ! ping -c 3 -W 5 10.100.0.1 > /dev/null 2>&1; then
+              systemctl restart easytier
+            fi
+          '';
+        };
+      };
+
+      systemd.timers.easytier-watchdog = {
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "2m";
+          OnUnitActiveSec = "2m";
+          RandomizedDelaySec = "20s";
+          Unit = "easytier-watchdog.service";
+        };
+      };
     })
   ]);
 }
