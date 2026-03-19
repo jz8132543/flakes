@@ -53,7 +53,7 @@ let
   initWindows = initWindowValues;
 in
 {
-  imports = [ ../optimize/network-old.nix ];
+  # Legacy archive only; intentionally not imported anywhere.
 
   config = {
     environment.networkOmnitt.latencyMs = lib.mkDefault 200;
