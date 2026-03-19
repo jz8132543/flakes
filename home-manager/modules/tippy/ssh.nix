@@ -44,7 +44,7 @@ with lib.strings;
           checkHostIP = false;
           forwardAgent = true;
           port = osConfig.ports.ssh;
-          proxyCommand = "${sshRace}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %n %p";
+          proxyCommand = "${sshRace}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
           # forwardX11 = true;
           userKnownHostsFile = "/dev/null";
           serverAliveInterval = 3;
