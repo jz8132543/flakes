@@ -5,8 +5,8 @@
   ...
 }:
 let
-  tune = config.environment.networkOmnitt;
-  enabled = tune.enable && tune.aggressiveMode;
+  tune = config.environment.networkTune;
+  enabled = tune.enable && tune.cpuBerserk.enable;
 in
 {
   config = lib.mkIf enabled {

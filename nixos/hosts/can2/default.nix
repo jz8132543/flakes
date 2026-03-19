@@ -70,6 +70,4 @@
     cpus = 1; # vCPU 数
     highLoss = true; # 高丢包国际线路
   };
-  services.tailscale.enable = lib.mkForce true;
-  systemd.services.tailscale-setup.enable = lib.mkForce true;
 }

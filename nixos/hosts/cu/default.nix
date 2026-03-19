@@ -86,6 +86,4 @@
     # （已是默认公式，此处显式写出便于各主机理解和覆盖）
     fqMaxrate = 570;
   };
-  services.tailscale.enable = lib.mkForce true;
-  systemd.services.tailscale-setup.enable = lib.mkForce true;
 }
