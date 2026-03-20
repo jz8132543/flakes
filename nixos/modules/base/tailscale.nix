@@ -7,7 +7,6 @@
 }:
 let
   interfaceName = "tailscale0";
-  magicDomain = "mag";
 in
 {
   imports = [ nixosModules.services.restic ];
@@ -15,8 +14,8 @@ in
     enable = lib.mkDefault true;
     openFirewall = true;
     useRoutingFeatures = "both";
-    # Keep DNS management in systemd-resolved under our control so Tailscale
-    # does not occasionally promote 100.100.100.100 to the global resolver.
+    # Keep DNS ownership in the local dnsmasq frontend so Tailscale does not
+    # promote 100.100.100.100 to the global resolver.
     extraSetFlags = [
       "--netfilter-mode=nodivert"
       "--accept-dns=false"
@@ -25,8 +24,6 @@ in
   };
   networking = {
     networkmanager.unmanaged = [ interfaceName ];
-    # Keep the tunnel interface unmanaged and let systemd-resolved apply
-    # the split DNS rule once tailscale0 exists.
     firewall = {
       # checkReversePath = false;
       trustedInterfaces = [ "tailscale0" ];
@@ -94,77 +91,9 @@ in
 
   systemd.services.tailscaled = {
     before = [ "network.target" ];
-    after = [ "systemd-resolved.service" ];
-    wants = [ "systemd-resolved.service" ];
     serviceConfig = {
       Restart = "always";
       TimeoutStopSec = "5s";
-    };
-  };
-
-  systemd.services.tailscale-resolved = {
-    description = "Register Tailscale MagicDNS with systemd-resolved";
-    wantedBy = [ "multi-user.target" ];
-    wants = [
-      "tailscaled.service"
-      "tailscale-setup.service"
-      "systemd-resolved.service"
-    ];
-    after = [
-      "tailscaled.service"
-      "tailscale-setup.service"
-      "systemd-resolved.service"
-    ];
-    partOf = [
-      "tailscaled.service"
-      "tailscale-setup.service"
-    ];
-    bindsTo = [ "tailscaled.service" ];
-    path = [
-      config.systemd.package
-      pkgs.iproute2
-      pkgs.coreutils
-    ];
-    script = ''
-      while true; do
-        if ip link show dev ${interfaceName} >/dev/null 2>&1; then
-          ifindex="$(${pkgs.iproute2}/bin/ip -o link show ${interfaceName} | ${pkgs.coreutils}/bin/cut -d: -f1 | ${pkgs.coreutils}/bin/tr -d ' ')"
-
-          # Write the split-DNS state directly via resolve1 D-Bus so it
-          # survives resolvectl oddities on tailscale0 and can be re-applied
-          # if tailscale recreates the tunnel device.
-          ${config.systemd.package}/bin/busctl call \
-            org.freedesktop.resolve1 \
-            /org/freedesktop/resolve1 \
-            org.freedesktop.resolve1.Manager \
-            SetLinkDNS \
-            'ia(iay)' \
-            "$ifindex" 1 2 4 100 100 100 100
-
-          ${config.systemd.package}/bin/busctl call \
-            org.freedesktop.resolve1 \
-            /org/freedesktop/resolve1 \
-            org.freedesktop.resolve1.Manager \
-            SetLinkDomains \
-            'ia(sb)' \
-            "$ifindex" 1 ${magicDomain} 1
-
-          ${config.systemd.package}/bin/busctl call \
-            org.freedesktop.resolve1 \
-            /org/freedesktop/resolve1 \
-            org.freedesktop.resolve1.Manager \
-            SetLinkDefaultRoute \
-            'ib' \
-            "$ifindex" false
-        fi
-        sleep 10
-      done
-    '';
-    serviceConfig = {
-      Type = "simple";
-      Restart = "always";
-      RestartSec = "2s";
-      ExecStop = "${pkgs.runtimeShell} -lc '${config.systemd.package}/bin/resolvectl revert ${interfaceName} || true'";
     };
   };
   services.restic.backups.borgbase.paths = [

@@ -42,7 +42,6 @@
       "nvidia-modeset.hdmi_deepcolor=1"
       "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
       # "nvidia.NVreg_DynamicPowerManagement=2"
-
     ];
   };
   services.xserver.videoDrivers = lib.mkDefault [ "nvidia" ];

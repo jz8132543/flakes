@@ -54,24 +54,9 @@
   services.gnome.sushi.enable = true;
   services.gvfs.enable = true;
 
+  # Let Home Manager own user-level GNOME dconf keys. Keeping locks here makes
+  # `home-manager-tippy.service` fail when it tries to write the same keys.
   programs.dconf.enable = true;
-  programs.dconf.profiles.user.databases = [
-    {
-      settings = {
-        "org/gnome/shell/extensions/dash-to-dock" = {
-          autohide = true;
-          "dock-fixed" = false;
-          intellihide = false;
-          "intellihide-mode" = "ALL_WINDOWS";
-          "apply-custom-theme" = true;
-          "custom-theme-shrink" = true;
-        };
-      };
-      locks = [
-        "/org/gnome/shell/extensions/dash-to-dock/autohide"
-      ];
-    }
-  ];
 
   systemd.targets = {
     sleep.enable = false;

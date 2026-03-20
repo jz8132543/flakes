@@ -2,7 +2,6 @@
   config,
   lib,
   inputs,
-  pkgs,
   ...
 }:
 {
@@ -10,7 +9,6 @@
     inputs.grub2-themes.nixosModules.default
   ];
   boot = {
-    kernelPackages = lib.mkOverride 9999 pkgs.linuxPackages;
     initrd = {
       availableKernelModules = [
         "xhci_pci"
@@ -69,19 +67,14 @@
     };
   };
   services.xserver.videoDrivers = [ "nvidia" ];
-  systemd.services.nvidia-control-devices = {
-    wantedBy = [
-      "multi-user.target"
-    ];
-  };
   hardware.nvidia = {
-    open = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+    open = false;
     modesetting.enable = true;
-    # package = config.boot.kernelPackages.nvidiaPackages.production;
     nvidiaSettings = true;
-    nvidiaPersistenced = true;
     prime = {
       offload.enable = true;
+      offload.enableOffloadCmd = true;
       intelBusId = "PCI:0:2:0";
       nvidiaBusId = "PCI:2:0:0";
     };

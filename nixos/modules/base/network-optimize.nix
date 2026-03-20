@@ -592,8 +592,9 @@ in
       };
     }
     {
-      # 固定 XanMod 内核 + 外置 bbrv1 模块，避免每次重编整内核。
-      boot.kernelPackages = lib.mkForce pkgs.linuxPackages_xanmod_latest;
+      # 默认偏向 XanMod，但允许更具体的主机/硬件模块覆盖。
+      # 例如 Surface 等需要专用补丁内核的机型，应当能压过这里的选择。
+      boot.kernelPackages = lib.mkOverride 900 pkgs.linuxPackages_xanmod_latest;
       boot.extraModulePackages = lib.mkIf (cfg.cca == "bbrv1") [
         (config.boot.kernelPackages.callPackage ../../../pkgs/bbrv1-kmod { })
       ];

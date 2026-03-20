@@ -149,7 +149,7 @@
           # 等待 udev 完成设备节点与 by-label/by-partlabel 符号链接创建
           udevadm settle || true
 
-          mkdir -p /mnt /mnt/rootfs
+          mkdir -p /mnt
 
           disk=""
           if [ -e /dev/disk/by-partlabel/NIXOS ]; then
@@ -161,21 +161,17 @@
             exit 1
           fi
 
-          # 默认只挂载 rootfs 子卷到 /mnt/rootfs
-          if mount -o subvol=rootfs "$disk" /mnt/rootfs; then
-            mounted_rootfs=1
-          else
-            mounted_rootfs=0
-          fi
+          echo "rollback: mounting top-level btrfs subvolume from $disk..."
+          mount -t btrfs -o subvolid=5 "$disk" /mnt
 
           cleanup() {
-            mountpoint -q /mnt/rootfs && umount /mnt/rootfs || true
             mountpoint -q /mnt && umount /mnt || true
           }
           trap cleanup EXIT
 
-          if [ "$mounted_rootfs" -eq 1 ]; then
-            # 删除 rootfs 下子卷；按逆序删除，避免父子卷依赖导致删除失败
+          if [ -d /mnt/rootfs ]; then
+            # 删除 rootfs 下子卷；按逆序删除，避免父子卷依赖导致删除失败。
+            # `btrfs subvolume list` 返回的是相对于 btrfs 顶层的路径，因此在顶层挂载点下删除。
             btrfs subvolume list -o /mnt/rootfs \
               | cut -d ' ' -f 9- \
               | sort -r \
@@ -189,15 +185,13 @@
                     ;;
                 esac
 
-                echo "deleting /''$subvolume subvolume..."
-                btrfs subvolume delete "/mnt/rootfs/''$subvolume"
+                echo "rollback: deleting /''$subvolume subvolume..."
+                btrfs subvolume delete "/mnt/''$subvolume"
               done
 
-            echo "clearing /mnt/rootfs content..."
+            echo "rollback: clearing /mnt/rootfs content..."
             find /mnt/rootfs -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
           else
-            # 仅当 rootfs 子卷不存在时，短暂挂载顶层创建 rootfs（不挂载 rootfs 本身）
-            mount -o subvolid=5 "$disk" /mnt
             echo "rollback: rootfs subvolume not found, creating it from top-level..."
             btrfs subvolume create /mnt/rootfs
           fi

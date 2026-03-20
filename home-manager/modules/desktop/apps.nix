@@ -171,7 +171,7 @@
         value="$3"
         tmp="$(mktemp)"
 
-        awk -v section="$section" -v key="$key" -v value="$value" '
+        ${pkgs.gawk}/bin/awk -v section="$section" -v key="$key" -v value="$value" '
           BEGIN {
             in_section = 0
             section_found = 0

@@ -3,11 +3,12 @@
   services.ipp-usb.enable = true;
   services.printing = {
     enable = true;
-    browsing = true;
+    browsing = false;
+    browsed.enable = false;
+    startWhenNeeded = false;
     webInterface = true;
     drivers = with pkgs; [
       cups-filters
-      cups-browsed
       gutenprint
       hplip
       splix

@@ -1,24 +1,36 @@
-{ ... }:
 {
-  services.resolved = {
+  config,
+  lib,
+  ...
+}:
+{
+  services.resolved.enable = false;
+
+  services.dnsmasq = {
     enable = true;
+    alwaysKeepRunning = true;
+    resolveLocalQueries = false;
     settings = {
-      Resolve = {
-        DNS = [
-          "1.1.1.1"
-          "1.0.0.1"
-        ];
-        FallbackDNS = [ ];
-        Domains = [ ];
-        DNSSEC = false;
-        MulticastDNS = false;
-        LLMNR = false;
-        Cache = true;
-        DNSStubListener = true;
-      };
+      bind-interfaces = true;
+      listen-address = "127.0.0.1";
+      cache-size = 10000;
+      no-negcache = true;
+      no-poll = true;
+      no-resolv = true;
+      server = [
+        "1.1.1.1"
+        "1.0.0.1"
+        "223.5.5.5"
+      ]
+      ++ lib.optional config.services.tailscale.enable "/mag/100.100.100.100"
+      ++ lib.optional config.services.easytierMesh.enable "/et/${config.services.easytierMesh.dnsServer}";
     };
   };
-  networking.resolvconf.enable = false;
+
+  networking = {
+    nameservers = [ "127.0.0.1" ];
+    resolvconf.enable = false;
+  };
 
   # Prefer IPv4 when both address families are available.
   environment.etc."gai.conf".text = ''
