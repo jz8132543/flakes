@@ -131,28 +131,46 @@
         description = "Rollback BTRFS root subvolume to a pristine state";
         unitConfig.DefaultDependencies = "no";
         serviceConfig.Type = "oneshot";
+        startLimitBurst = 3;
+        startLimitIntervalSec = 0;
 
-        wantedBy = [ "initrd.target" ];
-        before = [ "sysroot.mount" ];
-        after = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
+        wantedBy = [ "initrd-root-fs.target" ];
+        before = [
+          "sysroot.mount"
+          "initrd-root-fs.target"
+        ];
+        wants = [
+          "systemd-udev-settle.service"
+          "dev-disk-by\\x2dpartlabel-NIXOS.device"
+        ];
+        after = [
+          "systemd-udev-settle.service"
+          "dev-disk-by\\x2dpartlabel-NIXOS.device"
+        ];
         requires = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
         path = with pkgs; [
           btrfs-progs
           coreutils
           systemd
-          util-linux
+          util-linuxMinimal.bin
+          util-linuxMinimal.mount
         ];
 
         script = ''
           set -eu
 
+          mountpoint=/btrfs_tmp
+          root_device="${config.fileSystems."/".device}"
+
           # 等待 udev 完成设备节点与 by-label/by-partlabel 符号链接创建
           ${pkgs.systemd}/bin/udevadm settle || true
 
-          ${pkgs.coreutils}/bin/mkdir -p /mnt
+          ${pkgs.coreutils}/bin/mkdir -p "$mountpoint"
 
           disk=""
-          if [ -e /dev/disk/by-partlabel/NIXOS ]; then
+          if [ -e "$root_device" ]; then
+            disk="$root_device"
+          elif [ -e /dev/disk/by-partlabel/NIXOS ]; then
             disk="/dev/disk/by-partlabel/NIXOS"
           elif [ -e /dev/disk/by-label/NIXOS ]; then
             disk="/dev/disk/by-label/NIXOS"
@@ -162,17 +180,19 @@
           fi
 
           echo "rollback: mounting top-level btrfs subvolume from $disk..."
-          ${pkgs.util-linux}/bin/mount -t btrfs -o subvolid=5 "$disk" /mnt
+          ${pkgs.util-linuxMinimal.mount}/bin/mount -t btrfs -o subvolid=5 "$disk" "$mountpoint"
 
           cleanup() {
-            ${pkgs.util-linux}/bin/mountpoint -q /mnt && ${pkgs.util-linux}/bin/umount /mnt || true
+            ${pkgs.util-linuxMinimal.mount}/bin/umount "$mountpoint" || true
           }
           trap cleanup EXIT
 
-          if [ -d /mnt/rootfs ]; then
+          rootfs_path="$mountpoint/rootfs"
+
+          if ${pkgs.btrfs-progs}/bin/btrfs subvolume show "$rootfs_path" >/dev/null 2>&1; then
             # 删除 rootfs 下子卷；按逆序删除，避免父子卷依赖导致删除失败。
             # `btrfs subvolume list` 返回的是相对于 btrfs 顶层的路径，因此在顶层挂载点下删除。
-            ${pkgs.btrfs-progs}/bin/btrfs subvolume list -o /mnt/rootfs \
+            ${pkgs.btrfs-progs}/bin/btrfs subvolume list -o "$rootfs_path" \
               | ${pkgs.coreutils}/bin/cut -d ' ' -f 9- \
               | ${pkgs.coreutils}/bin/sort -r \
               | while read -r subvolume; do
@@ -186,15 +206,19 @@
                 esac
 
                 echo "rollback: deleting /''$subvolume subvolume..."
-                ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "/mnt/''$subvolume"
+                ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "$mountpoint/''$subvolume"
               done
 
-            echo "rollback: clearing /mnt/rootfs content..."
-            ${pkgs.findutils}/bin/find /mnt/rootfs -mindepth 1 -maxdepth 1 -exec ${pkgs.coreutils}/bin/rm -rf -- {} +
+            echo "rollback: deleting /rootfs subvolume..."
+            ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "$rootfs_path"
+          elif [ -e "$rootfs_path" ]; then
+            echo "rollback: removing unexpected non-subvolume /rootfs..."
+            ${pkgs.coreutils}/bin/rm -rf -- "$rootfs_path"
           else
             echo "rollback: rootfs subvolume not found, creating it from top-level..."
-            ${pkgs.btrfs-progs}/bin/btrfs subvolume create /mnt/rootfs
           fi
+
+          ${pkgs.btrfs-progs}/bin/btrfs subvolume create "$rootfs_path"
         '';
       };
     };

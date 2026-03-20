@@ -24,6 +24,10 @@
     efibootmgr
   ];
   boot.kernelPackages = lib.mkOverride 0 pkgs.linuxPackages;
+  desktop.nvidia = {
+    mode = "offload";
+  };
+
   # services.create_ap = {
   #   enable = true;
   #   settings = {
@@ -38,5 +42,4 @@
   # };
   # };
 
-  # Media services removed - use nue0 for media server
 }

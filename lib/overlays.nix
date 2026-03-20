@@ -66,9 +66,16 @@
         fym998 = prev.nur.repos.fym998 // {
           wpsoffice-cn-fcitx = prev.nur.repos.fym998.wpsoffice-cn-fcitx.overrideAttrs (old: {
             postInstall = (old.postInstall or "") + ''
-              templatesDir=${../conf/wps/templates}
+              templatesDir=
 
-              if [ -d "$templatesDir" ]; then
+              for candidate in ${../conf/wps/templates} ${../conf/wps}; do
+                if [ -d "$candidate" ]; then
+                  templatesDir="$candidate"
+                  break
+                fi
+              done
+
+              if [ -n "$templatesDir" ] && [ -d "$templatesDir" ]; then
                 if [ -f "$templatesDir/newfile.docx" ]; then
                   install -Dm644 "$templatesDir/newfile.docx" "$out/opt/kingsoft/wps-office/templates/newfile.docx"
                   install -Dm644 "$templatesDir/newfile.docx" "$out/opt/kingsoft/wps-office/office6/mui/zh_CN/templates/newfile.docx"

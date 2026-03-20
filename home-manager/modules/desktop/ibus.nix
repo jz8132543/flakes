@@ -39,10 +39,17 @@ let
       app_options:
     ${renderAppOptions terminalEnglishApps}
   '';
+  rimeIbusCustom = pkgs.writeText "ibus_rime.custom.yaml" ''
+    patch:
+      style:
+        inline_preedit: true
+        preedit_style: composition
+  '';
   rimeUserData = pkgs.runCommandLocal "ibus-rime-user-data" { } ''
     cp -r ${pkgs.rime-deploy}/share/rime-data $out
     chmod -R u+w $out
     cp ${rimeDefaultCustom} $out/default.custom.yaml
+    cp ${rimeIbusCustom} $out/ibus_rime.custom.yaml
   '';
 in
 lib.mkIf (imFramework == "ibus") {

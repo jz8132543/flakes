@@ -1,3 +1,4 @@
+{ lib, ... }:
 {
   console.useXkbConfig = true;
   services = {
@@ -11,8 +12,24 @@
       #   tapping = true;
       #   tappingDragLock = false;
       # };
-      # Swap CapsLock and Escape for all keyboards via XKB (hotplug-safe).
-      xkb.options = "caps:swapescape";
+      # keyd owns keyboard remapping so we do not stack XKB swaps on top.
+      xkb.options = lib.mkForce "";
+    };
+    keyd = {
+      enable = true;
+      keyboards.default = {
+        ids = [ "*" ];
+        settings.main = {
+          # Tap either Shift to emit a dedicated IME toggle key on release;
+          # hold it or chord it with another key to behave like normal Shift.
+          leftshift = "overload(shift, macro(C-space))";
+          rightshift = "overload(shift, macro(C-space))";
+
+          # Keep Escape/CapsLock swapped for all keyboards, including hotplugged ones.
+          capslock = "esc";
+          esc = "capslock";
+        };
+      };
     };
     # Ignore auto hibernate
     logind.settings.Login = {

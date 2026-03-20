@@ -14,18 +14,7 @@
   # Jun 09 02:46:50 parrot systemd-fstab-generator[472]: Failed to create unit file '/run/systemd/generator/usr-bin.mount', as it already exists. Duplicate entry in '/etc/fstab'?
   fileSystems."/bin".enable = false;
 
-  # systemd requires `/usr` being properly populated before switching root
-  # envfs disables the "population" of `/usr/bin/env`
-  # "populate" an non-empty `/usr` to make systemd happy
-  boot.initrd.systemd.tmpfiles.settings = {
-    "50-usr-bin" = {
-      "/sysroot/usr/bin" = {
-        d = {
-          group = "root";
-          mode = "0755";
-          user = "root";
-        };
-      };
-    };
-  };
+  # envfs already provides the initrd tmpfiles entries that stage1 needs for
+  # `/sysroot/bin` and `/sysroot/usr/bin`. Duplicating them here can make the
+  # initrd tmpfiles setup fail with conflicting rules.
 }

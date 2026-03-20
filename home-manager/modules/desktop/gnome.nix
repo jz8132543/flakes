@@ -17,7 +17,7 @@ let
     system-monitor-next
     # caffeine
     user-themes
-    # customize-ibus
+    ibus-tweaker
     # fcitx5
     kimpanel
   ];
@@ -40,11 +40,6 @@ let
     ;
 in
 {
-  imports = [
-    ./fcitx5.nix
-    ./ibus.nix
-  ];
-
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
@@ -73,12 +68,15 @@ in
         switch-input-source =
           if imFramework == "ibus" then
             [
-              "Shift_L"
-              "Shift_R"
+              "<Control>space"
             ]
           else
             [ ];
         switch-input-source-backward = [ ];
+      };
+      "org/gnome/settings-daemon/plugins/media-keys" = {
+        control-center = [ ];
+        control-center-static = [ ];
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
         binding = mkString "NEXT";
@@ -161,14 +159,18 @@ in
                 ]
             );
         per-window = imFramework == "ibus";
-        # GNOME Wayland reads XKB options from dconf; keep it aligned with the
-        # system-level XKB setting so the swap applies to built-in and USB/BT keyboards.
-        xkb-options = mkArray type.string [ (mkString "caps:swapescape") ];
+        # keyd handles remapping below the compositor, so leave GNOME XKB tweaks empty.
+        xkb-options = mkArray type.string [ ];
       };
-      "org/gnome/shell/extensions/customize-ibus" = {
-        use-custom-font = true;
-        custom-font = "sans-serif 10";
-        input-indicator-only-on-toggle = true;
+      "org/gnome/shell/extensions/ibus-tweaker" = {
+        enable-custom-font = true;
+        custom-font = "sans-serif 14";
+        enable-preset-theme = true;
+        preset-theme-style = mkUint32 0;
+        hide-page-button = true;
+        enable-auto-switch = false;
+        enable-app-search = true;
+        enable-clip-history = false;
       };
       "org/gnome/shell/extensions/system-monitor" = {
         memory-display = false;

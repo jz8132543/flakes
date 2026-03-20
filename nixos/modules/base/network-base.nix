@@ -32,6 +32,11 @@
     resolvconf.enable = false;
   };
 
+  environment.etc."resolv.conf".text = ''
+    nameserver 127.0.0.1
+    options edns0
+  '';
+
   # Prefer IPv4 when both address families are available.
   environment.etc."gai.conf".text = ''
     label  ::1/128       0

@@ -105,29 +105,29 @@ in
     #   };
     # };
     nvidia = {
-      modesetting.enable = true;
-      powerManagement.enable = true; # 开启显卡电源管理，解决风扇不转或耗电快
-      powerManagement.finegrained = true; # 针对 40 系显卡的精细电源控制
-      open = lib.mkForce true; # 2023 款显卡支持 NVIDIA 官方开源内核模块，更符合 NixOS 哲学
-      package = config.boot.kernelPackages.nvidiaPackages.stable;
+      # modesetting.enable = true;
+      # powerManagement.enable = true; # 开启显卡电源管理，解决风扇不转或耗电快
+      # powerManagement.finegrained = true; # 针对 40 系显卡的精细电源控制
+      # open = lib.mkForce true; # 2023 款显卡支持 NVIDIA 官方开源内核模块，更符合 NixOS 哲学
+      # package = config.boot.kernelPackages.nvidiaPackages.stable;
 
       prime = {
-        offload.enable = true;
-        offload.enableOffloadCmd = true;
+        # offload.enable = true;
+        # offload.enableOffloadCmd = true;
         # 这里的 Bus ID 需要通过 lspci 命令确认后修改
         amdgpuBusId = "PCI:8:0:0";
         nvidiaBusId = "PCI:1:0:0";
       };
     };
-    graphics = {
-      enable = true;
-      enable32Bit = true;
-      extraPackages = with pkgs; [
-        libva-vdpau-driver
-        libvdpau-va-gl
-        nvidia-vaapi-driver
-      ];
-    };
+    # graphics = {
+    #   enable = true;
+    #   enable32Bit = true;
+    #   extraPackages = with pkgs; [
+    #     libva-vdpau-driver
+    #     libvdpau-va-gl
+    #     nvidia-vaapi-driver
+    #   ];
+    # };
   };
   environment.sessionVariables = {
     __GL_SYNC_DISPLAY_DEVICE = MONITOR;
