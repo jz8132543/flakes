@@ -27,24 +27,29 @@
     ipFamily = "ipv4";
     mappings = [
       {
-        listenPort = 2022; # 26696
-        remoteAddr = "138.252.162.101";
-        remotePort = 16810;
+        listenPort = 50561;
+        remoteAddr = "nue0.dora.im";
+        remotePort = 8555;
       }
       {
-        listenPort = 8555; # 51685
-        remoteAddr = "138.252.162.101";
-        remotePort = 16811;
+        listenPort = 50562;
+        remoteAddr = "hkg4.dora.im";
+        remotePort = 8555;
       }
       {
-        listenPort = 16812; # 56071
-        remoteAddr = "138.252.162.101";
-        remotePort = 16812;
+        listenPort = 50563;
+        remoteAddr = "tyo0.dora.im";
+        remotePort = 8555;
       }
       {
-        listenPort = 16813; # 56813
-        remoteAddr = "138.252.162.101";
-        remotePort = 16813;
+        listenPort = 50564;
+        remoteAddr = "hkg5.dora.im";
+        remotePort = 8555;
+      }
+      {
+        listenPort = 50565;
+        remoteAddr = "tyo1.dora.im";
+        remotePort = 8555;
       }
     ];
   };
@@ -58,6 +63,8 @@
 
   ports.derp-stun = lib.mkForce 50568;
   ports.derp = lib.mkForce 50567;
+  services.traefik.proxies.derp.rule =
+    lib.mkForce "Host(`${config.networking.fqdn}`) || Host(`cuv6.${config.networking.domain}`)";
   # ports.turn-stun = lib.mkForce 50568;
   environment.altHTTPS = 50569;
 

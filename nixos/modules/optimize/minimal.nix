@@ -7,9 +7,20 @@
 let
   cfg = config.environment.minimal;
   mkTop = lib.mkOverride 0;
+  minimalBtrfsMountOptions = [
+    "noatime"
+    "compress=no"
+    "space_cache=v2"
+    "commit=30"
+    "ssd_spread"
+    "flushoncommit"
+  ];
 in
 {
-  imports = [ ./cpu.nix ];
+  imports = [
+    ./cpu.nix
+    ./disk-reliability.nix
+  ];
 
   config = lib.mkMerge [
     { environment.minimal = lib.mkDefault true; }
@@ -29,11 +40,18 @@ in
       # environment.defaultPackages = lib.mkForce [ ];
       system.disableInstallerTools = lib.mkForce true;
 
-      # 2. Btrfs 额外优化 (联动 Disko 参数外的部分)
+      # 2. Btrfs 额外优化
+      # 在弱机上关闭压缩，避免 btrfs-endio 长时间参与压缩写回。
       services.btrfs.autoScrub.enable = lib.mkForce false;
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;
       disko.devices.disk.main.content.partitions.NIXOS.content.extraArgs = lib.mkAfter [ "-M" ];
+      disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes = {
+        "/rootfs".mountOptions = mkTop minimalBtrfsMountOptions;
+        "/nix".mountOptions = mkTop minimalBtrfsMountOptions;
+        "/persist".mountOptions = mkTop minimalBtrfsMountOptions;
+        "/boot".mountOptions = mkTop minimalBtrfsMountOptions;
+      };
 
       # 3. 移除 Nix 注册表中的源码副本，减少磁盘占用
       nix.registry = lib.mkForce { };
