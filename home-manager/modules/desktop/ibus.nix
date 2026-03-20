@@ -42,6 +42,7 @@ let
   rimeIbusCustom = pkgs.writeText "ibus_rime.custom.yaml" ''
     patch:
       style:
+        horizontal: true
         inline_preedit: true
         preedit_style: composition
   '';
