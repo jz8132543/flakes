@@ -66,7 +66,7 @@ let
     "--multi-thread=true"
     # Keep DNS ownership in the local dnsmasq frontend. EasyTier should only
     # provide the overlay DNS service, never rewrite the system resolver.
-    "--accept-dns=false"
+    "--accept-dns=true"
     "--tld-dns-zone"
     cfg.tldDnsZone
     "--compression"
