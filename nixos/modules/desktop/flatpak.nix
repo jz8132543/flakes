@@ -1,6 +1,6 @@
 { config, ... }:
 let
-  currentIM = config.i18n.inputMethod.enabled;
+  currentIM = config.i18n.inputMethod.type;
 
   # 2. 逻辑分支：根据读取到的结果生成对应的变量集
   imEnv =

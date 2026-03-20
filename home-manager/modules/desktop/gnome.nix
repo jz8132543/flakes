@@ -2,9 +2,11 @@
   pkgs,
   lib,
   config,
+  osConfig ? { },
   ...
 }:
 let
+  imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
   extensionPkgs = with pkgs.gnomeExtensions; [
     gsconnect
     appindicator
@@ -38,6 +40,11 @@ let
     ;
 in
 {
+  imports = [
+    ./fcitx5.nix
+    ./ibus.nix
+  ];
+
   home.packages =
     extensionPkgs
     ++ (with pkgs; [
@@ -63,8 +70,14 @@ in
       "org/gnome/desktop/wm/keybindings" = {
         switch-to-workspace-right = [ "<Control><Super>Right" ];
         switch-to-workspace-left = [ "<Control><Super>Left" ];
-        # use fcitx5 for binding
-        switch-input-source = [ ];
+        switch-input-source =
+          if imFramework == "ibus" then
+            [
+              "Shift_L"
+              "Shift_R"
+            ]
+          else
+            [ ];
         switch-input-source-backward = [ ];
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
@@ -127,13 +140,27 @@ in
               type.string
               type.string
             ])
-            [
-              (mkTuple [
-                (mkString "ibus")
-                (mkString "rime")
-              ])
-              # (mkTuple [(mkString "xkb") (mkString "us")])
-            ];
+            (
+              if imFramework == "ibus" then
+                [
+                  (mkTuple [
+                    (mkString "xkb")
+                    (mkString "us")
+                  ])
+                  (mkTuple [
+                    (mkString "ibus")
+                    (mkString "rime")
+                  ])
+                ]
+              else
+                [
+                  (mkTuple [
+                    (mkString "ibus")
+                    (mkString "rime")
+                  ])
+                ]
+            );
+        per-window = imFramework == "ibus";
         # GNOME Wayland reads XKB options from dconf; keep it aligned with the
         # system-level XKB setting so the swap applies to built-in and USB/BT keyboards.
         xkb-options = mkArray type.string [ (mkString "caps:swapescape") ];

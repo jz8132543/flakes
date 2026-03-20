@@ -6,7 +6,6 @@
 }:
 let
   surfaceDisplayAutoPy = ./surface-display-auto.py;
-  nvidiaPciDevice = "0000:02:00.0";
 
   surfaceDisplayAuto = pkgs.writeShellApplication {
     name = "surface-display-auto";
@@ -47,79 +46,8 @@ let
     ];
     text = builtins.readFile ./surface-display-recover.sh;
   };
-
-  gpuAutoOffload = pkgs.writeShellApplication {
-    name = "gpu-auto-offload";
-    runtimeInputs = [ pkgs.coreutils ];
-    text = ''
-      set -eu
-
-      if [ "$#" -eq 0 ]; then
-        echo "usage: gpu-auto-offload <program> [args...]" >&2
-        exit 64
-      fi
-
-      nvidia_device="/sys/bus/pci/devices/${nvidiaPciDevice}"
-
-      if [ -r "$nvidia_device/vendor" ] && [ "$(cat "$nvidia_device/vendor")" = "0x10de" ] && [ -c /dev/nvidiactl ]; then
-        export __NV_PRIME_RENDER_OFFLOAD=1
-        export __GLX_VENDOR_LIBRARY_NAME=nvidia
-        export __VK_LAYER_NV_optimus=NVIDIA_only
-      fi
-
-      exec "$@"
-    '';
-  };
-
-  gpuWrappedApps = pkgs.symlinkJoin {
-    name = "surface-gpu-wrapped-apps";
-    paths =
-      map
-        (
-          {
-            name,
-            command,
-          }:
-          pkgs.writeShellApplication {
-            inherit name;
-            text = ''
-              exec ${gpuAutoOffload}/bin/gpu-auto-offload ${command} "$@"
-            '';
-          }
-        )
-        [
-          {
-            name = "google-chrome-stable";
-            command = "${pkgs.google-chrome}/bin/google-chrome-stable";
-          }
-          {
-            name = "chromium";
-            command = "${pkgs.chromium}/bin/chromium";
-          }
-          {
-            name = "firefox";
-            command = "${pkgs.firefox}/bin/firefox";
-          }
-          {
-            name = "code";
-            command = "${pkgs.vscode}/bin/code";
-          }
-          {
-            name = "cursor";
-            command = "${pkgs.code-cursor}/bin/cursor";
-          }
-          {
-            name = "antigravity";
-            command = "${pkgs.google-antigravity}/bin/antigravity";
-          }
-        ];
-  };
 in
 {
-  disabledModules = [
-    ../../modules/desktop/nvidia.nix
-  ];
-
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -138,20 +66,8 @@ in
   };
   services.iptsd.enable = lib.mkDefault true;
 
-  hardware.graphics = {
-    enable = true;
-    enable32Bit = true;
-  };
-
-  environment.sessionVariables = {
-    LIBVA_DRIVER_NAME = "iHD";
-    SDL_VIDEODRIVER = "wayland";
-  };
-
-  home-manager.users.tippy = {
-    home.sessionPath = [
-      "${gpuWrappedApps}/bin"
-    ];
+  desktop.nvidia = {
+    mode = "sync";
   };
 
   users.users.tippy.extraGroups = [ "surface-control" ];
@@ -178,8 +94,6 @@ in
     surfaceDisplayAuto
     surfaceDisplayDiagnose
     surfaceDisplayRecover
-    gpuAutoOffload
-    gpuWrappedApps
     usbutils
     v4l-utils
   ];

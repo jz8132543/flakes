@@ -1,15 +1,57 @@
 {
   pkgs,
   lib,
+  osConfig ? { },
   ...
 }:
-{
+let
+  imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
+  terminalEnglishApps =
+    lib.attrByPath
+      [ "desktop" "inputMethod" "terminalEnglishApps" ]
+      [
+        "kitty"
+        "Alacritty"
+        "alacritty"
+        "foot"
+        "neovide"
+        "org.wezfurlong.wezterm"
+        "org.gnome.Console"
+        "gnome-terminal-server"
+        "com.raggesilver.BlackBox"
+      ]
+      osConfig;
+  renderAppOptions =
+    apps:
+    lib.concatMapStrings (app: ''
+      "${app}":
+        ascii_mode: true
+    '') apps;
+  rimeDefaultCustom = pkgs.writeText "default.custom.yaml" ''
+    patch:
+      schema_list:
+        - schema: wanxiang
+      ascii_composer:
+        good_old_caps_lock: true
+        switch_key:
+          Shift_L: noop
+          Shift_R: noop
+      app_options:
+    ${renderAppOptions terminalEnglishApps}
+  '';
+  rimeUserData = pkgs.runCommandLocal "fcitx5-rime-user-data" { } ''
+    cp -r ${pkgs.rime-deploy}/share/rime-data $out
+    chmod -R u+w $out
+    cp ${rimeDefaultCustom} $out/default.custom.yaml
+  '';
+in
+lib.mkIf (imFramework == "fcitx5") {
   home.packages = with pkgs; [
     qt6Packages.fcitx5-configtool
   ];
 
   xdg.dataFile."fcitx5/rime" = {
-    source = "${pkgs.rime-deploy}/share/rime-data";
+    source = rimeUserData;
     recursive = true;
   };
 
@@ -84,6 +126,22 @@
       Match=app_id
       String=alacritty
 
+      [Groups/1/Rules/10]
+      Match=wm_class
+      String=org.wezfurlong.wezterm
+
+      [Groups/1/Rules/11]
+      Match=app_id
+      String=org.wezfurlong.wezterm
+
+      [Groups/1/Rules/12]
+      Match=app_id
+      String=org.gnome.Console
+
+      [Groups/1/Rules/13]
+      Match=wm_class
+      String=gnome-terminal-server
+
       [Groups/1/Rules/2]
       Match=wm_class
       String=foot
@@ -117,7 +175,9 @@
     {
       # GNOME Wayland uses fcitx5 through the ibus frontend / text-input-v3 path.
       # Keep GTK on the desktop default path instead of forcing fcitx IM module
-      # globally, which is explicitly discouraged by upstream docs.
+      # globally, which is explicitly discouraged by upstream docs. Per-app
+      # terminal English mode is handled by the application filter above and by
+      # forcing selected terminals onto XWayland in their own module configs.
       QT_IM_MODULE = "fcitx";
     }
   ];

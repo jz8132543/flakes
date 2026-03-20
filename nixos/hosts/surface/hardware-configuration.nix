@@ -66,22 +66,9 @@
       };
     };
   };
-  services.xserver.videoDrivers = [ "nvidia" ];
-  hardware.nvidia = {
-    package = config.boot.kernelPackages.nvidiaPackages.stable;
-    open = false;
-    modesetting.enable = true;
-    nvidiaSettings = true;
-    prime = {
-      offload.enable = true;
-      offload.enableOffloadCmd = true;
-      intelBusId = "PCI:0:2:0";
-      nvidiaBusId = "PCI:2:0:0";
-    };
-    powerManagement = {
-      enable = true;
-      finegrained = true;
-    };
+  hardware.nvidia.prime = {
+    intelBusId = "PCI:0:2:0";
+    nvidiaBusId = "PCI:2:0:0";
   };
   # hardware.nvidia = {
   #
