@@ -67,9 +67,18 @@ in
       devshells.default = {
         commands = [
           {
-            package = inputs'.deploy-rs.packages.deploy-rs;
+            name = "deploy-rs";
+            category = "deploy";
+            help = "Upstream deploy-rs binary";
+            command = ''
+              exec ${inputs'.deploy-rs.packages.deploy-rs}/bin/deploy "$@"
+            '';
+          }
+          {
             name = "deploy";
             category = "deploy";
+            help = "Wrapper around deploy-rs with optional --hostname-suffix support";
+            command = builtins.readFile ../devshell/deploy.sh;
           }
         ];
       };

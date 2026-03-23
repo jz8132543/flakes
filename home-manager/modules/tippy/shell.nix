@@ -10,7 +10,27 @@ let
     inherit (config.home.catppuccin) variant;
     inherit (config.home.catppuccin) accent;
   };
-  # inherit (pkgs) catppuccin;
+  # 统一维护 fish / zsh 共用的命令别名，避免两边行为慢慢漂移。
+  sharedShellAliases = {
+    # 资源监控：bottom 在窄终端里也比 htop 更易读。
+    top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
+
+    # 文本查看：统一走 bat，保持语法高亮与主题风格一致。
+    cat = "${pkgs.bat}/bin/bat --style=plain";
+    fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
+    batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
+    rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
+
+    # 文件浏览：保留原生 ls，额外提供一组稳定的 eza 快捷方式。
+    l = "${pkgs.eza}/bin/eza --icons=auto --group-directories-first";
+    ll = "${pkgs.eza}/bin/eza --icons=auto --group-directories-first -lh";
+    la = "${pkgs.eza}/bin/eza --icons=auto --group-directories-first -lah";
+    lt = "${pkgs.eza}/bin/eza --icons=auto --tree --level=2";
+
+    # 常用工具：给常用参数提供安全默认值，减少重复输入。
+    rsync = "${pkgs.rsync}/bin/rsync -arvzP";
+    sl = "journalctl --unit";
+  };
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
   inherit (config.home.catppuccin) flavor;
@@ -19,24 +39,11 @@ in
   programs = {
     fish = {
       enable = true;
-      shellAliases = {
-        # ls = "${pkgs.eza}/bin/eza --icons=auto";
-        # tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
-        top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
-        cat = "${pkgs.bat}/bin/bat --style=plain";
-        fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
-        batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
-        rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
-        rsync = "${pkgs.rsync}/bin/rsync -arvzP";
-        sl = "journalctl --unit";
-      };
+      shellAliases = sharedShellAliases;
       shellAbbrs = {
-        # ls = "eza";
-        # cd = "z";
-        # cat = "bat";
+        # 交互命令优先用 abbr，仍允许你在需要时退回原始命令。
         diff = "batdiff";
         less = "batpipe";
-        # rg = "batgrep";
         man = "batman";
       };
       interactiveShellInit = lib.mkMerge [
@@ -83,17 +90,7 @@ in
       autocd = true;
       enableCompletion = true;
 
-      shellAliases = {
-        # ls = "${pkgs.eza}/bin/eza --icons=auto";
-        # tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
-        top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
-        cat = "${pkgs.bat}/bin/bat --style=plain";
-        fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
-        batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
-        rg = "${pkgs.ripgrep}/bin/rg --no-ignore";
-        rsync = "${pkgs.rsync}/bin/rsync -arvzP";
-        sl = "journalctl --unit";
-      };
+      shellAliases = sharedShellAliases;
       initContent = lib.mkOrder 550 ''
         zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
         export LS_COLORS="$(vivid generate molokai)"
@@ -131,8 +128,9 @@ in
         bindkey "$key[Up]" up-line-or-beginning-search
         bindkey "$key[Down]" down-line-or-beginning-search
 
+        # 目录跳转保留为 zsh 原生 alias，输入成本最低。
         alias -g ...='../..'
-        alias -s ....='../../..'
+        alias -g ....='../../..'
         alias -g .....='../../../..'
         alias -g ......='../../../../..'
         while read -r option

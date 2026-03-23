@@ -41,6 +41,27 @@
     },
     "version": "e96b88e94862845d05dc720ae496303ea5c2e002"
   },
+  "easytier-latest": {
+    "cargoLock": null,
+    "date": "2026-03-23",
+    "extract": null,
+    "name": "easytier-latest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "EasyTier",
+      "repo": "EasyTier",
+      "rev": "1d89ddbb1681a20427ef41ac52cd0858afa0ac5b",
+      "sha256": "sha256-7+89kofQPdOhH7flI5wjTuZ6Zjin/94/d8FAdyvexcM=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "1d89ddbb1681a20427ef41ac52cd0858afa0ac5b"
+  },
   "ebook-sender-bot": {
     "cargoLock": null,
     "date": "2024-12-28",
@@ -188,7 +209,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-Ll7zRgRn6u0+Vpo2BQwhMTnjTHropbvVXKsyeg2A0Bc=",
+      "sha256": "sha256-SfIbCNDoOh87Wl9C60CoIqb5bhTlY751hALl34ZjBms=",
       "type": "url",
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },

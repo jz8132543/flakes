@@ -46,7 +46,7 @@
             {
               name = "postgres.mag";
               type = "A";
-              value = "100.64.0.3";
+              value = "100.64.0.1";
             }
           ];
         };

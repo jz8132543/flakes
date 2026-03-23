@@ -7,6 +7,7 @@
 }:
 let
   inherit (lib)
+    escapeShellArgs
     mkEnableOption
     mkIf
     mkMerge
@@ -16,8 +17,8 @@ let
     types
     ;
   cfg = config.services.easytierMesh;
-  envName = "easytier-mesh.env";
-  instanceName = "mesh";
+  envName = "easytier.env";
+  settingsFormat = pkgs.formats.toml { };
   easytierTraefikHosts = lib.unique [
     config.networking.fqdn
     "et.${config.networking.domain}"
@@ -82,12 +83,10 @@ let
     "8"
     "--file-log-count"
     "2"
-    "--enable-kcp-proxy=${if cfg.protocols.kcp.enable then "true" else "false"}"
-    "--disable-kcp-input=false"
-    "--enable-quic-proxy=${if cfg.protocols.quic.enable then "true" else "false"}"
-    "--disable-quic-input=false"
-    "--quic-listen-port"
-    (toString cfg.protocols.quic.port)
+    "--enable-kcp-proxy=${if cfg.protocols.kcp.enableProxy then "true" else "false"}"
+    "--disable-kcp-input=${if cfg.protocols.kcp.enableInput then "false" else "true"}"
+    "--enable-quic-proxy=${if cfg.protocols.quic.enableProxy then "true" else "false"}"
+    "--disable-quic-input=${if cfg.protocols.quic.enable then "false" else "true"}"
     "--disable-udp-hole-punching=false"
     "--disable-tcp-hole-punching=false"
     "--disable-sym-hole-punching=false"
@@ -105,6 +104,21 @@ let
   ]
   ++ optionals cfg.proxyForwardBySystem [ "--proxy-forward-by-system=true" ]
   ++ cfg.extraArgs;
+
+  generatedConfig = settingsFormat.generate "easytier.toml" (
+    lib.filterAttrsRecursive (_: v: v != { }) (
+      lib.filterAttrsRecursive (_: v: v != null) {
+        hostname = config.networking.hostName;
+        inherit (cfg) ipv4;
+        dhcp = cfg.ipv4 == null;
+        listeners = listenerUris;
+        peer = map (p: { uri = p; }) (if cfg.role == "bootstrap" then [ ] else bootstrapPeers);
+        network_identity = {
+          network_name = cfg.networkName;
+        };
+      }
+    )
+  );
 in
 {
   imports = [ nixosModules.services.traefik ];
@@ -169,7 +183,7 @@ in
       preStartText = mkOption {
         type = types.lines;
         default = "";
-        description = "Optional bootstrap preparation logic run before easytier-mesh starts on bootstrap nodes.";
+        description = "Optional bootstrap preparation logic run before easytier starts on bootstrap nodes.";
       };
     };
 
@@ -249,14 +263,29 @@ in
           type = types.bool;
           default = true;
         };
+        enableProxy = mkOption {
+          type = types.bool;
+          default = true;
+        };
         port = mkOption {
           type = types.port;
           default = config.ports.easytier-quic;
         };
       };
-      kcp.enable = mkOption {
-        type = types.bool;
-        default = true;
+      kcp = {
+        enableProxy = mkOption {
+          type = types.bool;
+          default = false;
+          description = ''
+            Enable KCP proxy support for forwarded TCP traffic.
+            Keep this off by default so QUIC remains the preferred proxy path.
+          '';
+        };
+        enableInput = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Accept inbound KCP proxy traffic.";
+        };
       };
     };
 
@@ -365,28 +394,41 @@ in
       services.easytier = {
         enable = true;
         allowSystemForward = cfg.proxyForwardBySystem || cfg.enableExitNode;
-        instances."${instanceName}" = {
-          environmentFiles = [ config.sops.templates."${envName}".path ];
-          settings = {
-            hostname = config.networking.hostName;
-            network_name = cfg.networkName;
-            inherit (cfg) ipv4;
-            dhcp = cfg.ipv4 == null;
-            listeners = listenerUris;
-            peers = if cfg.role == "bootstrap" then [ ] else bootstrapPeers;
-          };
-          extraArgs = commonArgs;
-        };
+        package = lib.mkDefault (
+          pkgs.callPackage ../../../pkgs/easytier-latest {
+            source = (pkgs.callPackage ../../../pkgs/_sources/generated.nix { }).easytier-latest;
+          }
+        );
       };
 
-      systemd.services.easytier-mesh = {
-        aliases = [ "easytier.service" ];
+      systemd.services.easytier = {
+        aliases = [ "easytier-mesh.service" ];
+        description = "EasyTier Daemon";
         after = [ "network-online.target" ];
         wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        path = with pkgs; [
+          config.services.easytier.package
+          iproute2
+          bash
+        ];
         preStart = lib.mkIf (
           cfg.role == "bootstrap" && cfg.bootstrap.preStartText != ""
         ) cfg.bootstrap.preStartText;
         serviceConfig = {
+          Type = "simple";
+          EnvironmentFile = [ config.sops.templates."${envName}".path ];
+          StateDirectory = "easytier/easytier";
+          StateDirectoryMode = "0700";
+          WorkingDirectory = "/var/lib/easytier/easytier";
+          ExecStart = escapeShellArgs (
+            [
+              "${config.services.easytier.package}/bin/easytier-core"
+              "-c"
+              generatedConfig
+            ]
+            ++ commonArgs
+          );
           Restart = mkForce "always";
           RestartSec = mkForce "2s";
           AmbientCapabilities = [
@@ -399,7 +441,9 @@ in
           ];
           PrivateDevices = false;
           PrivateUsers = false;
-          RestrictAddressFamilies = "AF_INET AF_INET6 AF_NETLINK";
+          # FakeTCP uses AF_PACKET raw sockets on Linux; without this, systemd
+          # rejects the socket call with EAFNOSUPPORT and the transport never starts.
+          RestrictAddressFamilies = "AF_INET AF_INET6 AF_NETLINK AF_PACKET";
         };
       };
 

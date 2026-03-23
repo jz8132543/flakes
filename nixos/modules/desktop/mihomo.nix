@@ -4,6 +4,8 @@
   ...
 }:
 {
+  imports = [ ./mihomo-routing.nix ];
+
   services.mihomo = {
     enable = lib.mkDefault true;
     tunMode = true;

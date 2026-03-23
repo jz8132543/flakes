@@ -1,10 +1,13 @@
 {
   self,
   inputs,
+  lib,
   ...
 }:
 let
-  conf = self.nixosConfigurations;
+  conf = lib.filterAttrs (
+    name: _value: builtins.pathExists (../nixos/hosts + "/${name}")
+  ) self.nixosConfigurations;
 in
 {
   flake.colmena = {
