@@ -9,6 +9,9 @@
     inputs.grub2-themes.nixosModules.default
   ];
   boot = {
+    extraModulePackages = [
+      # config.boot.kernelPackages.v4l2loopback
+    ];
     initrd = {
       availableKernelModules = [
         "xhci_pci"
@@ -19,7 +22,7 @@
     };
     kernelModules = [
       "kvm-intel"
-      "v4l2loopback"
+      # "v4l2loopback"
       # "vfio"
       # "vfio_iommu_type1"
       # "vfio_pci"

@@ -1,8 +1,7 @@
 {
   stdenv,
   librime,
-  rime-wanxiang-base,
-  rime-wanxiang-gram,
+  rime-deploy,
   framework ? "ibus",
   terminalEnglishApps ? [
     "kitty"
@@ -17,6 +16,7 @@
   ],
   ...
 }:
+
 let
   renderAppOptions =
     apps:
@@ -26,7 +26,7 @@ let
           ascii_mode: true'') apps
     );
 
-  defaultCustomYaml = ''
+  customYaml = ''
       patch:
         schema_list:
           - schema: wanxiang
@@ -48,28 +48,22 @@ let
   '';
 in
 stdenv.mkDerivation {
-  pname = "rime-deploy";
+  pname = "rime-user-data-${framework}";
   version = "1.0.0";
-
-  src = ./.;
 
   nativeBuildInputs = [ librime ];
 
+  dontUnpack = true;
+
   buildPhase = ''
+        runHook preBuild
+
         mkdir -p rime-data
-        # 1. Copy base data (schemas, dicts from wanxiang)
-        if [ -d "${rime-wanxiang-base}/share/fcitx5/rime" ]; then
-          cp -rf ${rime-wanxiang-base}/share/fcitx5/rime/* rime-data/
-        fi
+        cp -r ${rime-deploy}/share/rime-data/. rime-data/
+        chmod -R u+w rime-data
 
-        # 2. Copy grammar model
-        if [ -f "${rime-wanxiang-gram}/share/fcitx5/rime/wanxiang-lts-zh-hans.gram" ]; then
-          cp -f ${rime-wanxiang-gram}/share/fcitx5/rime/wanxiang-lts-zh-hans.gram rime-data/
-        fi
-
-        # 3. Copy user configuration from local directory
         cat > rime-data/default.custom.yaml <<'EOF'
-    ${defaultCustomYaml}
+    ${customYaml}
     EOF
 
         if [ "${framework}" = "ibus" ]; then
@@ -78,14 +72,17 @@ stdenv.mkDerivation {
     EOF
         fi
 
-        # 4. Run Rime deployment to pre-compile schemas and dictionaries
-        # rime_deployer --build <user_data_dir> [shared_data_dir]
-        # We use the same directory for both to ensure all files are together
         rime_deployer --build rime-data rime-data
+
+        runHook postBuild
   '';
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/share/rime-data
-    cp -rf rime-data/* $out/share/rime-data/
+    cp -r rime-data/. $out/share/rime-data/
+
+    runHook postInstall
   '';
 }

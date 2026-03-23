@@ -21,29 +21,6 @@ let
         "com.raggesilver.BlackBox"
       ]
       osConfig;
-  renderAppOptions =
-    apps:
-    lib.concatMapStrings (app: ''
-      "${app}":
-        ascii_mode: true
-    '') apps;
-  rimeDefaultCustom = pkgs.writeText "default.custom.yaml" ''
-    patch:
-      schema_list:
-        - schema: wanxiang
-      ascii_composer:
-        good_old_caps_lock: true
-        switch_key:
-          Shift_L: noop
-          Shift_R: noop
-      app_options:
-    ${renderAppOptions terminalEnglishApps}
-  '';
-  rimeUserData = pkgs.runCommandLocal "fcitx5-rime-user-data" { } ''
-    cp -r ${pkgs.rime-deploy}/share/rime-data $out
-    chmod -R u+w $out
-    cp ${rimeDefaultCustom} $out/default.custom.yaml
-  '';
 in
 lib.mkIf (imFramework == "fcitx5") {
   home.packages = with pkgs; [
@@ -51,7 +28,10 @@ lib.mkIf (imFramework == "fcitx5") {
   ];
 
   xdg.dataFile."fcitx5/rime" = {
-    source = rimeUserData;
+    source = pkgs.rime-deploy.override {
+      framework = "fcitx5";
+      inherit terminalEnglishApps;
+    };
     recursive = true;
   };
 

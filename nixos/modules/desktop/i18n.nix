@@ -62,6 +62,7 @@ in
     // lib.optionalAttrs (cfg.framework == "ibus") {
       ibus = {
         engines = with pkgs.ibus-engines; [ rime ];
+        panel = "${pkgs.kdePackages.plasma-desktop}/libexec/kimpanel-ibus-panel";
         waylandFrontend = false;
       };
     };
