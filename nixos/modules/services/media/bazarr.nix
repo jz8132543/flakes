@@ -69,9 +69,5 @@
       uid = config.ids.uids.bazarr;
     };
     users.groups.bazarr.gid = config.ids.gids.bazarr;
-
-    environment.global-persistence.directories = [
-      "/var/lib/bazarr"
-    ];
   };
 }
