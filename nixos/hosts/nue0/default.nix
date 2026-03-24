@@ -7,6 +7,8 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.optimize.nix-cache-upload
+      (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.services.doraim

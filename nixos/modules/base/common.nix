@@ -32,6 +32,7 @@
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;
   };
+  boot.initrd.systemd.emergencyAccess = true;
   systemd.oomd = {
     enable = true;
     enableSystemSlice = true;

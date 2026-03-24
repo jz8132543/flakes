@@ -97,9 +97,8 @@ locals {
     link          = { on = "nue0", proxy = false }
     claw          = { on = "nue0", proxy = false }
     ai            = { on = "nue0", proxy = false }
-    frp           = { on = "nue0", proxy = false }
-    frp-master    = { on = "nue0", proxy = false }
     et            = { on = "nue0", proxy = false }
+    hydra         = { on = "nue0", proxy = false }
     # prowlarr           = { on = "nue0", proxy = false }
     # radarr             = { on = "nue0", proxy = false }
     # bazarr             = { on = "nue0", proxy = false }
