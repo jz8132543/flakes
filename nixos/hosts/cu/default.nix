@@ -63,8 +63,22 @@
 
   ports.derp-stun = lib.mkForce 50568;
   ports.derp = lib.mkForce 50567;
+  services.easytierMesh = {
+    publicHosts = [
+      "cu.dora.im"
+      "cuv6.dora.im"
+      "cm.dora.im"
+      "cmv6.dora.im"
+    ];
+    protocols = {
+      wss.port = 50566;
+      # wss.bootstrapPort = 50566;
+      quic.port = 50566;
+      # quic.bootstrapPort = 50566;
+    };
+  };
   services.traefik.proxies.derp.rule =
-    lib.mkForce "Host(`${config.networking.fqdn}`) || Host(`cuv6.${config.networking.domain}`)";
+    lib.mkForce "Host(`${config.networking.fqdn}`) || Host(`*.${config.networking.domain}`)";
   # ports.turn-stun = lib.mkForce 50568;
   environment.altHTTPS = 50569;
 

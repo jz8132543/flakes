@@ -19,6 +19,7 @@ let
   cfg = config.services.easytierMesh;
   envName = "easytier.env";
   settingsFormat = pkgs.formats.toml { };
+  traefikEnabled = config.services.traefik.enable or false;
   easytierTraefikHosts = lib.unique [
     config.networking.fqdn
     "et.${config.networking.domain}"
@@ -32,7 +33,24 @@ let
       "faketcp://0.0.0.0:${toString cfg.protocols.faketcp.port}"
     ];
 
-  allowedTcpPorts = optionals cfg.protocols.faketcp.enable [ cfg.protocols.faketcp.port ];
+  mappedListenerUris = lib.concatMap (
+    host:
+    optionals cfg.protocols.quic.enable [
+      "quic://${host}:${toString cfg.protocols.quic.port}"
+    ]
+    ++ optionals cfg.protocols.faketcp.enable [
+      "faketcp://${host}:${toString cfg.protocols.faketcp.port}"
+    ]
+    ++ optionals (cfg.protocols.wss.enable && cfg.protocols.ws.enable && traefikEnabled) [
+      "wss://${host}:${toString cfg.protocols.wss.port}"
+    ]
+  ) cfg.publicHosts;
+
+  allowedTcpPorts =
+    optionals cfg.protocols.faketcp.enable [ cfg.protocols.faketcp.port ]
+    ++ optionals (traefikEnabled && cfg.protocols.ws.enable && cfg.protocols.wss.enable) [
+      cfg.protocols.wss.port
+    ];
 
   allowedUdpPorts = optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ];
 
@@ -51,7 +69,7 @@ let
         "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.bootstrapPort}"
       ]
       ++ optionals cfg.protocols.quic.enable [
-        "quic://${cfg.bootstrap.host}:${toString cfg.protocols.quic.port}"
+        "quic://${cfg.bootstrap.host}:${toString cfg.protocols.quic.bootstrapPort}"
       ]
     ))
     ++ cfg.bootstrap.peers
@@ -102,6 +120,10 @@ let
     "--proxy-networks"
     (lib.concatStringsSep "," cfg.proxyNetworks)
   ]
+  ++ lib.concatMap (listener: [
+    "--mapped-listeners"
+    listener
+  ]) mappedListenerUris
   ++ optionals cfg.proxyForwardBySystem [ "--proxy-forward-by-system=true" ]
   ++ cfg.extraArgs;
 
@@ -166,9 +188,13 @@ in
       default = "easytier0";
     };
 
-    publicHost = mkOption {
-      type = types.str;
-      default = config.networking.fqdn;
+    publicHosts = mkOption {
+      type = types.listOf types.str;
+      default = [ config.networking.fqdn ];
+      description = ''
+        Public hostnames or IPs other peers should use to reach this node
+        directly. Used to generate EasyTier --mapped-listeners announcements.
+      '';
     };
 
     bootstrap = {
@@ -241,7 +267,7 @@ in
         };
         bootstrapPort = mkOption {
           type = types.port;
-          default = config.ports.easytier-faketcp;
+          default = cfg.protocols.faketcp.port;
         };
       };
       wss = {
@@ -251,11 +277,11 @@ in
         };
         port = mkOption {
           type = types.port;
-          default = config.ports.easytier-wss;
+          default = config.ports.easytier-traefik-wss;
         };
         bootstrapPort = mkOption {
           type = types.port;
-          default = config.ports.easytier-traefik-wss;
+          default = cfg.protocols.wss.port;
         };
       };
       quic = {
@@ -269,7 +295,11 @@ in
         };
         port = mkOption {
           type = types.port;
-          default = config.ports.easytier-quic;
+          default = config.ports.easytier-traefik-wss;
+        };
+        bootstrapPort = mkOption {
+          type = types.port;
+          default = cfg.protocols.quic.port;
         };
       };
       kcp = {
@@ -497,11 +527,11 @@ in
         ];
     }
 
-    (mkIf ((config.services.traefik.enable or false) && cfg.protocols.ws.enable) {
-      networking.firewall.allowedTCPPorts = [ config.ports.easytier-traefik-wss ];
+    (mkIf (traefikEnabled && cfg.protocols.ws.enable && cfg.protocols.wss.enable) {
+      networking.firewall.allowedTCPPorts = [ cfg.protocols.wss.port ];
 
       services.traefik.staticConfigOptions.entryPoints.easytier-wss = {
-        address = ":${toString config.ports.easytier-traefik-wss}";
+        address = ":${toString cfg.protocols.wss.port}";
         forwardedHeaders.insecure = true;
         proxyProtocol.insecure = true;
         transport.respondingTimeouts = {

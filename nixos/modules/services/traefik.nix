@@ -79,6 +79,27 @@ with lib;
         )
       );
     };
+    udpProxies = mkOption {
+      default = { };
+      description = "Simple UDP reverse proxy configuration.";
+      type = types.attrsOf (
+        types.submodule (
+          { ... }:
+          {
+            options = {
+              target = mkOption {
+                type = types.str;
+                description = "Target address (host:port).";
+              };
+              entryPoints = mkOption {
+                type = types.listOf types.str;
+                description = "List of UDP entrypoints.";
+              };
+            };
+          }
+        )
+      );
+    };
   };
 
   config = {
@@ -307,6 +328,15 @@ with lib;
           services = mapAttrs (_name: value: {
             loadBalancer.servers = [ { address = value.target; } ];
           }) config.services.traefik.tcpProxies;
+        };
+        udp = {
+          routers = mapAttrs (name: value: {
+            inherit (value) entryPoints;
+            service = name;
+          }) config.services.traefik.udpProxies;
+          services = mapAttrs (_name: value: {
+            loadBalancer.servers = [ { address = value.target; } ];
+          }) config.services.traefik.udpProxies;
         };
       };
     };
