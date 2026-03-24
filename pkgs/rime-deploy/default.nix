@@ -1,5 +1,6 @@
 {
   stdenv,
+  lib,
   librime,
   rime-wanxiang-base,
   rime-wanxiang-gram,
@@ -18,25 +19,16 @@
   ...
 }:
 let
-  renderAppOptions =
-    apps:
-    builtins.concatStringsSep "\n" (
-      builtins.map (app: ''
-        "${app}":
-          ascii_mode: true'') apps
-    );
-
   defaultCustomYaml = ''
-      patch:
-        schema_list:
-          - schema: wanxiang
-        ascii_composer:
-          good_old_caps_lock: true
-          switch_key:
-            Shift_L: noop
-            Shift_R: noop
-        app_options:
-    ${renderAppOptions terminalEnglishApps}
+    patch:
+      schema_list:
+        - schema: wanxiang
+      ascii_composer:
+        good_old_caps_lock: true
+        switch_key:
+          Shift_L: noop
+          Shift_R: noop
+      app_options:
   '';
 
   ibusCustomYaml = ''
@@ -71,6 +63,10 @@ stdenv.mkDerivation {
         cat > rime-data/default.custom.yaml <<'EOF'
     ${defaultCustomYaml}
     EOF
+
+        for app in ${lib.escapeShellArgs terminalEnglishApps}; do
+          printf '    "%s":\n      ascii_mode: true\n' "$app" >> rime-data/default.custom.yaml
+        done
 
         if [ "${framework}" = "ibus" ]; then
           cat > rime-data/ibus_rime.custom.yaml <<'EOF'
