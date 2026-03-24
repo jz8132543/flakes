@@ -90,10 +90,8 @@ let
     {
       inherit name;
       value = {
-        inherit (config.home-manager.users.${name}.home.global-persistence) home;
-        directories =
-          config.home-manager.users.${name}.home.global-persistence.directories ++ cfg.user.directories;
-        files = config.home-manager.users.${name}.home.global-persistence.files ++ cfg.user.files;
+        directories = lib.unique config.home-manager.users.${name}.home.global-persistence.directories;
+        files = lib.unique config.home-manager.users.${name}.home.global-persistence.files;
       };
     };
   usersCfg = lib.listToAttrs (map mkUserCfg cfg.user.users);
@@ -117,12 +115,17 @@ let
     in
     if iter == paths then iter else parentClosure iter;
 
+  dirEntryPath = entry: if builtins.isAttrs entry then entry.directory else entry;
+  fileEntryPath = entry: if builtins.isAttrs entry then entry.file else entry;
+
   mkUserTmpFilesCfg =
     name:
     let
       inherit (config.home-manager.users.${name}.home.global-persistence) home directories files;
       userCfg = config.users.users.${name};
-      parents = parentClosure (parentDirs (directories ++ files));
+      dirPaths = map dirEntryPath directories;
+      filePaths = map fileEntryPath files;
+      parents = parentClosure (parentDirs (dirPaths ++ filePaths));
       parentsWithHome = map (p: "${home}/${p}") parents;
     in
     map (path: {
@@ -141,7 +144,7 @@ in
 with lib;
 {
   imports = [
-    inputs.preservation.nixosModules.preservation
+    inputs.impermanence.nixosModules.impermanence
   ];
   options.environment.global-persistence = {
     enable = lib.mkOption {
@@ -214,13 +217,13 @@ with lib;
   };
 
   config = mkIf (cfg.enable && cfg.root != null) {
-    preservation.enable = true;
-    preservation.preserveAt.${cfg.root} = {
+    environment.persistence.main = {
+      persistentStoragePath = cfg.root;
       inherit (cfg) directories files;
       users = usersCfg;
     };
 
-    systemd.tmpfiles.settings."10-preservation" = userTmpFilesCfg;
+    systemd.tmpfiles.settings."10-impermanence" = userTmpFilesCfg;
     # systemd.tmpfiles.settings."10-preservation" = userTmpFilesCfg // {
     #   ${cfg.root} = {
     #     d = {

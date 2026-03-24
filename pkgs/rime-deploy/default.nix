@@ -20,18 +20,22 @@
 let
   renderAppOptions =
     apps:
-    builtins.concatStringsSep "\n" (builtins.map (app: "    \"${app}\":\n      ascii_mode: true") apps);
+    builtins.concatStringsSep "\n" (
+      builtins.map (app: ''
+        "${app}":
+          ascii_mode: true'') apps
+    );
 
   defaultCustomYaml = ''
-    patch:
-      schema_list:
-        - schema: wanxiang
-      ascii_composer:
-        good_old_caps_lock: true
-        switch_key:
-          Shift_L: noop
-          Shift_R: noop
-      app_options:
+      patch:
+        schema_list:
+          - schema: wanxiang
+        ascii_composer:
+          good_old_caps_lock: true
+          switch_key:
+            Shift_L: noop
+            Shift_R: noop
+        app_options:
     ${renderAppOptions terminalEnglishApps}
   '';
 
@@ -67,10 +71,6 @@ stdenv.mkDerivation {
         cat > rime-data/default.custom.yaml <<'EOF'
     ${defaultCustomYaml}
     EOF
-
-        if [ -f "$src/wanxiang.custom.yaml" ]; then
-          cp -f "$src/wanxiang.custom.yaml" rime-data/wanxiang.custom.yaml
-        fi
 
         if [ "${framework}" = "ibus" ]; then
           cat > rime-data/ibus_rime.custom.yaml <<'EOF'

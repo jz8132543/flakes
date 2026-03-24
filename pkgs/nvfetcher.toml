@@ -18,10 +18,6 @@ src.manual = "latest"
 src.github = "zhboner/realm"
 fetch.github = "zhboner/realm"
 
-[easytier-latest]
-src.git = "https://github.com/EasyTier/EasyTier"
-fetch.github = "EasyTier/EasyTier"
-
 [kxy-script]
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"

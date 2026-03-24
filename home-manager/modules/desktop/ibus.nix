@@ -24,12 +24,10 @@ let
 in
 lib.mkIf (imFramework == "ibus") {
   xdg.configFile."ibus/rime" = {
-    source = "${
-      pkgs.rime-deploy.override {
-        framework = "ibus";
-        inherit terminalEnglishApps;
-      }
-    }/share/rime-data";
+    source = pkgs.rime-deploy.override {
+      framework = "ibus";
+      inherit terminalEnglishApps;
+    };
     recursive = true;
   };
 

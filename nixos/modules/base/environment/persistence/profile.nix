@@ -8,11 +8,7 @@
     ];
     files = [
       # systemd machine-id
-      # https://nix-community.github.io/preservation/examples.html#compatibility-with-systemds-conditionfirstboot
-      {
-        file = "/etc/machine-id";
-        inInitrd = true;
-      }
+      "/etc/machine-id"
     ];
     user.directories = [ ".local/share/nix" ];
   };

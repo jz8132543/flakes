@@ -28,12 +28,10 @@ lib.mkIf (imFramework == "fcitx5") {
   ];
 
   xdg.dataFile."fcitx5/rime" = {
-    source = "${
-      pkgs.rime-deploy.override {
-        framework = "fcitx5";
-        inherit terminalEnglishApps;
-      }
-    }/share/rime-data";
+    source = pkgs.rime-deploy.override {
+      framework = "fcitx5";
+      inherit terminalEnglishApps;
+    };
     recursive = true;
   };
 

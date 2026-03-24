@@ -125,102 +125,31 @@
         efiInstallAsRemovable = lib.mkDefault true;
       };
     };
-    initrd.systemd = {
-      enable = true;
-      services.rollback = {
-        description = "Rollback BTRFS root subvolume to a pristine state";
-        unitConfig.DefaultDependencies = "no";
-        serviceConfig.Type = "oneshot";
-        startLimitBurst = 3;
-        startLimitIntervalSec = 0;
+    initrd = {
+      systemd.enable = lib.mkForce false;
+      postDeviceCommands = lib.mkAfter ''
+        mkdir -p /btrfs_tmp
+        mount -t btrfs -o subvolid=5 ${config.fileSystems."/".device} /btrfs_tmp
 
-        wantedBy = [ "initrd-root-fs.target" ];
-        before = [
-          "sysroot.mount"
-          "initrd-root-fs.target"
-        ];
-        wants = [
-          "systemd-udev-settle.service"
-          "dev-disk-by\\x2dpartlabel-NIXOS.device"
-        ];
-        after = [
-          "systemd-udev-settle.service"
-          "dev-disk-by\\x2dpartlabel-NIXOS.device"
-        ];
-        requires = [ "dev-disk-by\\x2dpartlabel-NIXOS.device" ];
-        path = with pkgs; [
-          btrfs-progs
-          coreutils
-          systemd
-          util-linuxMinimal.bin
-          util-linuxMinimal.mount
-        ];
+        if btrfs subvolume show /btrfs_tmp/rootfs >/dev/null 2>&1; then
+          btrfs subvolume list -o /btrfs_tmp/rootfs \
+            | cut -d ' ' -f 9- \
+            | sort -r \
+            | while read -r subvolume; do
+              [ -z "$subvolume" ] && continue
+              case "$subvolume" in
+                /*|*".."*) continue ;;
+              esac
+              btrfs subvolume delete "/btrfs_tmp/$subvolume"
+            done
+          btrfs subvolume delete /btrfs_tmp/rootfs
+        elif [ -e /btrfs_tmp/rootfs ]; then
+          rm -rf /btrfs_tmp/rootfs
+        fi
 
-        script = ''
-          set -eu
-
-          mountpoint=/btrfs_tmp
-          root_device="${config.fileSystems."/".device}"
-
-          # 等待 udev 完成设备节点与 by-label/by-partlabel 符号链接创建
-          ${pkgs.systemd}/bin/udevadm settle || true
-
-          ${pkgs.coreutils}/bin/mkdir -p "$mountpoint"
-
-          disk=""
-          if [ -e "$root_device" ]; then
-            disk="$root_device"
-          elif [ -e /dev/disk/by-partlabel/NIXOS ]; then
-            disk="/dev/disk/by-partlabel/NIXOS"
-          elif [ -e /dev/disk/by-label/NIXOS ]; then
-            disk="/dev/disk/by-label/NIXOS"
-          else
-            echo "rollback: cannot find NIXOS btrfs device" >&2
-            exit 1
-          fi
-
-          echo "rollback: mounting top-level btrfs subvolume from $disk..."
-          ${pkgs.util-linuxMinimal.mount}/bin/mount -t btrfs -o subvolid=5 "$disk" "$mountpoint"
-
-          cleanup() {
-            ${pkgs.util-linuxMinimal.mount}/bin/umount "$mountpoint" || true
-          }
-          trap cleanup EXIT
-
-          rootfs_path="$mountpoint/rootfs"
-
-          if ${pkgs.btrfs-progs}/bin/btrfs subvolume show "$rootfs_path" >/dev/null 2>&1; then
-            # 删除 rootfs 下子卷；按逆序删除，避免父子卷依赖导致删除失败。
-            # `btrfs subvolume list` 返回的是相对于 btrfs 顶层的路径，因此在顶层挂载点下删除。
-            ${pkgs.btrfs-progs}/bin/btrfs subvolume list -o "$rootfs_path" \
-              | ${pkgs.coreutils}/bin/cut -d ' ' -f 9- \
-              | ${pkgs.coreutils}/bin/sort -r \
-              | while read -r subvolume; do
-                [ -z "$subvolume" ] && continue
-
-                case "$subvolume" in
-                  /*|*".."*)
-                    echo "rollback: skip unsafe subvolume path: $subvolume" >&2
-                    continue
-                    ;;
-                esac
-
-                echo "rollback: deleting /''$subvolume subvolume..."
-                ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "$mountpoint/''$subvolume"
-              done
-
-            echo "rollback: deleting /rootfs subvolume..."
-            ${pkgs.btrfs-progs}/bin/btrfs subvolume delete "$rootfs_path"
-          elif [ -e "$rootfs_path" ]; then
-            echo "rollback: removing unexpected non-subvolume /rootfs..."
-            ${pkgs.coreutils}/bin/rm -rf -- "$rootfs_path"
-          else
-            echo "rollback: rootfs subvolume not found, creating it from top-level..."
-          fi
-
-          ${pkgs.btrfs-progs}/bin/btrfs subvolume create "$rootfs_path"
-        '';
-      };
+        btrfs subvolume create /btrfs_tmp/rootfs
+        umount /btrfs_tmp
+      '';
     };
   };
 

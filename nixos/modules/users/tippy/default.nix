@@ -51,17 +51,14 @@ in
         enable = true;
         home = homeDirectory;
         directories = [
-          # "source"
+          {
+            directory = "source";
+            mode = "0777";
+          }
           ".local/share/direnv"
         ];
       };
     };
-  preservation.preserveAt.${config.environment.global-persistence.root}.users.${name}.directories = [
-    {
-      directory = "source";
-      mode = "0777";
-    }
-  ];
   systemd.tmpfiles.rules = [
     "d  ${homeDirectory}/source                 775 ${name} users -"
     "d  ${homeDirectory}/.ssh                   700 ${name} users -"
