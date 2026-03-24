@@ -25,6 +25,10 @@
         category = "deploy";
         help = "Wrapper around colmena that defaults to ./hive.nix";
         command = ''
+          if [ -z "''${SSH_CONFIG_FILE:-}" ] && [ -f "$HOME/.ssh/config" ]; then
+            export SSH_CONFIG_FILE="$HOME/.ssh/config"
+          fi
+
           run_colmena() {
             ${pkgs.colmena}/bin/colmena "$@" 2> >(
               awk '

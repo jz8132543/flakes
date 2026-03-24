@@ -16,6 +16,24 @@ let
   commonNixosModules = nixosModules.base.all ++ [
     inputs.home-manager.nixosModules.home-manager
     inputs.nur.modules.nixos.default
+    inputs.colmena.nixosModules.deploymentOptions
+    {
+      nixpkgs.overlays = [ (import ../pkgs).overlay ];
+      lib.self = self.lib;
+      home-manager = {
+        sharedModules = commonHmModules;
+        extraSpecialArgs = hmSpecialArgs;
+        useGlobalPkgs = true;
+        useUserPackages = true;
+        backupFileExtension = "backup";
+      };
+      system.configurationRevision = self.rev or null;
+    }
+  ];
+
+  commonColmenaModules = nixosModules.base.all ++ [
+    inputs.home-manager.nixosModules.home-manager
+    inputs.nur.modules.nixos.default
     {
       nixpkgs.overlays = [ (import ../pkgs).overlay ];
       lib.self = self.lib;
@@ -54,33 +72,100 @@ let
     inherit hmModules;
   };
 
-  mkHost =
+  mkHostModules =
     {
       name,
       configurationName ? name,
       system,
       extraModules ? [ ],
     }:
-    {
-      ${name} = nixosSystem {
-        specialArgs = nixosSpecialArgs;
-        modules =
-          commonNixosModules
-          ++ extraModules
-          ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
-          ++ [
-            (
-              { lib, ... }:
-              {
-                networking.hostName = lib.mkDefault name;
-                # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
-                nixpkgs.hostPlatform = system;
-              }
-            )
-          ];
-        extraModules = [ inputs.colmena.nixosModules.deploymentOptions ];
-      };
+    extraModules
+    ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
+    ++ [
+      (
+        { lib, ... }:
+        {
+          networking.hostName = lib.mkDefault name;
+          # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
+          nixpkgs.hostPlatform = system;
+        }
+      )
+    ];
+
+  mkHost = args: {
+    ${args.name} = nixosSystem {
+      specialArgs = nixosSpecialArgs;
+      modules = commonNixosModules ++ mkHostModules args;
     };
+  };
+
+  mkColmenaHost = args: { ${args.name} = commonColmenaModules ++ mkHostModules args; };
+
+  colmenaModules = lib.mkMerge [
+    (mkColmenaHost {
+      name = "surface";
+      system = "x86_64-linux";
+      extraModules = with inputs.nixos-hardware.nixosModules; [
+        microsoft-surface-common
+      ];
+    })
+    (mkColmenaHost {
+      name = "arx8";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "hkg4";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "nue0";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "isk";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "tyo0";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "hkg5";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "cu";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "tyo1";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "can0";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "can1";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "can2";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "xiy0";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "xiy1";
+      system = "x86_64-linux";
+    })
+    (mkColmenaHost {
+      name = "xiy2";
+      system = "x86_64-linux";
+    })
+  ];
 
   mkHome =
     {
@@ -149,6 +234,7 @@ in
     default = { };
   };
   config = {
+    flake.colmenaModules = colmenaModules;
     passthru = {
       inherit nixosModules hmModules;
     };

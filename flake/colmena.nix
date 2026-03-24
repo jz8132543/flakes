@@ -19,5 +19,5 @@ in
       nodeSpecialArgs = builtins.mapAttrs (_name: value: value._module.specialArgs) conf;
     };
   }
-  // builtins.mapAttrs (_name: value: { imports = value._module.args.modules; }) conf;
+  // builtins.mapAttrs (name: _value: { imports = self.colmenaModules.${name}; }) conf;
 }

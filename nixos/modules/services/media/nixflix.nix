@@ -2,22 +2,12 @@
   lib,
   config,
   inputs,
-  nixosModules,
   ...
 }:
-let
-  domain = "tv.dora.im";
-  navHtmlDir = ./../../../../conf/media;
-  finalNavHtml = navHtmlDir;
-in
 {
-  imports = [
-    inputs.nixflix.nixosModules.default
-    nixosModules.services.traefik
-  ];
+  imports = [ inputs.nixflix.nixosModules.default ];
 
   config = {
-    # Core nixflix configuration (official documentation pattern)
     nixflix = {
       enable = true;
       mediaDir = "/data/media";
@@ -27,7 +17,6 @@ in
         "root"
       ];
 
-      # Synchronize nixflix internal IDs with system ID management
       globals = {
         inherit (config.ids) uids;
         inherit (config.ids) gids;
@@ -41,7 +30,7 @@ in
       };
 
       nginx.enable = true;
-      postgres.enable = false; # Use existing postgres module
+      postgres.enable = false;
 
       sonarr = {
         enable = true;
@@ -97,7 +86,6 @@ in
             };
             urlBase = "/prowlarr";
           };
-          # Native Prowlarr applications configuration
           applications = [
             {
               name = "Sonarr";
@@ -136,7 +124,6 @@ in
               prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
           ];
-          # PT Indexers
           indexers = [
             {
               name = "M-Team - TP";
@@ -147,17 +134,21 @@ in
                 _secret = config.sops.secrets."media/mteam_api_key".path;
               };
             }
-            {
-              name = "PTTime";
-              enable = true;
-              implementationName = "Unit3D";
-              baseUrl = "https://www.pttime.org/";
-              apiKey = {
-                _secret = config.sops.secrets."media/pttime_api_key".path;
-              };
-            }
+            /*
+              {
+                name = "PTTime";
+                enable = true;
+                implementationName = "Unit3D";
+                baseUrl = "https://www.pttime.org/";
+                username = {
+                  _secret = config.sops.secrets."media/pttime_username".path;
+                };
+                apiKey = {
+                  _secret = config.sops.secrets."media/pttime_api_key".path;
+                };
+              }
+            */
           ];
-
         };
       };
 
@@ -175,9 +166,6 @@ in
             };
             urlBase = "/lidarr";
           };
-          rootFolders = [
-            { path = "/data/media/music"; }
-          ];
         };
       };
 
@@ -189,6 +177,11 @@ in
 
       jellyseerr = {
         enable = true;
+        jellyfin.adminUsername = "i";
+        jellyfin.adminPassword = {
+          _secret = config.sops.secrets."password".path;
+        };
+        settings.users.defaultPermissions = 1024;
         apiKey = {
           _secret = config.sops.secrets."media/jellyseerr_api_key".path;
         };
@@ -215,204 +208,63 @@ in
       };
     };
 
-    services = {
-      nginx = {
-        enable = lib.mkForce true;
-        commonHttpConfig = ''
-          map $http_upgrade $connection_upgrade {
-            default upgrade;
-            ""      close;
-          }
-        '';
-        virtualHosts.localhost = {
-          listen = lib.mkForce [
-            {
-              addr = "127.0.0.1";
-              port = config.ports.nginx;
-            }
-          ];
-          # Make nginx use correct external domain for redirects
-          serverName = lib.mkForce domain;
-          serverAliases = [ config.networking.fqdn ];
-          extraConfig = ''
-            absolute_redirect off;
-
-            # Pass correct headers for auth
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto $scheme;
-            proxy_set_header X-Forwarded-Host $host;
-            proxy_set_header Cookie $http_cookie;
-            proxy_set_header Connection $http_connection;
-          '';
-          locations = {
-            "/tv/" = {
-              extraConfig = ''
-                root ${finalNavHtml};
-                rewrite ^/tv/(.*)$ /$1 break;
-                try_files /nav.html =404;
-                default_type text/html;
-              '';
-            };
-            "/tv" = {
-              return = "301 /tv/";
-            };
-
-            # --- Custom Services (not managed by nixflix) ---
-            "/bazarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.bazarr}/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                # Bazarr handles url_base via its config.xml
-                proxy_set_header X-Forwarded-Prefix /bazarr;
-                # Preserve original request path for static assets
-                proxy_set_header X-Script-Name /bazarr;
-              '';
-            };
-            "/bazarr" = {
-              return = "301 /bazarr/";
-            };
-
-            "/autobrr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.autobrr}/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                proxy_set_header X-Forwarded-Prefix /autobrr;
-              '';
-            };
-            "/autobrr" = {
-              return = "301 /autobrr/";
-            };
-
-            "/qbit/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.qbittorrent}/";
-              proxyWebsockets = true;
-              extraConfig = ''
-                # qBittorrent needs minimal config, it handles WebUI-RootFolder internally
-                proxy_set_header X-Forwarded-Prefix /qbit;
-              '';
-            };
-            "/qbit" = {
-              return = "301 /qbit/";
-            };
-
-            "/whoami" = {
-              return = "301 /whoami/";
-            };
-
-            "/jellyfin/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.jellyfin}";
-              proxyWebsockets = true;
-            };
-            "/jellyfin" = {
-              return = "301 /jellyfin/";
-            };
-
-            # Direct proxies to internal Arr services
-            "/sonarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.sonarr}/sonarr/";
-              proxyWebsockets = true;
-            };
-            "/sonarr" = {
-              return = "301 /sonarr/";
-            };
-
-            "/radarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.radarr}/radarr/";
-              proxyWebsockets = true;
-            };
-            "/radarr" = {
-              return = "301 /radarr/";
-            };
-
-            "/lidarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.lidarr}/lidarr/";
-              proxyWebsockets = true;
-            };
-            "/lidarr" = {
-              return = "301 /lidarr/";
-            };
-
-            "/prowlarr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr/";
-              proxyWebsockets = true;
-            };
-            "/prowlarr" = {
-              return = "301 /prowlarr/";
-            };
-
-            "/sonarr-anime/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime/";
-              proxyWebsockets = true;
-            };
-            "/sonarr-anime" = {
-              return = "301 /sonarr-anime/";
-            };
-
-            "/jellyseerr/" = {
-              proxyPass = "http://127.0.0.1:${toString config.ports.jellyseerr}/";
-              proxyWebsockets = true;
-            };
-            "/jellyseerr" = {
-              return = "301 /jellyseerr/";
-            };
-
-          };
-        };
+    services.traefik.proxies = {
+      autobrr = {
+        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/autobrr`)";
+        target = "http://127.0.0.1:${toString config.ports.autobrr}";
+        middlewares = [ "strip-prefix" ];
       };
 
-      traefik = {
-        proxies = {
-          nixflix-nav = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/tv`)";
-            target = "http://127.0.0.1:${toString config.ports.nginx}";
-            middlewares = [ "strip-tv" ];
-          };
-          nixflix-apps = {
-            rule = "(Host(`${domain}`) || Host(`${config.networking.fqdn}`)) && (PathPrefix(`/bazarr`) || PathPrefix(`/sonarr`) || PathPrefix(`/sonarr-anime`) || PathPrefix(`/radarr`) || PathPrefix(`/prowlarr`) || PathPrefix(`/lidarr`) || PathPrefix(`/sabnzbd`) || PathPrefix(`/jellyfin`) || PathPrefix(`/jellyseerr`) || PathPrefix(`/autobrr`) || PathPrefix(`/qbit`) || PathPrefix(`/whoami`) || PathPrefix(`/unmanic`))";
-            target = "http://127.0.0.1:${toString config.ports.nginx}";
-          };
-        };
+      bazarr = {
+        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/bazarr`)";
+        target = "http://127.0.0.1:${toString config.ports.bazarr}";
+        middlewares = [ "strip-prefix" ];
+      };
 
-        dynamicConfigOptions.http.middlewares = {
-          strip-tv.stripPrefix.prefixes = [ "/tv" ];
-        };
+      whoami = {
+        rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/whoami`)";
+        target = "http://127.0.0.1:8082";
+        middlewares = [ "strip-prefix" ];
       };
     };
 
-    # Consolidated Systemd Configuration
     systemd = {
-      targets.postgresql-ready = {
-        description = "PostgreSQL is ready for connections";
-        after = [ "postgresql.service" ];
-        requires = [ "postgresql.service" ];
-        wantedBy = [ "multi-user.target" ];
-      };
-
       services =
         (lib.listToAttrs (
           map
             (name: {
               inherit name;
               value.serviceConfig.Restart = lib.mkDefault "on-failure";
+              value.serviceConfig.TimeoutStartSec = lib.mkDefault "5min";
             })
             [
+              "jellyfin"
               "jellyseerr"
               "sonarr"
               "radarr"
               "prowlarr"
               "lidarr"
-              # "sabnzbd"
             ]
         ))
         // (lib.listToAttrs (
           map
             (name: {
               inherit name;
-              value.serviceConfig.TimeoutStartSec = "1min";
+              value.serviceConfig.TimeoutStartSec = lib.mkForce "5min";
             })
             [
+              "jellyfin-setup-wizard"
+              "jellyfin-users-config"
+              "jellyfin-system-config"
+              "jellyfin-encoding-config"
+              "jellyfin-branding-config"
+              "jellyfin-libraries"
+              "jellyseerr-setup"
+              "jellyseerr-user-settings"
+              "jellyseerr-jellyfin"
+              "jellyseerr-libraries"
+              "jellyseerr-sonarr"
+              "jellyseerr-radarr"
               "sonarr-config"
               "radarr-config"
               "prowlarr-config"
@@ -428,11 +280,6 @@ in
               "radarr-delayprofiles"
               "lidarr-delayprofiles"
               "prowlarr-applications"
-              # "sabnzbd-categories"
-              "jellyseerr-setup"
-              "jellyseerr-sonarr"
-              "jellyseerr-radarr"
-              "jellyseerr-libraries"
             ]
         ))
         // {
@@ -440,13 +287,10 @@ in
           radarr.serviceConfig.UMask = "0002";
           prowlarr.serviceConfig.UMask = "0002";
           lidarr.serviceConfig.UMask = "0002";
-          # sabnzbd.serviceConfig.UMask = "0002";
           jellyseerr.serviceConfig.UMask = "0002";
           sonarr-anime.serviceConfig.UMask = "0002";
         };
     };
-
-    # Containers
 
     virtualisation.oci-containers = {
       backend = "podman";
@@ -459,6 +303,5 @@ in
         extraOptions = [ "--network=host" ];
       };
     };
-
   };
 }
