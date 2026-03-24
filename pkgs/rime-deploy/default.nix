@@ -68,6 +68,8 @@ stdenv.mkDerivation {
           printf '    "%s":\n      ascii_mode: true\n' "$app" >> rime-data/default.custom.yaml
         done
 
+        cp -f ${./wanxiang.custom.yaml} rime-data/wanxiang.custom.yaml
+
         if [ "${framework}" = "ibus" ]; then
           cat > rime-data/ibus_rime.custom.yaml <<'EOF'
     ${ibusCustomYaml}
