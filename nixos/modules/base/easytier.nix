@@ -507,22 +507,36 @@ in
               | sort -u
           )
 
+          have_v4_defaults=false
+          have_v6_defaults=false
+          if ((''${#v4_defaults[@]} > 0)); then
+            have_v4_defaults=true
+          fi
+          if ((''${#v6_defaults[@]} > 0)); then
+            have_v6_defaults=true
+          fi
+
           # Rebuild the policy-routing table from scratch on every run so link
           # changes, DHCP renewals, and gateway flips never leave stale state.
           while ip -4 rule del fwmark "$mark/$mark" lookup "$table_id" priority "$priority" 2>/dev/null; do :; done
           while ip -6 rule del fwmark "$mark/$mark" lookup "$table_id" priority "$priority" 2>/dev/null; do :; done
           ip -4 route flush table "$table_id" || true
-          ip -6 route flush table "$table_id" || true
+          if [ "$have_v6_defaults" = true ]; then
+            ip -6 route flush table "$table_id" || true
+          fi
 
-          if ((''${#v4_defaults[@]} > 0)); then
-            for route in ''${v4_defaults[@]}; do
+          if [ "$have_v4_defaults" = true ]; then
+            for route in "''${v4_defaults[@]}"; do
+              # Each array element is one complete default route copied from
+              # `main`, so preserve it as a single shell word and let `ip`
+              # parse the embedded fields itself.
               ip -4 route add table "$table_id" $route
             done
             ip -4 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"
           fi
 
-          if ((''${#v6_defaults[@]} > 0)); then
-            for route in ''${v6_defaults[@]}; do
+          if [ "$have_v6_defaults" = true ]; then
+            for route in "''${v6_defaults[@]}"; do
               ip -6 route add table "$table_id" $route
             done
             ip -6 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"

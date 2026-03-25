@@ -11,16 +11,17 @@ let
     "noatime"
     "compress=no"
     "space_cache=v2"
-    "commit=120"
+    "commit=300"
     "ssd_spread"
+    "thread_pool=1"
   ];
   minimalBtrfsMountOptions = [
     "noatime"
     "compress=no"
     "space_cache=v2"
-    "commit=30"
+    "commit=300"
     "ssd_spread"
-    "flushoncommit"
+    "thread_pool=1"
   ];
 in
 {
@@ -48,7 +49,7 @@ in
       system.disableInstallerTools = lib.mkForce true;
 
       # 2. Btrfs 额外优化
-      # 在弱机上关闭压缩，避免 btrfs-endio 长时间参与压缩写回。
+      # 在弱机上关闭压缩和 flush-on-commit，减少 btrfs-endio 在写回路径上的 CPU 消耗。
       services.btrfs.autoScrub.enable = lib.mkForce false;
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;

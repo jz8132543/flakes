@@ -45,20 +45,20 @@
                     if config.environment.minimal or false then
                       [
                         "noatime"
-                        "compress=zstd:1"
+                        "compress=no"
                         "space_cache=v2"
-                        "commit=30"
+                        "commit=300"
                         "ssd_spread"
-                        "flushoncommit"
+                        "thread_pool=1"
                       ]
                     else
                       [
                         "noatime"
-                        "compress-force=zstd"
+                        "compress=no"
                         "space_cache=v2"
-                        "commit=30"
+                        "commit=300"
                         "ssd_spread"
-                        "flushoncommit"
+                        "thread_pool=1"
                       ];
                 in
                 {
@@ -79,7 +79,8 @@
                     mountOptions = [
                       "noatime"
                       "nodatacow"
-                      "commit=${if config.environment.minimal or false then "120" else "60"}"
+                      "commit=300"
+                      "thread_pool=1"
                     ];
                   };
                   "/rootfs" = {
