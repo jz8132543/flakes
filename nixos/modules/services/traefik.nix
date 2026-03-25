@@ -322,7 +322,7 @@ with lib;
             loadBalancer.servers = [ { address = value.target; } ];
           }) config.services.traefik.tcpProxies;
         };
-        udp = {
+        udp = mkIf (config.services.traefik.udpProxies != { }) {
           routers = mapAttrs (name: value: {
             inherit (value) entryPoints;
             service = name;
