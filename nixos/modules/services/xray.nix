@@ -26,6 +26,7 @@
 let
   serverName = builtins.head fakeSnis;
   destSite = "${serverName}:443";
+  useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
 in
 {
   sops.secrets = {
@@ -50,231 +51,203 @@ in
   sops.templates."xray-config.json" = {
     mode = "0444";
     restartUnits = [ "xray.service" ];
-    content = builtins.toJSON {
-      log = {
-        access = "none";
-        dnsLog = false;
-        loglevel = if config.environment.minimal or false then "error" else "warning";
-      };
-
-      observatory = {
-        subjectSelector = [ "proxy-" ];
-        probeURL = "https://cp.cloudflare.com/generate_204";
-        probeInterval = "1m";
-      };
-
-      policy = lib.mkIf config.environment.minimal {
-        system = {
-          stats = {
-            inboundUplink = false;
-            inboundDownlink = false;
-            outboundUplink = false;
-            outboundDownlink = false;
-          };
+    content = builtins.toJSON (
+      {
+        log = {
+          access = "none";
+          dnsLog = false;
+          loglevel = if config.environment.minimal or false then "error" else "warning";
         };
-      };
 
-      inbounds =
-        if ss then
-          [
-            {
-              port = xrayPort;
-              listen = "0.0.0.0";
-              protocol = "shadowsocks";
-              settings = {
-                method = "2022-blake3-aes-128-gcm";
-                password = config.sops.placeholder."xray/uuid";
-              };
-            }
-          ]
-        else
-          [
-            {
-              port = xrayPort;
-              listen = "0.0.0.0";
-              protocol = "vless";
-              # tag = "vless_reality";
-              # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
-              sniffing = {
-                enabled = true;
-                destOverride = [
-                  "http"
-                  "tls"
-                  "quic"
-                ];
-                routeOnly = true;
-              };
-              settings = {
-                clients = [
+        inbounds =
+          if ss then
+            [
+              {
+                port = xrayPort;
+                listen = "0.0.0.0";
+                protocol = "shadowsocks";
+                settings = {
+                  method = "2022-blake3-aes-128-gcm";
+                  password = config.sops.placeholder."xray/uuid";
+                };
+              }
+            ]
+          else
+            [
+              {
+                port = xrayPort;
+                listen = "0.0.0.0";
+                protocol = "vless";
+                # tag = "vless_reality";
+                # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
+                sniffing = {
+                  enabled = true;
+                  destOverride = [
+                    "http"
+                    "tls"
+                    "quic"
+                  ];
+                  routeOnly = true;
+                };
+                settings = {
+                  clients = [
+                    {
+                      id = config.sops.placeholder."xray/uuid";
+                      flow = "xtls-rprx-vision";
+                    }
+                  ];
+                  decryption = "none";
+                };
+                streamSettings = {
+                  network = "tcp";
+                  security = "reality";
+                  sockopt = {
+                    mptcp = true;
+                    tcpKeepAliveInterval = 60;
+                  };
+                  realitySettings = {
+                    show = false;
+                    target = destSite;
+                    xver = 0;
+                    serverNames = [ serverName ] ++ fakeSnis;
+                    privateKey = config.sops.placeholder."xray/private_key";
+                    shortIds = [ config.sops.placeholder."xray/short_id" ];
+                  };
+                };
+              }
+            ];
+
+        outbounds = [
+          {
+            tag = "direct";
+            protocol = "freedom";
+          }
+        ]
+        ++ (lib.imap0 (i: host: {
+          tag = "proxy-${toString i}";
+          protocol = "vless";
+          settings = {
+            vnext = [
+              {
+                address = host;
+                port = 8555;
+                users = [
                   {
-                    # 这里的语法是 sops-nix template 的占位符
                     id = config.sops.placeholder."xray/uuid";
                     flow = "xtls-rprx-vision";
+                    encryption = "none";
                   }
                 ];
-                decryption = "none";
-              };
-              streamSettings = {
-                network = "tcp";
-                security = "reality";
-                sockopt = {
-                  mptcp = true;
-                  tcpKeepAliveInterval = 60;
-                };
-                realitySettings = {
-                  show = false;
-                  target = destSite;
-                  xver = 0;
-                  serverNames = [ serverName ] ++ fakeSnis;
-                  privateKey = config.sops.placeholder."xray/private_key";
-                  shortIds = [ config.sops.placeholder."xray/short_id" ];
-                };
-              };
-            }
-          ];
-
-      outbounds = [
-        # 默认直连出口
-        {
-          tag = "direct";
-          protocol = "freedom";
-        }
-      ]
-      ++ (lib.imap0 (i: host: {
-        tag = "proxy-${toString i}";
-        protocol = "vless";
-        settings = {
-          vnext = [
-            {
-              address = host; # 替换为 Server B 的真实 IP
-              port = 8555; # Server B 的监听端口
-              users = [
+              }
+            ];
+          };
+          streamSettings = {
+            network = "tcp";
+            security = "reality";
+            sockopt = {
+              tcpFastOpen = true;
+              tcpNoDelay = true;
+              mptcp = true;
+              tcpKeepAliveInterval = 60;
+            };
+            realitySettings = {
+              fingerprint = "ios";
+              inherit serverName;
+              publicKey = config.sops.placeholder."xray/public_key";
+              shortId = config.sops.placeholder."xray/short_id";
+            };
+          };
+        }) proxyHosts)
+        ++ [
+          {
+            tag = "cf-tunnel";
+            protocol = "wireguard";
+            settings = {
+              secretKey = config.sops.placeholder."xray/cf_tunnel_token";
+              address = [
+                "172.16.0.2/32"
+                "2606:4700:110:8ac0:1f3:b49f:5181:3855/128"
+              ];
+              peers = [
                 {
-                  # 这里填 Server B 认可的 UUID
-                  # 如果 A 和 B 共享同一个 secrets 文件，可以用同一个 placeholder
-                  id = config.sops.placeholder."xray/uuid";
-                  flow = "xtls-rprx-vision"; # 必须保留，以支持 Vision 流控
-                  encryption = "none";
+                  publicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
+                  allowedIPs = [
+                    "0.0.0.0/0"
+                    "::/0"
+                  ];
+                  endpoint = "engage.cloudflareclient.com:2408";
                 }
               ];
+              reserved = [
+                18
+                11
+                127
+              ];
+              mtu = 1280;
+            };
+          }
+          {
+            tag = "block";
+            protocol = "blackhole";
+          }
+        ];
+
+        routing = {
+          domainStrategy = "IPIfNonMatch";
+          balancers = lib.optionals needProxy [
+            {
+              tag = "proxy-balancer";
+              selector = [ "proxy-" ];
+              strategy = {
+                type = if useHealthCheckedBalancer then "leastPing" else "random";
+              };
+            }
+          ];
+          rules = [
+            (
+              if needProxy then
+                {
+                  type = "field";
+                  balancerTag = "proxy-balancer";
+                  domain = [
+                    "skk.moe"
+                    "geosite:openai"
+                    "geosite:anthropic"
+                    "domain:chatgpt.com"
+                    "domain:oaistatic.com"
+                    "domain:oaiusercontent.com"
+                    "domain:claude.ai"
+                    "domain:anthropic.com"
+                  ];
+                }
+              else
+                {
+                  type = "field";
+                  outboundTag = "direct";
+                  network = "udp,tcp";
+                }
+            )
+            {
+              type = "field";
+              outboundTag = "block";
+              domain = [ "geosite:category-ads-all" ];
+            }
+            {
+              type = "field";
+              outboundTag = "direct";
+              network = "udp,tcp";
             }
           ];
         };
-        streamSettings = {
-          network = "tcp";
-          security = "reality";
-          sockopt = {
-            # 出站（本机→境外服务器）：开启 TFO 降低首包延迟（目标在境外，运营商干扰少）
-            tcpFastOpen = true;
-            # 禁用 Nagle 算法，有数据立刻转发，降低协议延迟（与内核 tcp_autocorking=0 协同）
-            tcpNoDelay = true;
-            mptcp = true;
-            tcpKeepAliveInterval = 60;
-          };
-          realitySettings = {
-            # iOS 指纺，模拟 iPhone/iPad 的 TLS 行为，比 chrome 更难被识别
-            fingerprint = "ios";
-
-            # 必须与 Server B inbound 中的 serverNames 保持一致
-            inherit serverName;
-
-            # ⚠️ 重要：这里必须填 Server B 的『公鑰 Public Key』
-            publicKey = config.sops.placeholder."xray/public_key";
-
-            # 必须与 Server B inbound 中的 shortIds 保持一致
-            shortId = config.sops.placeholder."xray/short_id";
-          };
+      }
+      // lib.optionalAttrs useHealthCheckedBalancer {
+        observatory = {
+          subjectSelector = [ "proxy-" ];
+          probeURL = "https://cp.cloudflare.com/generate_204";
+          probeInterval = "1m";
         };
-      }) proxyHosts)
-      ++ [
-        {
-          tag = "cf-tunnel";
-          protocol = "wireguard";
-          settings = {
-            secretKey = config.sops.placeholder."xray/cf_tunnel_token";
-            address = [
-              # "162.159.192.10/32"
-              # "2606:4700:d0::a29f:c00a/128"
-              "172.16.0.2/32"
-              "2606:4700:110:8ac0:1f3:b49f:5181:3855/128"
-            ];
-            peers = [
-              {
-                publicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
-                allowedIPs = [
-                  "0.0.0.0/0"
-                  "::/0"
-                ];
-                endpoint = "engage.cloudflareclient.com:2408";
-              }
-            ];
-            reserved = [
-              18
-              11
-              127
-            ];
-            mtu = 1280;
-            # kernelMode = true;
-          };
-        }
-        # 阻断出口
-        {
-          tag = "block";
-          protocol = "blackhole";
-        }
-      ];
-
-      routing = {
-        domainStrategy = "IPIfNonMatch";
-        balancers = [
-          {
-            tag = "proxy-balancer";
-            selector = [ "proxy-" ];
-            strategy = {
-              type = "leastPing";
-            };
-          }
-        ];
-        rules = [
-          # 规则：Copilot 和 OpenAI 流量走 Proxy
-          (
-            if needProxy then
-              {
-                type = "field";
-                balancerTag = "proxy-balancer";
-                domain = [
-                  "skk.moe"
-                  "geosite:openai"
-                  "geosite:anthropic"
-                  "domain:chatgpt.com"
-                  "domain:oaistatic.com"
-                  "domain:oaiusercontent.com"
-                  "domain:claude.ai"
-                  "domain:anthropic.com"
-                ];
-              }
-            else
-              {
-                type = "field";
-                outboundTag = "direct";
-                network = "udp,tcp";
-              }
-          )
-          # 规则：屏蔽广告
-          {
-            type = "field";
-            outboundTag = "block";
-            domain = [ "geosite:category-ads-all" ];
-          }
-          # 规则：默认直连
-          {
-            type = "field";
-            outboundTag = "direct";
-            network = "udp,tcp";
-          }
-        ];
-      };
-    };
+      }
+    );
   };
 
   # 3. 启动 Xray 服务并指向生成的配置文件

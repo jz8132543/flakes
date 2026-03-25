@@ -48,12 +48,21 @@ in
         wantedBy = [ "multi-user.target" ];
         path = [
           config.services.tailscale.package
+          pkgs.curl
           pkgs.jq
           pkgs.coreutils
         ];
         script = ''
+          login_server=https://ts.${config.networking.domain}
+
           # Wait for tailscaled to be ready
           sleep 2
+
+          # Fail fast if the configured login server is not serving the Tailscale control API.
+          if ! curl -fsSI --max-time 10 "$login_server/key" >/dev/null; then
+            echo "Login server $login_server is not serving the Tailscale control API"
+            exit 1
+          fi
 
           # Check if already authenticated
           status=$(tailscale status --json | jq -r .BackendState)
@@ -63,9 +72,9 @@ in
           fi
 
           echo "Tailscale not authenticated (state: $status), logging in..."
-          tailscale up \
+          timeout 2m tailscale up \
             --reset \
-            --login-server https://ts.${config.networking.domain} \
+            --login-server "$login_server" \
             --auth-key "file:${config.sops.secrets.tailscale_preauth_key.path}" \
             ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags}
         '';
@@ -74,6 +83,7 @@ in
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "10";
+          TimeoutStartSec = "3m";
         };
       };
 

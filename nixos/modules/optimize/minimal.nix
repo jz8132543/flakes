@@ -7,6 +7,13 @@
 let
   cfg = config.environment.minimal;
   mkTop = lib.mkOverride 0;
+  rootfsBtrfsMountOptions = [
+    "noatime"
+    "compress=no"
+    "space_cache=v2"
+    "commit=120"
+    "ssd_spread"
+  ];
   minimalBtrfsMountOptions = [
     "noatime"
     "compress=no"
@@ -45,9 +52,10 @@ in
       services.btrfs.autoScrub.enable = lib.mkForce false;
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;
+      services.easytierMesh.lowResource = true;
       disko.devices.disk.main.content.partitions.NIXOS.content.extraArgs = lib.mkAfter [ "-M" ];
       disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes = {
-        "/rootfs".mountOptions = mkTop minimalBtrfsMountOptions;
+        "/rootfs".mountOptions = mkTop rootfsBtrfsMountOptions;
         "/nix".mountOptions = mkTop minimalBtrfsMountOptions;
         "/persist".mountOptions = mkTop minimalBtrfsMountOptions;
         "/boot".mountOptions = mkTop minimalBtrfsMountOptions;
