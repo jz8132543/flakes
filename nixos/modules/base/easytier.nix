@@ -20,11 +20,12 @@ let
   envName = "easytier.env";
   settingsFormat = pkgs.formats.toml { };
   traefikEnabled = config.services.traefik.enable or false;
-  easytierTraefikHosts = lib.unique [
-    config.networking.fqdn
-    "et.${config.networking.domain}"
-  ];
-  easytierTraefikRule = lib.concatMapStringsSep " || " (host: "Host(`${host}`)") easytierTraefikHosts;
+  # The EasyTier WSS entrypoint is dedicated to mesh bootstrap traffic, so the
+  # router should accept every request on that port instead of relying on Host()
+  # matching. In practice some EasyTier websocket handshakes hit Traefik with a
+  # Host/SNI combination that does not satisfy the stricter Host() rule and end
+  # up as 404, even though the backend ws listener is healthy.
+  easytierTraefikRule = "PathPrefix(`/`)";
 
   listenerUris =
     optionals cfg.protocols.ws.enable [ "ws://127.0.0.1:${toString cfg.protocols.ws.port}" ]
@@ -61,7 +62,9 @@ let
       cfg.protocols.wss.port
     ];
 
-  allowedUdpPorts = optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ];
+  allowedUdpPorts =
+    optionals cfg.protocols.quic.enable [ cfg.protocols.quic.port ]
+    ++ optionals cfg.protocols.faketcp.enable [ cfg.protocols.faketcp.port ];
 
   bootstrapPeers =
     (optionals (cfg.role == "member" && cfg.bootstrap.host != null) (

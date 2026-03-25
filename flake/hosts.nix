@@ -72,6 +72,57 @@ let
     inherit hmModules;
   };
 
+  hostDefinitions = {
+    surface = {
+      system = "x86_64-linux";
+      extraModules = with inputs.nixos-hardware.nixosModules; [
+        microsoft-surface-common
+      ];
+    };
+    arx8 = {
+      system = "x86_64-linux";
+    };
+    hkg4 = {
+      system = "x86_64-linux";
+    };
+    nue0 = {
+      system = "x86_64-linux";
+    };
+    isk = {
+      system = "x86_64-linux";
+    };
+    tyo0 = {
+      system = "x86_64-linux";
+    };
+    hkg5 = {
+      system = "x86_64-linux";
+    };
+    cu = {
+      system = "x86_64-linux";
+    };
+    tyo1 = {
+      system = "x86_64-linux";
+    };
+    can0 = {
+      system = "x86_64-linux";
+    };
+    can1 = {
+      system = "x86_64-linux";
+    };
+    can2 = {
+      system = "x86_64-linux";
+    };
+    xiy0 = {
+      system = "x86_64-linux";
+    };
+    xiy1 = {
+      system = "x86_64-linux";
+    };
+    xiy2 = {
+      system = "x86_64-linux";
+    };
+  };
+
   mkHostModules =
     {
       name,
@@ -92,80 +143,18 @@ let
       )
     ];
 
-  mkHost = args: {
-    ${args.name} = nixosSystem {
+  mkHost =
+    name: host:
+    nixosSystem {
       specialArgs = nixosSpecialArgs;
-      modules = commonNixosModules ++ mkHostModules args;
+      modules = commonNixosModules ++ mkHostModules (host // { inherit name; });
     };
-  };
 
-  mkColmenaHost = args: { ${args.name} = commonColmenaModules ++ mkHostModules args; };
+  mkColmenaHost = name: host: commonColmenaModules ++ mkHostModules (host // { inherit name; });
 
-  colmenaModules = lib.mkMerge [
-    (mkColmenaHost {
-      name = "surface";
-      system = "x86_64-linux";
-      extraModules = with inputs.nixos-hardware.nixosModules; [
-        microsoft-surface-common
-      ];
-    })
-    (mkColmenaHost {
-      name = "arx8";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "hkg4";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "nue0";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "isk";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "tyo0";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "hkg5";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "cu";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "tyo1";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "can0";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "can1";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "can2";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "xiy0";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "xiy1";
-      system = "x86_64-linux";
-    })
-    (mkColmenaHost {
-      name = "xiy2";
-      system = "x86_64-linux";
-    })
-  ];
+  colmenaModules = lib.mapAttrs mkColmenaHost hostDefinitions;
+
+  nixosConfigurations = lib.mapAttrs mkHost hostDefinitions;
 
   mkHome =
     {
@@ -229,6 +218,11 @@ let
     };
 in
 {
+  options.flake.colmenaModules = lib.mkOption {
+    type = lib.types.attrsOf (lib.types.listOf lib.types.unspecified);
+    default = { };
+  };
+
   options.flake.homeConfigurations = lib.mkOption {
     type = lib.types.attrsOf lib.types.unspecified;
     default = { };
@@ -238,71 +232,7 @@ in
     passthru = {
       inherit nixosModules hmModules;
     };
-    flake.nixosConfigurations = lib.mkMerge [
-      (mkHost {
-        name = "surface";
-        system = "x86_64-linux";
-        extraModules = with inputs.nixos-hardware.nixosModules; [
-          microsoft-surface-common
-        ];
-      })
-      (mkHost {
-        name = "arx8";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "hkg4";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "nue0";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "isk";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "tyo0";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "hkg5";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "cu";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "tyo1";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "can0";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "can1";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "can2";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "xiy0";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "xiy1";
-        system = "x86_64-linux";
-      })
-      (mkHost {
-        name = "xiy2";
-        system = "x86_64-linux";
-      })
-    ];
+    flake.nixosConfigurations = nixosConfigurations;
 
     flake.homeConfigurations = lib.mkMerge [
       (mkHome {

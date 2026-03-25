@@ -20,4 +20,6 @@ in
     };
   }
   // builtins.mapAttrs (name: _value: { imports = self.colmenaModules.${name}; }) conf;
+
+  flake.colmenaHive = inputs.colmena.lib.makeHive self.colmena;
 }
