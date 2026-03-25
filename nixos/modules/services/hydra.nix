@@ -139,7 +139,7 @@ in
 
     {
       services = {
-        harmonia = {
+        harmonia.cache = {
           enable = true;
           signKeyPath = cacheSecretPath;
           settings = {
