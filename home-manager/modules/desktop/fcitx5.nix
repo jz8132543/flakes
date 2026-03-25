@@ -21,7 +21,7 @@ let
         "com.raggesilver.BlackBox"
       ]
       osConfig;
-  rimeDataPackage = pkgs.rime-user-data.override {
+  rimeUserData = pkgs.rime-user-data.override {
     framework = "fcitx5";
     inherit terminalEnglishApps;
   };
@@ -32,7 +32,7 @@ lib.mkIf (imFramework == "fcitx5") {
   ];
 
   xdg.dataFile."fcitx5/rime" = {
-    source = rimeDataPackage + "/share/rime-data";
+    source = rimeUserData + "/share/rime-data";
     recursive = true;
   };
 

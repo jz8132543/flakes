@@ -21,14 +21,14 @@ let
         "com.raggesilver.BlackBox"
       ]
       osConfig;
-  rimeDataPackage = pkgs.rime-user-data.override {
+  rimeUserData = pkgs.rime-user-data.override {
     framework = "ibus";
     inherit terminalEnglishApps;
   };
 in
 lib.mkIf (imFramework == "ibus") {
   xdg.configFile."ibus/rime" = {
-    source = rimeDataPackage + "/share/rime-data";
+    source = rimeUserData + "/share/rime-data";
     recursive = true;
   };
 

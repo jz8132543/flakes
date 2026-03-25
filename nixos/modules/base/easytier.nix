@@ -28,9 +28,18 @@ let
 
   listenerUris =
     optionals cfg.protocols.ws.enable [ "ws://127.0.0.1:${toString cfg.protocols.ws.port}" ]
+    ++ optionals (cfg.protocols.ws.enable && !cfg.disableIPv6) [
+      "ws://[::1]:${toString cfg.protocols.ws.port}"
+    ]
     ++ optionals cfg.protocols.quic.enable [ "quic://0.0.0.0:${toString cfg.protocols.quic.port}" ]
+    ++ optionals (cfg.protocols.quic.enable && !cfg.disableIPv6) [
+      "quic://[::]:${toString cfg.protocols.quic.port}"
+    ]
     ++ optionals cfg.protocols.faketcp.enable [
       "faketcp://0.0.0.0:${toString cfg.protocols.faketcp.port}"
+    ]
+    ++ optionals (cfg.protocols.faketcp.enable && !cfg.disableIPv6) [
+      "faketcp://[::]:${toString cfg.protocols.faketcp.port}"
     ];
 
   mappedListenerUris = lib.concatMap (
@@ -464,10 +473,12 @@ in
           AmbientCapabilities = [
             "CAP_NET_ADMIN"
             "CAP_NET_RAW"
+            "CAP_NET_BIND_SERVICE"
           ];
           CapabilityBoundingSet = [
             "CAP_NET_ADMIN"
             "CAP_NET_RAW"
+            "CAP_NET_BIND_SERVICE"
           ];
           PrivateDevices = false;
           PrivateUsers = false;

@@ -6,10 +6,6 @@
 }:
 let
   cfg = config.desktop.inputMethod;
-  rimeDataPackage = pkgs.rime-user-data.override {
-    inherit (cfg) framework;
-    inherit (cfg) terminalEnglishApps;
-  };
 in
 {
   options.desktop.inputMethod = {
@@ -41,8 +37,6 @@ in
 
   config = {
     time.timeZone = "Asia/Shanghai";
-
-    environment.systemPackages = [ rimeDataPackage ];
 
     i18n.inputMethod = {
       enable = true;
