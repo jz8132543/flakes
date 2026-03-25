@@ -25,7 +25,7 @@ let
 in
 {
   imports = [
-    ./cpu.nix
+    # ./cpu.nix
     ./disk-reliability.nix
   ];
 

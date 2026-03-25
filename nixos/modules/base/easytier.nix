@@ -50,7 +50,7 @@ let
     "--dev-name"
     cfg.devName
     "--default-protocol"
-    "ws quic faketcp"
+    "wss"
     "--latency-first=${if cfg.latencyFirst then "true" else "false"}"
     "--private-mode=${if cfg.privateMode then "true" else "false"}"
     "--multi-thread=true"
@@ -94,6 +94,32 @@ let
     listener
   ]) mappedListenerUris
   ++ cfg.extraArgs;
+
+  # Overlay transport packets are marked and steered into a dedicated routing
+  # table. That table is rebuilt from the host's current default routes, so the
+  # underlay always follows real uplinks instead of another tunnel or a local
+  # transparent proxy such as Mihomo TUN.
+  overlayTransportMark = "0x1";
+  overlayRoutingTable = "8991";
+  overlayRoutingPriority = "8990";
+  tailscaleInterface = "tailscale0";
+  tailscaleTransportUdpPorts = lib.optionals config.services.tailscale.enable [
+    3478
+    config.services.tailscale.port
+  ];
+  easytierTransportUdpPorts = [ cfg.protocols.quic.port ];
+  easytierTransportTcpPorts = [
+    cfg.protocols.wss.port
+    cfg.protocols.faketcp.port
+  ];
+  overlayTransportUdpPorts = tailscaleTransportUdpPorts ++ easytierTransportUdpPorts;
+  overlayIsolationAfterUnits = [
+    "network-online.target"
+    "nftables.service"
+    "easytier.service"
+  ]
+  ++ lib.optionals config.services.mihomo.enable [ "mihomo.service" ]
+  ++ lib.optionals config.services.tailscale.enable [ "tailscaled.service" ];
 
   generatedConfig = settingsFormat.generate "easytier.toml" (
     lib.filterAttrsRecursive (_: v: v != { }) (
@@ -368,6 +394,162 @@ in
               oifname != "${cfg.devName}" ip saddr ${cfg.overlayCIDR} masquerade
             }
           '';
+        };
+        tables.easytier-underlay-isolation = {
+          family = "inet";
+          content = ''
+            # Filled dynamically by the helper service below. Keeping it in the
+            # ruleset makes the active uplinks visible in `nft list ruleset`.
+            set wan_ifaces {
+              type ifname
+            }
+
+            chain route_output {
+              type route hook output priority mangle; policy accept;
+
+              # Identify overlay transport sockets early. Once marked, policy
+              # routing can pin them to a routing table that only contains real
+              # default uplinks instead of whatever a proxy/TUN installs.
+              ${lib.optionalString (overlayTransportUdpPorts != [ ]) ''
+                udp dport { ${
+                  lib.concatMapStringsSep ", " toString overlayTransportUdpPorts
+                } } counter meta mark set meta mark | ${overlayTransportMark}
+                udp sport { ${
+                  lib.concatMapStringsSep ", " toString overlayTransportUdpPorts
+                } } counter meta mark set meta mark | ${overlayTransportMark}
+              ''}
+              ${lib.optionalString (easytierTransportTcpPorts != [ ]) ''
+                tcp dport { ${
+                  lib.concatMapStringsSep ", " toString easytierTransportTcpPorts
+                } } counter meta mark set meta mark | ${overlayTransportMark}
+                tcp sport { ${
+                  lib.concatMapStringsSep ", " toString easytierTransportTcpPorts
+                } } counter meta mark set meta mark | ${overlayTransportMark}
+              ''}
+            }
+
+            chain output {
+              type filter hook output priority filter; policy accept;
+
+              # Hard-stop recursive encapsulation: overlay transport must never
+              # be sent into another overlay device.
+              meta mark & ${overlayTransportMark} == ${overlayTransportMark} oifname "${tailscaleInterface}" counter reject with icmpx type admin-prohibited
+              meta mark & ${overlayTransportMark} == ${overlayTransportMark} oifname "${cfg.devName}" counter reject with icmpx type admin-prohibited
+
+              # Positive visibility for the real uplinks currently discovered by
+              # the helper service. Other traffic still falls back to normal
+              # policy, but marked overlay transport is already constrained by
+              # the dedicated routing table below.
+              meta mark & ${overlayTransportMark} == ${overlayTransportMark} oifname @wan_ifaces counter accept
+            }
+          '';
+        };
+      };
+
+      systemd.services.easytier-underlay-isolation = {
+        description = "Pin EasyTier and Tailscale transport to real uplinks";
+        after = overlayIsolationAfterUnits;
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        path = [
+          pkgs.coreutils
+          pkgs.gawk
+          pkgs.iproute2
+          pkgs.nftables
+        ];
+        script = ''
+          set -eu
+
+          table_id=${overlayRoutingTable}
+          priority=${overlayRoutingPriority}
+          mark=${overlayTransportMark}
+          nft_table="inet easytier-underlay-isolation"
+          nft_set="wan_ifaces"
+
+          collect_defaults() {
+            local family="$1"
+
+            # Copy every currently active default route from `main`. This keeps
+            # multiple uplinks working without requiring manual interface names.
+            ip -o "-$family" route show table main default \
+              | awk '
+                {
+                  route = ""
+                  for (i = 1; i <= NF; i++) {
+                    if ($i == "proto" || $i == "metric" || $i == "expires") {
+                      break
+                    }
+                    route = route (route == "" ? "" : OFS) $i
+                  }
+                  if (route != "") {
+                    print route
+                  }
+                }
+              '
+          }
+
+          mapfile -t v4_defaults < <(collect_defaults 4)
+          mapfile -t v6_defaults < <(collect_defaults 6)
+          mapfile -t wan_ifaces < <(
+            {
+              printf '%s\n' "''${v4_defaults[@]}"
+              printf '%s\n' "''${v6_defaults[@]}"
+            } \
+              | awk '
+                $0 != "" {
+                  for (i = 1; i <= NF; i++) {
+                    if ($i == "dev" && (i + 1) <= NF) {
+                      print $(i + 1)
+                    }
+                  }
+                }
+              ' \
+              | sort -u
+          )
+
+          # Rebuild the policy-routing table from scratch on every run so link
+          # changes, DHCP renewals, and gateway flips never leave stale state.
+          while ip -4 rule del fwmark "$mark/$mark" lookup "$table_id" priority "$priority" 2>/dev/null; do :; done
+          while ip -6 rule del fwmark "$mark/$mark" lookup "$table_id" priority "$priority" 2>/dev/null; do :; done
+          ip -4 route flush table "$table_id" || true
+          ip -6 route flush table "$table_id" || true
+
+          if ((''${#v4_defaults[@]} > 0)); then
+            for route in ''${v4_defaults[@]}; do
+              ip -4 route add table "$table_id" $route
+            done
+            ip -4 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"
+          fi
+
+          if ((''${#v6_defaults[@]} > 0)); then
+            for route in ''${v6_defaults[@]}; do
+              ip -6 route add table "$table_id" $route
+            done
+            ip -6 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"
+          fi
+
+          if nft list table $nft_table >/dev/null 2>&1; then
+            nft flush set $nft_table $nft_set
+            if ((''${#wan_ifaces[@]} > 0)); then
+              wan_ifaces_literal=$(printf '"%s", ' "''${wan_ifaces[@]}")
+              wan_ifaces_literal="{ ''${wan_ifaces_literal%, } }"
+              nft add element $nft_table $nft_set "$wan_ifaces_literal"
+            fi
+          fi
+        '';
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+      };
+
+      systemd.timers.easytier-underlay-isolation = {
+        description = "Refresh EasyTier underlay isolation";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnBootSec = "45s";
+          OnUnitActiveSec = "2min";
+          Unit = "easytier-underlay-isolation.service";
         };
       };
 
