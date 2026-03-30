@@ -3,8 +3,12 @@
   services.ipp-usb.enable = true;
   services.printing = {
     enable = true;
-    browsing = false;
-    browsed.enable = false;
+    browsing = true;
+    browsed.enable = true;
+    browsedConf = ''
+      CreateIPPPrinterQueues LocalOnly
+      DefaultOptions media=A4 sides=two-sided-long-edge
+    '';
     startWhenNeeded = false;
     webInterface = true;
     drivers = with pkgs; [

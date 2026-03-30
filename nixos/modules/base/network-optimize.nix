@@ -26,7 +26,7 @@ let
   # 单一激进策略：直接按接近标称带宽估算 BDP，上限更高。
   # ──────────────────────────────────────────────────────────────────────────
   bdpTargetBandwidth = lib.max cfg.bandwidth cfg.realBandwidth;
-  bdpBasisBandwidth = builtins.floor (bdpTargetBandwidth * 90 / 100);
+  bdpBasisBandwidth = builtins.floor (bdpTargetBandwidth * 85 / 100);
   bdp = bdpBasisBandwidth * cfg.rtt * 125;
   ramBytes = cfg.ram * 1024 * 1024;
 
@@ -37,7 +37,7 @@ let
   # Socket 缓冲区上限 (rmem_max / wmem_max)
   # 取 "2×BDP" 与 "12.5% RAM" 两者的较小值，硬上限 128MB
   rmem_max_raw = bdp * 2;
-  rmem_max_pct = if isBerserk then ramBytes * 70 / 100 else ramBytes * 12 / 100;
+  rmem_max_pct = if isBerserk then ramBytes * 58 / 100 else ramBytes * 12 / 100;
   rmem_max = clamp rmemMinFloor rmemMaxLimit (
     if rmem_max_raw < rmem_max_pct then rmem_max_raw else rmem_max_pct
   );
@@ -55,8 +55,8 @@ let
 
   # TCP/UDP 全局内存池（单位：页，1 页 = 4096 B）
   # 提高内存利用比例：让小内存机器也敢于把更多内存给网络栈。
-  tcp_mem_low = cfg.ram * 256 * 18 / 100;
-  tcp_mem_mid = cfg.ram * 256 * 38 / 100;
+  tcp_mem_low = cfg.ram * 256 * 14 / 100;
+  tcp_mem_mid = cfg.ram * 256 * 30 / 100;
   tcp_mem_high_raw = cfg.ram * 256 * tcpMemHighPct / 100;
   tcp_mem_high_bw = rmem_max * 64 / 4096; # 64× max-conn cap in pages
   tcp_mem_high = if tcp_mem_high_raw < tcp_mem_high_bw then tcp_mem_high_raw else tcp_mem_high_bw;
@@ -67,7 +67,7 @@ let
   tcpMemHighPct =
     if isBerserk then
       if lowMemNode then
-        clamp 68 90 (70 + cfg.cpus * 2 + cfg.realBandwidth / 900)
+        clamp 50 76 (56 + cfg.cpus * 2 + cfg.realBandwidth / 900)
       else
         clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600)
     else
@@ -82,9 +82,9 @@ let
   isVpsMode = true;
   # 小内存/单核机器走“轻收敛”分支：优先保吞吐，再小幅降内存放大项。
   lowMemNode = cfg.ram <= 512 || cfg.cpus <= 1;
-  connBudgetRamFactorLowMem = clamp 180 240 (170 + cfg.ram / 8 + cfg.cpus * 6);
+  connBudgetRamFactorLowMem = clamp 150 220 (150 + cfg.ram / 8 + cfg.cpus * 6);
   netdevBacklogBwFactorLowMem = clamp 1250 1500 (
-    1240 + cfg.ram / 4 + cfg.realBandwidth / 50 - cfg.cpus * 10
+    1040 + cfg.ram / 4 + cfg.realBandwidth / 50 - cfg.cpus * 10
   );
   napiBudgetSingleCoreLowMem = clamp 6200 8200 (6600 + cfg.realBandwidth / 3 + cfg.ram / 4);
   rpsSockFlowEntriesLowMem = clamp 131072 1048576 (
@@ -96,12 +96,12 @@ let
   # 如果是 VPS 且内存小，保命优先，下限降低但保持合理比例
   rmemMinFloor =
     if isVpsMode then
-      if lowMemNode then ramBytes * 10 / 100 else ramBytes * 15 / 100
+      if lowMemNode then ramBytes * 8 / 100 else ramBytes * 15 / 100
     else
       (if isBerserk then ramBytes * 25 / 100 else 16 * 1024 * 1024);
   rmemDefaultFloor =
     if isBerserk then
-      if lowMemNode then ramBytes * 8 / 100 else ramBytes * 10 / 100
+      if lowMemNode then ramBytes * 6 / 100 else ramBytes * 10 / 100
     else
       4 * 1024 * 1024;
   rmemDefaultCeilFactor = if isBerserk then 19 else 2;

@@ -41,12 +41,5 @@
   };
 
   utils.disk = "/dev/sda";
-
-  swapDevices = [
-    {
-      device = "/swap/swapfile";
-      size = 4096;
-    }
-  ];
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
 }

@@ -11,7 +11,8 @@ let
     "noatime"
     "compress=no"
     "space_cache=v2"
-    "commit=300"
+    "commit=30"
+    "flushoncommit"
     "ssd_spread"
     "thread_pool=1"
   ];
@@ -19,7 +20,8 @@ let
     "noatime"
     "compress=no"
     "space_cache=v2"
-    "commit=300"
+    "commit=30"
+    "flushoncommit"
     "ssd_spread"
     "thread_pool=1"
   ];

@@ -32,11 +32,5 @@
     defaultGateway = "123.254.105.158";
   };
 
-  swapDevices = [
-    {
-      device = "/swap/swapfile";
-      size = 4096;
-    }
-  ];
   hardware.enableRedistributableFirmware = lib.mkForce false;
 }

@@ -44,11 +44,5 @@
   # Though the actual format etc is done by dd over the raw image.
   utils.disk = "/dev/vda";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  swapDevices = [
-    {
-      device = "/swap/swapfile";
-      size = 512;
-    }
-  ];
   nix.gc.automatic = lib.mkForce true;
 }

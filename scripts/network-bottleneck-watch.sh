@@ -12,11 +12,20 @@ TARGET_IP="1.1.1.1"
 PROC_PATTERN="xray"
 PROC_REQUIRED="1"
 MODE="default"
+MANUAL="0"
+TOP_PROCS="5"
+SSH_TARGET=""
+OUTPUT_FILE=""
+NICE_LEVEL="-20"
+IONICE_CLASS="1"
+IONICE_LEVEL="0"
+OOM_SCORE_ADJ="-1000"
+REMOTE_ARGS=()
 
 usage() {
   cat <<'EOF'
 Usage:
-  network-bottleneck-watch.sh [--mode MODE] [--interval SEC] [--samples N] [--iface IFACE] [--target IP] [--proc-pattern REGEX] [--proc-optional]
+  network-bottleneck-watch.sh [--mode MODE] [--interval SEC] [--samples N] [--iface IFACE] [--target IP] [--proc-pattern REGEX] [--proc-optional] [--manual] [--top N] [--output FILE] [--ssh USER@HOST]
 
 Options:
   --mode MODE      Sampling profile: default | tyo1-tune (default: default)
@@ -26,44 +35,105 @@ Options:
   --target IP      Route probe target for interface auto-detect (default: 1.1.1.1)
   --proc-pattern   Process regex for app metrics (default: xray). Use '' to disable app probe.
   --proc-optional  Do not emit *_PROC_NOT_FOUND hint when process is absent.
+  --manual         Wait for Enter before each sample and print extra process detail.
+  --top N          Number of top CPU/memory processes to show in manual mode (default: 5).
+  --output FILE    Write the same output to FILE in addition to the terminal.
+  --nice N         Set CPU nice level for this command (default: -20).
+  --ionice C:L     Set IO scheduling class and level, for example 1:0 (default: 1:0).
+  --oom-adj N      Set oom_score_adj for this command (default: -1000).
+  --ssh USER@HOST  Run this script on a remote host over SSH and collect there.
   -h, --help       Show this help
 EOF
+}
+
+need_cmd() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "Missing command: $1" >&2
+    exit 1
+  }
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
   --mode)
     MODE="${2:-}"
+    REMOTE_ARGS+=("--mode" "$MODE")
     shift 2
     ;;
   --interval)
     INTERVAL="${2:-}"
     INTERVAL_SET="1"
+    REMOTE_ARGS+=("--interval" "$INTERVAL")
     shift 2
     ;;
   --samples)
     SAMPLES="${2:-}"
+    REMOTE_ARGS+=("--samples" "$SAMPLES")
     shift 2
     ;;
   --iface)
     IFACE="${2:-}"
+    REMOTE_ARGS+=("--iface" "$IFACE")
     shift 2
     ;;
   --target)
     TARGET_IP="${2:-}"
+    REMOTE_ARGS+=("--target" "$TARGET_IP")
     shift 2
     ;;
   --proc-pattern)
     PROC_PATTERN="${2:-}"
+    REMOTE_ARGS+=("--proc-pattern" "$PROC_PATTERN")
     shift 2
     ;;
   --proc-optional)
     PROC_REQUIRED="0"
+    REMOTE_ARGS+=("--proc-optional")
     shift
     ;;
   -h | --help)
     usage
     exit 0
+    ;;
+  --manual)
+    MANUAL="1"
+    REMOTE_ARGS+=("--manual")
+    shift
+    ;;
+  --top)
+    TOP_PROCS="${2:-}"
+    REMOTE_ARGS+=("--top" "$TOP_PROCS")
+    shift 2
+    ;;
+  --output)
+    OUTPUT_FILE="${2:-}"
+    REMOTE_ARGS+=("--output" "$OUTPUT_FILE")
+    shift 2
+    ;;
+  --nice)
+    NICE_LEVEL="${2:-}"
+    REMOTE_ARGS+=("--nice" "$NICE_LEVEL")
+    shift 2
+    ;;
+  --ionice)
+    if [[ ${2:-} =~ ^([0-9]+):([0-9]+)$ ]]; then
+      IONICE_CLASS="${BASH_REMATCH[1]}"
+      IONICE_LEVEL="${BASH_REMATCH[2]}"
+    else
+      echo "Invalid --ionice value: ${2:-}" >&2
+      exit 1
+    fi
+    REMOTE_ARGS+=("--ionice" "${IONICE_CLASS}:${IONICE_LEVEL}")
+    shift 2
+    ;;
+  --oom-adj)
+    OOM_SCORE_ADJ="${2:-}"
+    REMOTE_ARGS+=("--oom-adj" "$OOM_SCORE_ADJ")
+    shift 2
+    ;;
+  --ssh)
+    SSH_TARGET="${2:-}"
+    shift 2
     ;;
   *)
     echo "Unknown arg: $1" >&2
@@ -73,18 +143,48 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-need_cmd() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "Missing command: $1" >&2
-    exit 1
-  }
-}
+if [[ -n $SSH_TARGET ]]; then
+  need_cmd ssh
+  SELF_PATH="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+  SSH_OPTS=()
+  if [[ $MANUAL == "1" ]]; then
+    SSH_OPTS+=("-tt")
+  fi
+  REMOTE_CMD=(env NETWORK_BOTTLENECK_WATCH_REMOTE=1 bash -s -- "${REMOTE_ARGS[@]}")
+  printf -v REMOTE_CMD_STR '%q ' "${REMOTE_CMD[@]}"
+  exec ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "$REMOTE_CMD_STR" <"$SELF_PATH"
+fi
 
 need_cmd awk
 need_cmd ip
 need_cmd date
 need_cmd sed
 need_cmd ps
+
+if [[ -n $OUTPUT_FILE ]]; then
+  OUTPUT_DIR="$(dirname "$OUTPUT_FILE")"
+  if [[ ! -d $OUTPUT_DIR ]]; then
+    mkdir -p "$OUTPUT_DIR"
+  fi
+  : >"$OUTPUT_FILE"
+  exec > >(tee -a "$OUTPUT_FILE") 2>&1
+fi
+
+apply_self_priority() {
+  if [[ -n $OOM_SCORE_ADJ && -w /proc/$$/oom_score_adj ]]; then
+    echo "$OOM_SCORE_ADJ" >/proc/$$/oom_score_adj 2>/dev/null || true
+  fi
+
+  if command -v renice >/dev/null 2>&1 && [[ -n $NICE_LEVEL ]]; then
+    renice -n "$NICE_LEVEL" -p "$$" >/dev/null 2>&1 || true
+  fi
+
+  if command -v ionice >/dev/null 2>&1 && [[ -n $IONICE_CLASS && -n $IONICE_LEVEL ]]; then
+    ionice -c "$IONICE_CLASS" -n "$IONICE_LEVEL" -p "$$" >/dev/null 2>&1 || true
+  fi
+}
+
+apply_self_priority
 
 case "$MODE" in
 default) ;;
@@ -367,8 +467,61 @@ read_xray_proc_stats() {
   fi
 }
 
+read_xray_proc_status() {
+  local pid="${1:-}"
+  if [[ -z $pid ]]; then
+    pid="$(find_xray_pid || true)"
+  fi
+  if [[ -z $pid || ! -r "/proc/$pid/status" ]]; then
+    echo "VmRSS=0 VmHWM=0 VmSwap=0 Threads=0 FDSize=0 voluntary_ctxt_switches=0 nonvoluntary_ctxt_switches=0"
+    return
+  fi
+
+  awk '
+    /^VmRSS:/ {rss=$2}
+    /^VmHWM:/ {hwm=$2}
+    /^VmSwap:/ {swp=$2}
+    /^Threads:/ {thr=$2}
+    /^FDSize:/ {fds=$2}
+    /^voluntary_ctxt_switches:/ {vcs=$2}
+    /^nonvoluntary_ctxt_switches:/ {nvcs=$2}
+    END {
+      printf "VmRSS=%s VmHWM=%s VmSwap=%s Threads=%s FDSize=%s voluntary_ctxt_switches=%s nonvoluntary_ctxt_switches=%s\n", rss+0, hwm+0, swp+0, thr+0, fds+0, vcs+0, nvcs+0
+    }
+  ' "/proc/$pid/status"
+}
+
+read_top_processes() {
+  local sort_key="$1"
+  local limit="${2:-5}"
+
+  if ! command -v ps >/dev/null 2>&1; then
+    echo "  ps unavailable"
+    return 0
+  fi
+
+  case "$sort_key" in
+  cpu)
+    ps -eo pid=,ppid=,comm=,%cpu=,%mem=,rss=,stat=,etimes= --sort=-%cpu 2>/dev/null | awk -v n="$limit" '
+      BEGIN { print "  pid   ppid comm            cpu   mem   rssKB stat etime" }
+      NR <= n { printf "  %-5s %-5s %-15s %5.1f %5.1f %6.0f %-4s %5s\n", $1, $2, $3, $4+0, $5+0, $6+0, $7, $8 }
+    '
+    ;;
+  mem)
+    ps -eo pid=,ppid=,comm=,%cpu=,rss=,%mem=,stat=,etimes= --sort=-rss 2>/dev/null | awk -v n="$limit" '
+      BEGIN { print "  pid   ppid comm            cpu   rssKB  mem   stat etime" }
+      NR <= n { printf "  %-5s %-5s %-15s %5.1f %6.0f %5.1f %-4s %5s\n", $1, $2, $3, $4+0, $5+0, $6+0, $7, $8 }
+    '
+    ;;
+  *)
+    echo "  unknown sort key: $sort_key"
+    return 1
+    ;;
+  esac
+}
+
 print_header() {
-  echo "iface=$IFACE interval=${INTERVAL}s mode=$MODE"
+  echo "iface=$IFACE interval=${INTERVAL}s mode=$MODE manual=$MANUAL top=$TOP_PROCS"
   read -r ricw rirw rmss <<<"$(read_default_route_params)"
   echo "route.v4 default: initcwnd=$ricw initrwnd=$rirw advmss=$rmss"
   echo "sysctl: cc=$(sysctl_get net.ipv4.tcp_congestion_control) ssr=$(sysctl_get net.ipv4.tcp_pacing_ss_ratio) car=$(sysctl_get net.ipv4.tcp_pacing_ca_ratio) lout=$(sysctl_get net.ipv4.tcp_limit_output_bytes) bp=$(sysctl_get net.core.busy_poll) ndb=$(sysctl_get net.core.netdev_budget) ndu=$(sysctl_get net.core.netdev_budget_usecs) ctmax=$(sysctl_get net.netfilter.nf_conntrack_max)"
@@ -377,6 +530,27 @@ print_header() {
   else
     echo "time                cpu% soft% iow% mem% swp% slabM txMb rxMb retr/s qdrp/s sdrp/s conn% xfd% xcpu xrssM th nRx/s nTx/s qKB ld1 psiC psiM psiI pmaj/s astl/s estb sret lDr/s lOv/s to/s rxdp txdp rxer txer"
   fi
+}
+
+print_manual_details() {
+  local xpid="${1:-}"
+  echo "  detail:"
+  if [[ -n ${xpid:-} && $xpid != "-1" ]]; then
+    echo "    xray.status: $(read_xray_proc_status "$xpid")"
+  else
+    echo "    xray.status: not-found"
+  fi
+  echo "    top.cpu:"
+  read_top_processes cpu "$TOP_PROCS"
+  echo "    top.mem:"
+  read_top_processes mem "$TOP_PROCS"
+}
+
+print_pressure_details() {
+  local xpid="${1:-}"
+  local hint_text="${2:-}"
+  echo "  pressure-detail: ${hint_text:-none}"
+  print_manual_details "$xpid"
 }
 
 read -r prev_total prev_idle prev_iowait prev_softirq <<<"$(read_cpu_fields)"
@@ -398,7 +572,14 @@ count=0
 print_header
 
 while true; do
-  sleep "$INTERVAL"
+  if [[ $MANUAL == "1" ]]; then
+    printf "\nPress Enter to capture a snapshot (Ctrl-D/Ctrl-C to exit): "
+    if ! read -r _; then
+      break
+    fi
+  else
+    sleep "$INTERVAL"
+  fi
 
   now_ns="$(date +%s%N)"
   elapsed="$(awk -v n="$now_ns" -v p="$prev_ns" 'BEGIN{d=(n-p)/1e9; if(d<=0)d=0.001; print d}')"
@@ -543,6 +724,13 @@ while true; do
   fi
   if [[ -n $hint ]]; then
     echo "  hint: $hint"
+    if [[ $MANUAL == "0" ]] && { [[ $hint == *"[SWAP_USED]"* ]] || [[ $hint == *"[ALLOCSTALL]"* ]] || [[ $hint == *"[MAJFAULT_SPIKE]"* ]] || [[ $hint == *"[MEM_PSI_HIGH]"* ]]; }; then
+      print_pressure_details "$xpid" "$hint"
+    fi
+  fi
+
+  if [[ $MANUAL == "1" ]]; then
+    print_manual_details "$xpid"
   fi
 
   prev_total="$total"
