@@ -91,7 +91,7 @@ in
 
         next_part_start="$(lsblk -nrpo TYPE,START "$root_disk" \
           | awk -v cur="$root_current_end_sector" \
-                '$1=="part" && $2>cur { print $2; exit }')"
+                '$1=="part" && $2>cur { if (min == "" || $2 < min) min = $2 } END { print min }')"
         if [ -n "$next_part_start" ]; then
           free_end_sector=$((next_part_start - 1))
         else
@@ -149,52 +149,75 @@ in
           sync
         fi
 
-        used_bytes="$(btrfs filesystem usage -b "$btrfs_mount" \
-          | awk '$1=="Used:" { print $2; exit }')"
-        if [ -z "$used_bytes" ]; then
-          echo "cloud-btrfs-swap-partition: cannot read btrfs usage; done without swap"
-          umount "$btrfs_mount" || true
-          return 0
-        fi
-
         ram_kb="$(awk '/^MemTotal:/ { print $2; exit }' /proc/meminfo)"
         ram_bytes=$((ram_kb * 1024))
 
         total_bytes=$(((free_end_sector - root_start_sectors + 1) * sector_size))
         reserve_bytes=${toString rootReserveBytes}
-        swap_candidate_bytes=$((total_bytes - used_bytes - reserve_bytes))
 
-        if [ "$swap_candidate_bytes" -le 0 ]; then
-          echo "cloud-btrfs-swap-partition: no room for swap (used=''${used_bytes}B, reserve=''${reserve_bytes}B, total=''${total_bytes}B); root stays expanded"
+        # min-dev-size expects a mounted Btrfs path, not the raw block device.
+        min_dev_size_bytes="$(btrfs inspect-internal min-dev-size "$btrfs_mount" 2>/dev/null | awk '/^[0-9]+/ { print $1; exit }')"
+
+        if [ "$min_dev_size_bytes" -le 0 ]; then
+          echo "cloud-btrfs-swap-partition: cannot read btrfs min-dev-size; done without swap"
           umount "$btrfs_mount" || true
           return 0
         fi
 
-        if [ "$swap_candidate_bytes" -gt "$ram_bytes" ]; then
-          swap_bytes="$ram_bytes"
-        else
-          swap_bytes="$swap_candidate_bytes"
-        fi
-        swap_mib=$((swap_bytes / (1024 * 1024)))
+        lower_root_bytes=$((min_dev_size_bytes + 1024 * 1024 * 1024))
+        lower_root_bytes=$(((lower_root_bytes + 1048575) / 1048576 * 1048576))
 
-        if [ "$swap_mib" -le 0 ]; then
-          echo "cloud-btrfs-swap-partition: swap < 1 MiB after alignment; root stays expanded"
+        max_swap_bytes=$((total_bytes - lower_root_bytes))
+        if [ "$max_swap_bytes" -le 0 ]; then
+          echo "cloud-btrfs-swap-partition: no room for swap (min-dev-size=''${min_dev_size_bytes}B, reserve=''${reserve_bytes}B, total=''${total_bytes}B); root stays expanded"
           umount "$btrfs_mount" || true
           return 0
         fi
 
-        swap_bytes=$((swap_mib * 1024 * 1024))
-        swap_sectors=$((swap_bytes / sector_size))
-        root_new_end=$((free_end_sector - swap_sectors))
-        swap_start=$((root_new_end + 1))
+        desired_swap_bytes="$ram_bytes"
+        if [ "$desired_swap_bytes" -gt "$max_swap_bytes" ]; then
+          desired_swap_bytes="$max_swap_bytes"
+        fi
 
-        echo "cloud-btrfs-swap-partition: shrinking btrfs by ''${swap_mib} MiB for swap"
-        if ! btrfs filesystem resize -''${swap_mib}m "$btrfs_mount"; then
-          echo "cloud-btrfs-swap-partition: btrfs shrink failed; no swap will be created"
+        target_root_bytes=$((total_bytes - desired_swap_bytes))
+        if [ "$target_root_bytes" -lt "$lower_root_bytes" ]; then
+          target_root_bytes="$lower_root_bytes"
+        fi
+        target_root_bytes=$(((target_root_bytes + 1048575) / 1048576 * 1048576))
+        if [ "$target_root_bytes" -gt "$total_bytes" ]; then
+          target_root_bytes="$total_bytes"
+        fi
+
+        # Root size is planned from Btrfs' own minimum shrink estimate plus a
+        # fixed 1 GiB safety margin.
+        planned_root_bytes="$target_root_bytes"
+        planned_swap_bytes=$((total_bytes - planned_root_bytes))
+        planned_swap_mib=$((planned_swap_bytes / 1048576))
+
+        if [ "$planned_swap_mib" -le 0 ]; then
+          echo "cloud-btrfs-swap-partition: no room for swap after 1 GiB safety margin; root stays expanded"
           umount "$btrfs_mount" || true
           return 0
         fi
-        # Make the shrink durable before rewriting the GPT and creating SWAP.
+
+        planned_swap_bytes=$((planned_swap_mib * 1048576))
+        planned_swap_sectors=$((planned_swap_bytes / sector_size))
+        planned_root_new_end=$((free_end_sector - planned_swap_sectors))
+        planned_swap_start=$((planned_root_new_end + 1))
+
+        echo "cloud-btrfs-swap-partition: trying root=''${planned_root_bytes}B swap=''${planned_swap_mib} MiB"
+        if ! btrfs filesystem resize -''${planned_swap_mib}m "$btrfs_mount"; then
+          echo "cloud-btrfs-swap-partition: btrfs resize failed; no swap will be created"
+          umount "$btrfs_mount" || true
+          return 0
+        fi
+
+        swap_mib="$planned_swap_mib"
+        swap_bytes="$planned_swap_bytes"
+        swap_sectors="$planned_swap_sectors"
+        root_new_end="$planned_root_new_end"
+        swap_start="$planned_swap_start"
+
         btrfs filesystem sync "$btrfs_mount" || true
         sync
         umount "$btrfs_mount"
