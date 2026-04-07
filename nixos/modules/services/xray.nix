@@ -5,15 +5,7 @@
     "nue0.dora.im"
     "tyo0.dora.im"
   ],
-  fakeSnis ? [
-    "gateway.icloud.com"
-    # "www.apple.com"
-    # "images.apple.com"
-    # "appleid.apple.com"
-    # "swcdn.apple.com"
-    # "speedtest.cn"
-    # "speedtest.net"
-  ],
+  serverName ? "osxapps.itunes.apple.com",
   ss ? false,
 }:
 {
@@ -24,7 +16,6 @@
 }:
 
 let
-  serverName = builtins.head fakeSnis;
   destSite = "${serverName}:443";
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
 in
@@ -46,6 +37,7 @@ in
       mode = "0444";
     };
   };
+
   # 2. 使用 Template 动态生成 config.json
   # 这样生成的配置文件位于 /run/secrets/rendered/，不会进入 nix store
   sops.templates."xray-config.json" = {
@@ -93,23 +85,23 @@ in
                   clients = [
                     {
                       id = config.sops.placeholder."xray/uuid";
-                      flow = "xtls-rprx-vision";
                     }
                   ];
                   decryption = "none";
                 };
                 streamSettings = {
-                  network = "tcp";
+                  network = "xhttp";
                   security = "reality";
-                  sockopt = {
-                    mptcp = true;
-                    tcpKeepAliveInterval = 60;
+                  xhttpSettings = {
+                    mode = "auto"; # 服务端推荐 auto，自适应客户端握手
+                    host = serverName;
+                    path = "/";
                   };
                   realitySettings = {
                     show = false;
                     target = destSite;
                     xver = 0;
-                    serverNames = [ serverName ] ++ fakeSnis;
+                    serverNames = [ serverName ];
                     privateKey = config.sops.placeholder."xray/private_key";
                     shortIds = [ config.sops.placeholder."xray/short_id" ];
                   };
@@ -134,7 +126,6 @@ in
                 users = [
                   {
                     id = config.sops.placeholder."xray/uuid";
-                    flow = "xtls-rprx-vision";
                     encryption = "none";
                   }
                 ];
@@ -142,19 +133,19 @@ in
             ];
           };
           streamSettings = {
-            network = "tcp";
+            network = "xhttp";
             security = "reality";
-            sockopt = {
-              tcpFastOpen = true;
-              tcpNoDelay = true;
-              mptcp = true;
-              tcpKeepAliveInterval = 60;
+            xhttpSettings = {
+              mode = "packet-up"; # 核心：上传打碎成短请求，下载保持长连接，对抗流量分析
+              host = serverName;
+              path = "/";
             };
             realitySettings = {
               fingerprint = "ios";
               inherit serverName;
               publicKey = config.sops.placeholder."xray/public_key";
               shortId = config.sops.placeholder."xray/short_id";
+              alpn = [ "h3" ];
             };
           };
         }) proxyHosts)
@@ -257,6 +248,18 @@ in
     settingsFile = config.sops.templates."xray-config.json".path;
   };
 
+  services.traefik.tcpProxies = {
+    xray = {
+      rule = "HostSNI(`" + serverName + "`)";
+      target = "127.0.0.1:${toString xrayPort}";
+      entryPoints = [
+        "https"
+        "https-alt"
+      ];
+      tls = true;
+    };
+  };
+
   # 确保 Xray 能读到 geo 数据库
   systemd.services.xray = {
     startLimitIntervalSec = lib.mkForce 0;
@@ -282,6 +285,7 @@ in
         XRAY_LOCATION_ASSET = "${assets}/share/v2ray";
       };
   };
+
   networking.firewall.allowedTCPPorts = [
     8443
     8444
