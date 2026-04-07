@@ -5,7 +5,7 @@
     "nue0.dora.im"
     "tyo0.dora.im"
   ],
-  serverName ? "osxapps.itunes.apple.com",
+  serverName ? "gateway.icloud.com",
   ss ? false,
 }:
 {
@@ -46,9 +46,10 @@ in
     content = builtins.toJSON (
       {
         log = {
-          access = "none";
-          dnsLog = false;
-          loglevel = if config.environment.minimal or false then "error" else "warning";
+          # access = "console";
+          # error = "console";
+          # dnsLog = false;
+          # loglevel = "debug";
         };
 
         inbounds =
@@ -248,16 +249,29 @@ in
     settingsFile = config.sops.templates."xray-config.json".path;
   };
 
-  services.traefik.tcpProxies = {
-    xray = {
-      rule = "HostSNI(`" + serverName + "`)";
-      target = "127.0.0.1:${toString xrayPort}";
+  # services.traefik.tcpProxies = {
+  services.traefik.dynamicConfigOptions.tcp = {
+    routers.xray = {
       entryPoints = [
         "https"
         "https-alt"
       ];
-      tls = true;
+      service = "xray";
+      tls.passthrough = true;
+      rule = "HostSNI(`${serverName}`)";
     };
+
+    services.xray.loadbalancer.servers = [ { address = "127.0.0.1:${toString xrayPort}"; } ];
+    # xray = {
+    #   rule = "HostSNI(`" + serverName + "`)";
+    #   target = "127.0.0.1:${toString xrayPort}";
+    #   tls.passthrough = true;
+    #   entryPoints = [
+    #     "https"
+    #     "https-alt"
+    #   ];
+    #   # tls = true;
+    # };
   };
 
   # 确保 Xray 能读到 geo 数据库
