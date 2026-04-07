@@ -139,6 +139,24 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    sjc0 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "45.143.130.241"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "2604:a840:100:2e9::a"
+        }
+      }
+      ddns_records = {}
+      host_indices = [16]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
   }
 }
 
