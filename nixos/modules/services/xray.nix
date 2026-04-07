@@ -46,10 +46,9 @@ in
     content = builtins.toJSON (
       {
         log = {
-          # access = "console";
-          # error = "console";
-          # dnsLog = false;
-          # loglevel = "debug";
+          access = "none";
+          dnsLog = false;
+          loglevel = if config.environment.minimal or false then "error" else "warning";
         };
 
         inbounds =
