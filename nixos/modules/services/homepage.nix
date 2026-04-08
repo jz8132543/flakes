@@ -15,7 +15,7 @@ let
     lidarr = "https://lidarr.${domain}";
     bazarr = "https://bazarr.${domain}";
     qbit = "https://qbit.${domain}";
-    vertex = "https://vertex.${domain}/vertex";
+    vertex = "https://vertex.${domain}";
     autobrr = "https://autobrr.${domain}";
   };
 in
