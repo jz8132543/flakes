@@ -7,6 +7,8 @@
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
+  xhttpMode = "auto";
+  xhttpPath = "/";
   regionNames = [
     "HK"
     "JP"
@@ -18,16 +20,28 @@ let
     inherit (node) name server port;
     type = "vless";
     uuid = config.sops.placeholder."xray/uuid";
-    network = "tcp";
+    network = "xhttp";
     tls = true;
     udp = true;
-    flow = "xtls-rprx-vision";
     servername = cfg.serverName;
+    xhttp-opts = {
+      mode = xhttpMode;
+      path = xhttpPath;
+      host = cfg.serverName;
+    };
     reality-opts = {
       public-key = config.sops.placeholder."xray/public_key";
       short-id = config.sops.placeholder."xray/short_id";
     };
     client-fingerprint = "ios";
+  };
+
+  easyTierProxy = {
+    name = "EasyTier-Socks";
+    type = "socks5";
+    server = "127.0.0.1";
+    port = 12223;
+    udp = true;
   };
 
   mkRegionGroup = region: {
@@ -64,12 +78,14 @@ let
     find-process-mode = "strict";
     global-client-fingerprint = "random";
     external-controller = "127.0.0.1:9090";
+    external-ui = "./dashboard";
+    #external-ui-url = "https://codeload.github.com/MetaCubeX/metacubexd/zip/refs/heads/gh-pages";
+    #external-ui-name = "metacubexd";
     secret = "";
 
-    proxies = map mkNode cfg.nodes;
+    proxies = map mkNode cfg.nodes ++ [ easyTierProxy ];
 
-    proxy-groups = regionGroups
-    ++ [
+    proxy-groups = regionGroups ++ [
       {
         name = "ALL-AUTO-FASTEST";
         type = "url-test";
@@ -165,6 +181,52 @@ let
         ];
       };
     };
+
+    tun = {
+      enable = true;
+      stack = "system";
+      auto-route = true;
+      auto-detect-interface = true;
+      inet4_route_address = [
+        "0.0.0.0/1"
+        "128.0.0.0/1"
+      ];
+      inet6_route_address = [
+        "::/1"
+        "8000::/1"
+      ];
+      exclude-interface = [
+        "tailscale0"
+        "easytier0"
+      ];
+      route-exclude-address = [
+        "100.64.0.0/10"
+      ];
+    };
+
+    sniffer = {
+      enable = true;
+      sniffing = [
+        "tls"
+        "http"
+      ];
+      skip-domain = [
+        "*.dora.im"
+        "*.mag"
+        "*.et"
+      ];
+    };
+
+    geodata = {
+      mode = true;
+      loader = "memcache";
+    };
+
+    geox-url = {
+      geosite = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat";
+      geoip = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat";
+      mmdb = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb";
+    };
   };
 
   mihomoText = lib.generators.toYAML { } mihomoConfig;
@@ -195,7 +257,7 @@ let
       in
       "vless://${
         config.sops.placeholder."xray/uuid"
-      }@${node.server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=ios&type=tcp&flow=xtls-rprx-vision&pbk=${
+      }@${node.server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=ios&type=xhttp&mode=${xhttpMode}&path=${xhttpPath}&host=${cfg.serverName}&pbk=${
         config.sops.placeholder."xray/public_key"
       }&sid=${config.sops.placeholder."xray/short_id"}#${safeName}"
     ) cfg.nodes

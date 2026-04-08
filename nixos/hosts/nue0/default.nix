@@ -78,37 +78,49 @@
       {
         name = "nue0";
         server = "nue0.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "US" ];
+      }
+      {
+        name = "nue0-kxy";
+        server = "cu.dora.im";
+        port = 50561;
+        regions = [ "EU" ];
       }
       {
         name = "hkg4";
         server = "hkg4.dora.im";
-        port = 8555;
+        port = 443;
+        regions = [ "HK" ];
+      }
+      {
+        name = "hkg4-kxy";
+        server = "cu.dora.im";
+        port = 50562;
         regions = [ "HK" ];
       }
       {
         name = "hkg5";
         server = "hkg5.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "HK" ];
       }
       {
         name = "tyo0";
         server = "tyo0.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "JP" ];
       }
       {
         name = "tyo1";
         server = "tyo1.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "JP" ];
       }
       {
         name = "sjc0";
         server = "sjc0.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "US" ];
       }
       {
@@ -120,20 +132,8 @@
       {
         name = "can1";
         server = "can1.dora.im";
-        port = 8555;
+        port = 443;
         regions = [ "US" ];
-      }
-      {
-        name = "xiy1";
-        server = "xiy1.dora.im";
-        port = 8555;
-        regions = [ "EU" ];
-      }
-      {
-        name = "xiy2";
-        server = "xiy2.dora.im";
-        port = 8555;
-        regions = [ "EU" ];
       }
     ];
   };

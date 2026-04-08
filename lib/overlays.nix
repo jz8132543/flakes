@@ -1,6 +1,7 @@
 {
   inputs,
   self,
+  ...
 }:
 [
   inputs.sops-nix.overlays.default
