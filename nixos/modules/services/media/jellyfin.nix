@@ -8,6 +8,7 @@
   config = {
     nixflix.jellyfin = {
       enable = true;
+      apiKey._secret = config.sops.secrets."media/jellyfin_api_key".path;
       network.baseUrl = "jellyfin";
       users = {
         i = {

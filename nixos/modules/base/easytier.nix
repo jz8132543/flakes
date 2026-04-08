@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  inputs,
   nixosModules,
   pkgs,
   ...
@@ -304,8 +305,8 @@ in
         enable = true;
         allowSystemForward = true;
         package = lib.mkDefault (
-          pkgs.callPackage ../../../pkgs/easytier-latest {
-            source = (pkgs.callPackage ../../../pkgs/_sources/generated.nix { }).easytier-latest;
+          inputs.latest.legacyPackages.${pkgs.stdenv.hostPlatform.system}.easytier.override {
+            withQuic = true;
           }
         );
       };

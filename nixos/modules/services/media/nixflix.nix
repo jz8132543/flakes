@@ -36,9 +36,7 @@
         enable = true;
         group = "media";
         config = {
-          apiKey = {
-            _secret = config.sops.secrets."media/sonarr_api_key".path;
-          };
+          apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
           hostConfig = {
             username = "i";
             password = {
@@ -56,9 +54,7 @@
         enable = true;
         group = "media";
         config = {
-          apiKey = {
-            _secret = config.sops.secrets."media/radarr_api_key".path;
-          };
+          apiKey._secret = config.sops.secrets."media/radarr_api_key".path;
           hostConfig = {
             username = "i";
             password = {
@@ -76,9 +72,7 @@
         enable = true;
         group = "media";
         config = {
-          apiKey = {
-            _secret = config.sops.secrets."media/prowlarr_api_key".path;
-          };
+          apiKey._secret = config.sops.secrets."media/prowlarr_api_key".path;
           hostConfig = {
             username = "i";
             password = {
@@ -90,36 +84,28 @@
             {
               name = "Sonarr";
               implementationName = "Sonarr";
-              apiKey = {
-                _secret = config.sops.secrets."media/sonarr_api_key".path;
-              };
+              apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
               baseUrl = "http://127.0.0.1:${toString config.ports.sonarr}/sonarr";
               prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
             {
               name = "Radarr";
               implementationName = "Radarr";
-              apiKey = {
-                _secret = config.sops.secrets."media/radarr_api_key".path;
-              };
+              apiKey._secret = config.sops.secrets."media/radarr_api_key".path;
               baseUrl = "http://127.0.0.1:${toString config.ports.radarr}/radarr";
               prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
             {
               name = "Lidarr";
               implementationName = "Lidarr";
-              apiKey = {
-                _secret = config.sops.secrets."media/lidarr_api_key".path;
-              };
+              apiKey._secret = config.sops.secrets."media/lidarr_api_key".path;
               baseUrl = "http://127.0.0.1:${toString config.ports.lidarr}/lidarr";
               prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
             {
               name = "Sonarr Anime";
               implementationName = "Sonarr";
-              apiKey = {
-                _secret = config.sops.secrets."media/sonarr_api_key".path;
-              };
+              apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
               baseUrl = "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime";
               prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
             }
@@ -130,9 +116,7 @@
               enable = true;
               implementationName = "Gazelle";
               baseUrl = "https://kp.m-team.cc/";
-              apiKey = {
-                _secret = config.sops.secrets."media/mteam_api_key".path;
-              };
+              apiKey._secret = config.sops.secrets."media/mteam_api_key".path;
             }
             /*
               {
@@ -156,9 +140,7 @@
         enable = true;
         group = "media";
         config = {
-          apiKey = {
-            _secret = config.sops.secrets."media/lidarr_api_key".path;
-          };
+          apiKey._secret = config.sops.secrets."media/lidarr_api_key".path;
           hostConfig = {
             username = "i";
             password = {
@@ -175,16 +157,14 @@
         cleanupUnmanagedProfiles.enable = true;
       };
 
-      jellyseerr = {
+      seerr = {
         enable = true;
         jellyfin.adminUsername = "i";
         jellyfin.adminPassword = {
           _secret = config.sops.secrets."password".path;
         };
         settings.users.defaultPermissions = 1024;
-        apiKey = {
-          _secret = config.sops.secrets."media/jellyseerr_api_key".path;
-        };
+        apiKey._secret = config.sops.secrets."media/jellyseerr_api_key".path;
       };
 
       sonarr-anime = {
@@ -198,9 +178,7 @@
             };
             urlBase = "/sonarr-anime";
           };
-          apiKey = {
-            _secret = config.sops.secrets."media/sonarr_api_key".path;
-          };
+          apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
           rootFolders = [
             { path = "/data/media/anime"; }
           ];
@@ -239,7 +217,7 @@
             })
             [
               "jellyfin"
-              "jellyseerr"
+              "seerr"
               "sonarr"
               "radarr"
               "prowlarr"
@@ -259,12 +237,12 @@
               "jellyfin-encoding-config"
               "jellyfin-branding-config"
               "jellyfin-libraries"
-              "jellyseerr-setup"
-              "jellyseerr-user-settings"
-              "jellyseerr-jellyfin"
-              "jellyseerr-libraries"
-              "jellyseerr-sonarr"
-              "jellyseerr-radarr"
+              "seerr-setup"
+              "seerr-user-settings"
+              "seerr-jellyfin"
+              "seerr-libraries"
+              "seerr-sonarr"
+              "seerr-radarr"
               "sonarr-config"
               "radarr-config"
               "prowlarr-config"
@@ -287,7 +265,7 @@
           radarr.serviceConfig.UMask = "0002";
           prowlarr.serviceConfig.UMask = "0002";
           lidarr.serviceConfig.UMask = "0002";
-          jellyseerr.serviceConfig.UMask = "0002";
+          seerr.serviceConfig.UMask = "0002";
           sonarr-anime.serviceConfig.UMask = "0002";
         };
     };

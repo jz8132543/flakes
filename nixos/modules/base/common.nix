@@ -28,7 +28,6 @@
   services.dbus.implementation = "broker";
   services.bpftune.enable = false;
   services.irqbalance.enable = true;
-  services.earlyoom.enable = true;
   boot.kernel.sysctl = {
     "kernel.sysrq" = 1;
   };

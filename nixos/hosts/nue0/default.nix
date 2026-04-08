@@ -55,7 +55,7 @@
       nixosModules.services.homepage-machine
     ];
 
-  services.openclaw.enable = true;
+  services.openclaw.enable = false;
   services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
 
