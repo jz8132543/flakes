@@ -26,7 +26,7 @@
       nixosModules.services.reader
       (import nixosModules.services.xray {
       })
-      nixosModules.services.subscription-publisher.default
+      nixosModules.services.sub
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
       nixosModules.services.searx

@@ -67,7 +67,7 @@
     };
 
     services.traefik.proxies.nixflix-apps-vertex = {
-      rule = "(Host(`tv.dora.im`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/vertex`)";
+      rule = "(Host(`vertex.${config.networking.domain}`) || Host(`tv.${config.networking.domain}`) || Host(`${config.networking.fqdn}`)) && PathPrefix(`/vertex`)";
       target = "http://127.0.0.1:${toString config.ports.nginx}";
     };
 

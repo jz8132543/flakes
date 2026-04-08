@@ -6,6 +6,19 @@
 }:
 let
   inherit (config.networking) fqdn;
+  inherit (config.networking) domain;
+  media = rec {
+    jellyfin = "https://jellyfin.${domain}/jellyfin";
+    seerr = "https://seerr.${domain}";
+    sonarr = "https://sonarr.${domain}";
+    radarr = "https://radarr.${domain}";
+    prowlarr = "https://prowlarr.${domain}";
+    lidarr = "https://lidarr.${domain}";
+    bazarr = "https://bazarr.${domain}";
+    qbit = "https://qbit.${domain}";
+    vertex = "https://vertex.${domain}/vertex";
+    autobrr = "https://autobrr.${domain}";
+  };
 in
 {
   users.users.homepage-machine = {
@@ -76,7 +89,7 @@ in
       "Media" = [
         {
           "Jellyfin" = {
-            href = "/jellyfin/";
+            href = media.jellyfin;
             icon = "jellyfin.png";
             description = "Media Server";
             widget = {
@@ -93,7 +106,7 @@ in
         }
         {
           "Jellyseerr" = {
-            href = "/jellyseerr/";
+            href = media.seerr;
             icon = "jellyseerr.png";
             description = "Request Management";
             widget = {
@@ -105,7 +118,7 @@ in
         }
         {
           "Sonarr" = {
-            href = "/sonarr/";
+            href = media.sonarr;
             icon = "sonarr.png";
             description = "TV Series";
             widget = {
@@ -117,7 +130,7 @@ in
         }
         {
           "Radarr" = {
-            href = "/radarr/";
+            href = media.radarr;
             icon = "radarr.png";
             description = "Movies";
             widget = {
@@ -130,7 +143,7 @@ in
         }
         {
           "Prowlarr" = {
-            href = "/prowlarr/";
+            href = media.prowlarr;
             icon = "prowlarr.png";
             description = "Indexer Manager";
             widget = {
@@ -142,7 +155,7 @@ in
         }
         {
           "Lidarr" = {
-            href = "/lidarr/";
+            href = media.lidarr;
             icon = "lidarr.png";
             description = "Music";
             widget = {
@@ -154,14 +167,14 @@ in
         }
         {
           "Bazarr" = {
-            href = "/bazarr/";
+            href = media.bazarr;
             icon = "bazarr.png";
             description = "Subtitles";
           };
         }
         {
           "qBittorrent" = {
-            href = "/qbit/";
+            href = media.qbit;
             icon = "qbittorrent.png";
             description = "Torrent Client";
             widget = {
@@ -175,14 +188,14 @@ in
         }
         {
           "Vertex" = {
-            href = "/vertex/";
+            href = media.vertex;
             icon = "vertex.png";
             description = "PT Manager";
           };
         }
         {
           "Autobrr" = {
-            href = "/autobrr/";
+            href = media.autobrr;
             icon = "autobrr.png";
             description = "Auto Downloader";
           };

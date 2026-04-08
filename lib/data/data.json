@@ -150,6 +150,14 @@
       "on": "nue0",
       "proxy": false
     },
+    "autobrr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "bazarr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "claw": {
       "on": "nue0",
       "proxy": false
@@ -186,11 +194,19 @@
       "on": "nue0",
       "proxy": false
     },
+    "iyuu": {
+      "on": "nue0",
+      "proxy": false
+    },
     "jellyfin": {
       "on": "nue0",
       "proxy": false
     },
     "ldap": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "lidarr": {
       "on": "nue0",
       "proxy": false
     },
@@ -250,12 +266,36 @@
       "on": "nue0",
       "proxy": false
     },
+    "prowlarr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "qbit": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "radarr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "reader": {
       "on": "nue0",
       "proxy": false
     },
     "searx": {
       "on": "hkg4",
+      "proxy": false
+    },
+    "seerr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "sonarr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "sonarr-anime": {
+      "on": "nue0",
       "proxy": false
     },
     "sso": {
@@ -275,6 +315,10 @@
       "proxy": false
     },
     "vault": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "vertex": {
       "on": "nue0",
       "proxy": false
     },
