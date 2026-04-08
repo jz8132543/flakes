@@ -26,6 +26,7 @@
       nixosModules.services.reader
       (import nixosModules.services.xray {
       })
+      nixosModules.services.subscription-publisher.default
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
       nixosModules.services.searx
@@ -69,5 +70,71 @@
     realBandwidth = 2500;
     rtt = 180; # ms，国际线路
     ram = 4096; # MB，可用内存
+  };
+
+  services.subscriptionPublisher = {
+    enable = true;
+    nodes = [
+      {
+        name = "nue0";
+        server = "nue0.dora.im";
+        port = 8555;
+        regions = [ "US" ];
+      }
+      {
+        name = "hkg4";
+        server = "hkg4.dora.im";
+        port = 8555;
+        regions = [ "HK" ];
+      }
+      {
+        name = "hkg5";
+        server = "hkg5.dora.im";
+        port = 8555;
+        regions = [ "HK" ];
+      }
+      {
+        name = "tyo0";
+        server = "tyo0.dora.im";
+        port = 8555;
+        regions = [ "JP" ];
+      }
+      {
+        name = "tyo1";
+        server = "tyo1.dora.im";
+        port = 8555;
+        regions = [ "JP" ];
+      }
+      {
+        name = "sjc0";
+        server = "sjc0.dora.im";
+        port = 8555;
+        regions = [ "US" ];
+      }
+      {
+        name = "can0";
+        server = "can0.dora.im";
+        port = 16811;
+        regions = [ "US" ];
+      }
+      {
+        name = "can1";
+        server = "can1.dora.im";
+        port = 8555;
+        regions = [ "US" ];
+      }
+      {
+        name = "xiy1";
+        server = "xiy1.dora.im";
+        port = 8555;
+        regions = [ "EU" ];
+      }
+      {
+        name = "xiy2";
+        server = "xiy2.dora.im";
+        port = 8555;
+        regions = [ "EU" ];
+      }
+    ];
   };
 }

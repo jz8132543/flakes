@@ -99,6 +99,7 @@ locals {
     ai            = { on = "nue0", proxy = false }
     et            = { on = "nue0", proxy = false }
     hydra         = { on = "nue0", proxy = false }
+    sub           = { on = "nue0", proxy = false }
     # prowlarr           = { on = "nue0", proxy = false }
     # radarr             = { on = "nue0", proxy = false }
     # bazarr             = { on = "nue0", proxy = false }

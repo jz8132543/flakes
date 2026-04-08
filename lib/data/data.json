@@ -262,6 +262,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "sub": {
+      "on": "nue0",
+      "proxy": false
+    },
     "ts": {
       "on": "nue0",
       "proxy": false
