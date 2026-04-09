@@ -16,7 +16,7 @@
       "Z /data/.state 0777 root media -"
 
       "Z /data/.state/jellyfin 0777 jellyfin media -"
-      "Z /data/.state/jellyseerr 0777 jellyseerr media -"
+      "Z /data/.state/seerr 0777 seerr media -"
       "Z /data/.state/sonarr 0777 sonarr media -"
       "Z /data/.state/sonarr-anime 0777 sonarr-anime media -"
       "Z /data/.state/radarr 0777 radarr media -"

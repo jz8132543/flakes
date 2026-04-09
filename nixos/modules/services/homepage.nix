@@ -5,6 +5,19 @@
 }:
 let
   inherit (config.networking) domain;
+  media = rec {
+    jellyfin = "https://jellyfin.${domain}/jellyfin";
+    seerr = "https://seerr.${domain}";
+    sonarr = "https://sonarr.${domain}";
+    radarr = "https://radarr.${domain}";
+    sonarrAnime = "https://sonarr-anime.${domain}";
+    prowlarr = "https://prowlarr.${domain}";
+    lidarr = "https://lidarr.${domain}";
+    bazarr = "https://bazarr.${domain}";
+    qbit = "https://qbit.${domain}";
+    vertex = "https://vertex.${domain}";
+    autobrr = "https://autobrr.${domain}";
+  };
 in
 {
   services.homepage-dashboard = {
@@ -17,12 +30,12 @@ in
         "Media" = [
           {
             "Jellyfin" = {
-              href = "https://tv.${config.networking.domain}/jellyfin";
+              href = media.jellyfin;
               icon = "jellyfin.png";
               description = "Media Server";
               widget = {
                 type = "jellyfin";
-                url = "https://tv.${config.networking.domain}/jellyfin";
+                url = media.jellyfin;
                 key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
                 enableBlocks = true;
                 enableNowPlaying = true;
@@ -34,7 +47,7 @@ in
           }
           {
             "Jellyseerr" = {
-              href = "https://tv.${config.networking.domain}/jellyseerr";
+              href = media.seerr;
               icon = "jellyseerr.png";
               description = "Request Management";
               widget = {
@@ -46,7 +59,7 @@ in
           }
           {
             "Sonarr" = {
-              href = "https://tv.${config.networking.domain}/sonarr";
+              href = media.sonarr;
               icon = "sonarr.png";
               description = "TV Series";
               widget = {
@@ -58,7 +71,7 @@ in
           }
           {
             "Radarr" = {
-              href = "https://tv.${config.networking.domain}/radarr";
+              href = media.radarr;
               icon = "radarr.png";
               description = "Movies";
               widget = {
@@ -71,7 +84,7 @@ in
           }
           {
             "Sonarr Anime" = {
-              href = "https://tv.${config.networking.domain}/sonarr-anime";
+              href = media.sonarrAnime;
               icon = "sonarr.png";
               description = "Anime";
               widget = {
@@ -83,7 +96,7 @@ in
           }
           {
             "Prowlarr" = {
-              href = "https://tv.${config.networking.domain}/prowlarr";
+              href = media.prowlarr;
               icon = "prowlarr.png";
               description = "Indexer Manager";
               widget = {
@@ -95,7 +108,7 @@ in
           }
           {
             "Lidarr" = {
-              href = "https://tv.${config.networking.domain}/lidarr";
+              href = media.lidarr;
               icon = "lidarr.png";
               description = "Music";
               widget = {
@@ -107,7 +120,7 @@ in
           }
           {
             "Bazarr" = {
-              href = "https://tv.${config.networking.domain}/bazarr";
+              href = media.bazarr;
               icon = "bazarr.png";
               description = "Subtitles";
               # widget = {
@@ -119,7 +132,7 @@ in
           }
           {
             "qBittorrent" = {
-              href = "https://tv.${config.networking.domain}/qbit";
+              href = media.qbit;
               icon = "qbittorrent.png";
               description = "Torrent Client";
               widget = {
@@ -133,14 +146,14 @@ in
           }
           {
             "Vertex" = {
-              href = "https://tv.${config.networking.domain}/vertex";
+              href = media.vertex;
               icon = "vertex.png"; # Homepage will try to find it, or show default if missing
               description = "PT Manager";
             };
           }
           {
             "Autobrr" = {
-              href = "https://tv.${config.networking.domain}/autobrr";
+              href = media.autobrr;
               icon = "autobrr.png";
               description = "Auto Downloader";
             };

@@ -1,7 +1,7 @@
 {
   inputs,
-  lib,
   self,
+  ...
 }:
 [
   inputs.sops-nix.overlays.default
@@ -11,18 +11,18 @@
   (
     _final: prev:
     {
-      tailscale = prev.tailscale.overrideAttrs (old: {
-        subPackages = [
-          "cmd/tailscaled"
-          "cmd/derper"
-          "cmd/stunc"
-          "cmd/hello"
-        ];
-        postInstall = lib.strings.concatStrings [
-          "cp $out/bin/derper $out/bin/derp && "
-          (old.postInstall or "")
-        ];
-      });
+      # tailscale = prev.tailscale.overrideAttrs (old: {
+      #   subPackages = [
+      #     "cmd/tailscaled"
+      #     "cmd/derper"
+      #     "cmd/stunc"
+      #     "cmd/hello"
+      #   ];
+      #   postInstall = lib.strings.concatStrings [
+      #     "cp $out/bin/derper $out/bin/derp && "
+      #     (old.postInstall or "")
+      #   ];
+      # });
     }
     // (self.lib.maybeAttrByPath "comma-with-db" inputs [
       "nix-index-database"

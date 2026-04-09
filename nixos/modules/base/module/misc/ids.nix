@@ -20,7 +20,7 @@
 
     # nixflix media stack
     jellyfin = lib.mkForce 600;
-    jellyseerr = lib.mkForce 601;
+    seerr = lib.mkForce 601;
     sonarr = lib.mkForce 602;
     radarr = lib.mkForce 603;
     prowlarr = lib.mkForce 604;
@@ -46,7 +46,7 @@
     # nixflix media stack
     media = lib.mkForce 600;
     jellyfin = lib.mkForce 600;
-    jellyseerr = lib.mkForce 601;
+    seerr = lib.mkForce 601;
     sonarr = lib.mkForce 602;
     radarr = lib.mkForce 603;
     prowlarr = lib.mkForce 604;

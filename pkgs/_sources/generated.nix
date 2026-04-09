@@ -30,15 +30,14 @@
   };
   easytier-latest = {
     pname = "easytier-latest";
-    version = "1d89ddbb1681a20427ef41ac52cd0858afa0ac5b";
+    version = "v2.6.0";
     src = fetchFromGitHub {
       owner = "EasyTier";
       repo = "EasyTier";
-      rev = "1d89ddbb1681a20427ef41ac52cd0858afa0ac5b";
+      rev = "v2.6.0";
       fetchSubmodules = false;
-      sha256 = "sha256-7+89kofQPdOhH7flI5wjTuZ6Zjin/94/d8FAdyvexcM=";
+      sha256 = "sha256-dqBIqyh1hWuO9D6IkaUjHT4sdgqJU/Ntt6q0Yc7EjLk=";
     };
-    date = "2026-03-23";
   };
   ebook-sender-bot = {
     pname = "ebook-sender-bot";
@@ -120,7 +119,7 @@
     version = "LTS";
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-SfIbCNDoOh87Wl9C60CoIqb5bhTlY751hALl34ZjBms=";
+      sha256 = "sha256-hVVcS9ei0Rb38eX61DRdRmaHXk/1rU+yvMQwkX7RyvI=";
     };
   };
   wallpaper = {

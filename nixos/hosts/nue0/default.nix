@@ -26,6 +26,7 @@
       nixosModules.services.reader
       (import nixosModules.services.xray {
       })
+      nixosModules.services.sub
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
       nixosModules.services.searx
@@ -55,7 +56,7 @@
       nixosModules.services.homepage-machine
     ];
 
-  services.openclaw.enable = true;
+  services.openclaw.enable = false;
   services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
 
@@ -69,5 +70,71 @@
     realBandwidth = 2500;
     rtt = 180; # ms，国际线路
     ram = 4096; # MB，可用内存
+  };
+
+  services.subscriptionPublisher = {
+    enable = true;
+    nodes = [
+      {
+        name = "nue0";
+        server = "nue0.dora.im";
+        port = 443;
+        regions = [ "US" ];
+      }
+      {
+        name = "nue0-kxy";
+        server = "cu.dora.im";
+        port = 50561;
+        regions = [ "EU" ];
+      }
+      {
+        name = "hkg4";
+        server = "hkg4.dora.im";
+        port = 443;
+        regions = [ "HK" ];
+      }
+      {
+        name = "hkg4-kxy";
+        server = "cu.dora.im";
+        port = 50562;
+        regions = [ "HK" ];
+      }
+      {
+        name = "hkg5";
+        server = "hkg5.dora.im";
+        port = 443;
+        regions = [ "HK" ];
+      }
+      {
+        name = "tyo0";
+        server = "tyo0.dora.im";
+        port = 443;
+        regions = [ "JP" ];
+      }
+      {
+        name = "tyo1";
+        server = "tyo1.dora.im";
+        port = 443;
+        regions = [ "JP" ];
+      }
+      {
+        name = "sjc0";
+        server = "sjc0.dora.im";
+        port = 443;
+        regions = [ "US" ];
+      }
+      {
+        name = "can0";
+        server = "can0.dora.im";
+        port = 16811;
+        regions = [ "US" ];
+      }
+      {
+        name = "can1";
+        server = "can1.dora.im";
+        port = 443;
+        regions = [ "US" ];
+      }
+    ];
   };
 }

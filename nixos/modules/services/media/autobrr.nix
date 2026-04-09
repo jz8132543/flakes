@@ -1,8 +1,22 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
+let
+  autobrrConfigFormat = pkgs.formats.toml { };
+  autobrrConfigTemplate = autobrrConfigFormat.generate "autobrr.toml" config.services.autobrr.settings;
+  autobrrConfigScript = pkgs.writeShellScript "autobrr-config" ''
+    set -euo pipefail
+
+    ${lib.getExe pkgs.dasel} -i toml -o toml --root \
+      --var sessionSecret=file:"$CREDENTIALS_DIRECTORY/sessionSecret" \
+      "sessionSecret = $sessionSecret" \
+      < ${autobrrConfigTemplate} \
+      > "$STATE_DIRECTORY/config.toml"
+  '';
+in
 {
   config = {
     services.autobrr = {
@@ -11,7 +25,7 @@
       settings = {
         host = "0.0.0.0";
         port = config.ports.autobrr;
-        baseUrl = "/autobrr/";
+        baseUrl = "";
         database = {
           type = "sqlite";
           dsn = "/data/.state/autobrr/autobrr.db";
@@ -23,6 +37,7 @@
       DynamicUser = lib.mkForce false;
       User = lib.mkForce "autobrr";
       Group = lib.mkForce "media";
+      ExecStartPre = lib.mkForce [ autobrrConfigScript ];
       ReadWritePaths = [
         "/data/.state/autobrr"
         "/var/lib/autobrr"

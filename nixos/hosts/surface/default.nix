@@ -59,7 +59,7 @@ in
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.optimize.dev
-      nixosModules.services.media.qbittorrent
+      nixosModules.services.qbittorrent
     ];
 
   hardware.microsoft-surface = {

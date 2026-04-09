@@ -17,6 +17,9 @@ src.manual = "latest"
 [realm-latest]
 src.github = "zhboner/realm"
 fetch.github = "zhboner/realm"
+[easytier-latest]
+src.github_tag = "EasyTier/EasyTier"
+fetch.github = "EasyTier/EasyTier"
 
 [kxy-script]
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"

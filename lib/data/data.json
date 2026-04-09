@@ -96,6 +96,15 @@
       "endpoints_v6": [],
       "host_indices": [3]
     },
+    "sjc0": {
+      "dn42_addresses_v4": ["172.23.224.112"],
+      "dn42_addresses_v6": ["fd72:db83:badd:10::1"],
+      "dn42_v6_prefixes": ["fd72:db83:badd:10::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [16]
+    },
     "surface": {
       "dn42_addresses_v4": ["172.23.224.126"],
       "dn42_addresses_v6": ["fd72:db83:badd:1e::1"],
@@ -141,6 +150,14 @@
       "on": "nue0",
       "proxy": false
     },
+    "autobrr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "bazarr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "claw": {
       "on": "nue0",
       "proxy": false
@@ -177,11 +194,19 @@
       "on": "nue0",
       "proxy": false
     },
+    "iyuu": {
+      "on": "nue0",
+      "proxy": false
+    },
     "jellyfin": {
       "on": "nue0",
       "proxy": false
     },
     "ldap": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "lidarr": {
       "on": "nue0",
       "proxy": false
     },
@@ -241,6 +266,18 @@
       "on": "nue0",
       "proxy": false
     },
+    "prowlarr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "qbit": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "radarr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "reader": {
       "on": "nue0",
       "proxy": false
@@ -249,7 +286,23 @@
       "on": "hkg4",
       "proxy": false
     },
+    "seerr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "sonarr": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "sonarr-anime": {
+      "on": "nue0",
+      "proxy": false
+    },
     "sso": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "sub": {
       "on": "nue0",
       "proxy": false
     },
@@ -262,6 +315,10 @@
       "proxy": false
     },
     "vault": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "vertex": {
       "on": "nue0",
       "proxy": false
     },

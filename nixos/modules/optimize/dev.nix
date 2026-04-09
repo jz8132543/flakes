@@ -17,9 +17,9 @@
       lua-language-server
       terraform-ls
       vscode-langservers-extracted # css,eslint,html,json,markdown
-      nodePackages.typescript
-      nodePackages.typescript-language-server
-      nodePackages.bash-language-server
+      typescript
+      typescript-language-server
+      bash-language-server
       dockerfile-language-server
       efm-langserver
       shellcheck
@@ -29,7 +29,7 @@
       # formatters
       eslint_d
       prettierd
-      nodePackages.prettier
+      prettier
       nixfmt
       stylua
       alejandra

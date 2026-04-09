@@ -100,6 +100,9 @@ let
     cu = {
       system = "x86_64-linux";
     };
+    sjc0 = {
+      system = "x86_64-linux";
+    };
     tyo1 = {
       system = "x86_64-linux";
     };
