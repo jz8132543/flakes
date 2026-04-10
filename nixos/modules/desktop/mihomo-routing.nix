@@ -13,7 +13,7 @@ let
     config.ports.easytier-quic
   ];
   easytierTcpPorts = lib.optionals config.services.easytierMesh.enable [
-    config.ports.easytier-traefik-wss
+    config.services.easytierMesh.protocols.wss.port
     config.ports.easytier-faketcp
   ];
   udpPorts = tailscaleUdpPorts ++ easytierUdpPorts;
@@ -22,6 +22,7 @@ let
     "network-online.target"
     "nftables.service"
     "mihomo.service"
+    "dnsmasq.service"
   ]
   ++ lib.optionals config.services.tailscale.enable [ "tailscaled.service" ]
   ++ lib.optionals config.services.easytierMesh.enable [ "easytier.service" ];
@@ -75,6 +76,30 @@ in
           script = ''
             while ip rule del fwmark 0x1/0x1 lookup main priority 8990 2>/dev/null; do :; done
             ip rule add fwmark 0x1/0x1 lookup main priority 8990
+          '';
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+        };
+
+        systemd.services.dnsmasq-direct-routing = {
+          description = "Keep dnsmasq upstream queries on the main routing table";
+          after = afterUnits;
+          wants = [ "network-online.target" ];
+          wantedBy = [ "multi-user.target" ];
+          path = [
+            pkgs.iproute2
+            pkgs.coreutils
+          ];
+          script = ''
+            DNSMASQ_UID=$(${pkgs.coreutils}/bin/id -u dnsmasq)
+
+            while ip rule del uidrange "$DNSMASQ_UID-$DNSMASQ_UID" lookup main priority 8988 2>/dev/null; do :; done
+            while ip -6 rule del uidrange "$DNSMASQ_UID-$DNSMASQ_UID" lookup main priority 8988 2>/dev/null; do :; done
+
+            ip rule add uidrange "$DNSMASQ_UID-$DNSMASQ_UID" lookup main priority 8988
+            ip -6 rule add uidrange "$DNSMASQ_UID-$DNSMASQ_UID" lookup main priority 8988
           '';
           serviceConfig = {
             Type = "oneshot";

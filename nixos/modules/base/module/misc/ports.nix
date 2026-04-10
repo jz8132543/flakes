@@ -14,7 +14,13 @@
       {
         assertion =
           let
-            vals = lib.attrValues config.ports;
+            inherit (config) ports;
+            filteredPorts =
+              if ports.easytier-traefik-wss == ports.easytier-quic then
+                lib.removeAttrs ports [ "easytier-quic" ]
+              else
+                ports;
+            vals = lib.attrValues filteredPorts;
             noCollision = l: lib.length (lib.unique l) == lib.length l;
           in
           noCollision vals;
@@ -110,7 +116,7 @@
       easytier-wss = 11012;
       easytier-udp = 11013;
       easytier-faketcp = 11014;
-      easytier-quic = 11030;
+      easytier-quic = 444;
       headscale = 8085;
       headscale_metrics = 8095;
       headscale_grpc = 50443;

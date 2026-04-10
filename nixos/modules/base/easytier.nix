@@ -22,11 +22,12 @@ let
   envName = "easytier.env";
   settingsFormat = pkgs.formats.toml { };
   wsPort = config.ports.easytier-ws;
-  easytierTraefikRule = "PathPrefix(`/`)";
+  easytierTraefikRule = "Host(`${cfg.bootstrap.host}`) || Host(`${config.networking.fqdn}`)";
 
   listenerUris = [
     "ws://0.0.0.0:${toString wsPort}"
     # "quic://0.0.0.0:${toString cfg.protocols.quic.port}"
+    "quic://0.0.0.0:${toString cfg.protocols.quic.port}"
     "quic://[::]:${toString cfg.protocols.quic.port}"
     "faketcp://[::]:${toString cfg.protocols.faketcp.port}"
     # "faketcp://0.0.0.0:${toString cfg.protocols.faketcp.port}"
@@ -39,11 +40,9 @@ let
   ]) cfg.publicHosts;
 
   bootstrapPeers = [
-    # "wss://${cfg.bootstrap.host}:${toString cfg.protocols.wss.port}"
-    # "quic://${cfg.bootstrap.host}:${toString cfg.protocols.quic.port}"
-    # "faketcp://${cfg.bootstrap.host}:${toString cfg.protocols.faketcp.port}"
     "wss://${cfg.bootstrap.host}:444"
     "quic://${cfg.bootstrap.host}:444"
+    # "faketcp://${cfg.bootstrap.host}:${toString cfg.protocols.faketcp.port}"
     "faketcp://${cfg.bootstrap.host}:11014"
   ];
 
@@ -584,14 +583,12 @@ in
     {
       services.traefik.staticConfigOptions.entryPoints.easytier = {
         address = ":${toString cfg.protocols.wss.port}";
-        forwardedHeaders.insecure = true;
-        proxyProtocol.insecure = true;
         transport.respondingTimeouts = {
           readTimeout = 180;
           writeTimeout = 180;
           idleTimeout = 180;
         };
-        http.tls = { };
+        http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
       };
 
       services.traefik.proxies.easytier-wss = {

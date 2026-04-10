@@ -54,7 +54,7 @@
     "vm.dirty_bytes" = lib.mkOverride 40 (64 * 1024 * 1024);
     "vm.dirty_writeback_centisecs" = lib.mkOverride 40 1500;
     "vm.dirty_expire_centisecs" = lib.mkOverride 40 3000;
-    "vm.swappiness" = lib.mkOverride 40 5;
+    "vm.swappiness" = lib.mkOverride 40 60;
     "vm.page-cluster" = lib.mkOverride 40 0;
     "vm.min_free_kbytes" = lib.mkOverride 40 16384;
     "vm.watermark_scale_factor" = lib.mkOverride 40 240;

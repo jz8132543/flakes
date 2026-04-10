@@ -5,6 +5,9 @@
   ...
 }:
 let
+  selfLib = import ../lib { inherit inputs lib; };
+  nixosModules = selfLib.rake ../nixos/modules;
+
   conf = lib.filterAttrs (
     name: _value: builtins.pathExists (../nixos/hosts + "/${name}")
   ) self.nixosConfigurations;
@@ -15,8 +18,10 @@ in
       description = "my personal machines";
       # This can be overriden by node nixpkgs
       nixpkgs = import inputs.nixpkgs { localSystem = "x86_64-linux"; };
-      nodeNixpkgs = builtins.mapAttrs (_name: value: value.pkgs) conf;
-      nodeSpecialArgs = builtins.mapAttrs (_name: value: value._module.specialArgs) conf;
+      specialArgs = {
+        inherit inputs self;
+        inherit nixosModules;
+      };
     };
   }
   // builtins.mapAttrs (name: _value: { imports = self.colmenaModules.${name}; }) conf;

@@ -164,7 +164,7 @@ in
         "vm.dirty_expire_centisecs" = mkTop 3000; # 30 秒
         # "vm.overcommit_memory" = 0;
         "vm.overcommit_ratio" = mkTop 100; # 允许使用 100% 内存
-        "vm.swappiness" = mkTop 8; # 减少 swap 使用
+        "vm.swappiness" = mkTop 60; # 统一采用偏积极的 swap 策略，尽早回收冷页
         "vm.min_free_kbytes" = mkTop 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
         "vm.watermark_scale_factor" = mkTop 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
       };
