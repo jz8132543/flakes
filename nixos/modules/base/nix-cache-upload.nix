@@ -25,6 +25,7 @@ let
   drainScript = pkgs.writeShellScript "nix-cache-upload-drain" ''
     set -eu
 
+    export PATH=${lib.makeBinPath [ pkgs.openssh ]}:$PATH
     export NIX_SSHOPTS=${lib.escapeShellArg sshOptions}
 
     mkdir -p ${lib.escapeShellArg queueDir}
