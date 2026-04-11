@@ -128,6 +128,9 @@ let
       "DOMAIN-SUFFIX,cloudflare.com,DIRECT"
       "DOMAIN-SUFFIX,nsupdate.info,DIRECT"
       "DOMAIN-SUFFIX,dora.im,DIRECT"
+      "IP-CIDR,1.1.1.1/32,DIRECT,no-resolve"
+      "IP-CIDR,1.0.0.1/32,DIRECT,no-resolve"
+      "IP-CIDR,9.9.9.9/32,DIRECT,no-resolve"
 
       # 拦截广告
       "GEOSITE,category-ads-all,REJECT"
