@@ -1,204 +1,48 @@
 {
   config,
   pkgs,
-  inputs,
+  lib,
   nixosModules,
   ...
 }:
 let
-  vscodeExtensionsPkgs = inputs.nix-vscode-extensions.extensions.${pkgs.stdenv.hostPlatform.system};
+  user = "tippy";
+  workspace = "/home/tippy/source/flakes";
+  vscodeWebPort = toString config.ports.code;
+  vscodeWebStart = pkgs.writeShellScript "vscode-web-start" ''
+    exec ${lib.getExe pkgs.openvscode-server} \
+      --host 127.0.0.1 \
+      --port ${vscodeWebPort} \
+      --without-connection-token \
+      --accept-server-license-terms \
+      --github-auth "$GITHUB_TOKEN" \
+      --server-data-dir /home/${user}/.vscode-server \
+      --disable-telemetry
+  '';
 in
 {
   # https://github.com/alienzj/dotfiles/blob/dev/modules/editors/vscode.nix
   imports = [ nixosModules.desktop.fonts ];
-  services.code-server = {
-    enable = true;
-    user = "tippy";
-    port = config.ports.code;
-    auth = "password";
-    disableTelemetry = true;
-    disableUpdateCheck = true;
-    package = pkgs.vscode-with-extensions.override {
-      vscode = pkgs.code-server;
-      vscodeExtensions =
-        (with pkgs.vscode-extensions; [
-          # ai
-          github.copilot-chat
-          github.copilot
 
-          # ui
-          pkief.material-icon-theme
-          catppuccin.catppuccin-vsc
-          naumovs.color-highlight
-          ibm.output-colorizer
-          dracula-theme.theme-dracula
-          ms-ceintl.vscode-language-pack-zh-hans
-
-          # format
-          esbenp.prettier-vscode
-          oderwat.indent-rainbow
-          shardulm94.trailing-spaces
-          editorconfig.editorconfig
-          davidanson.vscode-markdownlint
-
-          # error
-          usernamehw.errorlens
-
-          # code runner
-          formulahendry.code-runner
-
-          # test
-          # hbenl.vscode-test-explorer
-          # ms-vscode.test-adapter-converter
-
-          # comments
-          aaron-bond.better-comments
-
-          # nix
-          bbenoist.nix
-          # kamadorueda.alejandra
-          arrterian.nix-env-selector
-          jnoortheen.nix-ide
-          mkhl.direnv
-
-          # lua
-          sumneko.lua
-          vscodeExtensionsPkgs.vscode-marketplace.johnnymorganz.stylua
-
-          # debug
-          vadimcn.vscode-lldb
-
-          # shell
-          foxundermoon.shell-format
-
-          # python
-          ms-python.python
-          ms-python.vscode-pylance
-          ms-python.debugpy
-          ms-python.isort
-
-          # jupyter
-          ms-toolsai.jupyter
-          ms-toolsai.jupyter-keymap
-          ms-toolsai.jupyter-renderers
-          ms-toolsai.vscode-jupyter-cell-tags
-          ms-toolsai.vscode-jupyter-slideshow
-
-          # cpp
-          ms-vscode.cpptools
-          ms-vscode.cmake-tools
-          ms-vscode.makefile-tools
-          twxs.cmake
-          xaver.clang-format
-
-          # rust
-          rust-lang.rust-analyzer
-          #serayuzgur.crates
-          fill-labs.dependi
-          tamasfe.even-better-toml
-
-          # docker
-          ms-azuretools.vscode-docker
-
-          # remote dev
-          ms-vscode-remote.remote-ssh
-          ms-vscode-remote.remote-ssh-edit
-          ms-vscode-remote.remote-containers
-
-          # vim keybindings
-          vscodevim.vim
-
-          # csv
-          mechatroner.rainbow-csv
-
-          # yaml
-          redhat.vscode-yaml
-
-          # markdown
-          yzhang.markdown-all-in-one
-
-          # svg
-          jock.svg
-
-          # pdf
-          tomoki1207.pdf
-
-          # tex
-          james-yu.latex-workshop
-
-          # haskell
-          haskell.haskell
-          justusadam.language-haskell
-
-          # lisp
-          mattn.lisp
-
-          # go
-          golang.go
-
-          # git
-          github.codespaces
-          github.vscode-pull-request-github
-          github.vscode-github-actions
-          eamodio.gitlens
-          donjayamanne.githistory
-          mhutchie.git-graph
-
-          # r
-          reditorsupport.r
-
-          # web
-          octref.vetur
-          christian-kohler.path-intellisense
-          formulahendry.auto-close-tag
-          batisteo.vscode-django
-
-          # janet
-          janet-lang.vscode-janet
-
-          # efficiently manage dependencies
-          fill-labs.dependi
-        ])
-        ++ (with vscodeExtensionsPkgs.vscode-marketplace; [
-          # remote dev
-          # ms-vscode.remote-explorer
-          ms-vscode.remote-server
-
-          # utils
-          wayou.vscode-todo-highlight
-
-          # bash
-          rogalmic.bash-debug
-          shakram02.bash-beautify
-
-          # rust
-          jscearcy.rust-doc-viewer
-          #zhangyue.rust-mod-generator
-          #swellaby.vscode-rust-test-adapter
-          conradludgate.rust-playground
-
-          # R
-          rdebugger.r-debugger
-
-          # snakemake
-          snakemake.snakemake-lang
-          tfehlmann.snakefmt
-
-          # nextflow
-          nextflow.nextflow
-
-          # kdl
-          kdl-org.kdl
-        ])
-        ++ (with vscodeExtensionsPkgs.open-vsx; [
-        ]);
+  systemd.services.vscode-web = {
+    description = "VS Code Web";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    serviceConfig = {
+      User = user;
+      ExecStart = vscodeWebStart;
+      Restart = "on-failure";
+      WorkingDirectory = workspace;
+    };
+    environment = {
+      LANG = "zh_CN.UTF-8";
     };
   };
-  home-manager.users.${config.services.code-server.user}.home.file = {
-    code-server = {
-      target = ".local/share/code-server/User/settings.json";
+
+  home-manager.users.${user}.home.file = {
+    vscode = {
+      target = ".vscode-server/data/User/settings.json";
       text = builtins.toJSON {
-        # dataFile."code-server/User/settings.json".text = builtins.toJSON {
         "workbench.iconTheme" = "material-icon-theme";
         "workbench.colorTheme" = "Catppuccin Macchiato";
         "workbench.panel.defaultLocation" = "right";
@@ -209,7 +53,6 @@ in
 
         "editor.fontFamily" =
           "\"JetBrains Mono\", \"Fira Code\", \"Fira Sans\", \"Material Design Icons\", \"Font Awesome 6 Free\", \"Symbols Nerd Font Mono\"";
-        # "editor.fontSize" = cfg.fontsize;
         "editor.fontLigatures" = true;
         "window.zoomLevel" = 0.5;
 
@@ -263,33 +106,28 @@ in
     };
   };
 
-  systemd.services.code-server.serviceConfig.EnvironmentFile = [
-    config.sops.templates."code-server-environment".path
+  systemd.services.vscode-web.serviceConfig.EnvironmentFile = [
+    config.sops.templates."vscode-web-environment".path
   ];
-  systemd.services.code-server.environment = {
-    LANG = "zh_CN.UTF-8";
-    EXTENSIONS_GALLERY = ''{"serviceUrl":"https://marketplace.visualstudio.com/_apis/public/gallery","cacheUrl":"https://vscode.blob.core.windows.net/gallery/index","itemUrl":"https://marketplace.visualstudio.com/items","controlUrl":"","recommendationsUrl":""}'';
-  };
-  sops.templates."code-server-environment" = {
+
+  sops.templates."vscode-web-environment" = {
     content = ''
-      HASHED_PASSWORD=${config.sops.placeholder."code-server/hashed-password"}
+      GITHUB_TOKEN=${config.sops.placeholder."nix/github-token"}
     '';
-  };
-  sops.secrets = {
-    "code-server/hashed-password" = { };
   };
 
   services.traefik.proxies.code = {
     rule = "Host(`code.${config.networking.domain}`)";
-    target = "http://localhost:${toString config.ports.code}";
+    target = "http://localhost:${vscodeWebPort}";
+    middlewares = [ "auth" ];
   };
 
-  nix.settings.allowed-users = [ config.services.code-server.user ];
+  nix.settings.allowed-users = [ user ];
   environment.global-persistence.user = {
     directories = [
-      ".local/share/code-server"
       ".local/share/direnv"
       ".vscode-server"
+      ".config/Code"
     ];
   };
 }

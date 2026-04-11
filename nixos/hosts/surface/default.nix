@@ -55,7 +55,6 @@ in
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.network-desktop
-      nixosModules.optimize.nix-cache-upload
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.optimize.dev

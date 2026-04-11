@@ -12,41 +12,6 @@
     ];
   };
 
-  disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes."/rootfs".mountOptions =
-    lib.mkForce
-      [
-        "noatime"
-        "compress=no"
-        "space_cache=v2"
-        "commit=300"
-        "ssd_spread"
-        "thread_pool=1"
-      ];
-
-  disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes."/nix".mountOptions =
-    lib.mkForce
-      [
-        "noatime"
-        "compress=no"
-        "space_cache=v2"
-        "commit=30"
-        "flushoncommit"
-        "ssd_spread"
-        "thread_pool=1"
-      ];
-
-  disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes."/persist".mountOptions =
-    lib.mkForce
-      [
-        "noatime"
-        "compress=no"
-        "space_cache=v2"
-        "commit=30"
-        "flushoncommit"
-        "ssd_spread"
-        "thread_pool=1"
-      ];
-
   # Prefer earlier, smaller writeback batches and a lower swap tendency so a
   # sudden power loss is less likely to leave a large dirty window behind.
   boot.kernel.sysctl = {

@@ -56,7 +56,9 @@ let
 in
 {
   options.services.nix-cache-upload = {
-    enable = lib.mkEnableOption "asynchronous Nix cache upload";
+    enable = (lib.mkEnableOption "asynchronous Nix cache upload") // {
+      default = true;
+    };
 
     hydraHost = lib.mkOption {
       type = lib.types.str;

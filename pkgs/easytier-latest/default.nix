@@ -5,24 +5,27 @@
   protobuf,
   installShellFiles,
   source,
-  withQuic ? true,
 }:
 
-rustPlatform.buildRustPackage {
-  pname = "easytier";
+let
+  enabledFeatures = [
+    "faketcp"
+    "kcp"
+    "magic-dns"
+    "quic"
+    "socks5"
+    "smoltcp"
+    "tun"
+    "websocket"
+    "wireguard"
+    "zstd"
+  ];
+in
+rustPlatform.buildRustPackage (finalAttrs: {
+  pname = "easytier-latest";
   inherit (source) src version;
 
-  cargoRoot = "easytier";
-  buildAndTestSubdir = "easytier";
-
-  cargoLock = {
-    lockFile = "${source.src}/Cargo.lock";
-    allowBuiltinFetchGit = true;
-  };
-
-  postPatch = ''
-    ln -sf ../Cargo.lock easytier/Cargo.lock
-  '';
+  cargoHash = "sha256-fv4XDyTc3lH6zNT5S/mdwej44NVluSjL9z+yQkB0Y5c=";
 
   nativeBuildInputs = [
     protobuf
@@ -31,8 +34,7 @@ rustPlatform.buildRustPackage {
   ];
 
   buildNoDefaultFeatures = stdenv.hostPlatform.isMips;
-  buildFeatures = lib.optional stdenv.hostPlatform.isMips "mips" ++ lib.optional withQuic "quic";
-  cargoBuildFlags = [ "--package=easytier" ];
+  buildFeatures = lib.optional stdenv.hostPlatform.isMips "mips" ++ enabledFeatures;
 
   postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd easytier-cli \
@@ -45,17 +47,19 @@ rustPlatform.buildRustPackage {
       --zsh <($out/bin/easytier-core --gen-autocomplete zsh)
   '';
 
-  doCheck = false;
+  doCheck = false; # tests failed due to heavy rely on network
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/EasyTier/EasyTier";
+    changelog = "https://github.com/EasyTier/EasyTier/releases/tag/v${finalAttrs.version}";
     description = "Simple, decentralized mesh VPN with WireGuard support";
     longDescription = ''
       EasyTier is a simple, safe and decentralized VPN networking solution implemented
       with the Rust language and Tokio framework.
     '';
     mainProgram = "easytier-core";
-    license = licenses.asl20;
-    platforms = with platforms; unix ++ windows;
+    license = lib.licenses.asl20;
+    platforms = with lib.platforms; unix ++ windows;
+    maintainers = with lib.maintainers; [ ltrump ];
   };
-}
+})

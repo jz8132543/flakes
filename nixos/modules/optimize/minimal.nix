@@ -7,24 +7,16 @@
 let
   cfg = config.environment.minimal;
   mkTop = lib.mkOverride 0;
-  rootfsBtrfsMountOptions = [
+  minimalBtrfsBaseMountOptions = [
     "noatime"
-    "compress=no"
     "space_cache=v2"
     "commit=30"
     "flushoncommit"
     "ssd_spread"
     "thread_pool=1"
   ];
-  minimalBtrfsMountOptions = [
-    "noatime"
-    "compress=no"
-    "space_cache=v2"
-    "commit=30"
-    "flushoncommit"
-    "ssd_spread"
-    "thread_pool=1"
-  ];
+  rootfsBtrfsMountOptions = minimalBtrfsBaseMountOptions ++ [ "compress=no" ];
+  minimalBtrfsMountOptions = minimalBtrfsBaseMountOptions ++ [ "compress=zstd:1" ];
 in
 {
   imports = [
@@ -51,7 +43,7 @@ in
       system.disableInstallerTools = lib.mkForce true;
 
       # 2. Btrfs 额外优化
-      # 在弱机上关闭压缩和 flush-on-commit，减少 btrfs-endio 在写回路径上的 CPU 消耗。
+      # 在弱机上保留较短提交周期，并对 /rootfs 使用更轻的 zstd:1 压缩。
       services.btrfs.autoScrub.enable = lib.mkForce false;
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;

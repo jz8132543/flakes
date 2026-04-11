@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  inputs,
   nixosModules,
   pkgs,
   ...
@@ -277,11 +276,7 @@ in
       services.easytier = {
         enable = true;
         allowSystemForward = true;
-        package = lib.mkDefault (
-          inputs.latest.legacyPackages.${pkgs.stdenv.hostPlatform.system}.easytier.override {
-            withQuic = true;
-          }
-        );
+        package = pkgs.easytier-latest;
       };
 
       systemd.services.easytier = {
