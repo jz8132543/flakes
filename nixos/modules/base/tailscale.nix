@@ -16,8 +16,8 @@ in
         enable = lib.mkDefault true;
         openFirewall = true;
         useRoutingFeatures = "both";
-        # Keep DNS ownership in the local dnsmasq frontend so Tailscale does not
-        # promote 100.100.100.100 to the global resolver.
+        # 将 DNS 归属保留给本地 dnsmasq 前端，避免 Tailscale
+        # 把 100.100.100.100 提升为全局解析器。
         extraSetFlags = [
           "--netfilter-mode=nodivert"
           "--accept-dns=false"
@@ -31,6 +31,7 @@ in
           trustedInterfaces = [ "tailscale0" ];
           allowedUDPPorts = [
             config.services.tailscale.port
+            3478
           ];
         };
       };
@@ -44,7 +45,10 @@ in
           "tailscaled.service"
           "network-online.target"
         ];
-        wants = [ "network-online.target" ];
+        wants = [
+          "network-online.target"
+          "tailscaled.service"
+        ];
         wantedBy = [ "multi-user.target" ];
         path = [
           config.services.tailscale.package
@@ -55,16 +59,16 @@ in
         script = ''
           login_server=https://ts.${config.networking.domain}
 
-          # Wait for tailscaled to be ready
+          # 等待 tailscaled 就绪
           sleep 2
 
-          # Fail fast if the configured login server is not serving the Tailscale control API.
+          # 如果配置的登录服务器未提供 Tailscale control API，就尽快失败。
           if ! curl -fsSI --max-time 10 "$login_server/key" >/dev/null; then
             echo "Login server $login_server is not serving the Tailscale control API"
             exit 1
           fi
 
-          # Check if already authenticated
+          # 检查是否已经完成认证
           status=$(tailscale status --json | jq -r .BackendState)
           if [ "$status" = "Running" ]; then
             echo "Tailscale is already running and authenticated."
@@ -108,10 +112,10 @@ in
           TimeoutStopSec = "5s";
         };
       };
+
       services.restic.backups.borgbase.paths = [
         "/var/lib/tailscale/tailscaled.state"
       ];
     }
-
   ];
 }

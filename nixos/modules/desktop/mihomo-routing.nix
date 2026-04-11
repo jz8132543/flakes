@@ -44,8 +44,8 @@ in
               chain route_output {
                 type route hook output priority mangle; policy accept;
 
-                # Keep overlay/bootstrap transport traffic on the main routing
-                # table so Mihomo's Meta TUN cannot capture these sockets.
+                # 将 overlay/bootstrap 的传输流量固定在主路由表，
+                # 这样 Mihomo 的 Meta TUN 就不会抓走这些套接字。
                 ${lib.optionalString (udpPorts != [ ]) ''
                   udp dport { ${
                     lib.concatMapStringsSep ", " toString udpPorts
@@ -68,7 +68,7 @@ in
         };
 
         systemd.services.vpn-overlay-isolation = {
-          description = "Keep Tailscale and EasyTier transport on the main routing table";
+          description = "将 Tailscale 和 EasyTier 的传输固定在主路由表";
           after = afterUnits;
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
@@ -84,7 +84,7 @@ in
         };
 
         systemd.services.dnsmasq-direct-routing = {
-          description = "Keep dnsmasq upstream queries on the main routing table";
+          description = "将 dnsmasq 的上游查询固定在主路由表";
           after = afterUnits;
           wants = [ "network-online.target" ];
           wantedBy = [ "multi-user.target" ];
