@@ -12,48 +12,66 @@ let
   snapshotFile = "${queueDir}/queue.snapshot";
   hydraTarget = "root@${cfg.hydraHost}";
   sshOptions = "-i ${cfg.identityFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${toString cfg.sshPort}";
-  hookScript = pkgs.writeShellScript "nix-cache-upload-hook" ''
-    set -eu
+  hookScript = pkgs.writeShellApplication {
+    name = "nix-cache-upload-hook";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.util-linux
+    ];
 
-    mkdir -p ${lib.escapeShellArg queueDir}
-    exec 9>${lib.escapeShellArg lockFile}
-    ${pkgs.util-linux}/bin/flock 9
-    for path in $OUT_PATHS; do
-      printf '%s\n' "$path" >> ${lib.escapeShellArg queueFile}
-    done
-  '';
-  drainScript = pkgs.writeShellScript "nix-cache-upload-drain" ''
-    set -eu
-    export NIX_SSHOPTS=${lib.escapeShellArg sshOptions}
+    text = ''
+      set -eu
 
-    mkdir -p ${lib.escapeShellArg queueDir}
-    exec 9>${lib.escapeShellArg lockFile}
-    ${pkgs.util-linux}/bin/flock 9
+      mkdir -p ${lib.escapeShellArg queueDir}
+      exec 9>${lib.escapeShellArg lockFile}
+      ${pkgs.util-linux}/bin/flock 9
+      for path in $OUT_PATHS; do
+        printf '%s\n' "$path" >> ${lib.escapeShellArg queueFile}
+      done
+    '';
+  };
+  drainScript = pkgs.writeShellApplication {
+    name = "nix-cache-upload-drain";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.nix
+      pkgs.openssh
+      pkgs.util-linux
+    ];
 
-    if [ ! -s ${lib.escapeShellArg queueFile} ]; then
-      exit 0
-    fi
+    text = ''
+      set -eu
+      export NIX_SSHOPTS=${lib.escapeShellArg sshOptions}
 
-    rm -f ${lib.escapeShellArg snapshotFile}
-    mv ${lib.escapeShellArg queueFile} ${lib.escapeShellArg snapshotFile}
-    : > ${lib.escapeShellArg queueFile}
-    ${pkgs.util-linux}/bin/flock -u 9
+      mkdir -p ${lib.escapeShellArg queueDir}
+      exec 9>${lib.escapeShellArg lockFile}
+      ${pkgs.util-linux}/bin/flock 9
 
-    if [ ! -s ${lib.escapeShellArg snapshotFile} ]; then
+      if [ ! -s ${lib.escapeShellArg queueFile} ]; then
+        exit 0
+      fi
+
       rm -f ${lib.escapeShellArg snapshotFile}
-      exit 0
-    fi
+      mv ${lib.escapeShellArg queueFile} ${lib.escapeShellArg snapshotFile}
+      : > ${lib.escapeShellArg queueFile}
+      ${pkgs.util-linux}/bin/flock -u 9
 
-    if ${pkgs.nix}/bin/nix copy --to ${lib.escapeShellArg "ssh://${hydraTarget}"} --stdin < ${lib.escapeShellArg snapshotFile}; then
+      if [ ! -s ${lib.escapeShellArg snapshotFile} ]; then
+        rm -f ${lib.escapeShellArg snapshotFile}
+        exit 0
+      fi
+
+      if ${pkgs.nix}/bin/nix copy --to ${lib.escapeShellArg "ssh://${hydraTarget}"} --stdin < ${lib.escapeShellArg snapshotFile}; then
+        rm -f ${lib.escapeShellArg snapshotFile}
+        exit 0
+      fi
+
+      exec 9>${lib.escapeShellArg lockFile}
+      ${pkgs.util-linux}/bin/flock 9
+      cat ${lib.escapeShellArg snapshotFile} >> ${lib.escapeShellArg queueFile}
       rm -f ${lib.escapeShellArg snapshotFile}
-      exit 0
-    fi
-
-    exec 9>${lib.escapeShellArg lockFile}
-    ${pkgs.util-linux}/bin/flock 9
-    cat ${lib.escapeShellArg snapshotFile} >> ${lib.escapeShellArg queueFile}
-    rm -f ${lib.escapeShellArg snapshotFile}
-  '';
+    '';
+  };
 in
 {
   options.services.nix-cache-upload = {
@@ -63,7 +81,7 @@ in
 
     hydraHost = lib.mkOption {
       type = lib.types.str;
-      default = "hydra.${config.networking.domain}";
+      default = "cache.dora.im";
       description = "Hydra host used as the upload destination.";
     };
 
@@ -97,7 +115,6 @@ in
     systemd.services.nix-cache-upload = {
       description = "Drain queued Nix store paths to Hydra";
       wants = [ "network-online.target" ];
-      path = [ pkgs.openssh ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${drainScript}";
