@@ -144,13 +144,15 @@ let
       "GEOSITE,private,DIRECT"
       "GEOIP,private,DIRECT,no-resolve"
 
+      # Google 先直连，避免被海外代理链卡住
+      "GEOSITE,google,DIRECT"
+
       # 阻断海外 QUIC (UDP 443)，强降 TCP 防视频断流
       "AND,((NETWORK,UDP),(DST-PORT,443),(OR,((GEOSITE,geolocation-!cn),(NOT,((GEOIP,cn)))))),REJECT"
 
       # 国外域名与非国内 IP，全走代理
       "GEOSITE,geolocation-!cn,PROXY"
       "AND,((NOT,((GEOIP,cn))),(NOT,((GEOIP,private)))),PROXY"
-      "GEOSITE,google,PROXY"
 
       # 已知国内域名与 IP，全部直连
       "GEOSITE,cn,DIRECT"
@@ -187,7 +189,7 @@ let
 
     tun = {
       enable = true;
-      stack = "system";
+      stack = "gvisor";
       auto-route = true;
       auto-detect-interface = true;
       inet4_route_address = [
@@ -204,6 +206,8 @@ let
       ];
       route-exclude-address = [
         "100.64.0.0/10"
+        # Keep EasyTier's overlay subnet out of Mihomo's TUN.
+        "10.100.0.0/24"
       ];
     };
 
