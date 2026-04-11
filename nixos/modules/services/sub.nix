@@ -36,13 +36,13 @@ let
     client-fingerprint = "ios";
   };
 
-  easyTierProxy = {
-    name = "EasyTier-Socks";
-    type = "socks5";
-    server = "127.0.0.1";
-    port = 12223;
-    udp = true;
-  };
+  # easyTierProxy = {
+  #   name = "EasyTier-Socks";
+  #   type = "socks5";
+  #   server = "127.0.0.1";
+  #   port = 12223;
+  #   udp = true;
+  # };
 
   mkRegionGroup = region: {
     name = region;
@@ -83,7 +83,8 @@ let
     #external-ui-name = "metacubexd";
     secret = "";
 
-    proxies = map mkNode cfg.nodes ++ [ easyTierProxy ];
+    # proxies = map mkNode cfg.nodes ++ [ easyTierProxy ];
+    proxies = map mkNode cfg.nodes;
 
     proxy-groups = regionGroups ++ [
       {
@@ -118,7 +119,7 @@ let
 
     rules = [
       # 防环路，直接放行 EasyTier 核心进程
-      "PROCESS-NAME,easytier-core,DIRECT"
+      # "PROCESS-NAME,easytier-core,DIRECT"
 
       # PT 与特殊业务直连
       "DOMAIN-KEYWORD,m-team,DIRECT"
@@ -137,15 +138,12 @@ let
       "GEOIP,ad,REJECT,no-resolve"
 
       # EasyTier 专属路由与沙盒隔离
-      "DOMAIN-SUFFIX,et,EasyTier-Socks"
-      "IP-CIDR,10.100.0.0/24,EasyTier-Socks,no-resolve"
+      # "DOMAIN-SUFFIX,et,EasyTier-Socks"
+      # "IP-CIDR,10.100.0.0/24,EasyTier-Socks,no-resolve"
 
       # 局域网直连，防误伤
       "GEOSITE,private,DIRECT"
       "GEOIP,private,DIRECT,no-resolve"
-
-      # Google 先直连，避免被海外代理链卡住
-      "GEOSITE,google,DIRECT"
 
       # 阻断海外 QUIC (UDP 443)，强降 TCP 防视频断流
       "AND,((NETWORK,UDP),(DST-PORT,443),(OR,((GEOSITE,geolocation-!cn),(NOT,((GEOIP,cn)))))),REJECT"
@@ -153,6 +151,7 @@ let
       # 国外域名与非国内 IP，全走代理
       "GEOSITE,geolocation-!cn,PROXY"
       "AND,((NOT,((GEOIP,cn))),(NOT,((GEOIP,private)))),PROXY"
+      "GEOSITE,google,PROXY"
 
       # 已知国内域名与 IP，全部直连
       "GEOSITE,cn,DIRECT"
@@ -179,7 +178,7 @@ let
         "https://9.9.9.9/dns-query#PROXY"
       ];
       nameserver-policy = {
-        "+.et" = "udp://100.100.100.101#EasyTier-Socks";
+        # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
         "geosite:cn,apple,private,steam,onedrive" = [
           "tls://223.5.5.5"
           "tls://1.12.12.12"

@@ -141,7 +141,7 @@ in
       services = {
         harmonia.cache = {
           enable = true;
-          signKeyPath = cacheSecretPath;
+          signKeyPaths = [ cacheSecretPath ];
           settings = {
             bind = cacheBind;
           };
