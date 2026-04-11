@@ -11,7 +11,7 @@ let
   lockFile = "${queueDir}/lock";
   snapshotFile = "${queueDir}/queue.snapshot";
   hydraTarget = "root@${cfg.hydraHost}";
-  sshOptions = "-i ${cfg.identityFile} -o IdentitiesOnly=yes -p ${toString cfg.sshPort}";
+  sshOptions = "-i ${cfg.identityFile} -o IdentitiesOnly=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p ${toString cfg.sshPort}";
   hookScript = pkgs.writeShellScript "nix-cache-upload-hook" ''
     set -eu
 
@@ -24,8 +24,6 @@ let
   '';
   drainScript = pkgs.writeShellScript "nix-cache-upload-drain" ''
     set -eu
-
-    export PATH=${lib.makeBinPath [ pkgs.openssh ]}:$PATH
     export NIX_SSHOPTS=${lib.escapeShellArg sshOptions}
 
     mkdir -p ${lib.escapeShellArg queueDir}
@@ -98,6 +96,8 @@ in
 
     systemd.services.nix-cache-upload = {
       description = "Drain queued Nix store paths to Hydra";
+      wants = [ "network-online.target" ];
+      path = [ pkgs.openssh ];
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${drainScript}";
