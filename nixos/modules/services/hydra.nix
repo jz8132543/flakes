@@ -34,7 +34,7 @@
 let
   inherit (config.networking) domain;
   resolvedHydraHost = if hydraHost == null then "hydra.${domain}" else hydraHost;
-  resolvedCacheHost = if cacheHost == null then resolvedHydraHost else cacheHost;
+  resolvedCacheHost = if cacheHost == null then "cache.${domain}" else cacheHost;
   resolvedHydraURL = if hydraURL == null then "https://${resolvedHydraHost}" else hydraURL;
   resolvedBuilderMachineEntry =
     if builderMachineEntry == null then

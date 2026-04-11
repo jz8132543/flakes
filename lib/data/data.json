@@ -158,6 +158,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "cache": {
+      "on": "nue0",
+      "proxy": false
+    },
     "claw": {
       "on": "nue0",
       "proxy": false
