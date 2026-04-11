@@ -22,8 +22,12 @@
         "1.0.0.1"
         "223.5.5.5"
       ]
-      ++ lib.optional config.services.tailscale.enable "/mag/100.100.100.100"
-      ++ lib.optional config.services.easytierMesh.enable "/et/${config.services.easytierMesh.dnsServer}";
+      ++ lib.optionals config.services.tailscale.enable [
+        "/mag/100.100.100.100@tailscale0"
+      ]
+      ++ lib.optionals config.services.easytierMesh.enable [
+        "/et/${config.services.easytierMesh.dnsServer}@${config.services.easytierMesh.devName}"
+      ];
     };
   };
 

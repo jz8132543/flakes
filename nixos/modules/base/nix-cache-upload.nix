@@ -25,6 +25,8 @@ let
   drainScript = pkgs.writeShellScript "nix-cache-upload-drain" ''
     set -eu
 
+    export NIX_SSHOPTS=${lib.escapeShellArg sshOptions}
+
     mkdir -p ${lib.escapeShellArg queueDir}
     exec 9>${lib.escapeShellArg lockFile}
     ${pkgs.util-linux}/bin/flock 9
@@ -97,9 +99,6 @@ in
       description = "Drain queued Nix store paths to Hydra";
       serviceConfig = {
         Type = "oneshot";
-        Environment = [
-          "NIX_SSHOPTS=${sshOptions}"
-        ];
         ExecStart = "${drainScript}";
       };
       after = [ "network-online.target" ];
