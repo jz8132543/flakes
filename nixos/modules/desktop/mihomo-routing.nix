@@ -32,7 +32,7 @@ in
     lib.mkIf
       (
         config.services.mihomo.enable
-        && (!config.services.easytierMesh.enable)
+        && config.services.dnsmasq.enable
         && (udpPorts != [ ] || tcpPorts != [ ])
       )
       {

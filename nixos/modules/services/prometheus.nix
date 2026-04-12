@@ -1,12 +1,10 @@
 {
   config,
+  lib,
   ...
 }:
 let
-  hosts = [
-    "nue0"
-    "hkg4"
-  ];
+  hosts = lib.attrNames config.lib.self.data.hosts;
 in
 {
   services = {

@@ -38,6 +38,7 @@
 
   environment.etc."resolv.conf".text = ''
     nameserver 127.0.0.1
+    search ${lib.concatStringsSep " " config.networking.search}
     options edns0
   '';
 

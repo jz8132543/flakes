@@ -105,6 +105,13 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    arx8 = {
+      records      = {}
+      ddns_records = {}
+      host_indices = [31]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     cu = {
       records      = {}
       ddns_records = {}

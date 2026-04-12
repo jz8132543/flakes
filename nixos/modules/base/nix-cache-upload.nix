@@ -147,7 +147,7 @@ in
     ];
 
     sops.secrets."hydra/cache-dora-im" = {
-      mode = "0400";
+      mode = "0440";
     };
 
     systemd.services.nix-cache-upload = {

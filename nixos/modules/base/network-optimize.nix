@@ -465,7 +465,11 @@ in
           "223.5.5.5"
         ];
         domain = "dora.im";
-        search = [ "dora.im" ];
+        search = [
+          "et"
+          "mag"
+          "dora.im"
+        ];
         dhcpcd.extraConfig = "nohook resolv.conf";
       };
 
