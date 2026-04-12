@@ -5,11 +5,10 @@
   ...
 }:
 let
-  sshRace = pkgs.callPackage ../../../pkgs/ssh-race { };
   sshRaceDomains = [
-    "et"
-    "mag"
     "dora.im"
+    "mag"
+    "et"
   ];
 in
 with lib.strings;
@@ -44,7 +43,7 @@ with lib.strings;
           checkHostIP = false;
           forwardAgent = true;
           port = osConfig.ports.ssh;
-          proxyCommand = "${sshRace}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
+          proxyCommand = "${pkgs.ssh-race}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
           # forwardX11 = true;
           userKnownHostsFile = "/dev/null";
           serverAliveInterval = 3;
