@@ -1,11 +1,7 @@
 {
   config,
-  lib,
   ...
 }:
-let
-  hosts = lib.attrNames config.lib.self.data.hosts;
-in
 {
   services = {
     prometheus = {
@@ -13,6 +9,9 @@ in
       globalConfig = {
         scrape_interval = "30s";
       };
+      extraFlags = [
+        "--web.enable-remote-write-receiver"
+      ];
       exporters = {
         node = {
           enable = true;
@@ -65,17 +64,6 @@ in
               ];
             }
           ];
-        }
-        {
-          job_name = "hosts";
-          scheme = "http";
-          static_configs = map (hostname: {
-            targets = [
-              "${hostname}:${toString config.services.prometheus.exporters.node.port}"
-              "${hostname}:${toString config.services.prometheus.exporters.nix-registry.port}"
-            ];
-            labels.instance = hostname;
-          }) hosts;
         }
         {
           job_name = "blackbox";
