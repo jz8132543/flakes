@@ -599,7 +599,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "1 - rate(node_cpu_seconds_total{mode=\"idle\",instance=\"$hosts\"}[1m])",
+          "expr": "scalar(node_load1{instance=\"$hosts\",job=\"hosts\"}) * 100 / count(count(node_cpu_seconds_total{instance=\"$hosts\",job=\"hosts\"}) by (cpu))",
           "instant": false,
           "legendFormat": "{{cpu}}",
           "range": true,
