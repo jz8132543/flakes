@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  self,
   pkgs,
   ...
 }:
@@ -56,8 +57,12 @@ in
         "/boot".mountOptions = mkTop minimalBtrfsMountOptions;
       };
 
-      # 3. 移除 Nix 注册表中的源码副本，减少磁盘占用
-      nix.registry = lib.mkForce { };
+      # 3. 只保留 self 注册表项，供 Grafana Flake 面板读取
+      nix.registry = lib.mkForce {
+        self = {
+          flake = self;
+        };
+      };
       nix.nixPath = lib.mkForce [ ];
       nix.settings.nix-path = lib.mkForce [ ];
 

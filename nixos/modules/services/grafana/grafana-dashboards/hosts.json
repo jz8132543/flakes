@@ -546,8 +546,6 @@
             }
           },
           "mappings": [],
-          "max": 1,
-          "min": 0,
           "noValue": "?",
           "thresholds": {
             "mode": "percentage",
@@ -570,7 +568,7 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "short"
         },
         "overrides": []
       },
@@ -599,11 +597,27 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "scalar(node_load1{instance=\"$hosts\",job=\"hosts\"}) * 100 / count(count(node_cpu_seconds_total{instance=\"$hosts\",job=\"hosts\"}) by (cpu))",
+          "expr": "node_load1{instance=\"$hosts\",job=\"hosts\"}",
           "instant": false,
-          "legendFormat": "{{cpu}}",
+          "legendFormat": "load1",
           "range": true,
           "refId": "A"
+        },
+        {
+          "exemplar": false,
+          "expr": "node_load5{instance=\"$hosts\",job=\"hosts\"}",
+          "instant": false,
+          "legendFormat": "load5",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "exemplar": false,
+          "expr": "node_load15{instance=\"$hosts\",job=\"hosts\"}",
+          "instant": false,
+          "legendFormat": "load15",
+          "range": true,
+          "refId": "C"
         }
       ],
       "title": "System Load",

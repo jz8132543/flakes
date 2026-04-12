@@ -115,9 +115,6 @@ let
     can2 = {
       system = "x86_64-linux";
     };
-    xiy0 = {
-      system = "x86_64-linux";
-    };
     xiy1 = {
       system = "x86_64-linux";
     };
@@ -221,6 +218,11 @@ let
     };
 in
 {
+  options.flake.hostNames = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+  };
+
   options.flake.colmenaModules = lib.mkOption {
     type = lib.types.attrsOf (lib.types.listOf lib.types.unspecified);
     default = { };
@@ -231,6 +233,7 @@ in
     default = { };
   };
   config = {
+    flake.hostNames = lib.attrNames nixosConfigurations;
     flake.colmenaModules = colmenaModules;
     passthru = {
       inherit nixosModules hmModules;

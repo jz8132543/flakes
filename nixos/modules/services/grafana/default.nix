@@ -1,10 +1,54 @@
 {
   config,
+  lib,
+  self,
   pkgs,
   ...
 }:
 let
   domain = "dash.${config.networking.domain}";
+  inherit (self) hostNames;
+  hostOptions = map (name: {
+    text = name;
+    value = name;
+    selected = false;
+  }) hostNames;
+  hostsDashboard =
+    let
+      dashboard = builtins.fromJSON (builtins.readFile ./grafana-dashboards/hosts.json);
+    in
+    dashboard
+    // {
+      templating = dashboard.templating // {
+        list = [
+          {
+            current = {
+              text = [ "All" ];
+              value = [ "$__all" ];
+            };
+            includeAll = true;
+            multi = true;
+            name = "hosts";
+            options = hostOptions;
+            query = lib.concatStringsSep "," hostNames;
+            refresh = 0;
+            regex = "";
+            type = "custom";
+          }
+        ];
+      };
+    };
+  dashboardsDir = pkgs.runCommand "grafana-dashboards" { } ''
+        mkdir -p "$out"
+        cp ${./grafana-dashboards/blackbox-exporter.json} "$out/blackbox-exporter.json"
+        cp ${./grafana-dashboards/infrastructure.json} "$out/infrastructure.json"
+        cp ${./grafana-dashboards/node-exporter-full.json} "$out/node-exporter-full.json"
+        cp ${./grafana-dashboards/postgresql.json} "$out/postgresql.json"
+        cp ${./grafana-dashboards/services.json} "$out/services.json"
+        cat > "$out/hosts.json" <<'EOF'
+    ${builtins.toJSON hostsDashboard}
+    EOF
+  '';
 in
 {
   sops.secrets = {
@@ -47,7 +91,7 @@ in
         reporting_enabled = false;
         check_for_updates = false;
       };
-      dashboards.default_home_dashboard_path = "${./grafana-dashboards}/hosts.json";
+      dashboards.default_home_dashboard_path = "${dashboardsDir}/hosts.json";
     };
 
     declarativePlugins = with pkgs.grafanaPlugins; [
@@ -72,7 +116,7 @@ in
       };
       dashboards.settings.providers = [
         {
-          options.path = ./grafana-dashboards;
+          options.path = dashboardsDir;
         }
       ];
       alerting = {
