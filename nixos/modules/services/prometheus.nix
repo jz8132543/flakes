@@ -9,9 +9,6 @@
       globalConfig = {
         scrape_interval = "30s";
       };
-      extraFlags = [
-        "--web.enable-remote-write-receiver"
-      ];
       exporters = {
         node = {
           enable = true;
@@ -117,6 +114,7 @@
           prometheus = config.services.prometheus.package;
         in
         [
+          "--web.enable-remote-write-receiver"
           "--web.console.templates=${prometheus}/etc/prometheus/consoles"
           "--web.console.libraries=${prometheus}/etc/prometheus/console_libraries"
         ];

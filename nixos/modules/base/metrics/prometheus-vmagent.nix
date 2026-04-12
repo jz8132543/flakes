@@ -11,11 +11,6 @@ let
         static_configs:
           - targets:
               - 127.0.0.1:${toString config.services.prometheus.exporters.node.port}
-            labels:
-              instance: ${config.networking.hostName}
-      - job_name: hosts
-        static_configs:
-          - targets:
               - 127.0.0.1:${toString config.services.prometheus.exporters.nix-registry.port}
             labels:
               instance: ${config.networking.hostName}
@@ -32,6 +27,7 @@ in
       Restart = "always";
       RestartSec = "10s";
       DynamicUser = true;
+      CacheDirectory = "prometheus-vmagent";
       StateDirectory = "prometheus-vmagent";
     };
   };
