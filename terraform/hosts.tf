@@ -106,8 +106,19 @@ locals {
       endpoints_v6 = []
     }
     arx8 = {
-      records      = {}
-      ddns_records = {}
+      records = {}
+      ddns_records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "127.0.0.1"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "::1"
+        }
+      }
       host_indices = [31]
       endpoints_v4 = []
       endpoints_v6 = []

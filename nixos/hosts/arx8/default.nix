@@ -13,6 +13,7 @@
       ./hardware-configuration.nix
       nixosModules.optimize.fakehttp
       nixosModules.optimize.network-desktop
+      nixosModules.services.ddns
       nixosModules.services.traefik
       nixosModules.optimize.dev
     ];
