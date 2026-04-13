@@ -7,7 +7,7 @@
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
-  xhttpMode = "auto";
+  xhttpMode = "packet-up";
   xhttpPath = "/";
   regionNames = [
     "HK"
@@ -165,7 +165,7 @@ let
 
     dns = {
       enable = true;
-      listen = "127.0.0.1:1053";
+      listen = "0.0.0.0:1053";
       enhanced-mode = "redir-host";
       default-nameserver = [
         "223.5.5.5"
@@ -240,10 +240,6 @@ let
   mihomoText = lib.generators.toYAML { } mihomoConfig;
 
   nginxText = ''
-    location = / {
-      return 302 https://${cfg.subdomain}.${config.networking.domain}/${subscriptionPathToken}/mihomo.yaml;
-    }
-
     location = /${subscriptionPathToken}/mihomo.yaml {
       alias ${config.sops.templates."subscription/mihomo.yaml".path};
     }
