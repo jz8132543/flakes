@@ -70,7 +70,7 @@ let
     mode = "Rule";
     log-level = "info";
     allow-lan = true;
-    bind-address = "127.0.0.1";
+    bind-address = "0.0.0.0";
     ipv6 = false;
     udp = true;
     unified-delay = true;
