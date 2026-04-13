@@ -77,8 +77,10 @@ let
     tcp-concurrent = true;
     find-process-mode = "strict";
     global-client-fingerprint = "random";
-    external-controller = "127.0.0.1:9090";
+    external-controller = "0.0.0.0:9090";
     external-ui = "./dashboard";
+    redir-port = 9797;
+    tproxy-port = 9898;
     #external-ui-url = "https://codeload.github.com/MetaCubeX/metacubexd/zip/refs/heads/gh-pages";
     #external-ui-name = "metacubexd";
     secret = "";
