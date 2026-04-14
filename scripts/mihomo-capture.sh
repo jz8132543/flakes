@@ -75,6 +75,10 @@ collect_snapshot() {
   {
     date -Is
     uname -a
+    echo '--- nmcli device show default iface ---'
+    nmcli dev show "$DEFAULT_IFACE" 2>/dev/null || true
+    echo '--- /run/NetworkManager/resolv.conf ---'
+    cat /run/NetworkManager/resolv.conf 2>/dev/null || true
     echo '--- ip addr show ---'
     ip addr show
     echo '--- ip route show ---'
@@ -91,6 +95,8 @@ collect_snapshot() {
     nft list ruleset 2>/dev/null || true
     echo '--- service states ---'
     systemctl is-active mihomo tailscaled easytier dnsmasq 2>/dev/null || true
+    echo '--- ss -tunap ---'
+    ss -tunap 2>/dev/null || true
     echo '--- service status mihomo ---'
     systemctl status mihomo --no-pager -l 2>/dev/null || true
     echo '--- service status tailscaled ---'
@@ -100,6 +106,40 @@ collect_snapshot() {
     echo '--- resolvectl status ---'
     resolvectl status 2>/dev/null || true
   } >"$OUTDIR/${prefix}.txt"
+}
+
+probe_ping() {
+  local stage=$1
+  {
+    echo "=== ping probe: $stage ==="
+    echo '--- ping gateway ---'
+    timeout 8 ping -4 -c 3 -W 2 "$(ip route show default | awk '/default/ {print $3; exit}')"
+    echo '--- ping 1.1.1.1 ---'
+    timeout 8 ping -4 -c 3 -W 2 1.1.1.1
+    echo '--- ping 223.5.5.5 ---'
+    timeout 8 ping -4 -c 3 -W 2 223.5.5.5
+  } >"$OUTDIR/${stage}-ping.txt" 2>&1 || true
+}
+
+probe_dns() {
+  local stage=$1
+  {
+    echo "=== dns probe: $stage ==="
+    echo '--- dig cloudflare ---'
+    if command -v dig >/dev/null 2>&1; then
+      timeout 10 dig +time=2 +tries=1 www.cloudflare.com A @127.0.0.1
+      timeout 10 dig +time=2 +tries=1 www.cloudflare.com A @10.202.111.227
+    else
+      echo 'dig not installed'
+    fi
+    echo '--- dig baidu ---'
+    if command -v dig >/dev/null 2>&1; then
+      timeout 10 dig +time=2 +tries=1 www.baidu.com A @127.0.0.1
+      timeout 10 dig +time=2 +tries=1 www.baidu.com A @10.202.111.227
+    else
+      echo 'dig not installed'
+    fi
+  } >"$OUTDIR/${stage}-dns.txt" 2>&1 || true
 }
 
 start_capture() {
@@ -165,6 +205,8 @@ systemctl stop mihomo >/dev/null 2>&1 || true
 
 collect_snapshot "baseline"
 probe_direct "direct-before-mihomo"
+probe_ping "baseline"
+probe_dns "baseline"
 
 log_section "starting mihomo"
 systemctl start mihomo
@@ -172,6 +214,8 @@ wait_for_service mihomo || true
 wait_for_iface "$META_IFACE" || true
 
 collect_snapshot "after-start"
+probe_ping "after-start"
+probe_dns "after-start"
 
 if ip link show "$DEFAULT_IFACE" >/dev/null 2>&1; then
   start_capture "$DEFAULT_IFACE"

@@ -7,7 +7,7 @@
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
-  xhttpMode = "auto";
+  xhttpMode = "packet-up";
   xhttpPath = "/";
   regionNames = [
     "HK"
@@ -70,15 +70,17 @@ let
     mode = "Rule";
     log-level = "info";
     allow-lan = true;
-    bind-address = "127.0.0.1";
+    bind-address = "0.0.0.0";
     ipv6 = false;
     udp = true;
     unified-delay = true;
     tcp-concurrent = true;
     find-process-mode = "strict";
     global-client-fingerprint = "random";
-    external-controller = "127.0.0.1:9090";
+    external-controller = "0.0.0.0:9090";
     external-ui = "./dashboard";
+    redir-port = 9797;
+    tproxy-port = 9898;
     #external-ui-url = "https://codeload.github.com/MetaCubeX/metacubexd/zip/refs/heads/gh-pages";
     #external-ui-name = "metacubexd";
     secret = "";
@@ -163,7 +165,7 @@ let
 
     dns = {
       enable = true;
-      listen = "127.0.0.1:1053";
+      listen = "0.0.0.0:1053";
       enhanced-mode = "redir-host";
       default-nameserver = [
         "223.5.5.5"
@@ -238,10 +240,6 @@ let
   mihomoText = lib.generators.toYAML { } mihomoConfig;
 
   nginxText = ''
-    location = / {
-      return 302 https://${cfg.subdomain}.${config.networking.domain}/${subscriptionPathToken}/mihomo.yaml;
-    }
-
     location = /${subscriptionPathToken}/mihomo.yaml {
       alias ${config.sops.templates."subscription/mihomo.yaml".path};
     }
