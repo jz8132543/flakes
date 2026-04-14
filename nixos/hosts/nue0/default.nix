@@ -135,13 +135,13 @@
         regions = [ "US" ];
       }
       {
-        name = "can0";
+        name = "can0-hkg5";
         server = "can0.dora.im";
-        port = 16811;
+        port = 8555;
         regions = [ "HK" ];
       }
       {
-        name = "can1";
+        name = "can1-hkg5";
         server = "can1.dora.im";
         port = 443;
         regions = [ "HK" ];

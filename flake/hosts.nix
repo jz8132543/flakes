@@ -115,6 +115,9 @@ let
     can2 = {
       system = "x86_64-linux";
     };
+    xiy0 = {
+      system = "x86_64-linux";
+    };
     xiy1 = {
       system = "x86_64-linux";
     };
