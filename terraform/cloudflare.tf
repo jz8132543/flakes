@@ -393,3 +393,27 @@ resource "cloudflare_dns_record" "dora_can1" {
   content = "dix.yiandrive.com"
   zone_id = cloudflare_zone.im_dora.id
 }
+resource "cloudflare_dns_record" "dora_xiy0" {
+  name    = "xiy0.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "dxa.yiandrive.com"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_xiy1" {
+  name    = "xiy1.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "dxa.yiandrive.com"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "dora_xiy2" {
+  name    = "xiy2.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "CNAME"
+  content = "dxa.yiandrive.com"
+  zone_id = cloudflare_zone.im_dora.id
+}

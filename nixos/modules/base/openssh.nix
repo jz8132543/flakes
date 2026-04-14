@@ -13,7 +13,10 @@
       KbdInteractiveAuthentication = false;
       IPQoS = "lowdelay throughput";
     };
-    ports = [ config.ports.ssh ];
+    ports = [
+      config.ports.ssh
+      22
+    ];
     openFirewall = true;
     extraConfig = ''
       ClientAliveInterval 3
