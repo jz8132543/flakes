@@ -1,23 +1,30 @@
 {
   config,
   lib,
-  self,
   pkgs,
   ...
 }:
 let
   cfg = config.environment.minimal;
   mkTop = lib.mkOverride 0;
-  minimalBtrfsBaseMountOptions = [
+  rootfsBtrfsMountOptions = [
     "noatime"
+    "compress=no"
     "space_cache=v2"
     "commit=30"
     "flushoncommit"
     "ssd_spread"
     "thread_pool=1"
   ];
-  rootfsBtrfsMountOptions = minimalBtrfsBaseMountOptions ++ [ "compress=no" ];
-  minimalBtrfsMountOptions = minimalBtrfsBaseMountOptions ++ [ "compress=zstd:1" ];
+  minimalBtrfsMountOptions = [
+    "noatime"
+    "compress=no"
+    "space_cache=v2"
+    "commit=30"
+    "flushoncommit"
+    "ssd_spread"
+    "thread_pool=1"
+  ];
 in
 {
   imports = [
@@ -44,7 +51,7 @@ in
       system.disableInstallerTools = lib.mkForce true;
 
       # 2. Btrfs 额外优化
-      # 在弱机上保留较短提交周期，并对 /rootfs 使用更轻的 zstd:1 压缩。
+      # 在弱机上关闭压缩和 flush-on-commit，减少 btrfs-endio 在写回路径上的 CPU 消耗。
       services.btrfs.autoScrub.enable = lib.mkForce false;
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;
@@ -57,12 +64,8 @@ in
         "/boot".mountOptions = mkTop minimalBtrfsMountOptions;
       };
 
-      # 3. 只保留 self 注册表项，供 Grafana Flake 面板读取
-      nix.registry = lib.mkForce {
-        self = {
-          flake = self;
-        };
-      };
+      # 3. 移除 Nix 注册表中的源码副本，减少磁盘占用
+      nix.registry = lib.mkForce { };
       nix.nixPath = lib.mkForce [ ];
       nix.settings.nix-path = lib.mkForce [ ];
 
@@ -161,7 +164,7 @@ in
         "vm.dirty_expire_centisecs" = mkTop 3000; # 30 秒
         # "vm.overcommit_memory" = 0;
         "vm.overcommit_ratio" = mkTop 100; # 允许使用 100% 内存
-        "vm.swappiness" = mkTop 60; # 统一采用偏积极的 swap 策略，尽早回收冷页
+        "vm.swappiness" = mkTop 8; # 减少 swap 使用
         "vm.min_free_kbytes" = mkTop 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
         "vm.watermark_scale_factor" = mkTop 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
       };

@@ -11,7 +11,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.minimal
+      nixosModules.optimize.infini
       # (import nixosModules.services.xray {
       #   xrayPort = 16811;
       #   ss = true;

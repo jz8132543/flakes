@@ -5,10 +5,9 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.minimal
+      nixosModules.optimize.infini
       ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
-      nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
