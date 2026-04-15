@@ -13,6 +13,10 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       # nixosModules.services.stun
+      ../../modules/services/matrix-rtc.nix
+      {
+        services.matrix-rtc.enable = true;
+      }
       (import nixosModules.services.xray {
         # needProxy = true;
       })

@@ -10,11 +10,14 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
+      nixosModules.services.matrix-rtc
       # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
       })
     ];
+
+  services.matrix-rtc.enable = true;
 
   environment.networkTune = {
     enable = true;

@@ -11,6 +11,10 @@
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.services.doraim
+      ../../modules/services/matrix-rtc.nix
+      {
+        services.matrix-rtc.enable = true;
+      }
       nixosModules.services.headscale
       # nixosModules.services.derp
       nixosModules.services.stun

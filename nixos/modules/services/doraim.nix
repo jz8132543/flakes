@@ -1,8 +1,37 @@
 {
   config,
   pkgs,
+  lib,
+  self,
   ...
 }:
+let
+  enabledMatrixRtcHosts =
+    let
+      allHosts = builtins.attrNames self.nixosConfigurations;
+      currentHost = config.networking.hostName;
+      otherHosts = lib.filter (
+        hostName:
+        hostName != currentHost
+        && (self.nixosConfigurations.${hostName}.config.services.matrix-rtc.enable or false)
+      ) allHosts;
+    in
+    lib.sort (a: b: a < b) (
+      lib.unique (lib.optional config.services.matrix-rtc.enable currentHost ++ otherHosts)
+    );
+
+  matrixRtcFoci = map (hostName: {
+    type = "livekit";
+    livekit_service_url = "https://${hostName}.dora.im/livekit/jwt";
+  }) enabledMatrixRtcHosts;
+
+  matrixClientWellKnown = builtins.toJSON {
+    "m.homeserver" = {
+      base_url = "https://m.dora.im";
+    };
+    "org.matrix.msc4143.rtc_foci" = matrixRtcFoci;
+  };
+in
 {
   services.traefik.proxies = {
     doraim = {
@@ -29,7 +58,7 @@
       locations."/.well-known/matrix/client".extraConfig = ''
         add_header Access-Control-Allow-Origin '*';
         default_type application/json;
-        return 200 '{ "m.homeserver": { "base_url": "https://m.dora.im" } }';
+        return 200 '${matrixClientWellKnown}';
       '';
       # mastodon
       locations."/.well-known/host-meta".extraConfig = ''
