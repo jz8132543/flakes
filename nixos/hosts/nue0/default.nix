@@ -105,7 +105,7 @@
       {
         name = "hkg5";
         server = "hkg5.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "HK" ];
       }
       {
@@ -123,7 +123,7 @@
       {
         name = "tyo1";
         server = "tyo1.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "JP" ];
       }
       {
