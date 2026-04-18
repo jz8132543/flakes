@@ -7,6 +7,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.optimize.nix-cache-upload
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
@@ -78,7 +79,7 @@
         name = "nue0";
         server = "nue0.dora.im";
         port = 443;
-        regions = [ "EU" ];
+        regions = [ "US" ];
       }
       {
         name = "nue0-kxy";
@@ -105,12 +106,6 @@
         regions = [ "HK" ];
       }
       {
-        name = "hkg5-kxy";
-        server = "cu.dora.im";
-        port = 50564;
-        regions = [ "HK" ];
-      }
-      {
         name = "tyo0";
         server = "tyo0.dora.im";
         port = 443;
@@ -123,12 +118,6 @@
         regions = [ "JP" ];
       }
       {
-        name = "tyo1-kxy";
-        server = "cu.dora.im";
-        port = 50565;
-        regions = [ "JP" ];
-      }
-      {
         name = "sjc0";
         server = "sjc0.dora.im";
         port = 443;
@@ -138,13 +127,13 @@
         name = "can0";
         server = "can0.dora.im";
         port = 16811;
-        regions = [ "HK" ];
+        regions = [ "US" ];
       }
       {
         name = "can1";
         server = "can1.dora.im";
         port = 443;
-        regions = [ "HK" ];
+        regions = [ "US" ];
       }
     ];
   };
