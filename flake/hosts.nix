@@ -43,10 +43,7 @@ let
       inputs.colmena.nixosModules.deploymentOptions
     ];
 
-  commonColmenaModules =
-    nixosModules.base.all
-    ++ commonModulePrelude
-    ++ lixModules;
+  commonColmenaModules = nixosModules.base.all ++ commonModulePrelude ++ lixModules;
 
   commonHmModules =
     hmModules.base.all
@@ -142,6 +139,7 @@ let
           networking.hostName = lib.mkDefault name;
           # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
           nixpkgs.hostPlatform = system;
+          nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
         }
       )
     ];
@@ -192,7 +190,7 @@ let
                     ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
                   '';
                 };
-                nix.package = pkgs.nix;
+                nix.package = pkgs.lix;
                 targets.genericLinux.enable = true;
 
                 # Mock osConfig for standalone Home Manager
