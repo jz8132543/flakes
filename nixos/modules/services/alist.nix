@@ -67,15 +67,15 @@
         enable = true;
         host = "${config.environment.smtp_host}";
         port = config.environment.smtp_port;
-        user = "noreply@dora.im";
-        password = "${config.sops.placeholder."mail/noreply"}";
-        from = "noreply@dora.im";
+        user = "services@dora.im";
+        password = "${config.sops.placeholder."mail/services"}";
+        from = "services@dora.im";
       };
     };
   };
   sops.secrets = {
     "alist/JWT" = { };
-    "mail/noreply" = { };
+    "mail/services" = { };
   };
 
   services.traefik.proxies.alist = {

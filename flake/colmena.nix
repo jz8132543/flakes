@@ -1,5 +1,6 @@
 {
   self,
+  config,
   inputs,
   lib,
   ...
@@ -8,9 +9,18 @@ let
   selfLib = import ../lib { inherit inputs lib; };
   nixosModules = selfLib.rake ../nixos/modules;
 
-  conf = lib.filterAttrs (
-    name: _value: builtins.pathExists (../nixos/hosts + "/${name}")
-  ) self.nixosConfigurations;
+  confNames = lib.filter (
+    name: builtins.pathExists (../nixos/hosts + "/${name}")
+  ) config.flake.hostNames;
+
+  conf = builtins.listToAttrs (
+    map (name: {
+      inherit name;
+      value = {
+        imports = config.flake.colmenaModules.${name};
+      };
+    }) confNames
+  );
 in
 {
   flake.colmena = {
@@ -24,7 +34,7 @@ in
       };
     };
   }
-  // builtins.mapAttrs (name: _value: { imports = self.colmenaModules.${name}; }) conf;
+  // conf;
 
   flake.colmenaHive = inputs.colmena.lib.makeHive self.colmena;
 }

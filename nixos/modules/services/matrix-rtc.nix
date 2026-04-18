@@ -17,6 +17,12 @@ let
         audio:
           active_red_encoding: true
 
+        rtc:
+          tcp_port: ${toString cfg.livekitIceTcpPort}
+          port_range_start: ${toString cfg.livekitIceUdpRangeStart}
+          port_range_end: ${toString cfg.livekitIceUdpRangeEnd}
+          use_external_ip: true
+
         room:
           enabled_codecs:
     ${lib.concatMapStringsSep "\n" (mime: "        - mime: ${mime}") [

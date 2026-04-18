@@ -15,7 +15,7 @@ let
   ldapBindDn = "cn=Directory Manager";
   ldapBaseDn = "dc=dora,dc=im";
   ldapUsersDn = "ou=people,dc=dora,dc=im";
-  ldapMailDn = "uid=mail,ou=people,dc=dora,dc=im";
+  ldapServicesDn = "uid=services,ou=people,dc=dora,dc=im";
 in
 {
   imports = [
@@ -70,10 +70,10 @@ in
         "smtpServer": {
           "host": "${config.environment.smtp_host}",
           "port": "${toString config.environment.smtp_port}",
-          "from": "noreply@dora.im",
+          "from": "services@dora.im",
           "auth": "true",
-          "user": "noreply@dora.im",
-          "password": "${config.sops.placeholder."mail/noreply"}",
+          "user": "services@dora.im",
+          "password": "${config.sops.placeholder."mail/services"}",
           "ssl": "false",
           "starttls": "true"
         },
@@ -125,8 +125,7 @@ in
     DS_DM_PASSWORD=${config.sops.placeholder."password"}
   '';
   sops.secrets = {
-    "mail/ldap" = { };
-    "mail/noreply" = { };
+    "mail/services" = { };
     "jellyfin/oidc_client_secret" = { };
     "password" = {
       mode = "0444";
@@ -163,8 +162,8 @@ in
             bind_password="$(${pkgs.coreutils}/bin/cat ${
               lib.escapeShellArg config.sops.secrets."password".path
             })"
-            mail_password="$(${pkgs.coreutils}/bin/cat ${
-              lib.escapeShellArg config.sops.secrets."mail/ldap".path
+            services_password="$(${pkgs.coreutils}/bin/cat ${
+              lib.escapeShellArg config.sops.secrets."mail/services".path
             })"
 
             for attempt in $(seq 1 60); do
@@ -187,18 +186,18 @@ in
       EOF
             fi
 
-            if ! ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b ${lib.escapeShellArg ldapMailDn} -s base '(objectClass=inetOrgPerson)' dn >/dev/null 2>&1; then
+            if ! ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b ${lib.escapeShellArg ldapServicesDn} -s base '(objectClass=inetOrgPerson)' dn >/dev/null 2>&1; then
               cat <<EOF | ldapadd -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password"
-      dn: ${ldapMailDn}
+      dn: ${ldapServicesDn}
       objectClass: top
       objectClass: person
       objectClass: organizationalPerson
       objectClass: inetOrgPerson
-      uid: mail
-      cn: mail
-      sn: mail
-      mail: mail@dora.im
-      userPassword: $mail_password
+      uid: services
+      cn: services
+      sn: services
+      mail: services@dora.im
+      userPassword: $services_password
       EOF
             fi
     '';
