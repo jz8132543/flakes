@@ -24,16 +24,16 @@
       rocketAddress = "127.0.0.1";
       rocketPort = config.ports.vaultwarden-http;
       smtpHost = "${config.lib.self.data.mail.smtp}";
-      smtpFrom = "noreply@dora.im";
+      smtpFrom = "services@dora.im";
       smtpPort = config.ports.smtp;
       smtpSecurity = "force_tls";
-      smtpUsername = "noreply@dora.im";
+      smtpUsername = "services@dora.im";
     };
     environmentFile = config.sops.templates."vaultwarden-env".path;
   };
   sops.templates."vaultwarden-env".content = ''
     ADMIN_TOKEN=${config.sops.placeholder."vaultwarden/ADMIN_TOKEN"}
-    SMTP_PASSWORD=${config.sops.placeholder."mail/noreply"}
+    SMTP_PASSWORD=${config.sops.placeholder."mail/services"}
   '';
   services.traefik.proxies = {
     vault = {

@@ -29,17 +29,17 @@
       {
         listenPort = 50561;
         remoteAddr = "nue0.dora.im";
-        remotePort = 8555;
+        remotePort = 443;
       }
       {
         listenPort = 50562;
         remoteAddr = "hkg4.dora.im";
-        remotePort = 8555;
+        remotePort = 443;
       }
       {
         listenPort = 50563;
         remoteAddr = "tyo0.dora.im";
-        remotePort = 8555;
+        remotePort = 443;
       }
       {
         listenPort = 50564;

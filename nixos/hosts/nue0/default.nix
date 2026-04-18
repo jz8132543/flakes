@@ -12,6 +12,10 @@
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.services.doraim
+      ../../modules/services/matrix-rtc.nix
+      {
+        services.matrix-rtc.enable = true;
+      }
       nixosModules.services.headscale
       # nixosModules.services.derp
       nixosModules.services.stun
@@ -38,6 +42,7 @@
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { })
@@ -102,7 +107,7 @@
       {
         name = "hkg5";
         server = "hkg5.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "HK" ];
       }
       {
@@ -114,7 +119,7 @@
       {
         name = "tyo1";
         server = "tyo1.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "JP" ];
       }
       {
@@ -124,13 +129,13 @@
         regions = [ "US" ];
       }
       {
-        name = "can0";
+        name = "can0-hkg5";
         server = "can0.dora.im";
-        port = 16811;
-        regions = [ "US" ];
+        port = 8555;
+        regions = [ "HK" ];
       }
       {
-        name = "can1";
+        name = "can1-hkg5";
         server = "can1.dora.im";
         port = 443;
         regions = [ "US" ];

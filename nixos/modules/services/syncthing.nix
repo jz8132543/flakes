@@ -42,6 +42,7 @@ let
     name = "/home/${user}/Sync";
     value = {
       device = "/var/lib/syncthing/data";
+      fsType = "none";
       options = [
         "bind"
         "nofail"

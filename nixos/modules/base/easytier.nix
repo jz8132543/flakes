@@ -472,7 +472,7 @@ in
 
             # Copy every currently active default route from `main`. This keeps
             # multiple uplinks working without requiring manual interface names.
-            ip -o "-$family" route show table main default \
+            ip -o "-$family" route show table main default 2>/dev/null \
               | awk '
                 {
                   route = ""
@@ -486,7 +486,8 @@ in
                     print route
                   }
                 }
-              '
+              ' \
+              | sort -u
           }
 
           mapfile -t v4_defaults < <(collect_defaults 4)
@@ -531,14 +532,14 @@ in
               # Each array element is one complete default route copied from
               # `main`, so preserve it as a single shell word and let `ip`
               # parse the embedded fields itself.
-              ip -4 route add table "$table_id" $route
+              ip -4 route replace table "$table_id" $route
             done
             ip -4 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"
           fi
 
           if [ "$have_v6_defaults" = true ]; then
             for route in "''${v6_defaults[@]}"; do
-              ip -6 route add table "$table_id" $route
+              ip -6 route replace table "$table_id" $route
             done
             ip -6 rule add fwmark "$mark/$mark" lookup "$table_id" priority "$priority"
           fi

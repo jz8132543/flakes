@@ -67,6 +67,7 @@ let
     : > ${lib.escapeShellArg failedPathsFile}
 
     totalCount="$(${pkgs.coreutils}/bin/wc -l < ${lib.escapeShellArg snapshotFile} | ${pkgs.coreutils}/bin/tr -d ' ' )"
+    skippedCount=0
 
     echo "nix-cache-upload: current system paths:"
     ${pkgs.coreutils}/bin/cat ${lib.escapeShellArg snapshotFile}
@@ -83,6 +84,16 @@ let
         ${pkgs.coreutils}/bin/printf '%s\n' "$path" >> ${lib.escapeShellArg invalidPathsFile}
         continue
       fi
+
+      if [ "${toString cfg.maxNarSizeBytes}" -gt 0 ]; then
+        narSize="$(${pkgs.nix}/bin/nix path-info --json "$path" | ${pkgs.python3}/bin/python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["narSize"])')"
+        if [ "$narSize" -gt "${toString cfg.maxNarSizeBytes}" ]; then
+          echo "nix-cache-upload: skipping large path $path (narSize=$narSize > limit=${toString cfg.maxNarSizeBytes})"
+          skippedCount=$((skippedCount + 1))
+          continue
+        fi
+      fi
+
       ${pkgs.coreutils}/bin/printf '%s\n' "$path" >> ${lib.escapeShellArg validPathsFile}
     done < ${lib.escapeShellArg snapshotFile}
 
@@ -120,7 +131,7 @@ let
       ${pkgs.coreutils}/bin/rm -f ${lib.escapeShellArg failedPathsFile} || true
     fi
 
-    echo "nix-cache-upload: result transferred=$transferredCount failed=$failedCount"
+    echo "nix-cache-upload: result transferred=$transferredCount failed=$failedCount skipped=$skippedCount"
     exit 0
   '';
 in
@@ -158,6 +169,12 @@ in
       type = lib.types.str;
       default = "/var/lib/nix-cache-upload";
       description = "Local queue directory for pending uploads.";
+    };
+
+    maxNarSizeBytes = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      default = 1024 * 1024 * 1024;
+      description = "Maximum NAR size (in bytes) to upload; 0 disables the limit.";
     };
   };
 

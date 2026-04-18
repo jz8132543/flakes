@@ -11,7 +11,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.infini
+      nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
       # nixosModules.services.traefik
       # nixosModules.services.derp
