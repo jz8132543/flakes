@@ -18,6 +18,7 @@ in
         "openssl-1.1.1w"
         "electron-27.3.11"
         "nix-2.24.5"
+        "olm-3.2.16"
       ];
       allowUnfreePackages = [
         "terraform"

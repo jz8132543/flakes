@@ -42,7 +42,7 @@
 
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)
   # Though the actual format etc is done by dd over the raw image.
-  utils.disk = "/dev/sda";
+  utils.disk = "/dev/vda";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   nix.gc.automatic = lib.mkForce true;
 }
