@@ -12,7 +12,6 @@
     ];
     max-substitution-jobs = 128;
     http-connections = 128;
-    download-buffer-size = 134217728;
     trusted-public-keys = [
       "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
       "cache.lix.systems:aBnZUw8zA7H35Cz2RyKFVs3H4PlGTLawyY5KRbvJR8o="
