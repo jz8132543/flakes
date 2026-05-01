@@ -5,7 +5,7 @@
     defaults = {
       email = "blackhole@dora.im";
       dnsProvider = "cloudflare";
-      credentialsFile = config.sops.templates.acme-credentials.path;
+      environmentFile = config.sops.templates.acme-credentials.path;
       # server = "https://acme.zerossl.com/v2/DV90";
       # extraLegoFlags = config.sops.templates.acme-flag.path;
     };

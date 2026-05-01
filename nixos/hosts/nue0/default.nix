@@ -10,13 +10,13 @@
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
-      {
-        services.matrix-rtc.enable = true;
-      }
+      nixosModules.services.doraim
       nixosModules.services.headscale
       # nixosModules.services.derp
       nixosModules.services.postgres
       nixosModules.services.minio
+      # nixosModules.services.minio
+      nixosModules.services.doraim
       nixosModules.services.ntfy
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode

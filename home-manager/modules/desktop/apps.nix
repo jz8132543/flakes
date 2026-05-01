@@ -33,7 +33,7 @@ in
     teamspeak6-client
     mumble
     jellyfin-desktop
-    wechat-uos
+    # wechat-uos
     google-antigravity
     google-chrome
     code-cursor

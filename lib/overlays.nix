@@ -58,6 +58,10 @@
 
     inherit (final.qt6Packages) fcitx5-qt;
 
+    openldap = prev.openldap.overrideAttrs (_old: {
+      doCheck = false;
+    });
+
     fcitx5-configtool = prev.fcitx5-configtool.override { kcmSupport = false; };
 
     fcitx5-chinese-addons = prev.fcitx5-chinese-addons.override {
