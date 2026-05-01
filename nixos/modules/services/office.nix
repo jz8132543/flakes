@@ -17,9 +17,9 @@ let
       -exec cp '{}' "$out" \;
     cd "$out"
     ${pkgs.gzip}/bin/gunzip -f *.gz
-    ${pkgs.xorg.mkfontscale}/bin/mkfontscale
-    ${pkgs.xorg.mkfontdir}/bin/mkfontdir
-    cat $(find ${pkgs.xorg.fontalias}/ -name fonts.alias) >fonts.alias
+    ${pkgs.mkfontscale}/bin/mkfontscale
+    ${pkgs.mkfontdir}/bin/mkfontdir
+    cat $(find ${pkgs.fontalias}/ -name fonts.alias) >fonts.alias
   '';
 in
 {

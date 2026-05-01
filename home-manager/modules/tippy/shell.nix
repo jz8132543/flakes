@@ -239,7 +239,7 @@ in
       themes = {
         "catppuccin-${config.home.catppuccin.flavor}" = {
           src = catppuccin;
-          file = "bat/Catppuccin\ ${toTitle flavor}.tmTheme";
+          file = "bat/Catppuccin ${toTitle flavor}.tmTheme";
         };
       };
       extraPackages = with pkgs.bat-extras; [
