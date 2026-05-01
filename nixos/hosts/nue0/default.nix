@@ -15,7 +15,7 @@
       # nixosModules.services.derp
       nixosModules.services.stun
       nixosModules.services.postgres
-      nixosModules.services.minio
+      # nixosModules.services.minio
       nixosModules.services.doraim
       nixosModules.services.ntfy
       (import nixosModules.services.atuin { })

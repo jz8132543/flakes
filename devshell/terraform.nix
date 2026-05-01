@@ -51,77 +51,6 @@ let
     '';
   };
 
-  terraformWrapper = pkgs.writeShellApplication {
-    name = "terraform-wrapper";
-    runtimeInputs = with pkgs; [
-      sops
-      terraform
-      zerotierone
-      minio-client
-      syncthing
-      libargon2
-      jq
-      openssl
-      ruby
-      yq-go
-      efitools
-      bind
-      encryptTo
-    ];
-    text = ''
-      ${common}
-
-      encrypted="$SECRETS_DIR/terraform.tfstate"
-      plain="$TERRAFORM_DIR/terraform.tfstate"
-
-      message "decrypt terraform state to '$plain'..."
-      sops --input-type json --output-type json \
-        --decrypt "$encrypted" >"$plain"
-
-      function cleanup {
-        exit_code=$?
-
-        set -e
-
-        if [ -n "$(cat "$plain")" ]; then
-          encrypt-to "$plain" "$encrypted" json "yq --prettyPrint"
-        fi
-        message "deleting terraform state '$plain'..."
-        rm -f "$plain"* # remove plain and backup files
-
-        message "terraform exit code: $exit_code"
-        exit $exit_code
-      }
-      trap cleanup EXIT
-
-      set +e
-      terraform -chdir="$(realpath "$TERRAFORM_DIR")" "$@"
-    '';
-  };
-
-  terraformUpdateOutputs = pkgs.writeShellApplication {
-    name = "terraform-update-outputs";
-    runtimeInputs = with pkgs; [
-      encryptTo
-      terraformWrapper
-      yq-go
-    ];
-    text = ''
-      ${common}
-
-      tmp_dir=$(mktemp -t --directory encrypt.XXXXXXXXXX)
-      function cleanup {
-        rm -r "$tmp_dir"
-      }
-      trap cleanup EXIT
-
-      plain_output="$tmp_dir/terraform-outputs.plain.yaml"
-
-      terraform-wrapper output --json >"$plain_output"
-      encrypt-to "$plain_output" "$SECRETS_DIR/terraform-outputs.yaml" yaml "yq --prettyPrint"
-    '';
-  };
-
   terraformOutputsExtractData = pkgs.writeShellApplication {
     name = "terraform-outputs-extract-data";
     runtimeInputs = with pkgs; [
@@ -236,12 +165,57 @@ in
       }
       {
         category = "infrastructure";
-        package = terraformWrapper;
+        name = "terraform-wrapper";
+        help = "wrapper around terraform with secrets handling";
+        command = ''
+          ${common}
+
+          encrypted="$SECRETS_DIR/terraform.tfstate"
+          plain="$TERRAFORM_DIR/terraform.tfstate"
+
+          message "decrypt terraform state to '$plain'..."
+          sops --input-type json --output-type json \
+            --decrypt "$encrypted" >"$plain"
+
+          function cleanup {
+            exit_code=$?
+
+            set -e
+
+            if [ -n "$(cat "$plain")" ]; then
+              encrypt-to "$plain" "$encrypted" json "yq --prettyPrint"
+            fi
+            message "deleting terraform state '$plain'..."
+            rm -f "$plain"* # remove plain and backup files
+
+            message "terraform exit code: $exit_code"
+            exit $exit_code
+          }
+          trap cleanup EXIT
+
+          set +e
+          terraform -chdir="$(realpath "$TERRAFORM_DIR")" "$@"
+        '';
       }
 
       {
         category = "infrastructure";
-        package = terraformUpdateOutputs;
+        name = "terraform-update-outputs";
+        help = "update terraform outputs secrets";
+        command = ''
+          ${common}
+
+          tmp_dir=$(mktemp -t --directory encrypt.XXXXXXXXXX)
+          function cleanup {
+            rm -r "$tmp_dir"
+          }
+          trap cleanup EXIT
+
+          plain_output="$tmp_dir/terraform-outputs.plain.yaml"
+
+          terraform-wrapper output --json >"$plain_output"
+          encrypt-to "$plain_output" "$SECRETS_DIR/terraform-outputs.yaml" yaml "yq --prettyPrint"
+        '';
       }
 
       {

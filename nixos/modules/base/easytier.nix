@@ -165,7 +165,7 @@ in
 
     ipv4 = mkOption {
       type = types.nullOr types.str;
-      default = if cfg.role == "bootstrap" then "100.127.255.1" else null;
+      default = if cfg.role == "bootstrap" then "10.100.0.1" else null;
       description = "Static EasyTier address. Leave null to use DHCP-style auto assignment.";
     };
 
@@ -249,7 +249,7 @@ in
 
     overlayCIDR = mkOption {
       type = types.str;
-      default = "100.127.255.0/24";
+      default = "10.100.0.0/24";
     };
 
     proxyNetworks = mkOption {
@@ -613,7 +613,7 @@ in
         serviceConfig = {
           Type = "oneshot";
           ExecStart = pkgs.writeShellScript "easytier-watchdog" ''
-            if ! ping -c 3 -W 5 100.127.255.1 > /dev/null 2>&1; then
+            if ! ping -c 3 -W 5 10.100.0.1 > /dev/null 2>&1; then
               systemctl restart easytier
             fi
           '';
