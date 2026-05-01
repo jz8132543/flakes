@@ -141,7 +141,7 @@ let
 
       # EasyTier 专属路由与沙盒隔离
       # "DOMAIN-SUFFIX,et,EasyTier-Socks"
-      # "IP-CIDR,10.100.0.0/24,EasyTier-Socks,no-resolve"
+      # "IP-CIDR,100.127.255.0/24,EasyTier-Socks,no-resolve"
 
       # 局域网直连，防误伤
       "GEOSITE,private,DIRECT"
@@ -208,7 +208,7 @@ let
       route-exclude-address = [
         "100.64.0.0/10"
         # Keep EasyTier's overlay subnet out of Mihomo's TUN.
-        "10.100.0.0/24"
+        "100.127.255.0/24"
       ];
     };
 
