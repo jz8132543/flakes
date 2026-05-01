@@ -5,9 +5,18 @@
 {
   config,
   lib,
+  pkgs,
   nixosModules,
   ...
 }:
+let
+  ldapUri = "ldaps://ldap.dora.im";
+  bootstrapLdapUri = "ldap://127.0.0.1:3389";
+  ldapBindDn = "cn=Directory Manager";
+  ldapBaseDn = "dc=dora,dc=im";
+  ldapUsersDn = "ou=people,dc=dora,dc=im";
+  ldapServicesDn = "uid=services,ou=people,dc=dora,dc=im";
+in
 {
   imports = [
     nixosModules.services.acme
@@ -61,10 +70,10 @@
         "smtpServer": {
           "host": "${config.environment.smtp_host}",
           "port": "${toString config.environment.smtp_port}",
-          "from": "noreply@dora.im",
+          "from": "services@dora.im",
           "auth": "true",
-          "user": "noreply@dora.im",
-          "password": "${config.sops.placeholder."mail/noreply"}",
+          "user": "services@dora.im",
+          "password": "${config.sops.placeholder."mail/services"}",
           "ssl": "false",
           "starttls": "true"
         },
@@ -100,9 +109,9 @@
               "importEnabled": "true",
               "enabled": "true",
               "vendor": "rhds",
-              "connectionUrl": "ldap://localhost:${toString config.ports.ldap}",
-              "usersDn": "ou=People,dc=dora,dc=im",
-              "bindDn": "cn=Directory Manager",
+              "connectionUrl": "${ldapUri}",
+              "usersDn": "${ldapUsersDn}",
+              "bindDn": "${ldapBindDn}",
               "bindCredential": "${config.sops.placeholder."password"}",
               "pagination": "true",
               "syncRegistrations": "true"
@@ -116,7 +125,7 @@
     DS_DM_PASSWORD=${config.sops.placeholder."password"}
   '';
   sops.secrets = {
-    "mail/noreply" = { };
+    "mail/services" = { };
     "jellyfin/oidc_client_secret" = { };
     "password" = {
       mode = "0444";
@@ -131,11 +140,212 @@
     rule = "HostSNI(`*`)";
     target = "localhost:3389"; # Internal 389ds port
     entryPoints = [ "ldap" ];
+    tls = true;
   };
+
+  systemd.services.keycloak-ldap-bootstrap = {
+    description = "Bootstrap Keycloak LDAP base entries";
+    after = [ "podman-dirsrv.service" ];
+    requires = [ "podman-dirsrv.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = with pkgs; [
+      coreutils
+      openldap
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+            set -eu
+
+            bind_password="$(${pkgs.coreutils}/bin/cat ${
+              lib.escapeShellArg config.sops.secrets."password".path
+            })"
+            services_password="$(${pkgs.coreutils}/bin/cat ${
+              lib.escapeShellArg config.sops.secrets."mail/services".path
+            })"
+
+            for attempt in $(seq 1 60); do
+              if ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b ${lib.escapeShellArg ldapBaseDn} -s base '(objectClass=*)' dn >/dev/null 2>&1; then
+                break
+              fi
+              if [ "$attempt" -eq 60 ]; then
+                echo "389ds did not become ready" >&2
+                exit 1
+              fi
+              ${pkgs.coreutils}/bin/sleep 1
+            done
+
+            if ! ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b ${lib.escapeShellArg ldapUsersDn} -s base '(objectClass=organizationalUnit)' dn >/dev/null 2>&1; then
+              cat <<EOF | ldapadd -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password"
+      dn: ${ldapUsersDn}
+      objectClass: top
+      objectClass: organizationalUnit
+      ou: people
+      EOF
+            fi
+
+            if ! ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b ${lib.escapeShellArg ldapServicesDn} -s base '(objectClass=inetOrgPerson)' dn >/dev/null 2>&1; then
+              cat <<EOF | ldapadd -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password"
+      dn: ${ldapServicesDn}
+      objectClass: top
+      objectClass: person
+      objectClass: organizationalPerson
+      objectClass: inetOrgPerson
+      uid: services
+      cn: services
+      sn: services
+      mail: services@dora.im
+      userPassword: $services_password
+      EOF
+            fi
+    '';
+  };
+
+  systemd.services.keycloak-ldap-reconcile = {
+    description = "Reconcile Keycloak LDAP federation config";
+    after = [
+      "postgresql.service"
+      "keycloak-ldap-bootstrap.service"
+    ];
+    requires = [ "keycloak-ldap-bootstrap.service" ];
+    wantedBy = [ "multi-user.target" ];
+    path = with pkgs; [
+      coreutils
+      postgresql
+      gawk
+    ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      set -eu
+
+      bind_password="$(${pkgs.coreutils}/bin/cat ${
+        lib.escapeShellArg config.sops.secrets."password".path
+      })"
+      bind_password_sql="$(${pkgs.coreutils}/bin/printf '%s' "$bind_password" | ${pkgs.gawk}/bin/awk '{gsub(/\047/, "\047\047"); print}')"
+
+      psql -h 127.0.0.1 -U keycloak -d keycloak -v ON_ERROR_STOP=1 -Atq -c "
+        update component_config
+        set value = '${ldapUri}'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'connectionUrl';
+
+        update component_config
+        set value = '${ldapUsersDn}'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'usersDn';
+
+        update component_config
+        set value = '${ldapBindDn}'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'bindDn';
+
+        update component_config
+        set value = '$bind_password_sql'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'bindCredential';
+
+        update component_config
+        set value = 'true'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'importEnabled';
+
+        update component_config
+        set value = 'rhds'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'vendor';
+
+        update component_config
+        set value = '86400'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'fullSyncPeriod';
+
+        update component_config
+        set value = '300'
+        where component_id = (
+          select c.id
+          from component c
+          join realm r on r.id = c.realm_id
+          where r.name = 'users'
+            and c.provider_type = 'org.keycloak.storage.UserStorageProvider'
+            and c.provider_id = 'ldap'
+          limit 1
+        )
+        and name = 'changedSyncPeriod';
+      "
+    '';
+  };
+
   systemd.services.keycloak = {
     after = [
       "postgresql.service"
       "tailscaled.service"
+      "keycloak-ldap-bootstrap.service"
+      "keycloak-ldap-reconcile.service"
+    ];
+    requires = [
+      "keycloak-ldap-bootstrap.service"
+      "keycloak-ldap-reconcile.service"
     ];
     serviceConfig.Restart = lib.mkForce "always";
   };

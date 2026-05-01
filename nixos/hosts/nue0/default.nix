@@ -37,6 +37,7 @@
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { })
@@ -78,7 +79,7 @@
         name = "nue0";
         server = "nue0.dora.im";
         port = 443;
-        regions = [ "EU" ];
+        regions = [ "US" ];
       }
       {
         name = "nue0-kxy";
@@ -101,13 +102,7 @@
       {
         name = "hkg5";
         server = "hkg5.dora.im";
-        port = 443;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg5-kxy";
-        server = "cu.dora.im";
-        port = 50564;
+        port = 8555;
         regions = [ "HK" ];
       }
       {
@@ -119,13 +114,7 @@
       {
         name = "tyo1";
         server = "tyo1.dora.im";
-        port = 443;
-        regions = [ "JP" ];
-      }
-      {
-        name = "tyo1-kxy";
-        server = "cu.dora.im";
-        port = 50565;
+        port = 8555;
         regions = [ "JP" ];
       }
       {
@@ -144,7 +133,7 @@
         name = "can1-hkg5";
         server = "can1.dora.im";
         port = 443;
-        regions = [ "HK" ];
+        regions = [ "US" ];
       }
     ];
   };

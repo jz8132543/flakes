@@ -1,7 +1,7 @@
 {
   PG ? "postgres.mag",
   hydraURL ? null,
-  notificationSender ? "noreply@dora.im",
+  notificationSender ? "services@dora.im",
   hydraHost ? null,
   cacheHost ? null,
   cacheBind ? "127.0.0.1:5000",
@@ -130,7 +130,7 @@ in
       sops.templates."hydra-email".content = ''
         EMAIL_SENDER_TRANSPORT=SMTP
         EMAIL_SENDER_TRANSPORT_sasl_username=${notificationSender}
-        EMAIL_SENDER_TRANSPORT_sasl_password=${config.sops.placeholder."mail/noreply"}
+        EMAIL_SENDER_TRANSPORT_sasl_password=${config.sops.placeholder."mail/services"}
         EMAIL_SENDER_TRANSPORT_host=${config.lib.self.data.mail.smtp};
         EMAIL_SENDER_TRANSPORT_port=${toString config.ports.smtp}
         EMAIL_SENDER_TRANSPORT_ssl=on

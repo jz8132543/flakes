@@ -21,6 +21,7 @@ in
     # nur.repos.xddxdd.wechat-uos
     remmina
     element-desktop
+    nheko
     linux-wifi-hotspot
     distrobox
     man-pages

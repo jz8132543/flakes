@@ -17,8 +17,8 @@
     smtp = {
       host = config.environment.smtp_host;
       port = config.environment.smtp_port;
-      passwordFile = config.sops.secrets."mail/noreply".path;
-      fromAddress = "noreply@dora.im";
+      passwordFile = config.sops.secrets."mail/services".path;
+      fromAddress = "services@dora.im";
     };
     extraConfig = {
       WEB_DOMAIN = "zone.dora.im";
@@ -55,6 +55,9 @@
     '';
   };
   sops.secrets = {
+    "mail/services" = {
+      owner = config.services.mastodon.user;
+    };
 
     "mastodon/VAPID_PUBLIC_KEY" = {
       owner = config.services.mastodon.user;

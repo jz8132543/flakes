@@ -51,7 +51,6 @@
   xdg.portal.config.common.default = "*";
   nix.extraOptions = ''
     !include ${config.sops.secrets."nix/github-token".path}
-    download-buffer-size = 268435456
   '';
 
   programs.fish.enable = true;

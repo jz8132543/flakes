@@ -12,13 +12,13 @@ let
   selfLib = import ../lib { inherit inputs lib; };
   nixosModules = selfLib.rake ../nixos/modules;
   hmModules = selfLib.rake ../home-manager/modules;
+  overlays = import ../lib/overlays.nix { inherit inputs lib self; };
 
-  commonNixosModules = nixosModules.base.all ++ [
+  commonModulePrelude = [
     inputs.home-manager.nixosModules.home-manager
     inputs.nur.modules.nixos.default
-    inputs.colmena.nixosModules.deploymentOptions
     {
-      nixpkgs.overlays = [ (import ../pkgs).overlay ];
+      nixpkgs.overlays = overlays;
       lib.self = self.lib;
       home-manager = {
         sharedModules = commonHmModules;
@@ -31,22 +31,19 @@ let
     }
   ];
 
-  commonColmenaModules = nixosModules.base.all ++ [
-    inputs.home-manager.nixosModules.home-manager
-    inputs.nur.modules.nixos.default
-    {
-      nixpkgs.overlays = [ (import ../pkgs).overlay ];
-      lib.self = self.lib;
-      home-manager = {
-        sharedModules = commonHmModules;
-        extraSpecialArgs = hmSpecialArgs;
-        useGlobalPkgs = true;
-        useUserPackages = true;
-        backupFileExtension = "backup";
-      };
-      system.configurationRevision = self.rev or null;
-    }
-  ];
+  lixModules =
+    lib.optionals (inputs.lix ? nixosModule) [ inputs.lix.nixosModule ]
+    ++ lib.optionals (inputs.lix ? nixosModules) [ inputs.lix.nixosModules.default ];
+
+  commonNixosModules =
+    nixosModules.base.all
+    ++ commonModulePrelude
+    ++ lixModules
+    ++ [
+      inputs.colmena.nixosModules.deploymentOptions
+    ];
+
+  commonColmenaModules = nixosModules.base.all ++ commonModulePrelude ++ lixModules;
 
   commonHmModules =
     hmModules.base.all
@@ -142,6 +139,7 @@ let
           networking.hostName = lib.mkDefault name;
           # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
           nixpkgs.hostPlatform = system;
+          nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
         }
       )
     ];
@@ -173,7 +171,7 @@ let
           pkgs = import inputs.nixpkgs {
             inherit system;
             config.allowUnfree = true;
-            overlays = import ../lib/overlays.nix { inherit inputs lib self; };
+            inherit overlays;
           };
         in
         inputs.home-manager.lib.homeManagerConfiguration {
@@ -192,7 +190,7 @@ let
                     ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
                   '';
                 };
-                nix.package = pkgs.nix;
+                nix.package = pkgs.lix;
                 targets.genericLinux.enable = true;
 
                 # Mock osConfig for standalone Home Manager
@@ -236,7 +234,7 @@ in
     default = { };
   };
   config = {
-    flake.hostNames = lib.attrNames nixosConfigurations;
+    flake.hostNames = lib.attrNames hostDefinitions;
     flake.colmenaModules = colmenaModules;
     passthru = {
       inherit nixosModules hmModules;

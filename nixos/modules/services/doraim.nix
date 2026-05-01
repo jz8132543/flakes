@@ -29,6 +29,10 @@ let
     "m.homeserver" = {
       base_url = "https://m.dora.im";
     };
+    "org.matrix.msc2965.authentication" = {
+      issuer = "https://m.dora.im/";
+      account = "https://m.dora.im/account";
+    };
     "org.matrix.msc4143.rtc_foci" = matrixRtcFoci;
   };
 in
