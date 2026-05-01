@@ -26,7 +26,10 @@
       # (import nixosModules.services.kindle-sender { })
       # TEST
       nixosModules.services.mysql
-      (import nixosModules.services.matrix { })
+      nixosModules.matrix.matrix
+      {
+        services.matrix.databaseHost = "postgres.mag";
+      }
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })
       (import nixosModules.services.alist { })

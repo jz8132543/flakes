@@ -10,6 +10,7 @@ let
   synapseServerName = config.services.matrix-synapse.settings.server_name;
   livekitRuntimeDirectory = "matrix-rtc-livekit";
   jwtRuntimeDirectory = "matrix-rtc-jwt";
+  jwtPackage = pkgs.lk-jwt-service;
   livekitKeysFile = "/run/${livekitRuntimeDirectory}/livekit.keys";
   jwtKeysFile = "/run/${jwtRuntimeDirectory}/livekit.keys";
   turnSharedSecretPath = config.sops.secrets."matrix/turn_shared_secret".path;
@@ -47,7 +48,10 @@ let
   '';
 in
 {
-  imports = [ nixosModules.services.traefik ];
+  imports = [
+    nixosModules.services.traefik
+    nixosModules.services.stun
+  ];
 
   options.services.matrix-rtc = {
     enable = lib.mkEnableOption "MatrixRTC LiveKit backend";
@@ -96,11 +100,13 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    sops.secrets = lib.mkIf (!config.services.matrix-synapse.enable) {
-      "matrix/turn_shared_secret" = { };
-    };
-
     services.traefik.proxies = {
+      matrixrtc-jwt-root = {
+        rule = "Host(`${cfg.hostName}`) && Path(`/livekit/jwt`)";
+        priority = 100;
+        target = "http://127.0.0.1:${toString cfg.jwtPort}";
+        middlewares = [ "matrixrtc-jwt-root-healthz" ];
+      };
       matrixrtc-jwt = {
         rule = "Host(`${cfg.hostName}`) && PathPrefix(`/livekit/jwt`)";
         target = "http://127.0.0.1:${toString cfg.jwtPort}";
@@ -114,6 +120,7 @@ in
     };
 
     services.traefik.dynamicConfigOptions.http.middlewares = {
+      matrixrtc-jwt-root-healthz.replacePath.path = "/healthz";
       matrixrtc-jwt-stripprefix.stripPrefix.prefixes = [ "/livekit/jwt" ];
       matrixrtc-sfu-stripprefix.stripPrefix.prefixes = [ "/livekit/sfu" ];
     };
@@ -131,7 +138,7 @@ in
         RuntimeDirectory = livekitRuntimeDirectory;
         LoadCredential = [ "turn_shared_secret:${turnSharedSecretPath}" ];
         ExecStartPre = "${livekitSetupScript}";
-        ExecStart = "${lib.getExe pkgs.livekit} --bind 127.0.0.1 --key-file ${livekitKeysFile} --config ${livekitConfigFile}";
+        ExecStart = "${lib.getExe pkgs.livekit} --bind 0.0.0.0 --key-file ${livekitKeysFile} --config ${livekitConfigFile}";
       };
     };
 
@@ -160,7 +167,7 @@ in
           "LIVEKIT_JWT_BIND=127.0.0.1:${toString cfg.jwtPort}"
           "LIVEKIT_FULL_ACCESS_HOMESERVERS=${lib.concatStringsSep "," cfg.fullAccessHomeservers}"
         ];
-        ExecStart = lib.getExe pkgs.lk-jwt-service;
+        ExecStart = lib.getExe jwtPackage;
       };
     };
 

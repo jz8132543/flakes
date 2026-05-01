@@ -32,6 +32,20 @@
     ])
   )
   (final: prev: {
+    matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+                python -c 'from pathlib import Path; path = Path("synapse/rest/client/versions.py"); lines = path.read_text().splitlines(True); marker = "                    \"org.matrix.msc4140\": bool(self.config.server.max_event_delay_ms),\n"; insert = "                    \"org.matrix.msc4143\": self.config.experimental.msc4143_enabled,\n"; 
+        if marker not in lines: raise SystemExit("marker not found"); index = lines.index(marker); lines.insert(index + 1, insert); path.write_text("".join(lines))'
+      '';
+      postInstall = (old.postInstall or "") + ''
+                OUT_PATH="$out" python -c 'import os; from pathlib import Path; path = Path(os.environ["OUT_PATH"]) / "lib/python3.13/site-packages/synapse/rest/client/versions.py"; text = path.read_text(); marker = "                    \"org.matrix.msc4140\": bool(self.config.server.max_event_delay_ms),\n"; insert = "                    \"org.matrix.msc4143\": self.config.experimental.msc4143_enabled,\n"; 
+        if "org.matrix.msc4143" not in text:
+            if marker not in text:
+                raise SystemExit("marker not found")
+            path.write_text(text.replace(marker, marker + insert, 1))'
+      '';
+    });
+
     qt6Packages = prev.qt6Packages.overrideScope (
       _qt6Final: qt6Prev: {
         libsForQt5 = (qt6Prev.libsForQt5 or (prev.libsForQt5.overrideScope (_: _: { }))).overrideScope (

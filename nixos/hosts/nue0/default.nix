@@ -10,17 +10,13 @@
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
-      nixosModules.services.doraim
-      ../../modules/services/matrix-rtc.nix
       {
         services.matrix-rtc.enable = true;
       }
       nixosModules.services.headscale
       # nixosModules.services.derp
-      nixosModules.services.stun
       nixosModules.services.postgres
       nixosModules.services.minio
-      nixosModules.services.doraim
       nixosModules.services.ntfy
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
@@ -47,7 +43,6 @@
       # (import nixosModules.services.office { })
       # (import nixosModules.services.nextcloud { })
       (import nixosModules.services.mastodon { })
-      (import nixosModules.services.matrix { })
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
@@ -58,7 +53,8 @@
       nixosModules.services.grafana.default
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
-    ];
+    ]
+    ++ nixosModules.matrix.all;
 
   services.openclaw.enable = false;
   services.ai.litellm.enable = true;

@@ -2,19 +2,14 @@
   config,
   pkgs,
   lib,
-  self,
+  matrixRtcHosts,
   ...
 }:
 let
   enabledMatrixRtcHosts =
     let
-      allHosts = builtins.attrNames self.nixosConfigurations;
       currentHost = config.networking.hostName;
-      otherHosts = lib.filter (
-        hostName:
-        hostName != currentHost
-        && (self.nixosConfigurations.${hostName}.config.services.matrix-rtc.enable or false)
-      ) allHosts;
+      otherHosts = lib.filter (hostName: hostName != currentHost) matrixRtcHosts;
     in
     lib.sort (a: b: a < b) (
       lib.unique (lib.optional config.services.matrix-rtc.enable currentHost ++ otherHosts)

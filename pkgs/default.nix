@@ -10,7 +10,11 @@ rec {
         })
         (
           filter (v: v != null) (
-            attrValues (mapAttrs (k: v: if v == "directory" && k != "_sources" then k else null) (readDir ./.))
+            attrValues (
+              mapAttrs (
+                k: v: if v == "directory" && k != "_sources" && pathExists ./${k}/default.nix then k else null
+              ) (readDir ./.)
+            )
           )
         )
     );

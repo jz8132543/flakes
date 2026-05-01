@@ -1,5 +1,5 @@
 {
-  self,
+  config,
   lib,
   inputs,
   ...
@@ -19,7 +19,7 @@ let
           # Disable profile-level checks
           check = false;
         };
-      }) self.nixosConfigurations;
+      }) config.flake.nixosConfigurations;
 
       # Home nodes from homeConfigurations
       # HM keys are in "user@host" format
@@ -42,7 +42,7 @@ let
             };
           };
         }
-      ) self.homeConfigurations;
+      ) config.flake.homeConfigurations;
     in
     lib.recursiveUpdate nixosNodes hmNodes;
 in

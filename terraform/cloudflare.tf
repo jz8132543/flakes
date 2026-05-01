@@ -172,7 +172,20 @@ resource "cloudflare_dns_record" "_matrix_tcp" {
   }
 }
 
+locals {
+  matrix_rtc_turn_hosts = [
+    "can0",
+    "nue0",
+    "sjc0",
+    "xiy0",
+    "xiy1",
+    "xiy2"
+  ]
+}
+
 resource "cloudflare_dns_record" "_turn_udp" {
+  for_each = toset(local.matrix_rtc_turn_hosts)
+
   name     = "_turn._udp.${cloudflare_zone.im_dora.name}"
   type     = "SRV"
   ttl      = 1
@@ -181,8 +194,8 @@ resource "cloudflare_dns_record" "_turn_udp" {
   data = {
     priority = 10
     weight   = 5
-    port     = 3478
-    target   = "nue0.dora.im"
+    port     = 3479
+    target   = "${each.key}.dora.im"
   }
 }
 

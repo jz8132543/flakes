@@ -13,7 +13,7 @@
       nixosModules.services.traefik
       nixosModules.services.derp
       # nixosModules.services.stun
-      ../../modules/services/matrix-rtc.nix
+      nixosModules.matrix.matrix-rtc
       {
         services.matrix-rtc.enable = true;
       }

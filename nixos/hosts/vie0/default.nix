@@ -33,7 +33,10 @@
       # (import nixosModules.services.office { })
       # (import nixosModules.services.nextcloud { })
       (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
-      (import nixosModules.services.matrix { PG = "127.0.0.1"; })
+      nixosModules.matrix.matrix
+      {
+        services.matrix.databaseHost = "127.0.0.1";
+      }
       # TODO
       # nixosModules.services.pastebin
     ];

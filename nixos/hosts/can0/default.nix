@@ -12,7 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.services.matrix-rtc
+      nixosModules.matrix.matrix-rtc
       # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
