@@ -17,8 +17,6 @@
       })
     ];
 
-  services.matrix-rtc.enable = true;
-
   environment.networkTune = {
     enable = true;
     bandwidth = 1000; # Mbps 单向

@@ -2,17 +2,28 @@
   config,
   pkgs,
   lib,
+  self,
   matrixRtcHosts,
   ...
 }:
 let
+  hostRunsMatrixRtc =
+    hostName:
+    let
+      host = self.nixosConfigurations.${hostName};
+    in
+    lib.hasAttrByPath [ "services" "matrix-rtc" "enable" ] host.options
+    && host.config.services.matrix-rtc.enable;
+
   enabledMatrixRtcHosts =
     let
       currentHost = config.networking.hostName;
-      otherHosts = lib.filter (hostName: hostName != currentHost) matrixRtcHosts;
+      otherHosts = lib.filter (
+        hostName: hostName != currentHost && hostRunsMatrixRtc hostName
+      ) matrixRtcHosts;
     in
     lib.sort (a: b: a < b) (
-      lib.unique (lib.optional config.services.matrix-rtc.enable currentHost ++ otherHosts)
+      lib.unique (lib.optional (config.services.matrix-rtc.enable or false) currentHost ++ otherHosts)
     );
 
   matrixRtcFoci = map (hostName: {

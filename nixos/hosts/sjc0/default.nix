@@ -14,9 +14,6 @@
       nixosModules.services.derp
       # nixosModules.services.stun
       nixosModules.matrix.matrix-rtc
-      {
-        services.matrix-rtc.enable = true;
-      }
       (import nixosModules.services.xray {
         # needProxy = true;
       })

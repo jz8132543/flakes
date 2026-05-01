@@ -22,8 +22,6 @@
       nixosModules.optimize.fakehttp
     ];
 
-  services.matrix-rtc.enable = true;
-
   services.kernel-relay = {
     enable = true;
     dnsInterval = "3min";

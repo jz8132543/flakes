@@ -19,6 +19,7 @@ in
         "electron-27.3.11"
         "nix-2.24.5"
         "olm-3.2.16"
+        "minio-2025-10-15T17-29-55Z"
       ];
       allowUnfreePackages = [
         "terraform"

@@ -54,7 +54,11 @@ in
   ];
 
   options.services.matrix-rtc = {
-    enable = lib.mkEnableOption "MatrixRTC LiveKit backend";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "MatrixRTC LiveKit backend";
+    };
 
     hostName = lib.mkOption {
       type = lib.types.str;
