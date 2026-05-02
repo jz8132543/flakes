@@ -21,11 +21,11 @@ let
   cfg = config.services.easytierMesh;
   envName = "easytier.env";
   settingsFormat = pkgs.formats.toml { };
-  wsPort = config.ports.easytier-ws;
+  # wsPort = config.ports.easytier-ws;
   easytierTraefikRule = "PathPrefix(`/`)";
 
   listenerUris = [
-    "ws://0.0.0.0:${toString wsPort}"
+    "ws://0.0.0.0:${toString cfg.protocal.ws.port}"
     # "quic://0.0.0.0:${toString cfg.protocols.quic.port}"
     "quic://[::]:${toString cfg.protocols.quic.port}"
     "faketcp://[::]:${toString cfg.protocols.faketcp.port}"
@@ -203,6 +203,11 @@ in
     };
 
     protocols = {
+      ws.port = mkOption {
+        type = types.port;
+        default = config.ports.easytier-ws;
+        description = "Public TCP port exposed by Traefik for EasyTier WS.";
+      };
       wss.port = mkOption {
         type = types.port;
         default = config.ports.easytier-traefik-wss;
@@ -597,7 +602,7 @@ in
 
       services.traefik.proxies.easytier-wss = {
         rule = easytierTraefikRule;
-        target = "http://127.0.0.1:${toString wsPort}";
+        target = "http://127.0.0.1:${toString cfg.protocols.ws.port}";
         entryPoints = [ "easytier" ];
       };
     }

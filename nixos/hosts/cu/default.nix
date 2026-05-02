@@ -61,8 +61,6 @@
   # environment.isNAT = true;
   environment.isCN = true;
 
-  ports.derp-stun = lib.mkForce 50568;
-  ports.derp = lib.mkForce 50567;
   services.easytierMesh = {
     publicHosts = [
       "cu.dora.im"
@@ -71,12 +69,13 @@
       "cmv6.dora.im"
     ];
     protocols = {
-      wss.port = 50566;
+      ws.port = 50567;
       # wss.bootstrapPort = 50566;
-      quic.port = 50566;
+      quic.port = 50567;
       # quic.bootstrapPort = 50566;
     };
   };
+  ports.derp-stun = lib.mkForce 50568;
   services.traefik.proxies.derp.rule =
     lib.mkForce "Host(`${config.networking.fqdn}`) || Host(`*.${config.networking.domain}`)";
   # ports.turn-stun = lib.mkForce 50568;
@@ -92,8 +91,8 @@
     virt-what
     xz # 解压 .tar.xz 格式的系统镜像
   ];
-  # networking.firewall.allowedTCPPorts = lib.range 50560 50569;
-  # networking.firewall.allowedUDPPorts = lib.range 50560 50569;
+  networking.firewall.allowedTCPPorts = lib.range 50561 50569;
+  networking.firewall.allowedUDPPorts = lib.range 50561 50569;
 
   environment.networkTune = {
     enable = true;
@@ -105,6 +104,6 @@
     highLoss = true; # 高丢包国际线路
     # fqMaxrate = realBandwidth × 95% = 570，主动整形防令牌桶尾丢包
     # （已是默认公式，此处显式写出便于各主机理解和覆盖）
-    fqMaxrate = 570;
+    fqMaxrate = 590;
   };
 }
