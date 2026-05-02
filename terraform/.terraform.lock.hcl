@@ -1,27 +1,6 @@
 # This file is maintained automatically by "terraform init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/aminueza/minio" {
-  version = "3.15.0"
-  hashes = [
-    "h1:47aAsp0yLZFSSFR93ScYAy7svUtbIbl8X6uhCwwg2S0=",
-    "zh:0d29045299f570326bf1e4bb3f99ec981f0a5d42f69fe978ef424cfce38911f7",
-    "zh:1c74ad426a414ebc148ce2cdff20c0d94cd12206b62b85bc75046c2017885fa6",
-    "zh:25ce2815b2ddd14644102a622f8edcbfd5436cd23b7fa23efaccc8a8387949c3",
-    "zh:2a09df9ba81d094256b64c03fe4218c9b504d55c5b1d8aa24374cb7235d64d22",
-    "zh:32ee7ca40038b0171623287af3c035a5198dbb80630c6dc0c22180920b8c6eca",
-    "zh:3424e20cc691d80b499e2457a9f08f8c0fea3faff8cca472af8cac63beef315f",
-    "zh:5898db0c2872ad467361b271aa42be2f2d025a675a0f9cb421e9a4a585ffa80d",
-    "zh:77a9815c2c47a4fb810876908b09092d2721fee9a6f814ffc04493b7fa35a9b1",
-    "zh:864d449f7721c2a1d86bb8513c3e5c233f73570bf028c194aa571e69878f332b",
-    "zh:96062ec90b589c55e55ea7b9f3d0f75de3121ba1b691667289ddd11ddb25cc25",
-    "zh:a1d9f5370a7822a938c07b81df932273b81815de67540c13b9aef22bb35914c7",
-    "zh:abfe9d33938da41678bff4c0bdd6994365e51c5d65abfaa6e541288e69147e18",
-    "zh:cdb68f2e822fe02787a99fc91fa6d3ccef6c024e897f37d82f74e21544cb3ac1",
-    "zh:cde5bc5c40c69bca97203252665455e164415fc5ee272c37597d92a74370d34c",
-  ]
-}
-
 provider "registry.terraform.io/backblaze/b2" {
   version = "0.12.0"
   hashes = [
