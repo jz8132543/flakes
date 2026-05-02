@@ -41,25 +41,14 @@
               extraArgs = [ "-f" ];
               subvolumes =
                 let
-                  btrfsOptions =
-                    if config.environment.minimal or false then
-                      [
-                        "noatime"
-                        "compress=no"
-                        "space_cache=v2"
-                        "commit=300"
-                        "ssd_spread"
-                        "thread_pool=1"
-                      ]
-                    else
-                      [
-                        "noatime"
-                        "compress=no"
-                        "space_cache=v2"
-                        "commit=300"
-                        "ssd_spread"
-                        "thread_pool=1"
-                      ];
+                  btrfsOptions = [
+                    "noatime"
+                    "compress=zstd"
+                    "space_cache=v2"
+                    "commit=300"
+                    "ssd_spread"
+                    "thread_pool=1"
+                  ];
                 in
                 {
                   "/nix" = {
@@ -74,15 +63,15 @@
                     mountpoint = "/boot";
                     mountOptions = btrfsOptions;
                   };
-                  "/swap" = {
-                    mountpoint = "/swap";
-                    mountOptions = [
-                      "noatime"
-                      "nodatacow"
-                      "commit=300"
-                      "thread_pool=1"
-                    ];
-                  };
+                  # "/swap" = {
+                  #   mountpoint = "/swap";
+                  #   mountOptions = [
+                  #     "noatime"
+                  #     "nodatacow"
+                  #     "commit=300"
+                  #     "thread_pool=1"
+                  #   ];
+                  # };
                   "/rootfs" = {
                     mountpoint = "/";
                     mountOptions = btrfsOptions;
