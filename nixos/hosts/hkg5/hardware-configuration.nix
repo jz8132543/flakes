@@ -30,19 +30,19 @@
       matchConfig.Name = "e*";
       # networkConfig.DHCP = "yes";
       address = [
-        "216.23.92.172/24"
-        "2401:2660:1:9b::a/64"
+        "216.23.94.148/24"
+        "2401:2660:2:93::a/64"
       ];
       routes = [
-        { Gateway = "216.23.92.1"; }
-        { Gateway = "2401:2660:1::1"; }
+        { Gateway = "216.23.94.1"; }
+        { Gateway = "2401:2660:2::1"; }
       ];
     };
   };
 
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)
   # Though the actual format etc is done by dd over the raw image.
-  utils.disk = "/dev/vda";
+  utils.disk = "/dev/sda";
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
   nix.gc.automatic = lib.mkForce true;
 }

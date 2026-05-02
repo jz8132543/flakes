@@ -67,12 +67,12 @@ locals {
         a = {
           proxied = false
           type    = "A"
-          value   = "216.23.92.172"
+          value   = "216.23.94.148"
         }
         aaaa = {
           proxied = false
           type    = "AAAA"
-          value   = "2401:2660:1:9b::a"
+          value   = "2401:2660:2:93::a"
         }
       }
       ddns_records = {}

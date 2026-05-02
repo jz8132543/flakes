@@ -81,18 +81,18 @@ locals {
   }
 
   service_cname_mappings = merge({
-    vault              = { on = "nue0", proxy = false }
-    ts                 = { on = "nue0", proxy = false }
-    ldap               = { on = "nue0", proxy = false }
-    sso                = { on = "nue0", proxy = false }
-    mta-sts            = { on = "nue0", proxy = false }
-    atuin              = { on = "nue0", proxy = false }
-    ntfy               = { on = "nue0", proxy = false }
-    pb                 = { on = "nue0", proxy = false }
-    ollama             = { on = "nue0", proxy = false }
-    ollama-ui          = { on = "nue0", proxy = false }
-    minio              = { on = "nue0", proxy = false }
-    minio-console      = { on = "nue0", proxy = false }
+    vault     = { on = "nue0", proxy = false }
+    ts        = { on = "nue0", proxy = false }
+    ldap      = { on = "nue0", proxy = false }
+    sso       = { on = "nue0", proxy = false }
+    mta-sts   = { on = "nue0", proxy = false }
+    atuin     = { on = "nue0", proxy = false }
+    ntfy      = { on = "nue0", proxy = false }
+    pb        = { on = "nue0", proxy = false }
+    ollama    = { on = "nue0", proxy = false }
+    ollama-ui = { on = "nue0", proxy = false }
+    # minio              = { on = "nue0", proxy = false }
+    # minio-console      = { on = "nue0", proxy = false }
     "admin.m"          = { on = "nue0", proxy = false }
     zone               = { on = "nue0", proxy = false }
     jellyfin           = { on = "nue0", proxy = false }
