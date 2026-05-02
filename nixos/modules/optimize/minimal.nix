@@ -3,6 +3,7 @@
   lib,
   self,
   pkgs,
+  modulesPath,
   ...
 }:
 let
@@ -12,6 +13,9 @@ in
 {
   imports = [
     # ./cpu.nix
+    (modulesPath + "/profiles/headless.nix")
+    (modulesPath + "/profiles/minimal.nix")
+    # (modulesPath + "/profiles/perlless.nix")
     ./disk-reliability.nix
   ];
 
