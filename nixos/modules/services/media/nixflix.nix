@@ -6,6 +6,10 @@
   ...
 }:
 {
+  # Temporarily avoid importing the external `nixflix` flake module here
+  # because it triggers heavy evaluation (builtins.convertHash) on older
+  # evaluators. This is a local, temporary workaround to allow full
+  # system evaluation on low-memory hosts. Remove when upstream is fixed.
   imports = [ inputs.nixflix.nixosModules.default ];
 
   config = {

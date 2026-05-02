@@ -157,49 +157,6 @@ resource "cloudflare_dns_record" "dora" {
 #   zone_id = cloudflare_zone.im_dora.id
 # }
 
-# matrix SRV records
-resource "cloudflare_dns_record" "_matrix_tcp" {
-  name     = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
-  type     = "SRV"
-  ttl      = 1
-  zone_id  = cloudflare_zone.im_dora.id
-  priority = 10
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 443
-    target   = "m.dora.im"
-  }
-}
-
-locals {
-  matrix_rtc_turn_hosts = [
-    "can0",
-    "nue0",
-    "sjc0",
-    "xiy0",
-    "xiy1",
-    "xiy2"
-  ]
-}
-
-resource "cloudflare_dns_record" "_turn_udp" {
-  for_each = toset(local.matrix_rtc_turn_hosts)
-
-  name     = "_turn._udp.${cloudflare_zone.im_dora.name}"
-  type     = "SRV"
-  ttl      = 1
-  zone_id  = cloudflare_zone.im_dora.id
-  priority = 10
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 3479
-    target   = "${each.key}.dora.im"
-  }
-}
-
-
 # mail
 
 resource "cloudflare_dns_record" "mail" {

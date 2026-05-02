@@ -8,24 +8,6 @@
 let
   cfg = config.environment.minimal;
   mkTop = lib.mkOverride 0;
-  rootfsBtrfsMountOptions = [
-    "noatime"
-    "compress=no"
-    "space_cache=v2"
-    "commit=30"
-    "flushoncommit"
-    "ssd_spread"
-    "thread_pool=1"
-  ];
-  minimalBtrfsMountOptions = [
-    "noatime"
-    "compress=no"
-    "space_cache=v2"
-    "commit=30"
-    "flushoncommit"
-    "ssd_spread"
-    "thread_pool=1"
-  ];
 in
 {
   imports = [
@@ -44,7 +26,6 @@ in
         info.enable = lib.mkForce false;
         nixos.enable = lib.mkForce false;
       };
-      # `nixos-install` (used by disko image builds) enters the target via
       # `/nix/var/nix/profiles/system/sw/bin/bash`. If we force all packages away,
       # that path is missing and the install fails.
       # environment.systemPackages = lib.mkForce [ pkgs.bashInteractive ];
@@ -57,13 +38,6 @@ in
       systemd.timers.btrfsBalance.enable = lib.mkForce false;
       systemd.services.btrfsBalance.enable = lib.mkForce false;
       services.easytierMesh.lowResource = true;
-      disko.devices.disk.main.content.partitions.NIXOS.content.extraArgs = lib.mkAfter [ "-M" ];
-      disko.devices.disk.main.content.partitions.NIXOS.content.subvolumes = {
-        "/rootfs".mountOptions = mkTop rootfsBtrfsMountOptions;
-        "/nix".mountOptions = mkTop minimalBtrfsMountOptions;
-        "/persist".mountOptions = mkTop minimalBtrfsMountOptions;
-        "/boot".mountOptions = mkTop minimalBtrfsMountOptions;
-      };
 
       # 3. 保留 self 注册表项，供 Flake 指标读取，其余条目仍然清空
       nix.registry = lib.mkForce {
@@ -168,7 +142,7 @@ in
         "vm.dirty_writeback_centisecs" = mkTop 1500; # 15 秒
         "vm.dirty_expire_centisecs" = mkTop 3000; # 30 秒
         # "vm.overcommit_memory" = 0;
-        "vm.overcommit_ratio" = mkTop 100; # 允许使用 100% 内存
+        "vm.overcommit_ratio" = mkTop 98; # 允许使用 100% 内存
         "vm.swappiness" = mkTop 8; # 减少 swap 使用
         "vm.min_free_kbytes" = mkTop 16384; # 保留 16MB 作为内核处理网卡中断的绝对底线
         "vm.watermark_scale_factor" = mkTop 200; # 保持高灵敏度，让系统在可用内存跌到 20MB 左右时就悄悄启动 kswapd 进行后台平滑回收，避免撞到 16MB 的死线。
