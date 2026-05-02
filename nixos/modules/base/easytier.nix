@@ -25,7 +25,7 @@ let
   easytierTraefikRule = "PathPrefix(`/`)";
 
   listenerUris = [
-    "ws://0.0.0.0:${toString cfg.protocal.ws.port}"
+    "ws://0.0.0.0:${toString cfg.protocols.ws.port}"
     # "quic://0.0.0.0:${toString cfg.protocols.quic.port}"
     "quic://[::]:${toString cfg.protocols.quic.port}"
     "faketcp://[::]:${toString cfg.protocols.faketcp.port}"
@@ -33,6 +33,7 @@ let
   ];
 
   mappedListenerUris = lib.concatMap (host: [
+    "ws://${host}:${toString cfg.protocols.ws.port}"
     "wss://${host}:${toString cfg.protocols.wss.port}"
     "quic://${host}:${toString cfg.protocols.quic.port}"
     "faketcp://${host}:${toString cfg.protocols.faketcp.port}"
@@ -366,6 +367,7 @@ in
         trustedInterfaces = [ cfg.devName ];
         allowedTCPPorts = [
           cfg.protocols.wss.port
+          cfg.protocols.ws.port
           cfg.protocols.faketcp.port
         ];
         allowedUDPPorts = [
