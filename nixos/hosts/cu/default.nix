@@ -33,7 +33,7 @@
       }
       {
         listenPort = 50562;
-        remoteAddr = "hkg4.dora.im";
+        remoteAddr = "sjc0.dora.im";
         remotePort = 443;
       }
       {
