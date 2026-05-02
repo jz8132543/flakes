@@ -35,7 +35,7 @@
 
   virtualisation.oci-containers.containers = {
     vj-save-mongodb = {
-      image = "mongo:7";
+      image = "mongo";
       extraOptions = [
         "--network=vj-save"
         "--network-alias=vj-save-mongodb"
@@ -47,7 +47,7 @@
     };
 
     vj-save = {
-      image = "ghcr.io/vjbots/vj-save-restricted-content:TechVJ";
+      image = "ghcr.io/vjbots/vj-save-restricted-content";
       extraOptions = [
         "--network=vj-save"
       ];

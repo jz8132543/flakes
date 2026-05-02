@@ -77,7 +77,7 @@
         name = "nue0";
         server = "nue0.dora.im";
         port = 443;
-        regions = [ "US" ];
+        regions = [ "EU" ];
       }
       {
         name = "nue0-kxy";
@@ -86,27 +86,15 @@
         regions = [ "EU" ];
       }
       {
-        name = "hkg4";
-        server = "hkg4.dora.im";
-        port = 443;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg4-kxy";
-        server = "cu.dora.im";
-        port = 50562;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg5";
-        server = "hkg5.dora.im";
-        port = 8555;
-        regions = [ "HK" ];
-      }
-      {
         name = "tyo0";
         server = "tyo0.dora.im";
         port = 443;
+        regions = [ "JP" ];
+      }
+      {
+        name = "tyo0-kxy";
+        server = "cu.dora.im";
+        port = 50563;
         regions = [ "JP" ];
       }
       {
@@ -116,22 +104,46 @@
         regions = [ "JP" ];
       }
       {
+        name = "tyo1-kxy";
+        server = "cu.dora.im";
+        port = 50565;
+        regions = [ "JP" ];
+      }
+      {
         name = "sjc0";
         server = "sjc0.dora.im";
         port = 443;
         regions = [ "US" ];
       }
       {
-        name = "can0-hkg5";
-        server = "can0.dora.im";
+        name = "sjc0-kxy";
+        server = "cu.dora.im";
+        port = 50562;
+        regions = [ "US" ];
+      }
+      # {
+      #   name = "can0-hkg5";
+      #   server = "can0.dora.im";
+      #   port = 8555;
+      #   regions = [ "HK" ];
+      # }
+      # {
+      #   name = "can1-hkg5";
+      #   server = "can1.dora.im";
+      #   port = 443;
+      #   regions = [ "HK" ];
+      # }
+      {
+        name = "hkg5";
+        server = "hkg5.dora.im";
         port = 8555;
         regions = [ "HK" ];
       }
       {
-        name = "can1-hkg5";
-        server = "can1.dora.im";
-        port = 443;
-        regions = [ "US" ];
+        name = "hkg5-kxy";
+        server = "cu.dora.im";
+        port = 50564;
+        regions = [ "HK" ];
       }
     ];
   };

@@ -71,7 +71,7 @@ let
     log-level = "info";
     allow-lan = true;
     bind-address = "0.0.0.0";
-    ipv6 = false;
+    ipv6 = true;
     udp = true;
     unified-delay = true;
     tcp-concurrent = true;
@@ -166,6 +166,9 @@ let
     dns = {
       enable = true;
       listen = "0.0.0.0:1053";
+      ipv6 = true;
+      prefer-ipv4 = true;
+
       enhanced-mode = "redir-host";
       default-nameserver = [
         "223.5.5.5"
