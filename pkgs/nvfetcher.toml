@@ -4,12 +4,6 @@ src.git = "https://github.com/catppuccin/kitty"
 [alacritty-catppuccin]
 fetch.github = "catppuccin/alacritty"
 src.git = "https://github.com/catppuccin/alacritty"
-[ebook-sender-bot]
-fetch.github = "qcgzxw/ebook-sender-bot"
-src.git = "https://github.com/qcgzxw/ebook-sender-bot"
-[custom-win10-fonts]
-fetch.github = "jz8132543/ttf-ms-win10"
-src.git = "https://github.com/jz8132543/ttf-ms-win10"
 [wallpaper]
 fetch.url = "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
 url.name = "wallpaper.jpg"
@@ -25,9 +19,8 @@ fetch.github = "EasyTier/EasyTier"
 fetch.url = "https://cdn.kxy.ovh/kxy.sh"
 src.manual = "V1.2"
 
-
 [rime-wanxiang-base]
-src.manual = "v15.0.3"
+src.github = "amzxyz/rime_wanxiang"
 fetch.url = "https://github.com/amzxyz/rime_wanxiang/releases/download/$ver/rime-wanxiang-base.zip"
 
 [rime-wanxiang-gram]
@@ -37,14 +30,6 @@ fetch.url = "https://github.com/amzxyz/RIME-LMDG/releases/download/$ver/wanxiang
 [fakehttp]
 src.github = "MikeWang000000/FakeHTTP"
 fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"
-
-[frp-panel-amd64]
-src.manual = "v0.1.36"
-fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-panel-linux-amd64"
-
-[frp-panel-arm64]
-src.manual = "v0.1.36"
-fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-panel-linux-arm64"
 
 [save-restricted-content-bot]
 fetch.github = "devgaganin/Save-Restricted-Content-Bot-v3"

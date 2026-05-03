@@ -25,6 +25,7 @@
       volumes = [
         "/var/lib/kindle-sender/kindle-sender.log:/app/default.log:rw"
         "/var/lib/kindle-sender/:/app/storage/:rw"
+        "${./kindle-sender-user.py}:/app/app/model/user.py:ro"
       ];
       log-driver = "journald";
     };
@@ -52,8 +53,8 @@
       SMTP_PASSWORD=${config.sops.placeholder."kindle-sender/password"}
       BOT_TOKEN=${config.sops.placeholder."kindle-sender/token"}
       DEVELOPER_CHAT_ID=${config.sops.placeholder."kindle-sender/chat-id"}
-      #DB=postgresql
-      #DB_NAME=kindle_sender
+      DB=sqlite
+      DB_NAME=storage/database.db
       #DB_HOST=${PG}
       #DB_PORT=5432
       #DB_USER=kindle_sender

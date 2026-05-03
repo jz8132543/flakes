@@ -46,7 +46,6 @@
       nur.repos.ccicnce113424.zhuque
       nur.repos.rewine.ttf-wps-fonts
       nur.repos.rewine.ttf-ms-win10
-      custom-win10-fonts
     ];
 
     # user defined fonts
