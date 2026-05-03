@@ -20,42 +20,6 @@
     },
     "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
   },
-  "custom-win10-fonts": {
-    "cargoLock": null,
-    "date": "2026-03-18",
-    "extract": null,
-    "name": "custom-win10-fonts",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "jz8132543",
-      "repo": "ttf-ms-win10",
-      "rev": "e96b88e94862845d05dc720ae496303ea5c2e002",
-      "sha256": "sha256-JkkYQ927Ssg9Xxz6ZUCa/FbZ2YQSoHMl27xYnBnWh8k=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "e96b88e94862845d05dc720ae496303ea5c2e002"
-  },
-  "devgagantools": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "devgagantools",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-0jpuAQlAB7gC1CnsjXJzmyPj5igGTBISjGB3grugJmY=",
-      "type": "url",
-      "url": "https://pypi.org/packages/source/d/devgagantools/devgagantools-4.0.1.tar.gz"
-    },
-    "version": "4.0.1"
-  },
   "easytier-latest": {
     "cargoLock": null,
     "date": null,
@@ -77,27 +41,6 @@
     },
     "version": "v2.6.3"
   },
-  "ebook-sender-bot": {
-    "cargoLock": null,
-    "date": "2024-12-28",
-    "extract": null,
-    "name": "ebook-sender-bot",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "qcgzxw",
-      "repo": "ebook-sender-bot",
-      "rev": "380de137064e0c92bbb99a38cbbeab06f425c5b1",
-      "sha256": "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
-  },
   "fakehttp": {
     "cargoLock": null,
     "date": null,
@@ -112,36 +55,6 @@
       "url": "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz"
     },
     "version": "0.9.18"
-  },
-  "frp-panel-amd64": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "frp-panel-amd64",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-fSxCn8NyDIvAOodL5y4mJBJwmrUxHx4KEIO7FiMYsdQ=",
-      "type": "url",
-      "url": "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-amd64"
-    },
-    "version": "v0.1.36"
-  },
-  "frp-panel-arm64": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "frp-panel-arm64",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=",
-      "type": "url",
-      "url": "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-arm64"
-    },
-    "version": "v0.1.36"
   },
   "kitty-catppuccin": {
     "cargoLock": null,
@@ -179,36 +92,6 @@
     },
     "version": "V1.2"
   },
-  "pymediainfo-pyrofork": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "pymediainfo-pyrofork",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-/OlALt/R+gmrp7PKxMQbp/z2gg5WG020+cGhpoxIfDY=",
-      "type": "url",
-      "url": "https://pypi.org/packages/source/p/pymediainfo_pyrofork/pymediainfo_pyrofork-6.0.2.tar.gz"
-    },
-    "version": "6.0.2"
-  },
-  "pyrofork": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "pyrofork",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-lFsw1QsxgZqQN0mCXidIrFpq8eBzv5fajFPlEP8+1Y0=",
-      "type": "url",
-      "url": "https://pypi.org/packages/source/p/pyrofork/pyrofork-2.3.69.tar.gz"
-    },
-    "version": "2.3.69"
-  },
   "realm-latest": {
     "cargoLock": null,
     "date": null,
@@ -239,11 +122,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=",
+      "sha256": "sha256-SOm9YMgYbPbv5AfMSU+m1JG8FG0gvph21CCyVpKjA0A=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.6/rime-wanxiang-base.zip"
     },
-    "version": "v15.0.3"
+    "version": "v15.9.6"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -280,36 +163,6 @@
       "type": "github"
     },
     "version": "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe"
-  },
-  "telethon-tgcrypto": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "telethon-tgcrypto",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-eaeAnKBJ3hnKSyKK6qynNCo5bY3ffQ8BsDX04t8e/N8=",
-      "type": "url",
-      "url": "https://pypi.org/packages/source/t/telethon-tgcrypto/telethon-tgcrypto-0.0.3.tar.gz"
-    },
-    "version": "0.0.3"
-  },
-  "tgcrypto": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "tgcrypto",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-m8LKxvuaEu9bCPPdUAF0/jdNibZgzOmB9X4xOFWctoI=",
-      "type": "url",
-      "url": "https://pypi.org/packages/source/T/TgCrypto/TgCrypto-1.2.5.tar.gz"
-    },
-    "version": "1.2.5"
   },
   "wallpaper": {
     "cargoLock": null,

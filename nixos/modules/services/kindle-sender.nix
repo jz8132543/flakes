@@ -25,7 +25,7 @@
       volumes = [
         "/var/lib/kindle-sender/kindle-sender.log:/app/default.log:rw"
         "/var/lib/kindle-sender/:/app/storage/:rw"
-        "${./kindle-sender-user.py}:/app/app/model/user.py:ro"
+        # "${./kindle-sender-user.py}:/app/app/model/user.py:ro"
       ];
       log-driver = "journald";
     };

@@ -16,26 +16,6 @@
     };
     date = "2024-10-28";
   };
-  custom-win10-fonts = {
-    pname = "custom-win10-fonts";
-    version = "e96b88e94862845d05dc720ae496303ea5c2e002";
-    src = fetchFromGitHub {
-      owner = "jz8132543";
-      repo = "ttf-ms-win10";
-      rev = "e96b88e94862845d05dc720ae496303ea5c2e002";
-      fetchSubmodules = false;
-      sha256 = "sha256-JkkYQ927Ssg9Xxz6ZUCa/FbZ2YQSoHMl27xYnBnWh8k=";
-    };
-    date = "2026-03-18";
-  };
-  devgagantools = {
-    pname = "devgagantools";
-    version = "4.0.1";
-    src = fetchurl {
-      url = "https://pypi.org/packages/source/d/devgagantools/devgagantools-4.0.1.tar.gz";
-      sha256 = "sha256-0jpuAQlAB7gC1CnsjXJzmyPj5igGTBISjGB3grugJmY=";
-    };
-  };
   easytier-latest = {
     pname = "easytier-latest";
     version = "v2.6.3";
@@ -47,40 +27,12 @@
       sha256 = "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=";
     };
   };
-  ebook-sender-bot = {
-    pname = "ebook-sender-bot";
-    version = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
-    src = fetchFromGitHub {
-      owner = "qcgzxw";
-      repo = "ebook-sender-bot";
-      rev = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
-      fetchSubmodules = false;
-      sha256 = "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=";
-    };
-    date = "2024-12-28";
-  };
   fakehttp = {
     pname = "fakehttp";
     version = "0.9.18";
     src = fetchurl {
       url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
-    };
-  };
-  frp-panel-amd64 = {
-    pname = "frp-panel-amd64";
-    version = "v0.1.36";
-    src = fetchurl {
-      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-amd64";
-      sha256 = "sha256-fSxCn8NyDIvAOodL5y4mJBJwmrUxHx4KEIO7FiMYsdQ=";
-    };
-  };
-  frp-panel-arm64 = {
-    pname = "frp-panel-arm64";
-    version = "v0.1.36";
-    src = fetchurl {
-      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-arm64";
-      sha256 = "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=";
     };
   };
   kitty-catppuccin = {
@@ -103,22 +55,6 @@
       sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
     };
   };
-  pymediainfo-pyrofork = {
-    pname = "pymediainfo-pyrofork";
-    version = "6.0.2";
-    src = fetchurl {
-      url = "https://pypi.org/packages/source/p/pymediainfo_pyrofork/pymediainfo_pyrofork-6.0.2.tar.gz";
-      sha256 = "sha256-/OlALt/R+gmrp7PKxMQbp/z2gg5WG020+cGhpoxIfDY=";
-    };
-  };
-  pyrofork = {
-    pname = "pyrofork";
-    version = "2.3.69";
-    src = fetchurl {
-      url = "https://pypi.org/packages/source/p/pyrofork/pyrofork-2.3.69.tar.gz";
-      sha256 = "sha256-lFsw1QsxgZqQN0mCXidIrFpq8eBzv5fajFPlEP8+1Y0=";
-    };
-  };
   realm-latest = {
     pname = "realm-latest";
     version = "v2.9.3";
@@ -132,10 +68,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.0.3";
+    version = "v15.9.6";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip";
-      sha256 = "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.6/rime-wanxiang-base.zip";
+      sha256 = "sha256-SOm9YMgYbPbv5AfMSU+m1JG8FG0gvph21CCyVpKjA0A=";
     };
   };
   rime-wanxiang-gram = {
@@ -157,22 +93,6 @@
       sha256 = "sha256-+OzPreKrP3ozr4GFSmCyHLseCgSVFh5MdLaWnDEgF6M=";
     };
     date = "2026-04-16";
-  };
-  telethon-tgcrypto = {
-    pname = "telethon-tgcrypto";
-    version = "0.0.3";
-    src = fetchurl {
-      url = "https://pypi.org/packages/source/t/telethon-tgcrypto/telethon-tgcrypto-0.0.3.tar.gz";
-      sha256 = "sha256-eaeAnKBJ3hnKSyKK6qynNCo5bY3ffQ8BsDX04t8e/N8=";
-    };
-  };
-  tgcrypto = {
-    pname = "tgcrypto";
-    version = "1.2.5";
-    src = fetchurl {
-      url = "https://pypi.org/packages/source/T/TgCrypto/TgCrypto-1.2.5.tar.gz";
-      sha256 = "sha256-m8LKxvuaEu9bCPPdUAF0/jdNibZgzOmB9X4xOFWctoI=";
-    };
   };
   wallpaper = {
     pname = "wallpaper";
