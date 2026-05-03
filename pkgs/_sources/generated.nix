@@ -28,15 +28,23 @@
     };
     date = "2026-03-18";
   };
+  devgagantools = {
+    pname = "devgagantools";
+    version = "4.0.1";
+    src = fetchurl {
+      url = "https://pypi.org/packages/source/d/devgagantools/devgagantools-4.0.1.tar.gz";
+      sha256 = "sha256-0jpuAQlAB7gC1CnsjXJzmyPj5igGTBISjGB3grugJmY=";
+    };
+  };
   easytier-latest = {
     pname = "easytier-latest";
-    version = "v2.6.2";
+    version = "v2.6.3";
     src = fetchFromGitHub {
       owner = "EasyTier";
       repo = "EasyTier";
-      rev = "v2.6.2";
+      rev = "v2.6.3";
       fetchSubmodules = false;
-      sha256 = "sha256-1eqjLw1NZbfl1ItDCtegnVsMdLXkIBXKpt/69FSACY4=";
+      sha256 = "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=";
     };
   };
   ebook-sender-bot = {
@@ -95,6 +103,22 @@
       sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
     };
   };
+  pymediainfo-pyrofork = {
+    pname = "pymediainfo-pyrofork";
+    version = "6.0.2";
+    src = fetchurl {
+      url = "https://pypi.org/packages/source/p/pymediainfo_pyrofork/pymediainfo_pyrofork-6.0.2.tar.gz";
+      sha256 = "sha256-/OlALt/R+gmrp7PKxMQbp/z2gg5WG020+cGhpoxIfDY=";
+    };
+  };
+  pyrofork = {
+    pname = "pyrofork";
+    version = "2.3.69";
+    src = fetchurl {
+      url = "https://pypi.org/packages/source/p/pyrofork/pyrofork-2.3.69.tar.gz";
+      sha256 = "sha256-lFsw1QsxgZqQN0mCXidIrFpq8eBzv5fajFPlEP8+1Y0=";
+    };
+  };
   realm-latest = {
     pname = "realm-latest";
     version = "v2.9.3";
@@ -120,6 +144,34 @@
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
       sha256 = "sha256-pouPhELO4zWYg3En4qJ/QLaLltHsAs0UxKqeY/kCzl4=";
+    };
+  };
+  save-restricted-content-bot = {
+    pname = "save-restricted-content-bot";
+    version = "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe";
+    src = fetchFromGitHub {
+      owner = "devgaganin";
+      repo = "Save-Restricted-Content-Bot-v3";
+      rev = "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe";
+      fetchSubmodules = false;
+      sha256 = "sha256-+OzPreKrP3ozr4GFSmCyHLseCgSVFh5MdLaWnDEgF6M=";
+    };
+    date = "2026-04-16";
+  };
+  telethon-tgcrypto = {
+    pname = "telethon-tgcrypto";
+    version = "0.0.3";
+    src = fetchurl {
+      url = "https://pypi.org/packages/source/t/telethon-tgcrypto/telethon-tgcrypto-0.0.3.tar.gz";
+      sha256 = "sha256-eaeAnKBJ3hnKSyKK6qynNCo5bY3ffQ8BsDX04t8e/N8=";
+    };
+  };
+  tgcrypto = {
+    pname = "tgcrypto";
+    version = "1.2.5";
+    src = fetchurl {
+      url = "https://pypi.org/packages/source/T/TgCrypto/TgCrypto-1.2.5.tar.gz";
+      sha256 = "sha256-m8LKxvuaEu9bCPPdUAF0/jdNibZgzOmB9X4xOFWctoI=";
     };
   };
   wallpaper = {

@@ -28,6 +28,6 @@ rec {
         package = import ./${name};
         source = if builtins.hasAttr name sources then sources.${name} else { };
       in
-      final.callPackage package { inherit source; }
+      final.callPackage package { inherit source sources; }
     );
 }

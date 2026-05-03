@@ -41,6 +41,21 @@
     },
     "version": "e96b88e94862845d05dc720ae496303ea5c2e002"
   },
+  "devgagantools": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "devgagantools",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-0jpuAQlAB7gC1CnsjXJzmyPj5igGTBISjGB3grugJmY=",
+      "type": "url",
+      "url": "https://pypi.org/packages/source/d/devgagantools/devgagantools-4.0.1.tar.gz"
+    },
+    "version": "4.0.1"
+  },
   "easytier-latest": {
     "cargoLock": null,
     "date": null,
@@ -55,12 +70,12 @@
       "name": null,
       "owner": "EasyTier",
       "repo": "EasyTier",
-      "rev": "v2.6.2",
-      "sha256": "sha256-1eqjLw1NZbfl1ItDCtegnVsMdLXkIBXKpt/69FSACY4=",
+      "rev": "v2.6.3",
+      "sha256": "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "v2.6.2"
+    "version": "v2.6.3"
   },
   "ebook-sender-bot": {
     "cargoLock": null,
@@ -164,6 +179,36 @@
     },
     "version": "V1.2"
   },
+  "pymediainfo-pyrofork": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "pymediainfo-pyrofork",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-/OlALt/R+gmrp7PKxMQbp/z2gg5WG020+cGhpoxIfDY=",
+      "type": "url",
+      "url": "https://pypi.org/packages/source/p/pymediainfo_pyrofork/pymediainfo_pyrofork-6.0.2.tar.gz"
+    },
+    "version": "6.0.2"
+  },
+  "pyrofork": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "pyrofork",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-lFsw1QsxgZqQN0mCXidIrFpq8eBzv5fajFPlEP8+1Y0=",
+      "type": "url",
+      "url": "https://pypi.org/packages/source/p/pyrofork/pyrofork-2.3.69.tar.gz"
+    },
+    "version": "2.3.69"
+  },
   "realm-latest": {
     "cargoLock": null,
     "date": null,
@@ -214,6 +259,57 @@
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },
     "version": "LTS"
+  },
+  "save-restricted-content-bot": {
+    "cargoLock": null,
+    "date": "2026-04-16",
+    "extract": null,
+    "name": "save-restricted-content-bot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "devgaganin",
+      "repo": "Save-Restricted-Content-Bot-v3",
+      "rev": "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe",
+      "sha256": "sha256-+OzPreKrP3ozr4GFSmCyHLseCgSVFh5MdLaWnDEgF6M=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe"
+  },
+  "telethon-tgcrypto": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "telethon-tgcrypto",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-eaeAnKBJ3hnKSyKK6qynNCo5bY3ffQ8BsDX04t8e/N8=",
+      "type": "url",
+      "url": "https://pypi.org/packages/source/t/telethon-tgcrypto/telethon-tgcrypto-0.0.3.tar.gz"
+    },
+    "version": "0.0.3"
+  },
+  "tgcrypto": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "tgcrypto",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-m8LKxvuaEu9bCPPdUAF0/jdNibZgzOmB9X4xOFWctoI=",
+      "type": "url",
+      "url": "https://pypi.org/packages/source/T/TgCrypto/TgCrypto-1.2.5.tar.gz"
+    },
+    "version": "1.2.5"
   },
   "wallpaper": {
     "cargoLock": null,

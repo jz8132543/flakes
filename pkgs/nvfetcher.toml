@@ -45,3 +45,8 @@ fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-pa
 [frp-panel-arm64]
 src.manual = "v0.1.36"
 fetch.url = "https://github.com/VaalaCat/frp-panel/releases/download/$ver/frp-panel-linux-arm64"
+
+[save-restricted-content-bot]
+fetch.github = "devgaganin/Save-Restricted-Content-Bot-v3"
+src.git = "https://github.com/devgaganin/Save-Restricted-Content-Bot-v3"
+

@@ -32,7 +32,7 @@
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
-      # (import nixosModules.services.kindle-sender { })
+      (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
@@ -43,7 +43,7 @@
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
-      nixosModules.services.vj-save
+      nixosModules.services.save-restricted-content-bot
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf

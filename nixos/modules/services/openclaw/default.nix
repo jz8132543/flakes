@@ -35,7 +35,7 @@ let
 
     channels = lib.optionalAttrs cfg.telegram.enable {
       telegram = {
-        tokenFile = config.sops.secrets."telegram/token".path;
+        tokenFile = config.sops.secrets."telegram/openclaw_token".path;
         dmPolicy = "allowlist";
         inherit (cfg.telegram) allowFrom;
         groups = {
@@ -136,6 +136,11 @@ in
     nixpkgs.overlays = [ inputs.openclaw-nix.overlays.default ];
 
     sops.secrets = {
+      "telegram/openclaw_token" = {
+        owner = "openclaw";
+        group = "openclaw";
+        mode = "0440";
+      };
       "openclaw/gateway_token" = {
         owner = "openclaw";
         group = "openclaw";

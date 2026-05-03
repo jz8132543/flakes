@@ -29,6 +29,10 @@
       log-driver = "journald";
     };
   };
+  systemd.tmpfiles.rules = [
+    "d /var/lib/kindle-sender 0755 root root -"
+    "f /var/lib/kindle-sender/kindle-sender.log 0644 root root -"
+  ];
   sops.secrets = {
     "kindle-sender/username" = { };
     "kindle-sender/password" = { };

@@ -55,7 +55,7 @@ in
     "grafana/secret_key" = {
       owner = "grafana";
     };
-    "telegram/token" = {
+    "telegram/grafana_token" = {
       owner = "tippy";
       group = "grafana";
       mode = "0440";
@@ -130,7 +130,7 @@ in
                   uid = "telegram-default";
                   type = "telegram";
                   settings = {
-                    bottoken = "$__file{${config.sops.secrets."telegram/token".path}}";
+                    bottoken = "$__file{${config.sops.secrets."telegram/grafana_token".path}}";
                     chatid = "-5282327602";
                     parse_mode = "HTML";
                   };
