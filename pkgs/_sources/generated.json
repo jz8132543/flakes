@@ -122,11 +122,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-SOm9YMgYbPbv5AfMSU+m1JG8FG0gvph21CCyVpKjA0A=",
+      "sha256": "sha256-ZSZBYxD6TwEBiG1qTc39teQ6p1yiEVxUZgeyhW867Nk=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.6/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.8/rime-wanxiang-base.zip"
     },
-    "version": "v15.9.6"
+    "version": "v15.9.8"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -145,7 +145,7 @@
   },
   "save-restricted-content-bot": {
     "cargoLock": null,
-    "date": "2026-04-16",
+    "date": "2025-11-19",
     "extract": null,
     "name": "save-restricted-content-bot",
     "passthru": null,
@@ -155,14 +155,14 @@
       "fetchSubmodules": false,
       "leaveDotGit": false,
       "name": null,
-      "owner": "devgaganin",
-      "repo": "Save-Restricted-Content-Bot-v3",
-      "rev": "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe",
-      "sha256": "sha256-+OzPreKrP3ozr4GFSmCyHLseCgSVFh5MdLaWnDEgF6M=",
+      "owner": "VJBots",
+      "repo": "VJ-Save-Restricted-Content",
+      "rev": "93129e163377f0ce292471c6f202f8eaf40106d1",
+      "sha256": "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe"
+    "version": "93129e163377f0ce292471c6f202f8eaf40106d1"
   },
   "wallpaper": {
     "cargoLock": null,

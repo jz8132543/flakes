@@ -114,6 +114,7 @@ locals {
     hydra              = { on = "nue0", proxy = false }
     cache              = { on = "nue0", proxy = false }
     sub                = { on = "nue0", proxy = false }
+    booklore           = { on = "nue0", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }

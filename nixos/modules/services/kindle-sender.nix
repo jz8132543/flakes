@@ -10,11 +10,16 @@
 {
   imports = [
     nixosModules.services.podman
+    nixosModules.services.postgres
   ];
   virtualisation.oci-containers.containers = {
     kindle-sender = {
       image = "qcgzxw/ebook-sender-bot";
-      # entrypoint = null;
+      entrypoint = "/bin/bash";
+      cmd = [
+        "-c"
+        "python3 -m pip install psycopg2-binary && sed -i 's/dbname=CONFIG/database=CONFIG/g' /app/app/config/configs.py && exec /app/docker/setup.sh"
+      ];
       # cmd = [
       #   "/bin/sh"
       #   "-c"
@@ -27,9 +32,21 @@
         "/var/lib/kindle-sender/:/app/storage/:rw"
         # "${./kindle-sender-user.py}:/app/app/model/user.py:ro"
       ];
+      extraOptions = [ "--network=host" ];
       log-driver = "journald";
     };
   };
+
+  services.postgresql = {
+    ensureDatabases = [ "kindle_sender" ];
+    ensureUsers = [
+      {
+        name = "kindle_sender";
+        ensureDBOwnership = true;
+      }
+    ];
+  };
+
   systemd.tmpfiles.rules = [
     "d /var/lib/kindle-sender 0755 root root -"
     "f /var/lib/kindle-sender/kindle-sender.log 0644 root root -"
@@ -53,12 +70,12 @@
       SMTP_PASSWORD=${config.sops.placeholder."kindle-sender/password"}
       BOT_TOKEN=${config.sops.placeholder."kindle-sender/token"}
       DEVELOPER_CHAT_ID=${config.sops.placeholder."kindle-sender/chat-id"}
-      DB=sqlite
-      DB_NAME=storage/database.db
-      #DB_HOST=${PG}
-      #DB_PORT=5432
-      #DB_USER=kindle_sender
-      #DB_PASSWORD=""
+      DB=postgresql
+      DB_NAME=kindle_sender
+      DB_HOST=${PG}
+      DB_PORT=5432
+      DB_USER=kindle_sender
+      DB_PASSWORD=""
     '';
   };
 }

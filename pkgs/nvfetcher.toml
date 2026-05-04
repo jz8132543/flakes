@@ -32,6 +32,6 @@ src.github = "MikeWang000000/FakeHTTP"
 fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"
 
 [save-restricted-content-bot]
-fetch.github = "devgaganin/Save-Restricted-Content-Bot-v3"
-src.git = "https://github.com/devgaganin/Save-Restricted-Content-Bot-v3"
+fetch.github = "VJBots/VJ-Save-Restricted-Content"
+src.git = "https://github.com/VJBots/VJ-Save-Restricted-Content"
 

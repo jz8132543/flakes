@@ -158,6 +158,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "booklore": {
+      "on": "nue0",
+      "proxy": false
+    },
     "cache": {
       "on": "nue0",
       "proxy": false

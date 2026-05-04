@@ -34,6 +34,7 @@
       # (import nixosModules.services.ebook-sender { })
       (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      nixosModules.services.booklore
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })

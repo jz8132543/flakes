@@ -68,10 +68,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.9.6";
+    version = "v15.9.8";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.6/rime-wanxiang-base.zip";
-      sha256 = "sha256-SOm9YMgYbPbv5AfMSU+m1JG8FG0gvph21CCyVpKjA0A=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.8/rime-wanxiang-base.zip";
+      sha256 = "sha256-ZSZBYxD6TwEBiG1qTc39teQ6p1yiEVxUZgeyhW867Nk=";
     };
   };
   rime-wanxiang-gram = {
@@ -84,15 +84,15 @@
   };
   save-restricted-content-bot = {
     pname = "save-restricted-content-bot";
-    version = "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe";
+    version = "93129e163377f0ce292471c6f202f8eaf40106d1";
     src = fetchFromGitHub {
-      owner = "devgaganin";
-      repo = "Save-Restricted-Content-Bot-v3";
-      rev = "c85f25741953c0850e54fc4ef9eb7f7c2b7a90fe";
+      owner = "VJBots";
+      repo = "VJ-Save-Restricted-Content";
+      rev = "93129e163377f0ce292471c6f202f8eaf40106d1";
       fetchSubmodules = false;
-      sha256 = "sha256-+OzPreKrP3ozr4GFSmCyHLseCgSVFh5MdLaWnDEgF6M=";
+      sha256 = "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=";
     };
-    date = "2026-04-16";
+    date = "2025-11-19";
   };
   wallpaper = {
     pname = "wallpaper";

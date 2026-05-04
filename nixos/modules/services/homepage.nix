@@ -371,6 +371,13 @@ in
             };
           }
           {
+            "BookLore" = {
+              href = "https://booklore.${config.networking.domain}";
+              icon = "booklore.png";
+              description = "Digital Library";
+            };
+          }
+          {
             "Linkwarden" = {
               href = "https://link.${config.networking.domain}";
               icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/linkwarden.png";
