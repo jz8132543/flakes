@@ -118,6 +118,7 @@
       easytier-udp = 11013;
       easytier-faketcp = 11014;
       easytier-quic = 444;
+      easytier-web = 11211;
       headscale = 8085;
       headscale_metrics = 8095;
       headscale_grpc = 50443;

@@ -5,6 +5,7 @@
   source,
   calibre,
   makeWrapper,
+  ...
 }:
 let
   epub_meta =

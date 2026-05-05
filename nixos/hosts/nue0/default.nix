@@ -44,6 +44,7 @@
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
+      nixosModules.services.easytier-web
       nixosModules.services.save-restricted-content-bot
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
@@ -58,6 +59,7 @@
   services.openclaw.enable = false;
   services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
+  services.easytier-web.enable = true;
 
   environment.seedbox = {
     enable = true;
