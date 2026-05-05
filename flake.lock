@@ -441,6 +441,44 @@
         "type": "github"
       }
     },
+    "grimmory-flake": {
+      "inputs": {
+        "grimmory-src": "grimmory-src",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1777319896,
+        "narHash": "sha256-wZtPqjixBprgXIAmKmhBnzklnMGfCPeHyT/DT7ZvsMQ=",
+        "owner": "dnaq",
+        "repo": "booklore-flake",
+        "rev": "de106c2d69db99bd8af7d70079ee9501588026f5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "dnaq",
+        "repo": "booklore-flake",
+        "type": "github"
+      }
+    },
+    "grimmory-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1774384606,
+        "narHash": "sha256-rMtbiEiRbwSMfELri4mHbcuP3T860/9qJWQ11L0r19Q=",
+        "owner": "grimmory-tools",
+        "repo": "grimmory",
+        "rev": "38bc5610c5f74491f70161ce2bf1354c00fa92ad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "grimmory-tools",
+        "ref": "develop",
+        "repo": "grimmory",
+        "type": "github"
+      }
+    },
     "grub2-themes": {
       "inputs": {
         "nixpkgs": [
@@ -1309,6 +1347,7 @@
         "flake-utils": "flake-utils_2",
         "flake-utils-plus": "flake-utils-plus",
         "gitignore-nix": "gitignore-nix",
+        "grimmory-flake": "grimmory-flake",
         "grub2-themes": "grub2-themes",
         "haumea": "haumea",
         "home-manager": "home-manager",

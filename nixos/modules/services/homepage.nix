@@ -371,8 +371,8 @@ in
             };
           }
           {
-            "BookLore" = {
-              href = "https://booklore.${config.networking.domain}";
+            "Grimmory" = {
+              href = "https://book.${config.networking.domain}";
               icon = "booklore.png";
               description = "Digital Library";
             };
