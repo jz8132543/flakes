@@ -8,6 +8,8 @@
   imports = [
     nixosModules.services.aria2
     nixosModules.services.podman
+    nixosModules.services.easytier-web
+    nixosModules.services.ntopng
   ];
   environment.systemPackages = with pkgs; [
     qrcp

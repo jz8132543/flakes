@@ -391,6 +391,18 @@ in
               description = "Paste Service";
             };
           }
+          {
+            "ntopng" = {
+              href = "https://${config.networking.fqdn}/ntopng";
+              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntopng.png";
+              description = "Network Traffic Analysis";
+              widget = {
+                type = "ntopng";
+                url = "https://${config.networking.fqdn}/ntopng";
+                key = "i:{{HOMEPAGE_VAR_PASSWORD}}";
+              };
+            };
+          }
         ];
       }
     ];
