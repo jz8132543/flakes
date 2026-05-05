@@ -398,7 +398,7 @@ in
               description = "Network Traffic Analysis";
               widget = {
                 type = "ntopng";
-                url = "https://${config.networking.fqdn}/ntopng";
+                url = "http://localhost:${toString config.ports.ntopng}/ntopng";
                 key = "i:{{HOMEPAGE_VAR_PASSWORD}}";
               };
             };

@@ -14,8 +14,8 @@
     interfaces = [ "any" ];
     httpPort = config.ports.ntopng;
     extraConfig = ''
-      -r=127.0.0.1:16381
-      -v=/ntopng
+      --redis=127.0.0.1:16381
+      --http-prefix=/ntopng
     '';
   };
 
@@ -30,7 +30,7 @@
     serviceConfig = {
       MemoryLimit = "2G";
       ExecStartPost = [
-        "+${pkgs.bash}/bin/bash -c '${pkgs.ntopng}/bin/ntopng -r 127.0.0.1:16381 --create-user \"i:$(cat ${config.sops.secrets.password.path}):1\"'"
+        "+${pkgs.bash}/bin/bash -c '${pkgs.ntopng}/bin/ntopng --redis 127.0.0.1:16381 --http-port 0 --interface none --create-user \"i:$(cat ${config.sops.secrets.password.path}):1\"'"
       ];
     };
   };
