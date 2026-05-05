@@ -31,10 +31,15 @@ in
       '';
     };
 
+    systemd.tmpfiles.rules = [
+      "d /var/lib/easytier-web 0755 root root -"
+    ];
+
     virtualisation.oci-containers.containers.easytier-web = {
-      image = "easytier/easytier-web:latest";
+      image = "easytier/easytier:latest";
+      entrypoint = "easytier-web-embed";
       ports = [
-        "127.0.0.1:${toString cfg.port}:11211"
+        "0.0.0.0:${toString cfg.port}:11211"
       ];
       volumes = [
         "/var/lib/easytier-web:/app"
@@ -46,17 +51,5 @@ in
         config.sops.templates."easytier-web-env".path
       ];
     };
-
-    services.traefik.proxies.easytier-web = {
-      rule = "(Host(`${config.networking.fqdn}`) || Host(`et.${config.networking.domain}`)) && (Path(`/et`) || PathPrefix(`/et/`))";
-      target = "http://127.0.0.1:${toString cfg.port}";
-      middlewares = [
-        "auth"
-        "easytier-web-stripprefix"
-      ];
-    };
-
-    services.traefik.dynamicConfigOptions.http.middlewares.easytier-web-stripprefix.stripPrefix.prefixes =
-      [ "/et" ];
   };
 }

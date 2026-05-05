@@ -147,7 +147,7 @@ in
             bind = cacheBind;
           };
         };
-        harmonia.daemon.enable = true;
+        harmonia.daemon.enable = false;
       };
     }
 

@@ -81,6 +81,8 @@ let
     "--disable-sym-hole-punching=false"
     "--disable-relay-kcp=false"
     "--proxy-forward-by-system=true"
+    # "-w udp://et.${config.networking.domain}:22020/"
+    "-w udp://127.0.0.1:22020/admin"
   ]
   ++ optionals cfg.enableExitNode [ "--enable-exit-node=true" ]
   ++ optionals (cfg.exitNode != null) [
@@ -292,6 +294,16 @@ in
     extraArgs = mkOption {
       type = types.listOf types.str;
       default = [ ];
+    };
+
+    web = {
+      enable = (mkEnableOption "EasyTier web console") // {
+        default = true;
+      };
+      port = mkOption {
+        type = types.port;
+        default = 11211;
+      };
     };
   };
 
@@ -635,6 +647,68 @@ in
           RandomizedDelaySec = "20s";
           Unit = "easytier-watchdog.service";
         };
+      };
+    })
+
+    (mkIf cfg.web.enable {
+      # Native API only service for all machines (on bootstrap, the docker one will provide the API)
+      systemd.services.easytier-web = mkIf (cfg.role != "bootstrap") {
+        description = "EasyTier Web API";
+        after = [ "network.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          ExecStart = "${config.services.easytier.package}/bin/easytier-web --api-server-port ${toString cfg.web.port}";
+          Restart = "always";
+        };
+      };
+
+      networking.firewall.allowedTCPPorts = [ cfg.web.port ];
+      networking.firewall.allowedUDPPorts = mkIf (cfg.role == "bootstrap") [ 22020 ];
+
+      # Full Web Console (UI + API) on bootstrap node
+      virtualisation.oci-containers.containers.easytier-web-embed = mkIf (cfg.role == "bootstrap") {
+        image = "easytier/easytier:latest";
+        entrypoint = "easytier-web-embed";
+        cmd = [
+          "--api-server-port"
+          (toString cfg.web.port)
+          "--api-host"
+          "http://${config.networking.hostName}.mag:11211"
+          "--config-server-port"
+          "22020"
+          "--config-server-protocol"
+          "udp"
+        ];
+        ports = [
+          "0.0.0.0:${toString cfg.web.port}:11211"
+          "0.0.0.0:22020:22020/udp"
+        ];
+        volumes = [
+          "/var/lib/easytier-web:/app"
+        ];
+        environment = {
+          ET_ADMIN_USER = "i";
+        };
+        environmentFiles = [
+          config.sops.templates."easytier-web-env".path
+        ];
+      };
+
+      sops.secrets.password = mkIf (cfg.role == "bootstrap") { };
+      sops.templates."easytier-web-env" = mkIf (cfg.role == "bootstrap") {
+        content = ''
+          ET_ADMIN_PASS=${config.sops.placeholder."password"}
+        '';
+      };
+
+      systemd.tmpfiles.rules = mkIf (cfg.role == "bootstrap") [
+        "d /var/lib/easytier-web 0755 root root -"
+      ];
+
+      services.traefik.proxies.easytier-web = mkIf (cfg.role == "bootstrap") {
+        rule = "Host(`et.${config.networking.domain}`)";
+        target = "http://127.0.0.1:${toString cfg.web.port}";
+        middlewares = [ "auth" ];
       };
     })
   ]);
