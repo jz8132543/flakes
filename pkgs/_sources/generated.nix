@@ -35,6 +35,17 @@
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
     };
   };
+  grimmory = {
+    pname = "grimmory";
+    version = "v3.0.3";
+    src = fetchFromGitHub {
+      owner = "grimmory-tools";
+      repo = "grimmory";
+      rev = "v3.0.3";
+      fetchSubmodules = false;
+      sha256 = "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=";
+    };
+  };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";
     version = "43098316202b84d6a71f71aaf8360f102f4d3f1a";
@@ -93,6 +104,18 @@
       sha256 = "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=";
     };
     date = "2025-11-19";
+  };
+  send2kindlebot = {
+    pname = "send2kindlebot";
+    version = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+    src = fetchFromGitHub {
+      owner = "gabrielrf";
+      repo = "send2kindlebot";
+      rev = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+      fetchSubmodules = false;
+      sha256 = "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=";
+    };
+    date = "2025-10-04";
   };
   wallpaper = {
     pname = "wallpaper";

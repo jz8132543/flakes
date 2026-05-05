@@ -56,6 +56,27 @@
     },
     "version": "0.9.18"
   },
+  "grimmory": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "grimmory",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "grimmory-tools",
+      "repo": "grimmory",
+      "rev": "v3.0.3",
+      "sha256": "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v3.0.3"
+  },
   "kitty-catppuccin": {
     "cargoLock": null,
     "date": "2026-01-16",
@@ -163,6 +184,27 @@
       "type": "github"
     },
     "version": "93129e163377f0ce292471c6f202f8eaf40106d1"
+  },
+  "send2kindlebot": {
+    "cargoLock": null,
+    "date": "2025-10-04",
+    "extract": null,
+    "name": "send2kindlebot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "gabrielrf",
+      "repo": "send2kindlebot",
+      "rev": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f",
+      "sha256": "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f"
   },
   "wallpaper": {
     "cargoLock": null,
