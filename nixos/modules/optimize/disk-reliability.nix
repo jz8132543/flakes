@@ -1,10 +1,6 @@
+{ config, lib, ... }:
 {
-  config,
-  lib,
-  ...
-}:
-{
-  services.btrfs.autoScrub = {
+  services.btrfs.autoScrub = lib.mkIf (config.fileSystems ? "/nix") {
     enable = lib.mkOverride 40 true;
     interval = lib.mkOverride 40 "monthly";
     fileSystems = lib.mkDefault [
