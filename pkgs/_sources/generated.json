@@ -20,27 +20,6 @@
     },
     "version": "f6cb5a5c2b404cdaceaff193b9c52317f62c62f7"
   },
-  "custom-win10-fonts": {
-    "cargoLock": null,
-    "date": "2026-03-18",
-    "extract": null,
-    "name": "custom-win10-fonts",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "jz8132543",
-      "repo": "ttf-ms-win10",
-      "rev": "e96b88e94862845d05dc720ae496303ea5c2e002",
-      "sha256": "sha256-JkkYQ927Ssg9Xxz6ZUCa/FbZ2YQSoHMl27xYnBnWh8k=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "e96b88e94862845d05dc720ae496303ea5c2e002"
-  },
   "easytier-latest": {
     "cargoLock": null,
     "date": null,
@@ -55,33 +34,12 @@
       "name": null,
       "owner": "EasyTier",
       "repo": "EasyTier",
-      "rev": "v2.6.0",
-      "sha256": "sha256-dqBIqyh1hWuO9D6IkaUjHT4sdgqJU/Ntt6q0Yc7EjLk=",
+      "rev": "v2.6.3",
+      "sha256": "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "v2.6.0"
-  },
-  "ebook-sender-bot": {
-    "cargoLock": null,
-    "date": "2024-12-28",
-    "extract": null,
-    "name": "ebook-sender-bot",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "qcgzxw",
-      "repo": "ebook-sender-bot",
-      "rev": "380de137064e0c92bbb99a38cbbeab06f425c5b1",
-      "sha256": "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "380de137064e0c92bbb99a38cbbeab06f425c5b1"
+    "version": "v2.6.3"
   },
   "fakehttp": {
     "cargoLock": null,
@@ -98,35 +56,26 @@
     },
     "version": "0.9.18"
   },
-  "frp-panel-amd64": {
+  "grimmory": {
     "cargoLock": null,
     "date": null,
     "extract": null,
-    "name": "frp-panel-amd64",
+    "name": "grimmory",
     "passthru": null,
     "pinned": false,
     "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
       "name": null,
-      "sha256": "sha256-fSxCn8NyDIvAOodL5y4mJBJwmrUxHx4KEIO7FiMYsdQ=",
-      "type": "url",
-      "url": "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-amd64"
+      "owner": "grimmory-tools",
+      "repo": "grimmory",
+      "rev": "v3.0.3",
+      "sha256": "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=",
+      "sparseCheckout": [],
+      "type": "github"
     },
-    "version": "v0.1.36"
-  },
-  "frp-panel-arm64": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "frp-panel-arm64",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "name": null,
-      "sha256": "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=",
-      "type": "url",
-      "url": "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-arm64"
-    },
-    "version": "v0.1.36"
+    "version": "v3.0.3"
   },
   "kitty-catppuccin": {
     "cargoLock": null,
@@ -194,11 +143,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=",
+      "sha256": "sha256-ISgO2BIcDq7Csxbf/sdRo5vWfuzA8KLDWCAiWX6/HFY=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.9/rime-wanxiang-base.zip"
     },
-    "version": "v15.0.3"
+    "version": "v15.9.9"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -209,11 +158,53 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-hVVcS9ei0Rb38eX61DRdRmaHXk/1rU+yvMQwkX7RyvI=",
+      "sha256": "sha256-7DNFuICsPXp+huzWa8sHYfWtXhKV2vCVG1QZu+pTf5s=",
       "type": "url",
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },
     "version": "LTS"
+  },
+  "save-restricted-content-bot": {
+    "cargoLock": null,
+    "date": "2025-11-19",
+    "extract": null,
+    "name": "save-restricted-content-bot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "VJBots",
+      "repo": "VJ-Save-Restricted-Content",
+      "rev": "93129e163377f0ce292471c6f202f8eaf40106d1",
+      "sha256": "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "93129e163377f0ce292471c6f202f8eaf40106d1"
+  },
+  "send2kindlebot": {
+    "cargoLock": null,
+    "date": "2025-10-04",
+    "extract": null,
+    "name": "send2kindlebot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "gabrielrf",
+      "repo": "send2kindlebot",
+      "rev": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f",
+      "sha256": "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f"
   },
   "wallpaper": {
     "cargoLock": null,

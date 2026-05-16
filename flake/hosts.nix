@@ -31,19 +31,22 @@ let
     }
   ];
 
-  lixModules =
-    lib.optionals (inputs.lix ? nixosModule) [ inputs.lix.nixosModule ]
-    ++ lib.optionals (inputs.lix ? nixosModules) [ inputs.lix.nixosModules.default ];
+  # lixModules =
+  # lib.optionals (inputs.lix ? nixosModule) [ inputs.lix.nixosModule ]
+  # ++ lib.optionals (inputs.lix ? nixosModules) [ inputs.lix.nixosModules.default ];
 
   commonNixosModules =
     nixosModules.base.all
     ++ commonModulePrelude
-    ++ lixModules
+    # ++ lixModules
     ++ [
       inputs.colmena.nixosModules.deploymentOptions
     ];
 
-  commonColmenaModules = nixosModules.base.all ++ commonModulePrelude ++ lixModules;
+  commonColmenaModules =
+    nixosModules.base.all
+    # ++ lixModules
+    ++ commonModulePrelude;
 
   commonHmModules =
     hmModules.base.all
@@ -60,6 +63,7 @@ let
       inputs
       self
       nixosModules
+      matrixRtcHosts
       getSystem
       ;
   };
@@ -123,6 +127,15 @@ let
     };
   };
 
+  matrixRtcHosts = [
+    "can0"
+    "nue0"
+    "sjc0"
+    "xiy0"
+    "xiy1"
+    "xiy2"
+  ];
+
   mkHostModules =
     {
       name,
@@ -139,7 +152,7 @@ let
           networking.hostName = lib.mkDefault name;
           # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
           nixpkgs.hostPlatform = system;
-          nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
+          # nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
         }
       )
     ];
@@ -190,7 +203,7 @@ let
                     ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
                   '';
                 };
-                nix.package = pkgs.lix;
+                # nix.package = pkgs.lix;
                 targets.genericLinux.enable = true;
 
                 # Mock osConfig for standalone Home Manager
@@ -224,6 +237,11 @@ in
     default = [ ];
   };
 
+  options.flake.matrixRtcHosts = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ ];
+  };
+
   options.flake.colmenaModules = lib.mkOption {
     type = lib.types.attrsOf (lib.types.listOf lib.types.unspecified);
     default = { };
@@ -235,6 +253,7 @@ in
   };
   config = {
     flake.hostNames = lib.attrNames hostDefinitions;
+    flake.matrixRtcHosts = matrixRtcHosts;
     flake.colmenaModules = colmenaModules;
     passthru = {
       inherit nixosModules hmModules;

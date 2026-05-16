@@ -1,21 +1,28 @@
 {
-  PG ? "postgres.mag",
-  ...
-}:
-{
   config,
   pkgs,
   lib,
+  matrixRtcHosts,
   nixosModules,
   ...
 }:
 let
   domain = "m.dora.im";
+  synapseClientId = "01J0YJ8F7Q8X2V6K9M4T1A3BCD";
   dbName = "matrix-authentication-service";
   dbUser = dbName;
+  databaseHost = config.services.matrix.databaseHost or "postgres.mag";
   stateDir = "/var/lib/matrix-authentication-service";
   secretsDir = "${stateDir}/secrets";
   signingKeysDir = "${secretsDir}/keys";
+  turnListeningPort = 3479;
+  turnTlsPort = 5349;
+  turnUris = lib.concatMap (hostName: [
+    "turn:${hostName}.dora.im:${toString turnListeningPort}?transport=udp"
+    "turn:${hostName}.dora.im:${toString turnListeningPort}?transport=tcp"
+    "turns:${hostName}.dora.im:${toString turnTlsPort}?transport=udp"
+    "turns:${hostName}.dora.im:${toString turnTlsPort}?transport=tcp"
+  ]) matrixRtcHosts;
   configFile = config.sops.templates."matrix-authentication-service-config".path;
 in
 {
@@ -23,9 +30,31 @@ in
     nixosModules.services.traefik
   ];
 
+  sops.secrets."matrix/turn_shared_secret" = {
+    mode = "0440";
+    owner = "matrix-synapse";
+    group = "acme";
+  };
+
+  services.matrix-synapse.settings = {
+    turn_uris = turnUris;
+    turn_user_lifetime = "1h";
+    turn_shared_secret = config.sops.placeholder."matrix/turn_shared_secret";
+  };
+
   sops.templates."matrix-authentication-service-config" = {
     owner = "matrix-authentication-service";
     content = builtins.toJSON {
+      secrets = {
+        encryption = config.sops.placeholder."matrix/mas-encryption";
+        keys = [
+          {
+            kid = "rsa";
+            key_file = "${signingKeysDir}/rsa.pem";
+          }
+        ];
+      };
+
       http = {
         public_base = "https://${domain}";
         listeners = [
@@ -57,7 +86,7 @@ in
       };
 
       database = {
-        uri = "postgresql://${dbUser}@${PG}/${dbName}";
+        uri = "postgresql://${dbUser}@${databaseHost}/${dbName}";
       };
 
       matrix = {
@@ -81,7 +110,7 @@ in
             id = "01HFVBY12TMNTYTBV8W921M5FA";
             human_name = "Keycloak";
             issuer = "https://sso.dora.im/realms/users";
-            client_id = "matrix-authentication-service";
+            client_id = "matrix";
             client_secret = config.sops.placeholder."matrix/oidc-secret";
             token_endpoint_auth_method = "client_secret_basic";
             pkce_method = "always";
@@ -103,6 +132,17 @@ in
           }
         ];
       };
+
+      clients = [
+        {
+          client_id = synapseClientId;
+          client_auth_method = "client_secret_basic";
+          client_secret = config.sops.placeholder."matrix/registration_shared_secret";
+          redirect_uris = [
+            "https://${domain}/_synapse/client/oidc/callback"
+          ];
+        }
+      ];
     };
   };
 
@@ -110,6 +150,10 @@ in
   users.users.matrix-authentication-service = {
     isSystemUser = true;
     group = "matrix-authentication-service";
+  };
+
+  sops.secrets."matrix/mas-encryption" = {
+    owner = "matrix-authentication-service";
   };
 
   systemd.tmpfiles.rules = [
@@ -159,7 +203,7 @@ in
   };
 
   services.traefik.proxies.mas = {
-    rule = "Host(`m.dora.im`) && (Path(`/.well-known/openid-configuration`) || Path(`/.well-known/webfinger`) || Path(`/.well-known/change-password`) || PathPrefix(`/account`) || PathPrefix(`/login`) || PathPrefix(`/logout`) || PathPrefix(`/register`) || PathPrefix(`/oauth2`) || PathPrefix(`/upstream`) || PathPrefix(`/recover`) || PathPrefix(`/reauth`) || PathPrefix(`/add-email`) || PathPrefix(`/verify-email`) || PathPrefix(`/change-password`) || PathPrefix(`/consent`) || PathPrefix(`/link`) || PathPrefix(`/device`) || PathPrefix(`/complete-compat-sso`) || PathPrefix(`/graphql`) || PathPrefix(`/assets`))";
+    rule = "Host(`m.dora.im`) && (Path(`/.well-known/openid-configuration`) || Path(`/.well-known/webfinger`) || Path(`/.well-known/change-password`) || PathPrefix(`/account`) || PathPrefix(`/authorize`) || PathPrefix(`/login`) || PathPrefix(`/logout`) || PathPrefix(`/register`) || PathPrefix(`/oauth2`) || PathPrefix(`/upstream`) || PathPrefix(`/recover`) || PathPrefix(`/reauth`) || PathPrefix(`/add-email`) || PathPrefix(`/verify-email`) || PathPrefix(`/change-password`) || PathPrefix(`/consent`) || PathPrefix(`/link`) || PathPrefix(`/device`) || PathPrefix(`/complete-compat-sso`) || PathPrefix(`/graphql`) || PathPrefix(`/assets`))";
     target = "http://localhost:${toString config.ports.mas}";
   };
 }

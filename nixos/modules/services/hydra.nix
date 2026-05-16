@@ -77,6 +77,7 @@ in
       users.users = {
         hydra-queue-runner.extraGroups = [ hydraGroup ];
         hydra-www.extraGroups = [ hydraGroup ];
+        harmonia.extraGroups = [ hydraGroup ];
       };
       nix.settings.secret-key-files = [ cacheSecretPath ];
       nix.settings.allowed-uris = [
@@ -146,6 +147,7 @@ in
             bind = cacheBind;
           };
         };
+        harmonia.daemon.enable = true;
       };
     }
 

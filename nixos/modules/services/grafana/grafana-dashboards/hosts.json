@@ -82,7 +82,7 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "sum((node_time_seconds{instance=\"$hosts\",job=\"hosts\"} - node_boot_time_seconds{instance=\"$hosts\",job=\"hosts\"}) OR vector(0))",
+          "expr": "sum((node_time_seconds{instance=\"$hosts\",job=\"node\"} - node_boot_time_seconds{instance=\"$hosts\",job=\"node\"}) OR vector(0))",
           "instant": false,
           "legendFormat": "Uptime",
           "range": true,
@@ -635,14 +635,14 @@
           "text": ["All"],
           "value": ["$__all"]
         },
-        "definition": "label_values(node_time_seconds{job=\"hosts\"},instance)",
+        "definition": "label_values(node_time_seconds{job=\"node\"},instance)",
         "includeAll": true,
         "multi": true,
         "name": "hosts",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(node_time_seconds{job=\"hosts\"},instance)",
+          "query": "label_values(node_time_seconds{job=\"node\"},instance)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

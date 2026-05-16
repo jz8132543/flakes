@@ -51,10 +51,6 @@ in
       wget-log.*
       /vendor
     '';
-    "nvim" = {
-      source = config.lib.file.mkOutOfStoreSymlink "/home/${baseNameOf ./.}/source/nvim";
-      recursive = true;
-    };
   };
   home.file = {
     ".config/nvim-plugins".source =
@@ -115,6 +111,11 @@ in
       in
       mkSymlink nvim-treesitter-parsers;
   };
+
+  home.activation.linkNvimConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    mkdir -p "$HOME/.config"
+    ln -sfn "${config.home.homeDirectory}/source/nvim" "$HOME/.config/nvim"
+  '';
 
   home.global-persistence = {
     directories = [

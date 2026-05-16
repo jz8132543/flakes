@@ -3,30 +3,29 @@
   ...
 }:
 {
-  imports =
-    nixosModules.cloud.all
-    ++ nixosModules.users.tippy.all
-    ++ [
-      ./hardware-configuration.nix
-      nixosModules.optimize.minimal
-      nixosModules.optimize.fakehttp
-      nixosModules.services.traefik
-      nixosModules.services.derp
-      # nixosModules.services.stun
-      ../../modules/services/matrix-rtc.nix
-      {
-        services.matrix-rtc.enable = true;
-      }
-      (import nixosModules.services.xray {
-        # needProxy = true;
-      })
-      # nixosModules.services.tuic
-      # nixosModules.services.perplexica
-      nixosModules.services.rustdesk
-      # nixosModules.media.jellyfin
-      # nixosModules.services.headscale
-      # (import nixosModules.services.alist { })
-    ];
+  imports = [
+    nixosModules.cloud.options
+  ]
+  ++ nixosModules.users.tippy.all
+  ++ [
+    ./hardware-configuration.nix
+    nixosModules.optimize.minimal
+    nixosModules.optimize.ext4
+    nixosModules.optimize.fakehttp
+    nixosModules.services.traefik
+    nixosModules.services.derp
+    # nixosModules.services.stun
+    nixosModules.matrix.matrix-rtc
+    (import nixosModules.services.xray {
+      # needProxy = true;
+    })
+    # nixosModules.services.tuic
+    # nixosModules.services.perplexica
+    nixosModules.services.rustdesk
+    # nixosModules.media.jellyfin
+    # nixosModules.services.headscale
+    # (import nixosModules.services.alist { })
+  ];
 
   environment.networkTune = {
     enable = true;

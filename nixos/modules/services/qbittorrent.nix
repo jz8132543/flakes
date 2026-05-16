@@ -124,10 +124,10 @@
         ExecStart =
           let
             script = pkgs.writeShellScript "qbit-ip-reporter.sh" ''
-              CURRENT_IP=$(${pkgs.curl}/bin/curl -s https://api.ipify.org)
+              CURRENT_IP=$(${pkgs.curl}/bin/curl -fsS --max-time 10 https://api.ipify.org || true)
               if [ -z "$CURRENT_IP" ]; then
-                echo "Failed to get public IP"
-                exit 1
+                echo "Failed to get public IP, skipping qBittorrent announce_ip update"
+                exit 0
               fi
 
               until ${pkgs.curl}/bin/curl -s "http://localhost:${toString config.ports.qbittorrent}" > /dev/null; do

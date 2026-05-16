@@ -18,9 +18,6 @@ terraform {
     htpasswd = {
       source = "loafoe/htpasswd"
     }
-    minio = {
-      source = "aminueza/minio"
-    }
     shell = {
       source = "linyinfeng/shell"
     }

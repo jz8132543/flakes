@@ -16,40 +16,16 @@
     };
     date = "2024-10-28";
   };
-  custom-win10-fonts = {
-    pname = "custom-win10-fonts";
-    version = "e96b88e94862845d05dc720ae496303ea5c2e002";
-    src = fetchFromGitHub {
-      owner = "jz8132543";
-      repo = "ttf-ms-win10";
-      rev = "e96b88e94862845d05dc720ae496303ea5c2e002";
-      fetchSubmodules = false;
-      sha256 = "sha256-JkkYQ927Ssg9Xxz6ZUCa/FbZ2YQSoHMl27xYnBnWh8k=";
-    };
-    date = "2026-03-18";
-  };
   easytier-latest = {
     pname = "easytier-latest";
-    version = "v2.6.0";
+    version = "v2.6.3";
     src = fetchFromGitHub {
       owner = "EasyTier";
       repo = "EasyTier";
-      rev = "v2.6.0";
+      rev = "v2.6.3";
       fetchSubmodules = false;
-      sha256 = "sha256-dqBIqyh1hWuO9D6IkaUjHT4sdgqJU/Ntt6q0Yc7EjLk=";
+      sha256 = "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=";
     };
-  };
-  ebook-sender-bot = {
-    pname = "ebook-sender-bot";
-    version = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
-    src = fetchFromGitHub {
-      owner = "qcgzxw";
-      repo = "ebook-sender-bot";
-      rev = "380de137064e0c92bbb99a38cbbeab06f425c5b1";
-      fetchSubmodules = false;
-      sha256 = "sha256-JXcnwwxXCc+aci4DU+YXAW2U+TMyTPBBE1vG0hon1mY=";
-    };
-    date = "2024-12-28";
   };
   fakehttp = {
     pname = "fakehttp";
@@ -59,20 +35,15 @@
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
     };
   };
-  frp-panel-amd64 = {
-    pname = "frp-panel-amd64";
-    version = "v0.1.36";
-    src = fetchurl {
-      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-amd64";
-      sha256 = "sha256-fSxCn8NyDIvAOodL5y4mJBJwmrUxHx4KEIO7FiMYsdQ=";
-    };
-  };
-  frp-panel-arm64 = {
-    pname = "frp-panel-arm64";
-    version = "v0.1.36";
-    src = fetchurl {
-      url = "https://github.com/VaalaCat/frp-panel/releases/download/v0.1.36/frp-panel-linux-arm64";
-      sha256 = "sha256-6/uMp17IJfEdJxz0jMgJ9lV2hM/7kj46ny2Rf3fAv1Q=";
+  grimmory = {
+    pname = "grimmory";
+    version = "v3.0.3";
+    src = fetchFromGitHub {
+      owner = "grimmory-tools";
+      repo = "grimmory";
+      rev = "v3.0.3";
+      fetchSubmodules = false;
+      sha256 = "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=";
     };
   };
   kitty-catppuccin = {
@@ -108,10 +79,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.0.3";
+    version = "v15.9.9";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.0.3/rime-wanxiang-base.zip";
-      sha256 = "sha256-PijBHlWVkvvf3q1G7lHhvZSqF6tEjlVluvWqMX96JCE=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.9/rime-wanxiang-base.zip";
+      sha256 = "sha256-ISgO2BIcDq7Csxbf/sdRo5vWfuzA8KLDWCAiWX6/HFY=";
     };
   };
   rime-wanxiang-gram = {
@@ -119,8 +90,32 @@
     version = "LTS";
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-hVVcS9ei0Rb38eX61DRdRmaHXk/1rU+yvMQwkX7RyvI=";
+      sha256 = "sha256-7DNFuICsPXp+huzWa8sHYfWtXhKV2vCVG1QZu+pTf5s=";
     };
+  };
+  save-restricted-content-bot = {
+    pname = "save-restricted-content-bot";
+    version = "93129e163377f0ce292471c6f202f8eaf40106d1";
+    src = fetchFromGitHub {
+      owner = "VJBots";
+      repo = "VJ-Save-Restricted-Content";
+      rev = "93129e163377f0ce292471c6f202f8eaf40106d1";
+      fetchSubmodules = false;
+      sha256 = "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=";
+    };
+    date = "2025-11-19";
+  };
+  send2kindlebot = {
+    pname = "send2kindlebot";
+    version = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+    src = fetchFromGitHub {
+      owner = "gabrielrf";
+      repo = "send2kindlebot";
+      rev = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+      fetchSubmodules = false;
+      sha256 = "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=";
+    };
+    date = "2025-10-04";
   };
   wallpaper = {
     pname = "wallpaper";

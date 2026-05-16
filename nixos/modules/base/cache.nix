@@ -9,6 +9,7 @@
       "https://nix-community.cachix.org"
       "https://surface.cachix.org"
       "https://cache.dora.im"
+      "https://cache.garnix.io"
     ];
     max-substitution-jobs = 128;
     http-connections = 128;
@@ -18,6 +19,7 @@
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
       "surface.cachix.org-1:7Oto7CH99nJ40NI6I7Fz6YVfH46R0yUvXJvM56Y0lW4="
       "cache.dora.im:nKFQ0OlJFn2vgvnFkP2yps+ju5NypzeojrmbHEGzZ64="
+      "cache.garnix.io:CTFPyKSLcx5RMJKfLo5EEPUObbA78b0YQ2DTCJXqr9g="
     ];
   };
 }

@@ -1,5 +1,5 @@
 {
-  self,
+  config,
   lib,
   ...
 }:
@@ -13,7 +13,7 @@ let
       "${system}"."nixos/${name}" = cfg.config.system.build.toplevel;
     };
   hostToplevels = lib.foldr lib.recursiveUpdate { } (
-    lib.mapAttrsToList getHostToplevel self.nixosConfigurations
+    lib.mapAttrsToList getHostToplevel config.flake.nixosConfigurations
   );
 in
 {

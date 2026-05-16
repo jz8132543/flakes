@@ -12,7 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.services.matrix-rtc
+      nixosModules.matrix.matrix-rtc
       # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
@@ -21,8 +21,6 @@
       nixosModules.services.kernel-relay
       nixosModules.optimize.fakehttp
     ];
-
-  services.matrix-rtc.enable = true;
 
   services.kernel-relay = {
     enable = true;

@@ -27,6 +27,14 @@ in
   };
   users.groups.homepage-machine = { };
 
+  sops.secrets = {
+    "media/sonarr_api_key" = { };
+    "media/radarr_api_key" = { };
+    "media/prowlarr_api_key" = { };
+    "media/lidarr_api_key" = { };
+    "media/jellyseerr_api_key" = { };
+  };
+
   # Use a manual systemd service because the homepage-machine module only supports one instance
   systemd.services.homepage-machine = {
     after = [ "network.target" ];

@@ -30,6 +30,9 @@
         "/data/.state/iyuu:/iyuu"
         "/data/downloads/torrents:/data/downloads/torrents"
       ];
+      ports = [
+        "127.0.0.1:8777:8777"
+      ];
       environment = {
         TZ = "Asia/Shanghai";
         IYUU_ADMIN_USER = "i";
@@ -38,7 +41,6 @@
         config.sops.templates."iyuu-env".path
         config.sops.secrets.password.path
       ];
-      extraOptions = [ "--network=host" ];
     };
 
     services.nginx.virtualHosts.localhost.locations."/iyuu/" = {

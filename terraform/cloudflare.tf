@@ -91,8 +91,6 @@ locals {
     pb                 = { on = "nue0", proxy = false }
     ollama             = { on = "nue0", proxy = false }
     ollama-ui          = { on = "nue0", proxy = false }
-    minio              = { on = "nue0", proxy = false }
-    minio-console      = { on = "nue0", proxy = false }
     "admin.m"          = { on = "nue0", proxy = false }
     zone               = { on = "nue0", proxy = false }
     jellyfin           = { on = "nue0", proxy = false }
@@ -114,7 +112,9 @@ locals {
     ai                 = { on = "nue0", proxy = false }
     et                 = { on = "nue0", proxy = false }
     hydra              = { on = "nue0", proxy = false }
+    cache              = { on = "nue0", proxy = false }
     sub                = { on = "nue0", proxy = false }
+    book               = { on = "nue0", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
@@ -156,36 +156,6 @@ resource "cloudflare_dns_record" "dora" {
 #   content = module.b2_download_url.host
 #   zone_id = cloudflare_zone.im_dora.id
 # }
-
-# matrix SRV records
-resource "cloudflare_dns_record" "_matrix_tcp" {
-  name     = "_matrix._tcp.${cloudflare_zone.im_dora.name}"
-  type     = "SRV"
-  ttl      = 1
-  zone_id  = cloudflare_zone.im_dora.id
-  priority = 10
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 443
-    target   = "m.dora.im"
-  }
-}
-
-resource "cloudflare_dns_record" "_turn_udp" {
-  name     = "_turn._udp.${cloudflare_zone.im_dora.name}"
-  type     = "SRV"
-  ttl      = 1
-  zone_id  = cloudflare_zone.im_dora.id
-  priority = 10
-  data = {
-    priority = 10
-    weight   = 5
-    port     = 3478
-    target   = "nue0.dora.im"
-  }
-}
-
 
 # mail
 

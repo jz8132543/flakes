@@ -2,6 +2,7 @@
   config,
   inputs,
   lib,
+  self,
   ...
 }:
 let
@@ -19,6 +20,12 @@ in
     };
   };
   config = {
+    nixpkgs.overlays = lib.mkDefault (
+      import ../lib/overlays.nix {
+        inherit inputs lib self;
+      }
+    );
+
     perSystem =
       { system, ... }:
       {

@@ -30,6 +30,7 @@ in
       nixpkgs = import inputs.nixpkgs { localSystem = "x86_64-linux"; };
       specialArgs = {
         inherit inputs self;
+        inherit (config.flake) matrixRtcHosts;
         inherit nixosModules;
       };
     };

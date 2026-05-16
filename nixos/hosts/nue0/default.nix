@@ -10,17 +10,10 @@
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
-      nixosModules.services.doraim
-      ../../modules/services/matrix-rtc.nix
-      {
-        services.matrix-rtc.enable = true;
-      }
       nixosModules.services.headscale
       # nixosModules.services.derp
-      nixosModules.services.stun
       nixosModules.services.postgres
-      nixosModules.services.minio
-      nixosModules.services.doraim
+      # nixosModules.services.minio
       nixosModules.services.ntfy
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
@@ -39,18 +32,20 @@
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
-      # (import nixosModules.services.kindle-sender { })
+      (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      nixosModules.services.grimmory
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { })
       # (import nixosModules.services.nextcloud { })
       (import nixosModules.services.mastodon { })
-      (import nixosModules.services.matrix { })
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
+      # nixosModules.services.easytier-web
+      nixosModules.services.save-restricted-content-bot
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf
@@ -58,11 +53,13 @@
       nixosModules.services.grafana.default
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
-    ];
+    ]
+    ++ nixosModules.matrix.all;
 
   services.openclaw.enable = false;
   services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
+  services.easytierMesh.web.enable = true;
 
   environment.seedbox = {
     enable = true;
@@ -83,7 +80,7 @@
         name = "nue0";
         server = "nue0.dora.im";
         port = 443;
-        regions = [ "US" ];
+        regions = [ "EU" ];
       }
       {
         name = "nue0-kxy";
@@ -92,27 +89,15 @@
         regions = [ "EU" ];
       }
       {
-        name = "hkg4";
-        server = "hkg4.dora.im";
-        port = 443;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg4-kxy";
-        server = "cu.dora.im";
-        port = 50562;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg5";
-        server = "hkg5.dora.im";
-        port = 8555;
-        regions = [ "HK" ];
-      }
-      {
         name = "tyo0";
         server = "tyo0.dora.im";
         port = 443;
+        regions = [ "JP" ];
+      }
+      {
+        name = "tyo0-kxy";
+        server = "cu.dora.im";
+        port = 50563;
         regions = [ "JP" ];
       }
       {
@@ -122,22 +107,46 @@
         regions = [ "JP" ];
       }
       {
+        name = "tyo1-kxy";
+        server = "cu.dora.im";
+        port = 50565;
+        regions = [ "JP" ];
+      }
+      {
         name = "sjc0";
         server = "sjc0.dora.im";
         port = 443;
         regions = [ "US" ];
       }
       {
-        name = "can0-hkg5";
-        server = "can0.dora.im";
+        name = "sjc0-kxy";
+        server = "cu.dora.im";
+        port = 50562;
+        regions = [ "US" ];
+      }
+      # {
+      #   name = "can0-hkg5";
+      #   server = "can0.dora.im";
+      #   port = 8555;
+      #   regions = [ "HK" ];
+      # }
+      # {
+      #   name = "can1-hkg5";
+      #   server = "can1.dora.im";
+      #   port = 443;
+      #   regions = [ "HK" ];
+      # }
+      {
+        name = "hkg5";
+        server = "hkg5.dora.im";
         port = 8555;
         regions = [ "HK" ];
       }
       {
-        name = "can1-hkg5";
-        server = "can1.dora.im";
-        port = 443;
-        regions = [ "US" ];
+        name = "hkg5-kxy";
+        server = "cu.dora.im";
+        port = 50564;
+        regions = [ "HK" ];
       }
     ];
   };

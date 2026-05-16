@@ -10,12 +10,10 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.fakehttp
-      nixosModules.services.matrix-rtc
+      nixosModules.matrix.matrix-rtc
       (import nixosModules.services.xray {
       })
     ];
-
-  services.matrix-rtc.enable = true;
 
   environment.networkTune = {
     enable = true;

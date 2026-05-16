@@ -371,6 +371,13 @@ in
             };
           }
           {
+            "Grimmory" = {
+              href = "https://book.${config.networking.domain}";
+              icon = "booklore.png";
+              description = "Digital Library";
+            };
+          }
+          {
             "Linkwarden" = {
               href = "https://link.${config.networking.domain}";
               icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/linkwarden.png";
@@ -382,6 +389,18 @@ in
               href = "https://pb.${config.networking.domain}";
               icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/microbin.png";
               description = "Paste Service";
+            };
+          }
+          {
+            "ntopng" = {
+              href = "https://${config.networking.fqdn}/ntopng";
+              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntopng.png";
+              description = "Network Traffic Analysis";
+              widget = {
+                type = "ntopng";
+                url = "http://localhost:${toString config.ports.ntopng}/ntopng";
+                key = "i:{{HOMEPAGE_VAR_PASSWORD}}";
+              };
             };
           }
         ];

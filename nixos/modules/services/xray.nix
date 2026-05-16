@@ -4,6 +4,8 @@
   proxyHosts ? [
     "nue0.dora.im"
     "tyo0.dora.im"
+    "tyo1.dora.im"
+    "sjc0.dora.im"
   ],
   serverName ? "gateway.icloud.com",
   ss ? false,
