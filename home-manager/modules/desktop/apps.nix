@@ -1,14 +1,13 @@
 {
-  config,
   lib,
   pkgs,
   ...
 }:
 let
   wpsTemplateRoot = ../../../conf/wps;
-  writerTemplate = wpsTemplateRoot + "/newfile.docx";
-  sheetTemplate = wpsTemplateRoot + "/newfile.xlsx";
-  slidesTemplate = wpsTemplateRoot + "/newfile.pptx";
+  writerTemplate = wpsTemplateRoot + "/Normal.dotm";
+  sheetTemplate = wpsTemplateRoot + "/Normal.xltx";
+  slidesTemplate = wpsTemplateRoot + "/Normal.pot";
 in
 {
   home.packages = with pkgs; [
@@ -16,7 +15,7 @@ in
     ffmpeg
     thunderbird
     kdePackages.okular
-    nur.repos.fym998.wpsoffice-cn-fcitx
+    # nur.repos.fym998.wpsoffice-cn-fcitx
     # nur.repos.xddxdd.baidupcs-go
     # nur.repos.xddxdd.wechat-uos
     remmina
@@ -33,7 +32,7 @@ in
     teamspeak6-client
     mumble
     jellyfin-desktop
-    wechat-uos
+    wechat
     google-antigravity
     google-chrome
     code-cursor
@@ -146,13 +145,15 @@ in
       network-traffic = true;
     };
   };
-  home.activation.wpsOfficeConf =
-    let
-      officeConf = pkgs.writeText "wps-office.conf" ''
+
+  home.file = lib.mkMerge [
+    {
+      ".config/Kingsoft/Office.conf".source = pkgs.writeText "wps-office.conf" ''
         [6.0]
         FirstInstall=0
         common\AcceptedEULA=true
         common\newInstall=false
+        wpsoffice\Application%20Settings\UpdateRecoverCheckTag=false
 
         [kdcsdk]
         NotFirstOpen=true
@@ -168,137 +169,56 @@ in
         agree_privacy_policy=true
         agreeEULA=true
       '';
-    in
-    lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-      mkdir -p "$HOME/.config/Kingsoft"
-      conf="$HOME/.config/Kingsoft/Office.conf"
-
-      if [ ! -f "$conf" ]; then
-        cp -f ${officeConf} "$conf"
-        chmod 0644 "$conf"
-      fi
-
-      upsert_ini_key() {
-        section="$1"
-        key="$2"
-        value="$3"
-        tmp="$(mktemp)"
-
-        ${pkgs.gawk}/bin/awk -v section="$section" -v key="$key" -v value="$value" '
-          BEGIN {
-            in_section = 0
-            section_found = 0
-            key_done = 0
-          }
-
-          /^\[[^]]+\]$/ {
-            if (in_section && !key_done) {
-              print key "=" value
-              key_done = 1
-            }
-
-            if ($0 == "[" section "]") {
-              in_section = 1
-              section_found = 1
-            } else {
-              in_section = 0
-            }
-
-            print
-            next
-          }
-
-          {
-            if (in_section && index($0, key "=") == 1) {
-              if (!key_done) {
-                print key "=" value
-                key_done = 1
-              }
-              next
-            }
-            print
-          }
-
-          END {
-            if (!key_done) {
-              if (!section_found) {
-                print "[" section "]"
-              }
-              print key "=" value
-            }
-          }
-        ' "$conf" > "$tmp"
-
-        mv "$tmp" "$conf"
-      }
-
-      upsert_ini_key "6.0" "FirstInstall" "0"
-      upsert_ini_key "6.0" "common\\AcceptedEULA" "true"
-      upsert_ini_key "6.0" "common\\newInstall" "false"
-      upsert_ini_key "kdcsdk" "NotFirstOpen" "true"
-      upsert_ini_key "General" "language" "zh_CN"
-      upsert_ini_key "General" "languages" "zh_CN"
-      upsert_ini_key "common" "first_run" "false"
-      upsert_ini_key "common" "first_detect_file_association_while_startup" "false"
-      upsert_ini_key "common" "agreementshown" "true"
-      upsert_ini_key "common" "agree_privacy_policy" "true"
-      upsert_ini_key "common" "agreeEULA" "true"
-      upsert_ini_key "6.0" "wps\\Application%20Settings\\UserTemplatePath" "$HOME/.local/share/Kingsoft/office6/templates/wps/en_US"
-      upsert_ini_key "6.0" "wps\\Application%20Settings\\DefaultTemplateFile" "$HOME/.local/share/Kingsoft/office6/templates/wps/en_US/newfile.docx"
-
-      chmod 0644 "$conf"
-    '';
-
-  home.file = lib.mkMerge [
+    }
     (lib.optionalAttrs (builtins.pathExists writerTemplate) {
-      ".local/share/Kingsoft/office6/templates/wps/en_US/newfile.docx".source = writerTemplate;
+      ".local/share/Kingsoft/office6/templates/wps/en_US/Normal.dotm".source = writerTemplate;
     })
     (lib.optionalAttrs (builtins.pathExists sheetTemplate) {
-      ".local/share/Kingsoft/office6/templates/et/en_US/newfile.xlsx".source = sheetTemplate;
+      ".local/share/Kingsoft/office6/templates/et/en_US/Normal.xltx".source = sheetTemplate;
     })
     (lib.optionalAttrs (builtins.pathExists slidesTemplate) {
-      ".local/share/Kingsoft/office6/templates/wpp/en_US/newfile.pptx".source = slidesTemplate;
+      ".local/share/Kingsoft/office6/templates/wpp/en_US/Normal.pot".source = slidesTemplate;
     })
   ];
 
-  xdg.dataFile = lib.mkMerge [
-    (lib.optionalAttrs (builtins.pathExists writerTemplate) {
-      "templates/wps-office-wps-template.desktop".text = ''
-        [Desktop Entry]
-        Name=WPS Writer...
-        Name[zh_CN]=WPS文字文档
-        Comment=Enter WPS filename:
-        Comment[zh_CN]=请输入WPS文字文档名称：
-        Type=Link
-        URL=${config.home.homeDirectory}/.local/share/Kingsoft/office6/templates/wps/en_US/newfile.docx
-        Icon=wps-office2023-wpsmain
-      '';
-    })
-    (lib.optionalAttrs (builtins.pathExists sheetTemplate) {
-      "templates/wps-office-et-template.desktop".text = ''
-        [Desktop Entry]
-        Name=WPS Spreadsheets
-        Name[zh_CN]=WPS表格工作表
-        Comment=Enter WPS filename:
-        Comment[zh_CN]=请输入WPS表格工作表名称：
-        Type=Link
-        URL=${config.home.homeDirectory}/.local/share/Kingsoft/office6/templates/et/en_US/newfile.xlsx
-        Icon=wps-office2023-etmain
-      '';
-    })
-    (lib.optionalAttrs (builtins.pathExists slidesTemplate) {
-      "templates/wps-office-wpp-template.desktop".text = ''
-        [Desktop Entry]
-        Name=WPS Presentation
-        Name[zh_CN]=WPS演示文稿
-        Comment=Enter WPS filename:
-        Comment[zh_CN]=请输入WPS演示文档名称：
-        Type=Link
-        URL=${config.home.homeDirectory}/.local/share/Kingsoft/office6/templates/wpp/en_US/newfile.pptx
-        Icon=wps-office2023-wppmain
-      '';
-    })
-  ];
+  xdg.desktopEntries = {
+    wps-writer = {
+      name = "WPS 文字";
+      genericName = "WPS Writer";
+      comment = "Open WPS Writer";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
+      icon = "wps-office2023-wpsmain";
+      terminal = false;
+      categories = [
+        "Office"
+        "WordProcessor"
+      ];
+    };
+    wps-spreadsheet = {
+      name = "WPS 表格";
+      genericName = "WPS Spreadsheets";
+      comment = "Open WPS Spreadsheets";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
+      icon = "wps-office2023-etmain";
+      terminal = false;
+      categories = [
+        "Office"
+        "Spreadsheet"
+      ];
+    };
+    wps-presentation = {
+      name = "WPS 演示";
+      genericName = "WPS Presentation";
+      comment = "Open WPS Presentation";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
+      icon = "wps-office2023-wppmain";
+      terminal = false;
+      categories = [
+        "Office"
+        "Presentation"
+      ];
+    };
+  };
 
   # Set Chrome environment variables for Playwright/browser integration
   home.sessionVariables = {

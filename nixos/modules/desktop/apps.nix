@@ -12,6 +12,7 @@
   environment.systemPackages = with pkgs; [
     qrcp
     android-tools
+    wpsoffice-cn
     # mihomo-party
   ];
   environment.shellAliases = {

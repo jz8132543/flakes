@@ -19,6 +19,8 @@
       options = "--delete-older-than 7d";
     };
     settings = {
+      connect-timeout = 5;
+      stalled-download-timeout = 30;
       allow-import-from-derivation = true;
       accept-flake-config = true;
       nix-path = [
