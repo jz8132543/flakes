@@ -79,6 +79,23 @@ in
         },
         "clients": [
           {
+            "clientId": "memos",
+            "name": "Memos",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."memos/oidc_client_secret"}",
+            "redirectUris": [
+              "https://memos.dora.im/auth/callback"
+            ],
+            "webOrigins": [
+              "https://memos.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false
+          },
+          {
             "clientId": "jellyfin",
             "name": "Jellyfin Media Server",
             "enabled": true,
@@ -125,6 +142,7 @@ in
     DS_DM_PASSWORD=${config.sops.placeholder."password"}
   '';
   sops.secrets = {
+    "memos/oidc_client_secret" = { };
     "mail/services" = { };
     "jellyfin/oidc_client_secret" = { };
     "password" = {

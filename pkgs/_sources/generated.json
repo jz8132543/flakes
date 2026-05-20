@@ -34,12 +34,12 @@
       "name": null,
       "owner": "EasyTier",
       "repo": "EasyTier",
-      "rev": "v2.6.3",
-      "sha256": "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=",
+      "rev": "v2.6.4",
+      "sha256": "sha256-lwqpOVKFm85AiBb7NWLAkjSrWSe5pzF0AuEmmDo+v0k=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "v2.6.3"
+    "version": "v2.6.4"
   },
   "fakehttp": {
     "cargoLock": null,
@@ -55,27 +55,6 @@
       "url": "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz"
     },
     "version": "0.9.18"
-  },
-  "grimmory": {
-    "cargoLock": null,
-    "date": null,
-    "extract": null,
-    "name": "grimmory",
-    "passthru": null,
-    "pinned": false,
-    "src": {
-      "deepClone": false,
-      "fetchSubmodules": false,
-      "leaveDotGit": false,
-      "name": null,
-      "owner": "grimmory-tools",
-      "repo": "grimmory",
-      "rev": "v3.0.3",
-      "sha256": "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=",
-      "sparseCheckout": [],
-      "type": "github"
-    },
-    "version": "v3.0.3"
   },
   "kitty-catppuccin": {
     "cargoLock": null,
@@ -143,11 +122,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-ISgO2BIcDq7Csxbf/sdRo5vWfuzA8KLDWCAiWX6/HFY=",
+      "sha256": "sha256-f01m5aIvYO5LKaAtjFX4wFM0FnD93W1Y523GYwJwQiU=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.9/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.10.4/rime-wanxiang-base.zip"
     },
-    "version": "v15.9.9"
+    "version": "v15.10.4"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -158,7 +137,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-7DNFuICsPXp+huzWa8sHYfWtXhKV2vCVG1QZu+pTf5s=",
+      "sha256": "sha256-PjXoCytXaKTwhhNSL/kI2u+ydr1p+XaeAKLApANtJ6U=",
       "type": "url",
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },

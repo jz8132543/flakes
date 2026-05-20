@@ -32,6 +32,7 @@
   };
 
   services.traefik.proxies.derp = {
+    # rule = "Host(`${config.networking.fqdn}`) || Host(`ts.${config.networking.domain}`)";
     rule = "Host(`${config.networking.fqdn}`)";
     target = "http://localhost:${toString config.ports.derp}";
   };

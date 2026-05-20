@@ -18,13 +18,13 @@
   };
   easytier-latest = {
     pname = "easytier-latest";
-    version = "v2.6.3";
+    version = "v2.6.4";
     src = fetchFromGitHub {
       owner = "EasyTier";
       repo = "EasyTier";
-      rev = "v2.6.3";
+      rev = "v2.6.4";
       fetchSubmodules = false;
-      sha256 = "sha256-hkzpztxg3hU57oCm2zL3U8BUyZrUkhOa3oGwcQngzE8=";
+      sha256 = "sha256-lwqpOVKFm85AiBb7NWLAkjSrWSe5pzF0AuEmmDo+v0k=";
     };
   };
   fakehttp = {
@@ -33,17 +33,6 @@
     src = fetchurl {
       url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
-    };
-  };
-  grimmory = {
-    pname = "grimmory";
-    version = "v3.0.3";
-    src = fetchFromGitHub {
-      owner = "grimmory-tools";
-      repo = "grimmory";
-      rev = "v3.0.3";
-      fetchSubmodules = false;
-      sha256 = "sha256-dWZcCX0Tp+yPp+4vBERYEwu+rysCzJ9QfMQhD65t1vQ=";
     };
   };
   kitty-catppuccin = {
@@ -79,10 +68,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.9.9";
+    version = "v15.10.4";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.9.9/rime-wanxiang-base.zip";
-      sha256 = "sha256-ISgO2BIcDq7Csxbf/sdRo5vWfuzA8KLDWCAiWX6/HFY=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.10.4/rime-wanxiang-base.zip";
+      sha256 = "sha256-f01m5aIvYO5LKaAtjFX4wFM0FnD93W1Y523GYwJwQiU=";
     };
   };
   rime-wanxiang-gram = {
@@ -90,7 +79,7 @@
     version = "LTS";
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-7DNFuICsPXp+huzWa8sHYfWtXhKV2vCVG1QZu+pTf5s=";
+      sha256 = "sha256-PjXoCytXaKTwhhNSL/kI2u+ydr1p+XaeAKLApANtJ6U=";
     };
   };
   save-restricted-content-bot = {

@@ -12,6 +12,11 @@ locals {
           type    = "AAAA"
           value   = "2a03:4000:4f:92d::"
         }
+        memos = {
+          proxied = false
+          type    = "CNAME"
+          value   = "nue0.dora.im"
+        }
       }
       ddns_records = {}
       host_indices = [3]
@@ -130,20 +135,20 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
-    can1 = {
-      records      = {}
-      ddns_records = {}
-      host_indices = [12]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
-    can2 = {
-      records      = {}
-      ddns_records = {}
-      host_indices = [13]
-      endpoints_v4 = []
-      endpoints_v6 = []
-    }
+    # can1 = {
+    #   records      = {}
+    #   ddns_records = {}
+    #   host_indices = [12]
+    #   endpoints_v4 = []
+    #   endpoints_v6 = []
+    # }
+    # can2 = {
+    #   records      = {}
+    #   ddns_records = {}
+    #   host_indices = [13]
+    #   endpoints_v4 = []
+    #   endpoints_v6 = []
+    # }
     sjc0 = {
       records = {
         a = {

@@ -29,6 +29,7 @@
       nixosModules.services.openclaw.default
       nixosModules.services.litellm.default
       inputs.openclaw-nix.nixosModules.openclaw-gateway
+      nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })

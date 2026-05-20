@@ -27,6 +27,7 @@ in
     man-pages-posix
     # APPS
     logseq
+    obsidian
     zotero
     libreoffice
     teamspeak6-client
@@ -235,6 +236,8 @@ in
       ".config/Element"
       ".logseq"
       ".config/Logseq"
+      ".config/obsidian"
+      ".local/share/obsidian"
       "Zotero"
       ".zotero"
       # google ai editor (antigravity)

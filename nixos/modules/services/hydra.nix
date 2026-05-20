@@ -77,8 +77,13 @@ in
       users.users = {
         hydra-queue-runner.extraGroups = [ hydraGroup ];
         hydra-www.extraGroups = [ hydraGroup ];
-        harmonia.extraGroups = [ hydraGroup ];
+        harmonia = {
+          isSystemUser = true;
+          group = "harmonia";
+          extraGroups = [ hydraGroup ];
+        };
       };
+      users.groups.harmonia = { };
       nix.settings.secret-key-files = [ cacheSecretPath ];
       nix.settings.allowed-uris = [
         "http://"

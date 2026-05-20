@@ -157,6 +157,7 @@
       moviepilot = 3201;
       cookiecloud = 8088;
       linkwarden = 3300;
+      memos = 5230;
       mysql = 3306;
       seedboxProxyPort = 50080;
       tdarr-server = 8266;
