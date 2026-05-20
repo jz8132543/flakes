@@ -34,6 +34,10 @@ in
           options = {
             localPath = mkOption { type = types.path; };
             remotePath = mkOption { type = types.str; };
+            remotePaths = mkOption {
+              type = types.listOf types.str;
+              default = [ ];
+            };
             realtime = mkOption {
               type = types.bool;
               default = true;
@@ -100,35 +104,51 @@ in
         IOSchedulingPriority = 7;
         MemoryMax = "2G"; # 防止内存泄漏影响系统
 
-        ExecStartPre = mapAttrsToList (
-          _name: task: "-${pkgs.rclone}/bin/rclone mkdir ${task.remotePath}"
-        ) cfg.tasks;
+        ExecStartPre = flatten (
+          mapAttrsToList (
+            _name: task:
+            let
+              remotePaths = if task.remotePaths == [ ] then [ task.remotePath ] else task.remotePaths;
+            in
+            map (remotePath: "-${pkgs.rclone}/bin/rclone mkdir ${remotePath}") remotePaths
+          ) cfg.tasks
+        );
         # 智能同步脚本：自动处理首次运行的 --resync
         ExecStart = pkgs.writeShellScript "rclone-sync-smart" (
           concatStringsSep "\n" (
-            mapAttrsToList (name: task: ''
-              echo "--- Checking task: ${name} ---"
+            mapAttrsToList (
+              name: task:
+              let
+                remotePaths = if task.remotePaths == [ ] then [ task.remotePath ] else task.remotePaths;
+              in
+              ''
+                echo "--- Checking task: ${name} ---"
 
-              # 检查 bisync 数据库是否存在。通常位于缓存目录下的 bisync 子目录
-              # 数据库文件名通常包含本地路径和远程路径的特征，我们通过查找任务名来匹配
-              DB_EXISTS=$(find ${rcloneCacheDir}/bisync -name "*${name}*" 2>/dev/null | wc -l || echo 0)
+                  REMOTE_PATHS="${concatStringsSep " " remotePaths}"
 
-              if [ "$DB_EXISTS" -eq "0" ]; then
-                echo "[First Run] No database found for '${name}'. Initializing with --resync..."
-                ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
-                  --filter-from ${filterPath} \
-                  --checksum --resilient --recover --modify-window=1s \
-                  --resync --force \
-                  --transfers 2 --checkers 4 --use-mmap --quiet
-              else
-                echo "[Routine] Running incremental bisync for '${name}'..."
-                ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "${task.remotePath}" \
-                  --filter-from ${filterPath} \
-                  --checksum --resilient --recover --modify-window=1s \
-                  --conflict-resolve newer --force \
-                  --transfers 2 --checkers 4 --use-mmap --tpslimit 5 --quiet
-              fi
-            '') cfg.tasks
+                # 检查 bisync 数据库是否存在。通常位于缓存目录下的 bisync 子目录
+                # 数据库文件名通常包含本地路径和远程路径的特征，我们通过查找任务名来匹配
+                DB_EXISTS=$(find ${rcloneCacheDir}/bisync -name "*${name}*" 2>/dev/null | wc -l || echo 0)
+
+                  for remotePath in $REMOTE_PATHS; do
+                    if [ "$DB_EXISTS" -eq "0" ]; then
+                      echo "[First Run] No database found for '${name}'. Initializing '$remotePath' with --resync..."
+                      ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "$remotePath" \
+                        --filter-from ${filterPath} \
+                        --checksum --resilient --recover --modify-window=1s \
+                        --resync --force \
+                        --transfers 2 --checkers 4 --use-mmap --quiet
+                    else
+                      echo "[Routine] Running incremental bisync for '${name}' -> '$remotePath'..."
+                      ${pkgs.rclone}/bin/rclone bisync "${task.localPath}" "$remotePath" \
+                        --filter-from ${filterPath} \
+                        --checksum --resilient --recover --modify-window=1s \
+                        --conflict-resolve newer --force \
+                        --transfers 2 --checkers 4 --use-mmap --tpslimit 5 --quiet
+                    fi
+                  done
+              ''
+            ) cfg.tasks
           )
         );
       };

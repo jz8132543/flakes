@@ -12,6 +12,7 @@ let
       id = "Obsidian";
       local = "/var/lib/syncthing/data/Obsidian";
       remote = "alist:/189P/Sync/Obsidian";
+      remotePaths = [ "alist:/189P/Sync/Obsidian" ];
       versioning = {
         type = "staggered";
         params = {
@@ -60,6 +61,7 @@ in
     tasks = lib.mapAttrs (_name: cfg: {
       localPath = cfg.local;
       remotePath = cfg.remote;
+      remotePaths = cfg.remotePaths or [ ];
       realtime = true;
     }) myData;
   };
@@ -128,6 +130,9 @@ in
   };
 
   environment.global-persistence.directories = [ config.services.syncthing.configDir ];
-  services.restic.backups.borgbase.paths = [ config.services.syncthing.configDir ];
+  services.restic.backups.borgbase.paths = [
+    config.services.syncthing.configDir
+    "/var/lib/syncthing/data/Obsidian"
+  ];
   fileSystems = lib.listToAttrs (map mkObsidianMount (builtins.attrNames hmUsers));
 }

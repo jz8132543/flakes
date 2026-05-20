@@ -19,6 +19,7 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.syncthing
+      nixosModules.services.obsidian-livesync
       nixosModules.services.reader
       (import nixosModules.services.xray {
       })
@@ -61,6 +62,7 @@
   services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
+  services.obsidianLiveSync.enable = true;
 
   environment.seedbox = {
     enable = true;

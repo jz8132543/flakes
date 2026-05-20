@@ -10,6 +10,8 @@ let
   slidesTemplate = wpsTemplateRoot + "/Normal.pot";
 in
 {
+  imports = [ ./obsidian-livesync.nix ];
+
   home.packages = with pkgs; [
     telegram-desktop
     ffmpeg
@@ -238,6 +240,8 @@ in
       ".config/Logseq"
       ".config/obsidian"
       ".local/share/obsidian"
+      "Sync/.obsidian"
+      "Sync/.livesync"
       "Zotero"
       ".zotero"
       # google ai editor (antigravity)
