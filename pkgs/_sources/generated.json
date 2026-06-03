@@ -56,6 +56,27 @@
     },
     "version": "0.9.18"
   },
+  "haier": {
+    "cargoLock": null,
+    "date": "2026-05-28",
+    "extract": null,
+    "name": "haier",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "banto6",
+      "repo": "haier",
+      "rev": "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e",
+      "sha256": "sha256-9eRSEL1pVbC4mquL0D4lwFvmethMidK1S+W+e3rI5s8=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e"
+  },
   "kitty-catppuccin": {
     "cargoLock": null,
     "date": "2026-01-16",
@@ -106,12 +127,12 @@
       "name": null,
       "owner": "zhboner",
       "repo": "realm",
-      "rev": "v2.9.3",
-      "sha256": "sha256-anvVkOhxiAeKf2pPwlwfyf4CwXJ5MxPL0dWrFLdXHIU=",
+      "rev": "v2.9.4",
+      "sha256": "sha256-gnsFqWhJOMKUaSWfRmHBksw3uWFP0smRhEbPLriEmlk=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "v2.9.3"
+    "version": "v2.9.4"
   },
   "rime-wanxiang-base": {
     "cargoLock": null,
@@ -122,11 +143,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-f01m5aIvYO5LKaAtjFX4wFM0FnD93W1Y523GYwJwQiU=",
+      "sha256": "sha256-DvYKwWgKDQUYRDPyuYJw6mhyvsmojlB9EdEUYzTp30A=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.10.4/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.12.3/rime-wanxiang-base.zip"
     },
-    "version": "v15.10.4"
+    "version": "v15.12.3"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -137,7 +158,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-PjXoCytXaKTwhhNSL/kI2u+ydr1p+XaeAKLApANtJ6U=",
+      "sha256": "sha256-Pr3wgPM9TzYY8medb540opC9dZBvQrnXU/Yw5RAeVAc=",
       "type": "url",
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },
@@ -166,7 +187,7 @@
   },
   "send2kindlebot": {
     "cargoLock": null,
-    "date": "2025-10-04",
+    "date": "2026-05-28",
     "extract": null,
     "name": "send2kindlebot",
     "passthru": null,
@@ -178,12 +199,12 @@
       "name": null,
       "owner": "gabrielrf",
       "repo": "send2kindlebot",
-      "rev": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f",
-      "sha256": "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=",
+      "rev": "6ad28eb2ba47eaf9c47a0c531d8a8218e9b1fd49",
+      "sha256": "sha256-uCYV87kGmUL/e1WhkiZDVDaZWgk9992z0iQOrgqbejc=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f"
+    "version": "6ad28eb2ba47eaf9c47a0c531d8a8218e9b1fd49"
   },
   "wallpaper": {
     "cargoLock": null,
