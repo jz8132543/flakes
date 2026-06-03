@@ -5,8 +5,13 @@
   source,
   ...
 }:
+let
+  pname = source.pname or "save-restricted-content-bot";
+  version = source.version or source.rev or "unspecified";
+  src = source.src or source;
+in
 pkgs.stdenv.mkDerivation {
-  inherit (source) pname version src;
+  inherit pname version src;
   dontBuild = true;
   installPhase = ''
         cp -r . $out

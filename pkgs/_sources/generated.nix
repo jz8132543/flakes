@@ -35,6 +35,18 @@
       sha256 = "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=";
     };
   };
+  haier = {
+    pname = "haier";
+    version = "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e";
+    src = fetchFromGitHub {
+      owner = "banto6";
+      repo = "haier";
+      rev = "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e";
+      fetchSubmodules = false;
+      sha256 = "sha256-9eRSEL1pVbC4mquL0D4lwFvmethMidK1S+W+e3rI5s8=";
+    };
+    date = "2026-05-28";
+  };
   kitty-catppuccin = {
     pname = "kitty-catppuccin";
     version = "43098316202b84d6a71f71aaf8360f102f4d3f1a";
@@ -68,10 +80,10 @@
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.11.1";
+    version = "v15.12.3";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.11.1/rime-wanxiang-base.zip";
-      sha256 = "sha256-QsSIWQwUObk1ZsN7kJFoCvUg49uQ4jDnd9cGkCfQ4A4=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.12.3/rime-wanxiang-base.zip";
+      sha256 = "sha256-DvYKwWgKDQUYRDPyuYJw6mhyvsmojlB9EdEUYzTp30A=";
     };
   };
   rime-wanxiang-gram = {
@@ -96,15 +108,15 @@
   };
   send2kindlebot = {
     pname = "send2kindlebot";
-    version = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+    version = "6ad28eb2ba47eaf9c47a0c531d8a8218e9b1fd49";
     src = fetchFromGitHub {
       owner = "gabrielrf";
       repo = "send2kindlebot";
-      rev = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+      rev = "6ad28eb2ba47eaf9c47a0c531d8a8218e9b1fd49";
       fetchSubmodules = false;
-      sha256 = "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=";
+      sha256 = "sha256-uCYV87kGmUL/e1WhkiZDVDaZWgk9992z0iQOrgqbejc=";
     };
-    date = "2025-10-04";
+    date = "2026-05-28";
   };
   wallpaper = {
     pname = "wallpaper";

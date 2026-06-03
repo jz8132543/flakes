@@ -8,7 +8,7 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
-      nixosModules.optimize.fakehttp
+      # nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.services.headscale
       # nixosModules.services.derp
@@ -26,6 +26,7 @@
       nixosModules.services.sub
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
+      nixosModules.services.home-assistant
       nixosModules.services.searx
       nixosModules.services.openclaw.default
       nixosModules.services.litellm.default
@@ -36,7 +37,7 @@
       # (import nixosModules.services.ebook-sender { })
       (import nixosModules.services.kindle-sender { })
       (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
-      nixosModules.services.grimmory
+      # nixosModules.services.grimmory
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
@@ -47,7 +48,7 @@
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
       # nixosModules.services.easytier-web
-      nixosModules.services.save-restricted-content-bot
+      # nixosModules.services.save-restricted-content-bot
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf

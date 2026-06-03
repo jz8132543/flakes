@@ -189,6 +189,18 @@
       sha256 = "sha256-Yiky0h63TRaD3HG/WWInA4zo9ysBqneQbomb5Ui7N5I=";
     };
   };
+  send2kindlebot = {
+    pname = "send2kindlebot";
+    version = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+    src = fetchFromGitHub {
+      owner = "gabrielrf";
+      repo = "send2kindlebot";
+      rev = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+      fetchSubmodules = false;
+      sha256 = "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=";
+    };
+    date = "2025-10-04";
+  };
   sickbeard-mp4-automator = {
     pname = "sickbeard-mp4-automator";
     version = "e3db46613bba5724ab298b64a9214f6f6ae863b1";
@@ -225,5 +237,17 @@
       url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz";
       sha256 = "sha256-DN3jQndYe+n/gRfmEw1duY1xa7nFiUNEC4SlJ+0dW8k=";
     };
+  };
+  haier = {
+    pname = "haier";
+    version = "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e";
+    src = fetchFromGitHub {
+      owner = "banto6";
+      repo = "haier";
+      rev = "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e";
+      fetchSubmodules = false;
+      sha256 = "sha256-9eRSEL1pVbC4mquL0D4lwFvmethMidK1S+W+e3rI5s8=";
+    };
+    date = null;
   };
 }

@@ -9,7 +9,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.optimize.fakehttp
+      # nixosModules.optimize.fakehttp
       # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {

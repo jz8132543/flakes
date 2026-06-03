@@ -338,6 +338,27 @@
     },
     "version": "v2.9.3"
   },
+  "send2kindlebot": {
+    "cargoLock": null,
+    "date": "2025-10-04",
+    "extract": null,
+    "name": "send2kindlebot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "gabrielrf",
+      "repo": "send2kindlebot",
+      "rev": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f",
+      "sha256": "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "fdbb6f47bb8b5fee77536c72436a7885ab1b933f"
+  },
   "sickbeard-mp4-automator": {
     "cargoLock": null,
     "date": "2026-02-23",
@@ -388,5 +409,26 @@
       "url": "https://files.yande.re/image/3fc51f6a2fb10c96b73dd0fce6ddb9c8/yande.re%201048717%20dress%20garter%20lolita_fashion%20ruo_gan_zhua.jpg"
     },
     "version": "latest"
+  },
+  "haier": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "haier",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "banto6",
+      "repo": "haier",
+      "rev": "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e",
+      "sha256": "sha256-9eRSEL1pVbC4mquL0D4lwFvmethMidK1S+W+e3rI5s8=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e"
   }
 }

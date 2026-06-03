@@ -12,11 +12,10 @@ locals {
           type    = "AAAA"
           value   = "2a03:4000:4f:92d::"
         }
-        memos = {
-          proxied = false
-          type    = "CNAME"
-          value   = "nue0.dora.im"
-        }
+        # removed 'memos' CNAME because CNAME cannot coexist with other
+        # records for the same name (it caused CNAME self-reference errors).
+        # If you need a subdomain like 'memos.nue0', add a separate host entry
+        # below with name = "memos" and value = "nue0.dora.im".
       }
       ddns_records = {}
       host_indices = [3]

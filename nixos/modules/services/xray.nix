@@ -300,6 +300,24 @@ in
         XRAY_LOCATION_ASSET = "${assets}/share/v2ray";
       };
   };
+  systemd.timers = {
+    xray-restart = {
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 04:00:00";
+        AccuracySec = "1s";
+        Persistent = true;
+      };
+    };
+  };
+  systemd.services.xray-restart = {
+    description = "Trigger to restart Xray";
+    serviceConfig = {
+      Type = "oneshot";
+      # 使用 systemctl restart 重启目标服务
+      ExecStart = "${pkgs.systemd}/bin/systemctl restart xray.service";
+    };
+  };
 
   networking.firewall.allowedTCPPorts = [
     8443

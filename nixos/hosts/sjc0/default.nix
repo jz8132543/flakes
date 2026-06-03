@@ -11,7 +11,7 @@
     ./hardware-configuration.nix
     nixosModules.optimize.minimal
     nixosModules.optimize.ext4
-    nixosModules.optimize.fakehttp
+    # nixosModules.optimize.fakehttp
     nixosModules.services.traefik
     nixosModules.services.derp
     # nixosModules.services.stun
