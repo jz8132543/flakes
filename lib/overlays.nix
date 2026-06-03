@@ -31,6 +31,10 @@
     ])
   )
   (final: prev: {
+    openldap = prev.openldap.overrideAttrs (_old: {
+      doCheck = false;
+    });
+
     matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overrideAttrs (old: {
       postPatch = (old.postPatch or "") + ''
                 python -c 'from pathlib import Path; path = Path("synapse/rest/client/versions.py"); lines = path.read_text().splitlines(True); marker = "                    \"org.matrix.msc4140\": bool(self.config.server.max_event_delay_ms),\n"; insert = "                    \"org.matrix.msc4143\": self.config.experimental.msc4143_enabled,\n";

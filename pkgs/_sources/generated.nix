@@ -57,21 +57,21 @@
   };
   realm-latest = {
     pname = "realm-latest";
-    version = "v2.9.3";
+    version = "v2.9.4";
     src = fetchFromGitHub {
       owner = "zhboner";
       repo = "realm";
-      rev = "v2.9.3";
+      rev = "v2.9.4";
       fetchSubmodules = false;
-      sha256 = "sha256-anvVkOhxiAeKf2pPwlwfyf4CwXJ5MxPL0dWrFLdXHIU=";
+      sha256 = "sha256-gnsFqWhJOMKUaSWfRmHBksw3uWFP0smRhEbPLriEmlk=";
     };
   };
   rime-wanxiang-base = {
     pname = "rime-wanxiang-base";
-    version = "v15.10.4";
+    version = "v15.11.1";
     src = fetchurl {
-      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.10.4/rime-wanxiang-base.zip";
-      sha256 = "sha256-f01m5aIvYO5LKaAtjFX4wFM0FnD93W1Y523GYwJwQiU=";
+      url = "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.11.1/rime-wanxiang-base.zip";
+      sha256 = "sha256-QsSIWQwUObk1ZsN7kJFoCvUg49uQ4jDnd9cGkCfQ4A4=";
     };
   };
   rime-wanxiang-gram = {
@@ -79,7 +79,7 @@
     version = "LTS";
     src = fetchurl {
       url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-      sha256 = "sha256-PjXoCytXaKTwhhNSL/kI2u+ydr1p+XaeAKLApANtJ6U=";
+      sha256 = "sha256-Pr3wgPM9TzYY8medb540opC9dZBvQrnXU/Yw5RAeVAc=";
     };
   };
   save-restricted-content-bot = {

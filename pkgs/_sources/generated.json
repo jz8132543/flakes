@@ -106,12 +106,12 @@
       "name": null,
       "owner": "zhboner",
       "repo": "realm",
-      "rev": "v2.9.3",
-      "sha256": "sha256-anvVkOhxiAeKf2pPwlwfyf4CwXJ5MxPL0dWrFLdXHIU=",
+      "rev": "v2.9.4",
+      "sha256": "sha256-gnsFqWhJOMKUaSWfRmHBksw3uWFP0smRhEbPLriEmlk=",
       "sparseCheckout": [],
       "type": "github"
     },
-    "version": "v2.9.3"
+    "version": "v2.9.4"
   },
   "rime-wanxiang-base": {
     "cargoLock": null,
@@ -122,11 +122,11 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-f01m5aIvYO5LKaAtjFX4wFM0FnD93W1Y523GYwJwQiU=",
+      "sha256": "sha256-QsSIWQwUObk1ZsN7kJFoCvUg49uQ4jDnd9cGkCfQ4A4=",
       "type": "url",
-      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.10.4/rime-wanxiang-base.zip"
+      "url": "https://github.com/amzxyz/rime_wanxiang/releases/download/v15.11.1/rime-wanxiang-base.zip"
     },
-    "version": "v15.10.4"
+    "version": "v15.11.1"
   },
   "rime-wanxiang-gram": {
     "cargoLock": null,
@@ -137,7 +137,7 @@
     "pinned": false,
     "src": {
       "name": null,
-      "sha256": "sha256-PjXoCytXaKTwhhNSL/kI2u+ydr1p+XaeAKLApANtJ6U=",
+      "sha256": "sha256-Pr3wgPM9TzYY8medb540opC9dZBvQrnXU/Yw5RAeVAc=",
       "type": "url",
       "url": "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram"
     },
