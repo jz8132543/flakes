@@ -1,0 +1,95 @@
+{
+  config,
+  pkgs,
+  ...
+}:
+let
+  domain = "ha.${config.networking.domain}";
+  dbName = "homeassistant";
+  dbUser = "homeassistant";
+  dbHost = "postgres.mag";
+  dbUrl = "postgresql://${dbUser}@${dbHost}/${dbName}?sslmode=disable";
+in
+{
+  services.home-assistant = {
+    enable = true;
+    package = pkgs.home-assistant.override {
+      extraPackages = python3Packages: with python3Packages; [ psycopg2 ];
+    };
+    customComponents = with pkgs; [
+      haier
+      home-assistant-custom-components.midea_ac
+      home-assistant-custom-components.midea_ac_lan
+      home-assistant-custom-components.xiaomi_miot
+    ];
+    config = {
+      default_config = { };
+
+      homeassistant = {
+        name = "nue0 smart home";
+        unit_system = "metric";
+        time_zone = config.time.timeZone;
+      };
+
+      http = {
+        server_host = "127.0.0.1";
+        server_port = 8123;
+        use_x_forwarded_for = true;
+        trusted_proxies = [
+          "127.0.0.1"
+        ];
+      };
+
+      recorder = {
+        db_url = dbUrl;
+      };
+    };
+  };
+
+  systemd.services.home-assistant-db-init = {
+    description = "Create Home Assistant PostgreSQL database and user";
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    path = with pkgs; [
+      postgresql_17
+      coreutils
+      gnugrep
+    ];
+    script = ''
+      set -euo pipefail
+
+      until pg_isready -h ${dbHost} -U postgres >/dev/null 2>&1; do
+        sleep 2
+      done
+
+      if ! psql -h ${dbHost} -U postgres -d postgres -Atqc "SELECT 1 FROM pg_roles WHERE rolname = '${dbUser}'" | grep -qx 1; then
+        psql -h ${dbHost} -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE ROLE ${dbUser} LOGIN"
+      fi
+
+      if ! psql -h ${dbHost} -U postgres -d postgres -Atqc "SELECT 1 FROM pg_database WHERE datname = '${dbName}'" | grep -qx 1; then
+        psql -h ${dbHost} -U postgres -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${dbName} OWNER ${dbUser}"
+      fi
+    '';
+  };
+
+  systemd.services.home-assistant.after = [ "home-assistant-db-init.service" ];
+  systemd.services.home-assistant.requires = [ "home-assistant-db-init.service" ];
+
+  services.traefik.proxies.home-assistant = {
+    rule = "Host(`${domain}`)";
+    target = "http://127.0.0.1:8123";
+  };
+
+  services.restic.backups.borgbase.paths = [
+    config.services.home-assistant.configDir
+  ];
+
+  environment.global-persistence.directories = [
+    config.services.home-assistant.configDir
+  ];
+}

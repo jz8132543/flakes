@@ -24,9 +24,10 @@ rec {
     mapPackages (
       name:
       let
-        sources = final.callPackage ./_sources/generated.nix { };
+        sources = final.callPackage ../_sources/generated.nix { };
         package = import ./${name};
-        source = if builtins.hasAttr name sources then sources.${name} else { };
+        sourceName = if name == "realm-latest" then "realm" else name;
+        source = if builtins.hasAttr sourceName sources then sources.${sourceName} else { };
       in
       final.callPackage package { inherit source sources; }
     );

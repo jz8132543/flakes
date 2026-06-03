@@ -8,6 +8,8 @@
     enable = true;
     settings = {
       PermitRootLogin = "yes";
+      AllowTcpForwarding = true;
+      AllowStreamLocalForwarding = "yes";
       # PermitRootLogin = lib.mkForce "no";
       PasswordAuthentication = lib.mkForce false;
       KbdInteractiveAuthentication = false;

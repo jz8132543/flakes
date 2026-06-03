@@ -38,3 +38,7 @@ src.git = "https://github.com/VJBots/VJ-Save-Restricted-Content"
 [send2kindlebot]
 fetch.github = "gabrielrf/send2kindlebot"
 src.git = "https://github.com/gabrielrf/send2kindlebot"
+
+[haier]
+fetch.github = "banto6/haier"
+src.git = "https://github.com/banto6/haier"

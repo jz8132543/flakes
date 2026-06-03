@@ -8,7 +8,7 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
-      nixosModules.optimize.fakehttp
+      # nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.services.headscale
       # nixosModules.services.derp
@@ -26,6 +26,7 @@
       nixosModules.services.sub
       nixosModules.services.cookiecloud
       nixosModules.services.homepage
+      nixosModules.services.home-assistant
       nixosModules.services.searx
       nixosModules.services.openclaw.default
       nixosModules.services.litellm.default

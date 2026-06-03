@@ -107,6 +107,7 @@ locals {
     dash               = { on = "nue0", proxy = false }
     cookie             = { on = "nue0", proxy = false }
     home               = { on = "nue0", proxy = false }
+    ha                 = { on = "nue0", proxy = false }
     link               = { on = "nue0", proxy = false }
     claw               = { on = "nue0", proxy = false }
     ai                 = { on = "nue0", proxy = false }

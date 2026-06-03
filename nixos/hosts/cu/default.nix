@@ -15,7 +15,7 @@
       # nixosModules.services.traefik
       # nixosModules.services.derp
       nixosModules.services.kernel-relay
-      nixosModules.optimize.fakehttp
+      # nixosModules.optimize.fakehttp
     ];
 
   boot.loader.grub.device = lib.mkForce "nodev";
@@ -23,7 +23,7 @@
   services.kernel-relay = {
     enable = true;
     dnsInterval = "3min";
-    enableFlowtable = true;
+    # enableFlowtable = true;
     ipFamily = "ipv4";
     mappings = [
       {
