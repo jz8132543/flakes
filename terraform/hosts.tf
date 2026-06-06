@@ -45,7 +45,7 @@ locals {
         a = {
           proxied = false
           type    = "A"
-          value   = "45.66.129.234"
+          value   = "45.66.130.158"
         }
       }
       ddns_records = {}

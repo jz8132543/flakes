@@ -11,7 +11,8 @@
     alwaysKeepRunning = true;
     resolveLocalQueries = false;
     settings = {
-      bind-interfaces = true;
+      # bind-interfaces = true;
+      bind-dynamic = true;
       listen-address = "127.0.0.1";
       cache-size = 10000;
       no-negcache = true;
