@@ -20,7 +20,10 @@ in
       haier
       home-assistant-custom-components.midea_ac
       home-assistant-custom-components.midea_ac_lan
+      home-assistant-custom-components.midea-air-appliances-lan
       home-assistant-custom-components.xiaomi_miot
+      home-assistant-custom-components.xiaomi_home
+      home-assistant-custom-components.xiaomi_gateway3
     ];
     config = {
       default_config = { };

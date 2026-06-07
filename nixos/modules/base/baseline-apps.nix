@@ -62,7 +62,6 @@
     jq
     nmap
     colmena
-    deploy-rs
     nixos-anywhere
     # tools
     yq-go
