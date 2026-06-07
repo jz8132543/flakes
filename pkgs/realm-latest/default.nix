@@ -1,18 +1,28 @@
 {
-  stdenv,
-  source,
-  lib,
-  rustPlatform,
+  fetchFromGitHub,
   cmake,
-  perl,
+  lib,
   llvmPackages,
+  perl,
+  rustPlatform,
+  stdenv,
   ...
 }:
+let
+  version = "v2.9.4";
+  src = fetchFromGitHub {
+    owner = "zhboner";
+    repo = "realm";
+    rev = version;
+    fetchSubmodules = false;
+    sha256 = "sha256-gnsFqWhJOMKUaSWfRmHBksw3uWFP0smRhEbPLriEmlk=";
+  };
+in
 rustPlatform.buildRustPackage {
   pname = "realm";
-  inherit (source) src version;
+  inherit src version;
 
-  cargoLock.lockFile = "${source.src}/Cargo.lock";
+  cargoLock.lockFile = "${src}/Cargo.lock";
 
   doCheck = false;
 

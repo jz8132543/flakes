@@ -14,7 +14,7 @@
       nixosModules.optimize.infini
       # nixosModules.services.traefik
       # nixosModules.services.derp
-      nixosModules.services.kernel-relay
+      nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
     ];
 

@@ -2,6 +2,7 @@
 {
   home.packages = with pkgs; [
     aria2
-    ariang
+    # TODO: fix ariang
+    # ariang
   ];
 }

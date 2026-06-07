@@ -1,13 +1,21 @@
 {
+  calibre,
+  fetchFromGitHub,
   lib,
   pkgs,
   python3Packages,
-  source,
-  calibre,
   makeWrapper,
   ...
 }:
 let
+  version = "fdbb6f47bb8b5fee77536c72436a7885ab1b933f";
+  src = fetchFromGitHub {
+    owner = "gabrielrf";
+    repo = "send2kindlebot";
+    rev = version;
+    fetchSubmodules = false;
+    sha256 = "sha256-VNTJOrakl+HmNRGu4faYm13cbHMrTe3UE2UwcwtZz68=";
+  };
   epub_meta =
     let
       pname = "epub_meta";
@@ -27,7 +35,8 @@ let
     };
 in
 python3Packages.buildPythonApplication {
-  inherit (source) pname version src;
+  pname = "send2kindlebot";
+  inherit version src;
 
   # # Build epub_meta from upstream GitHub (not present in nixpkgs)
   # epub_meta = python3Packages.buildPythonPackage {

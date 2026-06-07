@@ -19,16 +19,5 @@ rec {
         )
     );
   packages = pkgs: mapPackages (name: pkgs.${name});
-  overlay =
-    final: _prev:
-    mapPackages (
-      name:
-      let
-        sources = final.callPackage ../_sources/generated.nix { };
-        package = import ./${name};
-        sourceName = if name == "realm-latest" then "realm" else name;
-        source = if builtins.hasAttr sourceName sources then sources.${sourceName} else { };
-      in
-      final.callPackage package { inherit source sources; }
-    );
+  overlay = final: _prev: mapPackages (name: final.callPackage (import ./${name}) { });
 }

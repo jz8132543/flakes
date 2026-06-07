@@ -1,17 +1,23 @@
 # 只将源代码暴露到 Nix store，供 podman build 使用
 {
+  fetchFromGitHub,
   lib,
   pkgs,
-  source,
   ...
 }:
 let
-  pname = source.pname or "save-restricted-content-bot";
-  version = source.version or source.rev or "unspecified";
-  src = source.src or source;
+  version = "93129e163377f0ce292471c6f202f8eaf40106d1";
+  src = fetchFromGitHub {
+    owner = "VJBots";
+    repo = "VJ-Save-Restricted-Content";
+    rev = version;
+    fetchSubmodules = false;
+    sha256 = "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=";
+  };
 in
 pkgs.stdenv.mkDerivation {
-  inherit pname version src;
+  pname = "save-restricted-content-bot";
+  inherit version src;
   dontBuild = true;
   installPhase = ''
         cp -r . $out

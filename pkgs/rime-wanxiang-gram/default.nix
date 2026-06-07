@@ -1,14 +1,18 @@
 {
+  fetchurl,
   stdenv,
-  source,
   ...
 }:
-
+let
+  version = "LTS";
+  src = fetchurl {
+    url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
+    sha256 = "sha256-kXLnfXgeqe8C7z26qAQm5ihKzGbySmkuT+iQAT16d7c=";
+  };
+in
 stdenv.mkDerivation rec {
   pname = "rime-wanxiang-gram";
-  version = "LTS";
-
-  inherit (source) src;
+  inherit version src;
 
   dontBuild = true;
   dontUnpack = true;

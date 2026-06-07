@@ -1,21 +1,29 @@
 {
-  source,
-  stdenv,
-  makeWrapper,
-  curl,
-  wget,
-  jq,
-  bc,
-  netcat-openbsd,
-  dnsutils,
-  iproute2,
-  nexttrace,
-  lib,
   bash,
+  bc,
+  curl,
+  dnsutils,
+  fetchurl,
+  iproute2,
+  jq,
+  lib,
+  makeWrapper,
+  netcat-openbsd,
+  nexttrace,
+  stdenv,
+  wget,
   ...
 }:
+let
+  version = "V1.2";
+  src = fetchurl {
+    url = "https://cdn.kxy.ovh/kxy.sh";
+    sha256 = "sha256-jOlBBLIjT0lYKPkgxIKaUGwuEeR/O4rupG1SpZ4n8pw=";
+  };
+in
 stdenv.mkDerivation {
-  inherit (source) pname version src;
+  pname = "kxy-script";
+  inherit version src;
 
   nativeBuildInputs = [ makeWrapper ];
 

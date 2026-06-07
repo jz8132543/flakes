@@ -5,6 +5,9 @@ live_ssh_port ?= 2222
 live_ssh_window_size ?= 4194304
 live_stream_port ?= 2233
 
+update-pkgs:
+	./scripts/update-pkgs.sh $(PKGS)
+
 disko:
 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.disko
 diskon:

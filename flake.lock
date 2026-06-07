@@ -579,9 +579,7 @@
         "nixpkgs": [
           "nixpkgs"
         ],
-        "nvfetcher": [
-          "nvfetcher"
-        ],
+        "nvfetcher": "nvfetcher",
         "treefmt-nix": [
           "treefmt-nix"
         ]
@@ -1181,12 +1179,15 @@
     "nvfetcher": {
       "inputs": {
         "flake-compat": [
+          "linyinfeng",
           "flake-compat"
         ],
         "flake-utils": [
+          "linyinfeng",
           "flake-utils"
         ],
         "nixpkgs": [
+          "linyinfeng",
           "nixpkgs"
         ]
       },
@@ -1372,7 +1373,6 @@
         "nixpkgs-terraform-providers-bin": "nixpkgs-terraform-providers-bin",
         "nixvim": "nixvim",
         "nur": "nur",
-        "nvfetcher": "nvfetcher",
         "openclaw-nix": "openclaw-nix",
         "plasma-manager": "plasma-manager",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",

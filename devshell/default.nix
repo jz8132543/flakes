@@ -70,6 +70,14 @@
         '';
       }
       {
+        name = "update-pkgs";
+        category = "update";
+        help = "Update packages under pkgs/ with nix-update";
+        command = ''
+          exec "$PRJ_ROOT/scripts/update-pkgs.sh" "$@"
+        '';
+      }
+      {
         package = pkgs.age;
         category = "secrets";
       }
@@ -95,7 +103,7 @@
       taplo
 
       terraform
-      nvfetcher
+      nix-update
       # backblaze-b2
 
       ruby

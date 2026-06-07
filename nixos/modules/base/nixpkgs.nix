@@ -16,10 +16,10 @@ in
       binary-caches-parallel-connections = 16;
       permittedInsecurePackages = [
         "openssl-1.1.1w"
-        "electron-27.3.11"
         "nix-2.24.5"
         "olm-3.2.16"
         "minio-2025-10-15T17-29-55Z"
+        "electron-39.8.10"
       ];
       allowUnfreePackages = [
         "terraform"

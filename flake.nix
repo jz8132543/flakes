@@ -22,12 +22,6 @@
       url = "github:Mic92/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nvfetcher = {
-      url = "github:berberman/nvfetcher";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-      inputs.flake-compat.follows = "flake-compat";
-    };
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -126,7 +120,6 @@
       inputs.nixos-stable.follows = "blank";
       inputs.devshell.follows = "devshell";
       inputs.treefmt-nix.follows = "treefmt-nix";
-      inputs.nvfetcher.follows = "nvfetcher";
       inputs.flake-compat.follows = "flake-compat";
     };
     nixpkgs-terraform-providers-bin = {

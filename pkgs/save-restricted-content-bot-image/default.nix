@@ -1,23 +1,19 @@
-{ pkgs, sources, ... }:
+{ pkgs, ... }:
 
 let
-  inherit (sources.save-restricted-content-bot) src;
-  ver = sources.save-restricted-content-bot.version or "latest";
+  source = pkgs.save-restricted-content-bot;
+  copyToRoot = pkgs.runCommand "save-restricted-content-bot-copy-root" { } ''
+    mkdir -p $out/app
+    mkdir -p $out/bin
+    cp -r ${source}/. $out/app/
+    ln -s ${pkgs.python3}/bin/python3 $out/bin/python3
+    ln -s ${pkgs.ffmpeg}/bin/ffmpeg $out/bin/ffmpeg
+  '';
 in
 pkgs.dockerTools.buildImage {
   name = "localhost/save-restricted-content-bot";
-  tag = ver;
-  # include a plain python runtime and ffmpeg binary from nixpkgs
-  contents = [
-    pkgs.python3
-    pkgs.ffmpeg
-  ];
-  copy = [
-    {
-      source = src;
-      target = "/app";
-    }
-  ];
+  tag = source.version or "latest";
+  inherit copyToRoot;
   extraCommands = ''
     # install python dependencies via pip so we don't rely on nixpkgs pyrogram
     if [ -f /app/requirements.txt ]; then

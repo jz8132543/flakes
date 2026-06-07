@@ -44,6 +44,9 @@ in
         env = {
           TERM = "xterm-256color";
         };
+        bell = {
+          duration = 0;
+        };
       };
     };
   };

@@ -2,7 +2,7 @@
   stdenv,
   lib,
   librime,
-  rime-wanxiang-base,
+  rime-wanxiang,
   rime-wanxiang-gram,
   framework ? "ibus",
   terminalEnglishApps ? [
@@ -50,8 +50,8 @@ stdenv.mkDerivation {
   buildPhase = ''
         mkdir -p rime-data
         # 1. Copy base data (schemas, dicts from wanxiang)
-        if [ -d "${rime-wanxiang-base}/share/fcitx5/rime" ]; then
-          cp -rf ${rime-wanxiang-base}/share/fcitx5/rime/* rime-data/
+        if [ -d "${rime-wanxiang}/share/fcitx5/rime" ]; then
+          cp -rf ${rime-wanxiang}/share/fcitx5/rime/* rime-data/
         fi
 
         # 2. Copy grammar model
