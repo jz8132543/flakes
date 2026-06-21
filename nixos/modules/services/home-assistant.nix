@@ -13,9 +13,37 @@ in
 {
   services.home-assistant = {
     enable = true;
-    package = pkgs.home-assistant.override {
-      extraPackages = python3Packages: with python3Packages; [ psycopg2 ];
-    };
+          extraPackages =
+        python3Packages: with python3Packages; [
+          gtts
+          ibeacon-ble
+          psycopg2
+        ];
+      extraComponents = [
+        "bluetooth"
+        "command_line"
+        "default_config"
+        "ffmpeg"
+        "homekit"
+        "jellyfin"
+        "keyboard_remote"
+        "logger"
+        "met"
+        "mobile_app"
+        "open_meteo"
+        "ping"
+        "radio_browser"
+        "shell_command"
+        "vlc"
+        "wake_on_lan"
+        "whisper"
+        "workday"
+        "wyoming"
+        "xiaomi_aqara"
+        "xiaomi_ble"
+        "xiaomi_miio"
+        "zeroconf"
+      ];
     customComponents = with pkgs; [
       haier
       home-assistant-custom-components.midea_ac
@@ -46,6 +74,7 @@ in
       recorder = {
         db_url = dbUrl;
       };
+      homekit = {};
     };
   };
 
