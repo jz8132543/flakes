@@ -40,7 +40,6 @@ if [ "${#packages[@]}" -eq 0 ]; then
   non_updateable_packages=(
     bbrv1-kmod
     rime-deploy
-    rime-user-data
     save-restricted-content-bot-image
     ssh-race
   )

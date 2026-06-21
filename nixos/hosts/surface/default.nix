@@ -64,7 +64,7 @@ in
   hardware.microsoft-surface = {
     kernelVersion = "stable";
   };
-  services.iptsd.enable = lib.mkDefault true;
+  services.iptsd.enable = lib.mkForce false;
 
   desktop.nvidia = {
     mode = "sync";
@@ -87,6 +87,7 @@ in
 
   # environment.isCN = true;
 
+  environment.networkTune.cca = "bbr";
   environment.systemPackages = with pkgs; [
     efibootmgr
     pciutils

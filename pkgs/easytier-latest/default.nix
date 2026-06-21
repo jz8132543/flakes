@@ -9,7 +9,7 @@
 }:
 
 let
-  version = "v2.6.4";
+  version = "2.6.4";
   src = fetchFromGitHub {
     owner = "EasyTier";
     repo = "EasyTier";

@@ -23,12 +23,13 @@ in
       }
     ];
     packages = [ ];
-    # 自动更新
-    update.onActivation = true;
+    # Avoid blocking `nixos-rebuild switch` on flaky/absent Flathub connectivity.
+    # Flatpaks can still be managed manually after activation.
+    update.onActivation = lib.mkDefault false;
     # 自动移除未声明的 Flatpak 包 (保持系统纯净)
     uninstallUnmanaged = true;
     update.auto = {
-      enable = true;
+      enable = lib.mkDefault false;
       onCalendar = "weekly";
     };
   };
@@ -55,9 +56,9 @@ in
   xdg.icons.enable = lib.mkDefault isDesktop;
   xdg.sounds.enable = lib.mkDefault isDesktop;
 
-  systemd.user.extraConfig = lib.mkIf config.services.flatpak.enable ''
-    DefaultEnvironment="PATH=/run/current-system/sw/bin"
-  '';
+  systemd.user.settings.Manager = lib.mkIf config.services.flatpak.enable {
+    DefaultEnvironment = [ "PATH=/run/current-system/sw/bin" ];
+  };
 
   # Flatpak applications cannot follow symlinks to the nix store, so we create bindmounts to resolve them transparently
   system.fsPackages = lib.mkIf config.services.flatpak.enable [ pkgs.bindfs ];

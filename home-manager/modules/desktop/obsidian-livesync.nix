@@ -1,5 +1,7 @@
 {
   config,
+  lib,
+  pkgs,
   osConfig,
   ...
 }:
@@ -41,13 +43,41 @@ in
   # home.file."${vaultRoot}/.livesync/settings.json".source =
   #   config.sops.templates."obsidian-livesync-settings".path;
 
+  home.activation.initObsidianVault = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    ${pkgs.coreutils}/bin/mkdir -p "$HOME/${vaultRoot}/.obsidian" "$HOME/${vaultRoot}/.livesync"
+  '';
+
   home.file."${vaultRoot}/.obsidian/community-plugins.json".text = builtins.toJSON [
     "obsidian-livesync"
   ];
 
   home.file."${vaultRoot}/.obsidian/app.json".text = builtins.toJSON {
     livePreview = true;
+    language = "zh";
   };
+
+  home.file."${vaultRoot}/.obsidian/appearance.json".text = builtins.toJSON {
+    theme = "system";
+    baseFontSize = 16;
+  };
+
+  home.file."${vaultRoot}/.obsidian/core-plugins.json".text = builtins.toJSON [
+    "file-explorer"
+    "global-search"
+    "backlink"
+    "outgoing-link"
+    "tag-pane"
+    "page-preview"
+    "properties"
+    "daily-notes"
+    "templates"
+    "note-composer"
+    "file-recovery"
+    "command-palette"
+    "word-count"
+    "bookmarks"
+    "outline"
+  ];
 
   home.global-persistence.directories = [
     "${vaultRoot}/.obsidian"

@@ -6,6 +6,8 @@ patch:
     switch_key:
       Shift_L: noop
       Shift_R: noop
+  style:
+    horizontal: true
   # Rime internal per-app settings
   app_options:
     # Default to English (ASCII) for these apps

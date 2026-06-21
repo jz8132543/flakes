@@ -9,7 +9,7 @@
   ...
 }:
 let
-  version = "v2.9.4";
+  version = "2.9.4";
   src = fetchFromGitHub {
     owner = "zhboner";
     repo = "realm";

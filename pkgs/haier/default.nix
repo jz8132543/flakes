@@ -5,7 +5,7 @@
   ...
 }:
 let
-  version = "b5cd1f03c6f99e0f1824a5600456e5c53b57ed4e";
+  version = "1.2.0";
   src = fetchFromGitHub {
     owner = "banto6";
     repo = "haier";

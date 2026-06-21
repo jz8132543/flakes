@@ -6,6 +6,10 @@
 }:
 let
   cfg = config.desktop.inputMethod;
+  rimeUserData = pkgs.rime-deploy.override {
+    inherit (cfg) framework;
+    inherit (cfg) terminalEnglishApps;
+  };
 in
 {
   options.desktop.inputMethod = {
@@ -37,6 +41,11 @@ in
 
   config = {
     time.timeZone = "Asia/Shanghai";
+
+    # Build the fully deployed Rime data as part of the system closure so the
+    # first Rime launch does not need to run rime_deployer at runtime.
+    system.build.rimeUserData = rimeUserData;
+    system.extraDependencies = lib.mkAfter [ rimeUserData ];
 
     i18n.inputMethod = {
       enable = true;
