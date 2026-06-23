@@ -43,7 +43,7 @@
                 let
                   btrfsOptions = [
                     "noatime"
-                    "compress=zstd"
+                    "compress=zstd:1"
                     "space_cache=v2"
                     "commit=300"
                     "ssd_spread"
@@ -172,6 +172,34 @@
     };
   };
 
+  # 自动化脚本：启动时动态对指定目录禁用压缩
+  systemd.services.btrfs-disable-specific-compression = {
+    description = "Disable Btrfs compression on /persist and /rootfs for new files";
+
+    # 确保在所有本地文件系统挂载完成后再执行
+    after = [ "local-fs.target" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+
+      # 使用 Shell 脚本安全包裹，防止路径不存在时服务报错
+      ExecStart = pkgs.writeShellScript "btrfs-disable-comp" ''
+        # 1. 处理 /persist 分区
+        if [ -d "/persist" ]; then
+          echo "Disabling compression on /persist..."
+          ${pkgs.btrfs-progs}/bin/btrfs property set /persist compression none
+        fi
+
+        # 2. 处理 /rootfs 分区
+        if [ -d "/rootfs" ]; then
+          echo "Disabling compression on /rootfs..."
+          ${pkgs.btrfs-progs}/bin/btrfs property set /rootfs compression none
+        fi
+      '';
+    };
+  };
   systemd.services.btrfs-resize = {
     description = "Auto-resize Btrfs filesystems to fill partition";
     wantedBy = [ "multi-user.target" ];
