@@ -1,7 +1,6 @@
 {
   nixosModules,
   pkgs,
-  lib,
   ...
 }:
 {
@@ -23,7 +22,6 @@
     lenovo-legion
     efibootmgr
   ];
-  boot.kernelPackages = lib.mkOverride 0 pkgs.linuxPackages;
   desktop.nvidia = {
     mode = "offload";
   };
