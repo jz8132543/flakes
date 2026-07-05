@@ -8,6 +8,7 @@
 {
   imports = [
     inputs.disko.nixosModules.disko
+    ./disko-image-builder.nix
   ];
   disko.enableConfig = true;
   disko.devices = {

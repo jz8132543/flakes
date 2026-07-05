@@ -5,7 +5,10 @@
   ...
 }:
 {
-  imports = [ inputs.disko.nixosModules.disko ];
+  imports = [
+    inputs.disko.nixosModules.disko
+    ../cloud/disko-image-builder.nix
+  ];
 
   disko.enableConfig = true;
   disko.devices = {
