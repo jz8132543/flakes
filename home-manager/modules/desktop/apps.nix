@@ -41,11 +41,10 @@ in
     code-cursor
     codex
     gnome-connections
-    # CD/DVD Burning
-    kdePackages.k3b
-    vcdimager
-    cdrtools
-    dvdplusrwtools
+    # CD/DVD Burning is configured system-wide via programs.k3b.
+    # kdePackages.k3b
+    # vcdimager
+    feishu
   ];
   programs = {
     # TODO
@@ -157,6 +156,11 @@ in
         common\AcceptedEULA=true
         common\newInstall=false
         wpsoffice\Application%20Settings\UpdateRecoverCheckTag=false
+        wpsoffice\Application%20Settings\PromptUpdateStyle=0
+        wpsoffice\Application%20Settings\UpdateLinksAtOpen=0
+        wpsoffice\Application%20Settings\UpdateFieldsAtPrint=0
+        wpsoffice\Application%20Settings\UpdateLinksAtPrint=0
+        wpsoffice\Application%20Settings\UpdateFieldsWithTrackedChangesAtPrint=0
 
         [kdcsdk]
         NotFirstOpen=true
@@ -171,6 +175,13 @@ in
         agreementshown=true
         agree_privacy_policy=true
         agreeEULA=true
+
+        [UnixUpdateInfo]
+        UserRejectUpdateVersion=${pkgs.wpsoffice-cn.version}
+
+        [et\Application%20Settings]
+        EnableFormatCheck=0
+        AskToUpdateLinks=0
       '';
     }
     (lib.optionalAttrs (builtins.pathExists writerTemplate) {

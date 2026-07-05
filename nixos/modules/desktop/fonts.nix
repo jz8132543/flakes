@@ -46,6 +46,9 @@
       nur.repos.ccicnce113424.zhuque
       nur.repos.rewine.ttf-wps-fonts
       nur.repos.rewine.ttf-ms-win10
+
+      corefonts # 微软核心基础字体（Arial, Times New Roman等）
+      vista-fonts # 微软雅黑 (Microsoft YaHei)
     ];
 
     # user defined fonts

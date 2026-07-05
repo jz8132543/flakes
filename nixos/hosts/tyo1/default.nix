@@ -9,6 +9,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.infini
+      nixosModules.optimize.ext4
       # nixosModules.optimize.fakehttp
       # nixosModules.services.traefik
       # nixosModules.services.derp

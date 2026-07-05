@@ -41,14 +41,18 @@ in
         enable = lib.mkDefault true;
         description = "Tailscale automatic login";
         after = [
+          "sops-nix.service"
           "tailscaled.service"
           "network-online.target"
         ];
-        wants = [ "network-online.target" ];
+        wants = [
+          "sops-nix.service"
+          "tailscaled.service"
+          "network-online.target"
+        ];
         wantedBy = [ "multi-user.target" ];
         path = [
           config.services.tailscale.package
-          pkgs.curl
           pkgs.jq
           pkgs.coreutils
         ];
@@ -58,14 +62,9 @@ in
           # Wait for tailscaled to be ready
           sleep 2
 
-          # Fail fast if the configured login server is not serving the Tailscale control API.
-          if ! curl -fsSI --max-time 10 "$login_server/key" >/dev/null; then
-            echo "Login server $login_server is not serving the Tailscale control API"
-            exit 1
-          fi
-
           # Check if already authenticated
-          status=$(tailscale status --json | jq -r .BackendState)
+          status_json=$(tailscale status --json 2>/dev/null || true)
+          status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
           if [ "$status" = "Running" ]; then
             echo "Tailscale is already running and authenticated."
             exit 0

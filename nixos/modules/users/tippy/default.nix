@@ -18,6 +18,7 @@ in
       "lp"
       "lpadmin"
       "scanner"
+      "audio"
       "video"
       "render"
       "cdrom"

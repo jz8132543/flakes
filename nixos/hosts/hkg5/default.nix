@@ -6,7 +6,8 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.infini
-      ../../modules/optimize/disk-reliability.nix
+      nixosModules.optimize.ext4
+      # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       # nixosModules.services.derp

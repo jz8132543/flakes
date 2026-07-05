@@ -144,7 +144,7 @@ in
 
   options.services.easytierMesh = {
     enable = (mkEnableOption "EasyTier mesh") // {
-      default = true;
+      default = false;
     };
 
     role = mkOption {

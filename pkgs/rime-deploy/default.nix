@@ -31,6 +31,8 @@ let
       style:
         horizontal: true
         inline_preedit: true
+        candidate_list_layout: linear
+        text_orientation: horizontal
         preedit_style: composition
   '';
 in

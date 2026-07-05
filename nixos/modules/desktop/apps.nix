@@ -11,10 +11,12 @@
     nixosModules.services.easytier-web
     nixosModules.services.ntopng
   ];
+  programs.k3b.enable = true;
   environment.systemPackages = with pkgs; [
     qrcp
     android-tools
     wpsoffice-cn
+    dvdplusrwtools
     # mihomo-party
   ];
   environment.shellAliases = {
