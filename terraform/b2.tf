@@ -26,6 +26,88 @@ module "b2_download_url" {
 # output "b2_s3_region" {
 #   value = regex("^s3.([a-z0-9\\-]+).backblazeb2.com$", module.b2_s3_api_url.host)[0]
 # }
+output "b2_s3_api_url" {
+  value     = data.b2_account_info.main.s3_api_url
+  sensitive = false
+}
+
+output "b2_download_url" {
+  value     = data.b2_account_info.main.download_url
+  sensitive = false
+}
+
+output "b2_s3_region" {
+  value     = regex("^s3.([a-z0-9\\-]+).backblazeb2.com$", module.b2_s3_api_url.host)[0]
+  sensitive = false
+}
+
+resource "b2_bucket" "lobechat_files" {
+  bucket_name = "doraim-lobechat-files"
+  bucket_type = "allPrivate"
+
+  lifecycle_rules {
+    file_name_prefix              = ""
+    days_from_uploading_to_hiding = null
+    days_from_hiding_to_deleting  = 1
+  }
+
+  cors_rules {
+    cors_rule_name = "allow-lobechat-on-dora-im"
+    allowed_operations = [
+      "b2_download_file_by_id",
+      "b2_download_file_by_name",
+      "b2_upload_file",
+      "b2_upload_part",
+      "s3_delete",
+      "s3_get",
+      "s3_head",
+      "s3_post",
+      "s3_put"
+    ]
+    allowed_origins = [
+      "https://chat.dora.im"
+    ]
+    allowed_headers = [
+      "*"
+    ]
+    expose_headers = [
+      "ETag"
+    ]
+    max_age_seconds = 86400
+  }
+}
+
+resource "b2_application_key" "lobechat_files" {
+  key_name  = "lobechat-files"
+  bucket_id = b2_bucket.lobechat_files.id
+  capabilities = [
+    "deleteFiles",
+    "listAllBucketNames",
+    "listBuckets",
+    "listFiles",
+    "readBucketEncryption",
+    "readBuckets",
+    "readFiles",
+    "shareFiles",
+    "writeBucketEncryption",
+    "writeFiles"
+  ]
+}
+
+output "b2_lobechat_files_bucket_name" {
+  value     = b2_bucket.lobechat_files.bucket_name
+  sensitive = false
+}
+
+output "b2_lobechat_files_key_id" {
+  value     = b2_application_key.lobechat_files.application_key_id
+  sensitive = false
+}
+
+output "b2_lobechat_files_access_key" {
+  value     = b2_application_key.lobechat_files.application_key
+  sensitive = true
+}
 #
 # resource "b2_bucket" "synapse_media" {
 #   bucket_name = "doraim-synapse-media"

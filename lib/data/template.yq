@@ -3,14 +3,22 @@
         "media": {
             "host": .b2_s3_api_url.value,
             "name": .b2_synapse_media_bucket_name.value,
-            "region": .b2_s3_region
+            "region": .b2_s3_region.value
         }
     },
     "mastodon": {
         "media": {
             "host": .b2_s3_api_url.value,
             "name": .b2_mastodon_media_bucket_name.value,
-            "region": .b2_s3_region
+            "region": .b2_s3_region.value
+        }
+    },
+    "lobechat": {
+        "storage": {
+            "bucket": .b2_lobechat_files_bucket_name.value,
+            "endpoint": .b2_s3_api_url.value,
+            "publicDomain": (.b2_download_url.value + "/file"),
+            "region": .b2_s3_region.value
         }
     },
     "ssh": {
