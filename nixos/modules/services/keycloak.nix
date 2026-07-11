@@ -111,6 +111,23 @@ in
             "publicClient": false,
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": true
+          },
+          {
+            "clientId": "lobechat",
+            "name": "LobeChat",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."lobechat/keycloak_client_secret"}",
+            "redirectUris": [
+              "https://chat.dora.im/api/auth/callback/keycloak"
+            ],
+            "webOrigins": [
+              "https://chat.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": false
           }
         ],
         "userFederationProviders": [
@@ -145,6 +162,7 @@ in
     "memos/oidc_client_secret" = { };
     "mail/services" = { };
     "jellyfin/oidc_client_secret" = { };
+    "lobechat/keycloak_client_secret" = { };
     "password" = {
       mode = "0444";
     };

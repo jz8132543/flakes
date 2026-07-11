@@ -1,6 +1,5 @@
 {
   config,
-  pkgs,
   lib,
   nixosModules,
   ...
@@ -11,7 +10,11 @@
   services.postgresql = {
     enable = true;
     enableTCPIP = true;
-    package = pkgs.postgresql_17;
+    # package = pkgs.postgresql_17;
+    extensions =
+      ps: with ps; [
+        pgvector
+      ];
     authentication = lib.mkForce ''
       local all all                           trust
       host all all 127.0.0.1/32               trust

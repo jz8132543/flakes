@@ -69,6 +69,7 @@
       syncthing = 3210;
       syncthing-discovery = 3220;
       syncthing-transfer = 3230;
+      lobechat = 3232;
       gortr = 3240;
       gortr-metric = 3241;
       bird-lg-proxy = 3250;

@@ -1,16 +1,24 @@
 {
   "matrix": {
     "media": {
-      "host": null,
+      "host": "https://s3.eu-central-003.backblazeb2.com",
       "name": null,
-      "region": null
+      "region": "eu-central-003"
     }
   },
   "mastodon": {
     "media": {
-      "host": null,
+      "host": "https://s3.eu-central-003.backblazeb2.com",
       "name": null,
-      "region": null
+      "region": "eu-central-003"
+    }
+  },
+  "lobechat": {
+    "storage": {
+      "bucket": "doraim-lobechat-files",
+      "endpoint": "https://s3.eu-central-003.backblazeb2.com",
+      "publicDomain": "https://f003.backblazeb2.com/file",
+      "region": "eu-central-003"
     }
   },
   "ssh": {
@@ -145,6 +153,10 @@
       "proxy": false
     },
     "cache": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "chat": {
       "on": "nue0",
       "proxy": false
     },

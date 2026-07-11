@@ -282,6 +282,7 @@ in
       ".config/zathura"
       ".local/share/zathura"
       ".config/dconf"
+      ".codex"
     ];
     files = [
       ".config/monitors.xml"
