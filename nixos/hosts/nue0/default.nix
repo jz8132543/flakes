@@ -56,6 +56,7 @@
       nixosModules.services.grafana.default
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
+      nixosModules.services.knowledge
     ]
     ++ nixosModules.matrix.all;
 
@@ -64,6 +65,7 @@
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;
+  services.knowledge.enable = true;
 
   environment.seedbox = {
     enable = true;

@@ -52,6 +52,9 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.tmpfiles.rules = [
+      # The upstream NixOS CouchDB unit always writes this file during
+      # ExecStartPre, even when databaseDir is relocated below.
+      "d /var/lib/couchdb 0750 ${config.services.couchdb.user} ${config.services.couchdb.group} -"
       "d ${couchdbDataDir} 0750 ${config.services.couchdb.user} ${config.services.couchdb.group} -"
       "d ${couchdbDataDir}/view_indexes 0750 ${config.services.couchdb.user} ${config.services.couchdb.group} -"
     ];

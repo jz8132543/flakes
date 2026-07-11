@@ -61,6 +61,8 @@ in
       nixosModules.services.qbittorrent
     ];
 
+  services.tailscale.enable = true;
+
   hardware.microsoft-surface = {
     kernelVersion = "stable";
   };
