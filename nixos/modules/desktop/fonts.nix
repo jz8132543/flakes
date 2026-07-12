@@ -82,7 +82,7 @@
     enable = true;
     extraOptions = "--term xterm-256color";
     # Whether to use 3D hardware acceleration to render the console.
-    hwRender = true;
+    config.hwaccel = true;
   };
 
   hardware.graphics.enable = true;
