@@ -7,9 +7,13 @@
 {
   imports = [
   ];
-  nix.registry = lib.mapAttrs (_: flake: { inherit flake; }) (
-    lib.filterAttrs (_: v: v ? lastModified) inputs
-  );
+  # Minimal registry: only register this flake to avoid evaluating all inputs
+  # during system evaluation. This prevents accidental platform-specific
+  # evaluation (e.g. darwin) caused by some moving inputs. If you later need
+  # a fuller registry, we can whitelist safe inputs explicitly.
+  # Keep the registry empty to avoid evaluating other inputs during system
+  # evaluation. This prevents accidental platform-specific evaluation.
+  nix.registry = lib.mkForce { };
   nix = {
     optimise.automatic = true;
     channel.enable = false;
@@ -25,7 +29,6 @@
       accept-flake-config = true;
       nix-path = [
         "nixpkgs=${inputs.nixpkgs}"
-        # "nixpkgs-master=${inputs.latest.outPath}"
         # "nixpkgs-stable=${inputs.release.outPath}"
       ];
       experimental-features = [

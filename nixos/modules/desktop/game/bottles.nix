@@ -1,7 +1,7 @@
 { pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
-    bottles
+    # bottles
     wineWow64Packages.staging
     winetricks
     protonplus # Blog recommendation: Manage compatibility layers

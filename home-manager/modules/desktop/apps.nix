@@ -28,7 +28,7 @@ in
     man-pages
     man-pages-posix
     # APPS
-    logseq
+    # logseq
     obsidian
     zotero
     libreoffice

@@ -9,7 +9,7 @@ let
   cfg = config.services.obsidianLiveSync;
   couchdbPort = 5984;
   couchdbDataDir = "/var/lib/obsidian-livesync/couchdb";
-  syncHost = "sync.${config.networking.domain}";
+  syncHost = "couchdb.${config.networking.domain}";
   publicUri = "https://${syncHost}";
   localIni = pkgs.writeText "obsidian-livesync-local.ini" ''
     [couchdb]
@@ -71,6 +71,14 @@ in
         localIni
       ];
     };
+
+    systemd.services.couchdb.preStart = lib.mkAfter ''
+      cookie="${couchdbDataDir}/.erlang.cookie"
+      if ! test -s "$cookie" || [ "$(${pkgs.coreutils}/bin/wc -c < "$cookie")" -lt 64 ]; then
+        ${pkgs.coreutils}/bin/head -c 48 /dev/urandom | ${pkgs.coreutils}/bin/base64 | ${pkgs.coreutils}/bin/tr -d '\n' > "$cookie"
+      fi
+      chmod 0600 "$cookie"
+    '';
 
     sops.templates."obsidian-livesync-admin" = {
       mode = "0440";

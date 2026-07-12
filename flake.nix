@@ -3,14 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    latest.url = "github:NixOS/nixpkgs/master";
+    # latest.url = "github:NixOS/nixpkgs/master"; # 注释：避免在评估阶段触发不必要的平台兼容性求值
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
     nixos-hardware.url = "github:nixos/nixos-hardware";
-    nixos-images.url = "github:nix-community/nixos-images";
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -79,7 +78,6 @@
       url = "github:cachix/pre-commit-hooks.nix";
       inputs.flake-compat.follows = "flake-compat";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.gitignore.follows = "gitignore-nix";
     };
     rust-overlay = {
       url = "github:oxalica/rust-overlay";

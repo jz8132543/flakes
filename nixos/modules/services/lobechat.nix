@@ -51,7 +51,7 @@ in
       DATABASE_URL = "postgresql://${dbUser}@${dbHost}:5432/${dbName}";
       FEATURE_FLAGS = "-market";
       PORT = toString port;
-      NEXT_PUBLIC_ENABLE_WELCOMES = false;
+      NEXT_PUBLIC_ENABLE_WELCOMES = "false";
       NEXT_PUBLIC_AUTH_URL = "https://${domain}/api/auth";
       NEXT_PUBLIC_SERVICE_MODE = "server";
       NEXTAUTH_URL = "https://${domain}/api/auth";
