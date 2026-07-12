@@ -27,34 +27,37 @@ with lib.strings;
         # fix kde connection for android
         "HostKeyAlgorithms" = "+ssh-rsa";
       };
-      settings = {
-        "Host github.com" = {
-          User = "git";
-          HostName = "ssh.github.com";
-          Port = 443;
+      matchBlocks = {
+        github = {
+          host = "github.com";
+          user = "git";
+          hostname = "ssh.github.com";
+          port = 443;
         };
-        "Host gitlab.com" = {
-          User = "git";
-          HostName = "altssh.gitlab.com";
-          Port = 443;
+        gitlab = {
+          host = "gitlab.com";
+          user = "git";
+          hostname = "altssh.gitlab.com";
+          port = 443;
         };
-        "Host *" = {
-          User = "tippy";
-          CheckHostIP = false;
-          ForwardAgent = true;
-          Port = osConfig.ports.ssh;
-          ProxyCommand = "${pkgs.ssh-race}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
+        raceDomains = lib.hm.dag.entryBefore [ "*" ] {
+          match = "canonical final host ${concatMapStringsSep "," (x: "*.${x}") sshRaceDomains}";
+          user = "tippy";
+          port = osConfig.ports.ssh;
+        };
+        "*" = {
+          checkHostIP = false;
+          forwardAgent = true;
+          port = osConfig.ports.ssh;
+          proxyCommand = "${pkgs.ssh-race}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
           # ForwardX11 = true;
-          UserKnownHostsFile = "/dev/null";
-          ServerAliveInterval = 3;
-          ServerAliveCountMax = 6;
-          Compression = false;
-          ControlMaster = "auto";
-          ControlPath = "~/.ssh/master-%r@%n:%p";
-          ControlPersist = "10m";
-        };
-        "Match canonical final Host ${concatMapStringsSep "," (x: "*.${x}") sshRaceDomains}" = {
-          Port = osConfig.ports.ssh;
+          userKnownHostsFile = "/dev/null";
+          serverAliveInterval = 3;
+          serverAliveCountMax = 6;
+          compression = false;
+          controlMaster = "auto";
+          controlPath = "~/.ssh/master-%r@%n:%p";
+          controlPersist = "10m";
         };
       };
       includes = [

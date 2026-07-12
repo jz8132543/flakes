@@ -128,6 +128,9 @@ in
       ".local/share/direnv"
       ".vscode-server"
       ".config/Code"
+      # VS Code / OpenVSCode Server store workspace trust and machine identity
+      # state under data/, so keep that tree persistent as well.
+      ".vscode-server/data"
     ];
   };
 }
