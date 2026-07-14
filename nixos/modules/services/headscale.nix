@@ -5,6 +5,96 @@
   nixosModules,
   ...
 }:
+let
+  headscaleConfig = {
+    disable_check_updates = true;
+    unix_socket = "/run/headscale/headscale.sock";
+    server_url = "https://ts.${config.networking.domain}";
+    listen_addr = "127.0.0.1:${toString config.ports.headscale}";
+    metrics_listen_addr = "localhost:${toString config.ports.headscale_metrics}";
+    grpc_listen_addr = "localhost:${toString config.ports.headscale_grpc}";
+    grpc_allow_insecure = true;
+    node = {
+      ephemeral = {
+        inactivity_timeout = "30m";
+      };
+    };
+    node_update_check_interval = "10s";
+    noise.private_key_path = "/var/lib/headscale/noise_private.key";
+    database = {
+      debug = true;
+      type = "sqlite3";
+      sqlite.path = "/var/lib/headscale/db.sqlite";
+    };
+    dns = {
+      override_local_dns = false;
+      base_domain = "mag";
+      magic_dns = true;
+      inherit (config.environment) domains;
+      nameservers.global = [
+        "1.1.1.1"
+        "9.9.9.9"
+      ];
+      extra_records = [
+        {
+          name = "m.mag";
+          type = "A";
+          value = "100.64.0.2";
+        }
+        {
+          name = "m-admin.mag";
+          type = "A";
+          value = "100.64.0.2";
+        }
+        {
+          name = "postgres.mag";
+          type = "A";
+          value = "100.64.0.1";
+        }
+        {
+          name = "mysql.mag";
+          type = "A";
+          value = "100.64.0.1";
+        }
+        {
+          name = "tv.mag";
+          type = "A";
+          value = "100.64.0.1";
+        }
+      ];
+    };
+    logtail = {
+      enabled = false;
+    };
+    log = {
+      level = "warn";
+      format = "text";
+    };
+    prefixes = {
+      v4 = "100.64.0.0/10";
+      v6 = "fd7a:115c:a1e0::/48";
+      allocation = "sequential";
+    };
+    derp = {
+      paths = [ "/run/credentials/headscale.service/map.yaml" ];
+      urls = [ ];
+      auto_update_enabled = true;
+      update_frequency = "24h";
+      server.private_key_path = "/var/lib/headscale/derp_server_private.key";
+    };
+    policy = {
+      mode = "file";
+      path = "/run/credentials/headscale.service/acl.json";
+    };
+    tls_letsencrypt_cache_dir = "/var/lib/headscale/.cache";
+    tls_letsencrypt_challenge_type = "HTTP-01";
+    tls_letsencrypt_hostname = "";
+    tls_letsencrypt_listen = ":http";
+  };
+  settingsFormat = pkgs.formats.yaml { };
+  headscaleConfigFile = settingsFormat.generate "headscale.yaml" headscaleConfig;
+in
+with lib.strings;
 {
   imports = [ nixosModules.services.derp ];
   systemd.services.derper.serviceConfig.Environment =
@@ -25,8 +115,8 @@
         disable_check_updates = true;
         node.ephemeral.inactivity_timeout = "30m";
         node_update_check_interval = "10s";
-        # tls_cert_path = "${config.security.acme.certs."main".directory}/full.pem";
-        # tls_key_path = "${config.security.acme.certs."main".directory}/key.pem";
+        # tls_cert_path = "${config.security.acme.certs.\"main\".directory}/full.pem";
+        # tls_key_path = "${config.security.acme.certs.\"main\".directory}/key.pem";
         database = {
           debug = true;
           type = "sqlite3";
@@ -96,6 +186,10 @@
       "acl.json:/etc/headscale/acl.json"
     ];
   };
+  environment.etc."headscale/config.yaml".source = lib.mkForce headscaleConfigFile;
+  systemd.services.headscale.script = lib.mkForce ''
+    exec ${lib.getExe config.services.headscale.package} serve --config ${headscaleConfigFile}
+  '';
   environment.systemPackages = [
     config.services.headscale.package
     pkgs.sqlite

@@ -69,27 +69,27 @@
       };
     };
   };
-  hardware.nvidia.prime = {
-    intelBusId = "PCI:0:2:0";
-    nvidiaBusId = "PCI:2:0:0";
+  hardware.nvidia = {
+    #
+    #   modesetting.enable = true;
+    package = lib.mkForce config.boot.kernelPackages.nvidiaPackages.production;
+    prime = {
+      intelBusId = "PCI:0:2:0";
+      nvidiaBusId = "PCI:2:0:0";
+    };
+    #   nvidiaSettings = true;
+    #   nvidiaPersistenced = true;
+    #   prime = {
+    #     sync.enable = true;
+    #     # offload.enable = true;
+    #     intelBusId = "PCI:0:2:0";
+    #     nvidiaBusId = "PCI:2:0:0";
+    #   };
+    #   powerManagement = {
+    #     enable = true;
+    #     finegrained = false;
+    #   };
   };
-  # hardware.nvidia = {
-  #
-  #   modesetting.enable = true;
-  #   # package = config.boot.kernelPackages.nvidiaPackages.production;
-  #   nvidiaSettings = true;
-  #   nvidiaPersistenced = true;
-  #   prime = {
-  #     sync.enable = true;
-  #     # offload.enable = true;
-  #     intelBusId = "PCI:0:2:0";
-  #     nvidiaBusId = "PCI:2:0:0";
-  #   };
-  #   powerManagement = {
-  #     enable = true;
-  #     finegrained = false;
-  #   };
-  # };
   utils.disk = "/dev/nvme0n1";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

@@ -64,7 +64,7 @@ in
   services.tailscale.enable = true;
 
   hardware.microsoft-surface = {
-    kernelVersion = "stable";
+    kernelVersion = "longterm";
   };
   services.iptsd.enable = lib.mkForce false;
 
