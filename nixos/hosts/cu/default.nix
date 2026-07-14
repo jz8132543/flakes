@@ -13,7 +13,7 @@
       ./hardware-configuration.nix
       # nixosModules.optimize.infini
       # nixosModules.services.traefik
-      # nixosModules.services.derp
+      nixosModules.services.derp
       nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
     ];
