@@ -27,7 +27,7 @@ with lib.strings;
         # fix kde connection for android
         "HostKeyAlgorithms" = "+ssh-rsa";
       };
-      matchBlocks = {
+      settings = {
         github = {
           host = "github.com";
           user = "git";
