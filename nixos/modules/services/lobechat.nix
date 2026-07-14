@@ -31,16 +31,6 @@ in
     };
   };
 
-  services.postgresql = {
-    ensureDatabases = [ dbName ];
-    ensureUsers = [
-      {
-        name = dbUser;
-        ensureDBOwnership = true;
-      }
-    ];
-  };
-
   virtualisation.oci-containers.containers.lobechat = {
     image = "lobehub/lobe-chat-database:latest";
     autoStart = true;
@@ -49,7 +39,6 @@ in
       APP_URL = "https://${domain}";
       AUTH_URL = "https://${domain}/api/auth";
       DATABASE_URL = "postgresql://${dbUser}@${dbHost}:5432/${dbName}";
-      FEATURE_FLAGS = "-market";
       PORT = toString port;
       NEXT_PUBLIC_ENABLE_WELCOMES = "false";
       NEXT_PUBLIC_AUTH_URL = "https://${domain}/api/auth";
@@ -64,6 +53,10 @@ in
       S3_PUBLIC_DOMAIN = storage.publicDomain;
       S3_REGION = storage.region;
       S3_SET_ACL = "0";
+      FEATURE_FLAGS = "-changelog,-check_updates,-welcome_suggest,+market,+plugins,+knowledge_base,+group_chat,+dalle,+speech_to_text,+webrtc_sync";
+      ENABLED_ARTIFACTS = "1";
+      ENABLED_MCP = "1";
+      ENABLED_UPLOAD = "1";
     };
     environmentFiles = [ config.sops.templates."lobechat-env".path ];
     volumes = [

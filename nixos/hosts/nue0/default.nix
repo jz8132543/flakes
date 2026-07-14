@@ -44,7 +44,7 @@
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { })
       # (import nixosModules.services.nextcloud { })
-      (import nixosModules.services.mastodon { })
+      (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
@@ -84,7 +84,7 @@
       {
         name = "nue0";
         server = "nue0.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "EU" ];
       }
       {
@@ -96,7 +96,7 @@
       {
         name = "tyo0";
         server = "tyo0.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "JP" ];
       }
       {
@@ -120,7 +120,7 @@
       {
         name = "sjc0";
         server = "sjc0.dora.im";
-        port = 443;
+        port = 8555;
         regions = [ "US" ];
       }
       {

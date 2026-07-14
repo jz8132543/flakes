@@ -9,7 +9,7 @@
       nixosModules.optimize.ext4
       # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
-      nixosModules.services.traefik
+      # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
