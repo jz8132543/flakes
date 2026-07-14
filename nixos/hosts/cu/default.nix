@@ -11,7 +11,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.infini
+      # nixosModules.optimize.infini
       # nixosModules.services.traefik
       # nixosModules.services.derp
       nixosModules.services.haproxy-proxy
@@ -29,17 +29,17 @@
       {
         listenPort = 50561;
         remoteAddr = "nue0.dora.im";
-        remotePort = 443;
+        remotePort = 8555;
       }
       {
         listenPort = 50562;
         remoteAddr = "sjc0.dora.im";
-        remotePort = 443;
+        remotePort = 8555;
       }
       {
         listenPort = 50563;
         remoteAddr = "tyo0.dora.im";
-        remotePort = 443;
+        remotePort = 8555;
       }
       {
         listenPort = 50564;
