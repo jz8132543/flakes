@@ -27,20 +27,20 @@
       useDHCP = false;
       ipv4.addresses = [
         {
-          address = "45.143.130.241";
+          address = "45.143.130.230";
           prefixLength = 24;
         }
       ];
       ipv6.addresses = [
         {
-          address = "2604:a840:100:2e9::a";
+          address = "2604:a840:101:2d9::a";
           prefixLength = 64;
         }
       ];
     };
     defaultGateway = "45.143.130.254";
     defaultGateway6 = {
-      address = "2604:a840:100::abcd:1";
+      address = "2604:a840:101::abcd:1";
       interface = "eth0";
     };
   };

@@ -14,6 +14,7 @@
     extensions =
       ps: with ps; [
         pgvector
+        pg_search
       ];
     authentication = lib.mkForce ''
       local all all                           trust
@@ -25,6 +26,7 @@
       host replication all fd7a:115c:a1e0::/48 trust
     '';
     settings = {
+      shared_preload_libraries = "pg_search";
       password_encryption = "scram-sha-256";
       hot_standby = "on";
       wal_level = "logical";
