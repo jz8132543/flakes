@@ -110,7 +110,7 @@ in
       "lobechat-db-init.service"
       "lobechat-fetch-models.service"
     ];
-    requires = [
+    wants = [
       "lobechat-db-init.service"
       "lobechat-fetch-models.service"
     ];
@@ -165,8 +165,10 @@ in
       "network-online.target"
       "sops-install-secrets.service"
     ];
-    wants = [ "network-online.target" ];
-    requires = [ "sops-install-secrets.service" ];
+    wants = [
+      "network-online.target"
+      "sops-install-secrets.service"
+    ];
     before = [ "podman-lobechat.service" ];
     serviceConfig = {
       Type = "oneshot";
