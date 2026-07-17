@@ -180,6 +180,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "couchdb": {
+      "on": "nue0",
+      "proxy": false
+    },
     "dash": {
       "on": "nue0",
       "proxy": false
