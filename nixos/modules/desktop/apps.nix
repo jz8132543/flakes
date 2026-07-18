@@ -9,7 +9,7 @@
     nixosModules.services.aria2
     nixosModules.services.podman
     nixosModules.services.easytier-web
-    nixosModules.services.ntopng
+    # nixosModules.services.ntopng
   ];
   programs.k3b.enable = true;
   environment.systemPackages = with pkgs; [
