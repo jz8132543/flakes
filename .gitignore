@@ -1,4 +1,6 @@
 result*
+.agent
+docs
 .last_built_image
 .direnv
 .vscode
@@ -19,3 +21,4 @@ prepare-host-notice*
 /.sops.yaml
 
 /.nixd.json
+.worktrees/
