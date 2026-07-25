@@ -22,112 +22,95 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   # § 2  带宽/延迟基础量（BDP）
   #
-  # BDP（字节）= 带宽(Mbps) × RTT(ms) × 125
-  # 单一激进策略：直接按接近标称带宽估算 BDP，上限更高。
+  # 严格 BDP 公式：
+  #   BDP (bytes) = BW(Mbps) × 10^6 / 8 × RTT(ms) / 1000 = BW × RTT × 125
+  #   Buffer_target = BDP × 1.2  (BBR 探测冗余)
+  # 使用 realBandwidth（如已设置）作为计算基准。
   # ──────────────────────────────────────────────────────────────────────────
-  bdpTargetBandwidth = lib.max cfg.bandwidth cfg.realBandwidth;
-  bdpBasisBandwidth = builtins.floor (bdpTargetBandwidth * 85 / 100);
-  bdp = bdpBasisBandwidth * cfg.rtt * 125;
+  bdpBandwidth = if cfg.realBandwidth > 0 then cfg.realBandwidth else cfg.bandwidth;
+  bdpBytes = bdpBandwidth * cfg.rtt * 125;
+  bufferTarget = bdpBytes * 120 / 100;
   ramBytes = cfg.ram * 1024 * 1024;
+  # 保留 bdp 别名供 §9 路由参数段引用
 
   # ──────────────────────────────────────────────────────────────────────────
-  # § 3  Socket 缓冲区参数
+  # § 3  全局 TCP 内存池 & Socket 缓冲区
+  #
+  # 阶梯式百分比 OOM 防御墙：
+  #   Tier 1 (RAM < 1 GB):   15% — 保命为主，为内核预留充足内存
+  #   Tier 2 (1-8 GB):       25% — 常规分配
+  #   Tier 3 (RAM >= 8 GB):  40% — 激进分配，最大化并发潜力
+  #
+  # 单连接安全断路器：
+  #   Max_Socket_Buffer = min(Buffer_target, RAM_tcp_max × 50%)
+  #   确保至少能容纳 2 个满速并发连接。
   # ──────────────────────────────────────────────────────────────────────────
 
-  # Socket 缓冲区上限 (rmem_max / wmem_max)
-  # 取 "2×BDP" 与 "12.5% RAM" 两者的较小值，硬上限 128MB
-  rmem_max_raw = bdp * 2;
-  rmem_max_pct = if isBerserk then ramBytes * 58 / 100 else ramBytes * 12 / 100;
-  rmem_max = clamp rmemMinFloor rmemMaxLimit (
-    if rmem_max_raw < rmem_max_pct then rmem_max_raw else rmem_max_pct
-  );
+  # 全局 TCP 内存池上限
+  tcpMemPct =
+    if cfg.ram < 1024 then
+      15
+    else if cfg.ram < 8192 then
+      25
+    else
+      40;
+  ramTcpMax = ramBytes * tcpMemPct / 100;
+  pagesMax = ramTcpMax / 4096;
 
-  # 默认缓冲区 (rmem_default / wmem_default)：取 BDP/2，夹在 [4MB, rmem_max/2]
-  rmem_default_raw = bdp / 2;
-  rmem_default = clamp rmemDefaultFloor (
-    rmem_max * rmemDefaultCeilFactor / rmemDefaultCeilDiv
-  ) rmem_default_raw;
-
-  # 待发送队列唤醒下限 (tcp_notsent_lowat)
-  # 下限 128KB（而非 2MB），让小内存机器也能得到合理值
-  notsent_lowat_raw = bdp / 4;
-  notsent_lowat = clamp (128 * 1024) notsentLowatCap notsent_lowat_raw;
-
-  # TCP/UDP 全局内存池（单位：页，1 页 = 4096 B）
-  # 提高内存利用比例：让小内存机器也敢于把更多内存给网络栈。
-  tcp_mem_low = cfg.ram * 256 * 14 / 100;
-  tcp_mem_mid = cfg.ram * 256 * 30 / 100;
-  tcp_mem_high_raw = cfg.ram * 256 * tcpMemHighPct / 100;
-  tcp_mem_high_bw = rmem_max * 64 / 4096; # 64× max-conn cap in pages
-  tcp_mem_high = if tcp_mem_high_raw < tcp_mem_high_bw then tcp_mem_high_raw else tcp_mem_high_bw;
+  # TCP 内存水位线（单位：页）
+  tcp_mem_low = pagesMax * 50 / 100;
+  tcp_mem_mid = pagesMax * 75 / 100;
+  tcp_mem_high = pagesMax;
   udp_mem_low = tcp_mem_low / 2;
   udp_mem_mid = tcp_mem_mid / 2;
   udp_mem_high = tcp_mem_high / 2;
 
-  tcpMemHighPct =
-    if isBerserk then
-      if lowMemNode then
-        clamp 50 76 (56 + cfg.cpus * 2 + cfg.realBandwidth / 900)
-      else
-        clamp 80 97 (78 + cfg.cpus * 2 + cfg.realBandwidth / 600)
-    else
-      50;
+  # 单连接缓冲区上限（rmem_max / wmem_max）— 安全断路器
+  maxSocketBuffer = lib.min bufferTarget (ramTcpMax / 2);
+
+  # 默认缓冲区 — max(65536, min(BDP/4, 16MB))
+  tcpDefaultBuf = clamp 65536 (16 * 1024 * 1024) (bdpBytes / 4);
+
+  # 待发送队列唤醒下限
+  notsent_lowat = clamp (128 * 1024) (maxSocketBuffer / 4) (bdpBytes / 4);
+
+  rmem_max = maxSocketBuffer;
+  rmem_default = tcpDefaultBuf;
+  isBerserk = true;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 4  稳定连接预算（核心）
+  #
+  # 单一激进策略，由 CPU/RAM/BW 联合推导。
   # ──────────────────────────────────────────────────────────────────────────
-  # 保持单一高性能配置，不再区分 profile 档位。
-  isBerserk = true;
-  # 既然引用此配置的均为 VPS，强制开启 VPS 模式
-  isVpsMode = true;
-  # 小内存/单核机器走“轻收敛”分支：优先保吞吐，再小幅降内存放大项。
   lowMemNode = cfg.ram <= 512 || cfg.cpus <= 1;
+  effectiveBw = if cfg.realBandwidth > 0 then cfg.realBandwidth else cfg.bandwidth;
+
   connBudgetRamFactorLowMem = clamp 150 220 (150 + cfg.ram / 8 + cfg.cpus * 6);
   netdevBacklogBwFactorLowMem = clamp 1250 1500 (
-    1040 + cfg.ram / 4 + cfg.realBandwidth / 50 - cfg.cpus * 10
+    1040 + cfg.ram / 4 + effectiveBw / 50 - cfg.cpus * 10
   );
-  napiBudgetSingleCoreLowMem = clamp 6200 8200 (6600 + cfg.realBandwidth / 3 + cfg.ram / 4);
+  napiBudgetSingleCoreLowMem = clamp 6200 8200 (6600 + effectiveBw / 3 + cfg.ram / 4);
   rpsSockFlowEntriesLowMem = clamp 131072 1048576 (
-    ((cfg.ram * 512) + (cfg.realBandwidth * 128)) / (lib.max 1 cfg.cpus)
+    ((cfg.ram * 512) + (effectiveBw * 128)) / (lib.max 1 cfg.cpus)
   );
 
-  # Profile constants: centralize tuning knobs for readability/maintainability.
-  rmemMaxLimit = if isBerserk then ramBytes * 85 / 100 else ramBytes * 20 / 100;
-  # 如果是 VPS 且内存小，保命优先，下限降低但保持合理比例
-  rmemMinFloor =
-    if isVpsMode then
-      if lowMemNode then ramBytes * 8 / 100 else ramBytes * 15 / 100
-    else
-      (if isBerserk then ramBytes * 25 / 100 else 16 * 1024 * 1024);
-  rmemDefaultFloor =
-    if isBerserk then
-      if lowMemNode then ramBytes * 6 / 100 else ramBytes * 10 / 100
-    else
-      4 * 1024 * 1024;
-  rmemDefaultCeilFactor = if isBerserk then 19 else 2;
-  rmemDefaultCeilDiv = if isBerserk then 20 else 2;
-  notsentLowatCap = if isBerserk then ramBytes * 20 / 100 else rmem_max / 2;
-
-  connBudgetRamFactor =
-    if isBerserk then if lowMemNode then connBudgetRamFactorLowMem else 280 else 10;
-  connBudgetCpuFactor = if isBerserk then 150000 else 7000;
-  connBudgetBwFactor = if isBerserk then 380 else 24;
-  stableConnCap =
-    if isBerserk then lib.max 600000 (cfg.ram * cfg.cpus * cfg.realBandwidth * 20) else 600000;
-  netdevBacklogBwFactor =
-    if isBerserk then if lowMemNode then netdevBacklogBwFactorLowMem else 1600 else 110;
-  netdevBacklogCpuFactor = if isBerserk then 180000 else 20000;
-  netdevBacklogCap =
-    if isBerserk then lib.max 1200000 (cfg.realBandwidth * 3000 + cfg.cpus * 250000) else 1200000;
-  synBacklogCap = if isBerserk then lib.max 1048576 (cfg.ram * cfg.cpus * 4096) else 1048576;
-  twBucketsCap = if isBerserk then lib.max 4000000 (cfg.ram * cfg.cpus * 50000) else 4000000;
-  maxOrphansCap = if isBerserk then lib.max 524288 (cfg.ram * cfg.cpus * 4096) else 524288;
-  fileMaxCap = if isBerserk then lib.max 6291456 (cfg.ram * cfg.cpus * 24000) else 6291456;
-  conntrackCap = if isBerserk then lib.max 4194304 (cfg.ram * cfg.cpus * 16000) else 4194304;
+  connBudgetRamFactor = if lowMemNode then connBudgetRamFactorLowMem else 280;
+  connBudgetCpuFactor = 150000;
+  connBudgetBwFactor = 380;
+  stableConnCap = lib.max 600000 (cfg.ram * cfg.cpus * effectiveBw * 20);
+  netdevBacklogBwFactor = if lowMemNode then netdevBacklogBwFactorLowMem else 1600;
+  netdevBacklogCpuFactor = 180000;
+  netdevBacklogCap = lib.max 1200000 (effectiveBw * 3000 + cfg.cpus * 250000);
+  synBacklogCap = lib.max 1048576 (cfg.ram * cfg.cpus * 4096);
+  twBucketsCap = lib.max 4000000 (cfg.ram * cfg.cpus * 50000);
+  maxOrphansCap = lib.max 524288 (cfg.ram * cfg.cpus * 4096);
+  fileMaxCap = lib.max 6291456 (cfg.ram * cfg.cpus * 24000);
+  conntrackCap = lib.max 4194304 (cfg.ram * cfg.cpus * 16000);
 
   connBudgetRam = cfg.ram * connBudgetRamFactor;
   connBudgetCpu = cfg.cpus * connBudgetCpuFactor;
-  connBudgetBw = cfg.realBandwidth * connBudgetBwFactor;
+  connBudgetBw = effectiveBw * connBudgetBwFactor;
   stableConnBudget = clamp 4096 stableConnCap (
     lib.min connBudgetRam (lib.min connBudgetCpu connBudgetBw)
   );
@@ -136,7 +119,7 @@ let
   # § 5  连接队列参数（由稳定连接预算推导）
   # ──────────────────────────────────────────────────────────────────────────
   netdev_backlog = clamp 50000 netdevBacklogCap (
-    (cfg.realBandwidth * netdevBacklogBwFactor) + (cfg.cpus * netdevBacklogCpuFactor)
+    (effectiveBw * netdevBacklogBwFactor) + (cfg.cpus * netdevBacklogCpuFactor)
   );
   syn_backlog = clamp 16384 synBacklogCap (stableConnBudget * 4 / 5);
   tw_buckets = clamp 200000 twBucketsCap (stableConnBudget * 12);
@@ -153,36 +136,21 @@ let
   # § 7  CPU / NAPI 参数
   # ──────────────────────────────────────────────────────────────────────────
   napi_budget =
-    if isBerserk then
-      if cfg.cpus == 1 then
-        if lowMemNode then napiBudgetSingleCoreLowMem else 9000
-      else if cfg.cpus <= 4 then
-        12800
-      else
-        16800
-    else if cfg.cpus == 1 then
-      1200
+    if cfg.cpus == 1 then
+      if lowMemNode then napiBudgetSingleCoreLowMem else 9000
     else if cfg.cpus <= 4 then
-      2000
+      12800
     else
-      3000;
+      16800;
 
-  dev_weight =
-    if isBerserk then
-      if cfg.cpus == 1 then (if isVpsMode then 512 else 1024) else 2048
-    else if cfg.cpus == 1 then
-      128
-    else
-      256;
+  # 单核 VPS 使用较低的 dev_weight
+  dev_weight = if cfg.cpus == 1 then 512 else 2048;
 
-  # 单核主机上 busy-poll 过高会放大 CPU 抢占与抖动，适度下调。
-  # 对于 VPS 且单核，busy_poll 设为 0 以防由于宿主机调度延迟导致的 Guest CPU 假死。
-  busy_poll = if isBerserk then if cfg.cpus == 1 then (if isVpsMode then 0 else 50) else 150 else 0;
-  # 单核主机避免 NAPI 长时间占满一个调度周期，降低 PSI 抖动。
-  netdev_budget_usecs =
-    if isBerserk then if cfg.cpus == 1 then (if isVpsMode then 30000 else 45000) else 90000 else 8000;
-  rpsSockFlowEntries =
-    if isBerserk then if lowMemNode then rpsSockFlowEntriesLowMem else 2097152 else 65536;
+  # 单核 VPS 上 busy-poll 设为 0，防止宿主机调度延迟导致假死
+  busy_poll = if cfg.cpus == 1 then 0 else 150;
+  # 单核主机避免 NAPI 长时间占满调度周期
+  netdev_budget_usecs = if cfg.cpus == 1 then 30000 else 90000;
+  rpsSockFlowEntries = if lowMemNode then rpsSockFlowEntriesLowMem else 2097152;
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 8  nf_conntrack
@@ -192,10 +160,10 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   # § 9  路由参数（initrwnd / initcwnd）
   # ──────────────────────────────────────────────────────────────────────────
-  bdp_pkts = bdp / 1400;
-  # initcwnd：回到“高起速”基线（2400）并按链路/CPU继续上调。
+  bdp_pkts = bdpBytes / 1400;
+  # initcwnd：回到"高起速"基线（2400）并按链路/CPU继续上调。
   # 单位换算：pkt ~= MSS(1460B)
-  firstRttPayloadBytes = clamp (256 * 1024) (6 * 1024 * 1024) (bdp * 65 / 100);
+  firstRttPayloadBytes = clamp (256 * 1024) (6 * 1024 * 1024) (bdpBytes * 65 / 100);
   initcwnd_from_first_rtt = (firstRttPayloadBytes + 1459) / 1460;
   initcwnd_from_bdp = bdp_pkts;
   initcwnd_from_cpu = cfg.cpus * 320;
@@ -224,7 +192,7 @@ let
   initrwnd_raw = bdp_pkts * 3 / 5;
   # 单核主机限制接收窗口初值，避免首轮突发放大软中断压力。
   initrwnd = clamp 300 (if cfg.cpus == 1 then 4096 else 16384) initrwnd_raw;
-  initcwndCap = lib.max 4096 (bdp_pkts * 2 + cfg.cpus * 1024 + cfg.realBandwidth / 2);
+  initcwndCap = lib.max 4096 (bdp_pkts * 2 + cfg.cpus * 1024 + effectiveBw / 2);
   # 单核主机限制初始拥塞窗口，减轻启动瞬时 CPU 峰值与排队压力。
   initcwnd = clamp 1024 (if cfg.cpus == 1 then lib.min 6144 initcwndCap else initcwndCap) (
     initcwnd_raw + initcwnd_rtt_boost
@@ -233,11 +201,11 @@ let
   # BBRv1 + fq 的慢启动 pacing：回到高攻势区间，并按链路动态。
   pacingSsBase = if cfg.highLoss then 900 else 940;
   pacingSsBwBoost =
-    if cfg.realBandwidth >= 5000 then
+    if effectiveBw >= 5000 then
       200
-    else if cfg.realBandwidth >= 2000 then
+    else if effectiveBw >= 2000 then
       170
-    else if cfg.realBandwidth >= 1000 then
+    else if effectiveBw >= 1000 then
       120
     else
       80;
@@ -250,7 +218,7 @@ let
       20
     else
       0;
-  pacingSsMin = clamp 220 900 (260 + cfg.realBandwidth / 8 - cfg.rtt / 2);
+  pacingSsMin = clamp 220 900 (260 + effectiveBw / 8 - cfg.rtt / 2);
   pacingSsMax = clamp (pacingSsMin + 60) 980 (pacingSsMin + 220 + cfg.cpus * 40);
   pacingSsRatio = clamp pacingSsMin pacingSsMax (pacingSsBase + pacingSsBwBoost - pacingSsRttPenalty);
   pacingCaRatio = clamp 120 360 (pacingSsRatio * 28 / 100);
@@ -260,9 +228,9 @@ let
 
   tcpLimitOutputBytes =
     if lowMemNode then
-      clamp (512 * 1024) (ramBytes * 16 / 100) (bdp + 2 * 1024 * 1024)
+      clamp (512 * 1024) (ramBytes * 16 / 100) (bdpBytes + 2 * 1024 * 1024)
     else
-      clamp (512 * 1024) (ramBytes * 20 / 100) (bdp * 3 / 2 + 4 * 1024 * 1024);
+      clamp (512 * 1024) (ramBytes * 20 / 100) (bdpBytes * 3 / 2 + 4 * 1024 * 1024);
 
   # ──────────────────────────────────────────────────────────────────────────
   # § 10  重试次数
@@ -276,14 +244,12 @@ let
   # ──────────────────────────────────────────────────────────────────────────
   vm_swappiness = if cfg.ram >= 8192 then 5 else 1;
 
-  # fq 整形护栏：若启用整形，按资源与链路动态计算 headroom，
-  # 既确保能跑满，又保留更激进的突发空间以对抗运营商惩罚。
+  # fq 整形护栏
   fqHeadroomPct = clamp 108 120 (
-    108 + (if cfg.highLoss then 2 else 0) + (if lowMemNode then 1 else 0) + cfg.realBandwidth / 2000
+    108 + (if cfg.highLoss then 2 else 0) + (if lowMemNode then 1 else 0) + effectiveBw / 2000
   );
-  fqMinHeadroom = (cfg.realBandwidth * fqHeadroomPct + 99) / 100;
+  fqMinHeadroom = (effectiveBw * fqHeadroomPct + 99) / 100;
   fqMaxrateEffective = if cfg.fqMaxrate > 0 then lib.max cfg.fqMaxrate fqMinHeadroom else 0;
-
 in
 {
   options.environment.networkTune = {

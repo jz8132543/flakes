@@ -34,7 +34,10 @@
         Type = "exec";
         Nice = 19;
         IOSchedulingClass = "idle";
-        ExecStart = "${pkgs.btrfs-progs}/bin/btrfs fi balance start -dusage=15 -musage=50 /";
+        script = ''
+          ${pkgs.btrfs-progs}/bin/btrfs balance start -dusage=30,limit=3 /
+          ${pkgs.btrfs-progs}/bin/btrfs balance start -musage=30,limit=3 /
+        '';
       };
     };
     # btrfsDedupe = {

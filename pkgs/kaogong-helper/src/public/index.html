@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>考公备考辅助系统 (Civil Service Exam Prep System)</title>
+    <!-- Modern Google Fonts & ECharts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+      :root {
+        --bg-dark: #090d16;
+        --card-bg: rgba(15, 23, 42, 0.75);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --primary: #38bdf8;
+        --primary-glow: rgba(56, 189, 248, 0.25);
+        --accent-green: #10b981;
+        --accent-orange: #f59e0b;
+        --accent-purple: #a855f7;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: var(--bg-dark);
+        background-image:
+          radial-gradient(
+            at 0% 0%,
+            rgba(56, 189, 248, 0.12) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 100% 100%,
+            rgba(168, 85, 247, 0.12) 0px,
+            transparent 50%
+          );
+        color: var(--text-main);
+        min-height: 100vh;
+        padding-bottom: 50px;
+      }
+
+      /* Top Navigation Header */
+      header {
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--card-border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .brand-logo {
+        font-size: 1.8rem;
+      }
+
+      .brand-title {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #38bdf8, #a855f7);
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .user-pill {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--card-border);
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+      }
+
+      .streak-badge {
+        background: linear-gradient(135deg, #f59e0b, #ef4444);
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 9999px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      /* Layout Containers */
+      .container {
+        max-width: 1280px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+      }
+
+      @media (max-width: 900px) {
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card-bg);
+        backdrop-filter: blur(16px);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition:
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+        margin-bottom: 1.5rem;
+      }
+
+      .card:hover {
+        border-color: rgba(56, 189, 248, 0.3);
+        box-shadow: 0 12px 35px rgba(56, 189, 248, 0.1);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        padding-bottom: 0.75rem;
+      }
+
+      .card-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* 1. Heatmap Styling */
+      .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(30, 1fr);
+        gap: 5px;
+        overflow-x: auto;
+        padding: 0.5rem 0;
+      }
+
+      .heatmap-cell {
+        width: 14px;
+        height: 14px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        transition: all 0.2s ease;
+      }
+
+      .heatmap-cell:hover {
+        transform: scale(1.3);
+        z-index: 10;
+      }
+
+      .lvl-1 {
+        background: #064e3b;
+      }
+      .lvl-2 {
+        background: #047857;
+      }
+      .lvl-3 {
+        background: #10b981;
+      }
+      .lvl-4 {
+        background: #34d399;
+        box-shadow: 0 0 8px #34d399;
+      }
+
+      /* 2. Solutions Distillation Styling */
+      .solution-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 1rem;
+      }
+
+      .sol-tab {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--card-border);
+        color: var(--text-muted);
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+      }
+
+      .sol-tab.active {
+        background: var(--primary);
+        color: #0f172a;
+        font-weight: 600;
+        border-color: var(--primary);
+        box-shadow: 0 0 12px var(--primary-glow);
+      }
+
+      .solution-content {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        padding: 1.2rem;
+        line-height: 1.6;
+        font-size: 0.95rem;
+        border-left: 3px solid var(--primary);
+        margin-bottom: 1rem;
+      }
+
+      .upvote-btn {
+        background: rgba(56, 189, 248, 0.1);
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        padding: 0.5rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.88rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .upvote-btn:hover {
+        background: var(--primary);
+        color: #0f172a;
+      }
+
+      /* 3. Skill Tree Radar */
+      #radar-chart {
+        width: 100%;
+        height: 320px;
+      }
+
+      /* 4. Accountability Cohorts */
+      .cohort-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .btn-action {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.4rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-action:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+      }
+
+      /* 5. Strategy Forking */
+      .strategy-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .timeline-pill {
+        background: rgba(168, 85, 247, 0.15);
+        color: #c084fc;
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        display: inline-block;
+        margin-right: 6px;
+        margin-bottom: 6px;
+      }
+
+      .btn-fork {
+        background: linear-gradient(135deg, #a855f7, #7e22ce);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="brand-logo">🚀</span>
+        <div>
+          <div class="brand-title">考公备考辅助系统</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted)">
+            Civil Service Exam Prep Assistant
+          </div>
+        </div>
+      </div>
+
+      <div class="user-pill" id="user-pill">
+        <span id="u-avatar">🎯</span>
+        <span id="u-name" style="font-weight: 600">备考先锋</span>
+        <div class="streak-badge">🔥 连续 <span id="u-streak">18</span> 天</div>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- 1. Positive Reinforcement Heatmap Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            🟩 刷题正向激励与学习热力图 (Practice Heatmap)
+          </div>
+          <div style="font-size: 0.85rem; color: var(--text-muted)">
+            近 300 天成长轨迹 · 正向累计收益
+          </div>
+        </div>
+        <div class="heatmap-grid" id="heatmap-grid">
+          <!-- JS Dynamic Cells -->
+        </div>
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.8rem;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+          "
+        >
+          <div>
+            已累计做题:
+            <b id="total-q" style="color: var(--primary)">1,420</b> 道
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center">
+            <span>少</span>
+            <div class="heatmap-cell"></div>
+            <div class="heatmap-cell lvl-1"></div>
+            <div class="heatmap-cell lvl-2"></div>
+            <div class="heatmap-cell lvl-3"></div>
+            <div class="heatmap-cell lvl-4"></div>
+            <span>多</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 2. Distilled Solutions -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💡 名师蒸馏解析 (Distilled Solutions)</div>
+            <div style="font-size: 0.8rem; color: var(--accent-orange)">
+              一题多解法 · 投票决策
+            </div>
+          </div>
+          <div id="question-box">
+            <div style="font-weight: 600; margin-bottom: 0.8rem" id="q-content">
+              2024年某省农作物总产量 4582.4 万吨，同比增长
+              6.8%。若保持该增速，2025年该省农作物总产量约为多少万吨？
+            </div>
+            <div class="solution-tabs" id="sol-tabs">
+              <!-- Tabs injected by JS -->
+            </div>
+            <div class="solution-content" id="sol-body">正在加载解析...</div>
+            <button
+              class="upvote-btn"
+              id="upvote-btn"
+              onclick="upvoteCurrentSolution()"
+            >
+              👍 认可该名师解题思路 (<span id="upvote-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Granular Skill Tree Radar -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              🎯 极细粒度技巧树雷达 (Granular Skill Radar)
+            </div>
+            <div style="font-size: 0.8rem; color: var(--accent-green)">
+              精准测量 Level 3 技巧掌握度
+            </div>
+          </div>
+          <div id="radar-chart"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <!-- 4. Accountability Cohorts -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              🤝 契约督学社群 (Accountability Cohorts)
+            </div>
+            <div style="font-size: 0.8rem; color: var(--accent-green)">
+              契约金督学 · 达标全额退款
+            </div>
+          </div>
+          <div id="cohorts-list">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <!-- 5. Strategy Forking -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              🔱 动态攻略排期与派生 (Strategy Forking)
+            </div>
+            <div style="font-size: 0.8rem; color: var(--accent-purple)">
+              一键派生高分学员复习路线图
+            </div>
+          </div>
+          <div id="strategies-list">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentQuestions = [];
+      let currentQIndex = 0;
+      let currentSolIndex = 0;
+      let masteryData = [];
+
+      // Initialize App
+      async function init() {
+        await loadUser();
+        await loadHeatmap();
+        await loadQuestions();
+        await loadSkillMastery();
+        await loadCohorts();
+        await loadStrategies();
+      }
+
+      async function loadUser() {
+        const res = await fetch("/api/user");
+        const data = await res.json();
+        document.getElementById("u-avatar").innerText = data.avatar;
+        document.getElementById("u-name").innerText = data.username;
+        document.getElementById("u-streak").innerText = data.streak;
+      }
+
+      async function loadHeatmap() {
+        const res = await fetch("/api/dashboard/heatmap");
+        const data = await res.json();
+        document.getElementById("total-q").innerText =
+          data.total_questions.toLocaleString();
+        const grid = document.getElementById("heatmap-grid");
+        grid.innerHTML = "";
+
+        data.records.forEach((r) => {
+          const cell = document.createElement("div");
+          cell.className = "heatmap-cell";
+          if (r.count > 60) cell.classList.add("lvl-4");
+          else if (r.count > 40) cell.classList.add("lvl-3");
+          else if (r.count > 20) cell.classList.add("lvl-2");
+          else if (r.count > 0) cell.classList.add("lvl-1");
+          cell.title = `${r.date}: 做题 ${r.count} 道 (${r.minutes} 分钟)`;
+          grid.appendChild(cell);
+        });
+      }
+
+      async function loadQuestions() {
+        const res = await fetch("/api/questions");
+        currentQuestions = await res.json();
+        renderQuestion();
+      }
+
+      function renderQuestion() {
+        if (!currentQuestions.length) return;
+        const q = currentQuestions[currentQIndex];
+        document.getElementById("q-content").innerText = `【单选】${q.content}`;
+
+        const tabsContainer = document.getElementById("sol-tabs");
+        tabsContainer.innerHTML = "";
+        q.solutions.forEach((sol, index) => {
+          const tab = document.createElement("button");
+          tab.className = `sol-tab ${index === currentSolIndex ? "active" : ""}`;
+          tab.innerText = `${sol.teacher_name} - ${sol.approach_name}`;
+          tab.onclick = () => {
+            currentSolIndex = index;
+            renderQuestion();
+          };
+          tabsContainer.appendChild(tab);
+        });
+
+        const currentSol = q.solutions[currentSolIndex];
+        document.getElementById("sol-body").innerText = currentSol.content;
+        document.getElementById("upvote-count").innerText = currentSol.upvotes;
+      }
+
+      async function upvoteCurrentSolution() {
+        const q = currentQuestions[currentQIndex];
+        const sol = q.solutions[currentSolIndex];
+        const res = await fetch(`/api/solutions/${sol.id}/upvote`, {
+          method: "POST",
+        });
+        const data = await res.json();
+        if (data.success) {
+          sol.upvotes = data.upvotes;
+          document.getElementById("upvote-count").innerText = sol.upvotes;
+        }
+      }
+
+      async function loadSkillMastery() {
+        const res = await fetch("/api/skills/mastery");
+        masteryData = await res.json();
+
+        const chartDom = document.getElementById("radar-chart");
+        const myChart = echarts.init(chartDom, "dark");
+
+        const option = {
+          backgroundColor: "transparent",
+          radar: {
+            indicator: masteryData.map((s) => ({ name: s.name, max: 100 })),
+            splitArea: {
+              areaStyle: {
+                color: ["rgba(255,255,255,0.02)", "rgba(255,255,255,0.05)"],
+              },
+            },
+            axisLine: { lineStyle: { color: "rgba(255,255,255,0.1)" } },
+            splitLine: { lineStyle: { color: "rgba(255,255,255,0.1)" } },
+          },
+          series: [
+            {
+              name: "技巧正确率",
+              type: "radar",
+              data: [
+                {
+                  value: masteryData.map((s) => s.accuracy),
+                  name: "掌握度 (%)",
+                  areaStyle: { color: "rgba(56, 189, 248, 0.3)" },
+                  lineStyle: { color: "#38bdf8", width: 2 },
+                },
+              ],
+            },
+          ],
+        };
+
+        myChart.setOption(option);
+      }
+
+      async function loadCohorts() {
+        const res = await fetch("/api/cohorts");
+        const cohorts = await res.json();
+        const container = document.getElementById("cohorts-list");
+        container.innerHTML = "";
+
+        cohorts.forEach((c) => {
+          const div = document.createElement("div");
+          div.className = "cohort-card";
+          div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
+            <b style="font-size:1rem;">${c.title}</b>
+            <span style="color:#10b981; font-weight:600;">契约金: ¥${c.deposit_amount}</span>
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom: 0.8rem;">
+            全营成员: ${c.total_members} 人 | 奖金池: ¥${c.pool_amount} | 今日已打卡: ${c.completed_today} 人
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:0.85rem;">已连续打卡 <b style="color:var(--primary);">${c.user_checkins_count}</b> 天</span>
+            <button class="btn-action" onclick="checkinCohort('${c.id}')">📷 提交做题打卡</button>
+          </div>
+        `;
+          container.appendChild(div);
+        });
+      }
+
+      async function checkinCohort(id) {
+        const res = await fetch(`/api/cohorts/${id}/checkin`, {
+          method: "POST",
+        });
+        const data = await res.json();
+        alert(data.message);
+        loadCohorts();
+      }
+
+      async function loadStrategies() {
+        const res = await fetch("/api/strategies");
+        const strats = await res.json();
+        const container = document.getElementById("strategies-list");
+        container.innerHTML = "";
+
+        strats.forEach((s) => {
+          const div = document.createElement("div");
+          div.className = "strategy-item";
+          const timelinePills = s.timeline_data
+            .map(
+              (t) =>
+                `<span class="timeline-pill">${t.phase}: 日均 ${t.daily_questions} 题 / ${t.daily_hours} 小时</span>`,
+            )
+            .join("");
+
+          div.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <b>${s.author_avatar} ${s.title}</b>
+            <button class="btn-fork" onclick="forkStrategy('${s.id}')">🔱 派生 Fork (${s.forked_count})</button>
+          </div>
+          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.6rem;">
+            创建者: ${s.author_name} | 全程跨度: ${s.days_total} 天
+          </div>
+          <div>${timelinePills}</div>
+        `;
+          container.appendChild(div);
+        });
+      }
+
+      async function forkStrategy(id) {
+        const targetDate = prompt(
+          "请输入您的目标考试日期 (格式 YYYY-MM-DD):",
+          "2026-03-13",
+        );
+        if (!targetDate) return;
+
+        const res = await fetch(`/api/strategies/${id}/fork`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target_date: targetDate }),
+        });
+        const data = await res.json();
+        alert(data.message);
+        loadStrategies();
+      }
+
+      window.onload = init;
+    </script>
+  </body>
+</html>
