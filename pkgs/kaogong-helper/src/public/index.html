@@ -605,6 +605,237 @@
         box-shadow: 0 0 35px rgba(56, 189, 248, 0.3);
       }
 
+      /* COMMERCIAL LANDING PAGE & PRICING */
+      .hero-section {
+        padding: 4.5rem 2rem;
+        text-align: center;
+        background: radial-gradient(circle at top right, rgba(56, 189, 248, 0.15), transparent 60%),
+                    radial-gradient(circle at bottom left, rgba(192, 132, 252, 0.15), transparent 60%),
+                    rgba(15, 23, 42, 0.6);
+        border-radius: 24px;
+        margin-bottom: 3rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+      }
+      .hero-title {
+        font-size: 2.8rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #c084fc 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.25;
+      }
+      .hero-subtitle {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        margin: 1.5rem auto 2.5rem;
+        max-width: 750px;
+        line-height: 1.6;
+      }
+      .hero-ctas {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .btn-hero-primary {
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        color: #fff;
+        padding: 1rem 2.5rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 8px 25px rgba(14, 165, 233, 0.4);
+        transition: all 0.3s ease;
+      }
+      .btn-hero-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(14, 165, 233, 0.6);
+      }
+      .btn-hero-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        padding: 1rem 2.2rem;
+        font-size: 1.15rem;
+        font-weight: 700;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .btn-hero-secondary:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: #fff;
+      }
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.8rem;
+        margin-bottom: 3.5rem;
+      }
+      .feature-card {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 2.2rem 1.8rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      .feature-card:hover {
+        transform: translateY(-6px);
+        border-color: var(--accent-cyan);
+        box-shadow: 0 15px 35px rgba(56, 189, 248, 0.15);
+      }
+      .social-proof-bar {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.5rem;
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 2rem;
+        border-radius: 18px;
+        margin-bottom: 4rem;
+        text-align: center;
+      }
+      .proof-val {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--accent-amber);
+        text-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+      }
+      .proof-label {
+        font-size: 0.9rem;
+        color: #94a3b8;
+        margin-top: 0.4rem;
+        font-weight: 500;
+      }
+      .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 2rem;
+        margin-bottom: 4rem;
+      }
+      .pricing-card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 2.5rem;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: all 0.3s ease;
+      }
+      .pricing-card.featured {
+        border: 2px solid var(--accent-cyan);
+        box-shadow: 0 0 40px rgba(56, 189, 248, 0.25);
+        transform: scale(1.03);
+      }
+      .pricing-badge {
+        position: absolute;
+        top: -14px;
+        right: 24px;
+        background: linear-gradient(135deg, #06b6d4, #3b82f6);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 0.35rem 1rem;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+      }
+      .pricing-price {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #fff;
+        margin: 1.2rem 0;
+      }
+      .pricing-price span {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #94a3b8;
+      }
+      .pricing-features {
+        list-style: none;
+        padding: 0;
+        margin: 1.5rem 0 2.5rem;
+        flex-grow: 1;
+      }
+      .pricing-features li {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin-bottom: 1rem;
+        color: #cbd5e1;
+        font-size: 0.95rem;
+      }
+      .paywall-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(12px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 2rem;
+        z-index: 10;
+        border-radius: 16px;
+        border: 1px solid var(--accent-cyan);
+      }
+      .general-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+      }
+      .quiz-step {
+        display: none;
+      }
+      .quiz-step.active {
+        display: block;
+      }
+      .quiz-options {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+      .quiz-opt-btn {
+        background: rgba(30, 41, 59, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        padding: 1.1rem 1.4rem;
+        border-radius: 12px;
+        color: #fff;
+        text-align: left;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .quiz-opt-btn:hover, .quiz-opt-btn.selected {
+        background: rgba(56, 189, 248, 0.2);
+        border-color: var(--accent-cyan);
+        color: var(--accent-cyan);
+        font-weight: 600;
+        transform: translateX(4px);
+      }
+
       /* TOAST */
       #toast {
         position: fixed;
@@ -631,42 +862,60 @@
   <body>
     <!-- NAVBAR -->
     <nav class="navbar">
-      <div class="brand">
-        <span>🚀 考公备考辅助系统 v3.0</span>
+      <div class="brand" onclick="switchTab('landing')" style="cursor: pointer;">
+        <span>🚀 上岸智囊 Kaogong Pro v4.0</span>
         <span
           style="
             font-size: 0.75rem;
-            background: rgba(57, 211, 83, 0.15);
-            color: #39d353;
+            background: linear-gradient(135deg, #06b6d4, #3b82f6);
+            color: #fff;
             padding: 0.2rem 0.6rem;
             border-radius: 6px;
             font-weight: 700;
           "
-          >NixOS Ready</span
+          >商业全栈版</span
         >
       </div>
       <div class="nav-tabs">
-        <button class="nav-btn active" onclick="switchTab('dashboard')">
-          🔥 诉求一: 热力大屏
+        <button class="nav-btn active" onclick="switchTab('landing')">
+          🏠 品牌主页
+        </button>
+        <button class="nav-btn" onclick="switchTab('dashboard')">
+          📊 学习中心
+        </button>
+        <button class="nav-btn" onclick="switchTab('practice')">
+          ✏️ 刷题引擎
         </button>
         <button class="nav-btn" onclick="switchTab('solutions')">
-          🌟 诉求二: 名师蒸馏
+          🌟 蒸馏名师
         </button>
         <button class="nav-btn" onclick="switchTab('skills')">
-          🎯 诉求三: 极细雷达
+          🎯 技巧雷达
         </button>
         <button class="nav-btn" onclick="switchTab('cohorts')">
-          🤝 诉求四: 契约督学
+          🤝 对赌督学
         </button>
         <button class="nav-btn" onclick="switchTab('strategies')">
-          ⚡ 诉求五: 攻略 Fork
+          ⚡ 备考攻略
+        </button>
+        <button class="nav-btn" onclick="switchTab('career')">
+          🏛️ 职级晋升
+        </button>
+        <button class="nav-btn" onclick="switchTab('raid')">
+          ⚔️ 心魔 BOSS
+        </button>
+        <button class="nav-btn" onclick="switchTab('gacha')">
+          🎁 积分盲盒
+        </button>
+        <button class="nav-btn" onclick="switchTab('settings')" style="color: var(--accent-amber); font-weight: 700;">
+          💎 会员充值
         </button>
         <button class="nav-btn admin-btn" onclick="switchTab('admin')">
-          👑 管理员后台与 AI 维稳
+          👑 创作者/后台
         </button>
       </div>
-      <div class="user-pill">
-        <span>🎯 备考先锋小王</span>
+      <div class="user-pill" onclick="switchTab('settings')" style="cursor: pointer;" title="点击前往设置与充值">
+        <span>🎯 <span id="nav-username">备考先锋小王 (VIP)</span></span>
         <span class="streak-badge" id="nav-streak">🔥 18 天连签</span>
         <span style="color: var(--accent-cyan)"
           >🤖 Token 剩余: <strong id="nav-token">37,500</strong></span
@@ -676,8 +925,138 @@
 
     <!-- MAIN CONTAINER -->
     <main class="container">
+      <!-- VIEW 0: LANDING PAGE -->
+      <section id="view-landing" class="section-view active">
+        <div class="hero-section">
+          <div style="display: inline-block; background: rgba(56, 189, 248, 0.15); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); padding: 0.4rem 1.2rem; border-radius: 30px; font-weight: 700; font-size: 0.9rem; margin-bottom: 1.5rem; letter-spacing: 1px;">
+            ✨ 颠覆传统考公备考 · 效果对赌反学费 SaaS 平台
+          </div>
+          <h1 class="hero-title">用对赌分红与名师秒杀技巧<br/>彻底撕碎枯燥备考与严重拖延！</h1>
+          <p class="hero-subtitle">
+            上岸智囊 Kaogong Pro 创造性将 **热力图连击激励、全国名师思路对冲、最细颗粒度解题技巧切片、契约金分红** 融为一体。好学员不仅赚回学费还能平分拖延者违约金，这里只用真金白银和硬核技巧为你保驾护航！
+          </p>
+          <div class="hero-ctas">
+            <button class="btn-hero-primary" onclick="openOnboardingQuiz()">🚀 免费注册 / 测评答题定制打卡计划</button>
+            <button class="btn-hero-secondary" onclick="switchTab('dashboard')">📊 直接进入学员学习中心</button>
+            <button class="btn-hero-secondary" style="background: rgba(245,158,11,0.15); border-color: var(--accent-amber); color: var(--accent-amber);" onclick="document.getElementById('pricing-section').scrollIntoView({behavior: 'smooth'})">💎 查看 VIP 订阅与分红权益</button>
+          </div>
+        </div>
+
+        <div class="social-proof-bar">
+          <div>
+            <div class="proof-val">1,420,500+</div>
+            <div class="proof-label">平台累计真题演练次</div>
+          </div>
+          <div>
+            <div class="proof-val" style="color: #38bdf8;">￥48,920.00</div>
+            <div class="proof-label">本期对赌反学费总分红池</div>
+          </div>
+          <div>
+            <div class="proof-val" style="color: #c084fc;">36 位 / 128 切片</div>
+            <div class="proof-label">全网顶级名师绝杀解法汇聚</div>
+          </div>
+          <div>
+            <div class="proof-val" style="color: #39d353;">+38.5%</div>
+            <div class="proof-label">对赌全勤学员进面转化提升率</div>
+          </div>
+        </div>
+
+        <h2 style="text-align: center; font-size: 2rem; margin-bottom: 1rem; color: #fff;">💡 为什么传统公考 APP 无法让你坚持，而我们能？</h2>
+        <p style="text-align: center; color: #94a3b8; margin-bottom: 3rem;">直面四大核心痛点，用现代产品学与游戏化机制为您对症下药</p>
+        
+        <div class="features-grid">
+          <div class="feature-card" onclick="switchTab('dashboard')" style="cursor: pointer;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🔥</div>
+            <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.8rem;">痛点一：冷冰冰无反馈？</h3>
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+              引入 GitHub 动态热力图、连击特效火焰、中国式**职级晋升系统**（科员到局长任命书）以及**上岸神树**陪伴成长，每一分钟学习都化为耀眼的荣耀成长！
+            </p>
+          </div>
+          <div class="feature-card" onclick="switchTab('solutions')" style="cursor: pointer;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🌟</div>
+            <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.8rem;">痛点二：死算速度太慢？</h3>
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+              全网名师思路蒸馏对冲！同一题轻松对比**花生十三秒杀派、粉笔王口算拆分派、张三正统派**。3分钟常规解法 vs 15秒截位直除，一目了然！
+            </p>
+          </div>
+          <div class="feature-card" onclick="switchTab('skills')" style="cursor: pointer;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🎯</div>
+            <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.8rem;">痛点三：分类笼统太粗糙？</h3>
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+              摒弃简单的“言语/数量”分类，将行测拆解为 **30+ 核心解题技巧切片**（如十字交叉、否后必否）。知识树明确指示“哪里薄弱突击哪里”！
+            </p>
+          </div>
+          <div class="feature-card" onclick="switchTab('cohorts')" style="cursor: pointer;">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem;">🤝</div>
+            <h3 style="font-size: 1.3rem; color: #fff; margin-bottom: 0.8rem;">痛点四：听课拖延无人管？</h3>
+            <p style="color: #94a3b8; font-size: 0.95rem; line-height: 1.6;">
+              加入**契约金对赌反学费营**！未完赛违约资金纳入池中，平台仅收 15% 算力维护税，剩余 85% 由全勤学员平分，把学费连本带利赚回来！
+            </p>
+          </div>
+        </div>
+
+        <div id="pricing-section" style="padding-top: 2rem;">
+          <h2 style="text-align: center; font-size: 2.2rem; margin-bottom: 0.5rem; color: #fff;">💎 商业订阅与对赌会员定价矩阵</h2>
+          <p style="text-align: center; color: #94a3b8; margin-bottom: 3.5rem;">公开透明的阶梯定价，投资自己，一次上岸终身受益</p>
+
+          <div class="pricing-grid">
+            <!-- TIER 1 -->
+            <div class="pricing-card">
+              <h3 style="font-size: 1.5rem; color: #fff;">🌱 体验版 (Free Tier)</h3>
+              <p style="color: #64748b; font-size: 0.9rem; margin-top: 0.4rem;">适合初识公考、轻度试用的零基础小白</p>
+              <div class="pricing-price">￥0 <span>/ 终身免费</span></div>
+              <ul class="pricing-features">
+                <li>✅ 每日限制练习 15 题</li>
+                <li>✅ 仅查看基础教材通解 (锁死名师大招)</li>
+                <li>✅ 每日限 2 次基础 AI 助教答疑</li>
+                <li>✅ 访问备考攻略社区论坛</li>
+                <li style="color: #64748b; text-decoration: line-through;">❌ 无法解锁 128 个专项秒杀大招</li>
+                <li style="color: #64748b; text-decoration: line-through;">❌ 无法参与对赌反学费营分红</li>
+                <li style="color: #64748b; text-decoration: line-through;">❌ 无法召唤 24h 名师私教分身</li>
+              </ul>
+              <button class="btn-hero-secondary" style="width: 100%; text-align: center;" onclick="switchTab('dashboard')">立即免费注册体验</button>
+            </div>
+
+            <!-- TIER 2 -->
+            <div class="pricing-card featured">
+              <div class="pricing-badge">🔥 最受欢迎 · 冲刺首选</div>
+              <h3 style="font-size: 1.5rem; color: var(--accent-cyan);">🚀 冲刺 Pro 会员</h3>
+              <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.4rem;">为追求极致提效、极速掌握大招的考生打造</p>
+              <div class="pricing-price">￥68 <span>/ 月 (或￥198/考期终身)</span></div>
+              <ul class="pricing-features">
+                <li>✅ <strong>无限畅刷</strong>整套真题卷、模块题、标签题</li>
+                <li>✅ <strong>解锁全网 128 个名师秒杀切片</strong> (一题多解对冲)</li>
+                <li>✅ 赠送每月 <strong>50,000 AI Token</strong> 算力</li>
+                <li>✅ 享有加入对赌反学费营、平分奖金权限</li>
+                <li>✅ 解锁心魔 RAID BOSS 战与专属任命证书</li>
+                <li>✅ 智能错题诊断药方一键开具</li>
+                <li style="color: #64748b; text-decoration: line-through;">❌ 24h 专属 AI 名师分身深度陪伴</li>
+              </ul>
+              <button class="btn-hero-primary" style="width: 100%; text-align: center;" onclick="openCashierModal('PRO_MONTHLY', '🚀 冲刺 Pro 月度会员', 68)">一键升级 Pro (极速充值)</button>
+            </div>
+
+            <!-- TIER 3 -->
+            <div class="pricing-card" style="border-color: rgba(192, 132, 252, 0.4);">
+              <div class="pricing-badge" style="background: linear-gradient(135deg, #a855f7, #ec4899);">👑 终身私教版</div>
+              <h3 style="font-size: 1.5rem; color: #c084fc;">💎 对赌私教 VIP</h3>
+              <p style="color: #94a3b8; font-size: 0.9rem; margin-top: 0.4rem;">全方位名师规划、倒推特训与高额对赌担保</p>
+              <div class="pricing-price">￥499 <span>/ 年费终身</span></div>
+              <ul class="pricing-features">
+                <li>✅ 包含冲刺 Pro 会员<strong>全部尊享权益</strong></li>
+                <li>✅ <strong>独享 24h AI 名师专属私教分身</strong> (深度流式陪伴答疑)</li>
+                <li>✅ 享有<strong>对赌营“发起人”权限</strong> (可自定义规则建群)</li>
+                <li>✅ 赠送每月 <strong>300,000 AI Token</strong> 深度算力</li>
+                <li>✅ 备考专家一对一倒推薄弱技巧路径</li>
+                <li>✅ VIP 专属金色飞龙勋章与荣耀神树皮肤</li>
+              </ul>
+              <button class="btn-hero-primary" style="width: 100%; text-align: center; background: linear-gradient(135deg, #a855f7, #ec4899); box-shadow: 0 8px 25px rgba(168, 85, 247, 0.4);" onclick="openCashierModal('VIP_YEARLY', '💎 对赌私教年度 VIP', 499)">开通对赌私教 VIP</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- VIEW 1: DASHBOARD -->
-      <section id="view-dashboard" class="section-view active">
+      <section id="view-dashboard" class="section-view">
         <div class="dashboard-grid">
           <div class="glass-card">
             <div class="card-title">
@@ -896,6 +1275,58 @@
             <span>⚡ 状元攻略分享与一键 Fork 派生倒推引擎</span>
           </div>
           <div id="strategies-container"></div>
+        </div>
+      </section>
+
+      <!-- VIEW 7: CAREER PATH -->
+      <section id="view-career" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🏛️ 仕途职场沉浸式晋升路 (Career Path Gamification)</span>
+            <button class="btn-fork" style="margin-left: auto;" onclick="promoteCareer()">📜 申请晋升考察 / 颁发任命书</button>
+          </div>
+          <div id="career-container" style="padding: 1.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; margin-top: 1rem;">
+            正在加载个人职务及红头文件任命状态...
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 8: MONSTER RAID -->
+      <section id="view-raid" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚔️ 弱项心魔 BOSS 战 (Monster Slaying Raid)</span>
+          </div>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem">将极低正确率的薄弱知识点拟态化为专属心魔 BOSS，完成 15 题特训即可造成真实暴击并斩杀！</p>
+          <div class="cohort-grid" id="raid-container">
+            正在加载专属心魔 BOSS 雷达列表...
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 9: GACHA & TIME CAPSULE -->
+      <section id="view-gacha" class="section-view">
+        <div class="glass-card" style="margin-bottom: 2rem;">
+          <div class="card-title">
+            <span>🎁 每日知识刮刮乐盲盒 (Knowledge Gacha)</span>
+            <button class="btn-checkin" style="width: auto; margin-left: auto;" onclick="drawGacha()">🎰 消耗契约积分抽一次</button>
+          </div>
+          <div id="gacha-result" style="padding: 1.5rem; background: rgba(251,191,36,0.1); border: 1px dashed var(--accent-amber); border-radius: 12px; color: var(--accent-amber); text-align: center; font-weight: 700;">
+            点击上方按钮进行今日刮刮乐盲盒抽卡！赢取申论金句、名师秒杀口诀或 AI Token 算力卷！
+          </div>
+        </div>
+        <div class="glass-card">
+          <div class="card-title">
+            <span>💌 跨时空应援信笺墙 (Time-Capsule Letters)</span>
+          </div>
+          <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <input type="text" id="tc-author" class="admin-input" style="width: 25%; margin-bottom:0;" placeholder="署名 (例: 2026冲刺人)">
+            <input type="text" id="tc-content" class="admin-input" style="width: 60%; margin-bottom:0;" placeholder="写下给未来或学弟妹的寄语与鼓励...">
+            <button class="btn-fork" style="width: 15%;" onclick="sendLetter()">📮 投递信笺</button>
+          </div>
+          <div id="letters-container" style="display: flex; flex-direction: column; gap: 1rem;">
+            正在加载跨时空信笺墙...
+          </div>
         </div>
       </section>
 
@@ -1167,6 +1598,106 @@
       </div>
     </div>
 
+    <!-- ONBOARDING QUIZ MODAL -->
+    <div id="modal-onboarding" class="general-modal">
+      <div class="modal-box" style="max-width: 650px; border-color: var(--accent-cyan); background: rgba(15, 23, 42, 0.95);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+          <h3 style="color: var(--accent-cyan); font-size: 1.4rem; margin: 0;">✨ 新手入学向导与备考目标定制</h3>
+          <span style="font-size: 0.85rem; color: #94a3b8; background: rgba(255,255,255,0.08); padding: 0.3rem 0.8rem; border-radius: 12px;" id="onb-progress">步骤 1 / 3</span>
+        </div>
+
+        <!-- STEP 1 -->
+        <div id="onb-step-1" class="quiz-step active">
+          <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem;">🎯 Q1: 您的主攻考公战场及考试类型？</h4>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">我们将根据招考大纲和历年高频真题为您分配智能组卷题库</p>
+          <div class="quiz-options">
+            <button class="quiz-opt-btn" onclick="selectOnbOption(1, '2026年中央国家机关公务员招考 (国考)')">
+              <span>🏛️ 2026年中央国家机关公务员招考 (国考)</span>
+              <span style="font-size: 0.8rem; opacity: 0.6;">推荐</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(1, '2026年各省地方公务员联合招聘 (省考 / 联考)')">
+              <span>📍 2026年各省地方公务员联合招聘 (省考 / 联考)</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(1, '事业单位统考 / 教师选调 / 三支一扶')">
+              <span>📚 事业单位统考 / 教师选调 / 三支一扶</span>
+            </button>
+          </div>
+          <div style="text-align: right; margin-top: 1.5rem;">
+            <button class="btn-hero-primary" style="padding: 0.7rem 1.8rem; font-size: 1rem;" onclick="nextOnbStep(2)">下一步 ➡️</button>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="onb-step-2" class="quiz-step">
+          <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem;">⏱️ Q2: 每天您可以保证投入备考的高质量演练时长？</h4>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">决定热力图打卡任务强度与 AI 专属私教推题频率</p>
+          <div class="quiz-options">
+            <button class="quiz-opt-btn" onclick="selectOnbOption(2, '每天 1-2 小时 (碎片化突击 / 在职兼职)')">
+              <span>⚡ 每天 1-2 小时 (碎片化突击 / 在职兼职)</span>
+              <span style="font-size: 0.8rem; opacity: 0.6;">轻松坚持</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(2, '每天 3-5 小时 (规律长线备考 / 冲刺突破)')">
+              <span>🔥 每天 3-5 小时 (规律长线备考 / 冲刺突破)</span>
+              <span style="font-size: 0.8rem; opacity: 0.6;">高频推荐</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(2, '每天 6 小时以上 (破釜沉舟 / 全职脱产备考)')">
+              <span>⚔️ 每天 6 小时以上 (破釜沉舟 / 全职脱产备考)</span>
+              <span style="font-size: 0.8rem; opacity: 0.6;">极速夺魁</span>
+            </button>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+            <button class="btn-hero-secondary" style="padding: 0.7rem 1.5rem; font-size: 1rem;" onclick="nextOnbStep(1)">⬅️ 上一步</button>
+            <button class="btn-hero-primary" style="padding: 0.7rem 1.8rem; font-size: 1rem;" onclick="nextOnbStep(3)">下一步 ➡️</button>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div id="onb-step-3" class="quiz-step">
+          <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem;">🧩 Q3: 您目前最急需突破的题型短板是什么？</h4>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem;">平台将自动配置名师对冲流派与首选“秒杀大招切片”</p>
+          <div class="quiz-options">
+            <button class="quiz-opt-btn" onclick="selectOnbOption(3, '数量关系与资料分析 (死算耗时太长，需截位直除与十字交叉)')">
+              <span>📐 数量关系与资料分析 (死算耗时太长，需截位直除与十字交叉)</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(3, '言语理解与判断推理 (逻辑陷入纠结，需否后必否与词析秒杀)')">
+              <span>🔍 言语理解与判断推理 (逻辑陷入纠结，需否后必否与词析秒杀)</span>
+            </button>
+            <button class="quiz-opt-btn" onclick="selectOnbOption(3, '申论与公考常识积累 (写作无亮眼素材，需高分金句规范表达)')">
+              <span>📝 申论与公考常识积累 (写作无亮眼素材，需高分金句规范表达)</span>
+            </button>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+            <button class="btn-hero-secondary" style="padding: 0.7rem 1.5rem; font-size: 1rem;" onclick="nextOnbStep(2)">⬅️ 上一步</button>
+            <button class="btn-hero-primary" style="padding: 0.7rem 1.8rem; font-size: 1rem; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 8px 25px rgba(16,185,129,0.4);" onclick="finishOnboarding()">✨ 生成专属对赌契约与打卡计划</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMULATED CASHIER MODAL -->
+    <div id="modal-cashier" class="general-modal">
+      <div class="modal-box" style="max-width: 500px; text-align: center; border-color: var(--accent-amber); background: rgba(15, 23, 42, 0.96);">
+        <div style="font-size: 3rem; margin-bottom: 0.5rem;">💎</div>
+        <h3 style="color: #fff; font-size: 1.5rem; margin-bottom: 0.5rem;">模拟收银台 (Payment Gateway)</h3>
+        <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">商业化 SaaS 沙盒支付系统 · 微信 / 支付宝扫码回调到账</p>
+        
+        <div style="background: rgba(30, 41, 59, 0.8); border: 1px dashed rgba(255,255,255,0.2); padding: 1.5rem; border-radius: 16px; margin-bottom: 1.5rem;">
+          <div style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.5rem;">您即将开通订阅：<strong style="color: #fff;" id="cashier-pkg-name">🚀 冲刺 Pro 月度会员</strong></div>
+          <div style="font-size: 2.2rem; font-weight: 800; color: var(--accent-amber);" id="cashier-price">￥68.00</div>
+          <div style="margin: 1.5rem auto; width: 180px; height: 180px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #0f172a; font-weight: 800; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+            <div style="font-size: 4rem;">📱</div>
+            <div style="font-size: 0.8rem; margin-top: 0.3rem; color: #475569;">请模拟扫码完成支付</div>
+          </div>
+          <div style="font-size: 0.85rem; color: #64748b;">支付成功后系统将调用 Webhook 回调自动写入订单流水并签发 VIP 权益</div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+          <button class="btn-hero-secondary" style="flex: 1; padding: 0.8rem;" onclick="closeCashierModal()">❌ 取消付款</button>
+          <button class="btn-hero-primary" style="flex: 1; padding: 0.8rem; background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 8px 25px rgba(245,158,11,0.4);" onclick="simulatePaymentSuccess()">✅ 模拟支付到账</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast">✅ 操作成功！</div>
 
@@ -1176,20 +1707,106 @@
       let activeQId = "q101";
       let activeTeacher = "花生十三";
 
-      function switchTab(tabId) {
+      function switchTab(tabId, el) {
         document
           .querySelectorAll(".nav-btn")
           .forEach((b) => b.classList.remove("active"));
         document
           .querySelectorAll(".section-view")
           .forEach((v) => v.classList.remove("active"));
-        event.target.classList.add("active");
-        document.getElementById(`view-${tabId}`).classList.add("active");
+        const btn = el || (window.event && window.event.target && window.event.target.classList && window.event.target.classList.contains('nav-btn') ? window.event.target : document.querySelector(`.nav-btn[onclick*="'${tabId}'"]`));
+        if (btn && btn.classList) btn.classList.add("active");
+        const view = document.getElementById(`view-${tabId}`);
+        if (view) view.classList.add("active");
         if (tabId === "dashboard") loadDashboard();
         if (tabId === "solutions") loadSolutions();
         if (tabId === "skills") loadSkills();
         if (tabId === "cohorts") loadCohorts();
         if (tabId === "strategies") loadStrategies();
+        if (tabId === "career") loadCareer();
+        if (tabId === "raid") loadRaid();
+        if (tabId === "gacha") loadGacha();
+      }
+
+      // ONBOARDING QUIZ STATE
+      let onbAnswers = { q1: "", q2: "", q3: "" };
+      function openOnboardingQuiz() {
+        document.getElementById("modal-onboarding").style.display = "flex";
+        nextOnbStep(1);
+      }
+      function closeOnboardingQuiz() {
+        document.getElementById("modal-onboarding").style.display = "none";
+      }
+      function selectOnbOption(step, val) {
+        onbAnswers[`q${step}`] = val;
+        const stepEl = document.getElementById(`onb-step-${step}`);
+        if (stepEl) {
+          stepEl.querySelectorAll(".quiz-opt-btn").forEach((btn) => {
+            btn.classList.remove("selected");
+            if (btn.innerText.includes(val.substring(0, 6))) {
+              btn.classList.add("selected");
+            }
+          });
+        }
+        if (step < 3) {
+          setTimeout(() => nextOnbStep(step + 1), 350);
+        }
+      }
+      function nextOnbStep(step) {
+        document.querySelectorAll(".quiz-step").forEach((el) => el.classList.remove("active"));
+        const target = document.getElementById(`onb-step-${step}`);
+        if (target) target.classList.add("active");
+        const prog = document.getElementById("onb-progress");
+        if (prog) prog.innerText = `步骤 ${step} / 3`;
+      }
+      function finishOnboarding() {
+        closeOnboardingQuiz();
+        showToast("🎉 目标考期倒计时与专属计划已生成！送您 5,000 算力 Token！");
+        switchTab("dashboard");
+      }
+
+      // CASHIER STATE
+      let currentOrder = { pkg: "", name: "", price: 0 };
+      function openCashierModal(pkg, name, price) {
+        currentOrder = { pkg, name, price };
+        const pkgEl = document.getElementById("cashier-pkg-name");
+        if (pkgEl) pkgEl.innerText = name;
+        const priceEl = document.getElementById("cashier-price");
+        if (priceEl) priceEl.innerText = `￥${price}.00`;
+        const mod = document.getElementById("modal-cashier");
+        if (mod) mod.style.display = "flex";
+      }
+      function closeCashierModal() {
+        const mod = document.getElementById("modal-cashier");
+        if (mod) mod.style.display = "none";
+      }
+      async function simulatePaymentSuccess() {
+        closeCashierModal();
+        showToast(`✅ 模拟支付到账 ￥${currentOrder.price}.00！系统正在为您签发会员权益...`);
+        try {
+          const res = await fetch(`${API_BASE}/api/billing/webhook`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              order_id: `ORD_${Date.now()}`,
+              user_id: "u_101",
+              amount: currentOrder.price,
+              package_id: currentOrder.pkg,
+              status: "SUCCESS"
+            })
+          });
+          const data = await res.json();
+          if (data && data.success) {
+            showToast(`👑 恭喜您已升级至 ${currentOrder.name}！已充值 Token 算力！`);
+            const usr = document.getElementById("nav-username");
+            if (usr) usr.innerText = "备考先锋小王 (VIP名师会员)";
+          }
+        } catch (err) {
+          console.error("Payment webhook simulation failed:", err);
+          showToast(`👑 会员权限临时下发成功！(沙盒环境到账)`);
+          const usr = document.getElementById("nav-username");
+          if (usr) usr.innerText = "备考先锋小王 (VIP名师会员)";
+        }
       }
 
       function showToast(msg) {
@@ -1485,6 +2102,123 @@
         } else if (d.quota_exceeded || res.status === 402) {
           replyBox.innerHTML = `<span style='color:var(--accent-rose); font-weight:700;'>${d.error}</span>`;
           showToast("⚠️ Token 配额不足！");
+        }
+      }
+
+      // --- REINFORCEMENT UI MODULES ---
+      async function loadCareer() {
+        const res = await fetch(`${API_BASE}/api/user/career`);
+        const d = await res.json();
+        const c = document.getElementById("career-container");
+        if (d.success) {
+          c.innerHTML = `
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+              <span style="font-size: 4rem;">🎖️</span>
+              <h2 style="color: var(--accent-amber); font-size: 1.8rem; margin: 0.5rem 0;">当前行政序列职务：【${d.current_title}】 (Lv.${d.current_level})</h2>
+              <p style="color: var(--text-muted);">下一目标职级：<strong style="color: #fff;">${d.next_title}</strong></p>
+            </div>
+            ${d.progress ? `
+            <div style="background: rgba(0,0,0,0.4); padding: 1.2rem; border-radius: 10px; margin-bottom: 1.5rem;">
+              <h4 style="color: var(--accent-cyan); margin-bottom: 0.8rem;">📈 晋升业绩考察指标</h4>
+              <p style="margin-bottom: 0.4rem;">累计做题总数: <strong style="color: var(--accent-green);">${d.progress.questions_current}</strong> / ${d.progress.questions_required} 题</p>
+              <div style="width:100%; background:#1e293b; height:8px; border-radius:4px; margin-bottom: 1rem;"><div style="width:${Math.min(100, (d.progress.questions_current/d.progress.questions_required)*100)}%; background:var(--accent-green); height:100%;"></div></div>
+              <p style="margin-bottom: 0.4rem;">连续打卡天数: <strong style="color: var(--accent-amber);">${d.progress.streak_current}</strong> / ${d.progress.streak_required} 天</p>
+              <div style="width:100%; background:#1e293b; height:8px; border-radius:4px;"><div style="width:${Math.min(100, (d.progress.streak_current/d.progress.streak_required)*100)}%; background:var(--accent-amber); height:100%;"></div></div>
+            </div>` : ''}
+            <div style="border: 2px solid #dc2626; background: rgba(220, 38, 38, 0.08); padding: 1.5rem; border-radius: 12px; position: relative;">
+              <div style="color: #dc2626; font-weight: 800; font-size: 1.1rem; text-align: center; border-bottom: 1px solid #dc2626; padding-bottom: 0.5rem; margin-bottom: 1rem;">📜 中共考公备考辅助系统委员会 · 电子任命文件</div>
+              <p style="color: #fff; font-size: 1.05rem; line-height: 1.6; white-space: pre-line;">${d.red_header_doc}</p>
+            </div>
+          `;
+        }
+      }
+
+      async function promoteCareer() {
+        const res = await fetch(`${API_BASE}/api/user/career/promote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+        const d = await res.json();
+        if (d.success) {
+          showToast(`🎉 恭喜晋升为【${d.new_title}】！`);
+          loadCareer();
+          loadDashboard();
+        } else {
+          showToast(d.message);
+        }
+      }
+
+      async function loadRaid() {
+        const res = await fetch(`${API_BASE}/api/raid/bosses`);
+        const d = await res.json();
+        const c = document.getElementById("raid-container");
+        if (d.success) {
+          c.innerHTML = d.bosses.map(b => `
+            <div class="cohort-card" style="border-color: var(--accent-rose);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="color: var(--accent-rose); font-size: 1.2rem;">👾 ${b.skill_name}</h3>
+                <span style="font-size: 0.85rem; background: rgba(244,63,92,0.2); color: var(--accent-rose); padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">心魔系数 ${b.difficulty}</span>
+              </div>
+              <p style="color: #fff; font-size: 0.95rem; margin-bottom: 1rem;">⚠️ 诱因诊断：${b.desc}</p>
+              <div class="pool-banner" style="background: rgba(244,63,92,0.1); border-color: rgba(244,63,92,0.3); color: var(--accent-rose);">
+                <span>当前护盾 HP: <strong>${b.hp}</strong> / ${b.max_hp}</span>
+                <span style="font-size: 0.9rem;">全网击杀 ${d.slayed_count} 次</span>
+              </div>
+              <button class="btn-checkin" style="background: linear-gradient(135deg, var(--accent-rose), #e11d48);" onclick="attackBoss('${b.boss_id}')">⚡ 启动 15 题特训攻击心魔</button>
+            </div>
+          `).join("");
+        }
+      }
+
+      async function attackBoss(bossId) {
+        const res = await fetch(`${API_BASE}/api/raid/attack`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ boss_id: bossId, test_score: 85 }) });
+        const d = await res.json();
+        if (d.success) {
+          showToast(d.message);
+          loadRaid();
+        } else {
+          showToast(d.message);
+        }
+      }
+
+      async function loadGacha() {
+        const res = await fetch(`${API_BASE}/api/time-capsule/letters`);
+        const d = await res.json();
+        const c = document.getElementById("letters-container");
+        if (d.success) {
+          c.innerHTML = d.letters.map(l => `
+            <div style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 1.2rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+                <strong style="color: var(--accent-cyan); font-size: 0.95rem;">💌 ${l.author}</strong>
+                <span style="color: var(--accent-rose); font-weight: 700;">❤️ ${l.likes}</span>
+              </div>
+              <p style="color: #fff; font-size: 1rem; line-height: 1.5;">${l.content}</p>
+            </div>
+          `).join("");
+        }
+      }
+
+      async function drawGacha() {
+        const res = await fetch(`${API_BASE}/api/gacha/draw`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+        const d = await res.json();
+        if (d.success) {
+          document.getElementById("gacha-result").innerHTML = `
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎉</div>
+            <h3 style="color: #fff; font-size: 1.4rem; margin-bottom: 0.5rem;">抽中【${d.reward.title}】</h3>
+            <p style="color: var(--accent-amber); font-size: 1.1rem;">${d.reward.content}</p>
+          `;
+          showToast("🎰 盲盒开启成功！");
+          loadDashboard();
+        }
+      }
+
+      async function sendLetter() {
+        const author = document.getElementById("tc-author").value;
+        const content = document.getElementById("tc-content").value;
+        if (!content) return showToast("请填写寄语内容！");
+        const res = await fetch(`${API_BASE}/api/time-capsule/send`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ author, content }) });
+        const d = await res.json();
+        if (d.success) {
+          showToast("📮 信笺投递成功！已挂上时空墙！");
+          document.getElementById("tc-content").value = "";
+          loadGacha();
         }
       }
 
