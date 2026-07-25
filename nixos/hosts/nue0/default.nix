@@ -30,7 +30,7 @@
       nixosModules.services.home-assistant
       nixosModules.services.searx
       nixosModules.services.openclaw.default
-      nixosModules.services.litellm.default
+      # nixosModules.services.litellm.default
       inputs.openclaw-nix.nixosModules.openclaw-gateway
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
@@ -63,7 +63,7 @@
 
   services.kaogong-helper.enable = true;
   services.openclaw.enable = false;
-  services.ai.litellm.enable = true;
+  # services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;
