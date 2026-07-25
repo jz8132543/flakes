@@ -3,132 +3,78 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>公考冲刺终极辅助系统 (Pro Max 旗舰版)</title>
+    <title>考公助手 — 极简刷题，高效上岸</title>
+    <meta
+      name="description"
+      content="面向公务员考试的极简刷题平台，热力图追踪学习进度，名师多解法对比，AI 私教实时答疑。"
+    />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/css/style.css" />
   </head>
   <body>
-    <!-- TOP NAVIGATION BAR -->
     <nav class="navbar">
-      <div class="brand" onclick="switchTab('landing')" style="cursor: pointer">
-        <div class="logo">🚀 考公备考终极辅助 (Kaogong Pro)</div>
-        <span
-          style="
-            font-size: 0.75rem;
-            background: var(--accent-cyan);
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 800;
-            margin-left: 8px;
-          "
-          >VIP 商业旗舰版</span
+      <div class="nav-logo" onclick="navigate('landing')">考公助手</div>
+      <div class="nav-tabs" id="nav-tabs" style="display: none">
+        <button
+          class="nav-tab"
+          data-tab="dashboard"
+          onclick="navigate('dashboard', this)"
         >
-      </div>
-
-      <!-- AUTHENTICATED USER NAV TABS (Hidden for guests) -->
-      <div class="nav-tabs" id="main-nav-tabs" style="display: none">
-        <button class="nav-btn" onclick="switchTab('dashboard')">
-          📊 数据大屏
+          主页
         </button>
-        <button class="nav-btn" onclick="switchTab('practice')">
-          🎯 刷题中心
+        <button
+          class="nav-tab"
+          data-tab="practice"
+          onclick="navigate('practice', this)"
+        >
+          刷题
         </button>
-        <button class="nav-btn" onclick="switchTab('solutions')">
-          ⚔️ 名师解法对冲
+        <button
+          class="nav-tab"
+          data-tab="review"
+          onclick="navigate('review', this)"
+        >
+          复习
         </button>
-        <button class="nav-btn" onclick="switchTab('skills')">
-          📡 技巧与申论
+        <button
+          class="nav-tab"
+          data-tab="cohorts"
+          onclick="navigate('cohorts', this)"
+        >
+          打卡班
         </button>
-        <button class="nav-btn" onclick="switchTab('mistakes')">
-          💊 错题药方
-        </button>
-        <button class="nav-btn" onclick="switchTab('cohorts')">
-          🔥 班级对赌
-        </button>
-        <button class="nav-btn" onclick="switchTab('strategies')">
-          🗺️ 竞争比战略
-        </button>
-        <button class="nav-btn" onclick="switchTab('career')">
-          👔 职业发展
-        </button>
-        <button class="nav-btn" onclick="switchTab('raid')">👾 错题副本</button>
-        <button class="nav-btn" onclick="switchTab('gacha')">
-          🎰 扭蛋抽奖
+        <button
+          class="nav-tab"
+          data-tab="settings"
+          onclick="navigate('settings', this)"
+        >
+          设置
         </button>
       </div>
-
-      <!-- USER PILL / TOKEN COUNTER (Hidden for guests) -->
-      <div class="user-pill" id="nav-user-pill" style="display: none">
-        <span
-          class="user-avatar"
-          onclick="openProfileModal()"
-          style="cursor: pointer"
-          title="点击修改学号与考公目标"
-          >🎯</span
-        >
-        <span
-          id="nav-username"
-          onclick="openProfileModal()"
-          style="cursor: pointer; font-weight: 700"
-          >备考先锋</span
-        >
-        <div
-          class="token-badge"
-          onclick="switchTab('settings')"
-          style="cursor: pointer"
-        >
-          ⚡ Token 剩余: <strong id="nav-token-count">50,000</strong>
+      <div class="nav-right">
+        <div id="nav-user" class="nav-user" style="display: none">
+          <span id="nav-uname"></span>
         </div>
         <button
-          class="btn-hero-secondary"
-          style="
-            padding: 0.3rem 0.8rem;
-            font-size: 0.8rem;
-            border-color: var(--accent-cyan);
-            color: var(--accent-cyan);
-          "
-          onclick="switchTab('settings')"
+          id="nav-login-btn"
+          class="btn btn-p btn-sm"
+          onclick="openModal('login')"
         >
-          ⚙️ 设置/充值
+          登录
         </button>
       </div>
-
-      <!-- GUEST LOGIN / REGISTER GATE BUTTON (Visible for guests) -->
-      <button
-        id="nav-auth-btn"
-        class="btn-hero-primary"
-        style="
-          padding: 0.5rem 1.4rem;
-          font-size: 0.95rem;
-          border-radius: 20px;
-          font-weight: 800;
-          box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
-          cursor: pointer;
-        "
-        onclick="openLoginModal()"
-      >
-        🚀 登录 / 开启极简刷题之旅 ->
-      </button>
     </nav>
 
-    <!-- DECOUPLED WEB PAGES CONTAINER -->
-    <main class="container" id="app-views-container">
-      <!-- Dynamic modular views (/views/*.html) are mounted here by switchTab() -->
-    </main>
+    <main class="container" id="app"></main>
 
-    <!-- DECOUPLED MODALS CONTAINER -->
-    <div id="modals-container">
-      <!-- Dynamic modal dialogs (/views/modals.html) are mounted here on startup -->
-    </div>
+    <button id="ai-fab" onclick="openAITutor()">💬</button>
 
-    <!-- GLOBAL TOAST NOTIFICATION -->
-    <div id="toast">✅ 操作成功！</div>
+    <div id="modals-root"></div>
+    <div id="toast"></div>
 
-    <!-- DECOUPLED APPLICATION SCRIPTS -->
     <script src="/js/app.js"></script>
   </body>
 </html>

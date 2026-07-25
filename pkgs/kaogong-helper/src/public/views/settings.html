@@ -1,452 +1,74 @@
-<section id="view-settings" class="section-view">
-  <div
-    class="glass-card"
-    style="border-color: var(--accent-cyan); margin-bottom: 2rem"
-  >
-    <div
-      class="card-title"
-      style="
-        color: var(--accent-cyan);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
-      <span>💎 商业订阅与账户资产控制中心 (Account & Cashier Hub)</span>
-      <span
-        style="
-          font-size: 0.85rem;
-          background: rgba(56, 189, 248, 0.15);
-          color: var(--accent-cyan);
-          padding: 0.3rem 0.8rem;
-          border-radius: 12px;
-        "
-        >已绑定实名：备考先锋小王</span
-      >
+<div id="v-settings" class="view">
+  <div class="grid grid-2 gap-lg mb-lg">
+    <!-- Profile -->
+    <div class="card">
+      <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem">
+        个人信息
+      </div>
+      <div class="mb">
+        <div class="label">用户名</div>
+        <div
+          id="s-uname"
+          style="font-size: 0.88rem; color: var(--text-2)"
+        ></div>
+      </div>
+      <div class="mb">
+        <div class="label">考试目标</div>
+        <input class="input" id="s-target" placeholder="例：2026年国考" />
+      </div>
+      <div class="mb">
+        <div class="label">目标日期</div>
+        <input class="input" id="s-date" type="date" />
+      </div>
+      <button class="btn btn-p btn-sm" onclick="saveProfile()">保存</button>
     </div>
 
-    <div
-      style="
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 2rem;
-        margin-top: 1.5rem;
-      "
-    >
-      <!-- LEFT: PROFILE EDIT -->
-      <div
-        style="
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 1.8rem;
-          border-radius: 18px;
-        "
-      >
-        <h3
-          style="
-            color: #fff;
-            font-size: 1.2rem;
-            margin-bottom: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-          "
-        >
-          <span>🎯 个人档案与报考目标修正</span>
-        </h3>
-        <div style="margin-bottom: 1.2rem">
-          <label
-            style="
-              display: block;
-              color: #94a3b8;
-              font-size: 0.85rem;
-              margin-bottom: 0.4rem;
-            "
-            >专属个性头像</label
-          >
-          <div style="display: flex; gap: 0.8rem">
-            <button
-              class="avatar-select-btn active"
-              style="
-                font-size: 1.5rem;
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid var(--accent-cyan);
-                border-radius: 10px;
-                padding: 0.4rem 0.8rem;
-                cursor: pointer;
-              "
-              onclick="selectProfileAvatar('🎯', this)"
-            >
-              🎯
-            </button>
-            <button
-              class="avatar-select-btn"
-              style="
-                font-size: 1.5rem;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                padding: 0.4rem 0.8rem;
-                cursor: pointer;
-              "
-              onclick="selectProfileAvatar('👑', this)"
-            >
-              👑
-            </button>
-            <button
-              class="avatar-select-btn"
-              style="
-                font-size: 1.5rem;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                padding: 0.4rem 0.8rem;
-                cursor: pointer;
-              "
-              onclick="selectProfileAvatar('💼', this)"
-            >
-              💼
-            </button>
-            <button
-              class="avatar-select-btn"
-              style="
-                font-size: 1.5rem;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                padding: 0.4rem 0.8rem;
-                cursor: pointer;
-              "
-              onclick="selectProfileAvatar('🎓', this)"
-            >
-              🎓
-            </button>
-            <button
-              class="avatar-select-btn"
-              style="
-                font-size: 1.5rem;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                padding: 0.4rem 0.8rem;
-                cursor: pointer;
-              "
-              onclick="selectProfileAvatar('🔥', this)"
-            >
-              🔥
-            </button>
-          </div>
-        </div>
-        <div style="margin-bottom: 1.2rem">
-          <label
-            style="
-              display: block;
-              color: #94a3b8;
-              font-size: 0.85rem;
-              margin-bottom: 0.4rem;
-            "
-            >备考主页展示昵称</label
-          >
-          <input
-            type="text"
-            id="profile-nickname"
-            class="admin-input"
-            style="width: 100%; margin-bottom: 0"
-            value="备考先锋小王 (冲刺2026)"
-          />
-        </div>
-        <div style="margin-bottom: 1.2rem">
-          <label
-            style="
-              display: block;
-              color: #94a3b8;
-              font-size: 0.85rem;
-              margin-bottom: 0.4rem;
-            "
-            >报考战场及考试大纲归属</label
-          >
-          <select
-            id="profile-target"
-            class="admin-input"
-            style="width: 100%; margin-bottom: 0"
-          >
-            <option value="2026年中央国家机关公务员招考 (国考)">
-              🏛️ 2026年中央国家机关公务员招考 (国考)
-            </option>
-            <option value="2026年各省地方公务员联合招聘 (省考 / 联考)" selected>
-              📍 2026年各省地方公务员联合招聘 (省考 / 联考)
-            </option>
-            <option value="事业单位统考 / 教师选调 / 三支一扶">
-              📚 事业单位统考 / 教师选调 / 三支一扶
-            </option>
-          </select>
-        </div>
-        <div style="margin-bottom: 1.5rem">
-          <label
-            style="
-              display: block;
-              color: #94a3b8;
-              font-size: 0.85rem;
-              margin-bottom: 0.4rem;
-            "
-            >目标倒计时决战日</label
-          >
-          <input
-            type="date"
-            id="profile-date"
-            class="admin-input"
-            style="width: 100%; margin-bottom: 0"
-            value="2026-03-13"
-          />
-        </div>
-        <button
-          class="btn-hero-primary"
-          style="width: 100%; padding: 0.8rem; font-size: 1rem"
-          onclick="saveUserProfile()"
-        >
-          💾 保存更新个人备考档案
-        </button>
+    <!-- Token -->
+    <div class="card">
+      <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem">
+        Token & VIP
       </div>
-
-      <!-- RIGHT: ASSET MONITOR & RECHARGE -->
-      <div
-        style="
-          background: rgba(15, 23, 42, 0.6);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 1.8rem;
-          border-radius: 18px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        "
-      >
-        <div>
-          <h3
-            style="
-              color: #fff;
-              font-size: 1.2rem;
-              margin-bottom: 1.2rem;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-            "
-          >
-            <span>👑 当前订阅等级与权益监控</span>
-            <span
-              id="settings-vip-badge"
-              style="
-                background: linear-gradient(135deg, #06b6d4, #3b82f6);
-                color: #fff;
-                padding: 0.3rem 0.9rem;
-                border-radius: 20px;
-                font-weight: 800;
-                font-size: 0.9rem;
-              "
-              >🚀 冲刺 Pro 会员</span
-            >
-          </h3>
-          <div
-            style="
-              background: rgba(30, 41, 59, 0.8);
-              padding: 1.2rem;
-              border-radius: 14px;
-              margin-bottom: 1.2rem;
-              border: 1px solid rgba(255, 255, 255, 0.05);
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 0.8rem;
-                color: #cbd5e1;
-              "
-            >
-              <span>会员有效期：</span>
-              <strong style="color: #fff" id="settings-vip-expire"
-                >2026-08-20 (剩余 26 天)</strong
-              >
-            </div>
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 0.8rem;
-                color: #cbd5e1;
-              "
-            >
-              <span>AI Token 算力余额：</span>
-              <span
-                ><strong
-                  style="color: var(--accent-cyan); font-size: 1.15rem"
-                  id="settings-token-val"
-                  >37,500</strong
-                >
-                / <span id="settings-token-quota">50,000</span></span
-              >
-            </div>
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                color: #cbd5e1;
-              "
-            >
-              <span>对赌反学费契约金池：</span>
-              <strong
-                style="color: var(--accent-amber); font-size: 1.15rem"
-                id="settings-escrow-val"
-                >￥99.00</strong
-              >
-            </div>
-          </div>
+      <div class="mb">
+        <div class="label">Token 余额</div>
+        <div
+          id="s-token-val"
+          style="font-size: 1.1rem; font-weight: 700; color: var(--blue)"
+        >
+          0
         </div>
-
-        <div>
+        <div class="progress mt" style="height: 6px">
           <div
-            style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.8rem"
-          >
-            ⚡ 极速收银台快速充值通道
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 0.8rem">
-            <button
-              class="btn-hero-primary"
-              style="
-                width: 100%;
-                padding: 0.8rem;
-                font-size: 0.95rem;
-                text-align: left;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-              onclick="
-                openCashierModal(
-                  'TOKEN_PACK_50K',
-                  '⚡ 50,000 AI Token 算力加油包',
-                  29,
-                )
-              "
-            >
-              <span>⚡ 补充 50,000 AI Token 算力</span>
-              <strong
-                style="
-                  background: rgba(0, 0, 0, 0.2);
-                  padding: 0.2rem 0.6rem;
-                  border-radius: 6px;
-                "
-                >￥29</strong
-              >
-            </button>
-            <button
-              class="btn-hero-secondary"
-              style="
-                width: 100%;
-                padding: 0.8rem;
-                font-size: 0.95rem;
-                text-align: left;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                border-color: var(--accent-amber);
-                color: var(--accent-amber);
-                background: rgba(245, 158, 11, 0.1);
-              "
-              onclick="
-                openCashierModal(
-                  'ESCROW_DEPOSIT',
-                  '🤝 99元对赌反学费契约金充值',
-                  99,
-                )
-              "
-            >
-              <span>🤝 追加￥99 对赌契约金 (锁分红)</span>
-              <strong
-                style="
-                  background: rgba(0, 0, 0, 0.2);
-                  padding: 0.2rem 0.6rem;
-                  border-radius: 6px;
-                "
-                >￥99</strong
-              >
-            </button>
-            <button
-              class="btn-hero-primary"
-              style="
-                width: 100%;
-                padding: 0.8rem;
-                font-size: 0.95rem;
-                text-align: left;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                background: linear-gradient(135deg, #a855f7, #ec4899);
-              "
-              onclick="
-                openCashierModal(
-                  'VIP_YEARLY',
-                  '👑 对赌私教年度 VIP 终身套件',
-                  499,
-                )
-              "
-            >
-              <span>👑 升级对赌私教年度 VIP 终身版</span>
-              <strong
-                style="
-                  background: rgba(0, 0, 0, 0.2);
-                  padding: 0.2rem 0.6rem;
-                  border-radius: 6px;
-                "
-                >￥499</strong
-              >
-            </button>
-          </div>
+            class="progress-fill"
+            id="s-token-bar"
+            style="width: 0%; background: var(--blue)"
+          ></div>
         </div>
       </div>
+      <div class="mb">
+        <div class="label">会员状态</div>
+        <div id="s-vip" style="font-size: 0.85rem; color: var(--text-2)">—</div>
+      </div>
+      <button class="btn btn-p btn-sm" onclick="openCashier()">充值</button>
     </div>
   </div>
 
-  <!-- LEDGERS AUDIT LOG -->
-  <div class="glass-card">
-    <div class="card-title">
-      <span>📜 财务收支、订阅订单与 Token 消耗流水台账 (Ledger Audit Log)</span>
+  <!-- Ledger -->
+  <div class="card">
+    <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem">
+      充值流水
     </div>
-    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem">
-      公开透明的沙盒金融台账，每一笔真实对赌分红与算力消耗均有迹可循
-    </p>
-
     <div style="overflow-x: auto">
-      <table
-        style="
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-          color: #cbd5e1;
-          font-size: 0.95rem;
-        "
-      >
+      <table class="tbl">
         <thead>
-          <tr
-            style="
-              border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-              color: #fff;
-            "
-          >
-            <th style="padding: 1rem">时间戳 (Timestamp)</th>
-            <th style="padding: 1rem">账务类型 / 流水单号</th>
-            <th style="padding: 1rem">业务与交易描述</th>
-            <th style="padding: 1rem">变动金额 / Token</th>
-            <th style="padding: 1rem">交易后状态/结余</th>
+          <tr>
+            <th>日期</th>
+            <th>类型</th>
+            <th>数量</th>
+            <th>描述</th>
           </tr>
         </thead>
-        <tbody id="ledgers-table-body">
-          <tr>
-            <td colspan="5" style="padding: 2rem; text-align: center">
-              正在加载台账流水...
-            </td>
-          </tr>
-        </tbody>
+        <tbody id="s-ledger-body"></tbody>
       </table>
     </div>
   </div>
-</section>
+</div>

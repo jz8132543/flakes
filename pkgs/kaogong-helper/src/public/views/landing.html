@@ -1,97 +1,50 @@
-<section id="view-landing" class="section-view active">
+<div id="v-landing" class="view active">
   <div
-    class="hero-section"
     style="
-      padding: 7rem 1rem 5rem;
       text-align: center;
-      max-width: 850px;
+      padding: 8rem 0 4rem;
+      max-width: 560px;
       margin: 0 auto;
     "
   >
-    <div
-      style="
-        display: inline-block;
-        background: rgba(56, 189, 248, 0.15);
-        border: 1px solid var(--accent-cyan);
-        color: var(--accent-cyan);
-        padding: 0.4rem 1.4rem;
-        border-radius: 30px;
-        font-weight: 700;
-        font-size: 0.9rem;
-        margin-bottom: 2rem;
-        letter-spacing: 1px;
-      "
-    >
-      ⚡ Kaogong Pro · 极简极客考公专属刷题引擎
-    </div>
     <h1
       style="
-        font-size: 3.5rem;
-        font-weight: 900;
-        line-height: 1.25;
-        margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+        font-size: 2.4rem;
+        font-weight: 800;
+        line-height: 1.3;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #f1f5f9, #94a3b8);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
       "
     >
-      摒弃繁杂冗余<br />为纯粹刷题而生
+      为纯粹刷题而生
     </h1>
     <p
       style="
-        color: #94a3b8;
-        font-size: 1.15rem;
+        color: var(--text-2);
+        font-size: 1rem;
+        margin-bottom: 2.5rem;
         line-height: 1.7;
-        margin-bottom: 3rem;
-        max-width: 680px;
-        margin-left: auto;
-        margin-right: auto;
       "
     >
-      拒绝毫无意义的广告与浮杂页面。登录后即开启
-      <strong>365天专注热力图</strong
-      >、<strong>五大核心行测分类专项刷题区</strong>、以及
-      <strong>名师思路深度解剖</strong>。
+      热力图追踪每一天的进步，五大行测模块精准诊断，<br />多位名师解法对比，找到最适合你的上岸路径。
     </p>
-    <div>
-      <button
-        class="btn-hero-primary"
-        style="
-          font-size: 1.15rem;
-          padding: 1.1rem 3.2rem;
-          border-radius: 35px;
-          box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
-          font-weight: 800;
-          cursor: pointer;
-          transition: transform 0.2s;
-        "
-        onclick="openLoginModal()"
-      >
-        🚀 登录 / 开启极简刷题之旅 ->
-      </button>
-    </div>
+    <button class="btn btn-p btn-lg" onclick="openModal('login')">
+      开始刷题
+    </button>
     <div
+      class="flex gap-lg items-center"
       style="
-        display: flex;
         justify-content: center;
-        gap: 3.5rem;
-        margin-top: 5rem;
-        color: #64748b;
-        font-size: 0.9rem;
-        flex-wrap: wrap;
-        border-top: 1px solid rgba(255, 255, 255, 0.06);
-        padding-top: 2.5rem;
+        margin-top: 4rem;
+        color: var(--text-3);
+        font-size: 0.82rem;
       "
     >
-      <div style="display: flex; align-items: center; gap: 0.5rem">
-        <span style="color: var(--accent-green)">●</span> 纯粹无广告刷题台
-      </div>
-      <div style="display: flex; align-items: center; gap: 0.5rem">
-        <span style="color: var(--accent-cyan)">●</span> 五大核心分类精炼
-      </div>
-      <div style="display: flex; align-items: center; gap: 0.5rem">
-        <span style="color: var(--accent-purple)">●</span> 365天连击热力反馈
-      </div>
+      <span>365天热力图</span>
+      <span>一题多解</span>
+      <span>AI 名师私教</span>
     </div>
   </div>
-</section>
+</div>

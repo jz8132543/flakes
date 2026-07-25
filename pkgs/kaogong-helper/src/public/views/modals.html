@@ -1,638 +1,134 @@
-<!-- FLOATING AI TUTOR BUTTON -->
-<div
-  id="floating-ai-btn"
-  onclick="openAITutor(null, '花生十三')"
-  style="
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    color: #fff;
-    padding: 0.8rem 1.5rem;
-    border-radius: 30px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 8px 25px rgba(14, 165, 233, 0.5);
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    transition: transform 0.2s;
-  "
-  title="点击召唤专属考公名师 AI 私教"
->
-  <span style="font-size: 1.4rem">🤖</span>
-  <span>召唤名师 AI 私教分身</span>
-</div>
-
-<!-- AI TUTOR INTERACTIVE MODAL -->
-<div id="ai-modal">
+<!-- Login -->
+<div id="modal-login" class="modal">
   <div class="modal-box">
-    <h3
-      style="
-        color: var(--accent-cyan);
-        font-size: 1.3rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      "
-    >
-      <span>🤖 名师 AI 分身实时互动答疑</span>
-      <button
-        style="
-          background: transparent;
-          border: none;
-          color: #fff;
-          font-size: 1.5rem;
-          cursor: pointer;
-        "
-        onclick="closeAITutor()"
-      >
-        ×
-      </button>
+    <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.2rem">
+      登录
     </h3>
-    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.8rem 0">
-      正在向
-      <strong style="color: #fff" id="modal-teacher-name">花生十三</strong>
-      提问。本次询问将严格按照【秒杀截位派】解题流派答疑，并自动计算耗用的
-      Token！
-    </p>
-    <textarea
-      id="modal-prompt"
-      style="
-        width: 100%;
-        height: 100px;
-        background: #000;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #fff;
-        padding: 0.8rem;
-        border-radius: 8px;
-        font-family: inherit;
-        margin-bottom: 1rem;
-      "
-      placeholder="老师，请问这道题为什么截前两位不会有误差？我该怎么快速看选项？"
-    ></textarea>
-    <div
-      id="modal-reply"
-      style="
-        background: rgba(56, 189, 248, 0.1);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 1.2rem;
-        min-height: 80px;
-        font-size: 0.9rem;
-        color: #fff;
-        display: none;
-      "
-    ></div>
-    <button
-      class="btn-admin"
-      style="
-        background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
-        color: #fff;
-      "
-      onclick="submitAIQuestion()"
-    >
-      🚀 发送提问 (实时扣减 Token)
-    </button>
-  </div>
-</div>
-
-<!-- LOGIN MODAL -->
-<div id="modal-login" class="general-modal">
-  <div
-    class="modal-box"
-    style="
-      max-width: 450px;
-      border-color: var(--accent-cyan);
-      background: rgba(15, 23, 42, 0.98);
-      padding: 2.2rem;
-      text-align: center;
-      border-radius: 20px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
-    "
-  >
-    <div style="font-size: 3rem; margin-bottom: 0.8rem">🔐</div>
-    <h3
-      style="
-        color: #fff;
-        font-size: 1.6rem;
-        margin-bottom: 0.5rem;
-        font-weight: 800;
-      "
-    >
-      登录 Kaogong Pro 刷题台
-    </h3>
-    <p
-      style="
-        color: #94a3b8;
-        font-size: 0.95rem;
-        margin-bottom: 2rem;
-        line-height: 1.6;
-      "
-    >
-      登录即享 365 天打卡热力图、专项题库演练与 50,000 AI Token 算力分期福利
-    </p>
-
-    <div style="text-align: left; margin-bottom: 1.2rem">
-      <label
-        style="
-          color: #cbd5e1;
-          font-size: 0.85rem;
-          display: block;
-          margin-bottom: 0.4rem;
-          font-weight: 600;
-        "
-        >刷题学号 / 手机号</label
-      >
+    <div class="flex-col gap-sm" style="margin-bottom: 1rem">
       <input
-        id="login-username-input"
-        type="text"
-        value="考公人小王"
-        placeholder="输入学号或名称"
-        style="
-          width: 100%;
-          background: #1e293b;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #fff;
-          padding: 0.8rem 1rem;
-          border-radius: 10px;
-          font-size: 1rem;
-          outline: none;
-        "
+        class="input"
+        id="login-user"
+        placeholder="用户名"
+        autocomplete="username"
       />
-    </div>
-
-    <div style="text-align: left; margin-bottom: 2rem">
-      <label
-        style="
-          color: #cbd5e1;
-          font-size: 0.85rem;
-          display: block;
-          margin-bottom: 0.4rem;
-          font-weight: 600;
-        "
-        >登录口令 (或验证码)</label
-      >
       <input
-        id="login-pwd-input"
+        class="input"
+        id="login-pass"
         type="password"
-        value="888888"
-        style="
-          width: 100%;
-          background: #1e293b;
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: #fff;
-          padding: 0.8rem 1rem;
-          border-radius: 10px;
-          font-size: 1rem;
-          outline: none;
-        "
+        placeholder="密码"
+        autocomplete="current-password"
       />
     </div>
-
-    <button
-      class="btn-hero-primary"
-      style="
-        width: 100%;
-        padding: 0.9rem;
-        font-size: 1.1rem;
-        border-radius: 12px;
-        font-weight: 800;
-        cursor: pointer;
-        box-shadow: 0 8px 25px rgba(14, 165, 233, 0.4);
-      "
-      onclick="performLogin()"
-    >
-      🚀 极速一键登录 (开启纯粹刷题)
-    </button>
+    <button class="btn btn-p btn-block" onclick="login()">登录</button>
     <div
-      style="
-        margin-top: 1.2rem;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.85rem;
-        color: #64748b;
-      "
+      class="text-center"
+      style="margin-top: 0.8rem; font-size: 0.78rem; color: var(--text-3)"
     >
-      <span
-        style="cursor: pointer; color: var(--accent-cyan)"
-        onclick="performLogin()"
-        >免费注册新账号</span
+      <span style="cursor: pointer; color: var(--blue)" onclick="register()"
+        >注册新账号</span
       >
-      <span style="cursor: pointer" onclick="closeLoginModal()"
-        >暂不登录 / 返回极简页</span
-      >
+      <span style="margin: 0 0.4rem">·</span>
+      <span style="cursor: pointer" onclick="closeModal('login')">取消</span>
     </div>
   </div>
 </div>
 
-<!-- ONBOARDING QUIZ MODAL -->
-<div id="modal-onboarding" class="general-modal">
-  <div
-    class="modal-box"
-    style="
-      max-width: 650px;
-      border-color: var(--accent-cyan);
-      background: rgba(15, 23, 42, 0.95);
-    "
-  >
+<!-- Cashier -->
+<div id="modal-cashier" class="modal">
+  <div class="modal-box">
     <div
-      style="
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 1rem;
-      "
+      class="flex justify-between items-center"
+      style="margin-bottom: 1.2rem"
     >
-      <h3 style="color: var(--accent-cyan); font-size: 1.4rem; margin: 0">
-        ✨ 新手入学向导与备考目标定制
-      </h3>
+      <h3 style="font-size: 1.1rem; font-weight: 700">充值</h3>
       <span
-        style="
-          font-size: 0.85rem;
-          color: #94a3b8;
-          background: rgba(255, 255, 255, 0.08);
-          padding: 0.3rem 0.8rem;
-          border-radius: 12px;
-        "
-        id="onb-progress"
-        >步骤 1 / 3</span
+        style="cursor: pointer; color: var(--text-3); font-size: 1.2rem"
+        onclick="closeModal('cashier')"
+        >×</span
       >
     </div>
-
-    <!-- STEP 1 -->
-    <div id="onb-step-1" class="quiz-step active">
-      <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem">
-        🎯 Q1: 您的主攻考公战场及考试类型？
-      </h4>
-      <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem">
-        我们将根据招考大纲和历年高频真题为您分配智能组卷题库
-      </p>
-      <div class="quiz-options">
-        <button
-          class="quiz-opt-btn"
-          onclick="selectOnbOption(1, '2026年中央国家机关公务员招考 (国考)')"
-        >
-          <span>🏛️ 2026年中央国家机关公务员招考 (国考)</span>
-          <span style="font-size: 0.8rem; opacity: 0.6">推荐</span>
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(1, '2026年各省地方公务员联合招聘 (省考 / 联考)')
-          "
-        >
-          <span>📍 2026年各省地方公务员联合招聘 (省考 / 联考)</span>
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="selectOnbOption(1, '事业单位统考 / 教师选调 / 三支一扶')"
-        >
-          <span>📚 事业单位统考 / 教师选调 / 三支一扶</span>
-        </button>
-      </div>
-      <div style="text-align: right; margin-top: 1.5rem">
-        <button
-          class="btn-hero-primary"
-          style="padding: 0.7rem 1.8rem; font-size: 1rem"
-          onclick="nextOnbStep(2)"
-        >
-          下一步 ➡️
-        </button>
-      </div>
-    </div>
-
-    <!-- STEP 2 -->
-    <div id="onb-step-2" class="quiz-step">
-      <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem">
-        ⏱️ Q2: 每天您可以保证投入备考的高质量演练时长？
-      </h4>
-      <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem">
-        决定热力图打卡任务强度与 AI 专属私教推题频率
-      </p>
-      <div class="quiz-options">
-        <button
-          class="quiz-opt-btn"
-          onclick="selectOnbOption(2, '每天 1-2 小时 (碎片化突击 / 在职兼职)')"
-        >
-          <span>⚡ 每天 1-2 小时 (碎片化突击 / 在职兼职)</span>
-          <span style="font-size: 0.8rem; opacity: 0.6">轻松坚持</span>
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(2, '每天 3-5 小时 (规律长线备考 / 冲刺突破)')
-          "
-        >
-          <span>🔥 每天 3-5 小时 (规律长线备考 / 冲刺突破)</span>
-          <span style="font-size: 0.8rem; opacity: 0.6">高频推荐</span>
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(2, '每天 6 小时以上 (破釜沉舟 / 全职脱产备考)')
-          "
-        >
-          <span>⚔️ 每天 6 小时以上 (破釜沉舟 / 全职脱产备考)</span>
-          <span style="font-size: 0.8rem; opacity: 0.6">极速夺魁</span>
-        </button>
-      </div>
+    <div class="flex-col gap-sm">
       <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          margin-top: 1.5rem;
-        "
+        class="card card-click"
+        onclick="simulatePay('PRO_MONTHLY', '冲刺Pro月卡', 68)"
+        style="padding: 0.8rem"
       >
-        <button
-          class="btn-hero-secondary"
-          style="padding: 0.7rem 1.5rem; font-size: 1rem"
-          onclick="nextOnbStep(1)"
-        >
-          ⬅️ 上一步
-        </button>
-        <button
-          class="btn-hero-primary"
-          style="padding: 0.7rem 1.8rem; font-size: 1rem"
-          onclick="nextOnbStep(3)"
-        >
-          下一步 ➡️
-        </button>
-      </div>
-    </div>
-
-    <!-- STEP 3 -->
-    <div id="onb-step-3" class="quiz-step">
-      <h4 style="color: #fff; font-size: 1.15rem; margin-bottom: 0.5rem">
-        🧩 Q3: 您目前最急需突破的题型短板是什么？
-      </h4>
-      <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1rem">
-        平台将自动配置名师对冲流派与首选“秒杀大招切片”
-      </p>
-      <div class="quiz-options">
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(
-              3,
-              '数量关系与资料分析 (死算耗时太长，需截位直除与十字交叉)',
-            )
-          "
-        >
-          <span
-            >📐 数量关系与资料分析 (死算耗时太长，需截位直除与十字交叉)</span
-          >
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(
-              3,
-              '言语理解与判断推理 (逻辑陷入纠结，需否后必否与词析秒杀)',
-            )
-          "
-        >
-          <span
-            >🔍 言语理解与判断推理 (逻辑陷入纠结，需否后必否与词析秒杀)</span
-          >
-        </button>
-        <button
-          class="quiz-opt-btn"
-          onclick="
-            selectOnbOption(
-              3,
-              '申论与公考常识积累 (写作无亮眼素材，需高分金句规范表达)',
-            )
-          "
-        >
-          <span
-            >📝 申论与公考常识积累 (写作无亮眼素材，需高分金句规范表达)</span
-          >
-        </button>
-      </div>
-      <div
-        style="
-          display: flex;
-          justify-content: space-between;
-          margin-top: 1.5rem;
-        "
-      >
-        <button
-          class="btn-hero-secondary"
-          style="padding: 0.7rem 1.5rem; font-size: 1rem"
-          onclick="nextOnbStep(2)"
-        >
-          ⬅️ 上一步
-        </button>
-        <button
-          class="btn-hero-primary"
-          style="
-            padding: 0.7rem 1.8rem;
-            font-size: 1rem;
-            background: linear-gradient(135deg, #10b981, #059669);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-          "
-          onclick="finishOnboarding()"
-        >
-          ✨ 生成专属对赌契约与打卡计划
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SIMULATED CASHIER MODAL -->
-<div id="modal-cashier" class="general-modal">
-  <div
-    class="modal-box"
-    style="
-      max-width: 500px;
-      text-align: center;
-      border-color: var(--accent-amber);
-      background: rgba(15, 23, 42, 0.96);
-    "
-  >
-    <div style="font-size: 3rem; margin-bottom: 0.5rem">💎</div>
-    <h3 style="color: #fff; font-size: 1.5rem; margin-bottom: 0.5rem">
-      模拟收银台 (Payment Gateway)
-    </h3>
-    <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem">
-      商业化 SaaS 沙盒支付系统 · 微信 / 支付宝扫码回调到账
-    </p>
-
-    <div
-      style="
-        background: rgba(30, 41, 59, 0.8);
-        border: 1px dashed rgba(255, 255, 255, 0.2);
-        padding: 1.5rem;
-        border-radius: 16px;
-        margin-bottom: 1.5rem;
-      "
-    >
-      <div style="color: #cbd5e1; font-size: 0.95rem; margin-bottom: 0.5rem">
-        您即将开通订阅：<strong style="color: #fff" id="cashier-pkg-name"
-          >🚀 冲刺 Pro 月度会员</strong
-        >
-      </div>
-      <div
-        style="font-size: 2.2rem; font-weight: 800; color: var(--accent-amber)"
-        id="cashier-price"
-      >
-        ￥68.00
-      </div>
-      <div
-        style="
-          margin: 1.5rem auto;
-          width: 180px;
-          height: 180px;
-          background: #fff;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          color: #0f172a;
-          font-weight: 800;
-          box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-        "
-      >
-        <div style="font-size: 4rem">📱</div>
-        <div style="font-size: 0.8rem; margin-top: 0.3rem; color: #475569">
-          请模拟扫码完成支付
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-weight: 600; font-size: 0.88rem">
+              冲刺 Pro 月卡
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-3)">
+              30,000 Token + VIP 30天
+            </div>
+          </div>
+          <span style="font-weight: 700; color: var(--blue)">¥68</span>
         </div>
       </div>
-      <div style="font-size: 0.85rem; color: #64748b">
-        支付成功后系统将调用 Webhook 回调自动写入订单流水并签发 VIP 权益
+      <div
+        class="card card-click"
+        onclick="simulatePay('VIP_QUARTERLY', '保过VIP季卡', 198)"
+        style="padding: 0.8rem"
+      >
+        <div class="flex justify-between items-center">
+          <div>
+            <div style="font-weight: 600; font-size: 0.88rem">
+              保过 VIP 季卡
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-3)">
+              100,000 Token + VIP 90天
+            </div>
+          </div>
+          <span style="font-weight: 700; color: var(--amber)">¥198</span>
+        </div>
       </div>
     </div>
-
-    <div style="display: flex; gap: 1rem; justify-content: center">
-      <button
-        class="btn-hero-secondary"
-        style="flex: 1; padding: 0.8rem"
-        onclick="closeCashierModal()"
-      >
-        ❌ 取消付款
-      </button>
-      <button
-        class="btn-hero-primary"
-        style="
-          flex: 1;
-          padding: 0.8rem;
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
-        "
-        onclick="simulatePaymentSuccess()"
-      >
-        ✅ 模拟支付到账
-      </button>
+    <div
+      class="text-center"
+      style="margin-top: 1rem; font-size: 0.75rem; color: var(--text-3)"
+    >
+      点击套餐即可模拟支付
     </div>
   </div>
 </div>
 
-<!-- PROMOTION CERTIFICATE MODAL -->
-<div id="modal-promotion" class="general-modal">
-  <div
-    class="modal-box"
-    style="
-      max-width: 580px;
-      text-align: center;
-      border-color: #ef4444;
-      background: linear-gradient(180deg, #fffcf5, #fef3c7);
-      color: #78350f;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-    "
-  >
-    <!-- Electronic Stamp / Seal -->
-    <div
-      style="
-        position: absolute;
-        right: -20px;
-        bottom: 20px;
-        width: 180px;
-        height: 180px;
-        border: 4px solid #ef4444;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transform: rotate(-15deg);
-        opacity: 0.85;
-        pointer-events: none;
-        color: #ef4444;
-        font-weight: 900;
-        font-size: 1.1rem;
-        text-align: center;
-        letter-spacing: 2px;
-        padding: 10px;
-        box-shadow: inset 0 0 10px #ef4444;
-      "
-    >
-      <div>★ 中国式公考<br />上岸指导委员会<br />专用电子红印 ★</div>
-    </div>
-
-    <div style="font-size: 3.5rem; margin-bottom: 0.2rem">📜</div>
-    <h2
-      style="
-        color: #b91c1c;
-        font-size: 1.8rem;
-        letter-spacing: 4px;
-        margin-bottom: 0.5rem;
-        font-weight: 900;
-        border-bottom: 2px double #b91c1c;
-        padding-bottom: 0.5rem;
-      "
-    >
-      电子晋升任命证书
-    </h2>
-    <div style="font-size: 0.85rem; color: #92400e; margin-bottom: 1.5rem">
-      [ 考公系统干部任免通告·第2026号 ]
-    </div>
-
-    <div
-      style="
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid #fde68a;
-        padding: 1.8rem;
-        border-radius: 12px;
-        text-align: left;
-        margin-bottom: 1.8rem;
-        font-size: 1.05rem;
-        line-height: 1.8;
-        color: #451a03;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-        white-space: pre-line;
-      "
-      id="promo-cert-text"
-    >
-      正在生成红头文件内容...
-    </div>
-
-    <div style="display: flex; gap: 1rem; justify-content: center">
-      <button
-        class="btn-hero-primary"
-        style="
-          flex: 1;
-          padding: 0.8rem 2rem;
-          background: linear-gradient(135deg, #b91c1c, #dc2626);
-          color: #fff;
-          font-weight: 800;
-          border: none;
-          border-radius: 30px;
-          cursor: pointer;
-          box-shadow: 0 8px 20px rgba(185, 28, 28, 0.4);
-        "
-        onclick="closePromotionModal()"
+<!-- AI Tutor -->
+<div id="modal-ai" class="modal">
+  <div class="modal-box" style="max-width: 480px">
+    <div class="flex justify-between items-center" style="margin-bottom: 1rem">
+      <h3 style="font-size: 1.1rem; font-weight: 700">AI 名师助教</h3>
+      <span
+        style="cursor: pointer; color: var(--text-3); font-size: 1.2rem"
+        onclick="closeModal('ai')"
+        >×</span
       >
-        🎉 欣然领受任免状，继续冲刺做题！
-      </button>
     </div>
+    <div style="font-size: 0.82rem; color: var(--text-2); margin-bottom: 1rem">
+      向名师 AI 分身提问，获得针对性解题指导。每次提问消耗 Token。
+    </div>
+    <textarea
+      class="input"
+      id="ai-prompt"
+      rows="3"
+      placeholder="输入你的问题…"
+      style="resize: vertical; margin-bottom: 0.8rem"
+    ></textarea>
+    <button class="btn btn-p btn-block" onclick="sendAI()">发送提问</button>
+    <div
+      id="ai-reply"
+      style="
+        display: none;
+        margin-top: 1rem;
+        padding: 0.8rem;
+        background: var(--bg-input);
+        border-radius: var(--r-sm);
+        font-size: 0.85rem;
+        color: var(--text-2);
+        line-height: 1.7;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      "
+    ></div>
   </div>
 </div>
