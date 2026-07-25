@@ -1,0 +1,419 @@
+<section id="view-practice" class="section-view">
+  <div class="glass-card" style="margin-bottom: 1.5rem">
+    <div class="card-title" style="margin-bottom: 1rem">
+      <span
+        >🚀 3D 沉浸式真题模考引擎 (3D Practice Engine & Skill Mastery
+        Tree)</span
+      >
+      <span
+        style="
+          margin-left: auto;
+          font-size: 0.85rem;
+          background: rgba(56, 189, 248, 0.2);
+          color: var(--accent-cyan);
+          padding: 0.2rem 0.8rem;
+          border-radius: 20px;
+        "
+        >⚡ 智能三维组卷切片中</span
+      >
+    </div>
+    <!-- 3-Mode Selector Tabs -->
+    <div
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      "
+    >
+      <div
+        class="practice-mode-card active"
+        id="pmode-FULL_PAPER"
+        onclick="selectPracticeMode('FULL_PAPER', this)"
+        style="
+          padding: 1rem;
+          background: rgba(56, 189, 248, 0.15);
+          border: 2px solid var(--accent-cyan);
+          border-radius: 12px;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.2s;
+        "
+      >
+        <div style="font-size: 1.8rem; margin-bottom: 0.3rem">🏆</div>
+        <div style="color: #fff; font-weight: 700; font-size: 1.05rem">
+          全真整套试卷突击
+        </div>
+        <div
+          style="
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+          "
+        >
+          120分钟真实考场倒计时压迫训练
+        </div>
+      </div>
+      <div
+        class="practice-mode-card"
+        id="pmode-MODULE"
+        onclick="selectPracticeMode('MODULE', this)"
+        style="
+          padding: 1rem;
+          background: rgba(30, 41, 59, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.2s;
+        "
+      >
+        <div style="font-size: 1.8rem; margin-bottom: 0.3rem">🧩</div>
+        <div style="color: #fff; font-weight: 700; font-size: 1.05rem">
+          模块专项特训
+        </div>
+        <div
+          style="
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+          "
+        >
+          言语/判断/资料/数量 自由定制秒刷
+        </div>
+      </div>
+      <div
+        class="practice-mode-card"
+        id="pmode-SKILL_TAG"
+        onclick="selectPracticeMode('SKILL_TAG', this)"
+        style="
+          padding: 1rem;
+          background: rgba(30, 41, 59, 0.6);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          cursor: pointer;
+          text-align: center;
+          transition: all 0.2s;
+        "
+      >
+        <div style="font-size: 1.8rem; margin-bottom: 0.3rem">🌳</div>
+        <div style="color: #fff; font-weight: 700; font-size: 1.05rem">
+          技巧标签图谱突破
+        </div>
+        <div
+          style="
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-top: 0.2rem;
+          "
+        >
+          30+ 核心技巧掌握度雷达与专项定位
+        </div>
+      </div>
+    </div>
+    <!-- Configuration Panel -->
+    <div
+      id="practice-config-panel"
+      style="
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      "
+    >
+      <!-- Dynamic Content populated by selectPracticeMode -->
+    </div>
+  </div>
+
+  <!-- Active Practice Arena (Hidden by default) -->
+  <div
+    id="practice-arena"
+    class="glass-card"
+    style="
+      display: none;
+      position: relative;
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+    "
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+      "
+    >
+      <div style="display: flex; align-items: center; gap: 1rem">
+        <span
+          id="arena-timer"
+          style="
+            background: rgba(244, 63, 92, 0.2);
+            color: #f43f5e;
+            font-weight: 800;
+            font-family: monospace;
+            font-size: 1.2rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            border: 1px solid rgba(244, 63, 92, 0.4);
+          "
+          >⏱️ 119:59</span
+        >
+        <span id="arena-progress" style="color: #fff; font-weight: 700"
+          >第 1 / 5 题</span
+        >
+        <span
+          id="arena-tag"
+          style="
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--accent-purple);
+            font-size: 0.85rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
+          "
+          >🏷️ 截位直除法</span
+        >
+      </div>
+      <div style="display: flex; gap: 0.8rem">
+        <button
+          onclick="toggleAnswerSheet()"
+          style="
+            background: rgba(30, 41, 59, 0.8);
+            color: #fff;
+            border: 1px solid var(--accent-cyan);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+          "
+        >
+          📌 答题卡悬浮台 (<span id="sheet-count">0/5</span>)
+        </button>
+        <button
+          onclick="submitPracticeSession()"
+          style="
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          "
+        >
+          🔴 提前交卷并出分
+        </button>
+      </div>
+    </div>
+    <!-- Question Body -->
+    <div id="arena-question-area" style="min-height: 220px"></div>
+    <!-- Floating Answer Sheet -->
+    <div
+      id="floating-answer-sheet"
+      style="
+        display: none;
+        background: #0f172a;
+        border: 2px solid var(--accent-cyan);
+        border-radius: 12px;
+        padding: 1.2rem;
+        margin-top: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+      "
+    >
+      <h4
+        style="
+          color: var(--accent-cyan);
+          margin-bottom: 0.8rem;
+          font-size: 0.95rem;
+        "
+      >
+        📋 答题卡快捷导航 (点击跳转题号)
+      </h4>
+      <div
+        id="sheet-grid"
+        style="display: flex; gap: 0.6rem; flex-wrap: wrap"
+      ></div>
+    </div>
+    <!-- Arena Footer Controls -->
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 1.2rem;
+      "
+    >
+      <button
+        class="btn-hero-secondary"
+        onclick="navigateQuestion(-1)"
+        style="padding: 0.5rem 1.2rem"
+      >
+        <- 上一题
+      </button>
+      <button
+        class="btn-hero-primary"
+        onclick="openAITutorForCurrent()"
+        style="
+          background: linear-gradient(135deg, var(--accent-purple), #ec4899);
+          border: none;
+          padding: 0.5rem 1.2rem;
+          border-radius: 8px;
+          color: #fff;
+          font-weight: 700;
+          cursor: pointer;
+        "
+      >
+        ✨ 呼叫 AI 名师剖析本题要领
+      </button>
+      <button
+        class="btn-hero-secondary"
+        onclick="navigateQuestion(1)"
+        style="padding: 0.5rem 1.2rem"
+      >
+        下一题 ->
+      </button>
+    </div>
+  </div>
+
+  <!-- Practice Result & Score Card (Hidden by default) -->
+  <div
+    id="practice-result"
+    class="glass-card"
+    style="
+      display: none;
+      text-align: center;
+      padding: 2.5rem 1.5rem;
+      border-color: var(--accent-amber);
+      background: linear-gradient(
+        180deg,
+        rgba(30, 41, 59, 0.9),
+        rgba(15, 23, 42, 0.95)
+      );
+    "
+  >
+    <div style="font-size: 4rem; margin-bottom: 0.5rem">🎉</div>
+    <h2 style="color: #fff; font-size: 2rem; margin-bottom: 0.5rem">
+      真题全真模考评估报告
+    </h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem">
+      本次测验已按照原命题组常态难度加权评分，并同步更新至个人成长履历！
+    </p>
+    <div
+      style="
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+      "
+    >
+      <div
+        style="
+          background: rgba(0, 0, 0, 0.4);
+          padding: 1.2rem 2rem;
+          border-radius: 12px;
+          border: 1px solid var(--accent-amber);
+        "
+      >
+        <div style="color: var(--text-muted); font-size: 0.9rem">
+          模考终审得分
+        </div>
+        <div
+          id="res-score"
+          style="
+            color: var(--accent-amber);
+            font-size: 2.5rem;
+            font-weight: 900;
+          "
+        >
+          80 分
+        </div>
+      </div>
+      <div
+        style="
+          background: rgba(0, 0, 0, 0.4);
+          padding: 1.2rem 2rem;
+          border-radius: 12px;
+          border: 1px solid var(--accent-cyan);
+        "
+      >
+        <div style="color: var(--text-muted); font-size: 0.9rem">
+          全国同期考生排位
+        </div>
+        <div
+          id="res-beat"
+          style="color: var(--accent-cyan); font-size: 2.5rem; font-weight: 900"
+        >
+          超越 88.5%
+        </div>
+      </div>
+      <div
+        style="
+          background: rgba(0, 0, 0, 0.4);
+          padding: 1.2rem 2rem;
+          border-radius: 12px;
+          border: 1px solid var(--accent-green);
+        "
+      >
+        <div style="color: var(--text-muted); font-size: 0.9rem">
+          正确 / 总题数
+        </div>
+        <div
+          id="res-counts"
+          style="
+            color: var(--accent-green);
+            font-size: 2.5rem;
+            font-weight: 900;
+          "
+        >
+          4 / 5
+        </div>
+      </div>
+    </div>
+    <div
+      style="
+        background: rgba(30, 41, 59, 0.5);
+        padding: 1.5rem;
+        border-radius: 12px;
+        max-width: 600px;
+        margin: 0 auto 2rem;
+        text-align: left;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      "
+    >
+      <h4 style="color: #fff; margin-bottom: 1rem; text-align: center">
+        📈 五大模块掌握度雷达图诊断 (Radar Assessment)
+      </h4>
+      <div
+        id="res-radar-bars"
+        style="display: flex; flex-direction: column; gap: 0.8rem"
+      ></div>
+    </div>
+    <div
+      style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap"
+    >
+      <button
+        class="btn-hero-primary"
+        onclick="switchTab('solutions')"
+        style="padding: 0.8rem 2rem; font-size: 1rem"
+      >
+        📖 查看一题多解解析与名师大招切片 ->
+      </button>
+      <button
+        class="btn-hero-secondary"
+        onclick="resetPracticeArena()"
+        style="padding: 0.8rem 1.5rem; font-size: 1rem"
+      >
+        🔄 再次开启模考训练
+      </button>
+    </div>
+  </div>
+</section>

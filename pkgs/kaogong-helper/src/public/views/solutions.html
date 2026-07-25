@@ -1,0 +1,27 @@
+<section id="view-solutions" class="section-view">
+  <div class="glass-card">
+    <div class="card-title">
+      <span>🌟 一题多解：名师解法蒸馏与切片对比</span>
+      <button
+        style="
+          margin-left: auto;
+          background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+          color: #fff;
+          border: none;
+          padding: 0.5rem 1.2rem;
+          border-radius: 8px;
+          font-weight: 700;
+          cursor: pointer;
+        "
+        onclick="openAITutor('q101', '花生十三')"
+      >
+        🤖 召唤名师 AI 实时答疑互动
+      </button>
+    </div>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem">
+      不同流派横向切换。投票率高者居前 (`ORDER BY upvotes
+      DESC`)，亲和度引擎记忆偏好！
+    </p>
+    <div id="questions-container"></div>
+  </div>
+</section>

@@ -624,7 +624,7 @@ const db = {
         { name: "学霸小吴", streak: 0, today_done: false },
         { name: "早起鸟阿健", streak: 0, today_done: false },
       ],
-    }
+    },
   ],
 
   strategies: [
@@ -720,7 +720,7 @@ const db = {
           recommended_teacher: "花生十三 / 齐麟老师",
         },
       ],
-    }
+    },
   ],
   orders: [
     {
@@ -730,8 +730,8 @@ const db = {
       amount: 68.0,
       status: "SUCCESS",
       idempotency_key: "IDEM_INIT_101",
-      created_at: "2026-07-20T10:00:00Z"
-    }
+      created_at: "2026-07-20T10:00:00Z",
+    },
   ],
   token_ledgers: [
     {
@@ -741,7 +741,7 @@ const db = {
       amount: 50000,
       balance_after: 50000,
       description: "开通冲刺 Pro 会员赠送算力",
-      created_at: "2026-07-20T10:00:00Z"
+      created_at: "2026-07-20T10:00:00Z",
     },
     {
       id: "TL_INIT_102",
@@ -750,7 +750,7 @@ const db = {
       amount: -12500,
       balance_after: 37500,
       description: "AI 助教名师答疑消耗 (累计)",
-      created_at: "2026-07-24T18:30:00Z"
+      created_at: "2026-07-24T18:30:00Z",
     },
     {
       id: "TL_INIT_103",
@@ -759,8 +759,8 @@ const db = {
       amount: 5000,
       balance_after: 42500,
       description: "上周契约全勤对赌算力分红奖励",
-      created_at: "2026-07-25T08:00:00Z"
-    }
+      created_at: "2026-07-25T08:00:00Z",
+    },
   ],
 };
 
@@ -931,7 +931,9 @@ const server = http.createServer(async (req, res) => {
   if (pathname === "/api/user/ledgers" && req.method === "GET") {
     const userId = parsedUrl.query.user_id || "u1";
     const userOrders = (db.orders || []).filter((o) => o.user_id === userId);
-    const userTokens = (db.token_ledgers || []).filter((t) => t.user_id === userId);
+    const userTokens = (db.token_ledgers || []).filter(
+      (t) => t.user_id === userId,
+    );
     return sendJSON(res, { orders: userOrders, token_ledgers: userTokens });
   }
 
@@ -952,7 +954,7 @@ const server = http.createServer(async (req, res) => {
         amount: amount,
         status: "PENDING",
         idempotency_key: p.idempotency_key || `IDEM_${Date.now()}`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       };
       if (!db.orders) db.orders = [];
       db.orders.unshift(order);
@@ -968,14 +970,24 @@ const server = http.createServer(async (req, res) => {
       const p = await parseBody(req);
       const idempotencyKey = p.idempotency_key || p.order_id;
       if (!db.orders) db.orders = [];
-      const existingOrder = db.orders.find((o) => o.idempotency_key === idempotencyKey || o.order_id === p.order_id);
-      
-      const userId = p.user_id || (existingOrder ? existingOrder.user_id : "u1");
+      const existingOrder = db.orders.find(
+        (o) =>
+          o.idempotency_key === idempotencyKey || o.order_id === p.order_id,
+      );
+
+      const userId =
+        p.user_id || (existingOrder ? existingOrder.user_id : "u1");
       const u = db.users.find((x) => x.id === userId) || db.users[0];
-      const pkg = p.package_id || (existingOrder ? existingOrder.package_id : "PRO_MONTHLY");
+      const pkg =
+        p.package_id ||
+        (existingOrder ? existingOrder.package_id : "PRO_MONTHLY");
 
       if (existingOrder && existingOrder.status === "SUCCESS") {
-        return sendJSON(res, { success: true, message: "Idempotent callback ignored (already processed)", user: u });
+        return sendJSON(res, {
+          success: true,
+          message: "Idempotent callback ignored (already processed)",
+          user: u,
+        });
       }
 
       if (existingOrder) existingOrder.status = "SUCCESS";
@@ -987,7 +999,7 @@ const server = http.createServer(async (req, res) => {
           amount: p.amount || 68.0,
           status: "SUCCESS",
           idempotency_key: idempotencyKey,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
       }
 
@@ -1004,7 +1016,7 @@ const server = http.createServer(async (req, res) => {
           amount: 50000,
           balance_after: u.token_quota - u.token_used,
           description: "购买冲刺 Pro 月度会员充值赠送",
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
       } else if (pkg === "VIP_YEARLY") {
         u.vip_tier = "VIP";
@@ -1017,7 +1029,7 @@ const server = http.createServer(async (req, res) => {
           amount: 300000,
           balance_after: u.token_quota - u.token_used,
           description: "开通对赌私教年度 VIP 充值赠送",
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
       } else if (pkg === "ESCROW_DEPOSIT") {
         u.escrow_balance = (u.escrow_balance || 0) + 99.0;
@@ -1030,7 +1042,7 @@ const server = http.createServer(async (req, res) => {
           amount: 50000,
           balance_after: u.token_quota - u.token_used,
           description: "购买 50,000 算力加油包",
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
       }
 
@@ -1064,25 +1076,65 @@ const server = http.createServer(async (req, res) => {
       tokens_remaining: Math.max(0, u.token_quota - u.token_used),
       career_level: u.career_level || 4,
       beat_percentage: 94.5,
-      focus_efficiency: "高能专注 (相当于省下线下机构￥3,200.00智商税)"
+      focus_efficiency: "高能专注 (相当于省下线下机构￥3,200.00智商税)",
     });
   }
 
   // --- CAREER PATH GAMIFICATION ENDPOINTS ---
   const CAREER_TITLES = [
-    { level: 1, title: "备考小白", req_questions: 0, req_streak: 0, doc_text: "起步备考，立志成才，特任为备考小白。" },
-    { level: 2, title: "实习科员", req_questions: 50, req_streak: 3, doc_text: "勤勉刷题，初现锋芒，兹任命为实习科员。" },
-    { level: 3, title: "四级主任科员", req_questions: 200, req_streak: 7, doc_text: "基础扎实，行测稳步提升，晋升为四级主任科员。" },
-    { level: 4, title: "副科长", req_questions: 500, req_streak: 14, doc_text: "独当一面，秒杀截位了然于胸，破格提拔为副科长。" },
-    { level: 5, title: "处长", req_questions: 1000, req_streak: 21, doc_text: "运筹帷幄，申论妙笔生花，特任为处长。" },
-    { level: 6, title: "厅局级顶梁柱", req_questions: 2000, req_streak: 30, doc_text: "登峰造极，成竹在胸，荣升为厅局级顶梁柱！" }
+    {
+      level: 1,
+      title: "备考小白",
+      req_questions: 0,
+      req_streak: 0,
+      doc_text: "起步备考，立志成才，特任为备考小白。",
+    },
+    {
+      level: 2,
+      title: "实习科员",
+      req_questions: 50,
+      req_streak: 3,
+      doc_text: "勤勉刷题，初现锋芒，兹任命为实习科员。",
+    },
+    {
+      level: 3,
+      title: "四级主任科员",
+      req_questions: 200,
+      req_streak: 7,
+      doc_text: "基础扎实，行测稳步提升，晋升为四级主任科员。",
+    },
+    {
+      level: 4,
+      title: "副科长",
+      req_questions: 500,
+      req_streak: 14,
+      doc_text: "独当一面，秒杀截位了然于胸，破格提拔为副科长。",
+    },
+    {
+      level: 5,
+      title: "处长",
+      req_questions: 1000,
+      req_streak: 21,
+      doc_text: "运筹帷幄，申论妙笔生花，特任为处长。",
+    },
+    {
+      level: 6,
+      title: "厅局级顶梁柱",
+      req_questions: 2000,
+      req_streak: 30,
+      doc_text: "登峰造极，成竹在胸，荣升为厅局级顶梁柱！",
+    },
   ];
 
   if (pathname === "/api/user/career" && req.method === "GET") {
     const userId = parsedUrl.query.user_id || "u1";
     const user = db.users.find((x) => x.id === userId) || db.users[0];
-    const currentTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1)) || CAREER_TITLES[0];
-    const nextTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1) + 1) || null;
+    const currentTitle =
+      CAREER_TITLES.find((t) => t.level === (user.career_level || 1)) ||
+      CAREER_TITLES[0];
+    const nextTitle =
+      CAREER_TITLES.find((t) => t.level === (user.career_level || 1) + 1) ||
+      null;
     return sendJSON(res, {
       success: true,
       user_id: user.id,
@@ -1090,12 +1142,14 @@ const server = http.createServer(async (req, res) => {
       current_title: currentTitle.title,
       red_header_doc: currentTitle.doc_text,
       next_title: nextTitle ? nextTitle.title : "已达巅峰",
-      progress: nextTitle ? {
-        questions_current: user.total_questions || 0,
-        questions_required: nextTitle.req_questions,
-        streak_current: user.streak || 0,
-        streak_required: nextTitle.req_streak
-      } : null
+      progress: nextTitle
+        ? {
+            questions_current: user.total_questions || 0,
+            questions_required: nextTitle.req_questions,
+            streak_current: user.streak || 0,
+            streak_required: nextTitle.req_streak,
+          }
+        : null,
     });
   }
 
@@ -1107,16 +1161,26 @@ const server = http.createServer(async (req, res) => {
         const p = JSON.parse(body || "{}");
         const userId = p.user_id || "u1";
         const user = db.users.find((x) => x.id === userId) || db.users[0];
-        const nextTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1) + 1);
-        if (!nextTitle || user.total_questions < nextTitle.req_questions || user.streak < nextTitle.req_streak) {
-          return sendJSON(res, { success: false, message: "尚未达到晋升条件！再接再厉！" }, 400);
+        const nextTitle = CAREER_TITLES.find(
+          (t) => t.level === (user.career_level || 1) + 1,
+        );
+        if (
+          !nextTitle ||
+          user.total_questions < nextTitle.req_questions ||
+          user.streak < nextTitle.req_streak
+        ) {
+          return sendJSON(
+            res,
+            { success: false, message: "尚未达到晋升条件！再接再厉！" },
+            400,
+          );
         }
         user.career_level = nextTitle.level;
         return sendJSON(res, {
           success: true,
           new_level: nextTitle.level,
           new_title: nextTitle.title,
-          red_header_doc: `【中共考公备考辅助系统委员会任免决定】\n鉴于学员在近期的高强度模考与打卡中表现优异，刷题数突破 ${user.total_questions} 题，连续打卡达 ${user.streak} 天，特发此红头文件：${nextTitle.doc_text}`
+          red_header_doc: `【中共考公备考辅助系统委员会任免决定】\n鉴于学员在近期的高强度模考与打卡中表现优异，刷题数突破 ${user.total_questions} 题，连续打卡达 ${user.streak} 天，特发此红头文件：${nextTitle.doc_text}`,
         });
       } catch (err) {
         return sendJSON(res, { error: "Invalid JSON" }, 400);
@@ -1131,23 +1195,33 @@ const server = http.createServer(async (req, res) => {
       const userId = p.user_id || "u1";
       const u = db.users.find((x) => x.id === userId) || db.users[0];
       if (u.token_used + 50 > u.token_quota) {
-        return sendJSON(res, { error: "Token 算力不足，无法浇水！请前往设置中心充值加油包！" }, 400);
+        return sendJSON(
+          res,
+          { error: "Token 算力不足，无法浇水！请前往设置中心充值加油包！" },
+          400,
+        );
       }
       u.token_used += 50;
       u.companion_tree.status = "VIBRANT";
-      u.companion_tree.last_watered_date = new Date().toISOString().split("T")[0];
+      u.companion_tree.last_watered_date = new Date()
+        .toISOString()
+        .split("T")[0];
       u.companion_tree.level = Math.min(5, (u.companion_tree.level || 1) + 1);
       const stages = [
         "🌱 刚萌芽 - 开始做题积累能量",
         "🌿 茁壮成长 - 每日必刷基础已夯实",
         "🌲 枝繁叶茂 - 距离开花结果 (上岸) 仅一步之遥",
         "🌸 繁花似锦 - 模考排名前列，上岸稳券在握",
-        "🍎 结出金苹果 - 恭喜您已被心仪报考单位正式录用！"
+        "🍎 结出金苹果 - 恭喜您已被心仪报考单位正式录用！",
       ];
       u.companion_tree.stage = stages[Math.min(4, u.companion_tree.level - 1)];
       u.companion_tree.name = `上岸神树 (能量值 ${Math.min(100, u.companion_tree.level * 20)}/100)`;
       log(req.method, pathname, 200);
-      return sendJSON(res, { success: true, companion_tree: u.companion_tree, token_used: u.token_used });
+      return sendJSON(res, {
+        success: true,
+        companion_tree: u.companion_tree,
+        token_used: u.token_used,
+      });
     } catch (err) {
       return sendJSON(res, { error: "Tree watering failed" }, 500);
     }
@@ -1157,10 +1231,29 @@ const server = http.createServer(async (req, res) => {
   let slayedBossesLog = [];
   if (pathname === "/api/raid/bosses" && req.method === "GET") {
     const bosses = [
-      { boss_id: "boss_1", skill_name: "言语理解-成语辨析", hp: 45, max_hp: 100, difficulty: "⭐⭐⭐⭐", desc: "常年混淆近义成语，干扰选项判断" },
-      { boss_id: "boss_2", skill_name: "数量关系-排列组合", hp: 60, max_hp: 100, difficulty: "⭐⭐⭐⭐⭐", desc: "畏惧复杂的概率计算与分步分类" }
+      {
+        boss_id: "boss_1",
+        skill_name: "言语理解-成语辨析",
+        hp: 45,
+        max_hp: 100,
+        difficulty: "⭐⭐⭐⭐",
+        desc: "常年混淆近义成语，干扰选项判断",
+      },
+      {
+        boss_id: "boss_2",
+        skill_name: "数量关系-排列组合",
+        hp: 60,
+        max_hp: 100,
+        difficulty: "⭐⭐⭐⭐⭐",
+        desc: "畏惧复杂的概率计算与分步分类",
+      },
     ];
-    return sendJSON(res, { success: true, bosses, slayed_count: slayedBossesLog.length, slayed_log: slayedBossesLog });
+    return sendJSON(res, {
+      success: true,
+      bosses,
+      slayed_count: slayedBossesLog.length,
+      slayed_log: slayedBossesLog,
+    });
   }
 
   if (pathname === "/api/raid/attack" && req.method === "POST") {
@@ -1172,14 +1265,23 @@ const server = http.createServer(async (req, res) => {
         const testScore = parseInt(p.test_score) || 85;
         const bossId = p.boss_id || "boss_1";
         if (testScore < 80) {
-          return sendJSON(res, { success: false, damage: testScore, message: "伤害不足以击碎心魔！强化卷正确率需达 80% 以上！" });
+          return sendJSON(res, {
+            success: false,
+            damage: testScore,
+            message: "伤害不足以击碎心魔！强化卷正确率需达 80% 以上！",
+          });
         }
-        slayedBossesLog.push({ boss_id: bossId, slayed_at: new Date().toISOString(), score: testScore });
+        slayedBossesLog.push({
+          boss_id: bossId,
+          slayed_at: new Date().toISOString(),
+          score: testScore,
+        });
         return sendJSON(res, {
           success: true,
           crit_kill: true,
-          message: "💥 暴击！一击必杀！你顺利攻克了该专项心魔，斩获【除魔斩妖】荣誉勋章！",
-          slayed_total: slayedBossesLog.length
+          message:
+            "💥 暴击！一击必杀！你顺利攻克了该专项心魔，斩获【除魔斩妖】荣誉勋章！",
+          slayed_total: slayedBossesLog.length,
         });
       } catch (err) {
         return sendJSON(res, { error: "Invalid JSON" }, 400);
@@ -1190,20 +1292,48 @@ const server = http.createServer(async (req, res) => {
 
   // --- KNOWLEDGE GACHA & TIME CAPSULE ENDPOINTS ---
   const GACHA_POOL = [
-    { type: "quote", title: "申论金句卡", content: "“追风赶月莫停留，平芜尽处是春山。” — 申论大作文结尾升华必备佳句。" },
-    { type: "tip", title: "花生十三秒杀秘籍", content: "截位直算时，看选项差距，差距在10%以上直接大胆截前两位，绝不犹豫！" },
-    { type: "token", title: "AI Token 福利卷", content: "恭喜抽中 500 AI 问答 Tokens，已自动计入您的账户余额中！", tokens: 500 }
+    {
+      type: "quote",
+      title: "申论金句卡",
+      content:
+        "“追风赶月莫停留，平芜尽处是春山。” — 申论大作文结尾升华必备佳句。",
+    },
+    {
+      type: "tip",
+      title: "花生十三秒杀秘籍",
+      content:
+        "截位直算时，看选项差距，差距在10%以上直接大胆截前两位，绝不犹豫！",
+    },
+    {
+      type: "token",
+      title: "AI Token 福利卷",
+      content: "恭喜抽中 500 AI 问答 Tokens，已自动计入您的账户余额中！",
+      tokens: 500,
+    },
   ];
 
   let timeCapsules = [
-    { id: "tc1", author: "上岸科员_小张 (2025年上岸)", content: "行测遇到数量关系不要慌，先做资料分析和言语，把该拿的分拿满就是胜利！", likes: 128 },
-    { id: "tc2", author: "厅局级_老李", content: "申论关键在于听懂题干的言外之意，每一句要点都藏在给定资料的关键词里。", likes: 256 }
+    {
+      id: "tc1",
+      author: "上岸科员_小张 (2025年上岸)",
+      content:
+        "行测遇到数量关系不要慌，先做资料分析和言语，把该拿的分拿满就是胜利！",
+      likes: 128,
+    },
+    {
+      id: "tc2",
+      author: "厅局级_老李",
+      content:
+        "申论关键在于听懂题干的言外之意，每一句要点都藏在给定资料的关键词里。",
+      likes: 256,
+    },
   ];
 
   if (pathname === "/api/gacha/draw" && req.method === "POST") {
     const reward = GACHA_POOL[Math.floor(Math.random() * GACHA_POOL.length)];
     if (reward.tokens && db.users[0]) {
-      db.users[0].token_quota = (db.users[0].token_quota || 50000) + reward.tokens;
+      db.users[0].token_quota =
+        (db.users[0].token_quota || 50000) + reward.tokens;
     }
     return sendJSON(res, { success: true, reward });
   }
@@ -1218,7 +1348,12 @@ const server = http.createServer(async (req, res) => {
     req.on("end", () => {
       try {
         const p = JSON.parse(body || "{}");
-        const newLetter = { id: `tc_${Date.now()}`, author: p.author || "未来的科员", content: p.content || "加油！必胜！", likes: 1 };
+        const newLetter = {
+          id: `tc_${Date.now()}`,
+          author: p.author || "未来的科员",
+          content: p.content || "加油！必胜！",
+          likes: 1,
+        };
         timeCapsules.unshift(newLetter);
         return sendJSON(res, { success: true, letter: newLetter });
       } catch (err) {
@@ -1230,21 +1365,45 @@ const server = http.createServer(async (req, res) => {
 
   // --- API 2: QUESTIONS & UPVOTES ---
   // --- API 2: QUESTIONS, PRACTICE & DISTILLED SOLUTIONS ---
-  if ((pathname === "/api/questions" || pathname === "/api/solutions/distilled") && req.method === "GET") {
+  if (
+    (pathname === "/api/questions" ||
+      pathname === "/api/solutions/distilled") &&
+    req.method === "GET"
+  ) {
     const skillId = parsedUrl.query.skill_id;
     const moduleId = parsedUrl.query.module;
     const u = db.users[0];
-    const isVip = u.vip_tier === "PRO" || u.vip_tier === "VIP" || u.token_quota >= 50000;
+    const isVip =
+      u.vip_tier === "PRO" || u.vip_tier === "VIP" || u.token_quota >= 50000;
     let questions = db.questions;
-    if (skillId) questions = questions.filter((q) => q.skill_id === skillId || q.skill_tag === skillId);
+    if (skillId)
+      questions = questions.filter(
+        (q) => q.skill_id === skillId || q.skill_tag === skillId,
+      );
     if (moduleId) questions = questions.filter((q) => q.module === moduleId);
-    
+
     const sortedQuestions = questions.map((q) => {
       const sortedSols = [...q.solutions].sort((a, b) => {
-        const affA = Object.keys(u.teacher_affinity).find(k => a.teacher_name.includes(k.split(" ")[0])) ? u.teacher_affinity[Object.keys(u.teacher_affinity).find(k => a.teacher_name.includes(k.split(" ")[0]))] : 0;
-        const affB = Object.keys(u.teacher_affinity).find(k => b.teacher_name.includes(k.split(" ")[0])) ? u.teacher_affinity[Object.keys(u.teacher_affinity).find(k => b.teacher_name.includes(k.split(" ")[0]))] : 0;
+        const affA = Object.keys(u.teacher_affinity).find((k) =>
+          a.teacher_name.includes(k.split(" ")[0]),
+        )
+          ? u.teacher_affinity[
+              Object.keys(u.teacher_affinity).find((k) =>
+                a.teacher_name.includes(k.split(" ")[0]),
+              )
+            ]
+          : 0;
+        const affB = Object.keys(u.teacher_affinity).find((k) =>
+          b.teacher_name.includes(k.split(" ")[0]),
+        )
+          ? u.teacher_affinity[
+              Object.keys(u.teacher_affinity).find((k) =>
+                b.teacher_name.includes(k.split(" ")[0]),
+              )
+            ]
+          : 0;
         if (affB !== affA) return affB - affA;
-        return (b.upvotes - b.downvotes) - (a.upvotes - a.downvotes);
+        return b.upvotes - b.downvotes - (a.upvotes - a.downvotes);
       });
       return {
         ...q,
@@ -1253,11 +1412,12 @@ const server = http.createServer(async (req, res) => {
             return {
               ...s,
               locked: true,
-              content: "🔒 【名师独家绝杀切片付费墙】该解法由原命题组名师独家研发，可有效节省 80% 答题时间！您当前为普通会员，请立即升级至 Pro 或 VIP 旗舰会员，解锁全库 128 招高频秒杀技巧！"
+              content:
+                "🔒 【名师独家绝杀切片付费墙】该解法由原命题组名师独家研发，可有效节省 80% 答题时间！您当前为普通会员，请立即升级至 Pro 或 VIP 旗舰会员，解锁全库 128 招高频秒杀技巧！",
             };
           }
           return { ...s, locked: false };
-        })
+        }),
       };
     });
     return sendJSON(res, sortedQuestions);
@@ -1270,11 +1430,15 @@ const server = http.createServer(async (req, res) => {
       const targetId = p.target_id || "2025-GUOKAO-XINGCE";
       let questions = [...db.questions];
       if (mode === "FULL_PAPER") {
-        questions = questions.filter(q => q.paper_id === targetId || !targetId || targetId === "ALL");
+        questions = questions.filter(
+          (q) => q.paper_id === targetId || !targetId || targetId === "ALL",
+        );
       } else if (mode === "MODULE") {
-        questions = questions.filter(q => q.module === targetId);
+        questions = questions.filter((q) => q.module === targetId);
       } else if (mode === "SKILL_TAG") {
-        questions = questions.filter(q => q.skill_tag === targetId || q.skill_id === targetId);
+        questions = questions.filter(
+          (q) => q.skill_tag === targetId || q.skill_id === targetId,
+        );
       }
       if (questions.length === 0) questions = db.questions;
       return sendJSON(res, {
@@ -1283,14 +1447,14 @@ const server = http.createServer(async (req, res) => {
         mode,
         target_id: targetId,
         duration_minutes: mode === "FULL_PAPER" ? 120 : 15,
-        questions: questions.map(q => ({
+        questions: questions.map((q) => ({
           id: q.id,
           content: q.content,
           options: q.options,
           module: q.module || "资料分析",
           skill_tag: q.skill_tag || "截位直除法",
-          difficulty: q.difficulty
-        }))
+          difficulty: q.difficulty,
+        })),
       });
     } catch (err) {
       return sendJSON(res, { error: "Failed to start practice" }, 500);
@@ -1303,7 +1467,7 @@ const server = http.createServer(async (req, res) => {
       const answers = p.answers || {};
       let correctCount = 0;
       const totalCount = Object.keys(answers).length || db.questions.length;
-      db.questions.forEach(q => {
+      db.questions.forEach((q) => {
         if (answers[q.id] === q.correct_answer) correctCount++;
       });
       const score = Math.round((correctCount / Math.max(1, totalCount)) * 100);
@@ -1320,8 +1484,8 @@ const server = http.createServer(async (req, res) => {
           资料分析: Math.min(100, score + 10),
           判断推理: Math.min(100, score - 5),
           数量关系: Math.min(100, score - 10),
-          常识判断: score
-        }
+          常识判断: score,
+        },
       });
     } catch (err) {
       return sendJSON(res, { error: "Failed to submit practice" }, 500);
@@ -1341,7 +1505,11 @@ const server = http.createServer(async (req, res) => {
             sol.teacher_name.includes(k.split(" ")[0]),
           );
           if (teacherKey) u.teacher_affinity[teacherKey] += 5;
-          return sendJSON(res, { success: true, upvotes: sol.upvotes, teacher_affinity: u.teacher_affinity });
+          return sendJSON(res, {
+            success: true,
+            upvotes: sol.upvotes,
+            teacher_affinity: u.teacher_affinity,
+          });
         }
       }
       return sendJSON(res, { error: "Solution not found" }, 404);
@@ -1454,47 +1622,59 @@ const server = http.createServer(async (req, res) => {
         name: "差分截位比较法 (资料分析)",
         error_count: 12,
         accuracy: 35.0,
-        prescription: "💡 药方：考场心态急躁，对口诀‘一大一小看竖直，同大同小看倍数’应用生疏。已为您关联【花生十三·3秒差分秒杀切片课】！",
-        remediate_ready: true
+        prescription:
+          "💡 药方：考场心态急躁，对口诀‘一大一小看竖直，同大同小看倍数’应用生疏。已为您关联【花生十三·3秒差分秒杀切片课】！",
+        remediate_ready: true,
       },
       {
         skill_id: "s2-1-2",
         name: "转折后主旨归纳 (言语理解)",
         error_count: 8,
         accuracy: 48.0,
-        prescription: "💡 药方：易被干扰项中的‘无中生有’词误导。建议练习主题词排异与中心转折句锚定法则！",
-        remediate_ready: true
+        prescription:
+          "💡 药方：易被干扰项中的‘无中生有’词误导。建议练习主题词排异与中心转折句锚定法则！",
+        remediate_ready: true,
       },
       {
         skill_id: "s3-2-1",
         name: "六面体向位展开 (图形推理)",
         error_count: 5,
         accuracy: 60.0,
-        prescription: "💡 药方：立体想象旋转容易失误，强烈建议采用‘公共边时针法’和‘相对面相交排除法’！",
-        remediate_ready: true
+        prescription:
+          "💡 药方：立体想象旋转容易失误，强烈建议采用‘公共边时针法’和‘相对面相交排除法’！",
+        remediate_ready: true,
       },
       {
         skill_id: "s4-1-1",
         name: "工程经济赋值法 (数量关系)",
         error_count: 7,
         accuracy: 42.0,
-        prescription: "💡 药方：对总量赋值与效率赋常数区分不清，已推送《30题齐麟量化模型极速手册》！",
-        remediate_ready: false
-      }
+        prescription:
+          "💡 药方：对总量赋值与效率赋常数区分不清，已推送《30题齐麟量化模型极速手册》！",
+        remediate_ready: false,
+      },
     ];
-    return sendJSON(res, { success: true, user_id: u.id, total_mistakes: 32, tree: weakSkills });
+    return sendJSON(res, {
+      success: true,
+      user_id: u.id,
+      total_mistakes: 32,
+      tree: weakSkills,
+    });
   }
 
   if (pathname === "/api/mistakes/remediate" && req.method === "POST") {
     try {
       const p = await parseBody(req);
       const skillId = p.skill_id;
-      const filtered = skillId ? db.questions.filter(q => q.skill_id === skillId) : db.questions;
-      const targetQuestions = filtered.length > 0 ? filtered : db.questions.slice(0, 5);
+      const filtered = skillId
+        ? db.questions.filter((q) => q.skill_id === skillId)
+        : db.questions;
+      const targetQuestions =
+        filtered.length > 0 ? filtered : db.questions.slice(0, 5);
       return sendJSON(res, {
         success: true,
         message: `🎯 智能病历消盲组卷成功！已抽取 ${targetQuestions.length} 道针对性靶向变式错题，立即进入模考引擎进行特训！`,
-        questions: targetQuestions
+        questions: targetQuestions,
       });
     } catch (err) {
       return sendJSON(res, { error: "Remediate failed" }, 500);
@@ -1555,13 +1735,25 @@ const server = http.createServer(async (req, res) => {
     try {
       const p = await parseBody(req);
       const cohortId = p.cohort_id || p.id;
-      const cohort = db.cohorts.find(c => c.id === cohortId);
+      const cohort = db.cohorts.find((c) => c.id === cohortId);
       if (!cohort) return sendJSON(res, { error: "契约营不存在" }, 404);
-      if (cohort.user_joined) return sendJSON(res, { error: "您已加入该督学对赌营，请勿重复加入！" }, 400);
+      if (cohort.user_joined)
+        return sendJSON(
+          res,
+          { error: "您已加入该督学对赌营，请勿重复加入！" },
+          400,
+        );
 
       const u = db.users[0];
       if ((u.cash_balance || 0) < cohort.deposit_amount) {
-        return sendJSON(res, { error: `账户现金余额不足 (需要 ￥${cohort.deposit_amount})，请前往设置中心充值！`, code: "INSUFFICIENT_FUNDS" }, 403);
+        return sendJSON(
+          res,
+          {
+            error: `账户现金余额不足 (需要 ￥${cohort.deposit_amount})，请前往设置中心充值！`,
+            code: "INSUFFICIENT_FUNDS",
+          },
+          403,
+        );
       }
 
       u.cash_balance -= cohort.deposit_amount;
@@ -1569,7 +1761,7 @@ const server = http.createServer(async (req, res) => {
       cohort.user_status = "ACTIVE";
       cohort.total_members += 1;
       cohort.pool_amount += cohort.deposit_amount;
-      
+
       const ledgerId = `LED_COH_${Date.now()}`;
       if (!db.cash_ledgers) db.cash_ledgers = [];
       db.cash_ledgers.unshift({
@@ -1579,10 +1771,15 @@ const server = http.createServer(async (req, res) => {
         amount: -cohort.deposit_amount,
         balance_after: u.cash_balance,
         description: `加入契约反学费营对赌押金：${cohort.title}`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
 
-      return sendJSON(res, { success: true, message: `🎉 成功契约入营！已锁入押金 ￥${cohort.deposit_amount}，契约奖金池升至 ￥${cohort.pool_amount}`, user: u, cohort });
+      return sendJSON(res, {
+        success: true,
+        message: `🎉 成功契约入营！已锁入押金 ￥${cohort.deposit_amount}，契约奖金池升至 ￥${cohort.pool_amount}`,
+        user: u,
+        cohort,
+      });
     } catch (err) {
       return sendJSON(res, { error: "Join failed" }, 500);
     }
@@ -1592,10 +1789,14 @@ const server = http.createServer(async (req, res) => {
     try {
       const p = await parseBody(req);
       const cohortId = p.cohort_id || p.id || "c1";
-      const cohort = db.cohorts.find(c => c.id === cohortId);
+      const cohort = db.cohorts.find((c) => c.id === cohortId);
       if (!cohort) return sendJSON(res, { error: "契约营不存在" }, 404);
       if (!cohort.user_joined || cohort.user_status === "COMPLETED") {
-        return sendJSON(res, { error: "当前未在营中或该期对赌已完成结算！" }, 400);
+        return sendJSON(
+          res,
+          { error: "当前未在营中或该期对赌已完成结算！" },
+          400,
+        );
       }
 
       const u = db.users[0];
@@ -1604,9 +1805,16 @@ const server = http.createServer(async (req, res) => {
       const platformFeeRate = 0.15; // 15% Platform Escrow Service Fee
       const platformFee = Math.round(totalPool * platformFeeRate * 100) / 100;
       const netPool = totalPool - platformFee;
-      const survivorsCount = Math.max(1, Math.floor(cohort.total_members * 0.78));
-      const payoutPerPerson = Math.round((netPool / survivorsCount) * 100) / 100;
-      const bonusEarned = Math.max(0, Math.round((payoutPerPerson - deposit) * 100) / 100);
+      const survivorsCount = Math.max(
+        1,
+        Math.floor(cohort.total_members * 0.78),
+      );
+      const payoutPerPerson =
+        Math.round((netPool / survivorsCount) * 100) / 100;
+      const bonusEarned = Math.max(
+        0,
+        Math.round((payoutPerPerson - deposit) * 100) / 100,
+      );
 
       u.cash_balance = (u.cash_balance || 0) + payoutPerPerson;
       cohort.user_status = "COMPLETED";
@@ -1620,7 +1828,7 @@ const server = http.createServer(async (req, res) => {
         amount: payoutPerPerson,
         balance_after: u.cash_balance,
         description: `契约督学营结营反全款与分红(平台按规抽取15%服务费￥${platformFee})`,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       });
 
       return sendJSON(res, {
@@ -1632,9 +1840,9 @@ const server = http.createServer(async (req, res) => {
           total_payout: payoutPerPerson,
           platform_fee_deducted: platformFee,
           survivors_count: survivorsCount,
-          new_cash_balance: u.cash_balance
+          new_cash_balance: u.cash_balance,
         },
-        message: `🎉 契约结算成功！全额返还学费押金 ￥${deposit}，分得对赌奖金 ￥${bonusEarned} (平台已扣除15%担保费)，到账总额 ￥${payoutPerPerson}！`
+        message: `🎉 契约结算成功！全额返还学费押金 ￥${deposit}，分得对赌奖金 ￥${bonusEarned} (平台已扣除15%担保费)，到账总额 ￥${payoutPerPerson}！`,
       });
     } catch (err) {
       return sendJSON(res, { error: "Settle failed" }, 500);
@@ -2014,19 +2222,23 @@ const server = http.createServer(async (req, res) => {
 
         if (u.token_used >= u.token_quota) {
           res.writeHead(402, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({
-            error: `🚨 AI 算力阻断 (HTTP 402)：您的 Token 免费配额已耗尽 (${u.token_used}/${u.token_quota})！请前往设置中心充值兑换或开通 PRO/VIP 会员！`,
-            quota_exceeded: true,
-            token_used: u.token_used,
-            token_quota: u.token_quota,
-          }));
+          res.end(
+            JSON.stringify({
+              error: `🚨 AI 算力阻断 (HTTP 402)：您的 Token 免费配额已耗尽 (${u.token_used}/${u.token_quota})！请前往设置中心充值兑换或开通 PRO/VIP 会员！`,
+              quota_exceeded: true,
+              token_used: u.token_used,
+              token_quota: u.token_quota,
+            }),
+          );
           return;
         }
 
         const teacherName = p.teacher_name || "花生十三";
-        const userPrompt = p.prompt || "老师请帮我剖析一下这道题目的解题突破口！";
+        const userPrompt =
+          p.prompt || "老师请帮我剖析一下这道题目的解题突破口！";
         const qId = p.question_id;
-        const targetQ = db.questions.find((q) => q.id === qId) || db.questions[0];
+        const targetQ =
+          db.questions.find((q) => q.id === qId) || db.questions[0];
 
         const tokensConsumed = Math.floor(Math.random() * 80) + 260;
         u.token_used += tokensConsumed;
@@ -2034,7 +2246,10 @@ const server = http.createServer(async (req, res) => {
         let teacherReply = "";
         if (teacherName.includes("花生十三") || teacherName.includes("秒杀")) {
           teacherReply = `【${teacherName} · AI实时推理流】同学你好！你提问的“${targetQ.content.slice(0, 15)}...”这题非常经典！记住我在强化讲座里反复强调的大招：**左两位截位直除法则**！分母直接保留前两位，15秒排掉干扰项 A 和 C！考场上千万不可列竖式死算！刚才错在算得太细把黄金时间浪费了，按照这套口诀再练两道专项题就能极速提分！`;
-        } else if (teacherName.includes("粉笔王") || teacherName.includes("拆分")) {
+        } else if (
+          teacherName.includes("粉笔王") ||
+          teacherName.includes("拆分")
+        ) {
           teacherReply = `【${teacherName} · AI实时推理流】别慌，我们来进行稳健拆解！把百分比按 10% 和 1% 依次叠加，脑海里平移小数点即可。这步操作非常扎实，绝不会出现粗心算错！`;
         } else {
           teacherReply = `【${teacherName} · AI实时推理流】关于你的疑惑：“${userPrompt}”，从文段逻辑关联词及行文脉络来看，核心突破口在于主题词排异。抓住中心转折关联词，直接秒杀无关干扰项！`;
@@ -2043,24 +2258,31 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, {
           "Content-Type": "text/event-stream; charset=utf-8",
           "Cache-Control": "no-cache",
-          "Connection": "keep-alive"
+          Connection: "keep-alive",
         });
 
-        res.write(`data: ${JSON.stringify({ type: "start", model_used: db.llm_config.active_model, teacher: teacherName, tokens_consumed: tokensConsumed, token_used: u.token_used, token_quota: u.token_quota })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ type: "start", model_used: db.llm_config.active_model, teacher: teacherName, tokens_consumed: tokensConsumed, token_used: u.token_used, token_quota: u.token_quota })}\n\n`,
+        );
 
-        const chunks = teacherReply.split(/(？|！|。|；|,|，| )/g).filter(Boolean);
+        const chunks = teacherReply
+          .split(/(？|！|。|；|,|，| )/g)
+          .filter(Boolean);
         let i = 0;
         const interval = setInterval(() => {
           if (i >= chunks.length) {
             clearInterval(interval);
-            res.write(`data: ${JSON.stringify({ type: "done", text: "" })}\n\n`);
+            res.write(
+              `data: ${JSON.stringify({ type: "done", text: "" })}\n\n`,
+            );
             res.end();
             return;
           }
-          res.write(`data: ${JSON.stringify({ type: "chunk", text: chunks[i] })}\n\n`);
+          res.write(
+            `data: ${JSON.stringify({ type: "chunk", text: chunks[i] })}\n\n`,
+          );
           i++;
         }, 70);
-
       } catch (err) {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Invalid JSON" }));
