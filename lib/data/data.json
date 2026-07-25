@@ -212,6 +212,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "kaogong": {
+      "on": "nue0",
+      "proxy": false
+    },
     "ldap": {
       "on": "nue0",
       "proxy": false
