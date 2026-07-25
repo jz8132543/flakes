@@ -4,6 +4,11 @@
   ...
 }:
 {
+  imports = [
+    inputs.disko.nixosModules.disko
+    ../cloud/disko-image-builder.nix
+  ];
+
   disko.enableConfig = true;
   disko.devices.disk.main = lib.mkForce {
     imageSize = "6G";
@@ -45,4 +50,18 @@
     "ext4"
     "vfat"
   ];
+
+  boot = {
+    growPartition = lib.mkDefault true;
+    loader = {
+      timeout = 2;
+      efi.efiSysMountPoint = "/boot/efi";
+      grub = {
+        enable = true;
+        device = "${config.utils.disk}";
+        efiSupport = lib.mkDefault true;
+        efiInstallAsRemovable = lib.mkDefault true;
+      };
+    };
+  };
 }
