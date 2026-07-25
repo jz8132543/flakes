@@ -17,9 +17,12 @@ let
     system-monitor-next
     # caffeine
     user-themes
-    ibus-tweaker
     # fcitx5
-    kimpanel
+    (kimpanel.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        sed -i -e '/isLookupTableVertical() {/,/}/c\    isLookupTableVertical() { return false; }' $out/share/gnome-shell/extensions/kimpanel@kde.org/extension.js
+      '';
+    }))
   ];
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
@@ -162,15 +165,11 @@ in
         # keyd handles remapping below the compositor, so leave GNOME XKB tweaks empty.
         xkb-options = mkArray type.string [ ];
       };
-      "org/gnome/shell/extensions/ibus-tweaker" = {
-        enable-custom-font = true;
-        custom-font = "sans-serif 14";
-        enable-preset-theme = true;
-        preset-theme-style = mkUint32 0;
-        hide-page-button = true;
-        enable-auto-switch = false;
-        enable-app-search = true;
-        enable-clip-history = false;
+
+      # IBus general: use global engine to avoid the first-keystroke
+      # passthrough bug ('shi' -> 's'+'hi') when switching windows.
+      "desktop/ibus/general" = {
+        use-global-engine = true;
       };
       "org/gnome/shell/extensions/system-monitor" = {
         memory-display = false;
@@ -352,6 +351,35 @@ in
       RestartSec = 1;
       TimeoutStopSec = 10;
       RemainAfterExit = "yes";
+    };
+  };
+
+  # Override GNOME's IBus systemd service to use kimpanel-ibus-panel.
+  # GNOME's built-in unit hardcodes "--panel disable", which bypasses the
+  # NixOS ibus.panel option entirely. kimpanel-ibus-panel bridges IBus to the
+  # kimpanel@kde.org GNOME Shell extension (which runs inside GNOME Shell and
+  # can correctly position candidate popups on Wayland).
+  systemd.user.services."org.freedesktop.IBus.session.GNOME" = lib.mkForce {
+    Unit = {
+      Description = "IBus Daemon for GNOME (kimpanel)";
+      CollectMode = "inactive-or-failed";
+      Requisite = [ "gnome-session-initialized.target" ];
+      After = [ "gnome-session-initialized.target" ];
+      PartOf = [ "gnome-session-initialized.target" ];
+      Before = [ "gnome-session.target" ];
+    };
+    Service = {
+      Type = "dbus";
+      BusName = "org.freedesktop.IBus";
+      ExecStart = [
+        "${pkgs.bash}/bin/bash -c 'exec /run/current-system/sw/bin/ibus-daemon --panel ${pkgs.kdePackages.plasma-desktop}/libexec/kimpanel-ibus-panel $([ \"$XDG_SESSION_TYPE\" = \"x11\" ] && echo \"--xim\")'"
+      ];
+      Restart = "on-abnormal";
+      TimeoutStopSec = 5;
+      Slice = "session.slice";
+    };
+    Install = {
+      WantedBy = [ "gnome-session.target" ];
     };
   };
 }

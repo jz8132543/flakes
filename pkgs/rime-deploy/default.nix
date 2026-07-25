@@ -30,7 +30,7 @@ let
     patch:
       style:
         horizontal: true
-        inline_preedit: true
+        inline_preedit: false
         candidate_list_layout: linear
         text_orientation: horizontal
         preedit_style: composition

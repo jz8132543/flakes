@@ -39,6 +39,10 @@
     enableUserSlices = true;
   };
 
+  systemd.settings.Manager = {
+    DefaultTimeoutStopSec = "90s";
+  };
+
   services.journald.extraConfig = ''
     SystemMaxUse=100M
     SystemKeepFree=1G

@@ -200,7 +200,7 @@ in
       name = "WPS 文字";
       genericName = "WPS Writer";
       comment = "Open WPS Writer";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
+      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
       icon = "wps-office2023-wpsmain";
       terminal = false;
       categories = [
@@ -212,7 +212,7 @@ in
       name = "WPS 表格";
       genericName = "WPS Spreadsheets";
       comment = "Open WPS Spreadsheets";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
+      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
       icon = "wps-office2023-etmain";
       terminal = false;
       categories = [
@@ -224,7 +224,7 @@ in
       name = "WPS 演示";
       genericName = "WPS Presentation";
       comment = "Open WPS Presentation";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
+      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
       icon = "wps-office2023-wppmain";
       terminal = false;
       categories = [

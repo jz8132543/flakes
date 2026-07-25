@@ -25,7 +25,11 @@ let
         extraSpecialArgs = hmSpecialArgs;
         useGlobalPkgs = true;
         useUserPackages = true;
-        backupFileExtension = "backup";
+        # Using "hm-backup" instead of "backup" to avoid conflicts with WPS Office
+        # which also creates .backup files, causing home-manager activation failures.
+        backupFileExtension = "hm-backup";
+        # Automatically overwrite existing .hm-backup files instead of failing the activation
+        overwriteBackup = true;
       };
       system.configurationRevision = self.rev or null;
     }

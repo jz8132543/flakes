@@ -12,7 +12,11 @@
     # nixosModules.services.ntopng
   ];
   programs.k3b.enable = true;
+  services.udev.extraRules = ''
+    SUBSYSTEM=="block", KERNEL=="sr[0-9]*", GROUP="cdrom", MODE="0660"
+  '';
   environment.systemPackages = with pkgs; [
+    brasero # Added GNOME native burning tool
     qrcp
     android-tools
     wpsoffice-cn
