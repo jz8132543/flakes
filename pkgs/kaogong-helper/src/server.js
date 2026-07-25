@@ -82,6 +82,10 @@ const db = {
       credit_balance: 150.0,
       token_quota: 50000,
       token_used: 12500,
+      vip_tier: "PRO",
+      vip_expire_at: "2026-08-20",
+      escrow_balance: 99.0,
+      career_level: 4,
       teacher_affinity: {
         "秒杀派 (花生十三)": 45,
         "方程正统派 (张三老师)": 20,
@@ -521,6 +525,46 @@ const db = {
       ],
     },
   ],
+  orders: [
+    {
+      order_id: "ORD_INIT_101",
+      user_id: "u1",
+      package_id: "PRO_MONTHLY",
+      amount: 68.0,
+      status: "SUCCESS",
+      idempotency_key: "IDEM_INIT_101",
+      created_at: "2026-07-20T10:00:00Z"
+    }
+  ],
+  token_ledgers: [
+    {
+      id: "TL_INIT_101",
+      user_id: "u1",
+      type: "RECHARGE",
+      amount: 50000,
+      balance_after: 50000,
+      description: "开通冲刺 Pro 会员赠送算力",
+      created_at: "2026-07-20T10:00:00Z"
+    },
+    {
+      id: "TL_INIT_102",
+      user_id: "u1",
+      type: "CONSUME",
+      amount: -12500,
+      balance_after: 37500,
+      description: "AI 助教名师答疑消耗 (累计)",
+      created_at: "2026-07-24T18:30:00Z"
+    },
+    {
+      id: "TL_INIT_103",
+      user_id: "u1",
+      type: "REWARD",
+      amount: 5000,
+      balance_after: 42500,
+      description: "上周契约全勤对赌算力分红奖励",
+      created_at: "2026-07-25T08:00:00Z"
+    }
+  ],
 };
 
 function generateHeatmapData() {
@@ -614,6 +658,10 @@ const server = http.createServer(async (req, res) => {
         credit_balance: 100.0,
         token_quota: db.system_settings.default_token_quota,
         token_used: 0,
+        vip_tier: "FREE",
+        vip_expire_at: null,
+        escrow_balance: 0.0,
+        career_level: 1,
         teacher_affinity: {},
         companion_tree: {
           level: 1,
@@ -667,6 +715,135 @@ const server = http.createServer(async (req, res) => {
     return sendJSON(res, u);
   }
 
+  if (pathname === "/api/user/profile" && req.method === "PUT") {
+    try {
+      const p = await parseBody(req);
+      const userId = p.user_id || "u1";
+      const u = db.users.find((x) => x.id === userId) || db.users[0];
+      if (p.username) u.username = p.username;
+      if (p.avatar) u.avatar = p.avatar;
+      if (p.exam_target) u.exam_target = p.exam_target;
+      if (p.target_date) u.target_date = p.target_date;
+      log(req.method, pathname, 200);
+      return sendJSON(res, { success: true, user: u });
+    } catch (err) {
+      return sendJSON(res, { error: "Invalid JSON" }, 400);
+    }
+  }
+
+  if (pathname === "/api/user/ledgers" && req.method === "GET") {
+    const userId = parsedUrl.query.user_id || "u1";
+    const userOrders = (db.orders || []).filter((o) => o.user_id === userId);
+    const userTokens = (db.token_ledgers || []).filter((t) => t.user_id === userId);
+    return sendJSON(res, { orders: userOrders, token_ledgers: userTokens });
+  }
+
+  if (pathname === "/api/billing/create-order" && req.method === "POST") {
+    try {
+      const p = await parseBody(req);
+      const userId = p.user_id || "u1";
+      const packageId = p.package_id || "PRO_MONTHLY";
+      let amount = 68.0;
+      if (packageId === "VIP_YEARLY") amount = 499.0;
+      if (packageId === "ESCROW_DEPOSIT") amount = 99.0;
+      if (packageId === "TOKEN_PACK_50K") amount = 29.0;
+
+      const order = {
+        order_id: `ORD_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+        user_id: userId,
+        package_id: packageId,
+        amount: amount,
+        status: "PENDING",
+        idempotency_key: p.idempotency_key || `IDEM_${Date.now()}`,
+        created_at: new Date().toISOString()
+      };
+      if (!db.orders) db.orders = [];
+      db.orders.unshift(order);
+      log(req.method, pathname, 200);
+      return sendJSON(res, { success: true, order });
+    } catch (err) {
+      return sendJSON(res, { error: "Failed to create order" }, 500);
+    }
+  }
+
+  if (pathname === "/api/billing/webhook" && req.method === "POST") {
+    try {
+      const p = await parseBody(req);
+      const idempotencyKey = p.idempotency_key || p.order_id;
+      if (!db.orders) db.orders = [];
+      const existingOrder = db.orders.find((o) => o.idempotency_key === idempotencyKey || o.order_id === p.order_id);
+      
+      const userId = p.user_id || (existingOrder ? existingOrder.user_id : "u1");
+      const u = db.users.find((x) => x.id === userId) || db.users[0];
+      const pkg = p.package_id || (existingOrder ? existingOrder.package_id : "PRO_MONTHLY");
+
+      if (existingOrder && existingOrder.status === "SUCCESS") {
+        return sendJSON(res, { success: true, message: "Idempotent callback ignored (already processed)", user: u });
+      }
+
+      if (existingOrder) existingOrder.status = "SUCCESS";
+      else {
+        db.orders.unshift({
+          order_id: p.order_id || `ORD_${Date.now()}`,
+          user_id: userId,
+          package_id: pkg,
+          amount: p.amount || 68.0,
+          status: "SUCCESS",
+          idempotency_key: idempotencyKey,
+          created_at: new Date().toISOString()
+        });
+      }
+
+      if (!db.token_ledgers) db.token_ledgers = [];
+
+      if (pkg === "PRO_MONTHLY") {
+        u.vip_tier = "PRO";
+        u.vip_expire_at = "2026-08-30";
+        u.token_quota += 50000;
+        db.token_ledgers.unshift({
+          id: `TL_${Date.now()}`,
+          user_id: u.id,
+          type: "RECHARGE",
+          amount: 50000,
+          balance_after: u.token_quota - u.token_used,
+          description: "购买冲刺 Pro 月度会员充值赠送",
+          created_at: new Date().toISOString()
+        });
+      } else if (pkg === "VIP_YEARLY") {
+        u.vip_tier = "VIP";
+        u.vip_expire_at = "2027-08-30";
+        u.token_quota += 300000;
+        db.token_ledgers.unshift({
+          id: `TL_${Date.now()}`,
+          user_id: u.id,
+          type: "RECHARGE",
+          amount: 300000,
+          balance_after: u.token_quota - u.token_used,
+          description: "开通对赌私教年度 VIP 充值赠送",
+          created_at: new Date().toISOString()
+        });
+      } else if (pkg === "ESCROW_DEPOSIT") {
+        u.escrow_balance = (u.escrow_balance || 0) + 99.0;
+      } else if (pkg === "TOKEN_PACK_50K") {
+        u.token_quota += 50000;
+        db.token_ledgers.unshift({
+          id: `TL_${Date.now()}`,
+          user_id: u.id,
+          type: "RECHARGE",
+          amount: 50000,
+          balance_after: u.token_quota - u.token_used,
+          description: "购买 50,000 算力加油包",
+          created_at: new Date().toISOString()
+        });
+      }
+
+      log(req.method, pathname, 200);
+      return sendJSON(res, { success: true, user: u });
+    } catch (err) {
+      return sendJSON(res, { error: "Webhook processing failed" }, 500);
+    }
+  }
+
   if (pathname === "/api/dashboard/heatmap" && req.method === "GET") {
     const userId = parsedUrl.query.user_id || "u1";
     const u = db.users.find((x) => x.id === userId) || db.users[0];
@@ -689,6 +866,138 @@ const server = http.createServer(async (req, res) => {
       token_used: u.token_used,
       tokens_remaining: Math.max(0, u.token_quota - u.token_used),
     });
+  }
+
+  // --- CAREER PATH GAMIFICATION ENDPOINTS ---
+  const CAREER_TITLES = [
+    { level: 1, title: "备考小白", req_questions: 0, req_streak: 0, doc_text: "起步备考，立志成才，特任为备考小白。" },
+    { level: 2, title: "实习科员", req_questions: 50, req_streak: 3, doc_text: "勤勉刷题，初现锋芒，兹任命为实习科员。" },
+    { level: 3, title: "四级主任科员", req_questions: 200, req_streak: 7, doc_text: "基础扎实，行测稳步提升，晋升为四级主任科员。" },
+    { level: 4, title: "副科长", req_questions: 500, req_streak: 14, doc_text: "独当一面，秒杀截位了然于胸，破格提拔为副科长。" },
+    { level: 5, title: "处长", req_questions: 1000, req_streak: 21, doc_text: "运筹帷幄，申论妙笔生花，特任为处长。" },
+    { level: 6, title: "厅局级顶梁柱", req_questions: 2000, req_streak: 30, doc_text: "登峰造极，成竹在胸，荣升为厅局级顶梁柱！" }
+  ];
+
+  if (pathname === "/api/user/career" && req.method === "GET") {
+    const userId = parsedUrl.query.user_id || "u1";
+    const user = db.users.find((x) => x.id === userId) || db.users[0];
+    const currentTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1)) || CAREER_TITLES[0];
+    const nextTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1) + 1) || null;
+    return sendJSON(res, {
+      success: true,
+      user_id: user.id,
+      current_level: currentTitle.level,
+      current_title: currentTitle.title,
+      red_header_doc: currentTitle.doc_text,
+      next_title: nextTitle ? nextTitle.title : "已达巅峰",
+      progress: nextTitle ? {
+        questions_current: user.total_questions || 0,
+        questions_required: nextTitle.req_questions,
+        streak_current: user.streak || 0,
+        streak_required: nextTitle.req_streak
+      } : null
+    });
+  }
+
+  if (pathname === "/api/user/career/promote" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      try {
+        const p = JSON.parse(body || "{}");
+        const userId = p.user_id || "u1";
+        const user = db.users.find((x) => x.id === userId) || db.users[0];
+        const nextTitle = CAREER_TITLES.find(t => t.level === (user.career_level || 1) + 1);
+        if (!nextTitle || user.total_questions < nextTitle.req_questions || user.streak < nextTitle.req_streak) {
+          return sendJSON(res, { success: false, message: "尚未达到晋升条件！再接再厉！" }, 400);
+        }
+        user.career_level = nextTitle.level;
+        return sendJSON(res, {
+          success: true,
+          new_level: nextTitle.level,
+          new_title: nextTitle.title,
+          red_header_doc: `【中共考公备考辅助系统委员会任免决定】\n鉴于学员在近期的高强度模考与打卡中表现优异，刷题数突破 ${user.total_questions} 题，连续打卡达 ${user.streak} 天，特发此红头文件：${nextTitle.doc_text}`
+        });
+      } catch (err) {
+        return sendJSON(res, { error: "Invalid JSON" }, 400);
+      }
+    });
+    return;
+  }
+
+  // --- MONSTER SLAYING RAID ENDPOINTS ---
+  let slayedBossesLog = [];
+  if (pathname === "/api/raid/bosses" && req.method === "GET") {
+    const bosses = [
+      { boss_id: "boss_1", skill_name: "言语理解-成语辨析", hp: 45, max_hp: 100, difficulty: "⭐⭐⭐⭐", desc: "常年混淆近义成语，干扰选项判断" },
+      { boss_id: "boss_2", skill_name: "数量关系-排列组合", hp: 60, max_hp: 100, difficulty: "⭐⭐⭐⭐⭐", desc: "畏惧复杂的概率计算与分步分类" }
+    ];
+    return sendJSON(res, { success: true, bosses, slayed_count: slayedBossesLog.length, slayed_log: slayedBossesLog });
+  }
+
+  if (pathname === "/api/raid/attack" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      try {
+        const p = JSON.parse(body || "{}");
+        const testScore = parseInt(p.test_score) || 85;
+        const bossId = p.boss_id || "boss_1";
+        if (testScore < 80) {
+          return sendJSON(res, { success: false, damage: testScore, message: "伤害不足以击碎心魔！强化卷正确率需达 80% 以上！" });
+        }
+        slayedBossesLog.push({ boss_id: bossId, slayed_at: new Date().toISOString(), score: testScore });
+        return sendJSON(res, {
+          success: true,
+          crit_kill: true,
+          message: "💥 暴击！一击必杀！你顺利攻克了该专项心魔，斩获【除魔斩妖】荣誉勋章！",
+          slayed_total: slayedBossesLog.length
+        });
+      } catch (err) {
+        return sendJSON(res, { error: "Invalid JSON" }, 400);
+      }
+    });
+    return;
+  }
+
+  // --- KNOWLEDGE GACHA & TIME CAPSULE ENDPOINTS ---
+  const GACHA_POOL = [
+    { type: "quote", title: "申论金句卡", content: "“追风赶月莫停留，平芜尽处是春山。” — 申论大作文结尾升华必备佳句。" },
+    { type: "tip", title: "花生十三秒杀秘籍", content: "截位直算时，看选项差距，差距在10%以上直接大胆截前两位，绝不犹豫！" },
+    { type: "token", title: "AI Token 福利卷", content: "恭喜抽中 500 AI 问答 Tokens，已自动计入您的账户余额中！", tokens: 500 }
+  ];
+
+  let timeCapsules = [
+    { id: "tc1", author: "上岸科员_小张 (2025年上岸)", content: "行测遇到数量关系不要慌，先做资料分析和言语，把该拿的分拿满就是胜利！", likes: 128 },
+    { id: "tc2", author: "厅局级_老李", content: "申论关键在于听懂题干的言外之意，每一句要点都藏在给定资料的关键词里。", likes: 256 }
+  ];
+
+  if (pathname === "/api/gacha/draw" && req.method === "POST") {
+    const reward = GACHA_POOL[Math.floor(Math.random() * GACHA_POOL.length)];
+    if (reward.tokens && db.users[0]) {
+      db.users[0].token_quota = (db.users[0].token_quota || 50000) + reward.tokens;
+    }
+    return sendJSON(res, { success: true, reward });
+  }
+
+  if (pathname === "/api/time-capsule/letters" && req.method === "GET") {
+    return sendJSON(res, { success: true, letters: timeCapsules });
+  }
+
+  if (pathname === "/api/time-capsule/send" && req.method === "POST") {
+    let body = "";
+    req.on("data", (chunk) => (body += chunk.toString()));
+    req.on("end", () => {
+      try {
+        const p = JSON.parse(body || "{}");
+        const newLetter = { id: `tc_${Date.now()}`, author: p.author || "未来的科员", content: p.content || "加油！必胜！", likes: 1 };
+        timeCapsules.unshift(newLetter);
+        return sendJSON(res, { success: true, letter: newLetter });
+      } catch (err) {
+        return sendJSON(res, { error: "Invalid JSON" }, 400);
+      }
+    });
+    return;
   }
 
   // --- API 2: QUESTIONS & UPVOTES ---

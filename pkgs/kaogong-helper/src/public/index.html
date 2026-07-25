@@ -1330,6 +1330,119 @@
         </div>
       </section>
 
+      <!-- VIEW SETTINGS: ACCOUNT, CASHIER & LEDGERS -->
+      <section id="view-settings" class="section-view">
+        <div class="glass-card" style="border-color: var(--accent-cyan); margin-bottom: 2rem;">
+          <div class="card-title" style="color: var(--accent-cyan); display: flex; justify-content: space-between; align-items: center;">
+            <span>💎 商业订阅与账户资产控制中心 (Account & Cashier Hub)</span>
+            <span style="font-size: 0.85rem; background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); padding: 0.3rem 0.8rem; border-radius: 12px;">已绑定实名：备考先锋小王</span>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-top: 1.5rem;">
+            <!-- LEFT: PROFILE EDIT -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.8rem; border-radius: 18px;">
+              <h3 style="color: #fff; font-size: 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🎯 个人档案与报考目标修正</span>
+              </h3>
+              <div style="margin-bottom: 1.2rem;">
+                <label style="display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.4rem;">专属个性头像</label>
+                <div style="display: flex; gap: 0.8rem;">
+                  <button class="avatar-select-btn active" style="font-size: 1.5rem; background: rgba(255,255,255,0.1); border: 1px solid var(--accent-cyan); border-radius: 10px; padding: 0.4rem 0.8rem; cursor: pointer;" onclick="selectProfileAvatar('🎯', this)">🎯</button>
+                  <button class="avatar-select-btn" style="font-size: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.4rem 0.8rem; cursor: pointer;" onclick="selectProfileAvatar('👑', this)">👑</button>
+                  <button class="avatar-select-btn" style="font-size: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.4rem 0.8rem; cursor: pointer;" onclick="selectProfileAvatar('💼', this)">💼</button>
+                  <button class="avatar-select-btn" style="font-size: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.4rem 0.8rem; cursor: pointer;" onclick="selectProfileAvatar('🎓', this)">🎓</button>
+                  <button class="avatar-select-btn" style="font-size: 1.5rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 0.4rem 0.8rem; cursor: pointer;" onclick="selectProfileAvatar('🔥', this)">🔥</button>
+                </div>
+              </div>
+              <div style="margin-bottom: 1.2rem;">
+                <label style="display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.4rem;">备考主页展示昵称</label>
+                <input type="text" id="profile-nickname" class="admin-input" style="width: 100%; margin-bottom: 0;" value="备考先锋小王 (冲刺2026)">
+              </div>
+              <div style="margin-bottom: 1.2rem;">
+                <label style="display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.4rem;">报考战场及考试大纲归属</label>
+                <select id="profile-target" class="admin-input" style="width: 100%; margin-bottom: 0;">
+                  <option value="2026年中央国家机关公务员招考 (国考)">🏛️ 2026年中央国家机关公务员招考 (国考)</option>
+                  <option value="2026年各省地方公务员联合招聘 (省考 / 联考)" selected>📍 2026年各省地方公务员联合招聘 (省考 / 联考)</option>
+                  <option value="事业单位统考 / 教师选调 / 三支一扶">📚 事业单位统考 / 教师选调 / 三支一扶</option>
+                </select>
+              </div>
+              <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.4rem;">目标倒计时决战日</label>
+                <input type="date" id="profile-date" class="admin-input" style="width: 100%; margin-bottom: 0;" value="2026-03-13">
+              </div>
+              <button class="btn-hero-primary" style="width: 100%; padding: 0.8rem; font-size: 1rem;" onclick="saveUserProfile()">💾 保存更新个人备考档案</button>
+            </div>
+
+            <!-- RIGHT: ASSET MONITOR & RECHARGE -->
+            <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); padding: 1.8rem; border-radius: 18px; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <h3 style="color: #fff; font-size: 1.2rem; margin-bottom: 1.2rem; display: flex; align-items: center; justify-content: space-between;">
+                  <span>👑 当前订阅等级与权益监控</span>
+                  <span id="settings-vip-badge" style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; padding: 0.3rem 0.9rem; border-radius: 20px; font-weight: 800; font-size: 0.9rem;">🚀 冲刺 Pro 会员</span>
+                </h3>
+                <div style="background: rgba(30, 41, 59, 0.8); padding: 1.2rem; border-radius: 14px; margin-bottom: 1.2rem; border: 1px solid rgba(255,255,255,0.05);">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; color: #cbd5e1;">
+                    <span>会员有效期：</span>
+                    <strong style="color: #fff;" id="settings-vip-expire">2026-08-20 (剩余 26 天)</strong>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 0.8rem; color: #cbd5e1;">
+                    <span>AI Token 算力余额：</span>
+                    <span><strong style="color: var(--accent-cyan); font-size: 1.15rem;" id="settings-token-val">37,500</strong> / <span id="settings-token-quota">50,000</span></span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; color: #cbd5e1;">
+                    <span>对赌反学费契约金池：</span>
+                    <strong style="color: var(--accent-amber); font-size: 1.15rem;" id="settings-escrow-val">￥99.00</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 0.8rem;">⚡ 极速收银台快速充值通道</div>
+                <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+                  <button class="btn-hero-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; text-align: left; display: flex; justify-content: space-between; align-items: center;" onclick="openCashierModal('TOKEN_PACK_50K', '⚡ 50,000 AI Token 算力加油包', 29)">
+                    <span>⚡ 补充 50,000 AI Token 算力</span>
+                    <strong style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.6rem; border-radius: 6px;">￥29</strong>
+                  </button>
+                  <button class="btn-hero-secondary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; text-align: left; display: flex; justify-content: space-between; align-items: center; border-color: var(--accent-amber); color: var(--accent-amber); background: rgba(245,158,11,0.1);" onclick="openCashierModal('ESCROW_DEPOSIT', '🤝 99元对赌反学费契约金充值', 99)">
+                    <span>🤝 追加￥99 对赌契约金 (锁分红)</span>
+                    <strong style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.6rem; border-radius: 6px;">￥99</strong>
+                  </button>
+                  <button class="btn-hero-primary" style="width: 100%; padding: 0.8rem; font-size: 0.95rem; text-align: left; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #a855f7, #ec4899);" onclick="openCashierModal('VIP_YEARLY', '👑 对赌私教年度 VIP 终身套件', 499)">
+                    <span>👑 升级对赌私教年度 VIP 终身版</span>
+                    <strong style="background: rgba(0,0,0,0.2); padding: 0.2rem 0.6rem; border-radius: 6px;">￥499</strong>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEDGERS AUDIT LOG -->
+        <div class="glass-card">
+          <div class="card-title">
+            <span>📜 财务收支、订阅订单与 Token 消耗流水台账 (Ledger Audit Log)</span>
+          </div>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">公开透明的沙盒金融台账，每一笔真实对赌分红与算力消耗均有迹可循</p>
+          
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; color: #cbd5e1; font-size: 0.95rem;">
+              <thead>
+                <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #fff;">
+                  <th style="padding: 1rem;">时间戳 (Timestamp)</th>
+                  <th style="padding: 1rem;">账务类型 / 流水单号</th>
+                  <th style="padding: 1rem;">业务与交易描述</th>
+                  <th style="padding: 1rem;">变动金额 / Token</th>
+                  <th style="padding: 1rem;">交易后状态/结余</th>
+                </tr>
+              </thead>
+              <tbody id="ledgers-table-body">
+                <tr><td colspan="5" style="padding: 2rem; text-align: center;">正在加载台账流水...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       <!-- VIEW 6: ADMIN PORTAL & AI MAINTENANCE (MODULE 6-10) -->
       <section id="view-admin" class="section-view">
         <div class="glass-card" style="border-color: var(--accent-amber)">
@@ -1726,6 +1839,7 @@
         if (tabId === "career") loadCareer();
         if (tabId === "raid") loadRaid();
         if (tabId === "gacha") loadGacha();
+        if (tabId === "settings") loadSettings();
       }
 
       // ONBOARDING QUIZ STATE
@@ -1806,6 +1920,121 @@
           showToast(`👑 会员权限临时下发成功！(沙盒环境到账)`);
           const usr = document.getElementById("nav-username");
           if (usr) usr.innerText = "备考先锋小王 (VIP名师会员)";
+        }
+        const setView = document.getElementById("view-settings");
+        if (setView && setView.classList.contains("active")) {
+          loadSettings();
+        }
+      }
+
+      let selectedAvatar = "🎯";
+      function selectProfileAvatar(emoji, btn) {
+        selectedAvatar = emoji;
+        document.querySelectorAll(".avatar-select-btn").forEach(b => {
+          b.style.borderColor = "rgba(255,255,255,0.1)";
+          b.style.background = "rgba(255,255,255,0.05)";
+        });
+        if (btn) {
+          btn.style.borderColor = "var(--accent-cyan)";
+          btn.style.background = "rgba(255,255,255,0.1)";
+        }
+      }
+
+      async function saveUserProfile() {
+        const nickname = document.getElementById("profile-nickname").value;
+        const target = document.getElementById("profile-target").value;
+        const date = document.getElementById("profile-date").value;
+        try {
+          const res = await fetch(`${API_BASE}/api/user/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: "u1",
+              username: nickname,
+              avatar: selectedAvatar,
+              exam_target: target,
+              target_date: date
+            })
+          });
+          const d = await res.json();
+          if (d && d.success) {
+            showToast("💾 个人备考档案修改成功！");
+            const usr = document.getElementById("nav-username");
+            if (usr) usr.innerText = `${nickname} (${d.user.vip_tier || 'VIP'})`;
+          }
+        } catch (err) {
+          showToast("💾 个人档案修改已保存！(本地试用)");
+        }
+      }
+
+      async function loadSettings() {
+        try {
+          const uRes = await fetch(`${API_BASE}/api/user?user_id=u1`);
+          const u = await uRes.json();
+          if (u) {
+            const nickEl = document.getElementById("profile-nickname");
+            if (nickEl) nickEl.value = u.username || "备考先锋小王";
+            const targEl = document.getElementById("profile-target");
+            if (targEl && u.exam_target) targEl.value = u.exam_target;
+            const dateEl = document.getElementById("profile-date");
+            if (dateEl && u.target_date) dateEl.value = u.target_date;
+            const badgEl = document.getElementById("settings-vip-badge");
+            if (badgEl) badgEl.innerText = u.vip_tier === "VIP" ? "👑 对赌私教年度 VIP" : (u.vip_tier === "PRO" ? "🚀 冲刺 Pro 会员" : "🌱 体验版");
+            const expEl = document.getElementById("settings-vip-expire");
+            if (expEl) expEl.innerText = u.vip_expire_at || "永不过期";
+            const rem = (u.token_quota || 50000) - (u.token_used || 0);
+            const tokEl = document.getElementById("settings-token-val");
+            if (tokEl) tokEl.innerText = rem.toLocaleString();
+            const quotEl = document.getElementById("settings-token-quota");
+            if (quotEl) quotEl.innerText = (u.token_quota || 50000).toLocaleString();
+            const escEl = document.getElementById("settings-escrow-val");
+            if (escEl) escEl.innerText = `￥${(u.escrow_balance || 99).toFixed(2)}`;
+          }
+
+          const lRes = await fetch(`${API_BASE}/api/user/ledgers?user_id=u1`);
+          const lData = await lRes.json();
+          const tbody = document.getElementById("ledgers-table-body");
+          if (tbody && lData) {
+            tbody.innerHTML = "";
+            const allItems = [];
+            (lData.orders || []).forEach(o => {
+              allItems.push({
+                time: o.created_at,
+                id: o.order_id,
+                desc: `购买产品套件: ${o.package_id}`,
+                val: `-￥${o.amount.toFixed(2)}`,
+                status: `<span style="color: #39d353;">✔ 支付到账 (${o.status})</span>`
+              });
+            });
+            (lData.token_ledgers || []).forEach(t => {
+              allItems.push({
+                time: t.created_at,
+                id: t.id,
+                desc: t.description,
+                val: `${t.amount > 0 ? '+' : ''}${t.amount.toLocaleString()} Token`,
+                status: `<span style="color: #38bdf8;">结余 ${t.balance_after.toLocaleString()}</span>`
+              });
+            });
+            allItems.sort((a,b) => new Date(b.time) - new Date(a.time));
+            if (allItems.length === 0) {
+              tbody.innerHTML = `<tr><td colspan="5" style="padding: 2rem; text-align: center;">暂无流水记录</td></tr>`;
+            } else {
+              allItems.forEach(item => {
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+                tr.innerHTML = `
+                  <td style="padding: 0.8rem 1rem; color: #94a3b8; font-size: 0.85rem;">${item.time ? item.time.replace('T', ' ').substring(0,19) : '近期'}</td>
+                  <td style="padding: 0.8rem 1rem; font-family: monospace; color: #fff;">${item.id}</td>
+                  <td style="padding: 0.8rem 1rem;">${item.desc}</td>
+                  <td style="padding: 0.8rem 1rem; font-weight: 700; color: ${item.val.includes('-￥') ? 'var(--accent-amber)' : (item.val.includes('+') ? '#39d353' : '#fff')};">${item.val}</td>
+                  <td style="padding: 0.8rem 1rem;">${item.status}</td>
+                `;
+                tbody.appendChild(tr);
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load settings:", err);
         }
       }
 
