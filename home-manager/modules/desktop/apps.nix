@@ -36,7 +36,7 @@ in
     mumble
     jellyfin-desktop
     wechat
-    antigravity-fhs
+    antigravity-ide-fhs
     google-chrome
     code-cursor
     codex

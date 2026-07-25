@@ -86,17 +86,55 @@ in
         };
       };
 
-      services.networkd-dispatcher = {
-        enable = true;
-        rules = {
-          "tailscale" = {
-            onState = [ "routable" ];
-            script = ''
-              #!${pkgs.runtimeShell}
-              netdev=$(${pkgs.iproute2}/bin/ip route show 0/0 | ${pkgs.coreutils}/bin/cut -f5 -d' ' || echo eth0)
-              ${pkgs.ethtool}/bin/ethtool -K "$netdev" rx-udp-gro-forwarding on rx-gro-list off || true
-            '';
+      systemd.services.tailscale-udp-gro = {
+        description = "Tailscale UDP GRO optimization";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+        path = [
+          pkgs.iproute2
+          pkgs.coreutils
+          pkgs.ethtool
+        ];
+        script = ''
+          netdev=$(ip route show 0/0 | cut -f5 -d' ' | head -n1 || echo "")
+          if [ -n "$netdev" ]; then
+            ethtool -K "$netdev" rx-udp-gro-forwarding on rx-gro-list off || true
+          fi
+        '';
+      };
+
+      services.networkd-dispatcher =
+        lib.mkIf (config.networking.useNetworkd || config.systemd.network.enable)
+          {
+            enable = true;
+            rules = {
+              "tailscale" = {
+                onState = [ "routable" ];
+                script = ''
+                  #!${pkgs.runtimeShell}
+                  netdev=$(${pkgs.iproute2}/bin/ip route show 0/0 | ${pkgs.coreutils}/bin/cut -f5 -d' ' || echo eth0)
+                  ${pkgs.ethtool}/bin/ethtool -K "$netdev" rx-udp-gro-forwarding on rx-gro-list off || true
+                '';
+              };
+            };
           };
+
+      environment.etc = lib.mkIf config.networking.networkmanager.enable {
+        "NetworkManager/dispatcher.d/99-tailscale-udp-gro" = {
+          mode = "0755";
+          text = ''
+            #!${pkgs.runtimeShell}
+            IFACE=$1
+            ACTION=$2
+            if [ "$ACTION" = "up" ]; then
+              ${pkgs.ethtool}/bin/ethtool -K "$IFACE" rx-udp-gro-forwarding on rx-gro-list off || true
+            fi
+          '';
         };
       };
 
