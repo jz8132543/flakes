@@ -6,8 +6,33 @@ let activeTeacher = "花生十三";
 // AUTHENTICATION & LOGIN STATE
 let isLoggedIn = false;
 let currentUser = null;
+let modalsLoaded = false;
 
-function openLoginModal() {
+async function ensureModalsLoaded() {
+  if (modalsLoaded || document.getElementById("modal-login")) {
+    modalsLoaded = true;
+    return;
+  }
+  try {
+    const res = await fetch("/views/modals.html");
+    if (res.ok) {
+      const html = await res.text();
+      const modContainer =
+        document.getElementById("modals-container") || document.body;
+      const temp = document.createElement("div");
+      temp.innerHTML = html.trim();
+      while (temp.firstChild) {
+        modContainer.appendChild(temp.firstChild);
+      }
+      modalsLoaded = true;
+    }
+  } catch (e) {
+    console.error("Failed to load modals module:", e);
+  }
+}
+
+async function openLoginModal() {
+  await ensureModalsLoaded();
   const mod = document.getElementById("modal-login");
   if (mod) mod.style.display = "flex";
 }
@@ -398,7 +423,8 @@ function openAIHelperForQ(tag) {
 
 // ONBOARDING QUIZ STATE
 let onbAnswers = { q1: "", q2: "", q3: "" };
-function openOnboardingQuiz() {
+async function openOnboardingQuiz() {
+  await ensureModalsLoaded();
   document.getElementById("modal-onboarding").style.display = "flex";
   nextOnbStep(1);
 }
@@ -437,7 +463,8 @@ function finishOnboarding() {
 
 // CASHIER STATE
 let currentOrder = { pkg: "", name: "", price: 0 };
-function openCashierModal(pkg, name, price) {
+async function openCashierModal(pkg, name, price) {
+  await ensureModalsLoaded();
   currentOrder = { pkg, name, price };
   const pkgEl = document.getElementById("cashier-pkg-name");
   if (pkgEl) pkgEl.innerText = name;
@@ -680,6 +707,7 @@ async function checkCareerPromotion() {
   const res = await fetch(`${API_BASE}/api/user/career`);
   const d = await res.json();
   if (d && d.success) {
+    await ensureModalsLoaded();
     document.getElementById("promo-cert-text").innerText =
       `【中国式公考备考·干部任免决定书】\n\n受封学员：备考先锋\n当前职务序列：${d.current_title} (Level ${d.current_level})\n\n${d.red_header_doc}\n\n组织考察语：\n鉴于该同志在行测五大模块与申论特训中表现出极佳的毅力与解题直觉，特颁发此电子任命状。下一阶段晋升目标为【${d.next_title}】，请不忘初心，继续精进！`;
     document.getElementById("modal-promotion").style.display = "flex";
@@ -1400,7 +1428,8 @@ async function syncGitHub() {
 }
 
 // --- AI TUTOR FUNCTIONS ---
-function openAITutor(qId, tName) {
+async function openAITutor(qId, tName) {
+  await ensureModalsLoaded();
   activeQId = qId;
   activeTeacher = tName;
   document.getElementById("modal-teacher-name").innerText = tName;
@@ -1623,23 +1652,6 @@ async function sendLetter() {
 }
 
 window.onload = async () => {
-  // 1. Load decoupled modals from /views/modals.html
-  try {
-    const res = await fetch("/views/modals.html");
-    if (res.ok) {
-      const html = await res.text();
-      const modContainer =
-        document.getElementById("modals-container") || document.body;
-      const temp = document.createElement("div");
-      temp.innerHTML = html.trim();
-      while (temp.firstChild) {
-        modContainer.appendChild(temp.firstChild);
-      }
-    }
-  } catch (e) {
-    console.error("Failed to load modals module:", e);
-  }
-
-  // 2. Load and display initial landing page view
+  await ensureModalsLoaded();
   await switchTab("landing");
 };
