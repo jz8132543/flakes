@@ -1,16 +1,20 @@
 {
   config,
   pkgs,
+  lib,
   ...
 }:
+let
+  isBtrfs = (config.disko.devices.disk.main.content.partitions.NIXOS.content.type or "") == "btrfs";
+in
 {
-  services.btrfs.autoScrub = {
+  services.btrfs.autoScrub = lib.mkIf isBtrfs {
     enable = true;
     fileSystems = [
       config.fileSystems."/nix".device
     ];
   };
-  systemd.timers = {
+  systemd.timers = lib.mkIf isBtrfs {
     btrfsBalance = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
@@ -19,16 +23,8 @@
         Persistent = true;
       };
     };
-    # btrfsDedupe = {
-    #   wantedBy = ["timers.target"];
-    #   timerConfig = {
-    #     OnCalendar = "daily";
-    #     AccuracySec = "1d";
-    #     Persistent = true;
-    #   };
-    # };
   };
-  systemd.services = {
+  systemd.services = lib.mkIf isBtrfs {
     btrfsBalance = {
       serviceConfig = {
         Type = "exec";
@@ -40,15 +36,5 @@
         '';
       };
     };
-    # btrfsDedupe = {
-    #   path = [pkgs.utillinux]; # Used to get # of CPUs
-    #   serviceConfig = {
-    #     Type = "exec";
-    #     IOSchedulingClass = "idle";
-    #     RuntimeMaxSec = 7200; # It can hang sometimes
-    #     Restart = "on-failure";
-    #     ExecStart = "${pkgs.duperemove}/bin/duperemove -rdhA -v --hashfile=/duperemove-hashes.db /";
-    #   };
-    # };
   };
 }

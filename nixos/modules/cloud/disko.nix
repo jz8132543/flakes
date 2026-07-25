@@ -5,6 +5,9 @@
   pkgs,
   ...
 }:
+let
+  isBtrfs = (config.disko.devices.disk.main.content.partitions.NIXOS.content.type or "") == "btrfs";
+in
 {
   imports = [
     inputs.disko.nixosModules.disko
@@ -91,11 +94,13 @@
     # };
   };
 
-  fileSystems."/persist".neededForBoot = true;
-  fileSystems."/nix".neededForBoot = true;
-  fileSystems."/boot".neededForBoot = true;
+  fileSystems = lib.mkIf isBtrfs {
+    "/persist".neededForBoot = true;
+    "/nix".neededForBoot = true;
+    "/boot".neededForBoot = true;
+  };
 
-  services.btrfs.autoScrub = {
+  services.btrfs.autoScrub = lib.mkIf isBtrfs {
     enable = true;
     fileSystems = [
       config.fileSystems."/nix".device
@@ -116,14 +121,14 @@
         efiInstallAsRemovable = lib.mkDefault true;
       };
     };
-    initrd.systemd.storePaths = [
+    initrd.systemd.storePaths = lib.mkIf isBtrfs [
       pkgs.btrfs-progs
       pkgs.coreutils
       pkgs.util-linux
     ];
   };
 
-  boot.initrd.systemd.services.disko-rootfs-reset = {
+  boot.initrd.systemd.services.disko-rootfs-reset = lib.mkIf isBtrfs {
     description = "Reset the rootfs Btrfs subvolume before the real root mounts";
     wantedBy = [ "initrd.target" ];
     before = [ "sysroot.mount" ];
@@ -168,7 +173,7 @@
   };
 
   # 自动化脚本：启动时动态对指定目录禁用压缩
-  systemd.services.btrfs-disable-specific-compression = {
+  systemd.services.btrfs-disable-specific-compression = lib.mkIf isBtrfs {
     description = "Disable Btrfs compression on /persist and /rootfs for new files";
 
     # 确保在所有本地文件系统挂载完成后再执行
@@ -195,7 +200,7 @@
       '';
     };
   };
-  systemd.services.btrfs-resize = {
+  systemd.services.btrfs-resize = lib.mkIf isBtrfs {
     description = "Auto-resize Btrfs filesystems to fill partition";
     wantedBy = [ "multi-user.target" ];
     after = [ "grow-partition.service" ]; # 确保从 boot.growPartition 启动的服务完成后执行
