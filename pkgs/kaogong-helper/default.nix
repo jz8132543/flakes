@@ -13,13 +13,19 @@ stdenv.mkDerivation {
   src = ./src;
 
   nativeBuildInputs = [ makeWrapper ];
+  buildInputs = [ nodejs ];
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/lib/kaogong-helper $out/bin
     cp -r * $out/lib/kaogong-helper/
 
     makeWrapper ${nodejs}/bin/node $out/bin/kaogong-helper \
-      --add-flags "$out/lib/kaogong-helper/server.js"
+      --add-flags "$out/lib/kaogong-helper/server.js" \
+      --set NODE_ENV "production"
+
+    runHook postInstall
   '';
 
   meta = {
@@ -27,5 +33,6 @@ stdenv.mkDerivation {
     homepage = "https://github.com/jz8132543/flakes";
     license = lib.licenses.mit;
     mainProgram = "kaogong-helper";
+    platforms = lib.platforms.all;
   };
 }

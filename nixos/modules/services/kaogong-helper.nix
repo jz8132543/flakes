@@ -65,11 +65,14 @@ in
         ProtectSystem = "full";
         ProtectHome = true;
         NoNewPrivileges = true;
+        PrivateTmp = true;
+        DeviceAllow = "";
+        LockPersonality = true;
       };
     };
 
-    services.traefik.proxies.kaogong = {
-      rule = "Host(`kaogong.${config.networking.domain}`)";
+    services.traefik.proxies.kaogong = lib.mkIf (config.services.traefik.enable or false) {
+      rule = "Host(`kaogong.${config.networking.domain or "localhost"}`)";
       target = "http://${cfg.host}:${toString cfg.port}";
     };
   };

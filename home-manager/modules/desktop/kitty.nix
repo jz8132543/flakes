@@ -32,6 +32,7 @@
       hide_window_decorations yes
       strip_trailing_spaces smart
       enable_audio_bell no
+      notify_on_cmd_finish never
       shell tmux a
     '';
   };

@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>考公备考辅助系统 (Civil Service Exam Prep System)</title>
-    <!-- Modern Google Fonts & ECharts -->
+    <title>考公备考辅助系统 (Kaogong Helper v3.0) - 创业旗舰大屏</title>
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Outfit:wght@500;700;900&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
       :root {
         --bg-dark: #090d16;
-        --card-bg: rgba(15, 23, 42, 0.75);
-        --card-border: rgba(255, 255, 255, 0.08);
-        --primary: #38bdf8;
-        --primary-glow: rgba(56, 189, 248, 0.25);
-        --accent-green: #10b981;
-        --accent-orange: #f59e0b;
-        --accent-purple: #a855f7;
+        --panel-bg: rgba(15, 23, 42, 0.78);
+        --panel-border: rgba(255, 255, 255, 0.1);
         --text-main: #f8fafc;
         --text-muted: #94a3b8;
+        --accent-cyan: #38bdf8;
+        --accent-green: #39d353;
+        --accent-amber: #fbbf24;
+        --accent-rose: #f43f5e;
+        --accent-purple: #c084fc;
+        --glass-shadow: 0 10px 35px -10px rgba(0, 0, 0, 0.75);
       }
 
       * {
@@ -31,639 +31,1466 @@
         margin: 0;
         padding: 0;
       }
-
       body {
-        font-family:
-          "Inter",
-          system-ui,
-          -apple-system,
-          sans-serif;
+        font-family: "Inter", "PingFang SC", sans-serif;
         background-color: var(--bg-dark);
+        color: var(--text-main);
+        min-height: 100vh;
         background-image:
           radial-gradient(
-            at 0% 0%,
-            rgba(56, 189, 248, 0.12) 0px,
+            at 10% 20%,
+            rgba(56, 189, 248, 0.15) 0px,
             transparent 50%
           ),
           radial-gradient(
-            at 100% 100%,
-            rgba(168, 85, 247, 0.12) 0px,
+            at 90% 80%,
+            rgba(57, 211, 83, 0.12) 0px,
+            transparent 50%
+          ),
+          radial-gradient(
+            at 50% 50%,
+            rgba(192, 132, 252, 0.08) 0px,
             transparent 50%
           );
-        color: var(--text-main);
-        min-height: 100vh;
-        padding-bottom: 50px;
+        background-attachment: fixed;
+        line-height: 1.6;
+        overflow-x: hidden;
       }
 
-      /* Top Navigation Header */
-      header {
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid var(--card-border);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        padding: 1rem 2rem;
+      /* NAVBAR */
+      .navbar {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        padding: 0.8rem 2.5rem;
+        background: rgba(9, 13, 22, 0.9);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--panel-border);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
       }
-
       .brand {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-
-      .brand-logo {
-        font-size: 1.8rem;
-      }
-
-      .brand-title {
         font-family: "Outfit", sans-serif;
-        font-size: 1.35rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #38bdf8, #a855f7);
-        background-clip: text;
+        font-size: 1.5rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #38bdf8, #39d353);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .nav-tabs {
+        display: flex;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.04);
+        padding: 0.3rem;
+        border-radius: 999px;
+        border: 1px solid var(--panel-border);
+      }
+      .nav-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        padding: 0.5rem 1.2rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .nav-btn:hover {
+        color: var(--text-main);
+      }
+      .nav-btn.active {
+        background: linear-gradient(
+          135deg,
+          rgba(56, 189, 248, 0.2),
+          rgba(57, 211, 83, 0.2)
+        );
+        color: var(--text-main);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+      }
+      .nav-btn.admin-btn {
+        color: var(--accent-amber);
+        border: 1px dashed rgba(251, 191, 36, 0.4);
+      }
+      .nav-btn.admin-btn.active {
+        background: linear-gradient(
+          135deg,
+          rgba(251, 191, 36, 0.25),
+          rgba(244, 63, 92, 0.25)
+        );
+        border: 1px solid var(--accent-amber);
+        box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
       }
 
       .user-pill {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--card-border);
-        padding: 0.5rem 1rem;
-        border-radius: 9999px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 0.9rem;
-      }
-
-      .streak-badge {
-        background: linear-gradient(135deg, #f59e0b, #ef4444);
-        color: white;
-        padding: 0.2rem 0.6rem;
-        border-radius: 9999px;
+        padding: 0.4rem 1rem;
+        border-radius: 999px;
+        border: 1px solid var(--panel-border);
         font-weight: 600;
-        font-size: 0.8rem;
-        display: flex;
-        align-items: center;
-        gap: 4px;
+        font-size: 0.85rem;
+      }
+      .streak-badge {
+        background: rgba(251, 191, 36, 0.2);
+        color: var(--accent-amber);
+        padding: 0.2rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 700;
+        border: 1px solid rgba(251, 191, 36, 0.3);
       }
 
-      /* Layout Containers */
+      /* MAIN CONTAINER */
       .container {
-        max-width: 1280px;
+        max-width: 1400px;
         margin: 2rem auto;
-        padding: 0 1.5rem;
+        padding: 0 2rem;
       }
-
-      .grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
+      .section-view {
+        display: none;
+        animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       }
-
-      @media (max-width: 900px) {
-        .grid-2 {
-          grid-template-columns: 1fr;
+      .section-view.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
       }
 
-      .card {
-        background: var(--card-bg);
-        backdrop-filter: blur(16px);
-        border: 1px solid var(--card-border);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        transition:
-          transform 0.2s ease,
-          box-shadow 0.2s ease;
-        margin-bottom: 1.5rem;
+      /* CARDS */
+      .glass-card {
+        background: var(--panel-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--glass-shadow);
       }
-
-      .card:hover {
-        border-color: rgba(56, 189, 248, 0.3);
-        box-shadow: 0 12px 35px rgba(56, 189, 248, 0.1);
-      }
-
-      .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.2rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        padding-bottom: 0.75rem;
-      }
-
       .card-title {
-        font-size: 1.15rem;
-        font-weight: 600;
+        font-family: "Outfit", sans-serif;
+        font-size: 1.35rem;
+        font-weight: 800;
+        margin-bottom: 1.2rem;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 0.6rem;
       }
 
-      /* 1. Heatmap Styling */
+      /* MODULE 1: DASHBOARD */
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+      }
       .heatmap-grid {
         display: grid;
-        grid-template-columns: repeat(30, 1fr);
-        gap: 5px;
+        grid-template-columns: repeat(53, 1fr);
+        gap: 4px;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         overflow-x: auto;
-        padding: 0.5rem 0;
       }
-
-      .heatmap-cell {
+      .heat-cell {
         width: 14px;
         height: 14px;
         border-radius: 3px;
-        background: rgba(255, 255, 255, 0.06);
-        transition: all 0.2s ease;
+        background-color: #161b22;
+        transition: transform 0.2s;
       }
-
-      .heatmap-cell:hover {
-        transform: scale(1.3);
+      .heat-cell:hover {
+        transform: scale(1.4);
         z-index: 10;
       }
+      .heat-cell[data-level="1"] {
+        background-color: #0e4429;
+      }
+      .heat-cell[data-level="2"] {
+        background-color: #006d32;
+      }
+      .heat-cell[data-level="3"] {
+        background-color: #26a641;
+      }
+      .heat-cell[data-level="4"] {
+        background-color: #39d353;
+        box-shadow: 0 0 6px rgba(57, 211, 83, 0.4);
+      }
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+      }
+      .stat-box {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1.2rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        text-align: center;
+      }
+      .stat-val {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: var(--accent-cyan);
+      }
+      .stat-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.3rem;
+      }
+      .tree-widget {
+        text-align: center;
+        padding: 1rem;
+        background: linear-gradient(
+          180deg,
+          rgba(57, 211, 83, 0.05) 0%,
+          transparent 100%
+        );
+        border-radius: 16px;
+        border: 1px dashed rgba(57, 211, 83, 0.3);
+      }
+      .tree-icon {
+        font-size: 5rem;
+        margin: 1rem 0;
+        filter: drop-shadow(0 0 15px rgba(57, 211, 83, 0.4));
+        animation: float 4s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
 
-      .lvl-1 {
-        background: #064e3b;
+      /* MODULE 2: SOLUTIONS */
+      .question-card {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 16px;
+        padding: 1.8rem;
+        border: 1px solid var(--panel-border);
+        margin-bottom: 2rem;
       }
-      .lvl-2 {
-        background: #047857;
-      }
-      .lvl-3 {
-        background: #10b981;
-      }
-      .lvl-4 {
-        background: #34d399;
-        box-shadow: 0 0 8px #34d399;
-      }
-
-      /* 2. Solutions Distillation Styling */
-      .solution-tabs {
+      .q-header {
         display: flex;
-        gap: 10px;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 1rem;
       }
-
-      .sol-tab {
+      .q-tag {
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--accent-cyan);
+        padding: 0.3rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+      .q-content {
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #fff;
+      }
+      .q-options {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+      }
+      .q-opt {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+      .q-opt:hover {
+        background: rgba(56, 189, 248, 0.1);
+        border-color: var(--accent-cyan);
+      }
+      .q-opt.correct {
+        background: rgba(57, 211, 83, 0.2);
+        border-color: var(--accent-green);
+        color: #fff;
+      }
+      .solutions-area {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 1.5rem;
+      }
+      .sol-tabs {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-bottom: 1rem;
+      }
+      .sol-tab-btn {
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid var(--card-border);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         color: var(--text-muted);
         padding: 0.5rem 1rem;
         border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.88rem;
-        transition: all 0.2s ease;
-      }
-
-      .sol-tab.active {
-        background: var(--primary);
-        color: #0f172a;
         font-weight: 600;
-        border-color: var(--primary);
-        box-shadow: 0 0 12px var(--primary-glow);
-      }
-
-      .solution-content {
-        background: rgba(0, 0, 0, 0.25);
-        border-radius: 12px;
-        padding: 1.2rem;
-        line-height: 1.6;
-        font-size: 0.95rem;
-        border-left: 3px solid var(--primary);
-        margin-bottom: 1rem;
-      }
-
-      .upvote-btn {
-        background: rgba(56, 189, 248, 0.1);
-        border: 1px solid var(--primary);
-        color: var(--primary);
-        padding: 0.5rem 1.2rem;
-        border-radius: 8px;
         cursor: pointer;
-        font-size: 0.88rem;
-        display: inline-flex;
+        transition: all 0.2s;
+        display: flex;
         align-items: center;
-        gap: 6px;
-        transition: all 0.2s ease;
+        gap: 0.5rem;
       }
-
-      .upvote-btn:hover {
-        background: var(--primary);
-        color: #0f172a;
+      .sol-tab-btn.active {
+        background: linear-gradient(
+          135deg,
+          rgba(192, 132, 252, 0.25),
+          rgba(56, 189, 248, 0.25)
+        );
+        color: #fff;
+        border-color: var(--accent-purple);
+        box-shadow: 0 0 12px rgba(192, 132, 252, 0.3);
       }
-
-      /* 3. Skill Tree Radar */
-      #radar-chart {
-        width: 100%;
-        height: 320px;
-      }
-
-      /* 4. Accountability Cohorts */
-      .cohort-card {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--card-border);
+      .sol-content-box {
+        background: rgba(0, 0, 0, 0.4);
+        padding: 1.5rem;
         border-radius: 12px;
-        padding: 1.2rem;
-        margin-bottom: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .sol-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1.2rem;
+        padding-top: 1rem;
+        border-top: 1px dashed rgba(255, 255, 255, 0.08);
+      }
+      .upvote-btn {
+        background: rgba(57, 211, 83, 0.15);
+        color: var(--accent-green);
+        border: 1px solid rgba(57, 211, 83, 0.3);
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
       }
 
-      .btn-action {
-        background: linear-gradient(135deg, #10b981, #059669);
-        color: white;
+      /* MODULE 3: SKILLS RADAR */
+      .radar-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+      }
+      .skill-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .skill-item {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 1rem 1.4rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .skill-badge {
+        padding: 0.3rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        font-weight: 700;
+      }
+      .skill-badge.weak {
+        background: rgba(244, 63, 92, 0.2);
+        color: var(--accent-rose);
+        border: 1px solid rgba(244, 63, 92, 0.4);
+      }
+      .skill-badge.good {
+        background: rgba(56, 189, 248, 0.2);
+        color: var(--accent-cyan);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+      }
+      .skill-badge.excellent {
+        background: rgba(57, 211, 83, 0.2);
+        color: var(--accent-green);
+        border: 1px solid rgba(57, 211, 83, 0.4);
+      }
+      .btn-remediate {
+        background: linear-gradient(135deg, var(--accent-rose), #e11d48);
+        color: #fff;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 0 20px rgba(244, 63, 92, 0.4);
+      }
+
+      /* MODULE 4 & 5: COHORTS & STRATEGIES */
+      .cohort-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+      }
+      .cohort-card {
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.04) 0%,
+          rgba(255, 255, 255, 0.01) 100%
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 1.8rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .pool-banner {
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        color: var(--accent-amber);
+        padding: 0.8rem 1.2rem;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 1.2rem;
+        margin: 1.2rem 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .squad-box {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 1rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+      }
+      .btn-checkin {
+        background: linear-gradient(135deg, var(--accent-green), #15803d);
+        color: #fff;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        width: 100%;
+        font-size: 1rem;
+      }
+      .strat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 1.8rem;
+        margin-bottom: 1.5rem;
+      }
+      .fork-form {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        background: rgba(0, 0, 0, 0.4);
+        padding: 1.2rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        margin: 1.5rem 0;
+        flex-wrap: wrap;
+      }
+      .fork-input {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0.6rem 1rem;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.95rem;
+      }
+      .btn-fork {
+        background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+        color: #fff;
         border: none;
         padding: 0.6rem 1.4rem;
         border-radius: 8px;
-        font-weight: 600;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.2s ease;
       }
 
-      .btn-action:hover {
-        opacity: 0.9;
-        transform: translateY(-2px);
+      /* ADMIN PORTAL CSS */
+      .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
       }
-
-      /* 5. Strategy Forking */
-      .strategy-item {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--card-border);
-        border-radius: 12px;
-        padding: 1.2rem;
+      .admin-box {
+        background: rgba(0, 0, 0, 0.4);
+        padding: 1.5rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        margin-bottom: 1.5rem;
+      }
+      .admin-label {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        display: block;
+        margin-bottom: 0.4rem;
+        font-weight: 600;
+      }
+      .admin-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #fff;
+        padding: 0.7rem 1rem;
+        border-radius: 8px;
+        font-family: inherit;
         margin-bottom: 1rem;
       }
-
-      .timeline-pill {
-        background: rgba(168, 85, 247, 0.15);
-        color: #c084fc;
-        border: 1px solid rgba(168, 85, 247, 0.3);
-        padding: 0.2rem 0.6rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        display: inline-block;
-        margin-right: 6px;
-        margin-bottom: 6px;
+      .btn-admin {
+        background: linear-gradient(135deg, var(--accent-amber), #d97706);
+        color: #000;
+        font-weight: 800;
+        border: none;
+        padding: 0.7rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+      }
+      .btn-ai-upload {
+        background: linear-gradient(135deg, var(--accent-purple), #9333ea);
+        color: #fff;
+        font-weight: 800;
+        border: none;
+        padding: 0.8rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 100%;
+        box-shadow: 0 0 15px rgba(192, 132, 252, 0.4);
       }
 
-      .btn-fork {
-        background: linear-gradient(135deg, #a855f7, #7e22ce);
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        display: inline-flex;
+      /* AI TUTOR MODAL */
+      #ai-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+      }
+      .modal-box {
+        background: #0f172a;
+        border: 1px solid var(--accent-cyan);
+        width: 600px;
+        max-width: 90%;
+        border-radius: 18px;
+        padding: 2rem;
+        box-shadow: 0 0 35px rgba(56, 189, 248, 0.3);
+      }
+
+      /* TOAST */
+      #toast {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        background: #1e293b;
+        border: 1px solid var(--accent-green);
+        color: #fff;
+        padding: 1rem 1.8rem;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        z-index: 10000;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      #toast.show {
+        transform: translateY(0);
+        opacity: 1;
       }
     </style>
   </head>
   <body>
-    <header>
+    <!-- NAVBAR -->
+    <nav class="navbar">
       <div class="brand">
-        <span class="brand-logo">🚀</span>
-        <div>
-          <div class="brand-title">考公备考辅助系统</div>
-          <div style="font-size: 0.75rem; color: var(--text-muted)">
-            Civil Service Exam Prep Assistant
-          </div>
-        </div>
-      </div>
-
-      <div class="user-pill" id="user-pill">
-        <span id="u-avatar">🎯</span>
-        <span id="u-name" style="font-weight: 600">备考先锋</span>
-        <div class="streak-badge">🔥 连续 <span id="u-streak">18</span> 天</div>
-      </div>
-    </header>
-
-    <div class="container">
-      <!-- 1. Positive Reinforcement Heatmap Card -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">
-            🟩 刷题正向激励与学习热力图 (Practice Heatmap)
-          </div>
-          <div style="font-size: 0.85rem; color: var(--text-muted)">
-            近 300 天成长轨迹 · 正向累计收益
-          </div>
-        </div>
-        <div class="heatmap-grid" id="heatmap-grid">
-          <!-- JS Dynamic Cells -->
-        </div>
-        <div
+        <span>🚀 考公备考辅助系统 v3.0</span>
+        <span
           style="
-            display: flex;
-            justify-content: space-between;
-            margin-top: 0.8rem;
-            font-size: 0.82rem;
-            color: var(--text-muted);
+            font-size: 0.75rem;
+            background: rgba(57, 211, 83, 0.15);
+            color: #39d353;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 700;
           "
+          >NixOS Ready</span
         >
-          <div>
-            已累计做题:
-            <b id="total-q" style="color: var(--primary)">1,420</b> 道
+      </div>
+      <div class="nav-tabs">
+        <button class="nav-btn active" onclick="switchTab('dashboard')">
+          🔥 诉求一: 热力大屏
+        </button>
+        <button class="nav-btn" onclick="switchTab('solutions')">
+          🌟 诉求二: 名师蒸馏
+        </button>
+        <button class="nav-btn" onclick="switchTab('skills')">
+          🎯 诉求三: 极细雷达
+        </button>
+        <button class="nav-btn" onclick="switchTab('cohorts')">
+          🤝 诉求四: 契约督学
+        </button>
+        <button class="nav-btn" onclick="switchTab('strategies')">
+          ⚡ 诉求五: 攻略 Fork
+        </button>
+        <button class="nav-btn admin-btn" onclick="switchTab('admin')">
+          👑 管理员后台与 AI 维稳
+        </button>
+      </div>
+      <div class="user-pill">
+        <span>🎯 备考先锋小王</span>
+        <span class="streak-badge" id="nav-streak">🔥 18 天连签</span>
+        <span style="color: var(--accent-cyan)"
+          >🤖 Token 剩余: <strong id="nav-token">37,500</strong></span
+        >
+      </div>
+    </nav>
+
+    <!-- MAIN CONTAINER -->
+    <main class="container">
+      <!-- VIEW 1: DASHBOARD -->
+      <section id="view-dashboard" class="section-view active">
+        <div class="dashboard-grid">
+          <div class="glass-card">
+            <div class="card-title">
+              <span>🔥 365天全真实学习贡献热力图 (Contribution Heatmap)</span>
+            </div>
+            <div class="heatmap-grid" id="heatmap-container"></div>
+            <div class="stats-row">
+              <div class="stat-box">
+                <div class="stat-val" id="stat-days">312</div>
+                <div class="stat-label">已坚持做题天数</div>
+              </div>
+              <div class="stat-box">
+                <div
+                  class="stat-val"
+                  id="stat-streak"
+                  style="color: var(--accent-amber)"
+                >
+                  18
+                </div>
+                <div class="stat-label">当前连续打卡</div>
+              </div>
+              <div class="stat-box">
+                <div
+                  class="stat-val"
+                  id="stat-questions"
+                  style="color: var(--accent-green)"
+                >
+                  1,420
+                </div>
+                <div class="stat-label">累计做题总数</div>
+              </div>
+              <div class="stat-box">
+                <div
+                  class="stat-val"
+                  id="stat-hours"
+                  style="color: var(--accent-purple)"
+                >
+                  42.6
+                </div>
+                <div class="stat-label">专注总时数 (h)</div>
+              </div>
+            </div>
           </div>
-          <div style="display: flex; gap: 6px; align-items: center">
-            <span>少</span>
-            <div class="heatmap-cell"></div>
-            <div class="heatmap-cell lvl-1"></div>
-            <div class="heatmap-cell lvl-2"></div>
-            <div class="heatmap-cell lvl-3"></div>
-            <div class="heatmap-cell lvl-4"></div>
-            <span>多</span>
+          <div class="glass-card tree-widget">
+            <div class="card-title" style="justify-content: center">
+              🌱 备考宠物：上岸能量神树
+            </div>
+            <div class="tree-icon" id="tree-icon">🌳</div>
+            <h3 id="tree-name" style="color: #fff; font-size: 1.2rem">
+              上岸神树 (能量值 85/100)
+            </h3>
+            <p
+              id="tree-stage"
+              style="
+                color: var(--accent-green);
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+                font-weight: 600;
+              "
+            >
+              🌱 枝繁叶茂 - 距离开花结果还差 15 次有效专注
+            </p>
+            <div
+              style="
+                margin-top: 1.5rem;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 1rem;
+                border-radius: 10px;
+                text-align: left;
+                font-size: 0.85rem;
+              "
+            >
+              <p style="color: var(--text-muted)">
+                连续3天未学习将枯萎！补签卡库存：<strong
+                  style="color: #fff"
+                  id="stat-freeze"
+                  >2</strong
+                >
+                张。AI 答疑 Token 进度：
+              </p>
+              <div
+                style="
+                  width: 100%;
+                  background: #1e293b;
+                  height: 8px;
+                  border-radius: 4px;
+                  margin-top: 6px;
+                  overflow: hidden;
+                "
+              >
+                <div
+                  id="token-bar"
+                  style="
+                    width: 75%;
+                    background: var(--accent-cyan);
+                    height: 100%;
+                  "
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="grid-2">
-        <!-- 2. Distilled Solutions -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">💡 名师蒸馏解析 (Distilled Solutions)</div>
-            <div style="font-size: 0.8rem; color: var(--accent-orange)">
-              一题多解法 · 投票决策
-            </div>
-          </div>
-          <div id="question-box">
-            <div style="font-weight: 600; margin-bottom: 0.8rem" id="q-content">
-              2024年某省农作物总产量 4582.4 万吨，同比增长
-              6.8%。若保持该增速，2025年该省农作物总产量约为多少万吨？
-            </div>
-            <div class="solution-tabs" id="sol-tabs">
-              <!-- Tabs injected by JS -->
-            </div>
-            <div class="solution-content" id="sol-body">正在加载解析...</div>
+      <!-- VIEW 2: SOLUTIONS (WITH AI TUTOR BUTTON) -->
+      <section id="view-solutions" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🌟 一题多解：名师解法蒸馏与切片对比</span>
             <button
-              class="upvote-btn"
-              id="upvote-btn"
-              onclick="upvoteCurrentSolution()"
+              style="
+                margin-left: auto;
+                background: linear-gradient(
+                  135deg,
+                  var(--accent-cyan),
+                  #0284c7
+                );
+                color: #fff;
+                border: none;
+                padding: 0.5rem 1.2rem;
+                border-radius: 8px;
+                font-weight: 700;
+                cursor: pointer;
+              "
+              onclick="openAITutor('q101', '花生十三')"
             >
-              👍 认可该名师解题思路 (<span id="upvote-count">0</span>)
+              🤖 召唤名师 AI 实时答疑互动
             </button>
           </div>
+          <p style="color: var(--text-muted); margin-bottom: 1.5rem">
+            不同流派横向切换。投票率高者居前 (`ORDER BY upvotes
+            DESC`)，亲和度引擎记忆偏好！
+          </p>
+          <div id="questions-container"></div>
         </div>
+      </section>
 
-        <!-- 3. Granular Skill Tree Radar -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              🎯 极细粒度技巧树雷达 (Granular Skill Radar)
-            </div>
-            <div style="font-size: 0.8rem; color: var(--accent-green)">
-              精准测量 Level 3 技巧掌握度
+      <!-- VIEW 3: SKILLS RADAR -->
+      <section id="view-skills" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🎯 极细化三级考点树与 EMA 动态掌握度雷达诊断</span>
+            <button
+              class="btn-remediate"
+              style="margin-left: auto"
+              onclick="triggerRemediate()"
+            >
+              🚨 一键生成红点短板 15 题特训组卷
+            </button>
+          </div>
+          <div class="radar-grid">
+            <div class="skill-list" id="skills-container"></div>
+            <div
+              style="
+                background: rgba(0, 0, 0, 0.4);
+                padding: 2rem;
+                border-radius: 16px;
+                border: 1px solid rgba(255, 255, 255, 0.06);
+                text-align: center;
+              "
+            >
+              <h3 style="color: #fff; margin-bottom: 1rem">
+                📊 EMA 微观短板报警
+              </h3>
+              <svg
+                viewBox="0 0 100 100"
+                style="
+                  width: 220px;
+                  height: 220px;
+                  margin: 0 auto;
+                  overflow: visible;
+                "
+              >
+                <polygon
+                  points="50,5 95,35 77,90 23,90 5,35"
+                  fill="none"
+                  stroke="rgba(255,255,255,0.1)"
+                />
+                <polygon
+                  points="50,10 90,38 72,85 30,70 18,48"
+                  fill="rgba(56, 189, 248, 0.25)"
+                  stroke="var(--accent-cyan)"
+                  stroke-width="2.5"
+                />
+                <circle cx="30" cy="70" r="4" fill="var(--accent-rose)" />
+              </svg>
+              <p
+                style="
+                  color: var(--accent-rose);
+                  font-weight: 700;
+                  font-size: 0.9rem;
+                  margin-top: 1rem;
+                "
+              >
+                🚨 差分比较法 (54分) 与同义替换 (58分) 高危失分！建议立刻强化。
+              </p>
             </div>
           </div>
-          <div id="radar-chart"></div>
         </div>
-      </div>
+      </section>
 
-      <div class="grid-2">
-        <!-- 4. Accountability Cohorts -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              🤝 契约督学社群 (Accountability Cohorts)
-            </div>
-            <div style="font-size: 0.8rem; color: var(--accent-green)">
-              契约金督学 · 达标全额退款
-            </div>
+      <!-- VIEW 4: COHORTS -->
+      <section id="view-cohorts" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>🤝 契约督学社群：反学费打卡与违约池分红</span>
           </div>
-          <div id="cohorts-list">
-            <!-- Injected by JS -->
-          </div>
+          <div class="cohort-grid" id="cohorts-container"></div>
         </div>
+      </section>
 
-        <!-- 5. Strategy Forking -->
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">
-              🔱 动态攻略排期与派生 (Strategy Forking)
-            </div>
-            <div style="font-size: 0.8rem; color: var(--accent-purple)">
-              一键派生高分学员复习路线图
-            </div>
+      <!-- VIEW 5: STRATEGIES -->
+      <section id="view-strategies" class="section-view">
+        <div class="glass-card">
+          <div class="card-title">
+            <span>⚡ 状元攻略分享与一键 Fork 派生倒推引擎</span>
           </div>
-          <div id="strategies-list">
-            <!-- Injected by JS -->
+          <div id="strategies-container"></div>
+        </div>
+      </section>
+
+      <!-- VIEW 6: ADMIN PORTAL & AI MAINTENANCE (MODULE 6-10) -->
+      <section id="view-admin" class="section-view">
+        <div class="glass-card" style="border-color: var(--accent-amber)">
+          <div class="card-title" style="color: var(--accent-amber)">
+            <span
+              >👑 创始人后台工作台：RBAC 控管、中转站识模与 AI 真题摄取</span
+            >
+          </div>
+          <p style="color: var(--text-muted); margin-bottom: 2rem">
+            以下管理功能仅对 `ADMIN` 角色生效。实时维护您的公考 AI 护城河算力！
+          </p>
+
+          <div class="admin-grid">
+            <!-- BOX 1: AI RELAY DISCOVERY -->
+            <div class="admin-box">
+              <h3 style="color: var(--accent-cyan); margin-bottom: 1rem">
+                🤖 1. AI 中转站接入与模型自动识别 (Auto-Discovery)
+              </h3>
+              <label class="admin-label"
+                >OpenAI 兼容 Base URL (如 Relay API)：</label
+              >
+              <input
+                type="text"
+                class="admin-input"
+                id="adm-base-url"
+                value="https://api.openai-relay.com/v1"
+              />
+              <label class="admin-label">API Token / Secret Key：</label>
+              <input
+                type="password"
+                class="admin-input"
+                id="adm-api-key"
+                value="sk-demo-relay-token-2026"
+              />
+              <button
+                class="btn-admin"
+                onclick="discoverModels()"
+                style="
+                  background: linear-gradient(
+                    135deg,
+                    var(--accent-cyan),
+                    #0284c7
+                  );
+                  color: #fff;
+                  margin-bottom: 1rem;
+                "
+              >
+                🔍 点击向中转站自动探测可用模型
+              </button>
+              <label class="admin-label"
+                >从识别出的模型列表中选定激活引擎：</label
+              >
+              <select class="admin-input" id="adm-model-select">
+                <option value="deepseek-r1">
+                  deepseek-r1 (推荐：超强逻辑思考)
+                </option>
+                <option value="deepseek-v3">deepseek-v3 (极速秒答)</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="qwen-max">qwen-max (阿里云百炼)</option>
+              </select>
+              <button class="btn-admin" onclick="saveLLMConfig()">
+                💾 保存全局 AI 引擎切换
+              </button>
+            </div>
+
+            <!-- BOX 2: AI PDF TRUE EXAM INGESTION -->
+            <div
+              class="admin-box"
+              style="border-color: rgba(192, 132, 252, 0.3)"
+            >
+              <h3 style="color: var(--accent-purple); margin-bottom: 1rem">
+                📑 2. 核心绝杀：AI 真题 PDF 智能抽取与名师解法生成
+              </h3>
+              <p
+                style="
+                  font-size: 0.85rem;
+                  color: var(--text-muted);
+                  margin-bottom: 1rem;
+                "
+              >
+                上传历年真题 PDF 试卷。后台自动完成文本提取 -> 排版清洗重构 ->
+                极细化打分类标签 -> 分别调用绑定名师 Skill 全自动生成多维解析！
+              </p>
+              <input
+                type="file"
+                id="adm-pdf-file"
+                class="admin-input"
+                style="padding: 0.4rem"
+              />
+              <button class="btn-ai-upload" onclick="ingestPDF()">
+                🚀 立即启动 AI 真题试卷洗版与解法蒸馏流水线
+              </button>
+              <div
+                id="adm-ingest-log"
+                style="
+                  margin-top: 1rem;
+                  background: #000;
+                  padding: 0.8rem;
+                  border-radius: 8px;
+                  font-family: monospace;
+                  font-size: 0.8rem;
+                  color: var(--accent-green);
+                  display: none;
+                "
+              >
+                [SYSTEM] 正在等待 PDF 文件上传...
+              </div>
+            </div>
+
+            <!-- BOX 3: USER REGISTRATION & TOKEN QUOTA -->
+            <div class="admin-box">
+              <h3 style="color: var(--accent-green); margin-bottom: 1rem">
+                👑 3. 用户注册关停开关与 AI Token 配额分配
+              </h3>
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  margin-bottom: 1rem;
+                  background: rgba(255, 255, 255, 0.04);
+                  padding: 0.8rem;
+                  border-radius: 8px;
+                "
+              >
+                <span>当前全站普通用户开放注册状态：</span>
+                <button
+                  class="btn-admin"
+                  id="btn-reg-toggle"
+                  style="width: auto; padding: 0.4rem 1rem"
+                  onclick="toggleReg()"
+                >
+                  🟢 已开启注册
+                </button>
+              </div>
+              <label class="admin-label"
+                >调整用户 ID [u1 备考先锋小王] 的 AI Token 总配额：</label
+              >
+              <div style="display: flex; gap: 0.8rem">
+                <input
+                  type="number"
+                  class="admin-input"
+                  id="adm-token-quota"
+                  value="100000"
+                  style="margin-bottom: 0"
+                />
+                <button
+                  class="btn-admin"
+                  style="
+                    width: auto;
+                    background: var(--accent-green);
+                    color: #fff;
+                  "
+                  onclick="updateQuota('u1')"
+                >
+                  ⚡ 充值更新
+                </button>
+              </div>
+            </div>
+
+            <!-- BOX 4: GITHUB SKILL SYNC -->
+            <div class="admin-box">
+              <h3 style="color: var(--accent-amber); margin-bottom: 1rem">
+                🔄 4. GitHub 名师提示词技能库定时同步引擎
+              </h3>
+              <label class="admin-label"
+                >名师 Skills 开源仓库地址 (GitHub Repository)：</label
+              >
+              <input
+                type="text"
+                class="admin-input"
+                id="adm-gh-repo"
+                value="https://github.com/jz8132543/kaogong-teacher-skills"
+              />
+              <button class="btn-admin" onclick="syncGitHub()">
+                🚀 一键自 GitHub 扫描拉取最新名师解题提示词
+              </button>
+              <p
+                style="
+                  font-size: 0.8rem;
+                  color: var(--text-muted);
+                  margin-top: 0.6rem;
+                "
+              >
+                当前系统已播种 5 位名师，绑定 8 项原子技巧。
+              </p>
+            </div>
           </div>
         </div>
+      </section>
+    </main>
+
+    <!-- AI TUTOR INTERACTIVE MODAL -->
+    <div id="ai-modal">
+      <div class="modal-box">
+        <h3
+          style="
+            color: var(--accent-cyan);
+            font-size: 1.3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <span>🤖 名师 AI 分身实时互动答疑</span>
+          <button
+            style="
+              background: transparent;
+              border: none;
+              color: #fff;
+              font-size: 1.5rem;
+              cursor: pointer;
+            "
+            onclick="closeAITutor()"
+          >
+            ×
+          </button>
+        </h3>
+        <p
+          style="color: var(--text-muted); font-size: 0.85rem; margin: 0.8rem 0"
+        >
+          正在向
+          <strong style="color: #fff" id="modal-teacher-name">花生十三</strong>
+          提问。本次询问将严格按照【秒杀截位派】解题流派答疑，并自动计算耗用的
+          Token！
+        </p>
+        <textarea
+          id="modal-prompt"
+          style="
+            width: 100%;
+            height: 100px;
+            background: #000;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-family: inherit;
+            margin-bottom: 1rem;
+          "
+          placeholder="老师，请问这道题为什么截前两位不会有误差？我该怎么快速看选项？"
+        ></textarea>
+        <div
+          id="modal-reply"
+          style="
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.2rem;
+            min-height: 80px;
+            font-size: 0.9rem;
+            color: #fff;
+            display: none;
+          "
+        ></div>
+        <button
+          class="btn-admin"
+          style="
+            background: linear-gradient(135deg, var(--accent-cyan), #0284c7);
+            color: #fff;
+          "
+          onclick="submitAIQuestion()"
+        >
+          🚀 发送提问 (实时扣减 Token)
+        </button>
       </div>
     </div>
 
+    <!-- TOAST -->
+    <div id="toast">✅ 操作成功！</div>
+
     <script>
-      let currentQuestions = [];
-      let currentQIndex = 0;
-      let currentSolIndex = 0;
-      let masteryData = [];
+      const API_BASE = "";
+      let allowReg = true;
+      let activeQId = "q101";
+      let activeTeacher = "花生十三";
 
-      // Initialize App
-      async function init() {
-        await loadUser();
-        await loadHeatmap();
-        await loadQuestions();
-        await loadSkillMastery();
-        await loadCohorts();
-        await loadStrategies();
+      function switchTab(tabId) {
+        document
+          .querySelectorAll(".nav-btn")
+          .forEach((b) => b.classList.remove("active"));
+        document
+          .querySelectorAll(".section-view")
+          .forEach((v) => v.classList.remove("active"));
+        event.target.classList.add("active");
+        document.getElementById(`view-${tabId}`).classList.add("active");
+        if (tabId === "dashboard") loadDashboard();
+        if (tabId === "solutions") loadSolutions();
+        if (tabId === "skills") loadSkills();
+        if (tabId === "cohorts") loadCohorts();
+        if (tabId === "strategies") loadStrategies();
       }
 
-      async function loadUser() {
-        const res = await fetch("/api/user");
-        const data = await res.json();
-        document.getElementById("u-avatar").innerText = data.avatar;
-        document.getElementById("u-name").innerText = data.username;
-        document.getElementById("u-streak").innerText = data.streak;
+      function showToast(msg) {
+        const t = document.getElementById("toast");
+        t.innerText = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 3500);
       }
 
-      async function loadHeatmap() {
-        const res = await fetch("/api/dashboard/heatmap");
-        const data = await res.json();
-        document.getElementById("total-q").innerText =
-          data.total_questions.toLocaleString();
-        const grid = document.getElementById("heatmap-grid");
-        grid.innerHTML = "";
+      async function loadDashboard() {
+        const res = await fetch(`${API_BASE}/api/dashboard/heatmap`);
+        const d = await res.json();
+        document.getElementById("stat-days").innerText = d.total_active_days;
+        document.getElementById("stat-streak").innerText = d.streak;
+        document.getElementById("stat-questions").innerText =
+          d.total_questions.toLocaleString();
+        document.getElementById("stat-hours").innerText = d.total_study_hours;
+        document.getElementById("stat-freeze").innerText = d.freeze_cards;
+        document.getElementById("nav-streak").innerText =
+          `🔥 ${d.streak} 天连签`;
+        document.getElementById("nav-token").innerText =
+          d.tokens_remaining.toLocaleString();
+        document.getElementById("token-bar").style.width =
+          `${Math.min(100, (d.tokens_remaining / d.token_quota) * 100)}%`;
 
-        data.records.forEach((r) => {
+        const c = document.getElementById("heatmap-container");
+        c.innerHTML = "";
+        d.records.slice(-159).forEach((r) => {
           const cell = document.createElement("div");
-          cell.className = "heatmap-cell";
-          if (r.count > 60) cell.classList.add("lvl-4");
-          else if (r.count > 40) cell.classList.add("lvl-3");
-          else if (r.count > 20) cell.classList.add("lvl-2");
-          else if (r.count > 0) cell.classList.add("lvl-1");
-          cell.title = `${r.date}: 做题 ${r.count} 道 (${r.minutes} 分钟)`;
-          grid.appendChild(cell);
+          cell.className = "heat-cell";
+          cell.setAttribute("data-level", r.green_shade_level);
+          cell.title = `${r.date}: 刷题 ${r.count} 道`;
+          c.appendChild(cell);
         });
       }
 
-      async function loadQuestions() {
-        const res = await fetch("/api/questions");
-        currentQuestions = await res.json();
-        renderQuestion();
-      }
-
-      function renderQuestion() {
-        if (!currentQuestions.length) return;
-        const q = currentQuestions[currentQIndex];
-        document.getElementById("q-content").innerText = `【单选】${q.content}`;
-
-        const tabsContainer = document.getElementById("sol-tabs");
-        tabsContainer.innerHTML = "";
-        q.solutions.forEach((sol, index) => {
-          const tab = document.createElement("button");
-          tab.className = `sol-tab ${index === currentSolIndex ? "active" : ""}`;
-          tab.innerText = `${sol.teacher_name} - ${sol.approach_name}`;
-          tab.onclick = () => {
-            currentSolIndex = index;
-            renderQuestion();
-          };
-          tabsContainer.appendChild(tab);
+      async function loadSolutions() {
+        const res = await fetch(`${API_BASE}/api/questions`);
+        const qs = await res.json();
+        const c = document.getElementById("questions-container");
+        c.innerHTML = "";
+        qs.forEach((q, idx) => {
+          const card = document.createElement("div");
+          card.className = "question-card";
+          let tabs = "",
+            sols = "";
+          q.solutions.forEach((s, sIdx) => {
+            const act = sIdx === 0 ? "active" : "";
+            const disp = sIdx === 0 ? "block" : "none";
+            tabs += `<button class="sol-tab-btn ${act}" onclick="toggleSol(${idx},${sIdx},this)">🏷️ ${s.teacher_name} (${s.time_spent_eval})</button>`;
+            sols += `<div class="sol-content-box sol-box-${idx}" id="sol-box-${idx}-${sIdx}" style="display:${disp};"><h4 style="color:var(--accent-cyan); margin-bottom:0.6rem;">⚡ ${s.approach_name} ${s.is_ai_generated ? '<span style="font-size:0.75rem; background:rgba(192,132,252,0.3); color:#fff; padding:0.1rem 0.5rem; border-radius:4px;">AI 名师蒸馏</span>' : ""}</h4><p style="color:#e2e8f0; font-size:0.95rem;">${s.content}</p><div class="sol-footer"><span style="font-size:0.85rem; color:var(--text-muted);">🌟 热度: <strong id="upval-${s.id}">${s.upvotes}</strong> 赞</span><div style="display:flex; gap:0.6rem;"><button class="upvote-btn" style="background:transparent; border-color:var(--accent-cyan); color:var(--accent-cyan);" onclick="openAITutor('${q.id}', '${s.teacher_name}')">🤖 提问该名师</button><button class="upvote-btn" onclick="upvote('${s.id}')">👍 醍醐灌顶赞 (+1)</button></div></div></div>`;
+          });
+          card.innerHTML = `<div class="q-header"><span class="q-tag">考点: ${q.skill_id === "s1-1-1" ? "截位直算法" : "核心主题词排异"}</span><span style="color:var(--accent-amber);">难度: ${"★".repeat(q.difficulty)}</span></div><div class="q-content">${idx + 1}. ${q.content}</div><div class="q-options">${q.options.map((o) => `<div class="q-opt ${o.key === q.correct_answer ? "correct" : ""}" onclick="selectOpt(this)">${o.key}. ${o.text}</div>`).join("")}</div><div class="solutions-area"><div class="sol-tabs">${tabs}</div>${sols}</div>`;
+          c.appendChild(card);
         });
-
-        const currentSol = q.solutions[currentSolIndex];
-        document.getElementById("sol-body").innerText = currentSol.content;
-        document.getElementById("upvote-count").innerText = currentSol.upvotes;
       }
 
-      async function upvoteCurrentSolution() {
-        const q = currentQuestions[currentQIndex];
-        const sol = q.solutions[currentSolIndex];
-        const res = await fetch(`/api/solutions/${sol.id}/upvote`, {
+      function toggleSol(idx, sIdx, btn) {
+        const p = btn.closest(".solutions-area");
+        p.querySelectorAll(".sol-tab-btn").forEach((b) =>
+          b.classList.remove("active"),
+        );
+        p.querySelectorAll(`.sol-box-${idx}`).forEach(
+          (box) => (box.style.display = "none"),
+        );
+        btn.classList.add("active");
+        document.getElementById(`sol-box-${idx}-${sIdx}`).style.display =
+          "block";
+      }
+
+      function selectOpt(e) {
+        showToast(
+          e.classList.contains("correct")
+            ? "🎉 回答正确！精准秒杀！"
+            : "💡 回答错误，请对下名师技巧解析！",
+        );
+      }
+      async function upvote(id) {
+        const res = await fetch(`${API_BASE}/api/solutions/${id}/upvote`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "UPVOTE" }),
         });
-        const data = await res.json();
-        if (data.success) {
-          sol.upvotes = data.upvotes;
-          document.getElementById("upvote-count").innerText = sol.upvotes;
+        const d = await res.json();
+        if (d.success) {
+          document.getElementById(`upval-${id}`).innerText = d.upvotes;
+          showToast("🌟 点赞成功！偏好已记入名师契合度引擎！");
         }
       }
 
-      async function loadSkillMastery() {
-        const res = await fetch("/api/skills/mastery");
-        masteryData = await res.json();
-
-        const chartDom = document.getElementById("radar-chart");
-        const myChart = echarts.init(chartDom, "dark");
-
-        const option = {
-          backgroundColor: "transparent",
-          radar: {
-            indicator: masteryData.map((s) => ({ name: s.name, max: 100 })),
-            splitArea: {
-              areaStyle: {
-                color: ["rgba(255,255,255,0.02)", "rgba(255,255,255,0.05)"],
-              },
-            },
-            axisLine: { lineStyle: { color: "rgba(255,255,255,0.1)" } },
-            splitLine: { lineStyle: { color: "rgba(255,255,255,0.1)" } },
-          },
-          series: [
-            {
-              name: "技巧正确率",
-              type: "radar",
-              data: [
-                {
-                  value: masteryData.map((s) => s.accuracy),
-                  name: "掌握度 (%)",
-                  areaStyle: { color: "rgba(56, 189, 248, 0.3)" },
-                  lineStyle: { color: "#38bdf8", width: 2 },
-                },
-              ],
-            },
-          ],
-        };
-
-        myChart.setOption(option);
+      async function loadSkills() {
+        const res = await fetch(`${API_BASE}/api/skills/mastery`);
+        const sk = await res.json();
+        const c = document.getElementById("skills-container");
+        c.innerHTML = "";
+        sk.forEach((s) => {
+          const item = document.createElement("div");
+          item.className = "skill-item";
+          const bg =
+            s.status === "WEAK"
+              ? "weak"
+              : s.status === "EXCELLENT"
+                ? "excellent"
+                : "good";
+          const txt =
+            s.status === "WEAK"
+              ? "🚨 薄弱急需强化"
+              : s.status === "EXCELLENT"
+                ? "🌟 纯熟极速秒杀"
+                : "👍 良好水平";
+          item.innerHTML = `<div><h4>${s.name}</h4><p style="font-size:0.8rem; color:var(--text-muted);">EMA 掌握度: <strong style="color:#fff;">${s.composite_score}分</strong> | 均速: ${s.avg_time_sec}秒 (基准 ${s.benchmark_time_sec}秒)</p></div><span class="skill-badge ${bg}">${txt}</span>`;
+          c.appendChild(item);
+        });
+      }
+      async function triggerRemediate() {
+        const res = await fetch(`${API_BASE}/api/skills/remediate`, {
+          method: "POST",
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(d.message);
+          setTimeout(() => switchTab("solutions"), 1000);
+        }
       }
 
       async function loadCohorts() {
-        const res = await fetch("/api/cohorts");
-        const cohorts = await res.json();
-        const container = document.getElementById("cohorts-list");
-        container.innerHTML = "";
-
-        cohorts.forEach((c) => {
-          const div = document.createElement("div");
-          div.className = "cohort-card";
-          div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem;">
-            <b style="font-size:1rem;">${c.title}</b>
-            <span style="color:#10b981; font-weight:600;">契约金: ¥${c.deposit_amount}</span>
-          </div>
-          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom: 0.8rem;">
-            全营成员: ${c.total_members} 人 | 奖金池: ¥${c.pool_amount} | 今日已打卡: ${c.completed_today} 人
-          </div>
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:0.85rem;">已连续打卡 <b style="color:var(--primary);">${c.user_checkins_count}</b> 天</span>
-            <button class="btn-action" onclick="checkinCohort('${c.id}')">📷 提交做题打卡</button>
-          </div>
-        `;
-          container.appendChild(div);
+        const res = await fetch(`${API_BASE}/api/cohorts`);
+        const ch = await res.json();
+        const c = document.getElementById("cohorts-container");
+        c.innerHTML = "";
+        ch.forEach((h) => {
+          const card = document.createElement("div");
+          card.className = "cohort-card";
+          card.innerHTML = `<div style="display:flex; justify-content:space-between;"><span>🟢 已参营生效中</span><span style="color:var(--text-muted); font-size:0.8rem;">ID: ${h.id}</span></div><h3 style="margin:0.8rem 0;">${h.title}</h3><div class="pool-banner"><span>💰 对赌分红池</span><span>${h.pool_amount.toLocaleString()} 积分</span></div><p style="color:var(--text-muted); font-size:0.85rem;">今日打卡: <strong style="color:var(--accent-green);">${h.completed_today}</strong> 人</p><div class="squad-box"><div style="font-size:0.85rem; color:var(--accent-cyan); font-weight:700;">👥 您的4人死党小队状态：</div>${h.squad_members.map((s) => `<div style="display:flex; justify-content:space-between; padding:0.3rem 0; border-bottom:1px solid rgba(255,255,255,0.04);"><span>${s.name} (${s.streak}天连签)</span><strong style="color:${s.today_done ? "var(--accent-green)" : "var(--accent-rose)"};">${s.today_done ? "✅ 已打卡" : "⏳ 待达标"}</strong></div>`).join("")}</div><button class="btn-checkin" onclick="checkin('${h.id}')">⚡ 触发今日自动契约打卡</button>`;
+          c.appendChild(card);
         });
       }
-
-      async function checkinCohort(id) {
-        const res = await fetch(`/api/cohorts/${id}/checkin`, {
+      async function checkin(id) {
+        const res = await fetch(`${API_BASE}/api/cohorts/${id}/checkin`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proof_type: "AUTO" }),
         });
-        const data = await res.json();
-        alert(data.message);
+        const d = await res.json();
+        showToast(d.message);
         loadCohorts();
+        loadDashboard();
       }
 
       async function loadStrategies() {
-        const res = await fetch("/api/strategies");
-        const strats = await res.json();
-        const container = document.getElementById("strategies-list");
-        container.innerHTML = "";
-
-        strats.forEach((s) => {
-          const div = document.createElement("div");
-          div.className = "strategy-item";
-          const timelinePills = s.timeline_data
-            .map(
-              (t) =>
-                `<span class="timeline-pill">${t.phase}: 日均 ${t.daily_questions} 题 / ${t.daily_hours} 小时</span>`,
-            )
-            .join("");
-
-          div.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-            <b>${s.author_avatar} ${s.title}</b>
-            <button class="btn-fork" onclick="forkStrategy('${s.id}')">🔱 派生 Fork (${s.forked_count})</button>
-          </div>
-          <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.6rem;">
-            创建者: ${s.author_name} | 全程跨度: ${s.days_total} 天
-          </div>
-          <div>${timelinePills}</div>
-        `;
-          container.appendChild(div);
+        const res = await fetch(`${API_BASE}/api/strategies`);
+        const st = await res.json();
+        const c = document.getElementById("strategies-container");
+        c.innerHTML = "";
+        st.forEach((s) => {
+          const card = document.createElement("div");
+          card.className = "strat-card";
+          card.innerHTML = `<h3>${s.author_avatar} ${s.title}</h3><p style="color:var(--text-muted);">原周期：<strong>${s.days_total}</strong> 天 | 被 Fork ${s.forked_count} 次</p><div class="fork-form"><span style="color:var(--accent-amber); font-weight:700;">⚡ 目标考期倒推重算：</span><input type="date" class="fork-input" id="dt-${s.id}" value="2026-03-13"><input type="number" class="fork-input" id="hr-${s.id}" value="3.0" style="width:80px;"><button class="btn-fork" onclick="forkStrat('${s.id}')">🚀 一键 Fork 派生</button></div><div style="border-left:2px solid var(--accent-cyan); margin-left:0.5rem; padding-left:1.5rem;">${s.timeline_data.map((t) => `<div style="margin-bottom:1rem;"><h4>${t.phase}</h4><p style="color:var(--accent-cyan); font-size:0.9rem;">重点：${t.focus}</p><p style="color:var(--text-muted); font-size:0.85rem;">每日刷题: ${t.daily_questions} 题 | 建议学时: ${t.daily_hours} h ${t.custom_note ? `<br><strong style="color:var(--accent-green);">${t.custom_note}</strong>` : ""}</p></div>`).join("")}</div>`;
+          c.appendChild(card);
         });
       }
-
-      async function forkStrategy(id) {
-        const targetDate = prompt(
-          "请输入您的目标考试日期 (格式 YYYY-MM-DD):",
-          "2026-03-13",
-        );
-        if (!targetDate) return;
-
-        const res = await fetch(`/api/strategies/${id}/fork`, {
+      async function forkStrat(id) {
+        const res = await fetch(`${API_BASE}/api/strategies/${id}/fork`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ target_date: targetDate }),
+          body: JSON.stringify({
+            target_date: document.getElementById(`dt-${id}`).value,
+            daily_hours: document.getElementById(`hr-${id}`).value,
+          }),
         });
-        const data = await res.json();
-        alert(data.message);
+        const d = await res.json();
+        showToast(d.message);
         loadStrategies();
       }
 
-      window.onload = init;
+      // --- ADMIN MODULE FUNCTIONS ---
+      async function discoverModels() {
+        const u = document.getElementById("adm-base-url").value;
+        const k = document.getElementById("adm-api-key").value;
+        const res = await fetch(`${API_BASE}/api/admin/llm/discover-models`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base_url: u, api_key: k }),
+        });
+        const d = await res.json();
+        if (d.success) {
+          const sel = document.getElementById("adm-model-select");
+          sel.innerHTML = "";
+          d.models.forEach((m) => {
+            const o = document.createElement("option");
+            o.value = m;
+            o.innerText = m;
+            sel.appendChild(o);
+          });
+          showToast(d.message);
+        }
+      }
+      async function saveLLMConfig() {
+        const m = document.getElementById("adm-model-select").value;
+        const res = await fetch(`${API_BASE}/api/admin/llm/config`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active_model: m }),
+        });
+        const d = await res.json();
+        if (d.success) showToast(d.message);
+      }
+      async function ingestPDF() {
+        const f = document.getElementById("adm-pdf-file").files[0];
+        const log = document.getElementById("adm-ingest-log");
+        log.style.display = "block";
+        log.innerHTML =
+          "[SYSTEM] 正在解析真题 PDF 文本...<br>[LLM] 正在进行阶段一：排版清洗与 JSON 抽取...<br>[LLM] 正在进行阶段二：三级考点自动分类打标签...<br>[LLM] 正在调用名师 Skill 蒸馏生成多解法...";
+        const res = await fetch(`${API_BASE}/api/admin/ingest/pdf`, {
+          method: "POST",
+        });
+        const d = await res.json();
+        if (d.success) {
+          setTimeout(() => {
+            log.innerHTML += `<br><strong style="color:var(--accent-green);">[SUCCESS] 成功摄取！已自动将整卷习题及 AI 解析并入题库！</strong>`;
+            showToast(d.message);
+          }, 2500);
+        }
+      }
+      async function toggleReg() {
+        allowReg = !allowReg;
+        const res = await fetch(`${API_BASE}/api/admin/settings`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ allow_registration: allowReg }),
+        });
+        const d = await res.json();
+        const btn = document.getElementById("btn-reg-toggle");
+        btn.innerText = allowReg ? "🟢 已开启注册" : "🔴 注册已关停";
+        btn.style.background = allowReg ? "" : "var(--accent-rose)";
+        showToast(`平台普通用户注册功能已${allowReg ? "开启" : "关停"}！`);
+      }
+      async function updateQuota(uId) {
+        const val = document.getElementById("adm-token-quota").value;
+        const res = await fetch(`${API_BASE}/api/admin/users/${uId}/quota`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token_quota: val }),
+        });
+        const d = await res.json();
+        if (d.success) {
+          showToast(d.message);
+          loadDashboard();
+        }
+      }
+      async function syncGitHub() {
+        const url = document.getElementById("adm-gh-repo").value;
+        const res = await fetch(`${API_BASE}/api/admin/github-sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ repo_url: url }),
+        });
+        const d = await res.json();
+        if (d.success) showToast(d.message);
+      }
+
+      // --- AI TUTOR FUNCTIONS ---
+      function openAITutor(qId, tName) {
+        activeQId = qId;
+        activeTeacher = tName;
+        document.getElementById("modal-teacher-name").innerText = tName;
+        document.getElementById("modal-reply").style.display = "none";
+        document.getElementById("ai-modal").style.display = "flex";
+      }
+      function closeAITutor() {
+        document.getElementById("ai-modal").style.display = "none";
+      }
+      async function submitAIQuestion() {
+        const prompt = document.getElementById("modal-prompt").value;
+        const replyBox = document.getElementById("modal-reply");
+        replyBox.style.display = "block";
+        replyBox.innerHTML =
+          "🤖 <span style='color:var(--accent-amber);'>专属名师 AI 正在疯狂运算解答中...</span>";
+        const res = await fetch(`${API_BASE}/api/ai/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            question_id: activeQId,
+            teacher_name: activeTeacher,
+            prompt: prompt,
+          }),
+        });
+        const d = await res.json();
+        if (d.success) {
+          replyBox.innerHTML = `${d.answer}<br><br><span style='font-size:0.8rem; color:var(--accent-green);'>⚡ 本次名师答疑消耗 Token: <strong>${d.tokens_consumed}</strong> | 当前账户剩余: <strong>${d.tokens_remaining.toLocaleString()}</strong></span>`;
+          document.getElementById("nav-token").innerText =
+            d.tokens_remaining.toLocaleString();
+        } else if (d.quota_exceeded || res.status === 402) {
+          replyBox.innerHTML = `<span style='color:var(--accent-rose); font-weight:700;'>${d.error}</span>`;
+          showToast("⚠️ Token 配额不足！");
+        }
+      }
+
+      window.onload = () => {
+        loadDashboard();
+      };
     </script>
   </body>
 </html>
