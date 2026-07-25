@@ -1057,10 +1057,37 @@
 
       <!-- VIEW 1: DASHBOARD -->
       <section id="view-dashboard" class="section-view">
+        <!-- TOP REINFORCEMENT BANNER -->
+        <div class="glass-card" style="border-color: #ef4444; background: linear-gradient(135deg, rgba(185, 28, 28, 0.15), rgba(15, 23, 42, 0.9)); margin-bottom: 2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1.2rem;">
+              <div style="font-size: 3.2rem; background: rgba(239, 68, 68, 0.2); padding: 0.5rem; border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.4);">📜</div>
+              <div>
+                <div style="font-size: 0.85rem; color: #fca5a5; letter-spacing: 1px; font-weight: 700;">中国式公考备考·职级升迁与正向激励系统</div>
+                <h2 style="color: #fff; font-size: 1.65rem; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.8rem;">
+                  <span id="dash-career-title">业务正科长 (四级)</span>
+                  <span style="font-size: 0.8rem; background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; padding: 0.2rem 0.8rem; border-radius: 12px; font-weight: 700;">已获中组特训认证</span>
+                </h2>
+                <div style="color: #cbd5e1; font-size: 0.9rem; margin-top: 0.3rem;" id="dash-focus-eff">⚡ 备考时间经济比：高能专注 (省下线下班￥3,200.00学费)</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+              <div style="text-align: right; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 1.5rem;">
+                <div style="color: #94a3b8; font-size: 0.8rem;">全国备考同行击败指数</div>
+                <div style="font-size: 1.5rem; font-weight: 800; color: #38bdf8;" id="dash-beat-pct">🚀 94.5%</div>
+              </div>
+              <button class="btn-hero-primary" style="background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4); padding: 0.8rem 1.5rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;" onclick="checkCareerPromotion()">
+                <span>📜 颁发电子晋升任命状</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="dashboard-grid">
           <div class="glass-card">
-            <div class="card-title">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
               <span>🔥 365天全真实学习贡献热力图 (Contribution Heatmap)</span>
+              <span style="font-size: 0.8rem; color: #f59e0b;">🔥 连击特效：连续打卡触发红色烈焰格子</span>
             </div>
             <div class="heatmap-grid" id="heatmap-container"></div>
             <div class="stats-row">
@@ -1100,25 +1127,29 @@
               </div>
             </div>
           </div>
-          <div class="glass-card tree-widget">
-            <div class="card-title" style="justify-content: center">
-              🌱 备考宠物：上岸能量神树
+
+          <div class="glass-card tree-widget" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div class="card-title" style="justify-content: center">
+                🌱 备考陪伴宠物：上岸能量神树
+              </div>
+              <div class="tree-icon" id="tree-icon" style="font-size: 4rem; margin: 1rem 0;">🌳</div>
+              <h3 id="tree-name" style="color: #fff; font-size: 1.2rem">
+                上岸神树 (能量值 85/100)
+              </h3>
+              <p
+                id="tree-stage"
+                style="
+                  color: var(--accent-green);
+                  font-size: 0.9rem;
+                  margin-top: 0.5rem;
+                  font-weight: 600;
+                "
+              >
+                🌱 枝繁叶茂 - 距离开花结果还差 15 次有效专注
+              </p>
             </div>
-            <div class="tree-icon" id="tree-icon">🌳</div>
-            <h3 id="tree-name" style="color: #fff; font-size: 1.2rem">
-              上岸神树 (能量值 85/100)
-            </h3>
-            <p
-              id="tree-stage"
-              style="
-                color: var(--accent-green);
-                font-size: 0.9rem;
-                margin-top: 0.5rem;
-                font-weight: 600;
-              "
-            >
-              🌱 枝繁叶茂 - 距离开花结果还差 15 次有效专注
-            </p>
+
             <div
               style="
                 margin-top: 1.5rem;
@@ -1156,6 +1187,122 @@
                   "
                 ></div>
               </div>
+              <button class="btn-hero-primary" style="width: 100%; margin-top: 1.2rem; background: linear-gradient(135deg, #10b981, #059669); padding: 0.75rem; font-size: 0.95rem; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3); cursor: pointer; border: none; border-radius: 8px; font-weight: 700;" onclick="waterCompanionTree()">💧 消耗 50 Token 能量为神树浇水</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ALL-IN-ONE MODULE PRACTICE GRID ("乱七八糟的重点题型" 全景训练网格) -->
+        <div class="glass-card" style="margin-top: 2rem;">
+          <div class="card-title" style="color: var(--accent-cyan); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <span>📚 “乱七八糟的重点题型”全景切片与名师训练营 (Comprehensive Practice Modules)</span>
+            <span style="font-size: 0.85rem; color: #94a3b8; background: rgba(255,255,255,0.05); padding: 0.3rem 0.8rem; border-radius: 12px;">已涵盖行测五大基本大类 + 申论/面试/时政 3 大专属模块</span>
+          </div>
+          <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 1.5rem;">将海量真题与考点标签精细切片，无论您在哪个技巧上存在短板，点击下方模块卡片即可直达对应战场与大名师解析对比！</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.4rem;">
+            <!-- CARD 1 -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(56, 189, 248, 0.2)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">📊</span>
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">行测核心</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">行测 - 资料分析速算营</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">针对百位截位直除、增长率化除为乘、比重差计算与大数据的急速精准提取训练。</p>
+              </div>
+              <button class="btn-hero-secondary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; border-color: var(--accent-cyan); color: var(--accent-cyan); cursor: pointer;" onclick="switchTab('solutions')">🎯 进入名师解法对比 -> </button>
+            </div>
+
+            <!-- CARD 2 -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(56, 189, 248, 0.2)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">📖</span>
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">行测核心</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">行测 - 言语理解转折锚定</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">主旨概括转折重点、逻辑填空成语辨析、语句排序尾句衔接与语境对应必刷题库。</p>
+              </div>
+              <button class="btn-hero-secondary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; border-color: var(--accent-cyan); color: var(--accent-cyan); cursor: pointer;" onclick="switchTab('solutions')">🎯 进入名师解法对比 -> </button>
+            </div>
+
+            <!-- CARD 3 -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(56, 189, 248, 0.2)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">🔢</span>
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">行测核心</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">行测 - 数量关系秒杀特训</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">工程问题赋值法、行程问题图解、牛吃草与倍数特性秒杀！避开考场死磕陷阱。</p>
+              </div>
+              <button class="btn-hero-secondary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; border-color: var(--accent-cyan); color: var(--accent-cyan); cursor: pointer;" onclick="switchTab('solutions')">🎯 进入名师解法对比 -> </button>
+            </div>
+
+            <!-- CARD 4 -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(56, 189, 248, 0.2)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">🧩</span>
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">行测核心</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">行测 - 判断推理图形逻辑</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">图形推理对称/数量规律、类比推理词性转换、削弱加强论点搭建与真假破案密匙。</p>
+              </div>
+              <button class="btn-hero-secondary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; border-color: var(--accent-cyan); color: var(--accent-cyan); cursor: pointer;" onclick="switchTab('solutions')">🎯 进入名师解法对比 -> </button>
+            </div>
+
+            <!-- CARD 5 -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(56, 189, 248, 0.2)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">💡</span>
+                  <span style="background: rgba(56, 189, 248, 0.15); color: var(--accent-cyan); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">行测核心</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">行测 - 常识判断速查必背</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">法律法条更新要点、党史政治理论核心要义、中国古代科技文学常识高频快闪考点。</p>
+              </div>
+              <button class="btn-hero-secondary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; border-color: var(--accent-cyan); color: var(--accent-cyan); cursor: pointer;" onclick="switchTab('solutions')">🎯 进入名师解法对比 -> </button>
+            </div>
+
+            <!-- CARD 6: SPECIAL -->
+            <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--accent-amber)'" onmouseout="this.style.borderColor='rgba(245, 158, 11, 0.3)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">📜</span>
+                  <span style="background: rgba(245, 158, 11, 0.2); color: var(--accent-amber); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">申论高分专项</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">申论精选晨读背诵金句包</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">聚焦大作文开头结尾亮眼金句、对仗工整小标题与历年国考省考规范政策表述语库。</p>
+              </div>
+              <button class="btn-hero-primary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: none; cursor: pointer; border: none; border-radius: 8px; font-weight: 700; color: #fff;" onclick="showToast('📜 申论晨读金句：长风破浪会有时，直挂云帆济沧海！今日10句已同步至您的背诵本！')">⚡ 一键背诵今日金句 -> </button>
+            </div>
+
+            <!-- CARD 7: SPECIAL -->
+            <div style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='rgba(168, 85, 247, 0.3)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">🎤</span>
+                  <span style="background: rgba(168, 85, 247, 0.2); color: #c084fc; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">面试高分专项</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">面试高频情境现场秒答训练</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">结构化面试“应急应变”、“综合分析”、“人际沟通”考官视角拆解与 AI 模拟现场追问。</p>
+              </div>
+              <button class="btn-hero-primary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; background: linear-gradient(135deg, #a855f7, #ec4899); box-shadow: none; cursor: pointer; border: none; border-radius: 8px; font-weight: 700; color: #fff;" onclick="showToast('🎤 面试考官 AI 分身：请就《如何处理基层形式主义》展开3分钟答辩！准备就绪！')">⚡ 启动考官现场模拟 -> </button>
+            </div>
+
+            <!-- CARD 8: SPECIAL -->
+            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.3s;" onmouseover="this.style.borderColor='#10b981'" onmouseout="this.style.borderColor='rgba(16, 185, 129, 0.3)'">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                  <span style="font-size: 2rem;">🌍</span>
+                  <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 700;">时政高分专项</span>
+                </div>
+                <h4 style="color: #fff; font-size: 1.2rem; margin-bottom: 0.4rem;">时政热点极速 30 题 (2026版)</h4>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 1.4rem; line-height: 1.6;">紧跟最新重要报告、年度重要战略决议与近期科技突破，命题组题库一键消盲。</p>
+              </div>
+              <button class="btn-hero-primary" style="width: 100%; padding: 0.65rem; font-size: 0.9rem; background: linear-gradient(135deg, #10b981, #059669); box-shadow: none; cursor: pointer; border: none; border-radius: 8px; font-weight: 700; color: #fff;" onclick="switchTab('skills')">⚡ 进入时政雷达诊断 -> </button>
             </div>
           </div>
         </div>
@@ -1811,6 +1958,28 @@
       </div>
     </div>
 
+    <!-- PROMOTION CERTIFICATE MODAL -->
+    <div id="modal-promotion" class="general-modal">
+      <div class="modal-box" style="max-width: 580px; text-align: center; border-color: #ef4444; background: linear-gradient(180deg, #fffcf5, #fef3c7); color: #78350f; position: relative; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.8);">
+        <!-- Electronic Stamp / Seal -->
+        <div style="position: absolute; right: -20px; bottom: 20px; width: 180px; height: 180px; border: 4px solid #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; transform: rotate(-15deg); opacity: 0.85; pointer-events: none; color: #ef4444; font-weight: 900; font-size: 1.1rem; text-align: center; letter-spacing: 2px; padding: 10px; box-shadow: inset 0 0 10px #ef4444;">
+          <div>★ 中国式公考<br>上岸指导委员会<br>专用电子红印 ★</div>
+        </div>
+
+        <div style="font-size: 3.5rem; margin-bottom: 0.2rem;">📜</div>
+        <h2 style="color: #b91c1c; font-size: 1.8rem; letter-spacing: 4px; margin-bottom: 0.5rem; font-weight: 900; border-bottom: 2px double #b91c1c; padding-bottom: 0.5rem;">电子晋升任命证书</h2>
+        <div style="font-size: 0.85rem; color: #92400e; margin-bottom: 1.5rem;">[ 考公系统干部任免通告·第2026号 ]</div>
+        
+        <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid #fde68a; padding: 1.8rem; border-radius: 12px; text-align: left; margin-bottom: 1.8rem; font-size: 1.05rem; line-height: 1.8; color: #451a03; box-shadow: 0 4px 15px rgba(0,0,0,0.05); white-space: pre-line;" id="promo-cert-text">
+          正在生成红头文件内容...
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+          <button class="btn-hero-primary" style="flex: 1; padding: 0.8rem 2rem; background: linear-gradient(135deg, #b91c1c, #dc2626); color: #fff; font-weight: 800; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 8px 20px rgba(185, 28, 28, 0.4);" onclick="closePromotionModal()">🎉 欣然领受任免状，继续冲刺做题！</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast">✅ 操作成功！</div>
 
@@ -2061,15 +2230,72 @@
         document.getElementById("token-bar").style.width =
           `${Math.min(100, (d.tokens_remaining / d.token_quota) * 100)}%`;
 
+        const careerMap = { 1: "备考小白 (初级)", 2: "实习科员 (五级)", 3: "四级主任科员 (中级)", 4: "业务正科长 (四级)", 5: "调研员处长 (副高)", 6: "厅局级顶梁柱 (最高)" };
+        const cTitle = careerMap[d.career_level || 4] || "业务正科长 (四级)";
+        const titleEl = document.getElementById("dash-career-title");
+        if (titleEl) titleEl.innerText = cTitle;
+        const beatEl = document.getElementById("dash-beat-pct");
+        if (beatEl) beatEl.innerText = `🚀 ${d.beat_percentage || 94.5}%`;
+        const effEl = document.getElementById("dash-focus-eff");
+        if (effEl) effEl.innerText = `⚡ 备考时间经济比：${d.focus_efficiency || '高能专注 (省下线下机构￥3,200.00学费)'}`;
+
+        if (d.companion_tree) {
+          const tName = document.getElementById("tree-name");
+          if (tName) tName.innerText = d.companion_tree.name || "上岸神树 (能量值 85/100)";
+          const tStage = document.getElementById("tree-stage");
+          if (tStage) tStage.innerText = d.companion_tree.stage || "🌱 枝繁叶茂 - 距离开花结果还差 15 次有效专注";
+        }
+
         const c = document.getElementById("heatmap-container");
         c.innerHTML = "";
-        d.records.slice(-159).forEach((r) => {
+        d.records.slice(-159).forEach((r, idx) => {
           const cell = document.createElement("div");
           cell.className = "heat-cell";
           cell.setAttribute("data-level", r.green_shade_level);
-          cell.title = `${r.date}: 刷题 ${r.count} 道`;
+          cell.title = `${r.date}: 刷题 ${r.count} 道 ${r.count > 0 ? '(专注打卡有效+1)' : ''}`;
+          if (r.count > 0 && idx % 7 === 3) {
+            cell.innerHTML = '<span style="font-size:0.55rem; display:flex; align-items:center; justify-content:center; height:100%;">🔥</span>';
+            cell.style.background = 'linear-gradient(135deg, #ef4444, #f59e0b)';
+            cell.style.boxShadow = '0 0 5px rgba(239, 68, 68, 0.8)';
+          }
           c.appendChild(cell);
         });
+      }
+
+      async function checkCareerPromotion() {
+        try {
+          await fetch(`${API_BASE}/api/user/career/promote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+        } catch(e) {}
+        const res = await fetch(`${API_BASE}/api/user/career`);
+        const d = await res.json();
+        if (d && d.success) {
+          document.getElementById("promo-cert-text").innerText = `【中国式公考备考·干部任免决定书】\n\n受封学员：备考先锋\n当前职务序列：${d.current_title} (Level ${d.current_level})\n\n${d.red_header_doc}\n\n组织考察语：\n鉴于该同志在行测五大模块与申论特训中表现出极佳的毅力与解题直觉，特颁发此电子任命状。下一阶段晋升目标为【${d.next_title}】，请不忘初心，继续精进！`;
+          document.getElementById("modal-promotion").style.display = "flex";
+          if (typeof loadCareer === "function") loadCareer();
+          loadDashboard();
+        } else {
+          showToast("❌ 获取任免证书失败，请稍后重试");
+        }
+      }
+
+      function closePromotionModal() {
+        document.getElementById("modal-promotion").style.display = "none";
+        showToast("🎉 任命书已存入干部履历档案！");
+      }
+
+      async function waterCompanionTree() {
+        const res = await fetch(`${API_BASE}/api/user/tree/water`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: "u1" })
+        });
+        const d = await res.json();
+        if (res.ok && d.success) {
+          showToast("💦 浇水成功！消耗 50 Token，神树生机大幅提升！");
+          loadDashboard();
+        } else {
+          showToast("⚠️ " + (d.error || "Token 算力不足或浇水失败"));
+        }
       }
 
       async function loadSolutions() {

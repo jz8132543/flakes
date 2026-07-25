@@ -865,6 +865,9 @@ const server = http.createServer(async (req, res) => {
       token_quota: u.token_quota,
       token_used: u.token_used,
       tokens_remaining: Math.max(0, u.token_quota - u.token_used),
+      career_level: u.career_level || 4,
+      beat_percentage: 94.5,
+      focus_efficiency: "高能专注 (相当于省下线下机构￥3,200.00智商税)"
     });
   }
 
@@ -923,6 +926,34 @@ const server = http.createServer(async (req, res) => {
       }
     });
     return;
+  }
+
+  if (pathname === "/api/user/tree/water" && req.method === "POST") {
+    try {
+      const p = await parseBody(req);
+      const userId = p.user_id || "u1";
+      const u = db.users.find((x) => x.id === userId) || db.users[0];
+      if (u.token_used + 50 > u.token_quota) {
+        return sendJSON(res, { error: "Token 算力不足，无法浇水！请前往设置中心充值加油包！" }, 400);
+      }
+      u.token_used += 50;
+      u.companion_tree.status = "VIBRANT";
+      u.companion_tree.last_watered_date = new Date().toISOString().split("T")[0];
+      u.companion_tree.level = Math.min(5, (u.companion_tree.level || 1) + 1);
+      const stages = [
+        "🌱 刚萌芽 - 开始做题积累能量",
+        "🌿 茁壮成长 - 每日必刷基础已夯实",
+        "🌲 枝繁叶茂 - 距离开花结果 (上岸) 仅一步之遥",
+        "🌸 繁花似锦 - 模考排名前列，上岸稳券在握",
+        "🍎 结出金苹果 - 恭喜您已被心仪报考单位正式录用！"
+      ];
+      u.companion_tree.stage = stages[Math.min(4, u.companion_tree.level - 1)];
+      u.companion_tree.name = `上岸神树 (能量值 ${Math.min(100, u.companion_tree.level * 20)}/100)`;
+      log(req.method, pathname, 200);
+      return sendJSON(res, { success: true, companion_tree: u.companion_tree, token_used: u.token_used });
+    } catch (err) {
+      return sendJSON(res, { error: "Tree watering failed" }, 500);
+    }
   }
 
   // --- MONSTER SLAYING RAID ENDPOINTS ---
