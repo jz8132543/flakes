@@ -91,7 +91,9 @@
     user.directories = [
       # google ai editor (antigravity)
       ".config/Antigravity"
+      ".config/Antigravity IDE"
       ".antigravity"
+      ".antigravity-ide"
       ".gemini"
       ".antigravity-server"
     ];
