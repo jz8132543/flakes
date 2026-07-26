@@ -82,6 +82,15 @@ stdenv.mkDerivation {
           cat > rime-data/ibus_rime.custom.yaml <<'EOF'
     ${ibusCustomYaml}
     EOF
+          cat > rime-data/ibus_rime.yaml <<'EOF'
+    config_version: '1.0'
+    style:
+      horizontal: true
+      inline_preedit: false
+      candidate_list_layout: linear
+      text_orientation: horizontal
+      preedit_style: composition
+    EOF
         fi
 
         # These files make the generated tree look like an already initialized
@@ -106,6 +115,9 @@ stdenv.mkDerivation {
         cp -rf rime-data/. deployed-data/
         mkdir -p deployed-data/build
         cp -rf build/. deployed-data/build/
+        if [ "${framework}" = "ibus" ] && [ -f rime-data/ibus_rime.yaml ]; then
+          cp -f rime-data/ibus_rime.yaml deployed-data/build/ibus_rime.yaml
+        fi
   '';
 
   installPhase = ''

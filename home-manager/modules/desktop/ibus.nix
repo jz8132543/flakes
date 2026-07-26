@@ -31,6 +31,15 @@ let
       };
 in
 lib.mkIf (imFramework == "ibus") {
+  dconf.settings = {
+    "org/freedesktop/ibus/panel" = {
+      lookup-table-orientation = 0;
+    };
+    "org/freedesktop/ibus/general" = {
+      embed-preedit-text = false;
+    };
+  };
+
   xdg.configFile."ibus/rime" = {
     source = rimeUserData + "/share/rime-build";
     recursive = true;

@@ -4,19 +4,10 @@
   ...
 }:
 let
-  alacrittyPackage = pkgs.symlinkJoin {
-    name = "alacritty-terminal-english";
-    paths = [ pkgs.alacritty ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      wrapProgram $out/bin/alacritty \
-        --set WINIT_UNIX_BACKEND x11 \
-        --set GTK_IM_MODULE xim \
-        --set QT_IM_MODULE xim \
-        --set SDL_IM_MODULE xim \
-        --set XMODIFIERS @im=none \
-        --unset XIM
-    '';
+  alacrittyPackage = config.lib.self.wrapNoIme {
+    inherit pkgs;
+    pkg = pkgs.alacritty;
+    extraArgs = "--set WINIT_UNIX_BACKEND x11";
   };
 in
 {

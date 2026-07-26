@@ -39,6 +39,23 @@
       qtwebengine = null;
     };
 
+    wpsoffice-cn = prev.symlinkJoin {
+      name = "${prev.wpsoffice-cn.name or "wpsoffice-cn"}-no-scale";
+      inherit (prev.wpsoffice-cn) version meta;
+      paths = [ prev.wpsoffice-cn ];
+      nativeBuildInputs = [ prev.makeWrapper ];
+      postBuild = ''
+        for bin in $out/bin/*; do
+          if [ -f "$bin" ] && [ -x "$bin" ]; then
+            wrapProgram "$bin" \
+              --set QT_AUTO_SCREEN_SCALE_FACTOR 0 \
+              --set QT_ENABLE_HIGHDPI_SCALING 0 \
+              --set QT_SCALE_FACTOR 1
+          fi
+        done
+      '';
+    };
+
     # python3Packages = prev.python3Packages.overrideScope (
     #   pyFinal: pyPrev: {
     #     kde-material-you-colors = pyPrev.kde-material-you-colors.overridePythonAttrs (old: {

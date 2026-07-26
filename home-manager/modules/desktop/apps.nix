@@ -8,6 +8,284 @@ let
   writerTemplate = wpsTemplateRoot + "/Normal.dotm";
   sheetTemplate = wpsTemplateRoot + "/Normal.xltx";
   slidesTemplate = wpsTemplateRoot + "/Normal.pot";
+  wpsAssociations = {
+    # WPS Writer (Word)
+    "application/msword" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/vnd.ms-word.document.macroEnabled.12" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/vnd.ms-word" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/msword-template" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.doc" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.docx" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.wps" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.wpt" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.dot" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.dotx" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uot3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uott3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uot" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uos" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uos3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uost3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uop" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uop3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.uopt3" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/x-msword" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/rtf" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.msg" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.eml" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.wpso" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.wpss" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "x-scheme-handler/ksoqing" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "x-scheme-handler/ksowps" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "x-scheme-handler/ksowebstartupwps" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "x-scheme-handler/ksodoccenter" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "x-scheme-handler/ksowpscloudsvr" = [
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+
+    # WPS Spreadsheet (Excel)
+    "application/vnd.ms-excel" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/msexcel" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/vnd.ms-excel.sheet.macroEnabled.12" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.xls" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.xlsx" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.xlt" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.xltx" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.et" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.ett" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.ets" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.eto" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/x-msexcel" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "x-scheme-handler/ksoet" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "x-scheme-handler/ksowebstartupet" = [
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+
+    # WPS Presentation (PowerPoint)
+    "application/vnd.ms-powerpoint" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/mspowerpoint" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/powerpoint" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/vnd.mspowerpoint" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/vnd.openxmlformats-officedocument.presentationml.template" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.ppt" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.pptx" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.pot" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.potx" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.dps" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.dpt" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.dpss" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.dpso" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/x-mspowerpoint" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "x-scheme-handler/ksowpp" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "x-scheme-handler/ksowebstartupwpp" = [
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+
+    # WPS PDF Internal MIME (DOES NOT affect real application/pdf, only satisfies WPS startup health checks)
+    "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ];
+  };
 in
 {
   imports = [ ./obsidian-livesync.nix ];
@@ -155,6 +433,18 @@ in
         FirstInstall=0
         common\AcceptedEULA=true
         common\newInstall=false
+        common\first_run=false
+        common\do_not_detect_file_association_while_startup=true
+        common\first_detect_file_association_while_startup=false
+        common\check_file_association=false
+        common\FileAssociationFixRemind=false
+        wpsoffice\Application%20Settings\CheckFileAssociation=false
+        wpsoffice\Application%20Settings\FileAssociationFixRemind=false
+        wpsoffice\Application%20Settings\WordFileAssociation=false
+        wpsoffice\Application%20Settings\ExcelFileAssociation=false
+        wpsoffice\Application%20Settings\PowerPntFileAssociation=false
+        wpsoffice\Application%20Settings\PictureFileAssociation=false
+        wpsoffice\Application%20Settings\RbFileAssociation=false
         wpsoffice\Application%20Settings\UpdateRecoverCheckTag=false
         wpsoffice\Application%20Settings\PromptUpdateStyle=0
         wpsoffice\Application%20Settings\UpdateLinksAtOpen=0
@@ -171,17 +461,51 @@ in
 
         [common]
         first_run=false
+        do_not_detect_file_association_while_startup=true
         first_detect_file_association_while_startup=false
+        check_file_association=false
+        FileAssociationFixRemind=false
+        WordFileAssociation=false
+        ExcelFileAssociation=false
+        PowerPntFileAssociation=false
+        PictureFileAssociation=false
+        RbFileAssociation=false
         agreementshown=true
         agree_privacy_policy=true
         agreeEULA=true
 
-        [UnixUpdateInfo]
-        UserRejectUpdateVersion=${pkgs.wpsoffice-cn.version}
+        [wpsoffice\Application%20Settings]
+        CheckFileAssociation=false
+        FileAssociationFixRemind=false
+        WordFileAssociation=false
+        ExcelFileAssociation=false
+        PowerPntFileAssociation=false
+        PictureFileAssociation=false
+        RbFileAssociation=false
+
+        [wps\Application%20Settings]
+        CheckFileAssociation=false
+        FileAssociationFixRemind=false
+        WordFileAssociation=false
 
         [et\Application%20Settings]
         EnableFormatCheck=0
         AskToUpdateLinks=0
+        CheckFileAssociation=false
+        FileAssociationFixRemind=false
+        ExcelFileAssociation=false
+
+        [wpp\Application%20Settings]
+        CheckFileAssociation=false
+        FileAssociationFixRemind=false
+        PowerPntFileAssociation=false
+
+        [pdf\Application%20Settings]
+        CheckFileAssociation=false
+        FileAssociationFixRemind=false
+
+        [UnixUpdateInfo]
+        UserRejectUpdateVersion=${pkgs.wpsoffice-cn.version}
       '';
     }
     (lib.optionalAttrs (builtins.pathExists writerTemplate) {
@@ -195,12 +519,18 @@ in
     })
   ];
 
+  xdg.mimeApps = {
+    enable = true;
+    associations.added = wpsAssociations;
+    defaultApplications = wpsAssociations;
+  };
+
   xdg.desktopEntries = {
     wps-writer = {
       name = "WPS 文字";
       genericName = "WPS Writer";
       comment = "Open WPS Writer";
-      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
       icon = "wps-office2023-wpsmain";
       terminal = false;
       categories = [
@@ -212,7 +542,7 @@ in
       name = "WPS 表格";
       genericName = "WPS Spreadsheets";
       comment = "Open WPS Spreadsheets";
-      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
       icon = "wps-office2023-etmain";
       terminal = false;
       categories = [
@@ -224,7 +554,7 @@ in
       name = "WPS 演示";
       genericName = "WPS Presentation";
       comment = "Open WPS Presentation";
-      exec = "env QT_IM_MODULE=xim ${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
       icon = "wps-office2023-wppmain";
       terminal = false;
       categories = [

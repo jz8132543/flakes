@@ -6,18 +6,9 @@
 {
   programs.kitty = {
     enable = true;
-    package = pkgs.symlinkJoin {
-      name = "kitty-terminal-english";
-      paths = [ pkgs.kitty ];
-      nativeBuildInputs = [ pkgs.makeWrapper ];
-      postBuild = ''
-        wrapProgram $out/bin/kitty \
-          --set GTK_IM_MODULE xim \
-          --set QT_IM_MODULE xim \
-          --set SDL_IM_MODULE xim \
-          --set XMODIFIERS @im=none \
-          --unset XIM
-      '';
+    package = config.lib.self.wrapNoIme {
+      inherit pkgs;
+      pkg = pkgs.kitty;
     };
     extraConfig = ''
       include ${pkgs.kitty-catppuccin}/mocha.conf

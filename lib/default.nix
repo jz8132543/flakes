@@ -10,5 +10,6 @@ lib.makeExtensible (self: {
   rakeLeaves = import ./rake-leaves.nix { inherit inputs lib; };
   maybeAttrByPath = import ./maybe-attr-by-path.nix { inherit lib; };
   rake = import ./rake.nix { inherit inputs lib; };
+  wrapNoIme = import ./wrap-no-ime.nix;
   path = builtins.toPath ./..;
 })
