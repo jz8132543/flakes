@@ -26,10 +26,11 @@ let
   ];
   toTitle =
     str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
-  orchis-theme = pkgs.orchis-theme.override {
-    tweaks = [ config.home.catppuccin.tweak ];
-    # withWallpapers = true;
+  catppuccin-gtk-theme = pkgs.catppuccin-gtk.override {
+    accents = [ config.home.catppuccin.accent ];
+    variant = config.home.catppuccin.variant;
   };
+  catppuccin-gtk-theme-name = "catppuccin-${config.home.catppuccin.variant}-${config.home.catppuccin.accent}-standard+default";
   catppuccin-kvantum = pkgs.catppuccin-kvantum.override {
     inherit (config.home.catppuccin) accent;
     inherit (config.home.catppuccin) variant;
@@ -41,15 +42,46 @@ let
     mkUint32
     type
     ;
+  # Toggle the GNOME/Mutter display power state via DBus.
+  # writeShellApplication ensures busctl and awk are always in PATH
+  # without relying on the ambient system PATH.
+  toggleScreen = pkgs.writeShellApplication {
+    name = "gnome-toggle-screen";
+    runtimeInputs = [
+      pkgs.systemd # busctl
+      pkgs.gawk
+    ];
+    text = ''
+      STATE=$(busctl --user get-property \
+        org.gnome.Mutter.DisplayConfig \
+        /org/gnome/Mutter/DisplayConfig \
+        org.gnome.Mutter.DisplayConfig PowerSaveMode \
+        | awk '{print $2}')
+      if [ "$STATE" = "1" ]; then
+        busctl --user set-property \
+          org.gnome.Mutter.DisplayConfig \
+          /org/gnome/Mutter/DisplayConfig \
+          org.gnome.Mutter.DisplayConfig PowerSaveMode i 0
+      else
+        busctl --user set-property \
+          org.gnome.Mutter.DisplayConfig \
+          /org/gnome/Mutter/DisplayConfig \
+          org.gnome.Mutter.DisplayConfig PowerSaveMode i 1
+      fi
+    '';
+  };
 in
 {
   home.packages =
     extensionPkgs
+    ++ [
+      toggleScreen
+    ]
     ++ (with pkgs; [
       blackbox-terminal
       kdePackages.dolphin
-      orchis-theme
-    ]);
+    ])
+    ++ [ catppuccin-gtk-theme ];
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
@@ -80,12 +112,22 @@ in
       "org/gnome/settings-daemon/plugins/media-keys" = {
         control-center = [ ];
         control-center-static = [ ];
+        custom-keybindings = [
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/toggle-screen/"
+        ];
       };
       "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
         binding = mkString "NEXT";
         # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
         command = mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
         name = mkString "Power off monitor";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/toggle-screen" = {
+        binding = mkString "XF86PowerOff";
+        # Nix store path — no escaping issues.
+        command = mkString "${toggleScreen}/bin/gnome-toggle-screen";
+        name = mkString "Toggle Screen (Power Key)";
       };
       "org/gnome/settings-daemon/plugins/housekeeping" = {
         donation-reminder-enabled = false;
@@ -214,7 +256,7 @@ in
         show-battery = true;
       };
       "org/gnome/shell/extensions/user-theme" = {
-        name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
+        name = catppuccin-gtk-theme-name;
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -265,8 +307,8 @@ in
   gtk = {
     enable = true;
     theme = {
-      name = "Orchis-Light-${toTitle config.home.catppuccin.tweak}";
-      package = orchis-theme;
+      name = catppuccin-gtk-theme-name;
+      package = catppuccin-gtk-theme;
     };
     iconTheme = {
       name = "Papirus-Dark";

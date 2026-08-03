@@ -7,7 +7,7 @@
 {
   imports = [ nixosModules.services.acme ];
 
-  # firewall fot GSConnect
+  # firewall for GSConnect
   networking.firewall.allowedTCPPorts = lib.range 1714 1764;
   networking.firewall.allowedUDPPorts = lib.range 1714 1764;
 
@@ -23,6 +23,25 @@
     desktopManager = {
       gnome.enable = true;
       plasma6.enable = lib.mkForce false;
+    };
+    # services.gnome.gnome-remote-desktop.enable = true;
+    xrdp = {
+      enable = true;
+      openFirewall = true;
+      defaultWindowManager = "${pkgs.gnome-session}/bin/gnome-session";
+    };
+    fprintd.enable = true;
+    gnome = {
+      gnome-browser-connector.enable = true;
+      sushi.enable = true;
+    };
+    gvfs.enable = true;
+    logind.settings.Login = {
+      # Short-press power key only turns off the screen (handled via GNOME
+      # custom keybinding below). Long-press keeps system poweroff as a
+      # safety fallback when the system is unresponsive.
+      HandlePowerKey = "ignore";
+      HandlePowerKeyLongPress = "poweroff";
     };
   };
 
@@ -43,16 +62,6 @@
     gnomeExtensions.dash-to-dock
     # gnomeExtensions.allow-locked-remote-desktop
   ];
-  # services.gnome.gnome-remote-desktop.enable = true;
-  services.xrdp = {
-    enable = true;
-    openFirewall = true;
-    defaultWindowManager = "${pkgs.gnome-session}/bin/gnome-session";
-  };
-  services.fprintd.enable = true;
-  services.gnome.gnome-browser-connector.enable = true;
-  services.gnome.sushi.enable = true;
-  services.gvfs.enable = true;
 
   # Let Home Manager own user-level GNOME dconf keys. Keeping locks here makes
   # `home-manager-tippy.service` fail when it tries to write the same keys.
