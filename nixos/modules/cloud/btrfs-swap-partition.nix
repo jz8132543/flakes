@@ -101,10 +101,10 @@ in
           exit 0
         fi
 
-        root_disk_name="$(${pkgs.util-linux}/bin/lsblk -no PKNAME "${rootDevice}" 2>/dev/null || true | head -n1 | tr -d '[:space:]')"
-        root_part_name="$(${pkgs.util-linux}/bin/lsblk -no KNAME "${rootDevice}" 2>/dev/null || true | head -n1 | tr -d '[:space:]')"
-        root_partnum="$(${pkgs.util-linux}/bin/lsblk -no PARTN "${rootDevice}" 2>/dev/null || true | head -n1 | tr -d '[:space:]')"
-        fstype="$(${pkgs.util-linux}/bin/lsblk -no FSTYPE "${rootDevice}" 2>/dev/null || true | head -n1 | tr -d '[:space:]')"
+        root_disk_name="$(${pkgs.util-linux}/bin/lsblk -no PKNAME "${rootDevice}" 2>/dev/null | head -n1 | tr -d '[:space:]')"
+        root_part_name="$(${pkgs.util-linux}/bin/lsblk -no KNAME "${rootDevice}" 2>/dev/null | head -n1 | tr -d '[:space:]')"
+        root_partnum="$(${pkgs.util-linux}/bin/lsblk -no PARTN "${rootDevice}" 2>/dev/null | head -n1 | tr -d '[:space:]')"
+        fstype="$(${pkgs.util-linux}/bin/lsblk -no FSTYPE "${rootDevice}" 2>/dev/null | head -n1 | tr -d '[:space:]')"
 
         if [ -z "$root_disk_name" ] || [ -z "$root_part_name" ] || [ -z "$root_partnum" ]; then
           echo "cloud-btrfs-swap-partition: cannot resolve partition geometry, skipping"
@@ -117,7 +117,7 @@ in
         fi
 
         root_disk="/dev/$root_disk_name"
-        if ${pkgs.util-linux}/bin/lsblk -no PARTLABEL "$root_disk" 2>/dev/null || true | ${pkgs.gnugrep}/bin/grep -Fqx "${swapPartitionLabel}"; then
+        if ${pkgs.util-linux}/bin/lsblk -no PARTLABEL "$root_disk" 2>/dev/null | ${pkgs.gnugrep}/bin/grep -Fqx "${swapPartitionLabel}"; then
           echo "cloud-btrfs-swap-partition: swap partition already found on disk, skipping"
           exit 0
         fi
@@ -146,7 +146,7 @@ in
         root_current_end_sector=$((root_start_sectors + root_size_sectors - 1))
         last_usable_sector=$((disk_size_sectors - 34))
 
-        next_part_start="$(${pkgs.util-linux}/bin/lsblk -nrpo TYPE,START "$root_disk" 2>/dev/null || true \
+        next_part_start="$(${pkgs.util-linux}/bin/lsblk -nrpo TYPE,START "$root_disk" 2>/dev/null \
           | ${pkgs.gawk}/bin/awk -v cur="$root_current_end_sector" \
                 '$1=="part" && $2>cur { if (min == "" || $2 < min) min = $2 } END { print min }')"
         if [ -n "$next_part_start" ]; then
@@ -203,12 +203,12 @@ in
             ${pkgs.btrfs-progs}/bin/btrfs filesystem sync "$btrfs_mount" 2>/dev/null || true
             sync
           fi
-          min_dev_size_bytes="$(${pkgs.btrfs-progs}/bin/btrfs inspect-internal min-dev-size "$btrfs_mount" 2>/dev/null || true | ${pkgs.gawk}/bin/awk '/^[0-9]+/ { print $1; exit }')"
+          min_dev_size_bytes="$(${pkgs.btrfs-progs}/bin/btrfs inspect-internal min-dev-size "$btrfs_mount" 2>/dev/null | ${pkgs.gawk}/bin/awk '/^[0-9]+/ { print $1; exit }')"
         elif [ "$fstype" = "ext4" ]; then
           ${pkgs.e2fsprogs}/bin/e2fsck -f -p "${rootDevice}" 2>/dev/null || true
-          block_size="$(${pkgs.e2fsprogs}/bin/dumpe2fs -h "${rootDevice}" 2>/dev/null || true | ${pkgs.gawk}/bin/awk '/^Block size:/ {print $3; exit}')"
+          block_size="$(${pkgs.e2fsprogs}/bin/dumpe2fs -h "${rootDevice}" 2>/dev/null | ${pkgs.gawk}/bin/awk '/^Block size:/ {print $3; exit}')"
           if [ -z "$block_size" ]; then block_size=4096; fi
-          min_blocks="$(${pkgs.e2fsprogs}/bin/resize2fs -P "${rootDevice}" 2>/dev/null || true | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i~/^[0-9]+$/) {print $i; exit}}')"
+          min_blocks="$(${pkgs.e2fsprogs}/bin/resize2fs -P "${rootDevice}" 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i~/^[0-9]+$/) {print $i; exit}}')"
           if [ -n "$min_blocks" ] && [ "$min_blocks" -gt 0 ]; then
             min_dev_size_bytes=$((min_blocks * block_size))
           else
@@ -304,7 +304,7 @@ in
           fi
         fi
 
-        swap_partnum="$(${pkgs.util-linux}/bin/lsblk -no PARTN "$root_disk" 2>/dev/null || true | ${pkgs.gawk}/bin/awk '/^[0-9]+$/ {used[$1]=1} END {for(i=1;i<=128;i++) if(!used[i]) {print i; exit}}')"
+        swap_partnum="$(${pkgs.util-linux}/bin/lsblk -no PARTN "$root_disk" 2>/dev/null | ${pkgs.gawk}/bin/awk '/^[0-9]+$/ {used[$1]=1} END {for(i=1;i<=128;i++) if(!used[i]) {print i; exit}}')"
         if [ -z "$swap_partnum" ] || [ "$swap_partnum" -le 0 ]; then
           echo "cloud-btrfs-swap-partition: cannot find free partition number for swap"
           exit 0
