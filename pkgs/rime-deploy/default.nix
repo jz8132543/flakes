@@ -23,7 +23,7 @@
 let
   wanxiangGram = fetchurl {
     url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-    sha256 = "sha256-iaRDiZ5ghnNxns6/B9J8cO9MnNxhenzVRW35r4jjzbE=";
+    sha256 = "sha256-mdab7x5ErrKP9+6Eg5ClfFoQTTsdH0gns+jRR14aCvU=";
   };
 
   ibusCustomYaml = ''
