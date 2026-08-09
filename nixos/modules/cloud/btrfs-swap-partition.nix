@@ -198,16 +198,13 @@ in
 
         # ── 辅助：修复 GPT 并重读分区表 ──────────────────────
         gpt_settle() {
-          ${pkgs.gptfdisk}/bin/sgdisk -e "$root_disk" 2>/dev/null || true
-          ${pkgs.parted}/bin/partprobe "$root_disk" 2>/dev/null || true
-          ${pkgs.systemd}/bin/udevadm settle --timeout=10 2>/dev/null || true
+          # Use parted to fix backup GPT position without triggering BLKRRPART
+          echo "Fix" | ${pkgs.parted}/bin/parted ---pretend-input-tty "$root_disk" print >/dev/null 2>&1 || true
+          ${pkgs.systemd}/bin/udevadm settle --timeout=5 >/dev/null 2>&1 || true
         }
 
         settle() {
-          ${pkgs.parted}/bin/partprobe "$root_disk" 2>/dev/null || true
-          # partx -u forces kernel partition table update even when device is busy
-          ${pkgs.util-linux}/bin/partx -u "$root_disk" 2>/dev/null || true
-          ${pkgs.systemd}/bin/udevadm settle --timeout=10 2>/dev/null || true
+          ${pkgs.systemd}/bin/udevadm settle --timeout=5 >/dev/null 2>&1 || true
         }
 
         # ── 辅助：找空闲分区编号 ─────────────────────────────
@@ -221,12 +218,7 @@ in
           local new_end=$1
           log "expanding partition $root_partnum to sector $new_end"
           gpt_settle
-          ${pkgs.gptfdisk}/bin/sgdisk \
-            --delete="$root_partnum" \
-            --new="$root_partnum:$root_start:$new_end" \
-            --typecode="$root_partnum:8300" \
-            --change-name="$root_partnum:$ROOT_PART_LABEL" \
-            "$root_disk" 2>/dev/null || return 1
+          ${pkgs.parted}/bin/parted -s "$root_disk" resizepart "$root_partnum" "''${new_end}s" >/dev/null 2>&1 || return 1
           settle
         }
 
@@ -234,12 +226,7 @@ in
         shrink_partition() {
           local new_end=$1
           log "shrinking partition $root_partnum to sector $new_end"
-          ${pkgs.gptfdisk}/bin/sgdisk \
-            --delete="$root_partnum" \
-            --new="$root_partnum:$root_start:$new_end" \
-            --typecode="$root_partnum:8300" \
-            --change-name="$root_partnum:$ROOT_PART_LABEL" \
-            "$root_disk" 2>/dev/null || return 1
+          ${pkgs.parted}/bin/parted -s "$root_disk" resizepart "$root_partnum" "''${new_end}s" >/dev/null 2>&1 || return 1
           settle
         }
 
@@ -253,19 +240,15 @@ in
             return 1
           fi
           log "creating swap partition $swap_partnum: sectors $swap_start-$swap_end"
-          ${pkgs.gptfdisk}/bin/sgdisk \
-            --new="$swap_partnum:$swap_start:$swap_end" \
-            --typecode="$swap_partnum:8200" \
-            --change-name="$swap_partnum:$SWAP_PART_LABEL" \
-            "$root_disk" 2>/dev/null || return 1
+          # parted mkpart for GPT: mkpart PART-NAME FS-TYPE START END
+          ${pkgs.parted}/bin/parted -s "$root_disk" mkpart "$SWAP_PART_LABEL" linux-swap "''${swap_start}s" "''${swap_end}s" >/dev/null 2>&1 || return 1
           settle
           # Wait for the swap device node to actually appear (up to 15s)
           local waited=0
           while [ ! -b "$SWAP_DEV" ] && [ $waited -lt 15 ]; do
             sleep 1
             waited=$((waited + 1))
-            ${pkgs.util-linux}/bin/partx -u "$root_disk" 2>/dev/null || true
-            ${pkgs.systemd}/bin/udevadm settle --timeout=5 2>/dev/null || true
+            ${pkgs.systemd}/bin/udevadm settle --timeout=5 >/dev/null 2>&1 || true
           done
           if [ ! -b "$SWAP_DEV" ]; then
             log "swap device $SWAP_DEV did not appear after partition creation"
