@@ -282,7 +282,7 @@ in
 
     serverName = lib.mkOption {
       type = lib.types.str;
-      default = "www.microsoft.com";
+      default = "assets.msn.com";
       description = "SNI/serverName used by all VLESS Reality nodes.";
     };
 

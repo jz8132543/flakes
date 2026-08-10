@@ -7,7 +7,7 @@
     "tyo1.dora.im"
     "sjc0.dora.im"
   ],
-  serverName ? "www.microsoft.com",
+  serverName ? "assets.msn.com",
   ss ? false,
 }:
 {

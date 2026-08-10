@@ -25,10 +25,16 @@ let
       '';
     }))
   ];
-  orchis-gtk-theme = pkgs.orchis-theme.override {
-    tweaks = [ "compact" ];
+  catppuccin-gtk-theme = pkgs.catppuccin-gtk.override {
+    accents = [ config.home.catppuccin.accent ];
+    variant = config.home.catppuccin.variant;
   };
-  orchis-gtk-theme-name = "Orchis-Dark-Compact";
+  catppuccin-gtk-theme-light = pkgs.catppuccin-gtk.override {
+    accents = [ config.home.catppuccin.accent ];
+    variant = "latte";
+  };
+  catppuccin-gtk-theme-name = "catppuccin-${config.home.catppuccin.variant}-${config.home.catppuccin.accent}-standard+default";
+  catppuccin-gtk-theme-light-name = "catppuccin-latte-${config.home.catppuccin.accent}-standard+default";
   inherit (lib.hm.gvariant)
     mkArray
     mkTuple
@@ -77,7 +83,8 @@ in
       gnome-tweaks
     ])
     ++ [
-      orchis-gtk-theme
+      catppuccin-gtk-theme
+      catppuccin-gtk-theme-light
       pkgs.tela-icon-theme
     ];
 
@@ -254,10 +261,10 @@ in
         show-battery = true;
       };
       "org/gnome/shell/extensions/user-theme" = {
-        name = "Orchis-Light-Compact";
+        name = catppuccin-gtk-theme-light-name;
       };
       "org/gnome/shell/extensions/kimpanel" = {
-        font = "LXGW WenKai 26";
+        font = "LXGW WenKai 16";
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -308,8 +315,8 @@ in
   gtk = {
     enable = true;
     theme = {
-      name = orchis-gtk-theme-name;
-      package = orchis-gtk-theme;
+      name = catppuccin-gtk-theme-name;
+      package = catppuccin-gtk-theme;
     };
     iconTheme = {
       name = "Tela-dark";

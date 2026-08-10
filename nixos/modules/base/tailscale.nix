@@ -45,11 +45,11 @@ in
           "tailscaled.service"
           "network-online.target"
         ];
-        wants = [
+        requires = [
           "sops-nix.service"
           "tailscaled.service"
-          "network-online.target"
         ];
+        wants = [ "network-online.target" ];
         wantedBy = [ "multi-user.target" ];
         path = [
           config.services.tailscale.package
@@ -58,9 +58,25 @@ in
         ];
         script = ''
           login_server=https://ts.${config.networking.domain}
+          preauth_key=${config.sops.secrets.tailscale_preauth_key.path}
 
-          # Wait for tailscaled to be ready
-          sleep 2
+          # Wait for tailscaled and the decrypted preauth key to be ready.
+          for _ in $(seq 1 60); do
+            if [ -s "$preauth_key" ] && tailscale status --json >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          if [ ! -s "$preauth_key" ]; then
+            echo "Tailscale preauth key is not available: $preauth_key"
+            exit 1
+          fi
+
+          if ! tailscale status --json >/dev/null 2>&1; then
+            echo "Tailscale daemon is not ready."
+            exit 1
+          fi
 
           # Check if already authenticated
           status_json=$(tailscale status --json 2>/dev/null || true)
