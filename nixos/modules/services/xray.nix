@@ -7,7 +7,7 @@
     "tyo1.dora.im"
     "sjc0.dora.im"
   ],
-  serverName ? "gateway.icloud.com",
+  serverName ? "www.microsoft.com",
   ss ? false,
 }:
 {
@@ -92,6 +92,12 @@ in
                   decryption = "none";
                 };
                 streamSettings = {
+                  sockopt = {
+                    tcpFastOpen = true;
+                    tcpKeepAliveIdle = 30;
+                    tcpNoDelay = true;
+                    tcpCongestion = "bbr";
+                  };
                   network = "xhttp";
                   security = "reality";
                   xhttpSettings = {
@@ -135,6 +141,12 @@ in
             ];
           };
           streamSettings = {
+            sockopt = {
+              tcpFastOpen = true;
+              tcpKeepAliveIdle = 30;
+              tcpNoDelay = true;
+              tcpCongestion = "bbr";
+            };
             network = "xhttp";
             security = "reality";
             xhttpSettings = {

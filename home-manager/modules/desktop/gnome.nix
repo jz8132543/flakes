@@ -21,20 +21,14 @@ let
     (kimpanel.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
         sed -i -e '/isLookupTableVertical() {/,/}/c\    isLookupTableVertical() { return false; }' $out/share/gnome-shell/extensions/kimpanel@kde.org/extension.js
+        echo ".kimpanel-box, .kimpanel-candidate-item, .kimpanel-preedit-text, .kimpanel-candidate-text { font-family: 'LXGW WenKai GB', 'LXGW WenKai', sans-serif !important; font-size: 16pt !important; }" >> $out/share/gnome-shell/extensions/kimpanel@kde.org/stylesheet.css
       '';
     }))
   ];
-  toTitle =
-    str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
-  catppuccin-gtk-theme = pkgs.catppuccin-gtk.override {
-    accents = [ config.home.catppuccin.accent ];
-    variant = config.home.catppuccin.variant;
+  orchis-gtk-theme = pkgs.orchis-theme.override {
+    tweaks = [ "compact" ];
   };
-  catppuccin-gtk-theme-name = "catppuccin-${config.home.catppuccin.variant}-${config.home.catppuccin.accent}-standard+default";
-  catppuccin-kvantum = pkgs.catppuccin-kvantum.override {
-    inherit (config.home.catppuccin) accent;
-    inherit (config.home.catppuccin) variant;
-  };
+  orchis-gtk-theme-name = "Orchis-Dark-Compact";
   inherit (lib.hm.gvariant)
     mkArray
     mkTuple
@@ -80,8 +74,12 @@ in
     ++ (with pkgs; [
       blackbox-terminal
       kdePackages.dolphin
+      gnome-tweaks
     ])
-    ++ [ catppuccin-gtk-theme ];
+    ++ [
+      orchis-gtk-theme
+      pkgs.tela-icon-theme
+    ];
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
@@ -256,7 +254,10 @@ in
         show-battery = true;
       };
       "org/gnome/shell/extensions/user-theme" = {
-        name = catppuccin-gtk-theme-name;
+        name = "Orchis-Light-Compact";
+      };
+      "org/gnome/shell/extensions/kimpanel" = {
+        font = "LXGW WenKai 26";
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -307,12 +308,12 @@ in
   gtk = {
     enable = true;
     theme = {
-      name = catppuccin-gtk-theme-name;
-      package = catppuccin-gtk-theme;
+      name = orchis-gtk-theme-name;
+      package = orchis-gtk-theme;
     };
     iconTheme = {
-      name = "Papirus-Dark";
-      package = pkgs.papirus-icon-theme;
+      name = "Tela-dark";
+      package = pkgs.tela-icon-theme;
     };
     cursorTheme = {
       name = "capitaine-cursors-white";
@@ -321,15 +322,10 @@ in
   };
   qt = {
     enable = true;
-    # platformTheme = "gnome";
-    # platformTheme = "qtct";
-    style = {
-      name = "kvantum";
-      package = catppuccin-kvantum;
-    };
+    platformTheme.name = "gtk";
   };
   home.sessionVariables = {
-    QT_STYLE_OVERRIDE = lib.mkForce "kvantum";
+    # QT_STYLE_OVERRIDE = lib.mkForce "kvantum";
     XCURSOR_THEME = config.dconf.settings."org/gnome/desktop/interface".cursor-theme;
     # Wayland variables
     CLUTTER_BACKEND = "wayland";
@@ -338,14 +334,6 @@ in
     NIXOS_OZONE_WL = "1";
     # QT_QPA_PLATFORM = "wayland;xcb";
     WLR_NO_HARDWARE_CURSORS = "1";
-  };
-  xdg.configFile = {
-    "Kvantum/kvantum.kvconfig".source = (pkgs.formats.ini { }).generate "kvantum.kvconfig" {
-      General.theme = "Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
-    };
-    "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source =
-      "${catppuccin-kvantum.outPath}/share/Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}";
-    # "Kvantum/Catppuccin-${toTitle config.home.catppuccin.variant}-${toTitle config.home.catppuccin.accent}".source = "${catppuccin-kvantum.outPath}";
   };
 
   ## Create startwm.sh for XRDP

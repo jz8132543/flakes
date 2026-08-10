@@ -1,5 +1,6 @@
 {
   nixosModules,
+  lib,
   ...
 }:
 {
@@ -25,30 +26,33 @@
   ];
   environment.networkTune = {
     enable = true;
-    bandwidth = 1000; # Mbps 单向
-    # 单核弱机避免把“理论峰值”直接喂给推导器，否则会放大软中断与队列抖动。
+    bandwidth = 500; # Mbps 单向
     realBandwidth = 500;
-    rtt = 180; # ms，国际线路
-    ram = 500; # MB，可用内存
+    rtt = 200; # ms
+    ram = 250; # MB，预留内存给Xray
     cpus = 1; # vCPU 数
-    highLoss = true; # 高丢包国际线路
-    # 主动整形到千兆口的 95%，减少尾丢包与重传风暴。
-    # fqMaxrate = 950;
+    highLoss = true;
+    # 禁用 FQ 速率整形墙，配合 BBRv1 的野蛮发包，不受任何人工带宽限制
+    fqMaxrate = 0;
+
+    # 强制使用内核原生的 bbr (即 BBRv1，因为我们在 LTS 内核上)，
+    # 绕开可能加载失败的 out-of-tree 模块
+    cca = "bbr";
   };
 
-  # tyo1 单核 CPU 护栏：保留激进发包能力，同时抑制 ksoftirqd 常驻高占用。
-  # boot.kernel.sysctl = {
-  #   # 缩短单次 NAPI 批处理窗口，降低单周期占满 CPU 的概率。
-  #   "net.core.netdev_budget" = lib.mkOverride 60 4096;
-  #   "net.core.netdev_budget_usecs" = lib.mkOverride 60 22000;
-  #   "net.core.dev_weight" = lib.mkOverride 60 512;
-  #
-  #   # busy-poll 在单核上过高会放大抢占，适度下调。
-  #   "net.core.busy_poll" = lib.mkOverride 60 25;
-  #   "net.core.busy_read" = lib.mkOverride 60 25;
-  #
-  #   # 缩小 RPS flow table 与单连接发送积压，减少缓存命中与突发开销。
-  #   "net.core.rps_sock_flow_entries" = lib.mkOverride 60 262144;
-  #   "net.ipv4.tcp_limit_output_bytes" = lib.mkOverride 60 786432;
-  # };
+  # tyo1 单核 CPU 护栏：强制让渡 CPU 给用户态的 Xray 加解密
+  boot.kernel.sysctl = {
+    # 适当放开 NAPI 批处理窗口，CPU目前依然充裕（空闲>90%）
+    "net.core.netdev_budget" = lib.mkOverride 60 300;
+    "net.core.netdev_budget_usecs" = lib.mkOverride 60 12000;
+    "net.core.dev_weight" = lib.mkOverride 60 128;
+
+    # 禁用 busy-poll，释放 CPU 回归 Xray 调度
+    "net.core.busy_poll" = lib.mkOverride 60 0;
+    "net.core.busy_read" = lib.mkOverride 60 0;
+
+    # 放大单连接发送积压。限制太死会导致单流最高测速上不去。
+    "net.core.rps_sock_flow_entries" = lib.mkOverride 60 32768;
+    "net.ipv4.tcp_limit_output_bytes" = lib.mkOverride 60 1048576;
+  };
 }

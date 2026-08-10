@@ -38,7 +38,12 @@
   };
 
   environment.etc."resolv.conf".text = ''
-    nameserver 127.0.0.1
+    ${
+      if config.services.dnsmasq.enable then
+        "nameserver 127.0.0.1"
+      else
+        "nameserver 1.1.1.1\n    nameserver 1.0.0.1"
+    }
     search ${lib.concatStringsSep " " config.networking.search}
     options edns0
   '';

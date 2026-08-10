@@ -282,7 +282,7 @@ in
 
     serverName = lib.mkOption {
       type = lib.types.str;
-      default = "gateway.icloud.com";
+      default = "www.microsoft.com";
       description = "SNI/serverName used by all VLESS Reality nodes.";
     };
 
