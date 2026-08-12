@@ -1,4 +1,6 @@
 patch:
+  # 默认启动为英文状态
+  "switches/@0/reset": 1
   schema_list:
     - schema: wanxiang
   ascii_composer:

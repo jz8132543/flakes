@@ -109,16 +109,43 @@ parse_peer() {
   fi
 }
 
-get_tcping_latency() {
+get_latency() {
   local host="$1" port="$2"
   [ -n "$host" ] && [ -n "$port" ] || return 1
-  # tcping JSON output: {"record":"probe","success":true,"duration_ms":0.2422,...}
-  # duration_ms is a bare number (not quoted), extract it with grep
-  tcping -c 1 -o json "${host}:${port}" 2>/dev/null |
+
+  local tcp_ms
+  tcp_ms=$(tcping -c 1 -o json "${host}:${port}" 2>/dev/null |
     grep '"record":"probe"' |
     grep '"success":true' |
     grep -oE '"duration_ms":[0-9]+(\.[0-9]+)?' |
-    grep -oE '[0-9]+(\.[0-9]+)?$'
+    grep -oE '[0-9]+(\.[0-9]+)?$')
+
+  local try_ping=0
+  if [ -z "$tcp_ms" ]; then
+    try_ping=1
+  else
+    local is_low
+    is_low=$(echo "$tcp_ms" | awk '{if ($1 < 5) print 1; else print 0}')
+    [ "$is_low" -eq 1 ] && try_ping=1
+  fi
+
+  if [ "$try_ping" -eq 1 ]; then
+    local ping_out ms
+    if ping_out=$(ping -c 1 -W 1 "$host" 2>/dev/null); then
+      ms=$(echo "$ping_out" | grep -oE 'time=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | head -n 1)
+      if [ -n "$ms" ]; then
+        echo "$ms"
+        return 0
+      fi
+    fi
+  fi
+
+  if [ -n "$tcp_ms" ]; then
+    echo "$tcp_ms"
+    return 0
+  fi
+
+  return 1
 }
 
 ssh_pid=$(find_ssh_pid "$pane_pid")
@@ -152,9 +179,9 @@ if [ -n "$ssh_pid" ]; then
 
   display_text="${target_label:-$(hostname)}"
 
-  # Get latency via tcping using the authoritative host:port from ssh -G
+  # Get latency via ICMP ping or tcping using the authoritative host:port from ssh -G
   if [ -n "$final_host" ] && [ -n "$final_port" ]; then
-    latency_ms=$(get_tcping_latency "$final_host" "$final_port")
+    latency_ms=$(get_latency "$final_host" "$final_port")
     if [ -n "$latency_ms" ]; then
       latency_fmt=$(printf '%s\n' "$latency_ms" | awk '{
         if ($1 < 1) printf "%.1fms", $1
