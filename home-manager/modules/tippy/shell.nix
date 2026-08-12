@@ -5,16 +5,6 @@
   lib,
   ...
 }:
-let
-  catppuccin = pkgs.catppuccin.override {
-    inherit (config.home.catppuccin) variant;
-    inherit (config.home.catppuccin) accent;
-  };
-  # inherit (pkgs) catppuccin;
-  toTitle =
-    str: "${lib.toUpper (lib.substring 0 1 str)}${lib.substring 1 (lib.stringLength str) str}";
-  inherit (config.home.catppuccin) flavor;
-in
 {
   programs = {
     fish = {
@@ -182,9 +172,7 @@ in
         nix_shell.symbol = "[󱄅 ](blue) ";
         golang.symbol = "[󰟓 ](blue)";
         package.disabled = true;
-        # palette = "catppuccin_${flavor}";
       };
-      # // builtins.fromTOML (builtins.readFile "${catppuccin}/starship/${flavor}.toml");
     };
     atuin = {
       enable = true;
@@ -235,13 +223,7 @@ in
       enable = true;
       config = {
         pager = "less -FR";
-        theme = "catppuccin-${flavor}";
-      };
-      themes = {
-        "catppuccin-${config.home.catppuccin.flavor}" = {
-          src = catppuccin;
-          file = "bat/Catppuccin ${toTitle flavor}.tmTheme";
-        };
+        theme = "TwoDark";
       };
       extraPackages = with pkgs.bat-extras; [
         batman
@@ -252,7 +234,7 @@ in
       ];
     };
     bottom = {
-      settings = { } // builtins.fromTOML (builtins.readFile "${catppuccin}/bottom/${flavor}.toml");
+      settings = { };
     };
     skim.enable = true;
   };

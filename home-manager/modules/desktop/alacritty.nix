@@ -16,7 +16,32 @@ in
       enable = true;
       package = alacrittyPackage;
       settings = {
-        general.import = [ "${pkgs.alacritty-catppuccin}/catppuccin-mocha.toml" ];
+        colors = {
+          primary = {
+            background = "#1e1e1e";
+            foreground = "#ffffff";
+          };
+          normal = {
+            black = "#000000";
+            red = "#ff5252";
+            green = "#8bd64b";
+            yellow = "#fdba2c";
+            blue = "#46a1ff";
+            magenta = "#ff81f2";
+            cyan = "#13c9ce";
+            white = "#e5e5e5";
+          };
+          bright = {
+            black = "#545454";
+            red = "#ff5252";
+            green = "#8bd64b";
+            yellow = "#fdba2c";
+            blue = "#46a1ff";
+            magenta = "#ff81f2";
+            cyan = "#13c9ce";
+            white = "#e5e5e5";
+          };
+        };
         terminal.shell = {
           program = "${pkgs.tmux}/bin/tmux";
           args = [ "a" ];

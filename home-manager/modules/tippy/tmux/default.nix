@@ -14,6 +14,7 @@ let
         "@iproute2@"
         "@gnused@"
         "@ssh@"
+        "@tcping@"
       ]
       [
         "${pkgs.procps}"
@@ -23,6 +24,7 @@ let
         "${pkgs.iproute2}"
         "${pkgs.gnused}"
         "${pkgs.openssh}/bin/ssh"
+        "${pkgs.tcping-rs}/bin"
       ]
       (builtins.readFile ./tmux-ssh-status.sh);
   # tmuxDevspaceHelper = pkgs.writeShellScriptBin "tmux-devspace" (
@@ -78,29 +80,8 @@ in
         '';
       }
       {
-        plugin = catppuccin;
-        extraConfig = ''
-          # Catppuccin settings
-          set -g @catppuccin_flavor 'mocha'
-          set -g @catppuccin_window_status_style "rounded"
-
-          # Ensure transparent backgrounds where possible
-          set -g status-bg default
-          set -g message-style "fg=#94e2d5,bg=default"
-          set -g message-command-style "fg=#94e2d5,bg=default"
-
-          # Window settings
-          set -g @catppuccin_window_left_separator ""
-          set -g @catppuccin_window_right_separator " "
-          set -g @catppuccin_window_middle_separator " █"
-          set -g @catppuccin_window_number_position "right"
-
-          set -g @catppuccin_window_default_fill "number"
-          set -g @catppuccin_window_default_text "#{window_name}"
-
-          set -g @catppuccin_window_current_fill "number"
-          set -g @catppuccin_window_current_text "#{window_name}"
-        '';
+        plugin = pkgs.tmuxPlugins.cpu;
+        extraConfig = "";
       }
     ];
 
@@ -146,30 +127,39 @@ in
       set -g status-left-length 100
       set -g status-left ""
 
-      # Right side status with system monitoring
+      # Right side status      set -g status-right-length 150
       set -g status-interval 3
+
+      # Clean macOS Terminal styling
+      set -g status-bg "#1e1e1e"
+      set -g status-fg "#ffffff"
+      set -g message-style "fg=#ffffff,bg=#1e1e1e"
+      set -g message-command-style "fg=#ffffff,bg=#1e1e1e"
+
+      set -g window-status-format " #[fg=#545454]#I #[fg=#e5e5e5]#W "
+      set -g window-status-current-format " #[fg=#46a1ff]#I #[fg=#ffffff,bold]#W "
+
+      set -g status-left "#[fg=#ffffff,bold]  #S "
 
       set -g status-right \
         "#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_pid})"
 
       set -ag status-right \
-        "#[fg=#94e2d5]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#94e2d5]󰓅  #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${tmux-net-speed}/bin/tmux-net-speed)#[fg=#313244]#{E:@catppuccin_status_right_separator}"
+        "#[fg=#545454]│ #[fg=#e5e5e5]󰓅 #(${tmux-net-speed}/bin/tmux-net-speed) "
 
       set -ag status-right \
-        "#[fg=#f9e2af]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#f9e2af]#{E:@catppuccin_cpu_icon} #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh)#[fg=#313244]#{E:@catppuccin_status_right_separator}"
-
-      set -g @catppuccin_ram_icon " "
+        "#[fg=#545454]│ #[fg=#e5e5e5]CPU #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh) "
 
       set -ag status-right \
-        "#[fg=#cba6f7]#{E:@catppuccin_status_left_separator}#[fg=#11111b,bg=#cba6f7]  #{E:@catppuccin_status_middle_separator}#[fg=#cdd6f4,bg=#313244] #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh)#[fg=#313244]#{E:@catppuccin_status_right_separator}"
+        "#[fg=#545454]│ #[fg=#e5e5e5]RAM #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh) "
 
-      # Pane borders - Catppuccin Mocha colors
-      set -g pane-border-style "fg=#313244"
-      set -g pane-active-border-style "fg=#89b4fa"
+      # Pane borders - macOS dark theme colors
+      set -g pane-border-style "fg=#333333"
+      set -g pane-active-border-style "fg=#46a1ff"
 
-      # Window and pane styles - ensure no background is set
-      set -g window-style 'default'
-      set -g window-active-style 'default'
+      # Window and pane styles
+      set -g window-style 'bg=#1e1e1e,fg=#ffffff'
+      set -g window-active-style 'bg=#1e1e1e,fg=#ffffff'
 
       # Key bindings
       # unbind C-b

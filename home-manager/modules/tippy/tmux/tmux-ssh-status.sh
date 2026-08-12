@@ -1,12 +1,10 @@
 # shellcheck shell=bash
-export PATH="@procps@/bin:@gnugrep@/bin:@gawk@/bin:@coreutils@/bin:@iproute2@/bin:@gnused@/bin:$PATH"
+export PATH="@procps@/bin:@gnugrep@/bin:@gawk@/bin:@coreutils@/bin:@iproute2@/bin:@gnused@/bin:@tcping@:$PATH"
 
 pane_pid=$1
 
-COLOR_ICON_BG="#b4befe"
-COLOR_ICON_FG="#11111b"
-COLOR_TEXT_BG="#313244"
-COLOR_TEXT_FG="#cdd6f4"
+COLOR_FG="#e5e5e5"
+COLOR_SEP="#545454"
 
 ICON="  "
 display_text=$(hostname)
@@ -88,7 +86,7 @@ extract_ssh_target() {
     esac
   done
 
-  printf '%s\n' "$destination"
+  DESTINATION="$destination"
 }
 
 parse_ssh_config() {
@@ -111,37 +109,32 @@ parse_peer() {
   fi
 }
 
-get_socket_info_by_pid() {
-  local pid="$1"
-  local prev="" line peer rtt
-  while IFS= read -r line; do
-    case "$line" in
-    *"pid=$pid,"*)
-      peer=$(printf '%s\n' "$prev" | awk '{print $5}')
-      rtt=$(printf '%s\n' "$line" | sed -nE 's/.*rtt:([0-9.]+)\/.*/\1/p')
-      if [ -n "$peer" ]; then
-        parse_peer "$peer"
-        printf '%s\t%s\t%s\n' "$PEER_HOST" "$PEER_PORT" "$rtt"
-        return 0
-      fi
-      ;;
-    esac
-    prev="$line"
-  done <<EOF
-$(ss -Hntpi state established 2>/dev/null)
-EOF
-  return 1
+get_tcping_latency() {
+  local host="$1" port="$2"
+  [ -n "$host" ] && [ -n "$port" ] || return 1
+  # tcping JSON output: {"record":"probe","success":true,"duration_ms":0.2422,...}
+  # duration_ms is a bare number (not quoted), extract it with grep
+  tcping -c 1 -o json "${host}:${port}" 2>/dev/null |
+    grep '"record":"probe"' |
+    grep '"success":true' |
+    grep -oE '"duration_ms":[0-9]+(\.[0-9]+)?' |
+    grep -oE '[0-9]+(\.[0-9]+)?$'
 }
 
 ssh_pid=$(find_ssh_pid "$pane_pid")
 
 if [ -n "$ssh_pid" ]; then
-  ICON="  "
+  ICON="󰒋  "
   load_ssh_args "$ssh_pid"
-  destination=$(extract_ssh_target)
+  # Call without $() so SSH_CONFIG_ARGS mutations survive in this shell
+  DESTINATION=""
+  extract_ssh_target
+  destination="$DESTINATION"
 
   if [ -n "$destination" ]; then
-    target_label="${destination##*@}"
+    # Strip user@, then strip everything after the first dot (domain suffix)
+    raw_label="${destination##*@}"
+    target_label="${raw_label%%.*}"
   else
     target_label=""
   fi
@@ -151,32 +144,25 @@ if [ -n "$ssh_pid" ]; then
 
   final_host="$CONFIG_HOST"
   final_port="$CONFIG_PORT"
-  if [ -z "$target_label" ]; then
-    target_label="$final_host"
+
+  # Use the short hostname (first label) as display label if not already set
+  if [ -z "$target_label" ] && [ -n "$final_host" ]; then
+    target_label="${final_host%%.*}"
   fi
 
-  display_text="$target_label"
+  display_text="${target_label:-$(hostname)}"
 
-  socket_info=$(get_socket_info_by_pid "$ssh_pid")
-  socket_host=$(printf '%s\n' "$socket_info" | awk -F '\t' 'NR==1 {print $1}')
-  socket_port=$(printf '%s\n' "$socket_info" | awk -F '\t' 'NR==1 {print $2}')
-  socket_rtt=$(printf '%s\n' "$socket_info" | awk -F '\t' 'NR==1 {print $3}')
-
-  if [ -z "$final_host" ]; then
-    final_host="$socket_host"
-  fi
-  if [ -z "$final_port" ]; then
-    final_port="$socket_port"
-  fi
-  if [ -z "$target_label" ]; then
-    target_label="$socket_host"
-    display_text="$target_label"
-  fi
-
-  latency=$(printf '%s\n' "$socket_rtt" | sed -nE 's/^([0-9]+)(\.[0-9]+)?$/\1/p' | head -n 1)
-  if [ -n "$latency" ]; then
-    display_text="$target_label $latency"
+  # Get latency via tcping using the authoritative host:port from ssh -G
+  if [ -n "$final_host" ] && [ -n "$final_port" ]; then
+    latency_ms=$(get_tcping_latency "$final_host" "$final_port")
+    if [ -n "$latency_ms" ]; then
+      latency_fmt=$(printf '%s\n' "$latency_ms" | awk '{
+        if ($1 < 1) printf "%.1fms", $1
+        else printf "%dms", int($1 + 0.5)
+      }')
+      display_text="$target_label ${latency_fmt}"
+    fi
   fi
 fi
 
-echo "#[fg=${COLOR_ICON_BG}]#{E:@catppuccin_status_left_separator}#[fg=${COLOR_ICON_FG},bg=${COLOR_ICON_BG}]${ICON}#{E:@catppuccin_status_middle_separator}#[fg=${COLOR_TEXT_FG},bg=${COLOR_TEXT_BG}] $display_text#[fg=${COLOR_TEXT_BG}]#{E:@catppuccin_status_right_separator}"
+echo "#[fg=${COLOR_SEP}]│ #[fg=${COLOR_FG}]${ICON}$display_text "

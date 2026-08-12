@@ -6,6 +6,10 @@
   ...
 }:
 let
+  # ▼▼▼ 在这里调整输入法的字体大小 ▼▼▼
+  kimpanelFontSize = "26pt";
+  # ▲▲▲ 在这里调整输入法的字体大小 ▲▲▲
+
   imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
   extensionPkgs = with pkgs.gnomeExtensions; [
     gsconnect
@@ -17,24 +21,16 @@ let
     system-monitor-next
     # caffeine
     user-themes
+    blur-my-shell
     # fcitx5
     (kimpanel.overrideAttrs (old: {
       postInstall = (old.postInstall or "") + ''
         sed -i -e '/isLookupTableVertical() {/,/}/c\    isLookupTableVertical() { return false; }' $out/share/gnome-shell/extensions/kimpanel@kde.org/extension.js
-        echo ".kimpanel-box, .kimpanel-candidate-item, .kimpanel-preedit-text, .kimpanel-candidate-text { font-family: 'LXGW WenKai GB', 'LXGW WenKai', sans-serif !important; font-size: 16pt !important; }" >> $out/share/gnome-shell/extensions/kimpanel@kde.org/stylesheet.css
+        echo ".kimpanel-box, .kimpanel-candidate-item, .kimpanel-preedit-text, .kimpanel-candidate-text { font-family: 'LXGW WenKai GB', 'LXGW WenKai', sans-serif !important; font-size: ${kimpanelFontSize} !important; }" >> $out/share/gnome-shell/extensions/kimpanel@kde.org/stylesheet.css
       '';
     }))
   ];
-  catppuccin-gtk-theme = pkgs.catppuccin-gtk.override {
-    accents = [ config.home.catppuccin.accent ];
-    variant = config.home.catppuccin.variant;
-  };
-  catppuccin-gtk-theme-light = pkgs.catppuccin-gtk.override {
-    accents = [ config.home.catppuccin.accent ];
-    variant = "latte";
-  };
-  catppuccin-gtk-theme-name = "catppuccin-${config.home.catppuccin.variant}-${config.home.catppuccin.accent}-standard+default";
-  catppuccin-gtk-theme-light-name = "catppuccin-latte-${config.home.catppuccin.accent}-standard+default";
+
   inherit (lib.hm.gvariant)
     mkArray
     mkTuple
@@ -83,9 +79,8 @@ in
       gnome-tweaks
     ])
     ++ [
-      catppuccin-gtk-theme
-      catppuccin-gtk-theme-light
-      pkgs.tela-icon-theme
+      pkgs.whitesur-gtk-theme
+      pkgs.whitesur-icon-theme
     ];
 
   programs.chromium.extensions = [
@@ -105,6 +100,8 @@ in
       "org/gnome/desktop/wm/keybindings" = {
         switch-to-workspace-right = [ "<Control><Super>Right" ];
         switch-to-workspace-left = [ "<Control><Super>Left" ];
+        move-to-workspace-right = [ "<Control><Shift><Super>Right" ];
+        move-to-workspace-left = [ "<Control><Shift><Super>Left" ];
         switch-input-source =
           if imFramework == "ibus" then
             [
@@ -261,10 +258,16 @@ in
         show-battery = true;
       };
       "org/gnome/shell/extensions/user-theme" = {
-        name = catppuccin-gtk-theme-light-name;
+        name = "WhiteSur-Light";
+      };
+      # Enable blur-my-shell for premium transparent top bar
+      "org/gnome/shell/extensions/blur-my-shell/panel" = {
+        blur = true;
+        brightness = 0.9;
+        sigma = 30;
       };
       "org/gnome/shell/extensions/kimpanel" = {
-        font = "LXGW WenKai 16";
+        font = "LXGW WenKai 26";
       };
       "org/gnome/Console" = {
         theme = "auto";
@@ -315,12 +318,12 @@ in
   gtk = {
     enable = true;
     theme = {
-      name = catppuccin-gtk-theme-name;
-      package = catppuccin-gtk-theme;
+      name = "WhiteSur-Dark-solid";
+      package = pkgs.whitesur-gtk-theme;
     };
     iconTheme = {
-      name = "Tela-dark";
-      package = pkgs.tela-icon-theme;
+      name = "WhiteSur-dark";
+      package = pkgs.whitesur-icon-theme;
     };
     cursorTheme = {
       name = "capitaine-cursors-white";
@@ -329,7 +332,7 @@ in
   };
   qt = {
     enable = true;
-    platformTheme.name = "gtk";
+    platformTheme.name = "gtk3";
   };
   home.sessionVariables = {
     # QT_STYLE_OVERRIDE = lib.mkForce "kvantum";

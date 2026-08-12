@@ -44,12 +44,10 @@ in
       target = ".vscode-server/data/User/settings.json";
       text = builtins.toJSON {
         "workbench.iconTheme" = "material-icon-theme";
-        "workbench.colorTheme" = "Catppuccin Macchiato";
+        "workbench.colorTheme" = "Default Dark Modern";
         "workbench.panel.defaultLocation" = "right";
         "workbench.startupEditor" = "none";
         "workbench.list.smoothScrolling" = true;
-
-        "catppuccin.accentColor" = "mauve";
 
         "editor.fontFamily" =
           "\"JetBrains Mono\", \"Fira Code\", \"Fira Sans\", \"Material Design Icons\", \"Font Awesome 6 Free\", \"Symbols Nerd Font Mono\"";
