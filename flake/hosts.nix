@@ -81,7 +81,7 @@ let
     surface = {
       system = "x86_64-linux";
       extraModules = with inputs.nixos-hardware.nixosModules; [
-        microsoft-surface-common
+        # microsoft-surface-common
       ];
     };
     arx8 = {

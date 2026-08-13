@@ -77,6 +77,7 @@ in
       blackbox-terminal
       kdePackages.dolphin
       gnome-tweaks
+      seahorse
     ])
     ++ [
       pkgs.whitesur-gtk-theme

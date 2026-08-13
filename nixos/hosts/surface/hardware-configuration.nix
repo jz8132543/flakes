@@ -22,6 +22,7 @@
     };
     kernelModules = [
       "kvm-intel"
+      "ucsi_acpi"
       # "v4l2loopback"
       # "vfio"
       # "vfio_iommu_type1"

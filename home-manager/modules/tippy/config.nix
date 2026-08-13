@@ -12,6 +12,7 @@
   home.global-persistence = {
     directories = [
       ".cache/nix"
+      ".gemini"
     ];
   };
   home.sessionVariables = { };

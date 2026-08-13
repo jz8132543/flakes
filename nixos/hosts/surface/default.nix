@@ -63,9 +63,9 @@ in
 
   services.tailscale.enable = true;
 
-  hardware.microsoft-surface = {
-    kernelVersion = "longterm";
-  };
+  # hardware.microsoft-surface = {
+  #   kernelVersion = "longterm";
+  # };
   services.iptsd.enable = lib.mkForce false;
 
   desktop.nvidia = {

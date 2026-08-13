@@ -526,6 +526,19 @@ in
   };
 
   xdg.desktopEntries = {
+    antigravity-ide = {
+      name = "Antigravity IDE";
+      genericName = "Text Editor";
+      exec = "antigravity-ide --remote-debugging-port=9000 %F";
+      icon = "antigravity-ide";
+      terminal = false;
+      categories = [
+        "Development"
+        "IDE"
+        "TextEditor"
+      ];
+      startupNotify = true;
+    };
     wps-writer = {
       name = "WPS 文字";
       genericName = "WPS Writer";
