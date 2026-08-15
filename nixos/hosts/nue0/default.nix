@@ -52,6 +52,8 @@
       # nixosModules.services.easytier-web
       # nixosModules.services.save-restricted-content-bot
 
+      nixosModules.services.tailscale-proxy-pool
+
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf
       nixosModules.services.prometheus
@@ -68,10 +70,21 @@
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;
 
+  services.tailscale-proxy-pool = {
+    enable = true;
+    exitNodes = [
+      "surface"
+      "arx8"
+      "shg0"
+    ];
+    basePort = 1001;
+    poolPort = 10080;
+  };
+
   environment.seedbox = {
     enable = true;
-    proxyHost = "shg0.mag";
-    # proxyPort = 10080;
+    proxyHost = "127.0.0.1";
+    proxyPort = 10080;
   };
   environment.networkTune = {
     bandwidth = 2500; # Mbps 单向

@@ -61,7 +61,10 @@ in
       nixosModules.services.qbittorrent
     ];
 
-  services.tailscale.enable = true;
+  services.tailscale = {
+    enable = true;
+    extraSetFlags = [ "--advertise-exit-node" ];
+  };
 
   # hardware.microsoft-surface = {
   #   kernelVersion = "longterm";
