@@ -16,10 +16,11 @@ in
         enable = lib.mkDefault true;
         openFirewall = true;
         useRoutingFeatures = "both";
-        # Keep DNS ownership in the local dnsmasq frontend so Tailscale does not
-        # promote 100.100.100.100 to the global resolver.
+        # Do not force nodivert globally: exit-node forwarding relies on the
+        # normal Tailscale netfilter/NAT path to route packets out to the public
+        # Internet. Leaving the default netfilter mode enabled is required for
+        # both the exit-node hosts and the local proxy daemon to work correctly.
         extraSetFlags = [
-          "--netfilter-mode=nodivert"
           "--accept-dns=false"
           "--advertise-exit-node"
         ];
@@ -84,7 +85,16 @@ in
           status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
 
           if [ "$status" = "Running" ] || [ "$status" = "Starting" ]; then
-            echo "Tailscale is already authenticated (state: $status)."
+            echo "Tailscale is already authenticated (state: $status); reconciling configured flags."
+            timeout 2m tailscale up \
+              --login-server "$login_server" \
+              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "tailscale up failed with exit code $exit_code while reconciling flags. Log output:"
+              cat /tmp/tailscale-setup.log
+              exit $exit_code
+            fi
             exit 0
           fi
 
