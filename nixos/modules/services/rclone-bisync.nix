@@ -85,7 +85,7 @@ in
       description = "Universal Rclone Bisync Engine with Auto-Init";
       after = [
         "network-online.target"
-        "sops-nix.service"
+        "sops-install-secrets.service"
       ];
       wants = [ "network-online.target" ];
 

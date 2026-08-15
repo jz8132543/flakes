@@ -529,7 +529,7 @@ in
     antigravity-ide = {
       name = "Antigravity IDE";
       genericName = "Text Editor";
-      exec = "antigravity-ide --remote-debugging-port=9000 %F";
+      exec = "antigravity-ide --password-store=basic --remote-debugging-port=9000 %F";
       icon = "antigravity-ide";
       terminal = false;
       categories = [
@@ -598,12 +598,14 @@ in
       "Sync/.livesync"
       "Zotero"
       ".zotero"
+      ".local/share/keyrings"
       # google ai editor (antigravity)
       ".config/Antigravity"
       ".config/Antigravity IDE"
       ".antigravity"
       ".antigravity-ide"
       ".gemini"
+      ".pki"
       ".antigravity-server"
       ".config/opencode"
       ".local/share/opencode"

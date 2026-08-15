@@ -48,7 +48,7 @@
       # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
-      nixosModules.services."kaogong-helper"
+      nixosModules.services.kaogong
       # nixosModules.services.easytier-web
       # nixosModules.services.save-restricted-content-bot
 
@@ -61,7 +61,7 @@
     ]
     ++ nixosModules.matrix.all;
 
-  services.kaogong-helper.enable = true;
+  services.kaogong.enable = true;
   services.openclaw.enable = false;
   # services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";

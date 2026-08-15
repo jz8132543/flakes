@@ -12,5 +12,6 @@
   # services.dnscrypt-proxy.enable = true;
   environment.global-persistence.directories = [
     "/etc/NetworkManager/system-connections"
+    "/var/lib/NetworkManager"
   ];
 }

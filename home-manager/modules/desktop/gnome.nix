@@ -12,7 +12,7 @@ let
 
   imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
   extensionPkgs = with pkgs.gnomeExtensions; [
-    gsconnect
+    valent
     appindicator
     dash-to-dock
     clipboard-history
@@ -68,25 +68,26 @@ let
   };
 in
 {
-  home.packages =
-    extensionPkgs
-    ++ [
-      toggleScreen
-    ]
-    ++ (with pkgs; [
-      blackbox-terminal
-      kdePackages.dolphin
-      gnome-tweaks
-      seahorse
-    ])
-    ++ [
-      pkgs.whitesur-gtk-theme
-      pkgs.whitesur-icon-theme
-    ];
+  home.packages = [
+    pkgs.valent
+  ]
+  ++ extensionPkgs
+  ++ [
+    toggleScreen
+  ]
+  ++ (with pkgs; [
+    blackbox-terminal
+    kdePackages.dolphin
+    gnome-tweaks
+    seahorse
+  ])
+  ++ [
+    pkgs.whitesur-gtk-theme
+    pkgs.whitesur-icon-theme
+  ];
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
-    "jfnifeihccihocjbfcfhicmmgpjicaec" # GSConnect
   ];
   # Remove initial setup dialog
   home.file.".config/gnome-initial-setup-done".text = "yes";
@@ -139,6 +140,7 @@ in
         disable-user-extensions = false;
         enabled-extensions = map (p: p.extensionUuid) extensionPkgs;
         disabled-extensions = [ ];
+        disable-extension-version-validation = true;
         last-selected-power-profile = "performance";
         favorite-apps = lib.mkBefore [
           "org.gnome.Console.desktop"
@@ -252,12 +254,6 @@ in
         show-dock-urgent-notify = false;
         show-trash = false;
       };
-      "org/gnome/shell/extensions/gsconnect" = {
-        show-indicators = true;
-        webbrowser-integration = true;
-        nautilus-integration = true;
-        show-battery = true;
-      };
       "org/gnome/shell/extensions/user-theme" = {
         name = "WhiteSur-Light";
       };
@@ -310,20 +306,31 @@ in
     ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
   '';
 
-  # gsconnect association
+  # valent association
   xdg.mimeApps.associations.added = {
-    "x-scheme-handler/sms" = "org.gnome.Shell.Extensions.GSConnect.desktop";
-    "x-scheme-handler/tel" = "org.gnome.Shell.Extensions.GSConnect.desktop";
+    "x-scheme-handler/sms" = "ca.andyholmes.Valent.desktop";
+    "x-scheme-handler/tel" = "ca.andyholmes.Valent.desktop";
   };
+
+  # Autostart Valent
+  home.file.".config/autostart/ca.andyholmes.Valent.desktop".text = ''
+    [Desktop Entry]
+    Name=Valent
+    Exec=${pkgs.valent}/bin/valent --gapplication-service
+    Icon=ca.andyholmes.Valent
+    Type=Application
+    NoDisplay=true
+    X-GNOME-Autostart-Phase=Application
+  '';
 
   gtk = {
     enable = true;
     theme = {
-      name = "WhiteSur-Dark-solid";
+      name = "WhiteSur-Light-solid";
       package = pkgs.whitesur-gtk-theme;
     };
     iconTheme = {
-      name = "WhiteSur-dark";
+      name = "WhiteSur-light";
       package = pkgs.whitesur-icon-theme;
     };
     cursorTheme = {
@@ -360,41 +367,12 @@ in
 
   home.global-persistence = {
     directories = [
-      ".config/gsconnect"
-      ".cache/gsconnect"
+      ".config/valent"
+      ".cache/valent"
+      ".local/share/valent"
       ".local/share/keyrings"
     ];
   };
-  systemd.user.services.gsconnect-dconf = {
-    Unit = {
-      Description = "gsconnect-dconf";
-      Wants = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Install = {
-      WantedBy = [ "graphical-session.target" ];
-    };
-    Service = {
-      Type = "simple";
-      ExecStart = toString (
-        pkgs.writeScript "gsconnect-dconf-start" ''
-          #! ${pkgs.runtimeShell} -el
-          ${pkgs.dconf}/bin/dconf load /org/gnome/shell/extensions/gsconnect/ < ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf || true
-        ''
-      );
-      ExecStop = toString (
-        pkgs.writeScript "gsconnect-dconf-stop" ''
-          #! ${pkgs.runtimeShell} -el
-          ${pkgs.dconf}/bin/dconf dump /org/gnome/shell/extensions/gsconnect/ > ${config.home.homeDirectory}/.config/gsconnect/gsconnect.dconf
-        ''
-      );
-      Restart = "on-failure";
-      RestartSec = 1;
-      TimeoutStopSec = 10;
-      RemainAfterExit = "yes";
-    };
-  };
-
   # Override GNOME's IBus systemd service to use kimpanel-ibus-panel.
   # GNOME's built-in unit hardcodes "--panel disable", which bypasses the
   # NixOS ibus.panel option entirely. kimpanel-ibus-panel bridges IBus to the

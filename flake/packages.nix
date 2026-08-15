@@ -74,7 +74,6 @@
     {
       packages = {
         inherit (pkgs) nixos-anywhere;
-        kaogong-helper = pkgs.callPackage ../pkgs/kaogong-helper { };
       }
       // can0LowmemKexec;
       checks = lib.mapAttrs' (name: p: lib.nameValuePair "package/${name}" p) self'.packages;

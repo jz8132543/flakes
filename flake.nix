@@ -14,6 +14,7 @@
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    kaogong.url = "path:/home/tippy/source/kaogong";
     flake-utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
     systems.url = "github:nix-systems/default";

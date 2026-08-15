@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   inputs,
   ...
 }:
@@ -36,8 +37,8 @@
       "nowatchdog"
     ];
     extraModprobeConfig = ''
-      options i915 enable_guc=2
-      options i915 enable_fbc=1
+      # 禁用 FBC 和 PSR，解决 GNOME Wayland 桌面滑动掉帧卡顿
+      options i915 enable_fbc=0 enable_psr=0
       options kvm_intel nested=1
       options kvm_intel emulate_invalid_guest_state=0
       options kvm ignore_msrs=1
@@ -90,6 +91,34 @@
     #     enable = true;
     #     finegrained = false;
     #   };
+  };
+  # 1. 禁用 UPower 和 GNOME 的默认低电量关机动作
+  services.upower.criticalPowerAction = "Ignore";
+  services.upower.allowRiskyCriticalPowerAction = true;
+  programs.dconf.profiles.user.databases = [
+    {
+      settings."org/gnome/settings-daemon/plugins/power".critical-battery-action = "nothing";
+    }
+  ];
+
+  # 2. Udev 仅保留事件触发
+  services.udev.extraRules = ''
+    SUBSYSTEM=="power_supply", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start battery-guard.service"
+  '';
+
+  # 3. 极简守护服务
+  systemd.services.battery-guard = {
+    path = with pkgs; [
+      coreutils
+      gnugrep
+      systemd
+    ];
+    serviceConfig.Type = "oneshot";
+    script = ''
+      grep -q 1 /sys/class/power_supply/*/online 2>/dev/null && exit 0
+      BAT=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | sort -n | head -n 1)
+      [ "''${BAT:-100}" -le 5 ] && systemctl poweroff
+    '';
   };
   utils.disk = "/dev/nvme0n1";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;

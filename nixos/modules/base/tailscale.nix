@@ -41,12 +41,12 @@ in
         enable = lib.mkDefault true;
         description = "Tailscale automatic login";
         after = [
-          "sops-nix.service"
+          "sops-install-secrets.service"
           "tailscaled.service"
           "network-online.target"
         ];
         requires = [
-          "sops-nix.service"
+          "sops-install-secrets.service"
           "tailscaled.service"
         ];
         wants = [ "network-online.target" ];
@@ -81,17 +81,29 @@ in
           # Check if already authenticated
           status_json=$(tailscale status --json 2>/dev/null || true)
           status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
-          if [ "$status" = "Running" ]; then
-            echo "Tailscale is already running and authenticated."
+
+          if [ "$status" = "Running" ] || [ "$status" = "Starting" ]; then
+            echo "Tailscale is already authenticated (state: $status)."
             exit 0
           fi
 
-          echo "Tailscale not authenticated (state: $status), logging in..."
-          timeout 2m tailscale up \
-            --reset \
-            --login-server "$login_server" \
-            --auth-key "file:${config.sops.secrets.tailscale_preauth_key.path}" \
-            ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags}
+          if [ "$status" = "NeedsLogin" ] || [ "$status" = "NoState" ]; then
+            echo "Tailscale not authenticated (state: $status), logging in..."
+            AUTH_KEY=$(cat "${config.sops.secrets.tailscale_preauth_key.path}" | tr -d '\n\r' || true)
+            timeout 2m tailscale up \
+              --login-server "$login_server" \
+              --auth-key "$AUTH_KEY" \
+              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
+            exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "tailscale up failed with exit code $exit_code. Log output:"
+              cat /tmp/tailscale-setup.log
+              exit $exit_code
+            fi
+          else
+            echo "Tailscale is in state $status, no automatic login attempted."
+            exit 0
+          fi
         '';
         serviceConfig = {
           Type = "oneshot";
