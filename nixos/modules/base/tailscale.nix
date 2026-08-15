@@ -87,6 +87,7 @@ in
           if [ "$status" = "Running" ] || [ "$status" = "Starting" ]; then
             echo "Tailscale is already authenticated (state: $status); reconciling configured flags."
             timeout 2m tailscale up \
+              --reset \
               --login-server "$login_server" \
               ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
             exit_code=$?
@@ -102,6 +103,7 @@ in
             echo "Tailscale not authenticated (state: $status), logging in..."
             AUTH_KEY=$(cat "${config.sops.secrets.tailscale_preauth_key.path}" | tr -d '\n\r' || true)
             timeout 2m tailscale up \
+              --reset \
               --login-server "$login_server" \
               --auth-key "$AUTH_KEY" \
               ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
