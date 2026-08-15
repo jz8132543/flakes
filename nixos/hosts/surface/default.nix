@@ -2,6 +2,7 @@
   lib,
   nixosModules,
   pkgs,
+  lib,
   ...
 }:
 let
