@@ -17,8 +17,6 @@
       nixosModules.optimize.dev
     ];
 
-  services.tailscale.extraSetFlags = [ "--advertise-exit-node" ];
-
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
     lenovo-legion

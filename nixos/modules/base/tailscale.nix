@@ -21,6 +21,7 @@ in
         extraSetFlags = [
           "--netfilter-mode=nodivert"
           "--accept-dns=false"
+          "--advertise-exit-node"
         ];
         extraDaemonFlags = [ "--no-logs-no-support" ];
       };

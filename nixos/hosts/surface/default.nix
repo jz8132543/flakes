@@ -1,5 +1,4 @@
 {
-  lib,
   nixosModules,
   pkgs,
   lib,
@@ -65,7 +64,6 @@ in
 
   services.tailscale = {
     enable = true;
-    extraSetFlags = [ "--advertise-exit-node" ];
   };
 
   # hardware.microsoft-surface = {
