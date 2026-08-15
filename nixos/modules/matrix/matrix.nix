@@ -170,15 +170,16 @@ in
           msc3881_enabled = true;
           msc3890_enabled = true;
           msc4143_enabled = true;
-          msc3861 = {
-            enabled = true;
-            issuer = "https://m.dora.im/";
-            client_id = synapseClientId;
-            client_auth_method = "client_secret_basic";
-            client_secret = config.sops.placeholder."matrix/registration_shared_secret";
-            admin_token = config.sops.placeholder."matrix/registration_shared_secret";
-            account_management_url = "https://m.dora.im/account";
-          };
+        };
+        matrix_authentication_service = {
+          enabled = true;
+          issuer = "https://m.dora.im/";
+          client_id = synapseClientId;
+          client_auth_method = "client_secret_basic";
+          client_secret = config.sops.placeholder."matrix/registration_shared_secret";
+          secret = config.sops.placeholder."matrix/registration_shared_secret";
+          admin_token = config.sops.placeholder."matrix/registration_shared_secret";
+          account_management_url = "https://m.dora.im/account";
         };
         matrix_rtc = {
           transports = matrixRtcFoci;

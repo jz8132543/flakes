@@ -339,8 +339,10 @@
             SecureCookie = false;
             ClickjackingProtection = false;
             LocalHostAuth = false;
-            AuthSubnetWhitelistEnabled = true;
+            AuthSubnetWhitelistEnabled = false;
             AuthSubnetWhitelist = "127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16";
+            ReverseProxySupportEnabled = true;
+            TrustedReverseProxiesList = "127.0.0.1";
           };
 
           Downloads = {

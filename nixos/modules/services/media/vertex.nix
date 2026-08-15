@@ -15,6 +15,7 @@
       volumes = [
         "/data/.state/vertex:/vertex"
         "/data/downloads/torrents:/data/downloads/torrents"
+        "/data/.state/vertex/qb-patched.js:/app/vertex/app/libs/client/qb.js"
       ];
       environment = {
         TZ = "Asia/Shanghai";
