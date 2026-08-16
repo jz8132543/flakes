@@ -120,6 +120,10 @@ let
     ];
 
     rules = [
+      # 绕过本机的 microsocks 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
+      "UID,999,DIRECT"
+      "PROCESS-NAME,microsocks,DIRECT"
+
       # 防环路，直接放行 EasyTier 核心进程
       # "PROCESS-NAME,easytier-core,DIRECT"
 

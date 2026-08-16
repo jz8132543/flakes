@@ -22,14 +22,24 @@
     ip = "0.0.0.0";
   };
 
-  systemd.services.microsocks.serviceConfig = {
-    IPAddressAllow = [
-      "100.64.0.0/10"
-      "fd7a:115c:a1e0::/48"
-      "127.0.0.0/8"
-      "::1/128"
-    ];
-    IPAddressDeny = "any";
+  # 1. Create a dedicated microsocks user and group with a fixed UID
+  users.users.microsocks = {
+    isSystemUser = true;
+    group = "microsocks";
+    uid = 999;
+    description = "User for microsocks proxy (fixed UID for mihomo bypass)";
+  };
+  users.groups.microsocks = {
+    gid = 999;
+  };
+
+  # 2. Configure microsocks systemd service to use the fixed user
+  systemd.services.microsocks = {
+    serviceConfig = {
+      DynamicUser = lib.mkForce false;
+      User = "microsocks";
+      Group = "microsocks";
+    };
   };
   networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 1080 ];
 
