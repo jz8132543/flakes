@@ -60,35 +60,10 @@ in
       nixosModules.services.traefik
       nixosModules.optimize.dev
       nixosModules.services.qbittorrent
+      nixosModules.services.microsocks
     ];
 
-  services.microsocks = {
-    enable = true;
-    # Bind to all interfaces; tailscale will route traffic here.
-    ip = "0.0.0.0";
-  };
-
-  # 1. Create a dedicated microsocks user and group with a fixed UID
-  users.users.microsocks = {
-    isSystemUser = true;
-    group = "microsocks";
-    uid = 999;
-    description = "User for microsocks proxy (fixed UID for mihomo bypass)";
-  };
-  users.groups.microsocks = {
-    gid = 999;
-  };
-
-  # 2. Configure microsocks systemd service to use the fixed user
-  systemd.services.microsocks = {
-    serviceConfig = {
-      DynamicUser = lib.mkForce false;
-      User = "microsocks";
-      Group = "microsocks";
-    };
-  };
-
-  networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 1080 ];
+  services.custom-microsocks.enable = true;
 
   services.tailscale = {
     enable = true;
