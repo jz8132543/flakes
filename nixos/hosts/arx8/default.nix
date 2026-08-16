@@ -17,6 +17,22 @@
       nixosModules.optimize.dev
     ];
 
+  services.microsocks = {
+    enable = true;
+    ip = "0.0.0.0";
+  };
+
+  systemd.services.microsocks.serviceConfig = {
+    IPAddressAllow = [
+      "100.64.0.0/10"
+      "fd7a:115c:a1e0::/48"
+      "127.0.0.0/8"
+      "::1/128"
+    ];
+    IPAddressDeny = "any";
+  };
+  networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 1080 ];
+
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
     lenovo-legion

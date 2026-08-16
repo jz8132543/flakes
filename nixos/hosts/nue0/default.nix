@@ -78,7 +78,7 @@
       "shg0.mag"
       "op13.mag"
     ];
-    basePort = 1001;
+
     poolPort = 10080;
   };
 

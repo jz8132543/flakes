@@ -62,6 +62,25 @@ in
       nixosModules.services.qbittorrent
     ];
 
+  services.microsocks = {
+    enable = true;
+    # Bind to all interfaces; tailscale will route traffic here.
+    ip = "0.0.0.0";
+  };
+
+  # Whitelist connections to Microsocks: only Tailscale IP ranges and localhost.
+  systemd.services.microsocks.serviceConfig = {
+    IPAddressAllow = [
+      "100.64.0.0/10"
+      "fd7a:115c:a1e0::/48"
+      "127.0.0.0/8"
+      "::1/128"
+    ];
+    IPAddressDeny = "any";
+  };
+
+  networking.firewall.interfaces."tailscale0".allowedTCPPorts = [ 1080 ];
+
   services.tailscale = {
     enable = true;
   };
