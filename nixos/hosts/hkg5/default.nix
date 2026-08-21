@@ -30,4 +30,6 @@
     cpus = 1; # vCPU 数
     highLoss = true; # 高丢包国际线路
   };
+
+  virtualisation.docker.enable = true;
 }
