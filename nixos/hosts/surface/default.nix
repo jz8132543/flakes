@@ -60,10 +60,8 @@ in
       nixosModules.services.traefik
       nixosModules.optimize.dev
       nixosModules.services.qbittorrent
-      nixosModules.services.microsocks
+      # nixosModules.services.microsocks
     ];
-
-  services.custom-microsocks.enable = true;
 
   services.tailscale = {
     enable = true;
