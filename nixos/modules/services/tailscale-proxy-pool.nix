@@ -68,7 +68,7 @@ in
             ];
             script = ''
               # Read the reusable auth key for proxies
-              AUTH_KEY=$(cat /var/lib/proxy_preauth_key | tr -d '\n\r')
+              AUTH_KEY=$(cat "${config.sops.secrets.tailscale_preauth_key.path}" | tr -d '\n\r')
 
               # Wait for tailscaled to start in the container
               while true; do
@@ -91,9 +91,9 @@ in
 
               echo "Waiting for exit node $NODE_BASE to become available..."
               while true; do
-                 EXIT_NODE_IP=$(podman exec ts-proxy-${safeName node} tailscale status | grep -i "$NODE_BASE" | head -1 | awk '{print $1}')
+                 EXIT_NODE_IP=$(podman exec ts-proxy-${safeName node} tailscale status | awk -v node="$NODE_BASE" '$2 == node {print $1}')
                  if [ -n "$EXIT_NODE_IP" ]; then
-                    if podman exec ts-proxy-${safeName node} tailscale set --exit-node="$EXIT_NODE_IP" --exit-node-allow-lan-access=false; then
+                    if podman exec ts-proxy-${safeName node} tailscale set --exit-node="$EXIT_NODE_IP" --exit-node-allow-lan-access=true; then
                        echo "Successfully set exit node to $EXIT_NODE_IP"
                        break
                     fi
