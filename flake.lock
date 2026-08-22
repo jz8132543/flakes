@@ -521,11 +521,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1787413849,
-        "narHash": "sha256-uIAmJmX8WrXKvA/nyxHFSSn37QrkH7DhD07ayQIpLI8=",
+        "lastModified": 1787414028,
+        "narHash": "sha256-ck5B43ytzpyxDeobfph/mts345jyWJPP9rYyjRLaY4c=",
         "owner": "jz8132543",
         "repo": "kaogong",
-        "rev": "5c59f4b56762b308b5db7eddebcea92b1a0d9629",
+        "rev": "a49a51a941fb106ea01d9cc6d6ea857891fd72f1",
         "type": "github"
       },
       "original": {
