@@ -71,13 +71,13 @@ lib.mkIf overlayEnabled {
   systemd.services.overlay-underlay-main = {
     description = "将 overlay 传输固定在主路由表";
     after = [
-      "network-online.target"
+      "network-pre.target"
       "nftables.service"
     ];
     before =
       lib.optionals tailscaleEnabled [ "tailscaled.service" ]
       ++ lib.optionals easytierEnabled [ "easytier.service" ];
-    wants = [ "network-online.target" ];
+    wants = [ "network-pre.target" ];
     wantedBy = [ "multi-user.target" ];
     path = [ pkgs.iproute2 ];
     script = ''

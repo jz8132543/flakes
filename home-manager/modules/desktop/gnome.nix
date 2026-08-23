@@ -12,7 +12,6 @@ let
 
   imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
   extensionPkgs = with pkgs.gnomeExtensions; [
-    valent
     appindicator
     dash-to-dock
     clipboard-history
@@ -68,23 +67,21 @@ let
   };
 in
 {
-  home.packages = [
-    pkgs.valent
-  ]
-  ++ extensionPkgs
-  ++ [
-    toggleScreen
-  ]
-  ++ (with pkgs; [
-    blackbox-terminal
-    kdePackages.dolphin
-    gnome-tweaks
-    seahorse
-  ])
-  ++ [
-    pkgs.whitesur-gtk-theme
-    pkgs.whitesur-icon-theme
-  ];
+  home.packages =
+    extensionPkgs
+    ++ [
+      toggleScreen
+    ]
+    ++ (with pkgs; [
+      blackbox-terminal
+      kdePackages.dolphin
+      gnome-tweaks
+      seahorse
+    ])
+    ++ [
+      pkgs.whitesur-gtk-theme
+      pkgs.whitesur-icon-theme
+    ];
 
   programs.chromium.extensions = [
     "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
@@ -306,22 +303,10 @@ in
     ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
   '';
 
-  # valent association
-  xdg.mimeApps.associations.added = {
-    "x-scheme-handler/sms" = "ca.andyholmes.Valent.desktop";
-    "x-scheme-handler/tel" = "ca.andyholmes.Valent.desktop";
+  services.kdeconnect = {
+    enable = true;
+    indicator = true;
   };
-
-  # Autostart Valent
-  home.file.".config/autostart/ca.andyholmes.Valent.desktop".text = ''
-    [Desktop Entry]
-    Name=Valent
-    Exec=${pkgs.valent}/bin/valent --gapplication-service
-    Icon=ca.andyholmes.Valent
-    Type=Application
-    NoDisplay=true
-    X-GNOME-Autostart-Phase=Application
-  '';
 
   gtk = {
     enable = true;
@@ -367,9 +352,7 @@ in
 
   home.global-persistence = {
     directories = [
-      ".config/valent"
-      ".cache/valent"
-      ".local/share/valent"
+      ".config/kdeconnect"
       ".local/share/keyrings"
     ];
   };
