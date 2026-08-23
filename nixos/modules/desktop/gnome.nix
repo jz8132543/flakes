@@ -7,9 +7,19 @@
 {
   imports = [ nixosModules.services.acme ];
 
-  # firewall for GSConnect
-  networking.firewall.allowedTCPPorts = lib.range 1714 1764;
-  networking.firewall.allowedUDPPorts = lib.range 1714 1764;
+  # Enable KDE Connect (opens firewall ports 1714-1764 TCP/UDP)
+  programs.kdeconnect.enable = true;
+
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings = {
+      General = {
+        DiscoverableTimeout = "0";
+        Experimental = true;
+      };
+    };
+  };
 
   services = {
     xserver.enable = true;

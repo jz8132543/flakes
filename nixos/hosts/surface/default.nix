@@ -63,10 +63,6 @@ in
       # nixosModules.services.microsocks
     ];
 
-  services.tailscale = {
-    enable = true;
-  };
-
   # hardware.microsoft-surface = {
   #   kernelVersion = "longterm";
   # };

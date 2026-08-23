@@ -13,6 +13,7 @@
     directories = [
       ".cache/nix"
       ".gemini"
+      ".android"
     ];
   };
   home.sessionVariables = { };
