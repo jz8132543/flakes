@@ -401,4 +401,34 @@ in
       WantedBy = [ "gnome-session.target" ];
     };
   };
+
+  # Automatically switch to external monitor only when one is connected
+  systemd.user.services."auto-external-monitor" = {
+    Unit = {
+      Description = "Automatically switch to external monitor only";
+      PartOf = [ "gnome-session-initialized.target" ];
+      After = [ "gnome-session-initialized.target" ];
+    };
+    Service = {
+      ExecStart = pkgs.writeShellScript "auto-external-monitor" ''
+        # Listen to Mutter DisplayConfig signals
+        ${pkgs.dbus}/bin/dbus-monitor --session "type='signal',interface='org.gnome.Mutter.DisplayConfig',member='MonitorsChanged'" | grep --line-buffered "member=MonitorsChanged" | \
+        while read -r line; do
+          # Give GNOME time to stabilize the display state
+          sleep 1
+          HAS_EXTERNAL=$(${pkgs.systemd}/bin/busctl --user get-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig HasExternalMonitor | awk '{print $2}')
+          if [ "$HAS_EXTERNAL" = "true" ]; then
+            ${pkgs.gnome-randr}/bin/gnome-randr modify --output eDP-1 --off
+          else
+            ${pkgs.gnome-randr}/bin/gnome-randr modify --output eDP-1 --on
+          fi
+        done
+      '';
+      Restart = "always";
+      RestartSec = 3;
+    };
+    Install = {
+      WantedBy = [ "gnome-session.target" ];
+    };
+  };
 }
