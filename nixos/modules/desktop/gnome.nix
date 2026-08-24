@@ -7,8 +7,10 @@
 {
   imports = [ nixosModules.services.acme ];
 
-  # Enable KDE Connect (opens firewall ports 1714-1764 TCP/UDP)
-  programs.kdeconnect.enable = true;
+  programs.kdeconnect = {
+    enable = true;
+    package = pkgs.gnomeExtensions.gsconnect;
+  };
 
   hardware.bluetooth = {
     enable = true;

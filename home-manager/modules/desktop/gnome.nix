@@ -18,6 +18,7 @@ let
     upower-battery
     alphabetical-app-grid
     system-monitor-next
+    gsconnect
     # caffeine
     user-themes
     blur-my-shell
@@ -303,11 +304,6 @@ in
     ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
   '';
 
-  services.kdeconnect = {
-    enable = true;
-    indicator = true;
-  };
-
   gtk = {
     enable = true;
     theme = {
@@ -352,7 +348,7 @@ in
 
   home.global-persistence = {
     directories = [
-      ".config/kdeconnect"
+      ".config/gsconnect"
       ".local/share/keyrings"
     ];
   };
