@@ -76,7 +76,7 @@
       "surface.mag"
       "arx8.mag"
       "shg0.mag"
-      "op13.mag"
+      # "op13.mag"
     ];
 
     poolPort = 10080;

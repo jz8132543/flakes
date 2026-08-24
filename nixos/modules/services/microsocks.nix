@@ -9,7 +9,9 @@ let
 in
 {
   options.services.custom-microsocks = {
-    enable = lib.mkEnableOption "Custom Microsocks SOCKS5 Proxy with Mihomo bypass rules";
+    enable = lib.mkEnableOption "Custom Microsocks SOCKS5 Proxy with Mihomo bypass rules" // {
+      default = true;
+    };
   };
 
   config = lib.mkIf cfg.enable {

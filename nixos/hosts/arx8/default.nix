@@ -15,10 +15,8 @@
       nixosModules.services.ddns
       nixosModules.services.traefik
       nixosModules.optimize.dev
-      nixosModules.services.microsocks
+      # nixosModules.services.microsocks
     ];
-
-  services.custom-microsocks.enable = true;
 
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
