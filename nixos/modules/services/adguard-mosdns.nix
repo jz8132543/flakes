@@ -8,15 +8,9 @@
 let
   cfg = config.services.adguard-mosdns;
 
-  geositeCn = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt";
-    sha256 = "1y6zbm7bidwmkh003m736h75vmlnf3v8m5wi7jd7ddn3plh4qhhf";
-  };
+  geositeCn = "/var/lib/private/mosdns/direct-list.txt";
 
-  geositeGeolocationNoncn = pkgs.fetchurl {
-    url = "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt";
-    sha256 = "1ir5bsr74x21pmhf4bn199xwmz195wfz35gmh9d1z8z6xgnp5rcx";
-  };
+  geositeGeolocationNoncn = "/var/lib/private/mosdns/proxy-list.txt";
 
   # Mosdns configuration (v5 format)
   mosdnsConfig = pkgs.writeText "mosdns-config.yaml" ''
@@ -143,7 +137,14 @@ in
     services.adguardhome = {
       enable = true;
       port = cfg.webPort;
+      mutableSettings = false;
       settings = {
+        users = [
+          {
+            name = "i";
+            password = "$2b$12$o4we2rzW13CNUzwl7hmAS.9a59rU0./mOxJF2AAEn0Z9Z3WnTHPYa";
+          }
+        ];
         dns = {
           bind_hosts = [ "0.0.0.0" ];
           port = 5300; # Internal bind port to avoid conflict with dnsmasq
@@ -153,6 +154,8 @@ in
             "127.0.0.1:5333" # Mosdns
           ];
           bootstrap_dns = [
+            "1.1.1.1"
+            "8.8.8.8"
             "223.5.5.5"
             "119.29.29.29"
           ];
@@ -161,31 +164,40 @@ in
 
           # 缓存设置（由于Mosdns已经有了非常完善的缓存，AGH这里的缓存可以相对减小或关闭，以Mosdns为准）
           cache_size = 4194304;
-
-          # 去广告规则
-          filters = [
-            {
-              enabled = true;
-              url = "https://anti-ad.net/easylist.txt";
-              name = "anti-AD";
-              id = 1;
-            }
-            {
-              enabled = true;
-              url = "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt";
-              name = "AdGuard DNS filter";
-              id = 2;
-            }
-            {
-              enabled = true;
-              url = "https://easylist-downloads.adblockplus.org/easylistchina.txt";
-              name = "EasyList China";
-              id = 3;
-            }
-          ];
         };
+
+        # 去广告规则
+        filters = [
+          {
+            enabled = true;
+            url = "https://anti-ad.net/easylist.txt";
+            name = "anti-AD";
+            id = 1;
+          }
+          {
+            enabled = true;
+            url = "https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt";
+            name = "AdGuard DNS filter";
+            id = 2;
+          }
+          {
+            enabled = true;
+            url = "https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/main/AWAvenue-Ads-Rule.txt";
+            name = "AWAvenue Ads Rule";
+            id = 3;
+          }
+        ];
         tls = {
+          enabled = true;
+          certificate_path = "/var/lib/AdGuardHome/certs/cert.pem";
+          private_key_path = "/var/lib/AdGuardHome/certs/key.pem";
           allow_unencrypted_doh = true;
+          port_https = 3054;
+          port_dns_over_tls = 8530;
+          port_dns_over_quic = 8530;
+        };
+        querylog = {
+          enabled = true;
         };
       };
     };
@@ -196,6 +208,14 @@ in
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
+        ExecStartPre = pkgs.writeScript "mosdns-update-rules" ''
+          #!${pkgs.bash}/bin/bash
+          cd "$STATE_DIRECTORY"
+          ${pkgs.curl}/bin/curl -sfL -z direct-list.txt "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/direct-list.txt" -o direct-list.txt || true
+          ${pkgs.curl}/bin/curl -sfL -z proxy-list.txt "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/proxy-list.txt" -o proxy-list.txt || true
+          # Create empty files if curl fails on first run
+          touch direct-list.txt proxy-list.txt
+        '';
         ExecStart = "${pkgs.mosdns}/bin/mosdns start -c ${mosdnsConfig}";
         Restart = "always";
         DynamicUser = true;
@@ -215,22 +235,6 @@ in
         cfg.port
         5300
       ];
-    };
-
-    # Redirect external DNS traffic to internal AdGuardHome port 5300 using nftables
-    networking.nftables.tables.adguard-dns = {
-      family = "inet";
-      content = ''
-        chain prerouting {
-          type nat hook prerouting priority dstnat; policy accept;
-          iifname "tailscale0" udp dport ${toString cfg.port} counter redirect to :5300
-          iifname "tailscale0" tcp dport ${toString cfg.port} counter redirect to :5300
-          iifname "ens*" udp dport ${toString cfg.port} counter redirect to :5300
-          iifname "ens*" tcp dport ${toString cfg.port} counter redirect to :5300
-          iifname "eth*" udp dport ${toString cfg.port} counter redirect to :5300
-          iifname "eth*" tcp dport ${toString cfg.port} counter redirect to :5300
-        }
-      '';
     };
 
     services.traefik.proxies.adguard-mosdns = lib.mkIf (config.services.traefik.enable or false) {
