@@ -60,6 +60,7 @@
       nixosModules.services.grafana.default
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
+      nixosModules.services.adguard-mosdns
     ]
     ++ nixosModules.matrix.all;
 

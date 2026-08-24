@@ -74,6 +74,11 @@ with lib;
                 type = types.bool;
                 default = false;
               };
+              tlsOptions = mkOption {
+                type = types.nullOr types.str;
+                default = null;
+                description = "Reference to a tls option (e.g. for ALPN)";
+              };
             };
           }
         )
@@ -113,6 +118,7 @@ with lib;
       80
       443
       8443
+      853 # DoT
       config.ports.ldap
       636 # LDAPS
     ];
@@ -197,6 +203,9 @@ with lib;
             http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
             http3 = { };
           };
+          dot = {
+            address = ":853";
+          };
           ldap = {
             address = ":${toString config.ports.ldap}";
           };
@@ -234,7 +243,12 @@ with lib;
       };
       dynamicConfigOptions = {
         tls = {
-          options.default = { };
+          options = {
+            default = { };
+            dot-tls = {
+              alpnProtocols = [ "dot" ];
+            };
+          };
         }
         // lib.optionalAttrs config.environment.isNAT {
           certificates = [
@@ -320,7 +334,16 @@ with lib;
                 entryPoints
                 ;
               service = name;
-              tls = if value.tls then { } else null;
+              tls =
+                if value.tls then
+                  (
+                    let
+                      base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
+                    in
+                    if value.tlsOptions != null then base // { options = value.tlsOptions; } else base
+                  )
+                else
+                  null;
             })
           ) config.services.traefik.tcpProxies;
           services = mapAttrs (_name: value: {

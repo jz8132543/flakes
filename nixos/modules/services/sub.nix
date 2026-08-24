@@ -177,10 +177,14 @@ let
       default-nameserver = [
         "223.5.5.5"
         "1.12.12.12"
+        "https://223.5.5.5/dns-query"
+        "https://1.12.12.12/dns-query"
       ];
       proxy-server-nameserver = [
         "223.5.5.5"
         "1.12.12.12"
+        "https://223.5.5.5/dns-query"
+        "https://1.12.12.12/dns-query"
       ];
       nameserver = [
         "https://1.1.1.1/dns-query#PROXY"
@@ -189,6 +193,8 @@ let
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
         "geosite:cn,apple,private,steam,onedrive" = [
+          "https://223.5.5.5/dns-query"
+          "https://1.12.12.12/dns-query"
           "tls://223.5.5.5"
           "tls://1.12.12.12"
         ];

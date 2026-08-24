@@ -188,6 +188,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "dns": {
+      "on": "nue0",
+      "proxy": false
+    },
     "et": {
       "on": "nue0",
       "proxy": false
