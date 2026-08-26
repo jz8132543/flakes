@@ -4,49 +4,6 @@
   pkgs,
   ...
 }:
-let
-  surfaceDisplayAutoPy = ./surface-display-auto.py;
-
-  surfaceDisplayAuto = pkgs.writeShellApplication {
-    name = "surface-display-auto";
-    runtimeInputs = [
-      pkgs.python3
-      pkgs.glib
-      pkgs.systemd
-    ];
-    text = ''
-      exec ${pkgs.python3.interpreter} ${surfaceDisplayAutoPy} "$@"
-    '';
-  };
-
-  surfaceDisplayDiagnose = pkgs.writeShellApplication {
-    name = "surface-display-diagnose";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.glib
-      pkgs.gnugrep
-      pkgs.pciutils
-      pkgs.ripgrep
-      pkgs.systemd
-      pkgs.usbutils
-      surfaceDisplayAuto
-    ];
-    text = builtins.readFile ./surface-display-diagnose.sh;
-  };
-
-  surfaceDisplayRecover = pkgs.writeShellApplication {
-    name = "surface-display-recover";
-    runtimeInputs = [
-      pkgs.coreutils
-      pkgs.gawk
-      pkgs.glib
-      pkgs.systemd
-      surfaceDisplayAuto
-      surfaceDisplayDiagnose
-    ];
-    text = builtins.readFile ./surface-display-recover.sh;
-  };
-in
 {
   imports =
     nixosModules.cloud.all
@@ -94,25 +51,14 @@ in
     efibootmgr
     pciutils
     surface-control
-    surfaceDisplayAuto
-    surfaceDisplayDiagnose
-    surfaceDisplayRecover
     usbutils
     v4l-utils
+    dde-file-manager
   ];
 
-  systemd.user.services.surface-display-auto = {
-    description = "Automatically switch Surface to external-only when an external monitor appears";
-    wantedBy = [
-      "default.target"
-      "graphical-session.target"
-    ];
-    partOf = [ "graphical-session.target" ];
-    after = [ "graphical-session.target" ];
-    serviceConfig = {
-      ExecStart = "${surfaceDisplayAuto}/bin/surface-display-auto watch";
-      Restart = "always";
-      RestartSec = 2;
-    };
-  };
+  desktop.kdeconnect.customDomains = [
+    "op13.mag"
+    "opap.mag"
+  ];
+
 }
