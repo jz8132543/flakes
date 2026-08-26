@@ -632,7 +632,7 @@ in
       ".codex"
     ];
     files = [
-      ".config/monitors.xml"
+      # ".config/monitors.xml" # Removed to allow GNOME to adaptively configure monitors based on EDID
     ];
   };
 }

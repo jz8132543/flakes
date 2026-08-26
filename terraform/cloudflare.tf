@@ -120,6 +120,7 @@ locals {
     chat               = { on = "nue0", proxy = false }
     couchdb            = { on = "nue0", proxy = false }
     kaogong            = { on = "nue0", proxy = false }
+    dns                = { on = "nue0", proxy = false }
     searx              = { on = "hkg4", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }

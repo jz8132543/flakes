@@ -20,7 +20,6 @@ in
   imports = [ nixosModules.services.acme ];
 
   config = {
-
     # Enable KDE Connect (opens firewall ports 1714-1764 TCP/UDP)
     programs.kdeconnect.enable = true;
 
