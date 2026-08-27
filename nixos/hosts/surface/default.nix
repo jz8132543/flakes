@@ -53,7 +53,10 @@
     surface-control
     usbutils
     v4l-utils
-    dde-file-manager
+    nemo-with-extensions
+    # nemo-fileroller
+    # cinnamon.nemo
+    # cinnamon.nemo-fileroller
   ];
 
   desktop.kdeconnect.customDomains = [
