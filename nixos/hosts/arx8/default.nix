@@ -29,10 +29,15 @@
   desktop.winapps = {
     kvm = {
       enable = true;
-      extraDisks = [ "/dev/disk/by-id/nvme-SKHynix_HFS001TEJ9X115N_SJC4N518613804G0I-part4" ]; # 750GB 的软件和游戏分区
+      enableVirtIO = true;
+      enableCdrom = false;
+      extraDisks = [ "/dev/disk/by-id/nvme-GLOWAY_YCT1TNVMe-M.2_80_T23101205008" ]; # 2TB Game Drive
     };
-    docker.enable = true;
-    enableCdrom = false;
+    docker = {
+      enable = true;
+      enableVirtIO = true;
+      enableCdrom = true;
+    };
   };
 
   # services.create_ap = {

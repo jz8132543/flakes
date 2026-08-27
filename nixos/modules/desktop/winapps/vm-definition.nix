@@ -53,12 +53,14 @@ let
             <disk type='block' device='disk'>
               <driver name='qemu' type='raw' cache='none' io='native'/>
               <source dev='__WINDOWS_DISK_PLACEHOLDER__'/>
-              <target dev='vda' bus='virtio'/>
+              <target dev='${if cfg.kvm.enableVirtIO then "vda" else "sda"}' bus='${
+                if cfg.kvm.enableVirtIO then "virtio" else "sata"
+              }'/>
               <boot order='1'/>
             </disk>
             <!-- Extra Disks -->
     ${extraDisksXml}
-    ${lib.optionalString cfg.enableCdrom ''
+    ${lib.optionalString cfg.kvm.enableCdrom ''
       <!-- Physical CD/DVD Drive Passthrough -->
       <disk type='block' device='cdrom'>
         <driver name='qemu' type='raw'/>

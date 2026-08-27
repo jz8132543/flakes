@@ -30,9 +30,16 @@
   };
 
   desktop.winapps = {
-    docker.enable = true;
-    kvm.enable = true;
-    enableCdrom = true;
+    kvm = {
+      enable = true;
+      enableVirtIO = true;
+      enableCdrom = false;
+    };
+    docker = {
+      enable = true;
+      enableVirtIO = true;
+      enableCdrom = true;
+    };
   };
 
   users.users.tippy.extraGroups = [ "surface-control" ];

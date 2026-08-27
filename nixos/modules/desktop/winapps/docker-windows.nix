@@ -16,6 +16,7 @@ in
           CPU_CORES = "4";
           TZ = config.time.timeZone;
           ARGUMENTS = "-rtc base=localtime,clock=host,driftfix=slew";
+          DISK_TYPE = if cfg.docker.enableVirtIO then "virtio" else "sata";
         };
         ports = [
           "8006:8006"
@@ -29,7 +30,8 @@ in
           "--device=/dev/kvm"
           "--cap-add=NET_ADMIN"
         ]
-        ++ lib.optional cfg.enableCdrom "--device=/dev/cdrom";
+        ++ lib.optional cfg.docker.enableCdrom "--device=/dev/cdrom"
+        ++ lib.imap1 (i: disk: "--device=${disk}:/disk${toString (i + 1)}") cfg.docker.extraDisks;
       };
     };
 
