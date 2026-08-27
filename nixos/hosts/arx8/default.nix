@@ -26,6 +26,14 @@
   desktop.nvidia = {
     mode = "offload";
   };
+  desktop.winapps = {
+    kvm = {
+      enable = true;
+      extraDisks = [ "/dev/disk/by-id/nvme-SKHynix_HFS001TEJ9X115N_SJC4N518613804G0I-part4" ]; # 750GB 的软件和游戏分区
+    };
+    docker.enable = true;
+    enableCdrom = false;
+  };
 
   # services.create_ap = {
   #   enable = true;

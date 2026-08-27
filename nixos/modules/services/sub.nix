@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -250,7 +251,8 @@ let
     };
   };
 
-  mihomoText = lib.generators.toYAML { } mihomoConfig;
+  yamlFormat = pkgs.formats.yaml { };
+  mihomoYamlFile = yamlFormat.generate "mihomo.yaml" mihomoConfig;
 
   nginxText = ''
     location = /${subscriptionPathToken}/mihomo.yaml {
@@ -355,7 +357,7 @@ in
     sops.templates."subscription/mihomo.yaml" = {
       owner = "nginx";
       mode = "0444";
-      content = mihomoText;
+      file = mihomoYamlFile;
     };
 
     sops.templates."subscription/nginx.conf" = {

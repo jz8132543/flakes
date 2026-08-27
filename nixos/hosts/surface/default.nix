@@ -29,6 +29,12 @@
     mode = "sync";
   };
 
+  desktop.winapps = {
+    docker.enable = true;
+    kvm.enable = true;
+    enableCdrom = true;
+  };
+
   users.users.tippy.extraGroups = [ "surface-control" ];
 
   # services.create_ap = {
