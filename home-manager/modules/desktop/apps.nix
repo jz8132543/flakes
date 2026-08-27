@@ -288,7 +288,10 @@ let
   };
 in
 {
-  imports = [ ./obsidian-livesync.nix ];
+  imports = [
+    ./obsidian-livesync.nix
+    ./cc-switch.nix
+  ];
 
   home.packages = with pkgs; [
     telegram-desktop

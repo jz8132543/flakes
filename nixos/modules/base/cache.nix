@@ -3,12 +3,19 @@
 }:
 {
   nix.settings = {
+    # 减少重试次数
+    download-attempts = 1;
+    # 降低连接超时时间（秒）
+    connect-timeout = 5;
+    # 降低下载过程中卡住的等待时间（秒）
+    stalled-download-timeout = 30;
+
     substituters = [
       "https://cache.nixos.org"
       "https://cache.lix.systems"
       "https://nix-community.cachix.org"
       "https://surface.cachix.org"
-      "https://cache.dora.im"
+      "https://cache.dora.im?priority=100"
     ];
     max-substitution-jobs = 128;
     http-connections = 128;

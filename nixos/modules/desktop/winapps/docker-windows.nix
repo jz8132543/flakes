@@ -16,7 +16,9 @@ in
           CPU_CORES = "4";
           TZ = config.time.timeZone;
           ARGUMENTS = "-rtc base=localtime,clock=host,driftfix=slew";
-          DISK_TYPE = if cfg.docker.enableVirtIO then "virtio" else "sata";
+        }
+        // lib.optionalAttrs (!cfg.docker.enableVirtIO) {
+          DISK_TYPE = "sata";
         };
         ports = [
           "8006:8006"

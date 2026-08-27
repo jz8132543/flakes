@@ -31,12 +31,12 @@
       enable = true;
       enableVirtIO = true;
       enableCdrom = false;
-      extraDisks = [ "/dev/disk/by-id/nvme-GLOWAY_YCT1TNVMe-M.2_80_T23101205008" ]; # 2TB Game Drive
     };
     docker = {
       enable = true;
       enableVirtIO = true;
-      enableCdrom = true;
+      enableCdrom = false;
+      extraDisks = [ "/dev/disk/by-id/nvme-GLOWAY_YCT2TNVMe-M.2_80_T23101205008" ]; # 2TB Game Drive
     };
   };
 

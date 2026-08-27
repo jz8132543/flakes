@@ -38,7 +38,7 @@
     docker = {
       enable = true;
       enableVirtIO = true;
-      enableCdrom = true;
+      enableCdrom = false;
     };
   };
 
@@ -60,6 +60,7 @@
   # environment.isCN = true;
 
   # environment.networkTune.cca = "bbr";
+
   environment.systemPackages = with pkgs; [
     efibootmgr
     pciutils
