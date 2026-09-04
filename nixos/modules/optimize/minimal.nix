@@ -96,10 +96,10 @@ in
       # systemd.services.tailscale-setup.enable = false;
 
       # 限制 Journald 内存占用
-      services.journald.extraConfig = lib.mkForce ''
-        SystemMaxUse=10M
-        RuntimeMaxUse=10M
-      '';
+      services.journald.settings.Journal = {
+        SystemMaxUse = lib.mkForce "10M";
+        RuntimeMaxUse = lib.mkForce "10M";
+      };
       services.earlyoom.enable = true;
 
       # 登出时杀死用户所有的后台进程 (释放 systemd --user 及残留程序大约 26MB 的内存)
@@ -108,6 +108,15 @@ in
       # 允许在使用 minimal 模式时禁用用户的默认 Shell
       # users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;
       # users.users.tippy.ignoreShellProgramCheck = true;
+
+      # Disable heavy nvf and enable lightweight neovim in minimal environment
+      programs.nvf.enable = lib.mkForce false;
+      programs.neovim = {
+        enable = lib.mkForce true;
+        defaultEditor = lib.mkForce true;
+        viAlias = lib.mkForce false;
+        vimAlias = lib.mkForce true;
+      };
 
       home-manager.users.tippy = {
         #   home.packages = lib.mkForce [ ];

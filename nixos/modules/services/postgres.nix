@@ -71,4 +71,6 @@
     requires = [ "postgresql.service" ];
     serviceConfig.SupplementaryGroups = [ "postgres" ];
   };
+
+  systemd.services.postgresql.wants = [ "prometheus-postgres-exporter.service" ];
 }

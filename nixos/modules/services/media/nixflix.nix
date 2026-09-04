@@ -32,7 +32,7 @@
       };
 
       nginx.enable = true;
-      postgres.enable = false;
+      postgres.enable = true;
 
       sonarr = {
         enable = true;
@@ -186,6 +186,25 @@
           ];
         };
       };
+
+      flaresolverr = {
+        enable = true;
+      };
+
+      navidrome = {
+        enable = true;
+        group = "media";
+        users."i" = {
+          userName = "i";
+          isAdmin = true;
+          password._secret = config.sops.secrets."password".path;
+        };
+      };
+
+      maintainerr = {
+        enable = true;
+        group = "media";
+      };
     };
 
     services.traefik.proxies =
@@ -202,6 +221,16 @@
         jellyseerr = {
           rule = "Host(`seerr.${domain}`) || Host(`seerr.${fqdn}`)";
           target = "http://127.0.0.1:${toString config.ports.jellyseerr}";
+        };
+
+        navidrome = {
+          rule = "Host(`navidrome.${domain}`) || Host(`navidrome.${fqdn}`)";
+          target = "http://127.0.0.1:${toString config.ports.navidrome}";
+        };
+
+        maintainerr = {
+          rule = "Host(`maintainerr.${domain}`) || Host(`maintainerr.${fqdn}`)";
+          target = "http://127.0.0.1:${toString config.ports.maintainerr}";
         };
 
         sonarr = {
@@ -388,6 +417,9 @@
               "radarr"
               "prowlarr"
               "lidarr"
+              "flaresolverr"
+              "navidrome"
+              "maintainerr"
             ]
         ))
         // (lib.listToAttrs (
@@ -481,12 +513,30 @@
             IPQoS = "background";
           };
 
-          sonarr.serviceConfig.UMask = "0002";
-          radarr.serviceConfig.UMask = "0002";
-          prowlarr.serviceConfig.UMask = "0002";
-          lidarr.serviceConfig.UMask = "0002";
-          seerr.serviceConfig.UMask = "0002";
-          sonarr-anime.serviceConfig.UMask = "0002";
+          sonarr.serviceConfig.UMask = lib.mkForce "0002";
+          radarr.serviceConfig.UMask = lib.mkForce "0002";
+          prowlarr.serviceConfig.UMask = lib.mkForce "0002";
+          lidarr.serviceConfig.UMask = lib.mkForce "0002";
+          seerr = {
+            serviceConfig.UMask = lib.mkForce "0002";
+            wants = [
+              "seerr-setup.service"
+              "seerr-user-settings.service"
+              "seerr-jellyfin.service"
+              "seerr-libraries.service"
+              "seerr-sonarr.service"
+              "seerr-radarr.service"
+            ];
+          };
+          sonarr-anime.serviceConfig.UMask = lib.mkForce "0002";
+          navidrome = {
+            serviceConfig.UMask = lib.mkForce "0002";
+            wants = [
+              "navidrome-create-admin.service"
+              "navidrome-users-config.service"
+            ];
+          };
+          maintainerr.serviceConfig.UMask = lib.mkForce "0002";
         };
 
       timers.qbit-ip-reporter = lib.mkIf config.environment.seedbox.enable {

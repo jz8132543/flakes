@@ -27,9 +27,9 @@
 
   services.fstrim.enable = lib.mkDefault true;
 
-  services.journald.extraConfig = lib.mkOverride 40 ''
-    SystemMaxUse=64M
-    RuntimeMaxUse=64M
-    SystemKeepFree=256M
-  '';
+  services.journald.settings.Journal = lib.mkOverride 40 {
+    SystemMaxUse = "64M";
+    RuntimeMaxUse = "64M";
+    SystemKeepFree = "256M";
+  };
 }

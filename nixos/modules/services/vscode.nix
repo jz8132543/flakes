@@ -9,7 +9,53 @@ let
   user = "tippy";
   workspace = "/home/tippy/source/flakes";
   vscodeWebPort = toString config.ports.code;
+  extensionsGallery = builtins.toJSON {
+    serviceUrl = "https://marketplace.visualstudio.com/_apis/public/gallery";
+    cacheUrl = "https://vscode.blob.core.windows.net/gallery/index";
+    itemUrl = "https://marketplace.visualstudio.com/items";
+    resourceUrlTemplate = "https://{publisher}.vscode-unpkg.net/{publisher}/{name}/{version}/{path}";
+    controlUrl = "";
+  };
   vscodeWebStart = pkgs.writeShellScript "vscode-web-start" ''
+    export EXTENSIONS_GALLERY='${extensionsGallery}'
+    EXT_DIR="/home/${user}/.vscode-server/extensions"
+    mkdir -p "$EXT_DIR"
+
+    # Clean up deprecated / conflicting extensions if present
+    for old_ext in \
+      lyadhgod.antigravity-vscode \
+      punal100.antigravity-copilot \
+      GoogleCloudTools.cloudcode; do
+      if ls "$EXT_DIR" 2>/dev/null | grep -qi "$old_ext"; then
+        echo "Removing deprecated extension: $old_ext"
+        ${lib.getExe pkgs.openvscode-server} \
+          --server-data-dir /home/${user}/.vscode-server \
+          --extensions-dir "$EXT_DIR" \
+          --uninstall-extension "$old_ext" 2>/dev/null || true
+        rm -rf "$EXT_DIR"/''${old_ext}* 2>/dev/null || true
+      fi
+    done
+
+    # Pre-install official Antigravity, Copilot, Cline/Continue, Nix IDE, and Git workflow extensions
+    for ext in \
+      google.google-antigravity \
+      GitHub.copilot \
+      GitHub.copilot-chat \
+      saoudrizwan.claude-dev \
+      Continue.continue \
+      mkhl.direnv \
+      jnoortheen.nix-ide \
+      mhutchie.git-graph \
+      donjayamanne.githistory; do
+      if ! ls "$EXT_DIR" 2>/dev/null | grep -qi "$ext"; then
+        echo "Installing extension: $ext"
+        ${lib.getExe pkgs.openvscode-server} \
+          --server-data-dir /home/${user}/.vscode-server \
+          --extensions-dir "$EXT_DIR" \
+          --install-extension "$ext" --force || true
+      fi
+    done
+
     exec ${lib.getExe pkgs.openvscode-server} \
       --host 127.0.0.1 \
       --port ${vscodeWebPort} \
@@ -17,7 +63,9 @@ let
       --accept-server-license-terms \
       --github-auth "$GITHUB_TOKEN" \
       --server-data-dir /home/${user}/.vscode-server \
-      --disable-telemetry
+      --extensions-dir "$EXT_DIR" \
+      --disable-telemetry \
+      "${workspace}"
   '';
 in
 {
@@ -28,6 +76,16 @@ in
     description = "VS Code Web";
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
+    path = with pkgs; [
+      nix
+      direnv
+      git
+      nixd
+      nixfmt
+      coreutils
+      curl
+      bashInteractive
+    ];
     serviceConfig = {
       User = user;
       ExecStart = vscodeWebStart;
@@ -36,6 +94,7 @@ in
     };
     environment = {
       LANG = "zh_CN.UTF-8";
+      EXTENSIONS_GALLERY = extensionsGallery;
     };
   };
 
@@ -76,17 +135,20 @@ in
         "editor.suggestSelection" = "first";
         "editor.guides.indentation" = false;
 
+        # Web & PWA Keyboard shortcut optimization
+        "keyboard.dispatch" = "keyCode";
+
         "[nix]"."editor.tabSize" = 2;
         "nix.enableLanguageServer" = true;
-        "nix.serverPath" = "/run/current-system/sw/bin/nixd";
-        "nix.serverSettings.nixd.formatting.command" = [ "nixfmt" ];
+        "nix.serverPath" = "${lib.getExe pkgs.nixd}";
+        "nix.serverSettings.nixd.formatting.command" = [ "${lib.getExe pkgs.nixfmt}" ];
         "nix.serverSettings.nixd.nixpkgs.expr" =
           "import (builtins.getFlake \"/home/tippy/source/flakes\").inputs.nixpkgs {  }";
         "nix.serverSettings.nixd.options.nixos.expr" =
           "(builtins.getFlake \"/home/tippy/source/flakes\").nixosConfigurations.${config.networking.hostName}.options";
         "nix.serverSettings.nixd.options.home_manager.expr" =
           "(builtins.getFlake \"/home/tippy/source/flakes\").homeConfigurations.tippy.options";
-        "nix.formatterPath" = "nixfmt";
+        "nix.formatterPath" = "${lib.getExe pkgs.nixfmt}";
 
         "window.restoreWindows" = "all";
         "window.menuBarVisibility" = "toggle";
@@ -100,6 +162,22 @@ in
         "update.mode" = "none";
         "extensions.autoCheckUpdates" = false;
         "github.copilot.nextEditSuggestions.enabled" = true;
+        "github.copilot.enable" = {
+          "*" = true;
+        };
+        "github.copilot.chat.localeOverride" = "zh-CN";
+        "chat.commandCenter.enabled" = true;
+
+        # Direnv
+        "direnv.restart.automatic" = true;
+        "direnv.status.enabled" = true;
+        "direnv.path.executable" = "${lib.getExe pkgs.direnv}";
+
+        # Git & Git Graph
+        "git.autofetch" = true;
+        "git.confirmSync" = false;
+        "git-graph.repository.showCommitsOnlyReferencedByTagsOrBranches" = false;
+        "git-graph.commitDetailsView.location" = "Docked to Bottom";
       };
     };
   };
@@ -110,7 +188,7 @@ in
 
   sops.templates."vscode-web-environment" = {
     content = ''
-      GITHUB_TOKEN=${config.sops.placeholder."nix/github-token"}
+      GITHUB_TOKEN=${config.sops.placeholder."github-token"}
     '';
   };
 
@@ -129,6 +207,7 @@ in
       # VS Code / OpenVSCode Server store workspace trust and machine identity
       # state under data/, so keep that tree persistent as well.
       ".vscode-server/data"
+      ".continue"
     ];
   };
 }

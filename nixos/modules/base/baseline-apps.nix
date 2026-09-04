@@ -1,5 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
+  imports = [
+    inputs.nvf.nixosModules.default
+  ];
+
   # Git (Global)
   programs.git = {
     enable = true;
@@ -40,6 +44,134 @@
     fuse = {
       mountMax = 32767;
       userAllowOther = true;
+    };
+  };
+
+  programs.nvf = {
+    enable = true;
+    defaultEditor = true;
+    enableManpages = true;
+    settings = {
+      vim = {
+        viAlias = false;
+        vimAlias = true;
+        preventJunkFiles = true;
+
+        theme = {
+          enable = true;
+          name = "catppuccin";
+          style = "mocha";
+        };
+
+        statusline.lualine = {
+          enable = true;
+          setupOpts.options.theme = "catppuccin";
+        };
+
+        visuals = {
+          nvim-web-devicons.enable = true;
+          nvim-cursorline.enable = true;
+          cinnamon-nvim.enable = true;
+          fidget-nvim.enable = true;
+          highlight-undo.enable = true;
+          indent-blankline.enable = true;
+        };
+
+        lsp = {
+          enable = true;
+          formatOnSave = true;
+          lightbulb.enable = true;
+          trouble.enable = true;
+        };
+
+        debugger.nvim-dap = {
+          enable = true;
+          ui.enable = true;
+        };
+
+        languages = {
+          enableFormat = true;
+          enableTreesitter = true;
+          enableExtraDiagnostics = true;
+
+          nix.enable = true;
+          markdown.enable = true;
+          bash.enable = true;
+          clang.enable = true;
+          cmake.enable = true;
+          css.enable = true;
+          html.enable = true;
+          json.enable = true;
+          sql.enable = true;
+          go.enable = true;
+          lua.enable = true;
+          rust = {
+            enable = true;
+            extensions.crates-nvim.enable = true;
+          };
+          python.enable = true;
+          toml.enable = true;
+          docker.enable = true;
+          tsx.enable = true;
+        };
+
+        autocomplete = {
+          nvim-cmp.enable = true;
+        };
+        snippets.luasnip.enable = true;
+
+        autopairs.nvim-autopairs.enable = true;
+
+        filetree.neo-tree.enable = true;
+
+        tabline.nvimBufferline.enable = true;
+
+        treesitter.context.enable = true;
+
+        binds = {
+          whichKey.enable = true;
+          cheatsheet.enable = true;
+        };
+
+        telescope.enable = true;
+
+        git = {
+          enable = true;
+          gitsigns.enable = true;
+        };
+
+        notify.nvim-notify.enable = true;
+
+        utility = {
+          diffview-nvim.enable = true;
+          surround.enable = true;
+          undotree.enable = true;
+          motion = {
+            hop.enable = true;
+            leap.enable = true;
+          };
+        };
+
+        notes = {
+          todo-comments.enable = true;
+        };
+
+        terminal = {
+          toggleterm = {
+            enable = true;
+            lazygit.enable = true;
+          };
+        };
+
+        ui = {
+          borders.enable = true;
+          noice.enable = true;
+          colorizer.enable = true;
+          illuminate.enable = true;
+        };
+
+        comments.comment-nvim.enable = true;
+      };
     };
   };
 

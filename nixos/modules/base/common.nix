@@ -39,20 +39,41 @@
     enableUserSlices = true;
   };
 
-  services.journald.extraConfig = ''
-    SystemMaxUse=100M
-    SystemKeepFree=1G
-  '';
+  services.journald.settings.Journal = {
+    SystemMaxUse = "100M";
+    SystemKeepFree = "1G";
+  };
 
-  sops.secrets."nix/github-token" = {
+  sops.secrets."github-token" = {
     mode = "0440";
     group = config.users.groups.users.name;
   };
   xdg.portal.config.common.default = "*";
+
+  # Use sops templates to generate the nix config file with the raw token
+  sops.templates."nix-access-tokens.conf" = {
+    content = "access-tokens = github.com=${config.sops.placeholder."github-token"}";
+    mode = "0440";
+    group = config.users.groups.users.name;
+  };
+
   nix.extraOptions = ''
-    !include ${config.sops.secrets."nix/github-token".path}
+    !include ${config.sops.templates."nix-access-tokens.conf".path}
   '';
 
   programs.fish.enable = true;
   programs.zsh.enable = true;
+
+  # Read the raw GitHub token and set it as an environment variable
+  environment.shellInit = ''
+    if [ -r ${config.sops.secrets."github-token".path} ]; then
+      export GITHUB_TOKEN=$(cat ${config.sops.secrets."github-token".path} | tr -d '\n')
+    fi
+  '';
+
+  programs.fish.interactiveShellInit = ''
+    if test -r ${config.sops.secrets."github-token".path}
+      set -gx GITHUB_TOKEN (cat ${config.sops.secrets."github-token".path} | tr -d '\n')
+    end
+  '';
 }

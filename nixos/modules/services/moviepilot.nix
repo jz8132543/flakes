@@ -98,7 +98,7 @@ in
         QB_PASSWORD=${placeholder."password"}
         JELLYFIN_API_KEY=${placeholder."media/jellyfin_api_key"}
         JELLYFIN_PASSWORD=${placeholder."password"}
-        #GITHUB_TOKEN=${placeholder."nix/github-token"}
+        #GITHUB_TOKEN=${placeholder."github-token"}
       '';
     owner = "root";
   };

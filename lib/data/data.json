@@ -232,6 +232,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "maintainerr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "memos": {
       "on": "nue0",
       "proxy": false
@@ -246,6 +250,10 @@
     },
     "murmur": {
       "on": "hkg4",
+      "proxy": false
+    },
+    "navidrome": {
+      "on": "nue0",
       "proxy": false
     },
     "ntfy": {

@@ -132,6 +132,11 @@
     };
     preservation.url = "github:nix-community/preservation";
     chinese-fonts-overlay.url = "github:brsvh/chinese-fonts-overlay";
+    nvf = {
+      url = "github:notashelf/nvf";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-compat.follows = "flake-compat";
+    };
     nixvim = {
       url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";

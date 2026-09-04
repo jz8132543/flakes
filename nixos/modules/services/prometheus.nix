@@ -43,7 +43,7 @@
         {
           job_name = "traefik";
           scheme = "https";
-          metrics_path = "/traefik";
+          metrics_path = "/metrics";
           static_configs = [
             {
               targets = [
