@@ -51,6 +51,11 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/linkwarden/latest.xpi";
         };
+        # Immersive Translate - 双语网页翻译
+        "{5efceaa7-f3a2-4e59-a54b-85319448e305}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/immersive-translate/latest.xpi";
+        };
       };
       "3rdparty" = {
         Extensions = {

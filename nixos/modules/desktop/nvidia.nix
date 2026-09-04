@@ -92,7 +92,6 @@ in
     (lib.mkIf (cfg.mode == "sync") {
       environment.sessionVariables = {
         __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-        GBM_BACKEND = "nvidia-drm";
         LIBVA_DRIVER_NAME = "nvidia";
       };
 
