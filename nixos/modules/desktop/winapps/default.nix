@@ -33,6 +33,12 @@
     docker = {
       enable = lib.mkEnableOption "WinApps integration with Docker (dockur/windows)";
 
+      autoStart = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Whether to start the Docker Windows container at boot.";
+      };
+
       enableCdrom = lib.mkOption {
         type = lib.types.bool;
         default = false;
