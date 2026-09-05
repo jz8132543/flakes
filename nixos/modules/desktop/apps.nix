@@ -29,4 +29,34 @@
   networking.firewall.allowedTCPPorts = [
     config.ports.qrcp
   ];
+
+  programs.chromium = {
+    enable = true;
+    extensions = [
+      # CookieCloud - 同步PT站点Cookie
+      "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
+      # Bitwarden
+      "nngceckbapebfimnlniiiahkandclblb"
+      # uBlock Origin
+      "cjpalhdlnbpafiamejdnhcphjbkeiagm"
+      # PT-Depiler - PT站点效率工具
+      "gfkgnjfipffpfdnfmcpaoajkidapcplc"
+      # Aria2 Explorer
+      "mpkodccbngfoacfalldjimigihfbocjn"
+      # Linkwarden - Bookmark Manager
+      "efpglpohdfnodejoimcladancmgeibao"
+    ];
+    extraOpts = {
+      "3rdparty" = {
+        "extensions" = {
+          "ffjiejobkoibkjlhjnlgmcnnigeelbdl" = {
+            "host" = "https://cookiecloud.${config.networking.domain or "dora.im"}";
+          };
+          "efpglpohdfnodejoimcladancmgeibao" = {
+            "host" = "https://link.${config.networking.domain or "dora.im"}";
+          };
+        };
+      };
+    };
+  };
 }

@@ -73,16 +73,4 @@ in
       ".cache/chromium"
     ];
   };
-  home.file.".config/google-chrome/policies/managed/policy.json".text = builtins.toJSON {
-    "3rdparty" = {
-      "extensions" = {
-        "ffjiejobkoibkjlhjnlgmcnnigeelbdl" = {
-          "host" = "https://cookiecloud.dora.im";
-        };
-        "efpglpohdfnodejoimcladancmgeibao" = {
-          "host" = "https://link.dora.im";
-        };
-      };
-    };
-  };
 }
