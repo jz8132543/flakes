@@ -204,6 +204,7 @@ let
     tun = {
       enable = true;
       stack = "system";
+      auto-redirect = true;
       auto-route = true;
       auto-detect-interface = true;
       inet4_route_address = [
