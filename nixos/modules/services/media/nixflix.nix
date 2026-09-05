@@ -1,3 +1,4 @@
+# Reference: https://github.com/masood09/nix/blob/e43e3928dc919603b2a2c31a43b0a9d1bfbd9ba8/modules/services/arr/default.nix#L339
 {
   lib,
   config,
@@ -5,6 +6,84 @@
   inputs,
   ...
 }:
+let
+  inherit (config.networking) domain fqdn;
+
+  # Public external URLs centralized in one place for consistency and DRY
+  externalUrls = {
+    jellyfin = "https://jellyfin.${domain}/jellyfin";
+    seerr = "https://seerr.${domain}";
+    sonarr = "https://sonarr.${domain}/sonarr";
+    sonarr-anime = "https://sonarr-anime.${domain}/sonarr-anime";
+    radarr = "https://radarr.${domain}/radarr";
+    prowlarr = "https://prowlarr.${domain}/prowlarr";
+    lidarr = "https://lidarr.${domain}/lidarr";
+  };
+
+  # Shared media authentication configuration (Forms auth with SOPS password)
+  commonHostConfig = {
+    username = "i";
+    password._secret = config.sops.secrets."password".path;
+  };
+
+  # Helper for Seerr Radarr instance configuration
+  mkSeerrRadarrInstance =
+    {
+      cfg,
+      externalUrl,
+      activeProfileName ? "SQP-1 (1080p)",
+      isDefault ? true,
+    }:
+    {
+      hostname = cfg.connectionAddress;
+      port = cfg.config.hostConfig.port or 7878;
+      inherit (cfg.config) apiKey;
+      baseUrl = cfg.config.hostConfig.urlBase;
+      activeDirectory = builtins.head (cfg.mediaDirs or [ "/data/media/movies" ]);
+      inherit isDefault externalUrl activeProfileName;
+    };
+
+  # Helper for Seerr Sonarr instance configuration
+  mkSeerrSonarrInstance =
+    {
+      cfg,
+      externalUrl,
+      activeProfileName ? "WEB-1080p",
+      isAnime ? false,
+      isDefault ? true,
+    }:
+    {
+      hostname = cfg.connectionAddress;
+      port = cfg.config.hostConfig.port or 8989;
+      inherit (cfg.config) apiKey;
+      baseUrl = cfg.config.hostConfig.urlBase;
+      activeDirectory = builtins.head (cfg.mediaDirs or [ "/data/media/tv" ]);
+      activeAnimeDirectory = builtins.head (cfg.mediaDirs or [ "/data/media/tv" ]);
+      seriesType = "standard";
+      animeSeriesType = if isAnime then "anime" else "standard";
+      inherit isDefault externalUrl activeProfileName;
+    };
+
+  # Helper for Prowlarr application registration
+  mkProwlarrApp =
+    {
+      name,
+      implementationName,
+      cfg,
+    }:
+    {
+      inherit name implementationName;
+      inherit (cfg.config) apiKey;
+      baseUrl = "http://127.0.0.1:${toString cfg.config.hostConfig.port}${cfg.config.hostConfig.urlBase}";
+      prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
+    };
+
+  # Helper for Traefik proxy definitions
+  mkProxy = subdomain: port: {
+    rule = "Host(`${subdomain}.${domain}`) || Host(`${subdomain}.${fqdn}`)";
+    target = "http://127.0.0.1:${toString port}";
+  };
+in
 {
   imports = [ inputs.nixflix.nixosModules.default ];
 
@@ -39,12 +118,9 @@
         group = "media";
         config = {
           apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
-          hostConfig = {
-            username = "i";
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
+          hostConfig = commonHostConfig // {
             urlBase = "/sonarr";
+            applicationUrl = externalUrls.sonarr;
           };
           rootFolders = [
             { path = "/data/media/tv"; }
@@ -57,12 +133,9 @@
         group = "media";
         config = {
           apiKey._secret = config.sops.secrets."media/radarr_api_key".path;
-          hostConfig = {
-            username = "i";
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
+          hostConfig = commonHostConfig // {
             urlBase = "/radarr";
+            applicationUrl = externalUrls.radarr;
           };
           rootFolders = [
             { path = "/data/media/movies"; }
@@ -75,42 +148,31 @@
         group = "media";
         config = {
           apiKey._secret = config.sops.secrets."media/prowlarr_api_key".path;
-          hostConfig = {
-            username = "i";
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
+          hostConfig = commonHostConfig // {
             urlBase = "/prowlarr";
+            applicationUrl = externalUrls.prowlarr;
           };
           applications = [
-            {
+            (mkProwlarrApp {
               name = "Sonarr";
               implementationName = "Sonarr";
-              apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
-              baseUrl = "http://127.0.0.1:${toString config.ports.sonarr}/sonarr";
-              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
-            }
-            {
+              cfg = config.nixflix.sonarr;
+            })
+            (mkProwlarrApp {
               name = "Radarr";
               implementationName = "Radarr";
-              apiKey._secret = config.sops.secrets."media/radarr_api_key".path;
-              baseUrl = "http://127.0.0.1:${toString config.ports.radarr}/radarr";
-              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
-            }
-            {
+              cfg = config.nixflix.radarr;
+            })
+            (mkProwlarrApp {
               name = "Lidarr";
               implementationName = "Lidarr";
-              apiKey._secret = config.sops.secrets."media/lidarr_api_key".path;
-              baseUrl = "http://127.0.0.1:${toString config.ports.lidarr}/lidarr";
-              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
-            }
-            {
+              cfg = config.nixflix.lidarr;
+            })
+            (mkProwlarrApp {
               name = "Sonarr Anime";
               implementationName = "Sonarr";
-              apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
-              baseUrl = "http://127.0.0.1:${toString config.ports.sonarr-anime}/sonarr-anime";
-              prowlarrUrl = "http://127.0.0.1:${toString config.ports.prowlarr}/prowlarr";
-            }
+              cfg = config.nixflix.sonarr-anime;
+            })
           ];
           indexers = [
             {
@@ -120,20 +182,6 @@
               baseUrl = "https://kp.m-team.cc/";
               apiKey._secret = config.sops.secrets."media/mteam_api_key".path;
             }
-            /*
-              {
-                name = "PTTime";
-                enable = true;
-                implementationName = "Unit3D";
-                baseUrl = "https://www.pttime.org/";
-                username = {
-                  _secret = config.sops.secrets."media/pttime_username".path;
-                };
-                apiKey = {
-                  _secret = config.sops.secrets."media/pttime_api_key".path;
-                };
-              }
-            */
           ];
         };
       };
@@ -143,12 +191,9 @@
         group = "media";
         config = {
           apiKey._secret = config.sops.secrets."media/lidarr_api_key".path;
-          hostConfig = {
-            username = "i";
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
+          hostConfig = commonHostConfig // {
             urlBase = "/lidarr";
+            applicationUrl = externalUrls.lidarr;
           };
         };
       };
@@ -161,28 +206,218 @@
 
       seerr = {
         enable = true;
-        jellyfin.adminUsername = "i";
-        jellyfin.adminPassword = {
-          _secret = config.sops.secrets."password".path;
+        jellyfin = {
+          adminUsername = "i";
+          adminPassword._secret = config.sops.secrets."password".path;
+          externalHostname = externalUrls.jellyfin;
         };
         settings.users.defaultPermissions = 1024;
         apiKey._secret = config.sops.secrets."media/jellyseerr_api_key".path;
+
+        radarr.Radarr = mkSeerrRadarrInstance {
+          cfg = config.nixflix.radarr;
+          externalUrl = externalUrls.radarr;
+          activeProfileName = "SQP-1 (1080p)";
+        };
+
+        sonarr = {
+          Sonarr = mkSeerrSonarrInstance {
+            cfg = config.nixflix.sonarr;
+            externalUrl = externalUrls.sonarr;
+            activeProfileName = "WEB-1080p";
+            isDefault = true;
+          };
+          "Sonarr Anime" = mkSeerrSonarrInstance {
+            cfg = config.nixflix.sonarr-anime;
+            externalUrl = externalUrls.sonarr-anime;
+            activeProfileName = "[Anime] Remux-1080p";
+            isAnime = true;
+            isDefault = false;
+          };
+        };
       };
 
       sonarr-anime = {
         enable = true;
         group = "media";
         config = {
-          hostConfig = {
-            username = "i";
-            password = {
-              _secret = config.sops.secrets."password".path;
-            };
-            urlBase = "/sonarr-anime";
-          };
           apiKey._secret = config.sops.secrets."media/sonarr_api_key".path;
+          hostConfig = commonHostConfig // {
+            urlBase = "/sonarr-anime";
+            applicationUrl = externalUrls.sonarr-anime;
+          };
           rootFolders = [
             { path = "/data/media/anime"; }
+          ];
+        };
+      };
+
+      jellyfin = {
+        plugins."TheTVDB" = {
+          enable = true;
+          package = (inputs.nixflix.lib.buildJellyfinPlugin { inherit pkgs; }) {
+            pname = "TheTVDB";
+            version = "22.0.0.0";
+            src = pkgs.fetchzip {
+              url = "https://repo.jellyfin.org/releases/plugin/thetvdb/thetvdb_22.0.0.0.zip";
+              hash = "sha256-X7XDq1rdwg5WrueKMI2NmZYvBGe0yzqe3QfF69+qgyE=";
+              stripRoot = false;
+            };
+            passthru.pluginDirName = "TheTVDB_22.0.0.0";
+          };
+        };
+
+        libraries = {
+          Shows.typeOptions = lib.mkForce [
+            {
+              type = "Series";
+              imageFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+            }
+            {
+              type = "Season";
+              imageFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+            }
+            {
+              type = "Episode";
+              imageFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+                "Embedded Image Extractor"
+                "Screen Grabber"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+                "Embedded Image Extractor"
+                "Screen Grabber"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+            }
+          ];
+
+          Anime.typeOptions = lib.mkForce [
+            {
+              type = "Series";
+              imageFetchers = [
+                "TheTVDB"
+                "AniDB"
+                "AniSearch"
+                "TheMovieDb"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "AniDB"
+                "AniSearch"
+                "TheMovieDb"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "AniDB"
+                "AniSearch"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "AniDB"
+                "AniSearch"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+            }
+            {
+              type = "Season";
+              imageFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "TheMovieDb"
+              ];
+            }
+            {
+              type = "Episode";
+              imageFetchers = [
+                "TheTVDB"
+                "AniDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+                "Embedded Image Extractor"
+                "Screen Grabber"
+              ];
+              imageFetcherOrder = [
+                "TheTVDB"
+                "AniDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+                "Embedded Image Extractor"
+                "Screen Grabber"
+              ];
+              metadataFetchers = [
+                "TheTVDB"
+                "AniDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+              metadataFetcherOrder = [
+                "TheTVDB"
+                "AniDB"
+                "TheMovieDb"
+                "The Open Movie Database"
+              ];
+            }
           ];
         };
       };
@@ -207,78 +442,25 @@
       };
     };
 
-    services.traefik.proxies =
-      let
-        inherit (config.networking) domain;
-        inherit (config.networking) fqdn;
-      in
-      {
-        jellyfin = {
-          rule = "Host(`jellyfin.${domain}`) || Host(`jellyfin.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.jellyfin}";
-        };
-
-        jellyseerr = {
-          rule = "Host(`seerr.${domain}`) || Host(`seerr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.jellyseerr}";
-        };
-
-        navidrome = {
-          rule = "Host(`navidrome.${domain}`) || Host(`navidrome.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.navidrome}";
-        };
-
-        maintainerr = {
-          rule = "Host(`maintainerr.${domain}`) || Host(`maintainerr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.maintainerr}";
-        };
-
-        sonarr = {
-          rule = "Host(`sonarr.${domain}`) || Host(`sonarr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.sonarr}";
-        };
-
-        sonarr-anime = {
-          rule = "Host(`sonarr-anime.${domain}`) || Host(`sonarr-anime.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.sonarr-anime}";
-        };
-
-        radarr = {
-          rule = "Host(`radarr.${domain}`) || Host(`radarr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.radarr}";
-        };
-
-        prowlarr = {
-          rule = "Host(`prowlarr.${domain}`) || Host(`prowlarr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.prowlarr}";
-        };
-
-        lidarr = {
-          rule = "Host(`lidarr.${domain}`) || Host(`lidarr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.lidarr}";
-        };
-
-        autobrr = {
-          rule = "Host(`autobrr.${domain}`) || Host(`autobrr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.autobrr}";
-        };
-
-        bazarr = {
-          rule = "Host(`bazarr.${domain}`) || Host(`bazarr.${fqdn}`)";
-          target = "http://127.0.0.1:${toString config.ports.bazarr}";
-        };
-
-        qbittorrent = {
-          rule = "(Host(`qbit.${domain}`) || Host(`qbit.${fqdn}`))";
-          target = "http://127.0.0.1:${toString config.ports.qbittorrent}";
-        };
-
-        whoami = {
-          rule = "Host(`${fqdn}`) && PathPrefix(`/whoami`)";
-          target = "http://127.0.0.1:8082";
-          middlewares = [ "strip-prefix" ];
-        };
+    services.traefik.proxies = {
+      jellyfin = mkProxy "jellyfin" config.ports.jellyfin;
+      jellyseerr = mkProxy "seerr" config.ports.jellyseerr;
+      navidrome = mkProxy "navidrome" config.ports.navidrome;
+      maintainerr = mkProxy "maintainerr" config.ports.maintainerr;
+      sonarr = mkProxy "sonarr" config.ports.sonarr;
+      sonarr-anime = mkProxy "sonarr-anime" config.ports.sonarr-anime;
+      radarr = mkProxy "radarr" config.ports.radarr;
+      prowlarr = mkProxy "prowlarr" config.ports.prowlarr;
+      lidarr = mkProxy "lidarr" config.ports.lidarr;
+      autobrr = mkProxy "autobrr" config.ports.autobrr;
+      bazarr = mkProxy "bazarr" config.ports.bazarr;
+      qbittorrent = mkProxy "qbit" config.ports.qbittorrent;
+      whoami = {
+        rule = "Host(`${fqdn}`) && PathPrefix(`/whoami`)";
+        target = "http://127.0.0.1:8082";
+        middlewares = [ "strip-prefix" ];
       };
+    };
 
     nixflix.torrentClients.qbittorrent = {
       enable = true;
