@@ -4,7 +4,6 @@
   pkgs,
   ...
 }:
-
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
@@ -76,7 +75,7 @@ let
     udp = true;
     unified-delay = true;
     tcp-concurrent = true;
-    find-process-mode = "strict";
+    find-process-mode = "always";
     global-client-fingerprint = "random";
     external-controller = "0.0.0.0:9090";
     external-ui = "./dashboard";
@@ -204,7 +203,7 @@ let
 
     tun = {
       enable = true;
-      stack = "gvisor";
+      stack = "system";
       auto-route = true;
       auto-detect-interface = true;
       inet4_route_address = [
@@ -307,8 +306,7 @@ in
     nodes = lib.mkOption {
       type = lib.types.listOf (
         lib.types.submodule (
-          { ... }:
-          {
+          { ... }: {
             options = {
               name = lib.mkOption { type = lib.types.str; };
               server = lib.mkOption { type = lib.types.str; };
