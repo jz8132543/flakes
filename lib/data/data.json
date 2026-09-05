@@ -244,6 +244,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "movie": {
+      "on": "nue0",
+      "proxy": false
+    },
     "mta-sts": {
       "on": "nue0",
       "proxy": false

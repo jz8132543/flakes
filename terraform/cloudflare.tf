@@ -80,6 +80,7 @@ locals {
     autobrr        = { on = "nue0", proxy = false }
     navidrome      = { on = "nue0", proxy = false }
     maintainerr    = { on = "nue0", proxy = false }
+    movie          = { on = "nue0", proxy = false }
   }
 
   service_cname_mappings = merge({

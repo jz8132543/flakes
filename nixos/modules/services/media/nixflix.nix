@@ -9,16 +9,8 @@
 let
   inherit (config.networking) domain fqdn;
 
-  # Public external URLs centralized in one place for consistency and DRY
-  externalUrls = {
-    jellyfin = "https://jellyfin.${domain}/jellyfin";
-    seerr = "https://seerr.${domain}";
-    sonarr = "https://sonarr.${domain}/sonarr";
-    sonarr-anime = "https://sonarr-anime.${domain}/sonarr-anime";
-    radarr = "https://radarr.${domain}/radarr";
-    prowlarr = "https://prowlarr.${domain}/prowlarr";
-    lidarr = "https://lidarr.${domain}/lidarr";
-  };
+  # Public external URLs centralized in options.nixflix.urls for consistency, DRY, and cross-module reuse
+  externalUrls = config.nixflix.urls;
 
   # Shared media authentication configuration (Forms auth with SOPS password)
   commonHostConfig = {
@@ -86,6 +78,49 @@ let
 in
 {
   imports = [ inputs.nixflix.nixosModules.default ];
+
+  options.nixflix.urls = {
+    jellyfin = lib.mkOption {
+      type = lib.types.str;
+      default = "https://jellyfin.${domain}/jellyfin";
+      description = "Public external URL for Jellyfin.";
+    };
+    qbit = lib.mkOption {
+      type = lib.types.str;
+      default = "https://qbit.${domain}";
+      description = "Public external URL for qBittorrent.";
+    };
+    seerr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://seerr.${domain}";
+      description = "Public external URL for Seerr.";
+    };
+    sonarr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://sonarr.${domain}/sonarr";
+      description = "Public external URL for Sonarr.";
+    };
+    sonarr-anime = lib.mkOption {
+      type = lib.types.str;
+      default = "https://sonarr-anime.${domain}/sonarr-anime";
+      description = "Public external URL for Sonarr Anime.";
+    };
+    radarr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://radarr.${domain}/radarr";
+      description = "Public external URL for Radarr.";
+    };
+    prowlarr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://prowlarr.${domain}/prowlarr";
+      description = "Public external URL for Prowlarr.";
+    };
+    lidarr = lib.mkOption {
+      type = lib.types.str;
+      default = "https://lidarr.${domain}/lidarr";
+      description = "Public external URL for Lidarr.";
+    };
+  };
 
   config = {
     # Reuse official media hostnames consistently across routing and portals.
@@ -311,19 +346,16 @@ in
             }
             {
               type = "Episode";
+              # 仅使用网络元数据和海报源，移除本地截屏提取器 (Screen Grabber / Embedded Image Extractor)，彻底避免导入时 ffmpeg 跑满 CPU
               imageFetchers = [
                 "TheTVDB"
                 "TheMovieDb"
                 "The Open Movie Database"
-                "Embedded Image Extractor"
-                "Screen Grabber"
               ];
               imageFetcherOrder = [
                 "TheTVDB"
                 "TheMovieDb"
                 "The Open Movie Database"
-                "Embedded Image Extractor"
-                "Screen Grabber"
               ];
               metadataFetchers = [
                 "TheTVDB"
@@ -389,21 +421,18 @@ in
             }
             {
               type = "Episode";
+              # 仅使用网络元数据和海报源，移除本地截屏提取器 (Screen Grabber / Embedded Image Extractor)，彻底避免导入时 ffmpeg 跑满 CPU
               imageFetchers = [
                 "TheTVDB"
                 "AniDB"
                 "TheMovieDb"
                 "The Open Movie Database"
-                "Embedded Image Extractor"
-                "Screen Grabber"
               ];
               imageFetcherOrder = [
                 "TheTVDB"
                 "AniDB"
                 "TheMovieDb"
                 "The Open Movie Database"
-                "Embedded Image Extractor"
-                "Screen Grabber"
               ];
               metadataFetchers = [
                 "TheTVDB"
@@ -733,6 +762,7 @@ in
         "Z /data/downloads/torrents 0777 qbittorrent media -"
         "Z /data/downloads/torrents/.incomplete 0777 qbittorrent media -"
         "Z /data/downloads/torrents/tv-sonarr 0777 qbittorrent media -"
+        "Z /data/downloads/torrents/sonarr-anime 0777 qbittorrent media -"
         "Z /data/downloads/torrents/movies-radarr 0777 qbittorrent media -"
         "Z /data/downloads/torrents/music-lidarr 0777 qbittorrent media -"
         "Z /data/downloads/torrents/prowlarr 0777 qbittorrent media -"
