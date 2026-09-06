@@ -26,7 +26,7 @@
   };
 
   programs = {
-    bash.vteIntegration = true;
+    bash.vteIntegration = false;
     mosh.enable = true;
     mtr.enable = true;
     traceroute.enable = true;
@@ -57,6 +57,26 @@
         vimAlias = true;
         preventJunkFiles = true;
 
+        keymaps = [
+          {
+            key = "<C-y>";
+            mode = [
+              "v"
+              "x"
+            ];
+            action = "\"+y";
+            silent = true;
+            desc = "Yank selection to system clipboard";
+          }
+        ];
+
+        clipboard = {
+          registers = "unnamedplus";
+          providers.wl-copy.enable = true;
+        };
+
+        dashboard.dashboard-nvim.enable = true;
+
         theme = {
           enable = true;
           name = "catppuccin";
@@ -75,6 +95,11 @@
           fidget-nvim.enable = true;
           highlight-undo.enable = true;
           indent-blankline.enable = true;
+          rainbow-delimiters.enable = true;
+          nvim-scrollbar.enable = true;
+          cellular-automaton.enable = true;
+          hlargs-nvim.enable = true;
+          tiny-devicons-auto-colors.enable = true;
         };
 
         lsp = {
@@ -126,7 +151,11 @@
 
         tabline.nvimBufferline.enable = true;
 
-        treesitter.context.enable = true;
+        treesitter = {
+          context.enable = true;
+          textobjects.enable = true;
+          autotagHtml = true;
+        };
 
         binds = {
           whichKey.enable = true;
@@ -138,9 +167,13 @@
         git = {
           enable = true;
           gitsigns.enable = true;
+          gitlinker-nvim.enable = true;
         };
 
         notify.nvim-notify.enable = true;
+
+        navigation.harpoon.enable = true;
+        projects.project-nvim.enable = true;
 
         utility = {
           diffview-nvim.enable = true;
@@ -150,6 +183,15 @@
             hop.enable = true;
             leap.enable = true;
           };
+          oil-nvim.enable = true;
+          outline.aerial-nvim.enable = true;
+          yanky-nvim = {
+            enable = true;
+            setupOpts.ring.storage = "memory";
+          };
+          multicursors.enable = true;
+          direnv.enable = true;
+          nvim-biscuits.enable = true;
         };
 
         notes = {
@@ -168,6 +210,10 @@
           noice.enable = true;
           colorizer.enable = true;
           illuminate.enable = true;
+          dropbar-nvim.enable = true;
+          modes-nvim.enable = true;
+          smartcolumn.enable = true;
+          colorful-menu-nvim.enable = true;
         };
 
         comments.comment-nvim.enable = true;
@@ -178,7 +224,6 @@
   environment.systemPackages = with pkgs; [
     curlFull
     wget
-    fastfetch
     screen
     tcpdump
     wireguard-tools

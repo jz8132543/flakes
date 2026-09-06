@@ -61,6 +61,13 @@ stdenv.mkDerivation {
           chmod -R u+w shared-data/
         fi
 
+        # Directly commit 顿号 (、) without candidate menu for both '\' and '/'
+        if [ -f shared-data/punctuation.yaml ]; then
+          sed -i "s|'\\\\' : \\[ 、, '\\\\', ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
+          sed -i "s|'/' : \\[ 、, '/', ／, ÷ \\]|'/' : { commit: '、' }|g" shared-data/punctuation.yaml
+          sed -i "s|'\\\\' : \\[ 、, ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
+        fi
+
         # 3. Copy grammar model.
         cp -f ${wanxiangGram} shared-data/wanxiang-lts-zh-hans.gram
 

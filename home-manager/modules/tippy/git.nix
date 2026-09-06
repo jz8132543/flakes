@@ -3,7 +3,7 @@
   programs.delta.enable = true;
   programs.git = {
     enable = true;
-    package = pkgs.gitFull;
+    package = pkgs.gitMinimal;
     lfs.enable = true;
     settings = {
       user.name = "jz8132543";
