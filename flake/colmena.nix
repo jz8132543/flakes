@@ -34,7 +34,6 @@ in
       };
       specialArgs = {
         inherit inputs self;
-        inherit (config.flake) matrixRtcHosts;
         inherit nixosModules;
       };
     };
