@@ -2,10 +2,14 @@
   config,
   pkgs,
   lib,
-  matrixRtcHosts,
   ...
 }:
 let
+  matrixRtcHosts = [
+    "nue0"
+    "sjc0"
+  ];
+
   cfg = config.services.matrix;
   elementConfig = builtins.toJSON {
     default_server_config = {
@@ -83,6 +87,12 @@ in
     type = lib.types.str;
     default = "postgres.mag";
     description = "PostgreSQL host for Synapse.";
+  };
+
+  options.services.matrix.rtcHosts = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = matrixRtcHosts;
+    description = "Matrix RTC hosts";
   };
 
   config = {

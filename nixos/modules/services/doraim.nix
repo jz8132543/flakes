@@ -2,10 +2,14 @@
   config,
   pkgs,
   lib,
-  matrixRtcHosts,
   ...
 }:
 let
+  matrixRtcHosts =
+    config.services.matrix.rtcHosts or [
+      "nue0"
+      "sjc0"
+    ];
   enabledMatrixRtcHosts =
     let
       currentHost = config.networking.hostName;

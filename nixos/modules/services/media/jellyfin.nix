@@ -109,7 +109,37 @@
         };
       };
 
-      # 3. 创建 Jellyfin 默认用户策略模板（供 SSO 等插件使用）
+      # 3. 声明式维护 Jellyfin 媒体库多目录软链接与 mblink 关联：
+      # 确保 Jellyfin 的剧集 (Shows) 与电影 (Movies) 媒体库同时识别并监视 MoviePilot 默认分类目录
+      # (/data/media/电视剧, /data/media/电影) 以及 Sonarr/Radarr 分类目录 (/data/media/tv, /data/media/movies, /data/media/anime)
+      jellyfin-media-links = {
+        description = "声明式维护 Jellyfin 媒体库多目录 mblink 关联";
+        after = [ "jellyfin.service" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = pkgs.writeShellScript "jellyfin-media-links" ''
+            mkdir -p /data/media/电视剧 /data/media/电影 /data/media/tv /data/media/movies /data/media/anime
+            chown -R jellyfin:media /data/media/电视剧 /data/media/电影 || true
+
+            SHOWS_DIR="/data/.state/jellyfin/root/default/Shows"
+            if [ -d "$SHOWS_DIR" ]; then
+              printf "%s" "/data/media/电视剧" > "$SHOWS_DIR/电视剧.mblink"
+              printf "%s" "/data/media/tv" > "$SHOWS_DIR/tv.mblink"
+              chown jellyfin:media "$SHOWS_DIR"/*.mblink || true
+            fi
+
+            MOVIES_DIR="/data/.state/jellyfin/root/default/Movies"
+            if [ -d "$MOVIES_DIR" ]; then
+              printf "%s" "/data/media/电影" > "$MOVIES_DIR/电影.mblink"
+              printf "%s" "/data/media/movies" > "$MOVIES_DIR/movies.mblink"
+              chown jellyfin:media "$MOVIES_DIR"/*.mblink || true
+            fi
+          '';
+        };
+      };
+
+      # 4. 创建 Jellyfin 默认用户策略模板（供 SSO 等插件使用）
       jellyfin-default-policy = {
         description = "Create Jellyfin default user policy template";
         before = [ "jellyfin.service" ];

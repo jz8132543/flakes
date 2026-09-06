@@ -67,7 +67,6 @@ let
       inputs
       self
       nixosModules
-      matrixRtcHosts
       getSystem
       ;
   };
@@ -127,15 +126,6 @@ let
     #   system = "x86_64-linux";
     # };
   };
-
-  matrixRtcHosts = [
-    "can0"
-    "nue0"
-    "sjc0"
-    "xiy0"
-    "xiy1"
-    "xiy2"
-  ];
 
   mkHostModules =
     {
@@ -238,11 +228,6 @@ in
     default = [ ];
   };
 
-  options.flake.matrixRtcHosts = lib.mkOption {
-    type = lib.types.listOf lib.types.str;
-    default = [ ];
-  };
-
   options.flake.colmenaModules = lib.mkOption {
     type = lib.types.attrsOf (lib.types.listOf lib.types.unspecified);
     default = { };
@@ -254,7 +239,6 @@ in
   };
   config = {
     flake.hostNames = lib.attrNames hostDefinitions;
-    flake.matrixRtcHosts = matrixRtcHosts;
     flake.colmenaModules = colmenaModules;
     passthru = {
       inherit nixosModules hmModules;
