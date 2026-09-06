@@ -37,6 +37,8 @@ lib.mkIf (imFramework == "ibus") {
     };
     "org/freedesktop/ibus/general" = {
       embed-preedit-text = false;
+      use-global-engine = true;
+      preload-engines = [ "rime" ];
     };
   };
 
@@ -52,4 +54,8 @@ lib.mkIf (imFramework == "ibus") {
     XMODIFIERS = "@im=ibus";
     XIM = "ibus";
   };
+
+  home.global-persistence.directories = [
+    ".config/ibus/rime"
+  ];
 }

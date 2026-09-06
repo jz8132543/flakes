@@ -2,12 +2,12 @@ patch:
   # 默认启动为英文状态
   "switches/@0/reset": 1
   schema_list:
-    - schema: wanxiang
+    - schema: rime_ice
   ascii_composer:
     good_old_caps_lock: true
     switch_key:
-      Shift_L: noop
-      Shift_R: noop
+      Shift_L: commit_code
+      Shift_R: commit_code
   style:
     horizontal: true
   # Rime internal per-app settings

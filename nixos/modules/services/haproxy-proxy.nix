@@ -236,6 +236,23 @@ let
           ${concatMapStringsSep "\n" renderUdpBlock udpMappings}
         fi
 
+        ${optionalString cfg.haproxy.stats.enable ''
+                    cat >> "$HAPROXY_TMP" <<EOF
+
+          listen stats
+            mode http
+            bind :::${toString cfg.haproxy.stats.port} v4v6
+            ${optionalString cfg.haproxy.stats.allowTailscaleOnly ''
+              acl is_tailscale src 100.64.0.0/10 fd7a:115c:a1e0::/48 127.0.0.0/8 ::1
+              http-request deny if !is_tailscale
+            ''}
+            stats enable
+            stats uri ${cfg.haproxy.stats.uri}
+            stats refresh ${cfg.haproxy.stats.refresh}
+            http-request use-service prometheus-exporter if { path /metrics }
+          EOF
+        ''}
+
         if [ "$unresolved" -ne 0 ]; then
           echo "At least one mapping could not be resolved." >&2
           if [ "$force" -eq 1 ]; then
@@ -508,6 +525,44 @@ in
             default = true;
             description = "Enable haproxy splice acceleration when available.";
           };
+
+          stats = mkOption {
+            type = types.submodule {
+              options = {
+                enable = mkOption {
+                  type = types.bool;
+                  default = false;
+                  description = "Enable HAProxy stats web UI and Prometheus metrics.";
+                };
+
+                port = mkOption {
+                  type = types.port;
+                  default = 8404;
+                  description = "Port for HAProxy stats web UI.";
+                };
+
+                uri = mkOption {
+                  type = types.str;
+                  default = "/";
+                  description = "URI path for HAProxy stats web UI.";
+                };
+
+                refresh = mkOption {
+                  type = types.str;
+                  default = "3s";
+                  description = "Auto-refresh interval for HAProxy stats web UI.";
+                };
+
+                allowTailscaleOnly = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Restrict access strictly to Tailscale CGNAT IP ranges (100.64.0.0/10 and fd7a:115c:a1e0::/48) and localhost.";
+                };
+              };
+            };
+            default = { };
+            description = "HAProxy stats web UI options.";
+          };
         };
       };
       default = { };
@@ -527,14 +582,18 @@ in
 
     networking.firewall.allowedTCPPorts = map (m: m.listenPort) tcpMappings;
     networking.firewall.allowedUDPPorts = map (m: m.listenPort) udpMappings;
+    networking.firewall.interfaces."tailscale0".allowedTCPPorts = mkIf cfg.haproxy.stats.enable [
+      cfg.haproxy.stats.port
+    ];
 
     systemd.services.kernel-relay = {
       description = "TCP relay via haproxy with UDP nftables fallback";
       after = [
         "network-online.target"
       ]
-      ++ optionals (cfg.udpFallback == "nftables") [ "nftables.service" ];
-      wants = [ "network-online.target" ];
+      ++ optionals (cfg.udpFallback == "nftables") [ "nftables.service" ]
+      ++ optionals cfg.haproxy.stats.enable [ "tailscaled.service" ];
+      wants = [ "network-online.target" ] ++ optionals cfg.haproxy.stats.enable [ "tailscaled.service" ];
       wantedBy = [ "multi-user.target" ];
 
       path = with pkgs; [

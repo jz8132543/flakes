@@ -4,7 +4,7 @@
   lib,
   fetchurl,
   librime,
-  rime-wanxiang,
+  rime-ice ? pkgs.rime-ice,
   rimeData ? pkgs.rime-data,
   framework ? "ibus",
   terminalEnglishApps ? [
@@ -52,11 +52,13 @@ stdenv.mkDerivation {
         # 1. Copy the base Rime presets needed by rime_deployer.
         if [ -d "${rimeData}/share/rime-data" ]; then
           cp -rf ${rimeData}/share/rime-data/* shared-data/
+          chmod -R u+w shared-data/
         fi
 
-        # 2. Copy wanxiang schemas and dictionaries.
-        if [ -d "${rime-wanxiang}/share/rime-data" ]; then
-          cp -rf ${rime-wanxiang}/share/rime-data/* shared-data/
+        # 2. Copy rime-ice schemas and dictionaries.
+        if [ -d "${rime-ice}/share/rime-data" ]; then
+          cp -rf ${rime-ice}/share/rime-data/* shared-data/
+          chmod -R u+w shared-data/
         fi
 
         # 3. Copy grammar model.
@@ -65,12 +67,12 @@ stdenv.mkDerivation {
         # 4. Copy user configuration from local directory.
         cat > rime-data/default.yaml <<'EOF'
       schema_list:
-        - schema: wanxiang
+        - schema: rime_ice
     EOF
 
         cp -f ${./default.custom.yaml} rime-data/default.custom.yaml
-        cp -f ${./wanxiang.custom.yaml} rime-data/wanxiang.custom.yaml
-        chmod u+w rime-data/default.custom.yaml rime-data/wanxiang.custom.yaml
+        cp -f ${./rime_ice.custom.yaml} rime-data/rime_ice.custom.yaml
+        chmod u+w rime-data/default.custom.yaml rime-data/rime_ice.custom.yaml
 
         for app in ${lib.escapeShellArgs terminalEnglishApps}; do
           if ! grep -Eq "^    \"?$app\"?:" rime-data/default.custom.yaml; then
@@ -104,9 +106,9 @@ stdenv.mkDerivation {
 
         cat > rime-data/user.yaml <<'EOF'
     var:
-      previously_selected_schema: wanxiang
+      previously_selected_schema: rime_ice
       schema_access_time:
-        wanxiang: 1
+        rime_ice: 1
     EOF
 
         ${librime}/bin/rime_deployer --build rime-data shared-data build

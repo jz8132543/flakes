@@ -7,7 +7,7 @@ let
   alacrittyPackage = config.lib.self.wrapNoIme {
     inherit pkgs;
     pkg = pkgs.alacritty;
-    extraArgs = "--set WINIT_UNIX_BACKEND x11";
+    extraArgs = "--unset WAYLAND_DISPLAY";
   };
 in
 {
