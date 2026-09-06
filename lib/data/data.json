@@ -1,5 +1,6 @@
 {
   "matrix": {
+    "rtcHosts": ["nue0", "sjc0"],
     "media": {
       "host": "https://s3.eu-central-003.backblazeb2.com",
       "name": null,
@@ -153,6 +154,10 @@
       "proxy": false
     },
     "cache": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "call": {
       "on": "nue0",
       "proxy": false
     },

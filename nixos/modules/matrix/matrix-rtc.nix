@@ -31,8 +31,6 @@ let
       "audio/red"
       "video/av1"
       "video/vp9"
-      "video/vp8"
-      "video/h264"
       "video/rtx"
     ]}
   '';

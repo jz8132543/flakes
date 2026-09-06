@@ -72,7 +72,7 @@ in
               }
               {
                 name = "assets";
-                path = "${pkgs.matrix-authentication-service}/share/assets";
+                path = "${pkgs.matrix-authentication-service}/share/matrix-authentication-service/assets";
               }
             ];
             binds = [

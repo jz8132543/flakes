@@ -84,6 +84,7 @@ locals {
   }
 
   service_cname_mappings = merge({
+    call               = { on = "nue0", proxy = false }
     vault              = { on = "nue0", proxy = false }
     ts                 = { on = "nue0", proxy = false }
     ldap               = { on = "nue0", proxy = false }
