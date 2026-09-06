@@ -43,6 +43,9 @@
 
       # 国标公文核心方正字库 (方正小标宋_GBK、方正仿宋_GBK、方正楷体_GBK、方正黑体_GBK、方正书宋_GBK)
       foundertype-fonts
+
+      # 国标公文与中文办公字体 (包含 仿宋_GB2312, 方正小标宋简体, SimHei 黑体, 楷体_GB2312 等)
+      chinese-office-fonts
     ];
 
     # 用户首选与回退字体配置
@@ -73,156 +76,101 @@
         <?xml version="1.0"?>
         <!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
         <fontconfig>
-          <!-- 国标公文标准 (GB/T 9704-2012) 字体智能双向别名匹配 (带 _GBK 与 不带 _GBK 完全兼容) -->
+          <!-- 国标公文标准 (GB/T 9704-2012) 与中文办公字体别名及后备支持 (带 _GBK、_GB2312 与 简体 全覆盖) -->
           <!-- 方正小标宋 / 方正大标宋 (发文机关标志、主标题) -->
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正小标宋简体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正小标宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正小标宋</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正小标宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正大标宋简体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正小标宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正大标宋</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正小标宋_GBK</string>
-            </edit>
-          </match>
+          <alias>
+            <family>方正小标宋</family>
+            <prefer>
+              <family>方正小标宋简体</family>
+              <family>方正小标宋_GBK</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>方正大标宋</family>
+            <prefer>
+              <family>方正大标宋简体</family>
+              <family>方正小标宋_GBK</family>
+            </prefer>
+          </alias>
 
           <!-- 方正仿宋 / 仿宋_GB2312 (公文正文) -->
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正仿宋简体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正仿宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正仿宋</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正仿宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>仿宋_GB2312</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正仿宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>仿宋</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正仿宋_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>FangSong</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正仿宋_GBK</string>
-            </edit>
-          </match>
+          <alias>
+            <family>仿宋</family>
+            <prefer>
+              <family>仿宋_GB2312</family>
+              <family>方正仿宋简体</family>
+              <family>方正仿宋_GBK</family>
+              <family>FangSong</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>FangSong</family>
+            <prefer>
+              <family>仿宋_GB2312</family>
+              <family>方正仿宋_GBK</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>方正仿宋</family>
+            <prefer>
+              <family>方正仿宋简体</family>
+              <family>方正仿宋_GBK</family>
+            </prefer>
+          </alias>
 
           <!-- 方正楷体 / 楷体_GB2312 (二级标题、签发人) -->
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正楷体简体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正楷体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正楷体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正楷体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>楷体_GB2312</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正楷体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>楷体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正楷体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>KaiTi</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正楷体_GBK</string>
-            </edit>
-          </match>
+          <alias>
+            <family>楷体</family>
+            <prefer>
+              <family>楷体_GB2312</family>
+              <family>方正楷体简体</family>
+              <family>方正楷体_GBK</family>
+              <family>KaiTi</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>KaiTi</family>
+            <prefer>
+              <family>楷体_GB2312</family>
+              <family>方正楷体_GBK</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>方正楷体</family>
+            <prefer>
+              <family>方正楷体简体</family>
+              <family>方正楷体_GBK</family>
+            </prefer>
+          </alias>
 
-          <!-- 方正黑体 / 黑体 (一级标题) -->
+          <!-- 方正黑体 / 黑体 / SimHei (一级标题) -->
+          <alias>
+            <family>黑体</family>
+            <prefer>
+              <family>SimHei</family>
+              <family>方正黑体简体</family>
+              <family>方正黑体_GBK</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>simhei</family>
+            <prefer>
+              <family>SimHei</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>方正黑体</family>
+            <prefer>
+              <family>方正黑体简体</family>
+              <family>方正黑体_GBK</family>
+            </prefer>
+          </alias>
           <match target="pattern">
             <test name="family" qual="any">
-              <string>方正黑体简体</string>
+              <string>simhei</string>
             </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正黑体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>方正黑体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正黑体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
-              <string>黑体</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正黑体_GBK</string>
-            </edit>
-          </match>
-          <match target="pattern">
-            <test name="family" qual="any">
+            <edit name="family" mode="prepend" binding="strong">
               <string>SimHei</string>
-            </test>
-            <edit name="family" mode="assign" binding="strong">
-              <string>方正黑体_GBK</string>
             </edit>
           </match>
 

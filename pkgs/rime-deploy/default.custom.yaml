@@ -2,7 +2,7 @@ patch:
   # 默认启动为英文状态
   "switches/@0/reset": 1
   schema_list:
-    - schema: rime_ice
+    - schema: wanxiang
   ascii_composer:
     good_old_caps_lock: true
     switch_key:

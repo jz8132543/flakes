@@ -72,10 +72,4 @@
     # cinnamon.nemo
     # cinnamon.nemo-fileroller
   ];
-
-  desktop.kdeconnect.customDomains = [
-    "op13.mag"
-    "opap.mag"
-  ];
-
 }

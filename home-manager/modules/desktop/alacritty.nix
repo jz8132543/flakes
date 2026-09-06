@@ -47,10 +47,10 @@ in
           args = [ "a" ];
         };
         font = {
-          normal.family = "JetBrainsMono Nerd Font Mono";
-          italic.family = "JetBrainsMono Nerd Font Mono";
-          bold_italic.family = "JetBrainsMono Nerd Font Mono";
-          bold.family = "JetBrainsMono Nerd Font Mono";
+          normal.family = "JetBrainsMono Nerd Font";
+          italic.family = "JetBrainsMono Nerd Font";
+          bold_italic.family = "JetBrainsMono Nerd Font";
+          bold.family = "JetBrainsMono Nerd Font";
           size = 15 * config.wayland.dpi / 96;
         };
         window = {

@@ -12,7 +12,10 @@ in
   options.desktop.kdeconnect = {
     customDomains = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
+      default = [
+        "op13.mag"
+        "opap.mag"
+      ];
       description = "List of custom domains or IPs for KDE Connect default search list";
     };
   };
@@ -20,8 +23,21 @@ in
   imports = [ nixosModules.services.acme ];
 
   config = {
-    # Enable KDE Connect (opens firewall ports 1714-1764 TCP/UDP)
-    programs.kdeconnect.enable = true;
+    # Open firewall ports 1714-1764 TCP/UDP for GSConnect
+    networking.firewall = {
+      allowedTCPPortRanges = [
+        {
+          from = 1714;
+          to = 1764;
+        }
+      ];
+      allowedUDPPortRanges = [
+        {
+          from = 1714;
+          to = 1764;
+        }
+      ];
+    };
 
     hardware.bluetooth = {
       enable = true;
@@ -84,7 +100,6 @@ in
       gnome-sound-recorder
       gnomeExtensions.dash-to-dock
       gnomeExtensions.appindicator
-      kdePackages.kdeconnect-kde
       nautilus-python
       # gnomeExtensions.allow-locked-remote-desktop
     ];
@@ -100,22 +115,44 @@ in
       hybrid-sleep.enable = false;
     };
 
-    home-manager.users.tippy = lib.mkIf (cfg.customDomains != [ ]) (
-      { lib, ... }: {
-        home.activation.setupKdeConnectDomains = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-          CONFIG_FILE="$HOME/.config/kdeconnect/config"
-          $DRY_RUN_CMD mkdir -p "$HOME/.config/kdeconnect"
-          if [ ! -f "$CONFIG_FILE" ] || ! grep -q "^\[General\]" "$CONFIG_FILE"; then
-            $DRY_RUN_CMD echo "[General]" >> "$CONFIG_FILE"
-          fi
-          DOMAINS="${builtins.concatStringsSep "," cfg.customDomains}"
-          if grep -q "^customDevices=" "$CONFIG_FILE"; then
-            $DRY_RUN_CMD sed -i "s|^customDevices=.*|customDevices=$DOMAINS|" "$CONFIG_FILE"
-          else
-            $DRY_RUN_CMD sed -i '/^\[General\]/a customDevices='$DOMAINS "$CONFIG_FILE"
-          fi
-        '';
-      }
-    );
+    home-manager.users.tippy = lib.mkIf (cfg.customDomains != [ ]) {
+      systemd.user.services.gsconnect-magicdns-poll = {
+        Unit = {
+          Description = "Poll GSConnect devices via Tailscale MagicDNS";
+          After = [ "network.target" ];
+        };
+        Service = {
+          Type = "oneshot";
+          ExecStart =
+            let
+              domainsStr = builtins.concatStringsSep " " (map (d: "\"${d}\"") cfg.customDomains);
+            in
+            "${pkgs.writeShellScript "gsconnect-poll" ''
+              for domain in ${domainsStr}; do
+                ip=$(${pkgs.tailscale}/bin/tailscale ip -4 "$domain" 2>/dev/null || true)
+                if [ -n "$ip" ]; then
+                  ${pkgs.glib}/bin/gdbus call --session \
+                    --dest org.gnome.Shell.Extensions.GSConnect \
+                    --object-path /org/gnome/Shell/Extensions/GSConnect \
+                    --method org.gtk.Actions.Activate "connect" "[<'lan://''${ip}:1716'>]" "{}" >/dev/null 2>&1 || true
+                fi
+              done
+            ''}";
+        };
+      };
+
+      systemd.user.timers.gsconnect-magicdns-poll = {
+        Unit = {
+          Description = "Poll GSConnect devices via Tailscale MagicDNS";
+        };
+        Timer = {
+          OnBootSec = "1m";
+          OnUnitActiveSec = "1m";
+        };
+        Install = {
+          WantedBy = [ "timers.target" ];
+        };
+      };
+    };
   };
 }
