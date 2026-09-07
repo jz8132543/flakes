@@ -10,7 +10,14 @@
       inherit pkgs;
       pkg = pkgs.kitty;
     };
+    font = {
+      name = "JetBrainsMono Nerd Font";
+      size = 15;
+    };
     extraConfig = ''
+      # 始终保持连字开启（即使光标在上面也不拆开）
+      disable_ligatures never
+
       # macOS Terminal Dark Theme
       background #1e1e1e
       foreground #ffffff
@@ -33,13 +40,9 @@
       color7 #e5e5e5
       color15 #e5e5e5
       selection_foreground #ffffff
-      # font_size ${toString (15 * config.wayland.dpi / 96)}
-      font_size 15
       # background_opacity 0.6
-      # Force X11/XWayland under GNOME. Native GNOME Wayland IM integration uses
-      # the compositor/text-input path, where fcitx5 cannot reliably keep a
-      # distinct per-window state for third-party IMEs.
-      linux_display_server x11
+      # Native Wayland under GNOME for zero startup/focus latency
+      linux_display_server wayland
       wayland_enable_ime no
       hide_window_decorations yes
       strip_trailing_spaces smart

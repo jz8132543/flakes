@@ -10,6 +10,7 @@ in
       backend = "podman";
       containers.winapps-windows = {
         image = "docker.io/dockurr/windows";
+        autoStart = cfg.docker.autoStart;
         environment = {
           VERSION = "tiny10";
           RAM_SIZE = "4G";

@@ -7,6 +7,7 @@
 
   networking.networkmanager = {
     enable = true;
+    wifi.powersave = false;
     dns = "none";
   };
   # services.dnscrypt-proxy.enable = true;

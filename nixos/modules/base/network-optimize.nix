@@ -564,7 +564,8 @@ in
       boot.extraModulePackages = lib.mkIf (cfg.cca == "bbrv1") [
         (config.boot.kernelPackages.callPackage ../../../pkgs/bbrv1-kmod { })
       ];
-      boot.kernelModules = lib.mkIf (cfg.cca == "bbrv1") [ "tcp_bbrv1" ];
+      boot.kernelModules =
+        lib.optional (cfg.cca == "bbrv1") "tcp_bbrv1" ++ lib.optional (cfg.cca == "bbr") "tcp_bbr";
     }
 
     # ════════════════════════════════════════════════════════════════════════
@@ -701,9 +702,12 @@ in
         script = ''
           set -euo pipefail
           TARGET="1.1.1.1"
-          GW_INFO=$(ip -4 route get "$TARGET" 2>/dev/null | head -n 1)
+          GW_INFO=$( (ip -4 route get "$TARGET" 2>/dev/null || ip -4 route show default 2>/dev/null || true) | head -n 1 )
           IFACE=$(echo "$GW_INFO" | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
-          [ -z "$IFACE" ] && exit 0
+          if [ -z "$IFACE" ]; then
+            echo "[tune-rps-xps] No active route or interface found, skipping."
+            exit 0
+          fi
 
           ncpu=$(nproc 2>/dev/null || echo 1)
           if [ "$ncpu" -ge 64 ]; then

@@ -146,6 +146,8 @@
       jellyseerr = 5055;
       qbittorrent = 8080;
       autobrr = 7474;
+      navidrome = 4533;
+      maintainerr = 6246;
       jellyfin-webdav = 15849;
       lidarr = 8686;
       sabnzbd = 8090;

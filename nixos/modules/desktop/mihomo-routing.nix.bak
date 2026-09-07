@@ -29,10 +29,38 @@ let
 in
 {
   config =
-    lib.mkIf
+    lib.mkIf config.services.mihomo.enable {
+      networking.nftables.tables.mihomo-process-bypass = {
+        family = "inet";
+        content = ''
+          chain route_output {
+            type route hook output priority mangle; policy accept;
+
+            # Mihomo 的代理节点连接必须绕过 Meta，否则会被 TUN 再次接管。
+            meta skuid 998 counter meta mark set meta mark | 0x1
+          }
+        '';
+      };
+
+      systemd.services.mihomo-direct-routing = {
+        description = "将 Mihomo 自身出站流量固定在主路由表";
+        after = [ "network-online.target" "nftables.service" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        path = [ pkgs.iproute2 ];
+        script = ''
+          while ip rule del fwmark 0x1/0x1 lookup main priority 8989 2>/dev/null; do :; done
+          ip rule add fwmark 0x1/0x1 lookup main priority 8989
+        '';
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+        };
+      };
+    }
+    // lib.optionalAttrs
       (
-        config.services.mihomo.enable
-        && config.services.dnsmasq.enable
+        config.services.dnsmasq.enable
         && (udpPorts != [ ] || tcpPorts != [ ])
       )
       {

@@ -186,36 +186,16 @@ in
               type.string
               type.string
             ])
-            (
-              if imFramework == "ibus" then
-                [
-                  (mkTuple [
-                    (mkString "xkb")
-                    (mkString "us")
-                  ])
-                  (mkTuple [
-                    (mkString "ibus")
-                    (mkString "rime")
-                  ])
-                ]
-              else
-                [
-                  (mkTuple [
-                    (mkString "ibus")
-                    (mkString "rime")
-                  ])
-                ]
-            );
-        per-window = imFramework == "ibus";
-        # keyd handles remapping below the compositor, so leave GNOME XKB tweaks empty.
-        xkb-options = mkArray type.string [ ];
+            [
+              (mkTuple [
+                (mkString "ibus")
+                (mkString "rime")
+              ])
+            ];
+        per-window = false;
+        xkb-options = mkArray type.string [ "caps:swapescape" ];
       };
 
-      # IBus general: use global engine to avoid the first-keystroke
-      # passthrough bug ('shi' -> 's'+'hi') when switching windows.
-      "desktop/ibus/general" = {
-        use-global-engine = true;
-      };
       "org/gnome/shell/extensions/system-monitor" = {
         memory-display = false;
       };
@@ -260,6 +240,9 @@ in
         blur = true;
         brightness = 0.9;
         sigma = 30;
+      };
+      "org/gnome/shell/extensions/blur-my-shell/dash-to-dock" = {
+        blur = false;
       };
       "org/gnome/shell/extensions/kimpanel" = {
         font = "LXGW WenKai 26";

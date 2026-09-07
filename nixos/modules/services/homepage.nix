@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -13,10 +14,12 @@ let
     sonarrAnime = "https://sonarr-anime.${domain}";
     prowlarr = "https://prowlarr.${domain}";
     lidarr = "https://lidarr.${domain}";
-    bazarr = "https://bazarr.${domain}";
+    # bazarr = "https://bazarr.${domain}";
     qbit = "https://qbit.${domain}";
     vertex = "https://vertex.${domain}";
     autobrr = "https://autobrr.${domain}";
+    navidrome = "https://navidrome.${domain}";
+    maintainerr = "https://maintainerr.${domain}";
   };
 in
 {
@@ -118,18 +121,13 @@ in
               };
             };
           }
-          {
-            "Bazarr" = {
-              href = media.bazarr;
-              icon = "bazarr.png";
-              description = "Subtitles";
-              # widget = {
-              #  type = "bazarr";
-              #  url = "http://localhost:${toString config.ports.bazarr}";
-              #  key = "{{HOMEPAGE_VAR_BAZARR_KEY}}";
-              # };
-            };
-          }
+          # {
+          #   "Bazarr" = {
+          #     href = media.bazarr;
+          #     icon = "bazarr.png";
+          #     description = "Subtitles";
+          #   };
+          # }
           {
             "qBittorrent" = {
               href = media.qbit;
@@ -152,10 +150,37 @@ in
             };
           }
           {
-            "Autobrr" = {
+            "autobrr" = {
               href = media.autobrr;
               icon = "autobrr.png";
               description = "Auto Downloader";
+            };
+          }
+          {
+            "Navidrome" = {
+              href = media.navidrome;
+              icon = "navidrome.png";
+              description = "Music Streamer";
+              widget = {
+                type = "navidrome";
+                url = "http://localhost:${toString config.ports.navidrome}";
+                user = "i"; # your username
+                salt = "doraemon";
+                token = "{{HOMEPAGE_VAR_NAVIDROME_TOKEN}}";
+              };
+            };
+          }
+          {
+            "Maintainerr" = {
+              href = media.maintainerr;
+              icon = "maintainerr.png";
+              description = "Media Maintenance";
+            };
+          }
+          {
+            "Flaresolverr" = {
+              icon = "flaresolverr.png";
+              description = "Cloudflare Proxy";
             };
           }
         ];
@@ -281,7 +306,7 @@ in
                 metrics = [
                   {
                     label = "Connections";
-                    query = "sum(pg_stat_activity_count)";
+                    query = "sum(pg_stat_database_numbackends)";
                     format = {
                       type = "number";
                     };
@@ -392,14 +417,27 @@ in
             };
           }
           {
-            "ntopng" = {
-              href = "https://${config.networking.fqdn}/ntopng";
-              icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/ntopng.png";
-              description = "Network Traffic Analysis";
+            "AdGuard Home" = {
+              href = "https://adguard.${domain}";
+              icon = "adguard-home.png";
+              description = "DNS & Ad Blocker";
               widget = {
-                type = "ntopng";
-                url = "http://localhost:${toString config.ports.ntopng}/ntopng";
-                key = "i:{{HOMEPAGE_VAR_PASSWORD}}";
+                type = "adguard";
+                url = "http://localhost:${toString config.services.adguardhome.port}";
+                username = "i";
+                password = "{{HOMEPAGE_VAR_PASSWORD}}";
+              };
+            };
+          }
+          {
+            "Headscale" = {
+              href = "https://headscale.${domain}";
+              icon = "https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3_header_stacked_left.png";
+              description = "Tailscale Control Server";
+              widget = {
+                type = "headscale";
+                url = "http://localhost:${toString config.ports.headscale}";
+                key = "{{HOMEPAGE_VAR_HEADSCALE_KEY}}";
               };
             };
           }
@@ -471,10 +509,37 @@ in
     # We don't need entryPoints/loadBalancer because proxies handles it
   };
 
+  systemd.services.homepage-navidrome-env = {
+    description = "Generate Navidrome ENV for Homepage";
+    wantedBy = [
+      "homepage-dashboard.service"
+      "multi-user.target"
+    ];
+    before = [ "homepage-dashboard.service" ];
+    script = ''
+      set -e
+      mkdir -p /var/lib/homepage
+      PASSWORD=$(cat ${config.sops.secrets."password".path})
+      SALT="doraemon"
+      # md5sum outputs hash followed by a space and a dash
+      TOKEN=$(echo -n "''${PASSWORD}''${SALT}" | ${pkgs.coreutils}/bin/md5sum | ${pkgs.gawk}/bin/awk '{print $1}')
+      echo "HOMEPAGE_VAR_NAVIDROME_TOKEN=''${TOKEN}" > /var/lib/homepage/navidrome.env
+      chmod 644 /var/lib/homepage/navidrome.env
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+    };
+  };
+
   # Load generated env file (ignore if missing with - prefix)
-  systemd.services.homepage-dashboard.serviceConfig.EnvironmentFile = [
-    "-/var/lib/homepage/jellyfin.env"
-  ];
+  systemd.services.homepage-dashboard = {
+    wants = [ "homepage-navidrome-env.service" ];
+    serviceConfig.EnvironmentFile = lib.mkAfter [
+      "-/var/lib/homepage/jellyfin.env"
+      "-/var/lib/homepage/navidrome.env"
+    ];
+  };
 
   sops.templates."homepage.env" = {
     content = ''
@@ -485,6 +550,9 @@ in
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
+      HOMEPAGE_VAR_HEADSCALE_KEY=${config.sops.placeholder."homepage/headscale_key"}
     '';
   };
+
+  sops.secrets."homepage/headscale_key" = { };
 }

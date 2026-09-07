@@ -67,7 +67,7 @@
       dotDir = "${config.xdg.configHome}/zsh";
       defaultKeymap = "emacs";
 
-      enableVteIntegration = true;
+      enableVteIntegration = false;
       autosuggestion.enable = true;
       syntaxHighlighting.enable = true;
       autocd = true;

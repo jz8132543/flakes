@@ -42,19 +42,24 @@
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/pt-depiler/latest.xpi";
         };
         # CookieCloud - 同步PT站点Cookie
-        "{5c852dc5-cb17-4a56-a8f1-0d7b7c5dd00a}" = {
+        "cookiecloud@kaiyuedrill.com" = {
           installation_mode = "force_installed";
-          install_url = "https://addons.mozilla.org/firefox/downloads/latest/cookiecloud/latest.xpi";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/cookiecloud2/latest.xpi";
         };
         # Linkwarden - Bookmark Manager
         "{83995834-31b3-4f96-b0cb-1e6790b39691}" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/linkwarden/latest.xpi";
         };
+        # Immersive Translate - 双语网页翻译
+        "{5efceaa7-f3a2-4e59-a54b-85319448e305}" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/latest/immersive-translate/latest.xpi";
+        };
       };
       "3rdparty" = {
         Extensions = {
-          "{5c852dc5-cb17-4a56-a8f1-0d7b7c5dd00a}" = {
+          "cookiecloud@kaiyuedrill.com" = {
             host = "https://cookiecloud.${config.networking.domain or "dora.im"}";
           };
           "{83995834-31b3-4f96-b0cb-1e6790b39691}" = {

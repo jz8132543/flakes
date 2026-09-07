@@ -14,7 +14,7 @@
     drivers = with pkgs; [
       cups-filters
       gutenprint
-      hplip
+      (hplip.override { withQt5 = false; })
       splix
       pantum-driver
     ];

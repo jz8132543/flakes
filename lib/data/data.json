@@ -1,5 +1,6 @@
 {
   "matrix": {
+    "rtcHosts": ["nue0", "sjc0"],
     "media": {
       "host": "https://s3.eu-central-003.backblazeb2.com",
       "name": null,
@@ -156,6 +157,10 @@
       "on": "nue0",
       "proxy": false
     },
+    "call": {
+      "on": "nue0",
+      "proxy": false
+    },
     "chat": {
       "on": "nue0",
       "proxy": false
@@ -232,11 +237,19 @@
       "on": "nue0",
       "proxy": false
     },
+    "maintainerr": {
+      "on": "nue0",
+      "proxy": false
+    },
     "memos": {
       "on": "nue0",
       "proxy": false
     },
     "metrics": {
+      "on": "nue0",
+      "proxy": false
+    },
+    "movie": {
       "on": "nue0",
       "proxy": false
     },
@@ -246,6 +259,10 @@
     },
     "murmur": {
       "on": "hkg4",
+      "proxy": false
+    },
+    "navidrome": {
+      "on": "nue0",
       "proxy": false
     },
     "ntfy": {

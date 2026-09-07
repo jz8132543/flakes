@@ -7,7 +7,7 @@ let
   alacrittyPackage = config.lib.self.wrapNoIme {
     inherit pkgs;
     pkg = pkgs.alacritty;
-    extraArgs = "--set WINIT_UNIX_BACKEND x11";
+    extraArgs = "--unset WAYLAND_DISPLAY";
   };
 in
 {
@@ -47,10 +47,10 @@ in
           args = [ "a" ];
         };
         font = {
-          normal.family = "JetBrainsMono Nerd Font Mono";
-          italic.family = "JetBrainsMono Nerd Font Mono";
-          bold_italic.family = "JetBrainsMono Nerd Font Mono";
-          bold.family = "JetBrainsMono Nerd Font Mono";
+          normal.family = "JetBrainsMono Nerd Font";
+          italic.family = "JetBrainsMono Nerd Font";
+          bold_italic.family = "JetBrainsMono Nerd Font";
+          bold.family = "JetBrainsMono Nerd Font";
           size = 15 * config.wayland.dpi / 96;
         };
         window = {

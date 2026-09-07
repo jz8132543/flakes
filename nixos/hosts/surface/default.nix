@@ -59,7 +59,7 @@
 
   # environment.isCN = true;
 
-  # environment.networkTune.cca = "bbr";
+  environment.networkTune.cca = "bbr";
 
   environment.systemPackages = with pkgs; [
     efibootmgr
@@ -72,10 +72,4 @@
     # cinnamon.nemo
     # cinnamon.nemo-fileroller
   ];
-
-  desktop.kdeconnect.customDomains = [
-    "op13.mag"
-    "opap.mag"
-  ];
-
 }

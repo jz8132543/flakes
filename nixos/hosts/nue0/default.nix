@@ -26,6 +26,7 @@
       })
       nixosModules.services.sub
       nixosModules.services.cookiecloud
+      nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
       nixosModules.services.searx
@@ -65,6 +66,7 @@
     ++ nixosModules.matrix.all;
 
   services.kaogong.enable = true;
+  services.moviepilot.enable = true;
   services.openclaw.enable = false;
   # services.ai.litellm.enable = true;
   services.easytierMesh.role = "bootstrap";

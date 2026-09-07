@@ -2,7 +2,6 @@
   config,
   pkgs,
   lib,
-  matrixRtcHosts,
   nixosModules,
   ...
 }:
@@ -17,6 +16,7 @@ let
   signingKeysDir = "${secretsDir}/keys";
   turnListeningPort = 3479;
   turnTlsPort = 5349;
+  matrixRtcHosts = config.services.matrix.rtcHosts;
   turnUris = lib.concatMap (hostName: [
     "turn:${hostName}.dora.im:${toString turnListeningPort}?transport=udp"
     "turn:${hostName}.dora.im:${toString turnListeningPort}?transport=tcp"
@@ -72,7 +72,7 @@ in
               }
               {
                 name = "assets";
-                path = "${pkgs.matrix-authentication-service}/share/assets";
+                path = "${pkgs.matrix-authentication-service}/share/matrix-authentication-service/assets";
               }
             ];
             binds = [

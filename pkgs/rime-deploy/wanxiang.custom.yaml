@@ -22,7 +22,7 @@ patch:
       states: [半角, 全角]
     - name: emoji #候选出现emoji滤镜，会显示在相应的候选后面，万象侧重于tips提示，避免候选被占用，因此默认为reset: 0，归属opencc emoji滤镜
       states: [表情关, 表情开]
-      reset: 1
+      reset: 0
     - name: chinese_english #候选进入翻译模式滤镜，会显示在相应的候选后面，万象侧重于tips提示，避免候选被占用，归属opencc 翻译滤镜
       states: [翻译关, 翻译开]
       reset: 0

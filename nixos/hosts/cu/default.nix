@@ -11,6 +11,7 @@
     ++ nixosModules.users.tippy.all
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.minimal
       # nixosModules.optimize.infini
       # nixosModules.services.traefik
       nixosModules.services.derp
@@ -25,6 +26,10 @@
     dnsInterval = "3min";
     # enableFlowtable = true;
     ipFamily = "ipv4";
+    haproxy.stats = {
+      enable = true;
+      port = 8404; # 仅在 Tailscale 内网 (http://cu.mag:8404) 可访问，不占用公网端口
+    };
     mappings = [
       {
         listenPort = 50561;

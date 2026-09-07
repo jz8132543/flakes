@@ -4,6 +4,7 @@
   linuxKernel,
   kernel,
   bbrSourceKernel ? linuxKernel.kernels.linux_6_1,
+  nukeReferences,
 }:
 stdenv.mkDerivation {
   pname = "bbrv1-kmod";
@@ -14,7 +15,7 @@ stdenv.mkDerivation {
   dontPatchELF = true;
   dontStrip = true;
 
-  nativeBuildInputs = kernel.moduleBuildDependencies;
+  nativeBuildInputs = kernel.moduleBuildDependencies ++ [ nukeReferences ];
 
   postPatch = ''
     set -euo pipefail
@@ -86,6 +87,7 @@ stdenv.mkDerivation {
     fi
 
     printf '%s\n' 'obj-m += tcp_bbrv1.o' > source/Makefile
+    printf '%s\n' 'ccflags-y += -ffile-prefix-map=${kernel.dev}=.' >> source/Makefile
   '';
 
   buildPhase = ''
@@ -97,6 +99,8 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
     install -D -m 0644 source/tcp_bbrv1.ko "$out/lib/modules/${kernel.modDirVersion}/extra/tcp_bbrv1.ko"
+    ${stdenv.cc.targetPrefix}strip --strip-debug "$out/lib/modules/${kernel.modDirVersion}/extra/tcp_bbrv1.ko"
+    nuke-refs "$out/lib/modules/${kernel.modDirVersion}/extra/tcp_bbrv1.ko"
     runHook postInstall
   '';
 

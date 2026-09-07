@@ -30,11 +30,11 @@ in
         Type = "exec";
         Nice = 19;
         IOSchedulingClass = "idle";
-        script = ''
-          ${pkgs.btrfs-progs}/bin/btrfs balance start -dusage=30,limit=3 /
-          ${pkgs.btrfs-progs}/bin/btrfs balance start -musage=30,limit=3 /
-        '';
       };
+      script = ''
+        ${pkgs.btrfs-progs}/bin/btrfs balance start -dusage=30,limit=3 /
+        ${pkgs.btrfs-progs}/bin/btrfs balance start -musage=30,limit=3 /
+      '';
     };
   };
 }

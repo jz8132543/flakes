@@ -4,7 +4,7 @@
   lib,
   fetchurl,
   librime,
-  rime-wanxiang,
+  rime-wanxiang ? pkgs.rime-wanxiang,
   rimeData ? pkgs.rime-data,
   framework ? "ibus",
   terminalEnglishApps ? [
@@ -52,11 +52,31 @@ stdenv.mkDerivation {
         # 1. Copy the base Rime presets needed by rime_deployer.
         if [ -d "${rimeData}/share/rime-data" ]; then
           cp -rf ${rimeData}/share/rime-data/* shared-data/
+          chmod -R u+w shared-data/
         fi
 
         # 2. Copy wanxiang schemas and dictionaries.
         if [ -d "${rime-wanxiang}/share/rime-data" ]; then
           cp -rf ${rime-wanxiang}/share/rime-data/* shared-data/
+          chmod -R u+w shared-data/
+        fi
+
+        # Directly commit 顿号 (、) without candidate menu for both '\' and '/'
+        if [ -f shared-data/punctuation.yaml ]; then
+          sed -i "s|'\\\\' : \\[ 、, '\\\\', ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
+          sed -i "s|'/' : \\[ 、, '/', ／, ÷ \\]|'/' : { commit: '、' }|g" shared-data/punctuation.yaml
+          sed -i "s|'\\\\' : \\[ 、, ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
+        fi
+        if [ -f shared-data/wanxiang_symbols.yaml ]; then
+          sed -i "s|'\\\\': \\[、, ＼\\]|'\\\\': { commit: '、' }|g" shared-data/wanxiang_symbols.yaml
+        fi
+
+        # Remove emojis completely
+        if [ -f shared-data/lua/data/emoji.txt ]; then
+          : > shared-data/lua/data/emoji.txt
+        fi
+        if [ -f shared-data/lua/data/codex_emoji.txt ]; then
+          : > shared-data/lua/data/codex_emoji.txt
         fi
 
         # 3. Copy grammar model.

@@ -2,43 +2,107 @@
   config,
   pkgs,
   lib,
-  matrixRtcHosts,
   ...
 }:
 let
   cfg = config.services.matrix;
+  matrixRtcHosts = cfg.rtcHosts;
+
+  elementCallConfig = builtins.toJSON {
+    default_server_config = {
+      "m.homeserver" = {
+        base_url = "https://m.dora.im";
+        server_name = "dora.im";
+      };
+    };
+    media_quality = {
+      video_codec = "vp9";
+      video = {
+        max_resolution = 4320;
+        max_framerate = 60;
+        max_bitrate = 50000000;
+      };
+      screen_share = {
+        max_resolution = 4320;
+        max_framerate = 60;
+        max_bitrate = 50000000;
+      };
+    };
+  };
+
+  elementCallConfigPath = pkgs.writeText "element-call-config.json" elementCallConfig;
+
   elementConfig = builtins.toJSON {
     default_server_config = {
-      server = {
-        "m.server" = "m.dora.im:443";
+      "m.homeserver" = {
+        base_url = "https://m.dora.im";
+        server_name = "dora.im";
       };
-      client = {
-        "m.server"."base_url" = "https://m.dora.im";
-        "m.homeserver"."base_url" = "https://m.dora.im";
-        "m.identity_server"."base_url" = "https://vector.im";
-        "org.matrix.msc3575.proxy"."url" = "https://m.dora.im";
+      "m.identity_server" = {
+        base_url = "https://vector.im";
       };
     };
     disable_custom_urls = true;
     disable_guests = true;
     disable_login_language_selector = false;
     disable_3pid_login = true;
-    default_country_code = "US";
+    default_country_code = "CN";
     show_labs_settings = true;
     default_federate = true;
     default_theme = "dark";
     room_directory.servers = [
+      "dora.im"
       "matrix.org"
       "nixos.org"
-      "dora.im"
     ];
     embedded_pages.login_for_welcome = true;
+    element_call = {
+      brand = "Element Call";
+      use_exclusively = true;
+    };
+    features = {
+      feature_group_calls = true;
+      feature_element_call_video_rooms = true;
+      feature_latex_maths = true;
+      feature_pinning = true;
+      feature_custom_status = true;
+      feature_favourite_messages = true;
+      feature_voice_broadcast = true;
+      feature_spotlight = true;
+      feature_wysiwyg_composer = true;
+      feature_jump_to_date = true;
+      feature_location_sharing = true;
+      feature_render_unconfirmed_events = true;
+      feature_ask_to_join = true;
+      feature_mjolnir = true;
+      feature_threads = true;
+      feature_sliding_sync = true;
+    };
     setting_defaults = {
+      breadcrumbs = true;
+      "Pill.shouldShowPillAvatar" = true;
+      "MessageComposerInput.suggestEmoji" = true;
+      "MessageComposerInput.showStickersButton" = true;
+      urlPreviewsEnabled = true;
+      alwaysShowTimestamps = true;
       "UIFeature.feedback" = false;
       "UIFeature.registration" = false;
       "UIFeature.passwordReset" = false;
       "UIFeature.deactivate" = false;
       "UIFeature.TimelineEnableRelativeDates" = false;
+    };
+    media_quality = {
+      video_codec = "vp9";
+      video = {
+        max_resolution = 4320;
+        max_framerate = 60;
+        max_bitrate = 50000000;
+      };
+      screen_share = {
+        max_resolution = 4320;
+        max_framerate = 60;
+        max_bitrate = 50000000;
+      };
     };
   };
 
@@ -83,6 +147,12 @@ in
     type = lib.types.str;
     default = "postgres.mag";
     description = "PostgreSQL host for Synapse.";
+  };
+
+  options.services.matrix.rtcHosts = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = config.lib.self.data.matrix.rtcHosts;
+    description = "Matrix RTC hosts";
   };
 
   config = {
@@ -173,6 +243,7 @@ in
         };
         matrix_authentication_service = {
           enabled = true;
+          endpoint = "http://localhost:${toString config.ports.mas}";
           issuer = "https://m.dora.im/";
           client_id = synapseClientId;
           client_auth_method = "client_secret_basic";
@@ -213,6 +284,10 @@ in
         rule = "Host(`m.dora.im`)";
         target = "http://localhost:${toString config.ports.nginx}";
       };
+      element-call = {
+        rule = "Host(`call.dora.im`)";
+        target = "http://localhost:${toString config.ports.nginx}";
+      };
       matrix-admin = {
         rule = "Host(`admin.m.dora.im`)";
         target = "http://localhost:${toString config.ports.nginx}";
@@ -231,6 +306,16 @@ in
     services.nginx = {
       enable = true;
       defaultHTTPListenPort = config.ports.nginx;
+      virtualHosts."call.dora.im" = {
+        root = pkgs.element-call;
+        locations = {
+          "/" = {
+            index = "index.html";
+            tryFiles = "$uri $uri/ /index.html =404";
+          };
+          "= /config.json".alias = elementCallConfigPath;
+        };
+      };
       virtualHosts."m.*" = {
         root = pkgs.element-web;
         locations = {
@@ -239,6 +324,7 @@ in
             tryFiles = "$uri $uri/ =404";
           };
           "= /config.json".root = "${elementConfigPath}";
+          "= /widgets/element-call/config.json".alias = elementCallConfigPath;
           "/.well-known/matrix/server".extraConfig = ''
             default_type application/json;
             return 200 '{ "m.server": "m.dora.im:443" }';
