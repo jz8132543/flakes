@@ -23,6 +23,7 @@ in
       "render"
       "cdrom"
       "libvirtd"
+      "kvm"
       "acme"
       "systemd-resolve"
       "aria2"
