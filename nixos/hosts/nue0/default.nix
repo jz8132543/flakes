@@ -43,8 +43,9 @@
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
-      # (import nixosModules.services.office { })
-      # (import nixosModules.services.nextcloud { })
+      # (import nixosModules.services.office { }) # 已由 nextcloud.nix 导入
+      (import nixosModules.services.nextcloud { PG = "127.0.0.1"; })
+      # Coturn TURN 服务器由 nixosModules.matrix.all 中的 stun.nix 配置，Talk 复用它
       (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
       # TODO
       nixosModules.services.pastebin

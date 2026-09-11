@@ -132,6 +132,9 @@
       ollama-ui = 11435;
       reader = 4396;
       office = 13444;
+      nextcloud-talk-hpb = 13445;
+      nextcloud-notify-push = 7867; # Nextcloud notify_push 推送服务
+      coturn-tls = 5349; # TURN over TLS for Nextcloud Talk
       code = 4444;
       opencloud = 9200;
       cfProxy = 2408;

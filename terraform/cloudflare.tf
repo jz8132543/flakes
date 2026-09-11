@@ -102,6 +102,7 @@ locals {
     office             = { on = "nue0", proxy = false }
     code               = { on = "nue0", proxy = false }
     cloud              = { on = "nue0", proxy = false }
+    talk               = { on = "nue0", proxy = false }
     reader             = { on = "nue0", proxy = false }
     plex               = { on = "nue0", proxy = false }
     dash               = { on = "nue0", proxy = false }
