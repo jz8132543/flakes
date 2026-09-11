@@ -119,6 +119,7 @@ in
         device = "${config.utils.disk}";
         efiSupport = lib.mkDefault true;
         efiInstallAsRemovable = lib.mkDefault true;
+        font = "${pkgs.grub2}/share/grub/unicode.pf2";
       };
     };
     initrd.systemd.storePaths = lib.mkIf isBtrfs [

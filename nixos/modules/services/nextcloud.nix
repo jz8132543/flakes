@@ -322,6 +322,30 @@ in
     };
   };
 
+  # ── Euro-Office 自动配置与连接检测 ───────────────────────────
+  systemd.services.nextcloud-config-eurooffice = {
+    wantedBy = [ "multi-user.target" ];
+    after = [
+      "nextcloud-setup.service"
+      "podman-eurooffice.service"
+    ];
+    requires = [
+      "nextcloud-setup.service"
+      "podman-eurooffice.service"
+    ];
+    script = ''
+      secret="$(cat ${config.sops.secrets."onlyoffice/jwtSecretFile".path})"
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice DocumentServerUrl --value "https://office.${domain}/"
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice DocumentServerInternalUrl --value "http://127.0.0.1:${toString config.ports.office}/"
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice StorageUrl --value "https://${hostName}/"
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice jwt_secret --value "$secret"
+      ${occ}/bin/nextcloud-occ eurooffice:documentserver --check || true
+    '';
+    serviceConfig = {
+      Type = "oneshot";
+    };
+  };
+
   # ── Talk TURN 服务器配置（occ）——直接复用 Matrix matrixRtcHosts 节点的 Coturn ──
   # 读取 Matrix 配置中的 matrixRtcHosts（如 nue0, sjc0 等），为 Talk 注册对应的 TURN/TURNS 节点
   systemd.services.nextcloud-config-talk = {
@@ -408,6 +432,9 @@ in
     content = builtins.toJSON {
       mail_smtppassword = config.sops.placeholder."mail/services";
       oidc_login_client_secret = config.sops.placeholder."nextcloud/oidc-secret";
+      eurooffice = {
+        jwt_secret = config.sops.placeholder."onlyoffice/jwtSecretFile";
+      };
     };
     owner = "nextcloud";
   };
@@ -451,6 +478,10 @@ in
 
   sops.secrets."mail/services" = {
     restartUnits = [ "nextcloud-setup.service" ];
+  };
+
+  sops.secrets."onlyoffice/jwtSecretFile" = {
+    restartUnits = [ "nextcloud-config-eurooffice.service" ];
   };
 
   # matrix/turn_shared_secret 由 stun.nix（Matrix）统一管理，此处无需重复声明

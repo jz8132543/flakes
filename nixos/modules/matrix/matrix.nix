@@ -151,7 +151,11 @@ in
 
   options.services.matrix.rtcHosts = lib.mkOption {
     type = lib.types.listOf lib.types.str;
-    default = config.lib.self.data.matrix.rtcHosts;
+    default =
+      config.lib.self.data.matrix.rtcHosts or [
+        "nue0"
+        "sjc0"
+      ];
     description = "Matrix RTC hosts";
   };
 

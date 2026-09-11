@@ -20,6 +20,7 @@
     ];
 
   boot.loader.grub.device = lib.mkForce "nodev";
+  boot.loader.grub.font = "${pkgs.grub2}/share/grub/unicode.pf2";
 
   services.kernel-relay = {
     enable = true;

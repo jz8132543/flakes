@@ -31,12 +31,24 @@ in
       cp -r ${x11Fonts} /usr/share/fonts/
     '';
   };
+  sops.secrets."onlyoffice/jwtSecretFile" = {
+    restartUnits = [ "podman-eurooffice.service" ];
+  };
+
+  sops.templates."eurooffice-env" = {
+    content = ''
+      JWT_ENABLED=true
+      JWT_SECRET=${config.sops.placeholder."onlyoffice/jwtSecretFile"}
+      USE_UNAUTHORIZED_STORAGE=true
+    '';
+  };
+
   virtualisation.oci-containers.containers.eurooffice = {
     image = "ghcr.io/euro-office/documentserver:latest";
     ports = [ "127.0.0.1:${toString config.ports.office}:80" ];
-    environment = {
-      USE_UNAUTHORIZED_STORAGE = "true";
-    };
+    environmentFiles = [
+      config.sops.templates."eurooffice-env".path
+    ];
     extraOptions = [
       "--add-host=cloud.${config.networking.domain}:host-gateway"
     ];
@@ -45,6 +57,6 @@ in
 
   services.traefik.proxies.office = {
     rule = "Host(`office.${config.networking.domain}`)";
-    target = "http://localhost:${toString config.ports.office}";
+    target = "http://127.0.0.1:${toString config.ports.office}";
   };
 }
