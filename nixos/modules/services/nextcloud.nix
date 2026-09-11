@@ -329,20 +329,30 @@ in
       "nextcloud-setup.service"
       "podman-eurooffice.service"
     ];
-    requires = [
-      "nextcloud-setup.service"
+    wants = [
       "podman-eurooffice.service"
     ];
     script = ''
+      # 等待 eurooffice 容器准备就绪（健康检查）
+      for i in $(seq 1 30); do
+        if ${pkgs.curl}/bin/curl -sf http://127.0.0.1:${toString config.ports.office}/healthcheck >/dev/null 2>&1; then
+          break
+        fi
+        sleep 2
+      done
+
       secret="$(cat ${config.sops.secrets."onlyoffice/jwtSecretFile".path})"
       ${occ}/bin/nextcloud-occ config:app:set eurooffice DocumentServerUrl --value "https://office.${domain}/"
       ${occ}/bin/nextcloud-occ config:app:set eurooffice DocumentServerInternalUrl --value "http://127.0.0.1:${toString config.ports.office}/"
       ${occ}/bin/nextcloud-occ config:app:set eurooffice StorageUrl --value "https://${hostName}/"
       ${occ}/bin/nextcloud-occ config:app:set eurooffice jwt_secret --value "$secret"
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice defFormats --value '{"csv":true,"doc":true,"docm":true,"docx":true,"dot":true,"dotm":true,"dotx":true,"epub":true,"fb2":true,"fodp":true,"fods":true,"fodt":true,"htm":true,"html":true,"odp":true,"ods":true,"odt":true,"ott":true,"pot":true,"potm":true,"potx":true,"pps":true,"ppsm":true,"ppsx":true,"ppt":true,"pptm":true,"pptx":true,"rtf":true,"vsdx":true,"vsdm":true,"vssm":true,"vssx":true,"vstm":true,"vstx":true,"wps":true,"wpt":true,"xls":true,"xlsb":true,"xlsm":true,"xlsx":true,"xlt":true,"xltm":true,"xltx":true}'
+      ${occ}/bin/nextcloud-occ config:app:set eurooffice editFormats --value '{"csv":true,"doc":true,"docm":true,"docx":true,"dotm":true,"dotx":true,"odp":true,"ods":true,"odt":true,"potm":true,"potx":true,"ppsm":true,"ppsx":true,"ppt":true,"pptm":true,"pptx":true,"rtf":true,"txt":true,"xls":true,"xlsb":true,"xlsm":true,"xlsx":true,"xltm":true,"xltx":true}'
       ${occ}/bin/nextcloud-occ eurooffice:documentserver --check || true
     '';
     serviceConfig = {
       Type = "oneshot";
+      RemainAfterExit = true;
     };
   };
 

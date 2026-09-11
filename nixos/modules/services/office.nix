@@ -49,6 +49,9 @@ in
     environmentFiles = [
       config.sops.templates."eurooffice-env".path
     ];
+    volumes = [
+      "/usr/share/fonts:/usr/share/fonts:ro"
+    ];
     extraOptions = [
       "--add-host=cloud.${config.networking.domain}:host-gateway"
     ];
