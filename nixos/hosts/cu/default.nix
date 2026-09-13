@@ -13,11 +13,21 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       # nixosModules.optimize.infini
-      # nixosModules.services.traefik
       nixosModules.services.derp
       nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
+      nixosModules.nextcloud.talk-edge
     ];
+
+  services.nextcloud-talk-edge = {
+    enable = true;
+    edgeDomain = "cu.dora.im";
+    edgePort = 50569;
+    edgePublicIp = "cu.dora.im";
+    enableCoturn = false;
+    centralInternalIp = "100.64.0.1";
+    centralNextcloudUrl = "https://cloud.dora.im";
+  };
 
   boot.loader.grub.device = lib.mkForce "nodev";
   boot.loader.grub.font = "${pkgs.grub2}/share/grub/unicode.pf2";

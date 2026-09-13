@@ -13,10 +13,10 @@
     tls-listening-port = 5349;
     use-auth-secret = true;
     static-auth-secret-file = config.sops.secrets."matrix/turn_shared_secret".path;
-    realm = "dora.im";
-    min-port = 49152;
-    max-port = 49262;
-    no-cli = true;
+    realm = lib.mkDefault "dora.im";
+    min-port = lib.mkDefault 49152;
+    max-port = lib.mkDefault 49262;
+    no-cli = lib.mkDefault true;
     cert = "${config.security.acme.certs."main".directory}/fullchain.pem";
     pkey = "${config.security.acme.certs."main".directory}/key.pem";
     # Matrix needs relaying
@@ -31,7 +31,6 @@
       # no-stun-backward-compatibility
       # response-origin-only-with-rfc5780
       no-multicast-peers
-      secure-stun
     '';
   };
   systemd.services.coturn.serviceConfig.StateDirectory = "coturn";

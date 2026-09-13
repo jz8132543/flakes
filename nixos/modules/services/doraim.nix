@@ -2,6 +2,7 @@
   config,
   pkgs,
   lib,
+  nixosModules,
   ...
 }:
 let
@@ -31,6 +32,10 @@ let
   };
 in
 {
+  imports = [
+    nixosModules.services.nginx
+  ];
+
   services.traefik.proxies = {
     doraim = {
       rule = "Host(`dora.im`) && PathPrefix(`/.well-known`)";
@@ -45,8 +50,6 @@ in
   };
 
   services.nginx = {
-    enable = true;
-    defaultHTTPListenPort = config.ports.nginx;
     virtualHosts."dora.im" = {
       # matrix
       locations."/.well-known/matrix/server".extraConfig = ''

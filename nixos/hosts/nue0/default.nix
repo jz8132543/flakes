@@ -44,7 +44,8 @@
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
       (import nixosModules.services.alist { PG = "127.0.0.1"; })
       # (import nixosModules.services.office { }) # 已由 nextcloud.nix 导入
-      (import nixosModules.services.nextcloud { PG = "127.0.0.1"; })
+      (import nixosModules.nextcloud.core { PG = "127.0.0.1"; })
+      nixosModules.nextcloud.talk-central
       # Coturn TURN 服务器由 nixosModules.matrix.all 中的 stun.nix 配置，Talk 复用它
       (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
       # TODO
@@ -73,6 +74,30 @@
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;
+
+  # ── 分布式 Nextcloud Talk HPB 中心控制面 ─────────────────────
+  services.nextcloud-talk-central = {
+    enable = true;
+    internalIp = "100.64.0.1";
+    edgeNodes = [
+      {
+        name = "sjc0";
+        fqdn = "sjc0.dora.im";
+        publicIp = "45.143.130.230";
+        hasSignaling = true;
+        hasTurn = true;
+      }
+      {
+        name = "cu";
+        fqdn = "cu.dora.im";
+        port = 50569;
+        publicIp = "cu.dora.im";
+        hasSignaling = true;
+        hasTurn = false;
+        verify = false;
+      }
+    ];
+  };
 
   services.tailscale-proxy-pool = {
     enable = true;

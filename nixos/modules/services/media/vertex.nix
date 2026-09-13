@@ -34,7 +34,10 @@
     };
 
     services.restic.backups.borgbase.paths = [
+      "/data/.state/vertex/config"
+      "/data/.state/vertex/data"
       "/data/.state/vertex/db/sql.db"
+      "/data/.state/vertex/qb-patched.js"
     ];
   };
 }

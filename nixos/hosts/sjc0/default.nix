@@ -26,7 +26,17 @@
       # nixosModules.media.jellyfin
       # nixosModules.services.headscale
       # (import nixosModules.services.alist { })
+      nixosModules.nextcloud.talk-edge
     ];
+
+  # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
+  services.nextcloud-talk-edge = {
+    enable = true;
+    edgeDomain = "sjc0.dora.im";
+    edgePublicIp = "45.143.130.230";
+    centralInternalIp = "100.64.0.1";
+    centralNextcloudUrl = "https://cloud.dora.im";
+  };
 
   environment.networkTune = {
     enable = true;

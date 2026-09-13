@@ -290,6 +290,7 @@ in
 {
   imports = [
     ./obsidian-livesync.nix
+    ./zotero.nix
     ./cc-switch.nix
   ];
 
