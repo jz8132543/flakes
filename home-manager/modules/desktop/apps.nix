@@ -327,6 +327,7 @@ in
     # kdePackages.k3b
     # vcdimager
     feishu
+    nextcloud-client
   ];
   programs = {
     # TODO

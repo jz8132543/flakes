@@ -12,7 +12,6 @@ in
   imports = [
     ./edid
     # ./monitors.nix
-    inputs.grub2-themes.nixosModules.default
     inputs.nixos-hardware.nixosModules.common-hidpi
     inputs.nixos-hardware.nixosModules.common-pc-laptop
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
@@ -54,7 +53,7 @@ in
         # default = "saved";
         # gfxmodeEfi = lib.mkForce "1280x800";
         extraEntries = ''
-          menuentry "Windows" {
+          menuentry "Windows" --class windows11 --class windows --class os {
             insmod part_gpt
             insmod ntfs
             insmod fat
@@ -64,12 +63,6 @@ in
             chainloader /EFI/Microsoft/Boot/bootmgfw.efi
           }
         '';
-      };
-      grub2-theme = {
-        enable = true;
-        theme = "vimix";
-        footer = true;
-        # customResolution = "1920x1200";
       };
     };
   };

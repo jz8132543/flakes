@@ -2,12 +2,10 @@
   config,
   lib,
   pkgs,
-  inputs,
   ...
 }:
 {
   imports = [
-    inputs.grub2-themes.nixosModules.default
   ];
   boot = {
     extraModulePackages = [
@@ -53,9 +51,8 @@
         # useOSProber = true;
 
         default = 0;
-        gfxmodeEfi = lib.mkForce "1600x1200";
         extraEntries = ''
-          menuentry "Windows" {
+          menuentry "Windows" --class windows11 --class windows --class os {
             insmod part_gpt
             insmod ntfs
             insmod search_fs_uuid
@@ -64,10 +61,6 @@
             chainloader /EFI/Microsoft/Boot/bootmgfw.efi
           }
         '';
-      };
-      grub2-theme = {
-        enable = true;
-        theme = "whitesur";
       };
     };
   };
