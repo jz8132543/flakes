@@ -34,7 +34,7 @@ in
       "ping"
       "radio_browser"
       "shell_command"
-      "vlc"
+      "vlc_telnet"
       "wake_on_lan"
       "whisper"
       "workday"

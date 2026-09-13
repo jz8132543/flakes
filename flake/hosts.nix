@@ -194,7 +194,7 @@ let
                     ${pkgs.systemd}/bin/loginctl enable-linger $(whoami)
                   '';
                 };
-                # nix.package = pkgs.lix;
+                nix.package = pkgs.lix;
                 targets.genericLinux.enable = true;
 
                 # Mock osConfig for standalone Home Manager

@@ -302,6 +302,20 @@ in
           };
         };
 
+        plugins."AniDB" = {
+          enable = true;
+          package = (inputs.nixflix.lib.buildJellyfinPlugin { inherit pkgs; }) {
+            pname = "AniDB";
+            version = "13.0.0.0";
+            src = pkgs.fetchzip {
+              url = "https://repo.jellyfin.org/files/plugin/anidb/anidb_13.0.0.0.zip";
+              hash = "sha256-TiMl1kloW43CpKrLGaU9uZxrHi/oZHTA8Eu7MsRDneM=";
+              stripRoot = false;
+            };
+            passthru.pluginDirName = "AniDB_13.0.0.0";
+          };
+        };
+
         libraries = {
           Shows.typeOptions = lib.mkForce [
             {
