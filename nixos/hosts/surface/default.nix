@@ -12,6 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       ./hardware.nix
+      # ./auto-external-monitor.nix
       nixosModules.optimize.network-desktop
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik

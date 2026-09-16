@@ -33,10 +33,11 @@
       "iommu=pt"
       "mitigations=off"
       "nowatchdog"
+      "i915.enable_dp_mst=0"
     ];
     extraModprobeConfig = ''
       # 禁用 FBC 和 PSR，解决 GNOME Wayland 桌面滑动掉帧卡顿
-      options i915 enable_fbc=0 enable_psr=0
+      options i915 enable_fbc=0 enable_psr=0 enable_dp_mst=0
       options kvm_intel nested=1
       options kvm_intel emulate_invalid_guest_state=0
       options kvm ignore_msrs=1

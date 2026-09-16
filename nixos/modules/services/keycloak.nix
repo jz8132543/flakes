@@ -29,6 +29,7 @@ in
   networking.firewall.allowedTCPPorts = [ config.ports.ldap ];
   services.keycloak = {
     enable = true;
+    plugins = [ pkgs.keycloak-themes-phasetwo ];
     database = {
       type = "postgresql";
       host = PG;
@@ -67,6 +68,10 @@ in
       {
         "realm": "users",
         "enabled": true,
+        "loginTheme": "phasetwo-ui",
+        "accountTheme": "phasetwo-ui",
+        "adminTheme": "phasetwo-ui",
+        "emailTheme": "phasetwo-ui",
         "smtpServer": {
           "host": "${config.environment.smtp_host}",
           "port": "${toString config.environment.smtp_port}",
@@ -265,6 +270,13 @@ in
       bind_password_sql="$(${pkgs.coreutils}/bin/printf '%s' "$bind_password" | ${pkgs.gawk}/bin/awk '{gsub(/\047/, "\047\047"); print}')"
 
       psql -h 127.0.0.1 -U keycloak -d keycloak -v ON_ERROR_STOP=1 -Atq -c "
+        update realm
+        set login_theme = 'phasetwo-ui',
+            account_theme = 'phasetwo-ui',
+            admin_theme = 'phasetwo-ui',
+            email_theme = 'phasetwo-ui'
+        where name = 'users';
+
         update component_config
         set value = '${ldapUri}'
         where component_id = (

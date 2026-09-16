@@ -364,33 +364,26 @@ in
     };
   };
 
-  # Automatically switch to external monitor only when one is connected
-  systemd.user.services."auto-external-monitor" = {
+  # 开机/登录时自动将音量设为 0（等待 WirePlumber 和默认声卡就绪）
+  systemd.user.services.reset-volume-on-login = {
     Unit = {
-      Description = "Automatically switch to external monitor only";
-      PartOf = [ "gnome-session-initialized.target" ];
-      After = [ "gnome-session-initialized.target" ];
+      Description = "Reset audio volume to 0 on login";
+      After = [ "wireplumber.service" ];
+      PartOf = [ "graphical-session.target" ];
     };
     Service = {
-      ExecStart = pkgs.writeShellScript "auto-external-monitor" ''
-        # Listen to Mutter DisplayConfig signals
-        ${pkgs.dbus}/bin/dbus-monitor --session "type='signal',interface='org.gnome.Mutter.DisplayConfig',member='MonitorsChanged'" | grep --line-buffered "member=MonitorsChanged" | \
-        while read -r line; do
-          # Give GNOME time to stabilize the display state
-          sleep 1
-          HAS_EXTERNAL=$(${pkgs.systemd}/bin/busctl --user get-property org.gnome.Mutter.DisplayConfig /org/gnome/Mutter/DisplayConfig org.gnome.Mutter.DisplayConfig HasExternalMonitor | awk '{print $2}')
-          if [ "$HAS_EXTERNAL" = "true" ]; then
-            ${pkgs.gnome-randr}/bin/gnome-randr modify --output eDP-1 --off
-          else
-            ${pkgs.gnome-randr}/bin/gnome-randr modify --output eDP-1 --on
+      Type = "oneshot";
+      ExecStart = "${pkgs.writeShellScript "reset-volume-zero" ''
+        for i in $(seq 1 30); do
+          if ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 0 2>/dev/null; then
+            exit 0
           fi
+          sleep 0.2
         done
-      '';
-      Restart = "always";
-      RestartSec = 3;
+      ''}";
     };
     Install = {
-      WantedBy = [ "gnome-session.target" ];
+      WantedBy = [ "graphical-session.target" ];
     };
   };
 }

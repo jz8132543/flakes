@@ -52,8 +52,8 @@
     fontconfig = {
       defaultFonts = {
         sansSerif = [
-          "PingFang SC"
           "Inter"
+          "PingFang SC"
           "Source Han Sans SC"
           "Noto Color Emoji"
         ];
@@ -192,14 +192,140 @@
             </edit>
           </match>
 
-          <!-- 苹果系统与网页常用别名映射 -->
+          <!-- 宋体 / 新宋体 / SimSun / NSimSun (优先映射至思源宋体，根治老旧网页 12px 矢量宋体发虚断裂) -->
+          <alias>
+            <family>宋体</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>SimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>SimSun</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>SimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>simsun</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>SimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>新宋体</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>NSimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>NSimSun</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>NSimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>nsimsun</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+              <family>NSimSun</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>STSong</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>华文宋体</family>
+            <prefer>
+              <family>Source Han Serif SC</family>
+            </prefer>
+          </alias>
+
+          <!-- 华文黑体 / 华文细黑 / STHeiti (经典网页黑体回退至苹方与思源黑体) -->
+          <alias>
+            <family>STHeiti</family>
+            <prefer>
+              <family>PingFang SC</family>
+              <family>Source Han Sans SC</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>华文黑体</family>
+            <prefer>
+              <family>PingFang SC</family>
+              <family>Source Han Sans SC</family>
+            </prefer>
+          </alias>
+          <alias>
+            <family>华文细黑</family>
+            <prefer>
+              <family>PingFang SC</family>
+              <family>Source Han Sans SC</family>
+            </prefer>
+          </alias>
+
+
+          <!-- 多语言 CJK 支持 (避免日韩网页汉字字形混淆与假名缺字) -->
+          <match target="pattern">
+            <test name="lang" compare="contains">
+              <string>ja</string>
+            </test>
+            <test name="family">
+              <string>sans-serif</string>
+            </test>
+            <edit name="family" mode="prepend" binding="strong">
+              <string>Source Han Sans</string>
+            </edit>
+          </match>
+          <match target="pattern">
+            <test name="lang" compare="contains">
+              <string>ko</string>
+            </test>
+            <test name="family">
+              <string>sans-serif</string>
+            </test>
+            <edit name="family" mode="prepend" binding="strong">
+              <string>Source Han Sans K</string>
+            </edit>
+          </match>
+          <match target="pattern">
+            <test name="lang" compare="contains">
+              <string>zh-tw</string>
+            </test>
+            <test name="family">
+              <string>sans-serif</string>
+            </test>
+            <edit name="family" mode="prepend" binding="strong">
+              <string>Source Han Sans TC</string>
+            </edit>
+          </match>
+          <match target="pattern">
+            <test name="lang" compare="contains">
+              <string>zh-hk</string>
+            </test>
+            <test name="family">
+              <string>sans-serif</string>
+            </test>
+            <edit name="family" mode="prepend" binding="strong">
+              <string>Source Han Sans HC</string>
+            </edit>
+          </match>
+
+          <!-- 苹果系统与网页常用别名映射 (西文字体 Inter 在前，中文字体 PingFang SC 在后) -->
           <match target="pattern">
             <test name="family" qual="any">
               <string>-apple-system</string>
             </test>
             <edit name="family" mode="prepend" binding="strong">
-              <string>PingFang SC</string>
               <string>Inter</string>
+              <string>PingFang SC</string>
             </edit>
           </match>
           <match target="pattern">
@@ -207,8 +333,8 @@
               <string>BlinkMacSystemFont</string>
             </test>
             <edit name="family" mode="prepend" binding="strong">
-              <string>PingFang SC</string>
               <string>Inter</string>
+              <string>PingFang SC</string>
             </edit>
           </match>
           <match target="pattern">
