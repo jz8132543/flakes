@@ -128,13 +128,66 @@ in
               domainsStr = builtins.concatStringsSep " " (map (d: "\"${d}\"") cfg.customDomains);
             in
             "${pkgs.writeShellScript "gsconnect-poll" ''
+              export PATH="${
+                lib.makeBinPath (
+                  with pkgs;
+                  [
+                    coreutils
+                    gnugrep
+                    gawk
+                    glib
+                    tailscale
+                  ]
+                )
+              }:$PATH"
+
+              # 1. 向所有配置的 Tailscale 域名发送发现包
               for domain in ${domainsStr}; do
-                ip=$(${pkgs.tailscale}/bin/tailscale ip -4 "$domain" 2>/dev/null || true)
+                ip=$(tailscale ip -4 "$domain" 2>/dev/null || true)
                 if [ -n "$ip" ]; then
-                  ${pkgs.glib}/bin/gdbus call --session \
+                  gdbus call --session \
                     --dest org.gnome.Shell.Extensions.GSConnect \
                     --object-path /org/gnome/Shell/Extensions/GSConnect \
                     --method org.gtk.Actions.Activate "connect" "[<'lan://''${ip}:1716'>]" "{}" >/dev/null 2>&1 || true
+                fi
+              done
+
+              # 2. 稍等握手建连
+              sleep 2
+
+              # 3. 扫描已连接但尚未配对的设备，主动发起配对
+              DEVICES=$(gdbus introspect --session \
+                --dest org.gnome.Shell.Extensions.GSConnect \
+                --object-path /org/gnome/Shell/Extensions/GSConnect/Device 2>/dev/null | \
+                grep -E '^\s*node\s+[0-9a-fA-F-]+' | \
+                awk '{print $2}')
+
+              for dev in $DEVICES; do
+                PAIRED=$(gdbus call --session \
+                  --dest org.gnome.Shell.Extensions.GSConnect \
+                  --object-path "/org/gnome/Shell/Extensions/GSConnect/Device/$dev" \
+                  --method org.freedesktop.DBus.Properties.Get \
+                  "org.gnome.Shell.Extensions.GSConnect.Device" "Paired" 2>/dev/null || true)
+
+                CONNECTED=$(gdbus call --session \
+                  --dest org.gnome.Shell.Extensions.GSConnect \
+                  --object-path "/org/gnome/Shell/Extensions/GSConnect/Device/$dev" \
+                  --method org.freedesktop.DBus.Properties.Get \
+                  "org.gnome.Shell.Extensions.GSConnect.Device" "Connected" 2>/dev/null || true)
+
+                if [ "$CONNECTED" = "(<true>,)" ] && [ "$PAIRED" = "(<false>,)" ]; then
+                  LOCKFILE="''${XDG_RUNTIME_DIR:-/tmp}/gsconnect-pair-$dev.lock"
+                  NOW=$(date +%s)
+                  LAST_TRY=$(cat "$LOCKFILE" 2>/dev/null || echo 0)
+
+                  # 10 分钟冷却，避免每分钟重复弹窗打扰
+                  if [ $((NOW - LAST_TRY)) -gt 600 ]; then
+                    echo "$NOW" > "$LOCKFILE"
+                    gdbus call --session \
+                      --dest org.gnome.Shell.Extensions.GSConnect \
+                      --object-path "/org/gnome/Shell/Extensions/GSConnect/Device/$dev" \
+                      --method org.gtk.Actions.Activate "pair" "[]" "{}" >/dev/null 2>&1 || true
+                  fi
                 fi
               done
             ''}";
