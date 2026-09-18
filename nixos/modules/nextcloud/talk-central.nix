@@ -179,20 +179,80 @@ in
       };
     };
 
-    # ── 3. 内网域名别名映射（通过 dnsmasq cname 动态重定向至 Tailscale MagicDNS）
-    services.dnsmasq.settings.cname = lib.concatMap (
-      node: lib.optional (node.internalDomain != null) "${node.fqdn},${node.internalDomain}"
-    ) cfg.edgeNodes;
+    # ── 3. 内网域名动态映射（通过 dnsmasq hostsdir 动态重定向至 Tailscale 节点 IP）
+    systemd.tmpfiles.rules = lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes) [
+      "d /run/dnsmasq/hosts 0755 root root -"
+    ];
+
+    services.dnsmasq.settings = lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes) {
+      hostsdir = "/run/dnsmasq/hosts";
+    };
+
+    systemd.services.nextcloud-talk-edge-hosts =
+      lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes)
+        {
+          description = "Dynamically resolve and populate Nextcloud Talk edge node overlay IPs for dnsmasq";
+          wantedBy = [ "multi-user.target" ];
+          before = [ "nextcloud-setup-talk-hpb.service" ];
+          after = [ "network.target" ] ++ lib.optional config.services.tailscale.enable "tailscaled.service";
+          path = [
+            pkgs.coreutils
+            pkgs.bind.dnsutils
+          ]
+          ++ lib.optional config.services.tailscale.enable config.services.tailscale.package;
+
+          script = ''
+            mkdir -p /run/dnsmasq/hosts
+            ${lib.concatMapStringsSep "\n" (
+              node:
+              lib.optionalString (node.internalDomain != null) ''
+                # Resolve IP for ${node.name} (${node.fqdn} -> ${node.internalDomain})
+                NODE_IP=""
+                if command -v tailscale >/dev/null 2>&1; then
+                  NODE_IP="$(tailscale ip -4 "${node.name}" 2>/dev/null || true)"
+                fi
+                if [ -z "$NODE_IP" ]; then
+                  NODE_IP="$(dig @100.100.100.100 +short "${node.internalDomain}" 2>/dev/null | tail -n1 || true)"
+                fi
+                if [ -n "$NODE_IP" ]; then
+                  echo "$NODE_IP ${node.fqdn}" > "/run/dnsmasq/hosts/edge-${node.name}.tmp"
+                  mv "/run/dnsmasq/hosts/edge-${node.name}.tmp" "/run/dnsmasq/hosts/edge-${node.name}"
+                fi
+              ''
+            ) cfg.edgeNodes}
+          '';
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+          };
+        };
+
+    systemd.timers.nextcloud-talk-edge-hosts =
+      lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes)
+        {
+          description = "Periodically refresh Nextcloud Talk edge node overlay IPs";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnBootSec = "5s";
+            OnUnitActiveSec = "1m";
+          };
+        };
 
     # ── 4. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
     systemd.services.nextcloud-setup-talk-hpb = {
       description = "Declarative Nextcloud Talk HPB Cluster Registration";
       wantedBy = [ "multi-user.target" ];
+      wants = lib.optional (lib.any (
+        node: node.internalDomain != null
+      ) cfg.edgeNodes) "nextcloud-talk-edge-hosts.service";
       after = [
         "nextcloud-setup.service"
         "nats.service"
         "dnsmasq.service"
       ]
+      ++ lib.optional (lib.any (
+        node: node.internalDomain != null
+      ) cfg.edgeNodes) "nextcloud-talk-edge-hosts.service"
       ++ lib.optional cfg.enableLocalSignaling "nextcloud-spreed-signaling.service";
       requires = [ "nextcloud-setup.service" ];
 
