@@ -301,6 +301,7 @@ in
   };
 
   systemd.services.nextcloud-config-talk-hpb = {
+    enable = !config.services.nextcloud-talk-central.enable;
     wantedBy = [ "multi-user.target" ];
     after = [
       "nextcloud-setup.service"

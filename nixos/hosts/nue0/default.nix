@@ -92,9 +92,9 @@
         fqdn = "cu.dora.im";
         port = 50569;
         publicIp = "cu.dora.im";
+        internalDomain = "cu.mag";
         hasSignaling = true;
         hasTurn = false;
-        verify = false;
       }
     ];
   };

@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -72,6 +73,11 @@ in
             publicIp = lib.mkOption {
               type = lib.types.str;
               description = "Public IPv4 of the edge node.";
+            };
+            internalDomain = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Internal overlay mesh domain (e.g. cu.mag) to alias fqdn to via dnsmasq CNAME.";
             };
             hasSignaling = lib.mkOption {
               type = lib.types.bool;
@@ -173,13 +179,19 @@ in
       };
     };
 
-    # ── 3. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
+    # ── 3. 内网域名别名映射（通过 dnsmasq cname 动态重定向至 Tailscale MagicDNS）
+    services.dnsmasq.settings.cname = lib.concatMap (
+      node: lib.optional (node.internalDomain != null) "${node.fqdn},${node.internalDomain}"
+    ) cfg.edgeNodes;
+
+    # ── 4. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
     systemd.services.nextcloud-setup-talk-hpb = {
       description = "Declarative Nextcloud Talk HPB Cluster Registration";
       wantedBy = [ "multi-user.target" ];
       after = [
         "nextcloud-setup.service"
         "nats.service"
+        "dnsmasq.service"
       ]
       ++ lib.optional cfg.enableLocalSignaling "nextcloud-spreed-signaling.service";
       requires = [ "nextcloud-setup.service" ];
@@ -196,6 +208,28 @@ in
         ${occ}/bin/nextcloud-occ config:app:set spreed max_screen_resolution --value "7680" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_screen_framerate --value "180" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_screen_bitrate --value "200000000" || true
+
+        # ── 清理未在当前期望配置中的废弃信令服务器 ──
+        EXPECTED_SERVERS="${lib.optionalString cfg.enableLocalSignaling "wss://${cfg.localSignalingHost} "}${
+          lib.concatMapStringsSep " " (
+            node:
+            lib.optionalString node.hasSignaling "https://${node.fqdn}${
+              lib.optionalString (node.port != null) ":${toString node.port}"
+            }/standalone-signaling/"
+          ) cfg.edgeNodes
+        }"
+
+        ${occ}/bin/nextcloud-occ talk:signaling:list --output=json 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.servers[]?.server // empty' \
+          | while read -r srv; do
+              case " $EXPECTED_SERVERS " in
+                *" $srv "*) ;; # 期望节点，保留
+                *)
+                  echo "Removing obsolete signaling server: $srv"
+                  ${occ}/bin/nextcloud-occ talk:signaling:delete "$srv" || true
+                  ;;
+              esac
+            done
 
         # ── 注册中心本地信令服务（若启用）──
         ${lib.optionalString cfg.enableLocalSignaling ''
