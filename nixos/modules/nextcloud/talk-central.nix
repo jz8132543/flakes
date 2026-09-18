@@ -223,7 +223,6 @@ in
           '';
           serviceConfig = {
             Type = "oneshot";
-            RemainAfterExit = true;
           };
         };
 
@@ -234,7 +233,7 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnBootSec = "5s";
-            OnUnitActiveSec = "1m";
+            OnUnitInactiveSec = "1m";
           };
         };
 
