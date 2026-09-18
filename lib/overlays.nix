@@ -56,13 +56,11 @@
       '';
     };
 
-    # python3Packages = prev.python3Packages.overrideScope (
-    #   pyFinal: pyPrev: {
-    #     kde-material-you-colors = pyPrev.kde-material-you-colors.overridePythonAttrs (old: {
-    #       propagatedBuildInputs = (old.propagatedBuildInputs or [ ]) ++ [ pyFinal.python-magic ];
-    #     });
-    #   }
-    # );
+    perlPackages = prev.perlPackages.overrideScope (
+      _pfinal: _pprev: {
+        URIws = prev.emptyDirectory;
+      }
+    );
   })
   (import "${self}/pkgs").overlay
 ]

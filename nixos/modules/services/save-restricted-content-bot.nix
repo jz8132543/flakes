@@ -99,8 +99,8 @@ in
       ADMINS=${config.sops.placeholder."telegram/userid"}
       CHANNEL_ID=${config.sops.placeholder."telegram/save_restricted_channelid"}
       DB_URI=mongodb://127.0.0.1:27017
-      WAITING_TIME=30
-      ERROR_MESSAGE=false
+      WAITING_TIME=5
+      ERROR_MESSAGE=true
     '';
   };
 }

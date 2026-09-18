@@ -53,7 +53,7 @@
       nixosModules.services.linkwarden
       nixosModules.services.kaogong
       # nixosModules.services.easytier-web
-      # nixosModules.services.save-restricted-content-bot
+      nixosModules.services.save-restricted-content-bot
 
       nixosModules.services.tailscale-proxy-pool
 
@@ -200,4 +200,13 @@
       }
     ];
   };
+
+  # 仅为 nue0 配置 16GiB 独立 Swapfile（置于持久化 /var/lib 下，规避 rootfs 每次开机重置）
+  # NixOS 的 swap 模块会自动检测 Btrfs 并调用 btrfs filesystem mkswapfile，自动禁用 CoW (chattr +C) 与压缩
+  swapDevices = [
+    {
+      device = "/var/lib/swapfile";
+      size = 16 * 1024;
+    }
+  ];
 }
