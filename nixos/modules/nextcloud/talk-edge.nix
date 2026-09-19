@@ -484,7 +484,9 @@ in
         3479 # Coturn STUN/TURN UDP
         5349 # Coturn TURNS UDP
       ];
-      allowedUDPPortRanges = lib.optionals cfg.enableCoturn [
+      # Janus WebRTC SFU 始终需要这个 UDP 端口范围用于媒体流（ICE），
+      # 与是否启用 Coturn 无关。cu 节点 enableCoturn=false 时此范围仍必须放行！
+      allowedUDPPortRanges = [
         {
           from = cfg.rtpPortRange.min;
           to = cfg.rtpPortRange.max;
