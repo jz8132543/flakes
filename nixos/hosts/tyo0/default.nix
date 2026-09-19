@@ -12,7 +12,8 @@
       ./hardware-configuration.nix
       nixosModules.optimize.infini
       # nixosModules.optimize.fakehttp
-      # nixosModules.services.traefik
+      nixosModules.services.traefik
+      nixosModules.services.atc.edge
       # nixosModules.services.derp
       (import nixosModules.services.xray {
       })

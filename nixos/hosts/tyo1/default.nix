@@ -12,7 +12,8 @@
       nixosModules.optimize.infini
       nixosModules.optimize.ext4
       # nixosModules.optimize.fakehttp
-      # nixosModules.services.traefik
+      nixosModules.services.traefik
+      nixosModules.services.atc.edge
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;

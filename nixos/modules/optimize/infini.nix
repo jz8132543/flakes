@@ -32,6 +32,8 @@
     # 3. 剥离无用的 systemd 核心组件
     # systemd-logind 对于只通过 ssh 无桌面登录的服务器来说非必需
     systemd.services."systemd-logind".enable = lib.mkForce false;
+    # 确保即使没有 logind/polkit，dbus.socket 也会常驻，保证 switch-to-configuration 正常工作
+    systemd.sockets.dbus.wantedBy = [ "sockets.target" ];
     # udisks2 (磁盘挂载管理) 不需要
     services.udisks2.enable = lib.mkForce false;
     # 彻底关闭系统默认 OOMD，只保留 earlyoom

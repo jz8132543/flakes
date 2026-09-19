@@ -232,9 +232,9 @@ let
 
         ${concatMapStringsSep "\n" renderTcpBlock tcpMappings}
 
-        if [ "${cfg.udpFallback}" = "nftables" ] && [ ${toString (builtins.length udpMappings)} -gt 0 ]; then
+        ${optionalString (cfg.udpFallback == "nftables" && builtins.length udpMappings > 0) ''
           ${concatMapStringsSep "\n" renderUdpBlock udpMappings}
-        fi
+        ''}
 
         ${optionalString cfg.haproxy.stats.enable ''
                     cat >> "$HAPROXY_TMP" <<EOF
@@ -270,7 +270,7 @@ let
         fi
 
         DEFAULT_DEV=$(ip -4 route show default 2>/dev/null | head -n1 | awk '{for(i=1;i<NF;i++) if($i=="dev") print $(i+1)}')
-        [ -z "$DEFAULT_DEV" ] && DEFAULT_DEV="eth0"
+        if [ -z "$DEFAULT_DEV" ]; then DEFAULT_DEV="eth0"; fi
         LOCAL_IP4=$(ip -4 addr show dev "$DEFAULT_DEV" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n1)
         LOCAL_IP6=$(ip -6 addr show dev "$DEFAULT_DEV" | awk '/inet6 / && !/fe80/ {print $2}' | cut -d/ -f1 | head -n1)
 
@@ -343,11 +343,13 @@ let
         NEW_HASH="$(
           {
             sha256sum "$HAPROXY_TMP"
-            [ -f "$NFT_TMP" ] && sha256sum "$NFT_TMP"
+            if [ -f "$NFT_TMP" ]; then sha256sum "$NFT_TMP"; fi
           } | sha256sum | awk '{print $1}'
         )"
         OLD_HASH=""
-        [ -f "$HAPROXY_HASH_FILE" ] && OLD_HASH=$(cat "$HAPROXY_HASH_FILE")
+        if [ -f "$HAPROXY_HASH_FILE" ]; then
+          OLD_HASH=$(cat "$HAPROXY_HASH_FILE")
+        fi
 
         if [ "$NEW_HASH" = "$OLD_HASH" ] && [ "$force" -eq 0 ]; then
           echo "No relay config changes detected, skipping reload."

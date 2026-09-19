@@ -91,8 +91,7 @@
     };
   };
   ports.derp-stun = lib.mkForce 50568;
-  services.traefik.proxies.derp.rule =
-    lib.mkForce "Host(`${config.networking.fqdn}`) || Host(`*.${config.networking.domain}`)";
+  services.traefik.proxies.derp.rule = lib.mkForce "Host(`${config.networking.fqdn}`)";
   # ports.turn-stun = lib.mkForce 50568;
   environment.altHTTPS = 50569;
 

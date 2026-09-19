@@ -64,6 +64,8 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
       nixosModules.services.adguard-mosdns
+      nixosModules.services.atc.router
+      nixosModules.services.atc.edge
     ]
     ++ nixosModules.matrix.all;
 

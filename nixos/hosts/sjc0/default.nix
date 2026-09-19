@@ -14,6 +14,7 @@
       nixosModules.optimize.ext4
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
+      nixosModules.services.atc.edge
       nixosModules.services.derp
       # nixosModules.services.stun
       nixosModules.matrix.matrix-rtc
