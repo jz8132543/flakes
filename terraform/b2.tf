@@ -71,7 +71,7 @@ resource "b2_bucket" "lobechat_files" {
       "*"
     ]
     expose_headers = [
-      "ETag"
+      "etag"
     ]
     max_age_seconds = 86400
   }

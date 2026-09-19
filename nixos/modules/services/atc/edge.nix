@@ -12,9 +12,10 @@ let
     # ==============================================================================
     # Micro-Edge Apache Traffic Server (ATS) Configuration
     # Stripped concurrency & Zero disk I/O logging for ultra-low spec VPS
+    # High-performance reverse proxy for core backend application servers
     # ==============================================================================
 
-    # 1. 锁死线程数与关闭多线程竞争
+    # 1. 锁死线程数与关闭多线程竞争 (保护单核极弱 CPU，杜绝线程上下文切换)
     CONFIG proxy.config.exec_thread.autoconfig.enabled INT 0
     CONFIG proxy.config.exec_thread.limit INT ${toString cfg.execThreads}
     CONFIG proxy.config.accept_threads INT 1
@@ -26,27 +27,35 @@ let
     CONFIG proxy.config.ram_cache.algorithm INT 1
     CONFIG proxy.config.ram_cache.use_seen_filter INT 1
 
-    # 3. HTTP 长连接复用 (防 TLS 1.3 握手 CPU 尖峰)
+    # 3. HTTP 长连接复用与协议支持 (防 TLS 频繁握手 CPU 尖峰)
     CONFIG proxy.config.http.keep_alive_enabled_in INT 1
     CONFIG proxy.config.http.keep_alive_enabled_out INT 1
     CONFIG proxy.config.http.keep_alive_timeout_in INT ${toString cfg.keepAliveTimeoutIn}
     CONFIG proxy.config.http.keep_alive_timeout_out INT ${toString cfg.keepAliveTimeoutOut}
     CONFIG proxy.config.http.transaction_no_activity_timeout_in INT 120
     CONFIG proxy.config.http.transaction_active_timeout_in INT 900
+    CONFIG proxy.config.http.websocket.enabled INT 1
+    CONFIG proxy.config.http2.enabled INT 1
 
-    # 4. 彻底禁用访问日志与调试日志 (零磁盘 I/O)
+    # 4. 反向代理与缓存控制 (动态 API 穿透，静态资源加速)
+    CONFIG proxy.config.http.cache.required_headers INT 2
+    CONFIG proxy.config.http.cache.when_to_revalidate INT 0
+    CONFIG proxy.config.http.forward.proxy_auth_to_parent INT 1
+    CONFIG proxy.config.url_remap.remap_required INT 1
+    CONFIG proxy.config.url_remap.pristine_host_hdr INT 1
+
+    # 5. 彻底禁用访问日志与调试日志 (零磁盘 I/O，杜绝写坏闪存)
     CONFIG proxy.config.log.logging_enabled INT 0
     CONFIG proxy.config.diags.debug.enabled INT 0
     CONFIG proxy.config.diags.show_location INT 0
     CONFIG proxy.config.log.max_space_mb_for_logs INT 20
     CONFIG proxy.config.log.max_secs_per_buffer INT 60
 
-    # 5. 连接控制
+    # 6. 连接控制
     CONFIG proxy.config.net.connections_throttle INT 256
     CONFIG proxy.config.http.server_max_connections INT 128
-    CONFIG proxy.config.url_remap.remap_required INT 1
 
-    # 6. 回源与健康探针插件支持
+    # 7. 回源与健康探针支持
     CONFIG proxy.config.http.connect_attempts_timeout INT 15
     CONFIG proxy.config.http.connect_attempts_max_retries INT 3
     ${cfg.extraRecordsConfig}
@@ -60,12 +69,22 @@ let
   );
 
   loggingYamlFile = pkgs.writeText "logging.yaml" ''
-    # Zero logging to prevent I/O blocking
+    # Zero logging to prevent disk I/O blocking
     logging:
       formats: []
       filters: []
       logs: []
   '';
+
+  remapConfigFile = pkgs.writeText "remap.config" (
+    concatStringsSep "\n" (
+      cfg.remapRules
+      ++ [
+        # 内置健康检查探针端点支持
+        "map http://127.0.0.1:${toString cfg.statsPort}/_stats http://127.0.0.1:${toString cfg.statsPort}/_stats"
+      ]
+    )
+  );
 
   t3cScript = pkgs.writeShellScript "run-t3c-sync" ''
     set -euo pipefail
@@ -95,7 +114,7 @@ let
 in
 {
   options.services.atc.edge = {
-    enable = mkEnableOption "Ultra-minimal Apache Traffic Server edge node with t3c sync";
+    enable = mkEnableOption "Ultra-minimal Apache Traffic Server edge reverse proxy with t3c sync";
 
     package = mkOption {
       type = types.package;
@@ -154,7 +173,18 @@ in
     statsPort = mkOption {
       type = types.port;
       default = 8404;
-      description = "Internal monitoring port for Traffic Monitor astats scraping (Tailscale only)";
+      description = "Internal monitoring port for Traffic Monitor astats scraping";
+    };
+
+    remapRules = mkOption {
+      type = types.listOf types.str;
+      default = [ ];
+      example = [
+        "map https://cloud.dora.im/ https://nue0.dora.im:443/"
+        "map https://media.dora.im/ https://nue0.dora.im:8443/"
+        "map https://app.dora.im/ https://can0.dora.im:443/"
+      ];
+      description = "List of reverse proxy mapping rules from domain to core application backends";
     };
 
     extraRecordsConfig = mkOption {
@@ -166,7 +196,7 @@ in
     t3c = {
       enable = mkOption {
         type = types.bool;
-        default = true;
+        default = false; # Default false if using declarative remapRules, can be enabled when TO is active
         description = "Enable scheduled t3c config sync from Traffic Ops";
       };
 
@@ -178,8 +208,8 @@ in
 
       trafficOpsUrl = mkOption {
         type = types.str;
-        default = "https://nue0.mag:443";
-        description = "Tailscale URL for Traffic Ops API";
+        default = "https://nue0.dora.im:443";
+        description = "URL for Traffic Ops API";
       };
 
       username = mkOption {
@@ -196,15 +226,15 @@ in
 
       interval = mkOption {
         type = types.str;
-        default = "*:0/15"; # Every 15 minutes (Task 2)
+        default = "*:0/15"; # Every 15 minutes
         description = "Systemd OnCalendar interval for t3c sync";
       };
     };
   };
 
   config = mkIf cfg.enable {
-    # 允许在防火墙放行边缘对外公网端口
-    networking.firewall.allowedTCPPorts = cfg.publicPorts;
+    # 开放端口（标准放行，绝不添加任何 DROP 规则，完全不影响边缘机器上运行的其他服务）
+    networking.firewall.allowedTCPPorts = cfg.publicPorts ++ [ cfg.statsPort ];
 
     # 用户与目录结构
     users.users.trafficserver = {
@@ -221,14 +251,15 @@ in
       "d /var/cache/trafficserver 0750 trafficserver trafficserver -"
     ];
 
-    # 下发精简配置文件
+    # 下发精简配置文件与反向代理映射规则
     environment.etc."trafficserver/records.config".source = recordsConfigFile;
     environment.etc."trafficserver/storage.config".source = storageConfigFile;
     environment.etc."trafficserver/logging.yaml".source = loggingYamlFile;
+    environment.etc."trafficserver/remap.config".source = remapConfigFile;
 
     # ATS 守护进程 (受严格 cgroup 限制，防止单核打满崩溃)
     systemd.services.trafficserver = {
-      description = "Apache Traffic Server (Edge CDN Cache)";
+      description = "Apache Traffic Server (Edge CDN Reverse Proxy & Cache)";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];

@@ -1,6 +1,5 @@
 {
   "matrix": {
-    "rtcHosts": ["nue0", "sjc0"],
     "media": {
       "host": "https://s3.eu-central-003.backblazeb2.com",
       "name": null,
@@ -170,7 +169,7 @@
       "proxy": false
     },
     "cloud": {
-      "on": "nue0",
+      "on": "cloud.cdn",
       "proxy": false
     },
     "code": {
@@ -218,7 +217,7 @@
       "proxy": false
     },
     "jellyfin": {
-      "on": "nue0",
+      "on": "jellyfin.cdn",
       "proxy": false
     },
     "kaogong": {
@@ -237,8 +236,20 @@
       "on": "nue0",
       "proxy": false
     },
+    "m": {
+      "on": "m.cdn",
+      "proxy": false
+    },
     "maintainerr": {
       "on": "nue0",
+      "proxy": false
+    },
+    "mastodon": {
+      "on": "mastodon.cdn",
+      "proxy": false
+    },
+    "matrix": {
+      "on": "matrix.cdn",
       "proxy": false
     },
     "memos": {
@@ -358,7 +369,7 @@
       "proxy": false
     },
     "zone": {
-      "on": "nue0",
+      "on": "zone.cdn",
       "proxy": false
     }
   }

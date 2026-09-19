@@ -66,7 +66,7 @@ resource "cloudflare_dns_record" "dora_shg0" {
 
 locals {
   media_service_cname_mappings = {
-    jellyfin       = { on = "nue0", proxy = false }
+    jellyfin       = { on = "jellyfin.cdn", proxy = false }
     seerr          = { on = "nue0", proxy = false }
     sonarr         = { on = "nue0", proxy = false }
     "sonarr-anime" = { on = "nue0", proxy = false }
@@ -96,12 +96,15 @@ locals {
     ollama             = { on = "nue0", proxy = false }
     ollama-ui          = { on = "nue0", proxy = false }
     "admin.m"          = { on = "nue0", proxy = false }
-    zone               = { on = "nue0", proxy = false }
-    jellyfin           = { on = "nue0", proxy = false }
+    zone               = { on = "zone.cdn", proxy = false }
+    mastodon           = { on = "mastodon.cdn", proxy = false }
+    jellyfin           = { on = "jellyfin.cdn", proxy = false }
     alist              = { on = "nue0", proxy = false }
     office             = { on = "nue0", proxy = false }
     code               = { on = "nue0", proxy = false }
-    cloud              = { on = "nue0", proxy = false }
+    cloud              = { on = "cloud.cdn", proxy = false }
+    m                  = { on = "m.cdn", proxy = false }
+    matrix             = { on = "matrix.cdn", proxy = false }
     talk               = { on = "nue0", proxy = false }
     reader             = { on = "nue0", proxy = false }
     plex               = { on = "nue0", proxy = false }
@@ -235,20 +238,51 @@ resource "cloudflare_dns_record" "dora_mx_mxroute2" {
 # Machines
 
 # RFC2782
-resource "cloudflare_dns_record" "dora_matrix" {
-  name    = "m.${cloudflare_zone.im_dora.name}"
+# Note: Matrix 'm' is now steered through CDN via CNAME in service_cname_mappings
+# resource "cloudflare_dns_record" "dora_matrix" {
+#   name    = "m.${cloudflare_zone.im_dora.name}"
+#   proxied = false
+#   ttl     = 1
+#   type    = "A"
+#   content = "185.216.178.70"
+#   zone_id = cloudflare_zone.im_dora.id
+# }
+# resource "cloudflare_dns_record" "dora_matrix_v6" {
+#   name    = "m.${cloudflare_zone.im_dora.name}"
+#   proxied = false
+#   ttl     = 1
+#   type    = "AAAA"
+#   content = "2a03:4000:4f:92d::"
+#   zone_id = cloudflare_zone.im_dora.id
+# }
+
+# ------------------------------------------------------------------------------
+# CDN Traffic Router Authority & Subdomain Delegation
+# ------------------------------------------------------------------------------
+resource "cloudflare_dns_record" "cdn_tr_a" {
+  name    = "tr.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "A"
   content = "185.216.178.70"
   zone_id = cloudflare_zone.im_dora.id
 }
-resource "cloudflare_dns_record" "dora_matrix_v6" {
-  name    = "m.${cloudflare_zone.im_dora.name}"
+
+resource "cloudflare_dns_record" "cdn_tr_aaaa" {
+  name    = "tr.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 1
   type    = "AAAA"
   content = "2a03:4000:4f:92d::"
+  zone_id = cloudflare_zone.im_dora.id
+}
+
+resource "cloudflare_dns_record" "cdn_ns" {
+  name    = "cdn.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 1
+  type    = "NS"
+  content = "tr.${cloudflare_zone.im_dora.name}"
   zone_id = cloudflare_zone.im_dora.id
 }
 
