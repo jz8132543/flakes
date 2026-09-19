@@ -70,9 +70,19 @@ with lib;
                 type = types.listOf types.str;
                 description = "List of entrypoints.";
               };
+              priority = mkOption {
+                type = types.nullOr types.int;
+                default = null;
+                description = "Router priority.";
+              };
               tls = mkOption {
                 type = types.bool;
                 default = false;
+              };
+              passthrough = mkOption {
+                type = types.bool;
+                default = false;
+                description = "Whether to pass through TLS without terminating.";
               };
               tlsOptions = mkOption {
                 type = types.nullOr types.str;
@@ -332,10 +342,13 @@ with lib;
               inherit (value)
                 rule
                 entryPoints
+                priority
                 ;
               service = name;
               tls =
-                if value.tls then
+                if value.passthrough then
+                  { passthrough = true; }
+                else if value.tls then
                   (
                     let
                       base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };

@@ -11,12 +11,33 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.infini
+      nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
       # nixosModules.services.traefik
       # nixosModules.services.derp
       (import nixosModules.services.xray {
       })
     ];
+
+  services.kernel-relay = {
+    enable = true;
+    dnsInterval = "3min";
+    ipFamily = "ipv4";
+    mappings = [
+      {
+        listenPort = 443;
+        remoteAddr = "nue0.dora.im";
+        remotePort = 443;
+        protocol = "tcp";
+      }
+      {
+        listenPort = 80;
+        remoteAddr = "nue0.dora.im";
+        remotePort = 80;
+        protocol = "tcp";
+      }
+    ];
+  };
 
   environment.networkTune = {
     enable = true;
