@@ -14,6 +14,7 @@
       nixosModules.optimize.ext4
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
+      nixosModules.services.atc.edge
       nixosModules.services.derp
       # nixosModules.services.stun
       nixosModules.matrix.matrix-rtc
@@ -28,6 +29,8 @@
       # (import nixosModules.services.alist { })
       nixosModules.nextcloud.talk-edge
     ];
+
+  services.atc.edge.enable = true;
 
   # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
   services.nextcloud-talk-edge = {

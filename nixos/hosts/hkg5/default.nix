@@ -9,12 +9,15 @@
       nixosModules.optimize.ext4
       # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
-      # nixosModules.services.traefik
+      nixosModules.services.traefik
+      nixosModules.services.atc.edge
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;
       })
     ];
+
+  services.atc.edge.enable = true;
 
   boot.kernelParams = [
     "console=ttyS0"

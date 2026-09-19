@@ -29,14 +29,6 @@
     centralNextcloudUrl = "https://cloud.dora.im";
   };
 
-  services.traefik.tcpProxies.atc-cdn = {
-    rule = "HostSNI(`cloud.dora.im`) || HostSNI(`jellyfin.dora.im`) || HostSNI(`zone.dora.im`) || HostSNI(`mastodon.dora.im`) || HostSNI(`m.dora.im`) || HostSNI(`matrix.dora.im`)";
-    target = "nue0.dora.im:443";
-    entryPoints = [ "https" ];
-    passthrough = true;
-    priority = 1000;
-  };
-
   boot.loader.grub.device = lib.mkForce "nodev";
 
   services.kernel-relay = {
