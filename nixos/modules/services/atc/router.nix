@@ -8,34 +8,103 @@ with lib;
 let
   cfg = config.services.atc.router;
 
-  trProperties = pkgs.writeText "traffic_router.properties" ''
-    # Traffic Router Configuration for Low-Concurrency High-TTL CDN
-    traffic_monitor.bootstrap.hosts=${cfg.trafficMonitorUrl}
-    traffic_ops.username=${cfg.trafficOpsUser}
-    traffic_ops.hosts=${cfg.trafficOpsUrl}
+  cdnZone = pkgs.writeText "cdn.dora.im.zone" ''
+    $ORIGIN cdn.dora.im.
+    $TTL ${toString cfg.dns.ttl}
+    @ IN SOA tr.dora.im. admin.dora.im. (
+        2026091901 ; Serial
+        7200       ; Refresh
+        3600       ; Retry
+        1209600    ; Expire
+        ${toString cfg.dns.ttl} ; Minimum TTL
+    )
+    @ IN NS tr.dora.im.
+    @ IN A ${cfg.originIp}
+    @ IN AAAA ${cfg.originIpv6}
 
-    # DNS TTL 放宽至 60s，显著降低弱公网 nue0 的并发查询负担 (Task 1)
-    dns.zones.ttl=${toString cfg.dns.ttl}
-    dns.soa.ttl=${toString cfg.dns.ttl}
-    dns.zones.dir=/etc/traffic_router/zones
+    ; Default Wildcard Fallback to nue0 Origin
+    * IN A ${cfg.originIp}
+    * IN AAAA ${cfg.originIpv6}
 
-    # CrStates 轮询周期 (从 Traffic Monitor 获取边缘健康状态)
-    traffic_monitor.properties.polling.interval=5000
+    ; Explicit mappings for all accelerated services
+    cloud IN A ${cfg.originIp}
+    cloud IN AAAA ${cfg.originIpv6}
+    jellyfin IN A ${cfg.originIp}
+    jellyfin IN AAAA ${cfg.originIpv6}
+    mastodon IN A ${cfg.originIp}
+    mastodon IN AAAA ${cfg.originIpv6}
+    zone IN A ${cfg.originIp}
+    zone IN AAAA ${cfg.originIpv6}
+    m IN A ${cfg.originIp}
+    m IN AAAA ${cfg.originIpv6}
+    matrix IN A ${cfg.originIp}
+    matrix IN AAAA ${cfg.originIpv6}
+  '';
 
-    # API 与状态接口仅绑定 Tailscale
-    api.port=${toString cfg.api.port}
-    api.bind.address=${cfg.api.listenAddress}
+  trZone = pkgs.writeText "tr.dora.im.zone" ''
+    $ORIGIN tr.dora.im.
+    $TTL ${toString cfg.dns.ttl}
+    @ IN SOA tr.dora.im. admin.dora.im. (
+        2026091901 ; Serial
+        7200       ; Refresh
+        3600       ; Retry
+        1209600    ; Expire
+        ${toString cfg.dns.ttl} ; Minimum TTL
+    )
+    @ IN NS tr.dora.im.
+    @ IN A ${cfg.originIp}
+    @ IN AAAA ${cfg.originIpv6}
+  '';
+
+  corefile = pkgs.writeText "Corefile" ''
+    cdn.dora.im:${toString cfg.dns.port} tr.dora.im:${toString cfg.dns.port} {
+        bind ${concatStringsSep " " cfg.dns.listenAddresses}
+        file ${cdnZone} cdn.dora.im
+        file ${trZone} tr.dora.im
+        errors
+        log
+    }
+
+    ${optionalString cfg.doh.enable ''
+      http://.:${toString cfg.doh.port} {
+          bind 127.0.0.1
+          file ${cdnZone} cdn.dora.im
+          file ${trZone} tr.dora.im
+          errors
+      }
+    ''}
   '';
 in
 {
   options.services.atc.router = {
-    enable = mkEnableOption "Apache Traffic Control Traffic Router (DNS & HTTP Steering)";
+    enable = mkEnableOption "Apache Traffic Control Traffic Router (DNS & DoH Steering)";
+
+    package = mkOption {
+      type = types.package;
+      default = pkgs.coredns;
+      description = "CoreDNS package to use for DNS steering";
+    };
+
+    originIp = mkOption {
+      type = types.str;
+      default = "185.216.178.70";
+      description = "Default origin IPv4 address";
+    };
+
+    originIpv6 = mkOption {
+      type = types.str;
+      default = "2a03:4000:4f:92d::";
+      description = "Default origin IPv6 address";
+    };
 
     dns = {
-      listenAddress = mkOption {
-        type = types.str;
-        default = "0.0.0.0";
-        description = "Address to bind DNS server (publicly reachable)";
+      listenAddresses = mkOption {
+        type = types.listOf types.str;
+        default = [
+          "185.216.178.70"
+          "2a03:4000:4f:92d::"
+        ];
+        description = "Addresses to bind DNS server (public IPs to avoid collision with 127.0.0.1 dnsmasq)";
       };
 
       port = mkOption {
@@ -46,58 +115,74 @@ in
 
       ttl = mkOption {
         type = types.int;
-        default = 60; # 60s (Task 1)
-        description = "DNS response TTL in seconds to ease DNS load on nue0";
+        default = 60;
+        description = "DNS response TTL in seconds";
       };
     };
 
-    api = {
-      listenAddress = mkOption {
-        type = types.str;
-        default = "100.64.0.1";
-        description = "Address to bind management and statistics endpoints (Tailscale only)";
+    doh = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Whether to enable local DoH endpoint for Traefik termination";
       };
 
       port = mkOption {
         type = types.port;
-        default = 3333;
-        description = "Internal management port";
+        default = 5305;
+        description = "Internal HTTP port for DoH queries";
       };
     };
 
-    trafficMonitorUrl = mkOption {
-      type = types.str;
-      default = "http://100.64.0.1:8080";
-      description = "Tailscale URL for Traffic Monitor CrStates";
-    };
-
-    trafficOpsUrl = mkOption {
-      type = types.str;
-      default = "https://100.64.0.1:443";
-      description = "Tailscale URL for Traffic Ops API";
-    };
-
-    trafficOpsUser = mkOption {
-      type = types.str;
-      default = "traffic_router";
-      description = "Service account username for Traffic Router";
-    };
-
-    trafficOpsPasswordFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to file containing password for Traffic Ops";
-    };
-
-    package = mkOption {
-      type = types.package;
-      default = pkgs.traffic-router;
-      description = "Package providing traffic_router binary";
+    edgeNodes = mkOption {
+      type = types.listOf (
+        types.submodule {
+          options = {
+            name = mkOption { type = types.str; };
+            ipv4 = mkOption { type = types.str; };
+            ipv6 = mkOption {
+              type = types.nullOr types.str;
+              default = null;
+            };
+            region = mkOption {
+              type = types.str;
+              default = "AP";
+            };
+          };
+        }
+      );
+      default = [
+        {
+          name = "tyo0";
+          ipv4 = "45.66.130.158";
+          region = "AP";
+        }
+        {
+          name = "cu";
+          ipv4 = "150.109.117.84";
+          region = "CN";
+        }
+        {
+          name = "sjc0";
+          ipv4 = "45.143.130.230";
+          region = "US";
+        }
+        {
+          name = "hkg5";
+          ipv4 = "216.23.94.148";
+          region = "HK";
+        }
+        {
+          name = "tyo1";
+          ipv4 = "216.23.85.218";
+          region = "AP";
+        }
+      ];
+      description = "Configured edge nodes for traffic distribution";
     };
   };
 
   config = mkIf cfg.enable {
-    # 开放公网 DNS 解析端口
     networking.firewall.allowedUDPPorts = [ cfg.dns.port ];
     networking.firewall.allowedTCPPorts = [ cfg.dns.port ];
 
@@ -114,33 +199,35 @@ in
       "d /var/log/traffic_router 0750 trafficrouter trafficrouter -"
     ];
 
-    environment.etc."traffic_router/traffic_router.properties".source = trProperties;
+    environment.etc."traffic_router/Corefile".source = corefile;
+    environment.etc."traffic_router/zones/cdn.dora.im.zone".source = cdnZone;
+    environment.etc."traffic_router/zones/tr.dora.im.zone".source = trZone;
 
     systemd.services.traffic-router = {
-      description = "Apache Traffic Control Traffic Router";
+      description = "Apache Traffic Control Traffic Router (CoreDNS DNS Steering & DoH)";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
-
-      capabilities = "cap_net_bind_service=+ep";
 
       serviceConfig = {
         Type = "simple";
         User = "trafficrouter";
         Group = "trafficrouter";
+        AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
+        CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
         Restart = "always";
-        RestartSec = "10s";
-
-        MemoryMax = "512M";
+        RestartSec = "5s";
+        MemoryMax = "256M";
         LimitNOFILE = 65536;
-
-        ExecStart = ''
-          ${cfg.package}/bin/traffic_router \
-            -conf /etc/traffic_router/traffic_router.properties \
-            -dns-port ${toString cfg.dns.port} \
-            -dns-addr ${cfg.dns.listenAddress}
-        '';
+        ExecStart = "${cfg.package}/bin/coredns -conf /etc/traffic_router/Corefile";
       };
     };
+
+    services.traefik.proxies.traffic-router-doh =
+      mkIf (cfg.doh.enable && (config.services.traefik.enable or false))
+        {
+          rule = "Host(`tr.${config.networking.domain}`) && PathPrefix(`/dns-query`)";
+          target = "http://127.0.0.1:${toString cfg.doh.port}";
+        };
   };
 }

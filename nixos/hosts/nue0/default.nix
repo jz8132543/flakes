@@ -64,8 +64,11 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
       nixosModules.services.adguard-mosdns
+      nixosModules.services.atc.router
     ]
     ++ nixosModules.matrix.all;
+
+  services.atc.router.enable = true;
 
   services.kaogong.enable = true;
   services.moviepilot.enable = true;
