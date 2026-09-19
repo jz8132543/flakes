@@ -32,6 +32,8 @@ in
   };
 
   config = mkIf cfg.enable {
+    services.traefik.enable = mkOverride 40 true;
+
     # 自动配置 Traefik TCP SNI 透明透传代理
     services.traefik.tcpProxies.atc-cdn = {
       rule = concatMapStringsSep " || " (d: "HostSNI(`${d}`)") cfg.domains;
