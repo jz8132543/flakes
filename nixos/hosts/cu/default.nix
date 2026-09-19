@@ -28,6 +28,8 @@
     edgePort = 50569;
     edgePublicIpv6 = "cuv6.dora.im";
     enableCoturn = false;
+    stunServer = "hkg5.dora.im";
+    stunPort = 3479;
     centralNatsHost = "nue0.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
     enableCluster = true;

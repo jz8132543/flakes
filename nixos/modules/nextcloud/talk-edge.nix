@@ -141,7 +141,7 @@ in
 
     stunPort = lib.mkOption {
       type = lib.types.port;
-      default = if cfg.enableCoturn then 3479 else 443;
+      default = if cfg.enableCoturn then 3479 else 3478;
       description = "STUN server port.";
     };
 

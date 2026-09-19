@@ -270,6 +270,13 @@ in
               esac
             done
 
+        # ── 确保 Nextcloud Talk 信令模式为 conversation_cluster（同房间固定同一信令/MCU 节点，解决视频通话黑屏/转圈）──
+        CURRENT_MODE="$(${occ}/bin/nextcloud-occ config:app:get spreed signaling_mode 2>/dev/null || true)"
+        if [ "$CURRENT_MODE" != "conversation_cluster" ]; then
+          echo "Setting Talk signaling_mode to conversation_cluster..."
+          ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value=conversation_cluster || true
+        fi
+
         # ── 注册中心本地信令服务（若启用）──
         ${lib.optionalString cfg.enableLocalSignaling ''
           LOCAL_SIG_URL="wss://${cfg.localSignalingHost}"
