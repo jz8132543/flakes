@@ -244,14 +244,6 @@
       "on": "nue0",
       "proxy": false
     },
-    "mastodon": {
-      "on": "mastodon.cdn",
-      "proxy": false
-    },
-    "matrix": {
-      "on": "matrix.cdn",
-      "proxy": false
-    },
     "memos": {
       "on": "nue0",
       "proxy": false
@@ -281,7 +273,7 @@
       "proxy": false
     },
     "office": {
-      "on": "nue0",
+      "on": "office.cdn",
       "proxy": false
     },
     "ollama": {

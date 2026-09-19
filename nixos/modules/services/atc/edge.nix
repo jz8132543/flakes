@@ -8,8 +8,14 @@ let
   cfg = config.services.atc.edge;
 in
 {
+  imports = [ ./common.nix ];
+
   options.services.atc.edge = {
-    enable = mkEnableOption "ATC Edge reverse proxy via Traefik SNI Passthrough";
+    enable = mkOption {
+      type = types.bool;
+      default = true;
+      description = "ATC Edge reverse proxy via Traefik SNI Passthrough";
+    };
 
     upstream = mkOption {
       type = types.str;
@@ -19,19 +25,12 @@ in
 
     domains = mkOption {
       type = types.listOf types.str;
-      default = [
-        "cloud.dora.im"
-        "jellyfin.dora.im"
-        "zone.dora.im"
-        "mastodon.dora.im"
-        "m.dora.im"
-        "matrix.dora.im"
-      ];
+      default = config.services.atc.domains;
       description = "List of domain names accelerated by ATC CDN";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && config.networking.hostName != "nue0") {
     services.traefik.enable = mkOverride 40 true;
 
     # 自动配置 Traefik TCP SNI 透明透传代理

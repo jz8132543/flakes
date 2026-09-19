@@ -17,8 +17,6 @@
       })
     ];
 
-  services.atc.edge.enable = true;
-
   boot.kernelParams = [
     "console=ttyS0"
     "console=tty0"

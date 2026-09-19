@@ -26,19 +26,17 @@ let
     * IN A ${cfg.originIp}
     * IN AAAA ${cfg.originIpv6}
 
-    ; Explicit mappings for all accelerated services
-    cloud IN A ${cfg.originIp}
-    cloud IN AAAA ${cfg.originIpv6}
-    jellyfin IN A ${cfg.originIp}
-    jellyfin IN AAAA ${cfg.originIpv6}
-    mastodon IN A ${cfg.originIp}
-    mastodon IN AAAA ${cfg.originIpv6}
-    zone IN A ${cfg.originIp}
-    zone IN AAAA ${cfg.originIpv6}
-    m IN A ${cfg.originIp}
-    m IN AAAA ${cfg.originIpv6}
-    matrix IN A ${cfg.originIp}
-    matrix IN AAAA ${cfg.originIpv6}
+    ; Auto-generated mappings for all accelerated services from services.atc.domains
+    ${concatMapStringsSep "\n" (
+      d:
+      let
+        label = replaceStrings [ ".${config.networking.domain}" ".dora.im" ] [ "" "" ] d;
+      in
+      ''
+        ${label} IN A ${cfg.originIp}
+        ${label} IN AAAA ${cfg.originIpv6}
+      ''
+    ) config.services.atc.domains}
   '';
 
   trZone = pkgs.writeText "tr.dora.im.zone" ''
@@ -76,8 +74,14 @@ let
   '';
 in
 {
+  imports = [ ./common.nix ];
+
   options.services.atc.router = {
-    enable = mkEnableOption "Apache Traffic Control Traffic Router (DNS & DoH Steering)";
+    enable = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Apache Traffic Control Traffic Router (DNS & DoH Steering)";
+    };
 
     package = mkOption {
       type = types.package;
@@ -158,14 +162,9 @@ in
           region = "AP";
         }
         {
-          name = "cu";
-          ipv4 = "150.109.117.84";
-          region = "CN";
-        }
-        {
-          name = "sjc0";
-          ipv4 = "45.143.130.230";
-          region = "US";
+          name = "tyo1";
+          ipv4 = "216.23.85.218";
+          region = "AP";
         }
         {
           name = "hkg5";
@@ -173,9 +172,15 @@ in
           region = "HK";
         }
         {
-          name = "tyo1";
-          ipv4 = "216.23.85.218";
-          region = "AP";
+          name = "sjc0";
+          ipv4 = "45.143.130.230";
+          region = "US";
+        }
+        {
+          name = "nue0";
+          ipv4 = "185.216.178.70";
+          ipv6 = "2a03:4000:4f:92d::";
+          region = "EU";
         }
       ];
       description = "Configured edge nodes for traffic distribution";

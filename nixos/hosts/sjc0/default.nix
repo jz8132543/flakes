@@ -30,8 +30,6 @@
       nixosModules.nextcloud.talk-edge
     ];
 
-  services.atc.edge.enable = true;
-
   # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
   services.nextcloud-talk-edge = {
     enable = true;

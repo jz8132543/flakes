@@ -97,14 +97,12 @@ locals {
     ollama-ui          = { on = "nue0", proxy = false }
     "admin.m"          = { on = "nue0", proxy = false }
     zone               = { on = "zone.cdn", proxy = false }
-    mastodon           = { on = "mastodon.cdn", proxy = false }
     jellyfin           = { on = "jellyfin.cdn", proxy = false }
     alist              = { on = "nue0", proxy = false }
-    office             = { on = "nue0", proxy = false }
+    office             = { on = "office.cdn", proxy = false }
     code               = { on = "nue0", proxy = false }
     cloud              = { on = "cloud.cdn", proxy = false }
     m                  = { on = "m.cdn", proxy = false }
-    matrix             = { on = "matrix.cdn", proxy = false }
     talk               = { on = "nue0", proxy = false }
     reader             = { on = "nue0", proxy = false }
     plex               = { on = "nue0", proxy = false }

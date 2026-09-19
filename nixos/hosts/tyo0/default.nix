@@ -19,8 +19,6 @@
       })
     ];
 
-  services.atc.edge.enable = true;
-
   environment.networkTune = {
     enable = true;
     bandwidth = 500; # Mbps 单向
