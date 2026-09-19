@@ -233,7 +233,8 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnBootSec = "5s";
-            OnUnitInactiveSec = "1m";
+            OnCalendar = "*:0/1"; # every minute
+            Persistent = true;
           };
         };
 
