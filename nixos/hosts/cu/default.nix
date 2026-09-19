@@ -20,13 +20,22 @@
     ];
 
   services.nextcloud-talk-edge = {
+    # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式
     enable = true;
-    edgeDomain = "cu.dora.im";
+    enableIpv4 = false;
+    enableIpv6 = true;
+    edgeDomain = "cuv6.dora.im";
     edgePort = 50569;
-    edgePublicIp = "cu.dora.im";
+    edgePublicIpv6 = "cuv6.dora.im";
     enableCoturn = false;
-    centralInternalIp = "100.64.0.1";
+    centralNatsHost = "nue0.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
+    enableCluster = true;
+    grpcPort = 9090;
+    clusterTargets = [
+      "sjc0.mag:9090"
+      "hkg5.mag:9090"
+    ];
   };
 
   boot.loader.grub.device = lib.mkForce "nodev";

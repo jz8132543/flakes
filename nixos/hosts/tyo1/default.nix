@@ -56,4 +56,9 @@
     "net.core.rps_sock_flow_entries" = lib.mkOverride 60 32768;
     "net.ipv4.tcp_limit_output_bytes" = lib.mkOverride 60 1048576;
   };
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 }

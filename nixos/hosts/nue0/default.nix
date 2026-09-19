@@ -80,26 +80,48 @@
   # ── 分布式 Nextcloud Talk HPB 中心控制面 ─────────────────────
   services.nextcloud-talk-central = {
     enable = true;
-    internalIp = "100.64.0.1";
+    natsListen = "0.0.0.0";
+    # talk.dora.im（中心节点）没有 Janus MCU，若注册为 Talk 信令服务器，
+    # 客户端连上去后无法发起视频通话。禁用后清理脚本会自动从 Nextcloud 中删除它，
+    # 用户将被路由到边缘节点（sjc0 或 cu）。
+    enableLocalSignaling = false;
     edgeNodes = [
       {
         name = "sjc0";
         fqdn = "sjc0.dora.im";
+        enableIpv4 = true;
+        enableIpv6 = false;
         publicIp = "45.143.130.230";
         hasSignaling = true;
         hasTurn = true;
       }
       {
         name = "cu";
-        fqdn = "cu.dora.im";
+        fqdn = "cuv6.dora.im";
+        enableIpv4 = false;
+        enableIpv6 = true;
+        publicIpv6 = "cuv6.dora.im";
         port = 50569;
-        publicIp = "cu.dora.im";
-        internalDomain = "cu.mag";
         hasSignaling = true;
         hasTurn = false;
       }
+      {
+        name = "hkg5";
+        fqdn = "hkg5.dora.im";
+        enableIpv4 = true;
+        enableIpv6 = true;
+        publicIp = "216.23.94.148";
+        publicIpv6 = "2401:2660:2:93::a";
+        hasSignaling = true;
+        hasTurn = true;
+      }
     ];
   };
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 
   services.tailscale-proxy-pool = {
     enable = true;

@@ -19,4 +19,9 @@
       # nixosModules.services.sogo
     ];
   nix.gc.options = lib.mkForce "-d";
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 }

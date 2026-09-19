@@ -21,4 +21,9 @@
       # nixosModules.services.seafile
       nixosModules.services.searx
     ];
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 }

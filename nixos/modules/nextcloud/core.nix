@@ -160,7 +160,6 @@ in
     systemd.services.nextcloud-setup = {
       after = [
         "postgresql.service"
-        "tailscaled.service"
         "redis-nextcloud.service"
       ];
       requires = [

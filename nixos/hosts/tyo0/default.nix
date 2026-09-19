@@ -101,4 +101,9 @@
       echo "[tyo0-egress-tune] iface=$IFACE initcwnd=256 initrwnd=512 fq_maxrate=420mbit"
     '';
   };
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 }

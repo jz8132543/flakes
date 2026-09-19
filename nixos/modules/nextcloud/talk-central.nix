@@ -17,16 +17,10 @@ in
   options.services.nextcloud-talk-central = {
     enable = lib.mkEnableOption "Nextcloud Talk High Performance Backend Central Controller";
 
-    internalIp = lib.mkOption {
+    natsListen = lib.mkOption {
       type = lib.types.str;
-      default = "100.64.0.1";
-      description = "Virtual overlay network IP (Tailscale) on which NATS will listen.";
-    };
-
-    internalInterface = lib.mkOption {
-      type = lib.types.str;
-      default = "tailscale0";
-      description = "Network interface name for the internal overlay mesh.";
+      default = "0.0.0.0";
+      description = "IP address or wildcard on which NATS will listen.";
     };
 
     natsPort = lib.mkOption {
@@ -70,14 +64,25 @@ in
               default = null;
               description = "Custom public HTTPS port if non-standard (e.g. 50569).";
             };
-            publicIp = lib.mkOption {
-              type = lib.types.str;
-              description = "Public IPv4 of the edge node.";
+            enableIpv4 = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Whether IPv4 is enabled on this edge node.";
             };
-            internalDomain = lib.mkOption {
+            enableIpv6 = lib.mkOption {
+              type = lib.types.bool;
+              default = false;
+              description = "Whether IPv6 is enabled on this edge node.";
+            };
+            publicIp = lib.mkOption {
               type = lib.types.nullOr lib.types.str;
               default = null;
-              description = "Internal overlay mesh domain (e.g. cu.mag) to alias fqdn to via dnsmasq CNAME.";
+              description = "Public IPv4 of the edge node.";
+            };
+            publicIpv6 = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "Public IPv6 of the edge node.";
             };
             hasSignaling = lib.mkOption {
               type = lib.types.bool;
@@ -101,6 +106,8 @@ in
         {
           name = "sjc0";
           fqdn = "sjc0.${domain}";
+          enableIpv4 = true;
+          enableIpv6 = false;
           publicIp = "45.143.130.230";
           hasSignaling = true;
           hasTurn = true;
@@ -123,19 +130,18 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # ── 1. NATS 内部消息总线（绝不监听在 0.0.0.0）─────────────────
+    # ── 1. NATS 内部消息总线 ─────────────────────────────────────
     services.nats = {
       enable = true;
       serverName = "nats-${config.networking.hostName}";
       settings = {
-        # 严格绑定于虚拟内网 IP
-        listen = "${cfg.internalIp}:${toString cfg.natsPort}";
+        listen = "${cfg.natsListen}:${toString cfg.natsPort}";
         jetstream = lib.mkForce "disabled";
       };
     };
 
-    # 防火墙：仅在虚拟内网网卡上放行 NATS 端口
-    networking.firewall.interfaces."${cfg.internalInterface}".allowedTCPPorts = [
+    # 防火墙：放行 NATS 端口
+    networking.firewall.allowedTCPPorts = [
       cfg.natsPort
       cfg.natsClusterPort
     ];
@@ -154,7 +160,7 @@ in
           hashkeyFile = "/run/nextcloud-spreed-signaling/hashkey";
           blockkeyFile = "/run/nextcloud-spreed-signaling/blockkey";
         };
-        nats.url = [ "nats://${cfg.internalIp}:${toString cfg.natsPort}" ];
+        nats.url = [ "nats://127.0.0.1:${toString cfg.natsPort}" ];
         http.listen = "127.0.0.1:${toString config.ports.nextcloud-talk-hpb}";
       };
     };
@@ -179,80 +185,14 @@ in
       };
     };
 
-    # ── 3. 内网域名动态映射（通过 dnsmasq hostsdir 动态重定向至 Tailscale 节点 IP）
-    systemd.tmpfiles.rules = lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes) [
-      "d /run/dnsmasq/hosts 0755 root root -"
-    ];
-
-    services.dnsmasq.settings = lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes) {
-      hostsdir = "/run/dnsmasq/hosts";
-    };
-
-    systemd.services.nextcloud-talk-edge-hosts =
-      lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes)
-        {
-          description = "Dynamically resolve and populate Nextcloud Talk edge node overlay IPs for dnsmasq";
-          wantedBy = [ "multi-user.target" ];
-          before = [ "nextcloud-setup-talk-hpb.service" ];
-          after = [ "network.target" ] ++ lib.optional config.services.tailscale.enable "tailscaled.service";
-          path = [
-            pkgs.coreutils
-            pkgs.bind.dnsutils
-          ]
-          ++ lib.optional config.services.tailscale.enable config.services.tailscale.package;
-
-          script = ''
-            mkdir -p /run/dnsmasq/hosts
-            ${lib.concatMapStringsSep "\n" (
-              node:
-              lib.optionalString (node.internalDomain != null) ''
-                # Resolve IP for ${node.name} (${node.fqdn} -> ${node.internalDomain})
-                NODE_IP=""
-                if command -v tailscale >/dev/null 2>&1; then
-                  NODE_IP="$(tailscale ip -4 "${node.name}" 2>/dev/null || true)"
-                fi
-                if [ -z "$NODE_IP" ]; then
-                  NODE_IP="$(dig @100.100.100.100 +short "${node.internalDomain}" 2>/dev/null | tail -n1 || true)"
-                fi
-                if [ -n "$NODE_IP" ]; then
-                  echo "$NODE_IP ${node.fqdn}" > "/run/dnsmasq/hosts/edge-${node.name}.tmp"
-                  mv "/run/dnsmasq/hosts/edge-${node.name}.tmp" "/run/dnsmasq/hosts/edge-${node.name}"
-                fi
-              ''
-            ) cfg.edgeNodes}
-          '';
-          serviceConfig = {
-            Type = "oneshot";
-          };
-        };
-
-    systemd.timers.nextcloud-talk-edge-hosts =
-      lib.mkIf (lib.any (node: node.internalDomain != null) cfg.edgeNodes)
-        {
-          description = "Periodically refresh Nextcloud Talk edge node overlay IPs";
-          wantedBy = [ "timers.target" ];
-          timerConfig = {
-            OnBootSec = "5s";
-            OnCalendar = "*:0/1"; # every minute
-            Persistent = true;
-          };
-        };
-
-    # ── 4. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
+    # ── 3. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
     systemd.services.nextcloud-setup-talk-hpb = {
       description = "Declarative Nextcloud Talk HPB Cluster Registration";
       wantedBy = [ "multi-user.target" ];
-      wants = lib.optional (lib.any (
-        node: node.internalDomain != null
-      ) cfg.edgeNodes) "nextcloud-talk-edge-hosts.service";
       after = [
         "nextcloud-setup.service"
         "nats.service"
-        "dnsmasq.service"
       ]
-      ++ lib.optional (lib.any (
-        node: node.internalDomain != null
-      ) cfg.edgeNodes) "nextcloud-talk-edge-hosts.service"
       ++ lib.optional cfg.enableLocalSignaling "nextcloud-spreed-signaling.service";
       requires = [ "nextcloud-setup.service" ];
 
@@ -261,7 +201,8 @@ in
         SIGNALING_SECRET="$(cat ${cfg.spreedSecretFile})"
         TURN_SECRET="$(cat ${cfg.turnSecretFile})"
 
-        # ── 确保全局高清传输配置生效 ──
+        # ── 确保全局高清与信令集群配置生效 ──
+        ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value "external" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_resolution --value "7680" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_framerate --value "180" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_bitrate --value "200000000" || true
@@ -287,6 +228,44 @@ in
                 *)
                   echo "Removing obsolete signaling server: $srv"
                   ${occ}/bin/nextcloud-occ talk:signaling:delete "$srv" || true
+                  ;;
+              esac
+            done
+
+        # ── 清理未在当前期望配置中的废弃 STUN 服务器 ──
+        EXPECTED_STUN="${
+          lib.concatMapStringsSep " " (
+            node: lib.optionalString node.hasTurn "${node.fqdn}:3479"
+          ) cfg.edgeNodes
+        }"
+
+        ${occ}/bin/nextcloud-occ talk:stun:list --output=json 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.[] // empty' \
+          | while read -r srv; do
+              case " $EXPECTED_STUN " in
+                *" $srv "*) ;; # 期望节点，保留
+                *)
+                  echo "Removing obsolete stun server: $srv"
+                  ${occ}/bin/nextcloud-occ talk:stun:delete "$srv" || true
+                  ;;
+              esac
+            done
+
+        # ── 清理未在当前期望配置中的废弃 TURN 服务器 ──
+        EXPECTED_TURN="${
+          lib.concatMapStringsSep " " (
+            node: lib.optionalString node.hasTurn "${node.fqdn}:3479 ${node.fqdn}:5349"
+          ) cfg.edgeNodes
+        }"
+
+        ${occ}/bin/nextcloud-occ talk:turn:list --output=json 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.[] | "\(.schemes) \(.server) \(.protocols)"' \
+          | while read -r schemes srv protocols; do
+              case " $EXPECTED_TURN " in
+                *" $srv "*) ;; # 期望节点，保留
+                *)
+                  echo "Removing obsolete turn server: $schemes $srv $protocols"
+                  ${occ}/bin/nextcloud-occ talk:turn:delete "$schemes" "$srv" "$protocols" || true
                   ;;
               esac
             done

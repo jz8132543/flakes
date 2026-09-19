@@ -33,10 +33,18 @@
   # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
   services.nextcloud-talk-edge = {
     enable = true;
+    enableIpv4 = true;
+    enableIpv6 = false;
     edgeDomain = "sjc0.dora.im";
     edgePublicIp = "45.143.130.230";
-    centralInternalIp = "100.64.0.1";
+    centralNatsHost = "nue0.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
+    enableCluster = true;
+    grpcPort = 9090;
+    clusterTargets = [
+      "cu.mag:9090"
+      "hkg5.mag:9090"
+    ];
   };
 
   environment.networkTune = {
@@ -102,4 +110,9 @@
       echo "[sjc0-egress-tune] iface=$IFACE initcwnd=512 initrwnd=1024 fq_maxrate=480mbit"
     '';
   };
+
+  networking.hosts."100.64.0.4" = [
+    "cu.dora.im"
+    "cuv6.dora.im"
+  ];
 }
