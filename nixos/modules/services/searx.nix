@@ -13,7 +13,7 @@ in
     SEARX_SECRET_KEY=${config.sops.placeholder."searx/SEARX_SECRET_KEY"}
   '';
   services.searx = {
-    enable = true;
+    enable = false;
     package = pkgs.searxng;
     environmentFile = config.sops.templates.searx-env.path;
     # services.searx.runInUwsgi = true;
@@ -142,7 +142,7 @@ in
     };
   };
 
-  services.traefik.proxies.searx = {
+  services.traefik.proxies.searx = lib.mkIf config.services.searx.enable {
     rule = "Host(`${url}`)";
     target = "http://localhost:${toString config.ports.searx}";
   };

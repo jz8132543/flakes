@@ -44,6 +44,7 @@ in
     # ── Nextcloud 主服务配置 ─────────────────────────────────────
     services.nextcloud = {
       enable = true;
+      # package = pkgs.nextcloud34;
       inherit hostName;
       https = true;
       enableImagemagick = true;
@@ -118,8 +119,8 @@ in
             mail # Web 邮件客户端（IMAP/SMTP）
 
             # ── 多媒体 & 知识 ──
-            memories # 相册 / 时间线（类 Google Photos）
-            news # RSS 阅读器
+            # memories # 相册 / 时间线（类 Google Photos）
+            # news # RSS 阅读器
             cookbook # 菜谱管理
             gpoddersync # 播客同步
             music # 音乐流媒体播放器
@@ -133,9 +134,8 @@ in
             end_to_end_encryption # 端对端加密（E2EE 文件夹）
 
             # ── 智能 & 识别 ──
-            recognize # 本地 AI 人脸 / 场景识别（Photos 分类）
-            previewgenerator # 缩略图预生成（批量模式下更快）
-
+            # recognize # 本地 AI 人脸 / 场景识别（Photos 分类）
+            # previewgenerator # 缩略图预生成（批量模式下更快）
             # ── 集成 & 自动化 ──
             cospend # 费用分摊
 
@@ -251,7 +251,7 @@ in
       after = [ "nextcloud-setup.service" ];
       requires = [ "nextcloud-setup.service" ];
       script = ''
-        ${occ}/bin/nextcloud-occ preview:generate-all --batch-size=100
+        ${occ}/bin/nextcloud-occ preview:pre-generate
       '';
       serviceConfig = {
         Type = "oneshot";

@@ -46,7 +46,7 @@
       ANTHROPIC = "" # Anthropic API key - sk-ant-1234567890abcdef1234567890abcdef
 
       [API_ENDPOINTS]
-      SEARXNG = "${config.services.searx.settings.server.base_url}" # SearxNG API URL
+      SEARXNG = "https://search.${config.networking.domain}" # Search API URL (Degoog / SearXNG API)
       OLLAMA = "https://ollama.${config.networking.domain}" # Ollama API URL - http://host.docker.internal:11434
     '';
   };

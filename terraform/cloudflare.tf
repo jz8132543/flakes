@@ -98,10 +98,12 @@ locals {
     "admin.m"          = { on = "nue0", proxy = false }
     zone               = { on = "zone.cdn", proxy = false }
     jellyfin           = { on = "jellyfin.cdn", proxy = false }
-    alist              = { on = "nue0", proxy = false }
+    alist              = { on = "alist.cdn", proxy = false }
     office             = { on = "office.cdn", proxy = false }
-    code               = { on = "nue0", proxy = false }
+    code               = { on = "code.cdn", proxy = false }
     cloud              = { on = "cloud.cdn", proxy = false }
+    api                = { on = "api.cdn", proxy = false }
+    cpa                = { on = "cpa.cdn", proxy = false }
     m                  = { on = "m.cdn", proxy = false }
     talk               = { on = "nue0", proxy = false }
     reader             = { on = "nue0", proxy = false }
@@ -119,15 +121,15 @@ locals {
     ai                 = { on = "nue0", proxy = false }
     et                 = { on = "nue0", proxy = false }
     hydra              = { on = "nue0", proxy = false }
-    cache              = { on = "nue0", proxy = false }
+    cache              = { on = "cache.cdn", proxy = false }
     sub                = { on = "nue0", proxy = false }
     book               = { on = "nue0", proxy = false }
     memos              = { on = "nue0", proxy = false }
-    chat               = { on = "nue0", proxy = false }
+    chat               = { on = "chat.cdn", proxy = false }
     couchdb            = { on = "nue0", proxy = false }
     kaogong            = { on = "nue0", proxy = false }
     dns                = { on = "nue0", proxy = false }
-    searx              = { on = "hkg4", proxy = false }
+    search             = { on = "search.cdn", proxy = false }
     murmur             = { on = "hkg4", proxy = false }
     p                  = { on = "hkg4", proxy = false }
     perplexica-backend = { on = "hkg4", proxy = false }

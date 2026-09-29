@@ -133,6 +133,26 @@ in
             "publicClient": false,
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": false
+          }${
+            lib.optionalString (config.services.new-api.oidc.enable or false) ''
+              ,
+              {
+                "clientId": "new-api",
+                "name": "New API",
+                "enabled": true,
+                "protocol": "openid-connect",
+                "clientAuthenticatorType": "client-secret",
+                "secret": "${config.sops.placeholder."new-api/oidc_client_secret"}",
+                "redirectUris": [
+                  "https://${config.services.new-api.domain or "api.dora.im"}/oauth/oidc/callback"
+                ],
+                "webOrigins": [
+                  "https://${config.services.new-api.domain or "api.dora.im"}"
+                ],
+                "publicClient": false,
+                "standardFlowEnabled": true,
+                "directAccessGrantsEnabled": false
+              }''
           }
         ],
         "userFederationProviders": [
@@ -171,6 +191,9 @@ in
     "password" = {
       mode = "0444";
     };
+  }
+  // lib.optionalAttrs (config.services.new-api.oidc.enable or false) {
+    "new-api/oidc_client_secret" = { };
   };
   services.traefik.proxies.keycloak = {
     rule = "Host(`sso.dora.im`)";

@@ -1,4 +1,8 @@
-{ nixosModules, inputs, ... }:
+{
+  nixosModules,
+  inputs,
+  ...
+}:
 {
   imports =
     nixosModules.cloud.all
@@ -15,6 +19,7 @@
       nixosModules.services.postgres
       # nixosModules.services.minio
       nixosModules.services.ntfy
+      nixosModules.services.degoog
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
@@ -29,9 +34,11 @@
       nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
-      nixosModules.services.searx
       nixosModules.services.openclaw.default
+      nixosModules.services.new-api
+      nixosModules.services.cpa
       # nixosModules.services.litellm.default
+      inputs.degoog.nixosModules.default
       inputs.openclaw-nix.nixosModules.openclaw-gateway
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
@@ -69,10 +76,18 @@
     ]
     ++ nixosModules.matrix.all;
 
-  services.kaogong.enable = true;
+  services.kaogong.enable = false;
   services.moviepilot.enable = true;
   services.openclaw.enable = false;
   # services.ai.litellm.enable = true;
+  services.new-api = {
+    enable = true;
+    oidc = {
+      enable = true; # 后续在 Keycloak 创建 Client 并添加 sops 密钥 (new-api/oidc_client_secret) 后取消注释即可
+    };
+  };
+  services.cpa.enable = true;
+  services.degoog.enable = true;
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;

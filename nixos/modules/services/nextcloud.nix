@@ -74,6 +74,7 @@ in
   # ── Nextcloud 主服务配置 ─────────────────────────────────────
   services.nextcloud = {
     enable = true;
+    package = pkgs.nextcloud34;
     inherit hostName;
     https = true;
     enableImagemagick = true;
@@ -399,7 +400,7 @@ in
     after = [ "nextcloud-setup.service" ];
     requires = [ "nextcloud-setup.service" ];
     script = ''
-      ${occ}/bin/nextcloud-occ preview:generate-all --batch-size=100
+      ${occ}/bin/nextcloud-occ preview:pre-generate
     '';
     serviceConfig = {
       Type = "oneshot";

@@ -133,7 +133,11 @@
       "proxy": false
     },
     "alist": {
-      "on": "nue0",
+      "on": "alist.cdn",
+      "proxy": false
+    },
+    "api": {
+      "on": "api.cdn",
       "proxy": false
     },
     "atuin": {
@@ -153,7 +157,7 @@
       "proxy": false
     },
     "cache": {
-      "on": "nue0",
+      "on": "cache.cdn",
       "proxy": false
     },
     "call": {
@@ -161,7 +165,7 @@
       "proxy": false
     },
     "chat": {
-      "on": "nue0",
+      "on": "chat.cdn",
       "proxy": false
     },
     "claw": {
@@ -173,7 +177,7 @@
       "proxy": false
     },
     "code": {
-      "on": "nue0",
+      "on": "code.cdn",
       "proxy": false
     },
     "cookie": {
@@ -186,6 +190,10 @@
     },
     "couchdb": {
       "on": "nue0",
+      "proxy": false
+    },
+    "cpa": {
+      "on": "cpa.cdn",
       "proxy": false
     },
     "dash": {
@@ -316,8 +324,8 @@
       "on": "nue0",
       "proxy": false
     },
-    "searx": {
-      "on": "hkg4",
+    "search": {
+      "on": "search.cdn",
       "proxy": false
     },
     "seerr": {

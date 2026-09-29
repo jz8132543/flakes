@@ -100,6 +100,7 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
+        RemainAfterExit = true;
       };
       environment = {
         COUCHDB_HOST = "http://127.0.0.1:${toString couchdbPort}";
@@ -112,7 +113,7 @@ in
 
         couchdb_user="$COUCHDB_USER"
         couchdb_password="$(${pkgs.coreutils}/bin/cat "$COUCHDB_PASSWORD_FILE")"
-        until ${pkgs.curl}/bin/curl -fsS "$COUCHDB_HOST" >/dev/null; do
+        until ${pkgs.curl}/bin/curl -fsS -u "$couchdb_user:$couchdb_password" "$COUCHDB_HOST" >/dev/null; do
           ${pkgs.coreutils}/bin/sleep 2
         done
 

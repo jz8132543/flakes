@@ -111,7 +111,6 @@
       seafile-file-server = 3060;
       seafile-dav = 3061;
       morty = 3001;
-      searx = 8888;
       easytier-tcp = 11010;
       easytier-ws = 11011;
       easytier-traefik-wss = 444;
@@ -169,6 +168,9 @@
       tdarr-server = 8266;
       tdarr-webui = 8265;
       unmanic = 8889;
+      new-api = 3280;
+      cpa = 8317;
+      degoog = 8888;
     };
   };
 }

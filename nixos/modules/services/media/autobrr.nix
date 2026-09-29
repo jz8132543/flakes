@@ -10,11 +10,10 @@ let
   autobrrConfigScript = pkgs.writeShellScript "autobrr-config" ''
     set -euo pipefail
 
-    ${lib.getExe pkgs.dasel} -i toml -o toml --root \
-      --var sessionSecret=file:"$CREDENTIALS_DIRECTORY/sessionSecret" \
-      "sessionSecret = $sessionSecret" \
-      < ${autobrrConfigTemplate} \
-      > "$STATE_DIRECTORY/config.toml"
+    secret="$(${pkgs.coreutils}/bin/cat "$CREDENTIALS_DIRECTORY/sessionSecret")"
+    printf 'sessionSecret = "%s"\n' "$secret" > "$STATE_DIRECTORY/config.toml"
+    ${pkgs.coreutils}/bin/cat ${autobrrConfigTemplate} >> "$STATE_DIRECTORY/config.toml"
+    ${pkgs.coreutils}/bin/chmod 0600 "$STATE_DIRECTORY/config.toml"
   '';
 in
 {

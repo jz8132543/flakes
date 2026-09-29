@@ -27,7 +27,7 @@ in
     enable = lib.mkForce true;
     listenPort = config.ports.homepage;
     environmentFiles = [ config.sops.templates."homepage.env".path ];
-    allowedHosts = domain;
+    allowedHosts = "*";
     services = [
       {
         "Media" = [
@@ -40,6 +40,7 @@ in
                 type = "jellyfin";
                 url = media.jellyfin;
                 key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
+                version = 2;
                 enableBlocks = true;
                 enableNowPlaying = true;
                 enableUser = true;
@@ -326,10 +327,10 @@ in
             };
           }
           {
-            "SearX" = {
-              href = "https://searx.${config.networking.domain}";
-              icon = "searxng.png";
-              description = "Privacy Search";
+            "Degoog" = {
+              href = "https://search.${config.networking.domain}";
+              icon = "si-google";
+              description = "Privacy Search Aggregator";
             };
           }
           {
@@ -448,8 +449,8 @@ in
       {
         search = {
           provider = "custom";
-          url = "https://searx.${config.networking.domain}/search?q=";
-          suggestionUrl = "https://searx.${config.networking.domain}/autocomplete?type=list&q=";
+          url = "https://search.${config.networking.domain}/search?q=";
+          suggestionUrl = "https://search.${config.networking.domain}/api/suggest?q=";
           showSearchSuggestions = true;
           target = "_blank";
         };

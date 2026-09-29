@@ -40,7 +40,6 @@
       url = "github:zhaofengli/colmena";
       inputs.stable.follows = "nixpkgs";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
     };
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -164,6 +163,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
+    degoog = {
+      url = "github:degoog-org/degoog";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     grimmory-flake = {
       url = "github:dnaq/booklore-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -177,7 +180,11 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } (
-      { config, lib, ... }:
+      {
+        config,
+        lib,
+        ...
+      }:
       let
         selfLib = import ./lib { inherit inputs lib; };
       in

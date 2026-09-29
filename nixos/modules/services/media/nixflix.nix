@@ -23,7 +23,7 @@ let
     {
       cfg,
       externalUrl,
-      activeProfileName ? "SQP-1 (1080p)",
+      activeProfileName ? "[SQP] SQP-1 (1080p)",
       isDefault ? true,
     }:
     {
@@ -40,7 +40,7 @@ let
     {
       cfg,
       externalUrl,
-      activeProfileName ? "WEB-1080p",
+      activeProfileName ? "WEB-1080p (Alternative)",
       isAnime ? false,
       isDefault ? true,
     }:
@@ -252,14 +252,14 @@ in
         radarr.Radarr = mkSeerrRadarrInstance {
           cfg = config.nixflix.radarr;
           externalUrl = externalUrls.radarr;
-          activeProfileName = "SQP-1 (1080p)";
+          activeProfileName = "[SQP] SQP-1 (1080p)";
         };
 
         sonarr = {
           Sonarr = mkSeerrSonarrInstance {
             cfg = config.nixflix.sonarr;
             externalUrl = externalUrls.sonarr;
-            activeProfileName = "WEB-1080p";
+            activeProfileName = "WEB-1080p (Alternative)";
             isDefault = true;
           };
           "Sonarr Anime" = mkSeerrSonarrInstance {
@@ -482,6 +482,7 @@ in
       maintainerr = {
         enable = true;
         group = "media";
+        settings.jellyfin.jellyfin_url = "http://127.0.0.1:${toString config.ports.jellyfin}/jellyfin";
       };
     };
 

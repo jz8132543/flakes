@@ -74,7 +74,7 @@
                 "https://alist.${config.networking.domain}"
                 "https://m.${config.networking.domain}"
                 "https://zone.${config.networking.domain}"
-                "https://searx.${config.networking.domain}"
+                "https://search.${config.networking.domain}"
                 "https://vault.${config.networking.domain}"
                 "https://ntfy.${config.networking.domain}"
                 "https://sso.${config.networking.domain}"

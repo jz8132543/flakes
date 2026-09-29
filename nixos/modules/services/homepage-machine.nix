@@ -102,8 +102,9 @@ in
             description = "Media Server";
             widget = {
               type = "jellyfin";
-              url = "http://localhost:${toString config.ports.jellyfin}";
+              url = "http://localhost:${toString config.ports.jellyfin}/jellyfin";
               key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
+              version = 2;
               enableBlocks = true;
               enableNowPlaying = true;
               enableUser = true;

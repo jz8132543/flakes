@@ -61,6 +61,14 @@
         URIws = prev.emptyDirectory;
       }
     );
+
+    pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+      (_pyFinal: pyPrev: {
+        pysaml2 = pyPrev.pysaml2.overridePythonAttrs (_: {
+          doCheck = false;
+        });
+      })
+    ];
   })
   (import "${self}/pkgs").overlay
 ]
