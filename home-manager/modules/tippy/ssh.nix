@@ -6,6 +6,7 @@
 }:
 let
   sshRaceDomains = [
+    "dn42"
     "dora.im"
     "mag"
     "et"

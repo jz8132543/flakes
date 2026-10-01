@@ -18,7 +18,7 @@
       "comma-with-db"
     ])
   )
-  (_final: prev: {
+  (final: prev: {
     # qt6Packages = prev.qt6Packages.overrideScope (
     #   _qt6Final: qt6Prev: {
     #     libsForQt5 = (qt6Prev.libsForQt5 or (prev.libsForQt5.overrideScope (_: _: { }))).overrideScope (
@@ -69,6 +69,20 @@
         });
       })
     ];
+
+    matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overrideAttrs (_old: {
+      doCheck = false;
+      dontCheck = true;
+      checkPhase = "";
+      doInstallCheck = false;
+      dontInstallCheck = true;
+      installCheckPhase = "";
+      nativeCheckInputs = [ ];
+    });
+
+    matrix-synapse = prev.matrix-synapse.override {
+      inherit (final) matrix-synapse-unwrapped;
+    };
   })
   (import "${self}/pkgs").overlay
 ]

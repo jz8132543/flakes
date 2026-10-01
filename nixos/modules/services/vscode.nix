@@ -17,55 +17,207 @@ let
     controlUrl = "";
   };
   vscodeWebStart = pkgs.writeShellScript "vscode-web-start" ''
-    export EXTENSIONS_GALLERY='${extensionsGallery}'
-    EXT_DIR="/home/${user}/.vscode-server/extensions"
-    mkdir -p "$EXT_DIR"
+        export EXTENSIONS_GALLERY='${extensionsGallery}'
+        EXT_DIR="/home/${user}/.vscode-server/extensions"
+        mkdir -p "$EXT_DIR"
 
-    # Clean up deprecated / conflicting extensions if present
-    for old_ext in \
-      lyadhgod.antigravity-vscode \
-      punal100.antigravity-copilot \
-      GoogleCloudTools.cloudcode; do
-      if ls "$EXT_DIR" 2>/dev/null | grep -qi "$old_ext"; then
-        echo "Removing deprecated extension: $old_ext"
-        ${lib.getExe pkgs.openvscode-server} \
+        # Pre-install AI Agent (Roo Code, Continue), Nix IDE, and Git workflow extensions
+        for ext in \
+          RooVeterinaryInc.roo-cline \
+          Continue.continue \
+          mkhl.direnv \
+          jnoortheen.nix-ide \
+          mhutchie.git-graph \
+          donjayamanne.githistory; do
+          if ! ls "$EXT_DIR" 2>/dev/null | grep -qi "$ext"; then
+            echo "Installing extension: $ext"
+            ${lib.getExe pkgs.openvscode-server} \
+              --server-data-dir /home/${user}/.vscode-server \
+              --extensions-dir "$EXT_DIR" \
+              --install-extension "$ext" --force || true
+          fi
+        done
+
+        # Dynamically fetch available models from CPA to configure Continue without hardcoding in Nix
+        if [ -n "''${OPENAI_BASE_URL:-}" ] && [ -n "''${OPENAI_API_KEY:-}" ]; then
+          echo "Fetching available models from $OPENAI_BASE_URL/models..."
+          CPA_MODELS=""
+          for retry in 1 2 3; do
+            CPA_MODELS=$(${lib.getExe pkgs.curl} -sf --max-time 5 \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              "$OPENAI_BASE_URL/models" 2>/dev/null || true)
+            if [ -n "$CPA_MODELS" ] && echo "$CPA_MODELS" | ${lib.getExe pkgs.jq} -e '.data | length > 0' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+
+          if [ -n "$CPA_MODELS" ] && echo "$CPA_MODELS" | ${lib.getExe pkgs.jq} -e '.data | length > 0' >/dev/null 2>&1; then
+            echo "Dynamically updating Continue configuration from CPA models..."
+            mkdir -p "/home/${user}/.continue"
+            rm -f "/home/${user}/.continue/config.ts"
+            echo "$CPA_MODELS" | ${lib.getExe pkgs.jq} --arg base "$OPENAI_BASE_URL" --arg key "$OPENAI_API_KEY" '
+              .data | map(.id) as $ids |
+              ($ids | map(select(test("flash.*low|flash.*lite|flash"))) | first // $ids[0]) as $tab_model |
+              {
+                name: "CPA",
+                version: "1.0.0",
+                schema: "v1",
+                models: (
+                  ($ids | map({
+                    name: (
+                      if test("-thinking$") then (. | sub("-thinking$"; "") + " (Thinking)")
+                      elif test("-high$") then (. | sub("-high$"; "") + " (High Thinking)")
+                      elif test("-medium$") then (. | sub("-medium$"; "") + " (Medium Thinking)")
+                      elif test("-low$") then (. | sub("-low$"; "") + " (Low Thinking)")
+                      else . end
+                    ),
+                    title: (
+                      if test("-thinking$") then (. | sub("-thinking$"; "") + " (Thinking)")
+                      elif test("-high$") then (. | sub("-high$"; "") + " (High Thinking)")
+                      elif test("-medium$") then (. | sub("-medium$"; "") + " (Medium Thinking)")
+                      elif test("-low$") then (. | sub("-low$"; "") + " (Low Thinking)")
+                      else . end
+                    ),
+                    provider: "openai",
+                    model: .,
+                    apiBase: $base,
+                    apiKey: $key,
+                    roles: ["chat", "edit", "apply"]
+                  })) +
+                  (if $tab_model then [{
+                    name: ($tab_model + " (Autocomplete)"),
+                    title: ($tab_model + " (Autocomplete)"),
+                    provider: "openai",
+                    model: $tab_model,
+                    apiBase: $base,
+                    apiKey: $key,
+                    roles: ["autocomplete"]
+                  }] else [] end)
+                ),
+                tabAutocompleteModel: (if $tab_model then {
+                  title: ($tab_model + " (Autocomplete)"),
+                  name: ($tab_model + " (Autocomplete)"),
+                  provider: "openai",
+                  model: $tab_model,
+                  apiBase: $base,
+                  apiKey: $key
+                } else null end),
+                allowAnonymousTelemetry: false
+              }
+            ' > "/home/${user}/.continue/config.yaml"
+            cp -f "/home/${user}/.continue/config.yaml" "/home/${user}/.continue/config.json"
+            chmod 0600 "/home/${user}/.continue/config.yaml" "/home/${user}/.continue/config.json"
+
+            echo "Dynamically updating Roo Code configuration from CPA models..."
+            mkdir -p "/home/${user}/.vscode-server/data/User" "/home/${user}/.vscode-server/data/Machine"
+            echo "$CPA_MODELS" | ${lib.getExe pkgs.jq} --arg base "$OPENAI_BASE_URL" --arg key "$OPENAI_API_KEY" '
+              .data | map(.id) as $ids |
+              ($ids | map(select(test("claude-3-7-sonnet.*thinking|claude-3-7-sonnet|claude"))) | first // $ids[0]) as $default_model |
+              {
+                providerProfiles: {
+                  currentApiConfigName: "cpa",
+                  apiConfigs: (
+                    {
+                      "cpa": {
+                        id: "cpa",
+                        apiProvider: "openai",
+                        openAiBaseUrl: $base,
+                        openAiApiKey: $key,
+                        openAiModelId: $default_model
+                      }
+                    } +
+                    ($ids | map({
+                      key: ("cpa-" + .),
+                      value: {
+                        id: ("cpa-" + .),
+                        apiProvider: "openai",
+                        openAiBaseUrl: $base,
+                        openAiApiKey: $key,
+                        openAiModelId: .
+                      }
+                    }) | from_entries)
+                  )
+                }
+              }
+            ' > "/home/${user}/.vscode-server/data/User/roo-settings.json"
+            chmod 0600 "/home/${user}/.vscode-server/data/User/roo-settings.json"
+
+            # Ensure Machine settings and workspace settings have roo-cline.autoImportSettingsPath
+            if [ -f "/home/${user}/.vscode-server/data/User/settings.json" ]; then
+              cp -f "/home/${user}/.vscode-server/data/User/settings.json" "/home/${user}/.vscode-server/data/Machine/settings.json" || true
+            fi
+          else
+            if [ ! -f "/home/${user}/.continue/config.yaml" ]; then
+              mkdir -p "/home/${user}/.continue"
+              rm -f "/home/${user}/.continue/config.ts"
+              cat << EOF > "/home/${user}/.continue/config.yaml"
+    {
+      "name": "CPA",
+      "version": "1.0.0",
+      "schema": "v1",
+      "models": [
+        {
+          "title": "Claude 3.7 Sonnet (Thinking)",
+          "name": "Claude 3.7 Sonnet (Thinking)",
+          "provider": "openai",
+          "model": "claude-3-7-sonnet-thinking",
+          "apiBase": "$OPENAI_BASE_URL",
+          "apiKey": "$OPENAI_API_KEY",
+          "roles": ["chat", "edit", "apply"]
+        }
+      ],
+      "tabAutocompleteModel": {
+        "title": "Claude 3.7 Sonnet (Thinking)",
+        "name": "Claude 3.7 Sonnet (Thinking)",
+        "provider": "openai",
+        "model": "claude-3-7-sonnet-thinking",
+        "apiBase": "$OPENAI_BASE_URL",
+        "apiKey": "$OPENAI_API_KEY"
+      },
+      "allowAnonymousTelemetry": false
+    }
+    EOF
+              cp -f "/home/${user}/.continue/config.yaml" "/home/${user}/.continue/config.json"
+              chmod 0600 "/home/${user}/.continue/config.yaml" "/home/${user}/.continue/config.json"
+            fi
+            if [ ! -f "/home/${user}/.vscode-server/data/User/roo-settings.json" ]; then
+              mkdir -p "/home/${user}/.vscode-server/data/User"
+              cat << EOF > "/home/${user}/.vscode-server/data/User/roo-settings.json"
+    {
+      "providerProfiles": {
+        "currentApiConfigName": "cpa",
+        "apiConfigs": {
+          "cpa": {
+            "id": "cpa",
+            "apiProvider": "openai",
+            "openAiBaseUrl": "$OPENAI_BASE_URL",
+            "openAiApiKey": "$OPENAI_API_KEY",
+            "openAiModelId": "claude-3-7-sonnet-thinking"
+          }
+        }
+      }
+    }
+    EOF
+              chmod 0600 "/home/${user}/.vscode-server/data/User/roo-settings.json"
+            fi
+            if [ -f "/home/${user}/.vscode-server/data/User/settings.json" ]; then
+              mkdir -p "/home/${user}/.vscode-server/data/Machine"
+              cp -f "/home/${user}/.vscode-server/data/User/settings.json" "/home/${user}/.vscode-server/data/Machine/settings.json" || true
+            fi
+          fi
+        fi
+
+        exec ${lib.getExe pkgs.openvscode-server} \
+          --host 127.0.0.1 \
+          --port ${vscodeWebPort} \
+          --without-connection-token \
+          --accept-server-license-terms \
+          --github-auth "$GITHUB_TOKEN" \
           --server-data-dir /home/${user}/.vscode-server \
           --extensions-dir "$EXT_DIR" \
-          --uninstall-extension "$old_ext" 2>/dev/null || true
-        rm -rf "$EXT_DIR"/''${old_ext}* 2>/dev/null || true
-      fi
-    done
-
-    # Pre-install official Antigravity, Copilot, Cline/Continue, Nix IDE, and Git workflow extensions
-    for ext in \
-      google.google-antigravity \
-      GitHub.copilot \
-      GitHub.copilot-chat \
-      saoudrizwan.claude-dev \
-      Continue.continue \
-      mkhl.direnv \
-      jnoortheen.nix-ide \
-      mhutchie.git-graph \
-      donjayamanne.githistory; do
-      if ! ls "$EXT_DIR" 2>/dev/null | grep -qi "$ext"; then
-        echo "Installing extension: $ext"
-        ${lib.getExe pkgs.openvscode-server} \
-          --server-data-dir /home/${user}/.vscode-server \
-          --extensions-dir "$EXT_DIR" \
-          --install-extension "$ext" --force || true
-      fi
-    done
-
-    exec ${lib.getExe pkgs.openvscode-server} \
-      --host 127.0.0.1 \
-      --port ${vscodeWebPort} \
-      --without-connection-token \
-      --accept-server-license-terms \
-      --github-auth "$GITHUB_TOKEN" \
-      --server-data-dir /home/${user}/.vscode-server \
-      --extensions-dir "$EXT_DIR" \
-      --disable-telemetry \
-      "${workspace}"
+          --disable-telemetry \
+          "${workspace}"
   '';
 in
 {
@@ -75,7 +227,13 @@ in
   systemd.services.vscode-web = {
     description = "VS Code Web";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" ];
+    after = [
+      "network.target"
+      "podman-cpa.service"
+    ];
+    wants = [
+      "podman-cpa.service"
+    ];
     path = with pkgs; [
       nix
       direnv
@@ -84,6 +242,7 @@ in
       nixfmt
       coreutils
       curl
+      jq
       bashInteractive
     ];
     serviceConfig = {
@@ -98,10 +257,9 @@ in
     };
   };
 
-  home-manager.users.${user}.home.file = {
-    vscode = {
-      target = ".vscode-server/data/User/settings.json";
-      text = builtins.toJSON {
+  home-manager.users.${user}.home.file =
+    let
+      vscodeSettings = {
         "workbench.iconTheme" = "material-icon-theme";
         "workbench.colorTheme" = "Default Dark Modern";
         "workbench.panel.defaultLocation" = "right";
@@ -161,12 +319,8 @@ in
         "breadcrumbs.enabled" = true;
         "update.mode" = "none";
         "extensions.autoCheckUpdates" = false;
-        "github.copilot.nextEditSuggestions.enabled" = true;
-        "github.copilot.enable" = {
-          "*" = true;
-        };
-        "github.copilot.chat.localeOverride" = "zh-CN";
-        "chat.commandCenter.enabled" = true;
+        "continue.enableTabAutocomplete" = true;
+        "roo-cline.autoImportSettingsPath" = "/home/${user}/.vscode-server/data/User/roo-settings.json";
 
         # Direnv
         "direnv.restart.automatic" = true;
@@ -179,8 +333,23 @@ in
         "git-graph.repository.showCommitsOnlyReferencedByTagsOrBranches" = false;
         "git-graph.commitDetailsView.location" = "Docked to Bottom";
       };
+    in
+    {
+      vscode = {
+        target = ".vscode-server/data/User/settings.json";
+        text = builtins.toJSON vscodeSettings;
+      };
+      vscodeMachine = {
+        target = ".vscode-server/data/Machine/settings.json";
+        text = builtins.toJSON vscodeSettings;
+      };
     };
-  };
+
+  sops.secrets."cpa/api_key" = { };
+
+  systemd.tmpfiles.rules = [
+    "d /home/${user}/.continue 0750 ${user} users -"
+  ];
 
   systemd.services.vscode-web.serviceConfig.EnvironmentFile = [
     config.sops.templates."vscode-web-environment".path
@@ -189,6 +358,11 @@ in
   sops.templates."vscode-web-environment" = {
     content = ''
       GITHUB_TOKEN=${config.sops.placeholder."github-token"}
+      CPA_API_KEY=${config.sops.placeholder."cpa/api_key"}
+      OPENAI_API_KEY=${config.sops.placeholder."cpa/api_key"}
+      OPENAI_BASE_URL=https://${config.services.cpa.domain}/v1
+      ANTHROPIC_API_KEY=${config.sops.placeholder."cpa/api_key"}
+      ANTHROPIC_BASE_URL=https://${config.services.cpa.domain}
     '';
   };
 

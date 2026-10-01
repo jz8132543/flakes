@@ -110,6 +110,87 @@ in
 
         api-keys:
         $API_KEYS_YAML
+
+        providers:
+          antigravity:
+            antigravity-credits: true
+
+        oauth-model-alias:
+          antigravity:
+            # Gemini 3.8 Flash (低/中/高 思考档位与默认别名)
+            - name: "gemini-3.8-flash-low"
+              alias: "gemini-3.8-flash-low"
+              fork: true
+            - name: "gemini-3.8-flash-medium"
+              alias: "gemini-3.8-flash-medium"
+              fork: true
+            - name: "gemini-3.8-flash-high"
+              alias: "gemini-3.8-flash-high"
+              fork: true
+            - name: "gemini-3.8-flash-high"
+              alias: "gemini-3.8-flash"
+              fork: true
+            - name: "gemini-3.8-flash-high"
+              alias: "gemini-3.8-flash-lite"
+              fork: true
+
+            # Gemini 3.7 Flash (低/中/高 思考档位与默认别名)
+            - name: "gemini-3.7-flash-low"
+              alias: "gemini-3.7-flash-low"
+              fork: true
+            - name: "gemini-3.7-flash-medium"
+              alias: "gemini-3.7-flash-medium"
+              fork: true
+            - name: "gemini-3.7-flash-high"
+              alias: "gemini-3.7-flash-high"
+              fork: true
+            - name: "gemini-3.7-flash-high"
+              alias: "gemini-3.7-flash"
+              fork: true
+
+            - name: "gemini-3.6-flash-high"
+              alias: "gemini-3.6-flash"
+              fork: true
+            - name: "gemini-3.5-flash-lite"
+              alias: "gemini-3.5-flash"
+              fork: true
+            - name: "gemini-3.1-flash-lite"
+              alias: "gemini-3.1-flash"
+              fork: true
+            - name: "gemini-3.1-pro-low"
+              alias: "gemini-3.1-pro"
+              fork: true
+            - name: "gpt-oss-120b-medium"
+              alias: "gpt-oss-120b"
+              fork: true
+
+            # Claude Opus 4.6 (思考开启 / 思考关闭)
+            - name: "claude-opus-4-6"
+              alias: "claude-opus-4-6-nothinking"
+              fork: true
+            - name: "claude-opus-4-6-thinking"
+              alias: "claude-opus-4-6"
+              fork: true
+            - name: "claude-opus-4-6-thinking"
+              alias: "claude-opus-4-6-thinking"
+              fork: true
+
+            # Claude Sonnet (Standard 常规响应 vs Thinking 深度思考链)
+            - name: "claude-sonnet-4-6"
+              alias: "claude-3-5-sonnet"
+              fork: true
+            - name: "claude-sonnet-4-6"
+              alias: "claude-3-5-sonnet-20241022"
+              fork: true
+            - name: "claude-sonnet-4-6"
+              alias: "claude-3-7-sonnet"
+              fork: true
+            - name: "claude-sonnet-4-6-thinking"
+              alias: "claude-3-7-sonnet-thinking"
+              fork: true
+            - name: "claude-sonnet-4-6-thinking"
+              alias: "claude-sonnet-4-6-thinking"
+              fork: true
         EOF
                 chmod 0640 ${cfg.dataDir}/config.yaml
       '';

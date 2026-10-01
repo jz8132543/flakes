@@ -9,6 +9,7 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.desktop.all
+    ++ nixosModules.services.networking.dn42.node.all
     ++ [
       ./hardware-configuration.nix
       ./hardware.nix

@@ -22,6 +22,7 @@ in
   sops.secrets = {
     "lobechat/auth_secret" = { };
     "lobechat/keycloak_client_secret" = { };
+    "cpa/api_key" = { };
     "lobechat/OPENAI_API_KEY" = { };
     "lobechat/OPENAI_PROXY_URL" = { };
     "lobechat/jwks_key" = { };
@@ -54,7 +55,7 @@ in
       S3_PUBLIC_DOMAIN = storage.publicDomain;
       S3_REGION = storage.region;
       S3_SET_ACL = "0";
-      FEATURE_FLAGS = "-changelog,-check_updates,-welcome_suggest,+market,+plugins,+knowledge_base,+group_chat,+dalle,+speech_to_text,+webrtc_sync,+openai_api_key,+openai_proxy_url,+provider_settings,+api_key_manage";
+      FEATURE_FLAGS = "-changelog,-check_updates,-welcome_suggest,+market,+plugins,+knowledge_base,+group_chat,+dalle,+speech_to_text,+webrtc_sync,-openai_api_key,-openai_proxy_url,-provider_settings,-api_key_manage";
       ENABLED_ARTIFACTS = "1";
       ENABLED_MCP = "1";
       ENABLED_UPLOAD = "1";
@@ -70,7 +71,8 @@ in
       ENABLED_GOOGLE = "0";
       ENABLED_ANTHROPIC = "0";
       ENABLED_GROQ = "0";
-      ENABLED_OPENROUTER = "0";
+      ENABLED_OPENROUTER = "1";
+      OPENROUTER_MODEL_LIST = "-all,+gpt-4o,+gpt-4o-mini,+claude-3-5-sonnet-20241022,+deepseek-chat";
       ENABLED_MISTRAL = "0";
       ENABLED_PERPLEXITY = "0";
       ENABLED_TOGETHERAI = "0";
@@ -109,10 +111,12 @@ in
     after = [
       "lobechat-db-init.service"
       "lobechat-fetch-models.service"
+      "podman-cpa.service"
     ];
     wants = [
       "lobechat-db-init.service"
       "lobechat-fetch-models.service"
+      "podman-cpa.service"
     ];
   };
 
@@ -142,7 +146,7 @@ in
       # do not reappear in the UI despite ENABLED_* = "0" env vars.
       ${pkgs.postgresql}/bin/psql \
         --dbname=${dbName} \
-        --command="DELETE FROM ai_providers WHERE id IN ('deepseek','google','anthropic','zhipu','moonshot','groq','openrouter','mistral','perplexity','togetherai','baichuan','minimax','zeroone','qwen','spark','huggingface','aws','azure','cohere','hunyuan','sensenova','stepfun','baidu','ai360','ollama','novita','together','vertex','xai','fal','siliconcloud','comfyui');" 2>/dev/null || true
+        --command="DELETE FROM ai_providers WHERE id IN ('deepseek','google','anthropic','zhipu','moonshot','groq','mistral','perplexity','togetherai','baichuan','minimax','zeroone','qwen','spark','huggingface','aws','azure','cohere','hunyuan','sensenova','stepfun','baidu','ai360','ollama','novita','together','vertex','xai','fal','siliconcloud','comfyui');" 2>/dev/null || true
     '';
   };
 
@@ -153,8 +157,10 @@ in
     JWKS_KEY=${config.sops.placeholder."lobechat/jwks_key"}
     S3_ACCESS_KEY_ID=${config.sops.placeholder."lobechat/b2_key_id"}
     S3_SECRET_ACCESS_KEY=${config.sops.placeholder."lobechat/b2_access_key"}
-    OPENAI_PROXY_URL=${config.sops.placeholder."lobechat/OPENAI_PROXY_URL"}
-    OPENAI_API_KEY=${config.sops.placeholder."lobechat/OPENAI_API_KEY"}
+    OPENAI_PROXY_URL=http://127.0.0.1:${toString config.ports.cpa}/v1
+    OPENAI_API_KEY=${config.sops.placeholder."cpa/api_key"}
+    OPENROUTER_PROXY_URL=${config.sops.placeholder."lobechat/OPENAI_PROXY_URL"}
+    OPENROUTER_API_KEY=${config.sops.placeholder."lobechat/OPENAI_API_KEY"}
   '';
 
   # Dynamically fetch the model list from the OpenAI-compatible proxy before
@@ -164,10 +170,12 @@ in
     after = [
       "network-online.target"
       "sops-install-secrets.service"
+      "podman-cpa.service"
     ];
     wants = [
       "network-online.target"
       "sops-install-secrets.service"
+      "podman-cpa.service"
     ];
     before = [ "podman-lobechat.service" ];
     serviceConfig = {

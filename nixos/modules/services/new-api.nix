@@ -102,6 +102,8 @@ in
       {
         "password" = { };
         "cpa/api_key" = { };
+        "lobechat/OPENAI_API_KEY" = { };
+        "lobechat/OPENAI_PROXY_URL" = { };
       }
       (lib.mkIf cfg.oidc.enable {
         ${cfg.oidc.clientSecretKey} = { };
@@ -206,29 +208,98 @@ in
             CPA_KEY="$PASS"
           fi
 
-          CHANNEL_COUNT="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT count(*) FROM channels WHERE name = 'CPA-Local-Gateway';" 2>/dev/null || echo "0")"
-          if [ "$CHANNEL_COUNT" = "0" ]; then
+          FALLBACK_KEY="$(cat ${
+            config.sops.secrets."lobechat/OPENAI_API_KEY".path
+          } 2>/dev/null | head -n 1 | tr -d '\n\r' || true)"
+          FALLBACK_URL="$(cat ${
+            config.sops.secrets."lobechat/OPENAI_PROXY_URL".path
+          } 2>/dev/null | head -n 1 | tr -d '\n\r' || true)"
+
+          # 渠道 1: CPA (优先级 10，主渠道)
+          CPA_MODELS="gemini-3-flash,gemini-3.8-flash,gemini-3.8-flash-high,gemini-3.8-flash-lite,gemini-3.7-flash,gemini-3.7-flash-high,gemini-3.6-flash,gemini-3.6-flash-high,gemini-3.5-flash,gemini-3.5-flash-lite,gemini-3.1-flash,gemini-3.1-flash-lite,gemini-3.1-flash-image,gemini-3.1-pro,gemini-3.1-pro-low,gemini-3-pro,gemini-2.5-flash,gemini-1.5-flash,gemini-pro-agent,claude-sonnet-4-6,claude-opus-4-6,claude-opus-4-6-thinking,claude-3-5-sonnet,claude-3-5-sonnet-20241022,claude-3-7-sonnet,kimi-k2,kimi-k2-thinking,kimi-k2.5,kimi-k2.6,kimi-k2.7,kimi-k2.7-code,kimi-k2.7-code-highspeed,kimi-k2.8,kimi-k2.8-code,kimi-k3,kimi-k3-256k,gpt-oss-120b,gpt-oss-120b-medium,sora-2,sora-2-pro"
+          CPA_MAPPING='{"gemini-3.8-flash":"gemini-3.8-flash-high","gemini-3.8-flash-lite":"gemini-3.8-flash-high","gemini-3.7-flash":"gemini-3.7-flash-high","gemini-3.6-flash":"gemini-3.6-flash-high","gemini-3.5-flash":"gemini-3.5-flash-lite","gemini-3.1-flash":"gemini-3.1-flash-lite","gemini-3.1-pro":"gemini-3.1-pro-low","gemini-3-pro":"gemini-3.1-pro-low","gemini-2.5-flash":"gemini-3-flash","gemini-1.5-flash":"gemini-3-flash","claude-opus-4-6":"claude-opus-4-6-thinking","claude-3-5-sonnet":"claude-sonnet-4-6","claude-3-5-sonnet-20241022":"claude-sonnet-4-6","claude-3-7-sonnet":"claude-sonnet-4-6","kimi-k2.7":"kimi-k2.7-code","gpt-oss-120b":"gpt-oss-120b-medium"}'
+          CHANNEL_CPA_COUNT="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT count(*) FROM channels WHERE name IN ('CPA', 'CPA-Local-Gateway');" 2>/dev/null || echo "0")"
+          if [ "$CHANNEL_CPA_COUNT" = "0" ]; then
             runuser -u postgres -- psql -d ${cfg.database.name} -c "
               INSERT INTO channels (
-                name, type, key, base_url, models, \"group\", priority, weight, status, created_time
+                name, type, key, base_url, models, \"group\", priority, weight, status, created_time, test_model, model_mapping
               ) VALUES (
-                'CPA-Local-Gateway',
+                'CPA',
                 1,
                 '$CPA_KEY',
                 'http://127.0.0.1:8317',
-                'gemini-2.5-pro,gemini-2.5-flash,gemini-1.5-pro,gemini-1.5-flash,claude-3-5-sonnet-20241022,gpt-4o,deepseek-chat',
+                '$CPA_MODELS',
                 'default',
-                0,
+                10,
                 1,
                 1,
-                EXTRACT(EPOCH FROM NOW())::bigint
+                EXTRACT(EPOCH FROM NOW())::bigint,
+                'gemini-3-flash',
+                '$CPA_MAPPING'
               );
             " >/dev/null 2>&1 || true
           else
             runuser -u postgres -- psql -d ${cfg.database.name} -c "
               UPDATE channels 
-              SET key = '$CPA_KEY', base_url = 'http://127.0.0.1:8317' 
-              WHERE name = 'CPA-Local-Gateway';
+              SET key = '$CPA_KEY', base_url = 'http://127.0.0.1:8317', priority = 10, test_model = 'gemini-3-flash', models = '$CPA_MODELS', model_mapping = '$CPA_MAPPING'
+              WHERE name IN ('CPA', 'CPA-Local-Gateway');
+            " >/dev/null 2>&1 || true
+          fi
+
+          # 渠道 2: Fallback-OpenAI-Gateway (优先级 0，备用自动降级渠道)
+          if [ -n "$FALLBACK_KEY" ] && [ -n "$FALLBACK_URL" ]; then
+            CHANNEL_FB_COUNT="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT count(*) FROM channels WHERE name IN ('Fallback-OpenAI-Gateway', '玲碗');" 2>/dev/null || echo "0")"
+            if [ "$CHANNEL_FB_COUNT" = "0" ]; then
+              runuser -u postgres -- psql -d ${cfg.database.name} -c "
+                INSERT INTO channels (
+                  name, type, key, base_url, models, \"group\", priority, weight, status, created_time
+                ) VALUES (
+                  'Fallback-OpenAI-Gateway',
+                  1,
+                  '$FALLBACK_KEY',
+                  '$FALLBACK_URL',
+                  'gemini-2.5-pro,gemini-2.5-flash,gemini-1.5-pro,gemini-1.5-flash,claude-3-5-sonnet-20241022,gpt-4o,deepseek-chat',
+                  'default',
+                  0,
+                  1,
+                  1,
+                  EXTRACT(EPOCH FROM NOW())::bigint
+                );
+              " >/dev/null 2>&1 || true
+            else
+              runuser -u postgres -- psql -d ${cfg.database.name} -c "
+                UPDATE channels 
+                SET key = '$FALLBACK_KEY', base_url = '$FALLBACK_URL', priority = 0 
+                WHERE name IN ('Fallback-OpenAI-Gateway', '玲碗');
+              " >/dev/null 2>&1 || true
+            fi
+          fi
+
+          # 3. 预置供 LobeChat 对接 New API 的客户端访问令牌 (New API 会自动剔除 sk- 前缀存储)
+          CLEAN_TOKEN_KEY="''${CPA_KEY#sk-}"
+          TOKEN_COUNT="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT count(*) FROM tokens WHERE name = 'lobechat-default';" 2>/dev/null || echo "0")"
+          if [ "$TOKEN_COUNT" = "0" ]; then
+            runuser -u postgres -- psql -d ${cfg.database.name} -c "
+              INSERT INTO tokens (
+                user_id, key, status, name, created_time, accessed_time, expired_time, remain_quota, unlimited_quota, \"group\"
+              ) VALUES (
+                1,
+                '$CLEAN_TOKEN_KEY',
+                1,
+                'lobechat-default',
+                EXTRACT(EPOCH FROM NOW())::bigint,
+                0,
+                -1,
+                0,
+                true,
+                'default'
+              );
+            " >/dev/null 2>&1 || true
+          else
+            runuser -u postgres -- psql -d ${cfg.database.name} -c "
+              UPDATE tokens 
+              SET key = '$CLEAN_TOKEN_KEY', \"group\" = 'default' 
+              WHERE name = 'lobechat-default';
             " >/dev/null 2>&1 || true
           fi
         fi
