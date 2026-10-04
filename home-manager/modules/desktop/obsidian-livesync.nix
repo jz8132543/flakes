@@ -7,100 +7,46 @@
 }:
 let
   vaultRoot = "Sync";
-  syncHost = "sync.${osConfig.networking.domain}";
-
-  # 封装 Remotely Save 插件包供 programs.obsidian.vaults.<name>.communityPlugins 使用
-  remotelySavePkg = pkgs.runCommand "obsidian-remotely-save-0.5.25" { } ''
-    mkdir -p $out
-    cp ${
-      pkgs.fetchurl {
-        url = "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/main.js";
-        sha256 = "017s24n3d6agfxrg1g0avhsa9fk9g1h5ij8q8rwbk22iy4kvvbxk";
-      }
-    } $out/main.js
-    cp ${
-      pkgs.fetchurl {
-        url = "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/manifest.json";
-        sha256 = "145a9inbj0195nhk7sapaxak2nvf564amrw0d1lklgq02svc1nbi";
-      }
-    } $out/manifest.json
-    cp ${
-      pkgs.fetchurl {
-        url = "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/styles.css";
-        sha256 = "1cyzw3lr5jikrry4ny5zwz52na7a15dn5cpvg998r9ccadylwn47";
-      }
-    } $out/styles.css
-  '';
+  domain = osConfig.networking.domain;
+  # 统一 WebDAV 存储 Base URL：Obsidian 独立子目录为 ${storageBaseUrl}/obsidian
+  storageBaseUrl = "https://alist.${domain}/dav/onedrive";
+  papersDir = "${config.home.homeDirectory}/Storage/Papers";
+  couchHost = "sync.${domain}";
 in
 {
   sops.secrets = {
     "password" = { };
+    "cpa/api_key" = { };
   };
 
-  # ── Home-Manager 原生 programs.obsidian 模块配置 ───────────────
-  programs.obsidian = {
-    enable = true;
-    vaults."${vaultRoot}" = {
-      target = vaultRoot;
-      settings = {
-        app = {
-          livePreview = true;
-          language = "zh";
-        };
-        appearance = {
-          theme = "system";
-          baseFontSize = 16;
-        };
-        corePlugins = [
-          "file-explorer"
-          "global-search"
-          "backlink"
-          "outgoing-link"
-          "tag-pane"
-          "page-preview"
-          "properties"
-          "daily-notes"
-          "templates"
-          "note-composer"
-          "file-recovery"
-          "command-palette"
-          "word-count"
-          "bookmarks"
-          "outline"
-        ];
-        communityPlugins = [
-          { pkg = remotelySavePkg; }
-        ];
-      };
+  # 声明式安装通用 Obsidian（跟踪 Nixpkgs 最新版）
+  home.packages = with pkgs; [
+    obsidian
+  ];
+
+  # ── 1. 声明式配置已启用的社区插件与核心设置 ─────────────────────
+  # 当 Obsidian 打开 Vault 时，检测到 community-plugins.json 声明的插件
+  # 配合已注入的配置文件即可直接加载使用
+  home.file = {
+    "${vaultRoot}/.obsidian/community-plugins.json".text = builtins.toJSON [
+      "obsidian-livesync"
+      "remotely-save"
+      "obsidian-zotero-desktop-connector"
+      "copilot"
+    ];
+
+    "${vaultRoot}/.obsidian/app.json".text = builtins.toJSON {
+      livePreview = true;
+      language = "zh";
+      attachmentFolderPath = "Attachments";
     };
   };
 
-  # ── 敏感凭据（WebDAV 密码）通过 SOPS 模板注入插件目录 ────────
-  # 注意：communityPlugins.settings 会写入 /nix/store，为防止明文密码泄漏，使用 sops 模板动态写入
-  sops.templates."obsidian-remotely-save" = {
-    content = builtins.toJSON {
-      syncConfigSlug = "remotely-save";
-      syncServiceType = "webdav";
-      webdav = {
-        url = "https://alist.${osConfig.networking.domain}/dav/189P/Sync/Obsidian/";
-        username = "dav";
-        password = config.sops.placeholder."password";
-        depth = "manual";
-        manualRecursive = false;
-      };
-      autoRun = 1;
-      syncOnSave = true;
-      syncOnStart = true;
-      initRun = true;
-      agreeToUploadLargeFiles = true;
-    };
-    path = "${vaultRoot}/.obsidian/plugins/remotely-save/data.json";
-  };
-
-  # LiveSync CouchDB 凭据备用
+  # ── 2. 核心：CouchDB 数据库自动直连配置（NoSQL 文档型数据库）─────
+  # 替代传统文件同步，每一篇笔记的改动实时入库 CouchDB，实现免 Restic 迁移
   sops.templates."obsidian-livesync-settings" = {
     content = builtins.toJSON {
-      couchDB_URI = "https://${syncHost}";
+      couchDB_URI = "https://${couchHost}";
       couchDB_USER = "obsidian";
       couchDB_PASSWORD = config.sops.placeholder."password";
       couchDB_DBNAME = "obsidiannotes";
@@ -112,20 +58,124 @@ in
       periodicReplication = false;
       encrypt = true;
       passphrase = config.sops.placeholder."password";
-      usePluginSync = false;
+      usePluginSync = true;
       autoSweepPlugins = false;
       autoSweepPluginsPeriodic = false;
       isConfigured = true;
     };
-    path = "${vaultRoot}/.livesync/settings.json";
+    path = "${vaultRoot}/.obsidian/plugins/obsidian-livesync/data.json";
   };
 
-  home.activation.initObsidianVault = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ${pkgs.coreutils}/bin/mkdir -p "$HOME/${vaultRoot}/.obsidian/plugins/remotely-save" "$HOME/${vaultRoot}/.livesync"
+  # ── 3. 备用同步：Remotely Save 指向 ${storageBaseUrl}/obsidian ──
+  sops.templates."obsidian-remotely-save" = {
+    content = builtins.toJSON {
+      syncConfigSlug = "remotely-save";
+      syncServiceType = "webdav";
+      webdav = {
+        url = "${storageBaseUrl}/obsidian/";
+        username = "dav";
+        password = config.sops.placeholder."password";
+        depth = "manual";
+        manualRecursive = false;
+      };
+      autoRun = 0; # 默认优先由 CouchDB LiveSync 接管秒级流式同步
+      syncOnSave = false;
+      syncOnStart = false;
+      agreeToUploadLargeFiles = true;
+    };
+    path = "${vaultRoot}/.obsidian/plugins/remotely-save/data.json";
+  };
+
+  # ── 4. Zotero Integration 自动配置与单份论文引用模板 ───────────
+  sops.templates."obsidian-zotero-integration" = {
+    content = builtins.toJSON {
+      version = 1;
+      betterBibTexExportUrl = "http://127.0.0.1:23119/better-bibtex/export/collection";
+      citationExportFormat = "better-bibtex";
+      database = "zotero";
+      enableLocalFileLink = true;
+      importPath = "Literature";
+      templates = [
+        {
+          name = "Academic Paper Note";
+          id = "academic-paper-default";
+          format = ''
+            ---
+            citekey: {{citekey}}
+            title: "{{title}}"
+            authors: [{{authors}}]
+            year: {{year}}
+            doi: {{doi}}
+            zotero_link: zotero://select/items/@{{citekey}}
+            pdf_path: "file://${papersDir}/{{citekey}}.pdf"
+            tags: [literature, {{tags}}]
+            ---
+
+            # {{title}}
+
+            - **Zotero Link**: [Open in Zotero](zotero://select/items/@{{citekey}})
+            - **Physical PDF**: [Open Cloud-Backed PDF](${papersDir}/{{citekey}}.pdf)
+
+            ## Abstract
+            {{abstractNote}}
+
+            ## Annotations & Key Highlights
+            {{annotations}}
+          '';
+        }
+      ];
+    };
+    path = "${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector/data.json";
+  };
+
+  # ── 5. AI Copilot 自动配置：全面支持第三方中转站（自定义公网 URL 与 APIKey）──
+  sops.templates."obsidian-copilot-settings" = {
+    content = builtins.toJSON {
+      openAIApiKey = config.sops.placeholder."cpa/api_key";
+      openAIBaseUrl = "https://cpa.${domain}/v1";
+      defaultModel = "gpt-4o";
+      temperature = 0.5;
+      stream = true;
+      systemPrompt = "You are a professional academic research assistant and knowledge synthesizer.";
+      activeProvider = "openai";
+      customModelApiUrl = "https://cpa.${domain}/v1";
+      customModelApiKey = config.sops.placeholder."cpa/api_key";
+      models = [
+        {
+          name = "gpt-4o";
+          provider = "openai";
+          baseUrl = "https://cpa.${domain}/v1";
+          apiKey = config.sops.placeholder."cpa/api_key";
+        }
+        {
+          name = "claude-3-5-sonnet-20241022";
+          provider = "openai";
+          baseUrl = "https://cpa.${domain}/v1";
+          apiKey = config.sops.placeholder."cpa/api_key";
+        }
+        {
+          name = "deepseek-chat";
+          provider = "openai";
+          baseUrl = "https://cpa.${domain}/v1";
+          apiKey = config.sops.placeholder."cpa/api_key";
+        }
+      ];
+    };
+    path = "${vaultRoot}/.obsidian/plugins/copilot/data.json";
+  };
+
+  # 声明式预创建各插件数据目录与 Vault 结构
+  home.activation.initObsidianDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    ${pkgs.coreutils}/bin/mkdir -p \
+      "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-livesync" \
+      "$HOME/${vaultRoot}/.obsidian/plugins/remotely-save" \
+      "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector" \
+      "$HOME/${vaultRoot}/.obsidian/plugins/copilot" \
+      "$HOME/${vaultRoot}/Literature" \
+      "$HOME/${vaultRoot}/Attachments"
   '';
 
   home.global-persistence.directories = [
     "${vaultRoot}/.obsidian"
-    "${vaultRoot}/.livesync"
   ];
 }

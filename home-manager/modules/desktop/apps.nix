@@ -289,6 +289,7 @@ let
 in
 {
   imports = [
+    ./storage-papers.nix
     ./obsidian-livesync.nix
     ./zotero.nix
     ./cc-switch.nix
