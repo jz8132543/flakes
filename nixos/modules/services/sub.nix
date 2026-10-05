@@ -7,7 +7,7 @@
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
-  xhttpMode = "packet-up";
+  xhttpMode = "auto";
   xhttpPath = "/";
   regionNames = [
     "HK"

@@ -23,6 +23,11 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  networking = {
+    useNetworkd = true;
+    useDHCP = false;
+  };
+
   # Basic networking - DHCP by default
   systemd.network = {
     enable = true;

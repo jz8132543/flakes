@@ -157,6 +157,7 @@
     aagl = {
       url = "github:ezKEa/aagl-gtk-on-nix";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.rust-overlay.follows = "rust-overlay";
     };
     openclaw-nix = {
       url = "github:openclaw/nix-openclaw";

@@ -35,6 +35,8 @@
   # Prevent laptop from sleeping on lid close
   services.logind.settings.Login.HandleLidSwitch = "ignore";
 
+  networking.useNetworkd = true;
+
   systemd.network = {
     enable = true;
     networks."10-lan" = {

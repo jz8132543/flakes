@@ -49,7 +49,7 @@ in
           flake = self;
         };
       };
-      nix.nixPath = lib.mkForce [ ];
+      # nix.nixPath has been renamed to nix.settings.nix-path
       nix.settings.nix-path = lib.mkForce [ ];
 
       # 4. Nix 运行环境优化

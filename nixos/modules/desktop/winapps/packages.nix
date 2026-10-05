@@ -19,8 +19,8 @@ in
         # FreeRDP is required by WinApps to connect to the VM seamlessly
         freerdp
         # WinApps package from the community flake
-        inputs.winapps.packages.${pkgs.system}.winapps
-        inputs.winapps.packages.${pkgs.system}.winapps-launcher
+        inputs.winapps.packages.${pkgs.stdenv.hostPlatform.system}.winapps
+        inputs.winapps.packages.${pkgs.stdenv.hostPlatform.system}.winapps-launcher
       ]
       ++ lib.optionals cfg.kvm.enable [
         # Dependencies for KVM dynamic disk discovery script

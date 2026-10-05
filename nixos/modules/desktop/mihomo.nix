@@ -4,11 +4,25 @@
   ...
 }:
 {
+  imports = [ ./mihomo-routing.nix ];
+
+  users.groups.mihomo = { };
+  users.users.mihomo = {
+    isSystemUser = true;
+    group = "mihomo";
+    uid = 998;
+  };
+
   services.mihomo = {
     enable = lib.mkDefault true;
     tunMode = true;
     webui = pkgs.metacubexd;
     configFile = "/etc/mihomo/config.yaml";
+  };
+  systemd.services.mihomo.serviceConfig = {
+    DynamicUser = lib.mkForce false;
+    User = "mihomo";
+    Group = "mihomo";
   };
   systemd.services.mihomo.serviceConfig.ExecStartPre = [
     "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-geoip}/share/v2ray/geoip.dat /var/lib/private/mihomo/GeoIP.dat"
