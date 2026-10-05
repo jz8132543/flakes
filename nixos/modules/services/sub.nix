@@ -7,8 +7,6 @@
 let
   cfg = config.services.subscriptionPublisher;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
-  xhttpMode = "auto";
-  xhttpPath = "/";
   regionNames = [
     "HK"
     "JP"
@@ -20,20 +18,16 @@ let
     inherit (node) name server port;
     type = "vless";
     uuid = config.sops.placeholder."xray/uuid";
-    network = "xhttp";
+    network = "tcp";
     tls = true;
     udp = true;
+    flow = "xtls-rprx-vision";
     servername = cfg.serverName;
-    xhttp-opts = {
-      mode = xhttpMode;
-      path = xhttpPath;
-      host = cfg.serverName;
-    };
     reality-opts = {
       public-key = config.sops.placeholder."xray/public_key";
       short-id = config.sops.placeholder."xray/short_id";
     };
-    client-fingerprint = "ios";
+    client-fingerprint = "chrome";
   };
 
   # easyTierProxy = {
@@ -276,7 +270,7 @@ let
       in
       "vless://${
         config.sops.placeholder."xray/uuid"
-      }@${node.server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=ios&type=xhttp&mode=${xhttpMode}&path=${xhttpPath}&host=${cfg.serverName}&pbk=${
+      }@${node.server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=chrome&type=tcp&flow=xtls-rprx-vision&pbk=${
         config.sops.placeholder."xray/public_key"
       }&sid=${config.sops.placeholder."xray/short_id"}#${safeName}"
     ) cfg.nodes

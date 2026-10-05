@@ -17,7 +17,6 @@
 }:
 
 let
-  destSite = "${serverName}:443";
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
 in
 {
@@ -39,230 +38,155 @@ in
     };
   };
 
-  # 2. 使用 Template 动态生成 config.json
-  # 这样生成的配置文件位于 /run/secrets/rendered/，不会进入 nix store
-  sops.templates."xray-config.json" = {
+  # 2. 使用 Template 动态生成 sing-box config.json
+  # 配置文件位于 /run/secrets/rendered/，不进入 nix store
+  sops.templates."sing-box-config.json" = {
     mode = "0444";
-    restartUnits = [ "xray.service" ];
-    content = builtins.toJSON (
-      {
-        log = {
-          access = "none";
-          dnsLog = false;
-          loglevel = if config.environment.minimal or false then "error" else "warning";
-        };
+    restartUnits = [ "sing-box.service" ];
+    content = builtins.toJSON {
+      log = {
+        disabled = false;
+        level = if config.environment.minimal or false then "warn" else "info";
+        timestamp = true;
+      };
 
-        inbounds =
-          if ss then
-            [
-              {
-                port = xrayPort;
-                listen = "0.0.0.0";
-                protocol = "shadowsocks";
-                settings = {
-                  method = "2022-blake3-aes-128-gcm";
-                  password = config.sops.placeholder."xray/uuid";
-                };
-              }
-            ]
-          else
-            [
-              {
-                port = xrayPort;
-                listen = "0.0.0.0";
-                protocol = "vless";
-                # tag = "vless_reality";
-                # sniffing 必须放在 inbound 内（Xray v1.8+ 顶级 sniffing 被忽略）
-                sniffing = {
-                  enabled = true;
-                  destOverride = [
-                    "http"
-                    "tls"
-                    "quic"
-                  ];
-                  routeOnly = true;
-                };
-                settings = {
-                  clients = [
-                    {
-                      id = config.sops.placeholder."xray/uuid";
-                    }
-                  ];
-                  decryption = "none";
-                };
-                streamSettings = {
-                  sockopt = {
-                    tcpFastOpen = true;
-                    tcpKeepAliveIdle = 30;
-                    tcpNoDelay = true;
-                    tcpCongestion = "bbr";
-                  };
-                  network = "xhttp";
-                  security = "reality";
-                  xhttpSettings = {
-                    mode = "auto"; # 服务端推荐 auto，自适应客户端握手
-                    host = serverName;
-                    path = "/";
-                  };
-                  realitySettings = {
-                    show = false;
-                    target = destSite;
-                    xver = 0;
-                    serverNames = [ serverName ];
-                    privateKey = config.sops.placeholder."xray/private_key";
-                    shortIds = [ config.sops.placeholder."xray/short_id" ];
-                    minClientVer = "1.0.0";
-                  };
-                };
-              }
-            ];
-
-        outbounds = [
-          {
-            tag = "direct";
-            protocol = "freedom";
-          }
-        ]
-        ++ (lib.imap0 (i: host: {
-          tag = "proxy-${toString i}";
-          protocol = "vless";
-          settings = {
-            vnext = [
-              {
-                address = host;
-                port = 8555;
-                users = [
-                  {
-                    id = config.sops.placeholder."xray/uuid";
-                    encryption = "none";
-                  }
-                ];
-              }
-            ];
-          };
-          streamSettings = {
-            sockopt = {
-              tcpFastOpen = true;
-              tcpKeepAliveIdle = 30;
-              tcpNoDelay = true;
-              tcpCongestion = "bbr";
-            };
-            network = "xhttp";
-            security = "reality";
-            xhttpSettings = {
-              mode = "packet-up"; # 核心：上传打碎成短请求，下载保持长连接，对抗流量分析
-              host = serverName;
-              path = "/";
-            };
-            realitySettings = {
-              fingerprint = "ios";
-              inherit serverName;
-              publicKey = config.sops.placeholder."xray/public_key";
-              shortId = config.sops.placeholder."xray/short_id";
-              alpn = [ "h3" ];
-            };
-          };
-        }) proxyHosts)
-        ++ [
-          {
-            tag = "cf-tunnel";
-            protocol = "wireguard";
-            settings = {
-              secretKey = config.sops.placeholder."xray/cf_tunnel_token";
-              address = [
-                "172.16.0.2/32"
-                "2606:4700:110:8ac0:1f3:b49f:5181:3855/128"
-              ];
-              peers = [
+      inbounds =
+        if ss then
+          [
+            {
+              type = "shadowsocks";
+              tag = "ss-in";
+              listen = "::";
+              listen_port = xrayPort;
+              method = "2022-blake3-aes-128-gcm";
+              password = config.sops.placeholder."xray/uuid";
+            }
+          ]
+        else
+          [
+            {
+              type = "vless";
+              tag = "vless-in";
+              listen = "::";
+              listen_port = xrayPort;
+              users = [
                 {
-                  publicKey = "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=";
-                  allowedIPs = [
-                    "0.0.0.0/0"
-                    "::/0"
-                  ];
-                  endpoint = "engage.cloudflareclient.com:2408";
+                  name = "default";
+                  uuid = config.sops.placeholder."xray/uuid";
+                  flow = "xtls-rprx-vision";
                 }
               ];
-              reserved = [
-                18
-                11
-                127
-              ];
-              mtu = 1280;
-            };
-          }
-          {
-            tag = "block";
-            protocol = "blackhole";
-          }
-        ];
-
-        routing = {
-          domainStrategy = "IPIfNonMatch";
-          balancers = lib.optionals needProxy [
-            {
-              tag = "proxy-balancer";
-              selector = [ "proxy-" ];
-              strategy = {
-                type = if useHealthCheckedBalancer then "leastPing" else "random";
+              tls = {
+                enabled = true;
+                server_name = serverName;
+                reality = {
+                  enabled = true;
+                  handshake = {
+                    server = serverName;
+                    server_port = 443;
+                  };
+                  private_key = config.sops.placeholder."xray/private_key";
+                  short_id = [
+                    config.sops.placeholder."xray/short_id"
+                  ];
+                };
               };
             }
           ];
-          rules = [
-            (
-              if needProxy then
-                {
-                  type = "field";
-                  balancerTag = "proxy-balancer";
-                  domain = [
-                    "skk.moe"
-                    "geosite:openai"
-                    "geosite:anthropic"
-                    "domain:chatgpt.com"
-                    "domain:oaistatic.com"
-                    "domain:oaiusercontent.com"
-                    "domain:claude.ai"
-                    "domain:anthropic.com"
-                  ];
-                }
-              else
-                {
-                  type = "field";
-                  outboundTag = "direct";
-                  network = "udp,tcp";
-                }
-            )
-            {
-              type = "field";
-              outboundTag = "block";
-              domain = [ "geosite:category-ads-all" ];
-            }
-            {
-              type = "field";
-              outboundTag = "direct";
-              network = "udp,tcp";
-            }
-          ];
-        };
-      }
-      // lib.optionalAttrs useHealthCheckedBalancer {
-        observatory = {
-          subjectSelector = [ "proxy-" ];
-          probeURL = "https://cp.cloudflare.com/generate_204";
-          probeInterval = "1m";
-        };
-      }
-    );
+
+      # 极致精简出站：纯 direct 直连，无冗余封装
+      outbounds = [
+        {
+          type = "direct";
+          tag = "direct";
+        }
+      ]
+      ++ lib.optionals needProxy (
+        (lib.imap0 (i: host: {
+          tag = "proxy-${toString i}";
+          type = "vless";
+          server = host;
+          server_port = 8555;
+          uuid = config.sops.placeholder."xray/uuid";
+          flow = "xtls-rprx-vision";
+          tls = {
+            enabled = true;
+            server_name = serverName;
+            utls = {
+              enabled = true;
+              fingerprint = "chrome";
+            };
+            reality = {
+              enabled = true;
+              public_key = config.sops.placeholder."xray/public_key";
+              short_id = config.sops.placeholder."xray/short_id";
+            };
+          };
+        }) proxyHosts)
+        ++ lib.optionals useHealthCheckedBalancer [
+          {
+            type = "urltest";
+            tag = "proxy-balancer";
+            outbounds = lib.imap0 (i: _: "proxy-${toString i}") proxyHosts;
+            url = "https://cp.cloudflare.com/generate_204";
+            interval = "1m";
+          }
+        ]
+      );
+
+      # 服务端路由优化：
+      # 无需代理时留空（无 rules，默认走第一个出站 direct 直出，零 GeoIP/GeoSite 规则集与解析开销）
+      # 需要代理时仅使用纯内存前缀后缀匹配，不加载庞大的外部数据库
+      route = lib.optionalAttrs needProxy {
+        rules = [
+          {
+            domain_suffix = [
+              "skk.moe"
+              "openai.com"
+              "chatgpt.com"
+              "oaistatic.com"
+              "oaiusercontent.com"
+              "claude.ai"
+              "anthropic.com"
+            ];
+            outbound = if useHealthCheckedBalancer then "proxy-balancer" else "proxy-0";
+          }
+        ];
+        final = "direct";
+      };
+    };
   };
 
-  # 3. 启动 Xray 服务并指向生成的配置文件
-  services.xray = {
+  # 3. 启用 Sing-box 服务并显式停用老旧的 Xray 服务
+  services.sing-box = {
     enable = true;
-    # 这一步至关重要，让 systemd 使用 sops 渲染后的文件
-    settingsFile = config.sops.templates."xray-config.json".path;
+  };
+  services.xray.enable = lib.mkForce false;
+
+  # 4. 针对弱机（1CPU/256M 内存）深度调优 systemd 服务参数
+  systemd.services.sing-box = {
+    startLimitIntervalSec = lib.mkForce 0;
+    serviceConfig = {
+      ExecStart = lib.mkForce [
+        ""
+        "${lib.getExe pkgs.sing-box} -D /var/lib/sing-box run -c ${
+          config.sops.templates."sing-box-config.json".path
+        }"
+      ];
+      Restart = lib.mkForce "on-failure";
+      RestartSec = "2s";
+      MemoryMax = lib.mkDefault "192M";
+      MemoryHigh = lib.mkDefault "150M";
+      OOMScoreAdjust = lib.mkDefault (-500);
+    };
+    environment = {
+      # 激进 GC 控制内存上限，避免低内存 VPS OOM
+      GOGC = lib.mkDefault "50";
+      GOMEMLIMIT = lib.mkDefault "128MiB";
+    };
   };
 
-  # services.traefik.tcpProxies = {
+  # 5. Traefik SNI Passthrough 保持对接
   services.traefik.dynamicConfigOptions.tcp = {
     routers.xray = {
       entryPoints = [
@@ -275,45 +199,11 @@ in
     };
 
     services.xray.loadbalancer.servers = [ { address = "127.0.0.1:${toString xrayPort}"; } ];
-    # xray = {
-    #   rule = "HostSNI(`" + serverName + "`)";
-    #   target = "127.0.0.1:${toString xrayPort}";
-    #   tls.passthrough = true;
-    #   entryPoints = [
-    #     "https"
-    #     "https-alt"
-    #   ];
-    #   # tls = true;
-    # };
   };
 
-  # 确保 Xray 能读到 geo 数据库
-  systemd.services.xray = {
-    startLimitIntervalSec = lib.mkForce 0;
-    serviceConfig = {
-      # 让 xray 的 fd 上限跟随稳定连接预算，避免用户态先于内核变瓶颈。
-      # LimitNOFILE = xrayLimitNOFILE;
-      # 进程失败或被 OOM 杀死后自动重启（正常退出不重启）。
-      Restart = lib.mkForce "on-failure";
-      RestartSec = "2s";
-    };
-    environment =
-      let
-        assets = pkgs.symlinkJoin {
-          name = "v2ray-assets";
-          paths = with pkgs; [
-            v2ray-geoip
-            v2ray-domain-list-community
-          ];
-        };
-      in
-      {
-        V2RAY_LOCATION_ASSET = "${assets}/share/v2ray";
-        XRAY_LOCATION_ASSET = "${assets}/share/v2ray";
-      };
-  };
+  # 6. 定时重启
   systemd.timers = {
-    xray-restart = {
+    proxy-restart = {
       wantedBy = [ "timers.target" ];
       timerConfig = {
         OnCalendar = "*-*-* 04:00:00";
@@ -322,12 +212,11 @@ in
       };
     };
   };
-  systemd.services.xray-restart = {
-    description = "Trigger to restart Xray";
+  systemd.services.proxy-restart = {
+    description = "Trigger to restart proxy service";
     serviceConfig = {
       Type = "oneshot";
-      # 使用 systemctl restart 重启目标服务
-      ExecStart = "${pkgs.systemd}/bin/systemctl restart xray.service";
+      ExecStart = "${pkgs.systemd}/bin/systemctl restart sing-box.service";
     };
   };
 

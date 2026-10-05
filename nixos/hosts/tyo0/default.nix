@@ -39,8 +39,14 @@
     reportInterval = 3600;
   };
 
-  # 给 xray 单独设内存压力阈值，让它在接近上限时先被 cgroup 回收/节流。
+  # 给 xray / sing-box 单独设内存压力阈值，让它在接近上限时先被 cgroup 回收/节流。
   systemd.services.xray.serviceConfig = {
+    MemoryHigh = "180M";
+    ManagedOOMMemoryPressure = "kill";
+    ManagedOOMMemoryPressureLimit = "60%";
+    OOMScoreAdjust = -900;
+  };
+  systemd.services.sing-box.serviceConfig = {
     MemoryHigh = "180M";
     ManagedOOMMemoryPressure = "kill";
     ManagedOOMMemoryPressureLimit = "60%";
