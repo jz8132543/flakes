@@ -7,8 +7,8 @@
 }:
 let
   domain = osConfig.networking.domain;
-  # 统一 WebDAV 存储 Base URL：后续每个组件按子路径独立划分
-  storageBaseUrl = "https://alist.${domain}/dav/onedrive";
+  # 统一 WebDAV 存储 Base URL：使用 baseUrl 变量，各组件独立划分子目录
+  baseUrl = "https://alist.${domain}/dav/onedrive";
   papersMountPoint = "${config.home.homeDirectory}/Storage/Papers";
   rcloneConfig = config.sops.templates."rclone-papers-mount".path;
 in
@@ -17,12 +17,12 @@ in
     "password" = { };
   };
 
-  # 1. 生成 rclone 配置模板，指向统一存储底座下的 ${storageBaseUrl}/Papers
+  # 1. 生成 rclone 配置模板，指向统一存储底座下的 ${baseUrl}/Papers
   sops.templates."rclone-papers-mount" = {
     content = ''
       [papers-remote]
       type = webdav
-      url = ${storageBaseUrl}/Papers
+      url = ${baseUrl}/Papers
       vendor = other
       user = dav
       pass = ${config.sops.placeholder."password"}
@@ -37,7 +37,7 @@ in
   # 3. 注册 systemd user 服务：按需缓存透明挂载 (VFS Cache Mode Full)
   systemd.user.services.mount-papers = {
     Unit = {
-      Description = "Mount Remote Academic Papers (${storageBaseUrl}/Papers) to Local Virtual POSIX Path";
+      Description = "Mount Remote Academic Papers (${baseUrl}/Papers) to Local Virtual POSIX Path";
       After = [ "network-online.target" ];
       Wants = [ "network-online.target" ];
     };

@@ -8,9 +8,11 @@
 let
   profileDir = ".zotero/zotero/default";
   domain = osConfig.networking.domain;
-  # 统一 WebDAV 存储 Base URL：Zotero 仅作为备用同步路径
-  storageBaseUrl = "https://alist.${domain}/dav/onedrive";
+  # 统一 WebDAV 存储 Base URL：各组件独立划分子目录
+  baseUrl = "https://alist.${domain}/dav/onedrive";
   papersDir = "${config.home.homeDirectory}/Storage/Papers";
+  # 统一收拢到 ~/Storage 下：本地真实 SSD 目录，存放 SQLite 核心数据库
+  zoteroDataDir = "${config.home.homeDirectory}/Storage/zotero";
 
   # 途径 B 封装：命令行一键配置与验证工具
   zoteroConfigDav = pkgs.writeShellApplication {
@@ -26,7 +28,7 @@ let
               exit 1
             fi
             PASSWORD="$(cat "$PASSWORD_FILE")"
-            DAV_URL="${storageBaseUrl}/zotero"
+            DAV_URL="${baseUrl}/zotero"
             DAV_USER="dav"
             PROFILE_DIR="$HOME/${profileDir}"
 
@@ -38,13 +40,19 @@ let
 
             # 1. 写入 user.js 首选项
             cat > "$PROFILE_DIR/user.js" << EOF
-      user_pref("extensions.zotero.sync.storage.enabled", false);
+      user_pref("extensions.zotero.firstRun", false);
+      user_pref("extensions.zotero.firstRunGuidance", false);
+      user_pref("extensions.zotero.firstRun.showTour", false);
+      user_pref("extensions.zotero.tour.completed", true);
+      user_pref("extensions.zotero.sync.storage.enabled", true);
       user_pref("extensions.zotero.sync.storage.protocol", "webdav");
       user_pref("extensions.zotero.sync.storage.verified", true);
       user_pref("extensions.zotero.sync.storage.scheme", "https");
       user_pref("extensions.zotero.sync.storage.url", "$DAV_URL");
       user_pref("extensions.zotero.sync.storage.username", "$DAV_USER");
       user_pref("extensions.zotero.baseAttachmentPath", "${papersDir}");
+      user_pref("extensions.zotero.useDataDir", true);
+      user_pref("extensions.zotero.dataDir", "${zoteroDataDir}");
       EOF
 
             # 2. 写入登录凭据 logins.json
@@ -96,7 +104,7 @@ in
     "cpa/api_key" = { };
   };
 
-  # 注册通用 zotero 桌面端（不锁版本，跟踪系统最新构建）与命令行工具
+  # 注册通用 zotero 桌面端（不固定版本号，统一引用 pkgs.zotero）与扩展管理
   home.packages = [
     pkgs.zotero
     zoteroConfigDav
@@ -115,15 +123,42 @@ in
     Default=1
   '';
 
-  # 2. Zotero 全局首选项（user.js 会在 Zotero 每次启动时自动生效）
-  home.file."${profileDir}/user.js".text = ''
-    // ── 核心设计：关闭官方 WebDAV zip 附件打包，彻底避免云端双份存储 ──
-    user_pref("extensions.zotero.sync.storage.enabled", false);
+  # 2. 声明式注入 Zotero 插件至 profile extensions 目录（零手动点击安装，开箱即用）
+  home.file = {
+    "${profileDir}/extensions/better-bibtex@iris-advies.com.xpi".source =
+      "${pkgs.zoteroPlugins.better-bibtex}/zotero-better-bibtex.xpi";
+    "${profileDir}/extensions/zoterogpt@polygon.org.xpi".source =
+      "${pkgs.zoteroPlugins.zotero-gpt}/zotero-gpt.xpi";
+  };
 
-    // ── 核心设计：链接附件基准目录（Linked Attachment Base Directory）──
-    // 论文在物理上只在挂载目录 ${papersDir} 中存放单份 PDF，Zotero 仅持有相对路径链接
+  # 3. Zotero 全局首选项（user.js 会在 Zotero 每次启动时自动生效）
+  home.file."${profileDir}/user.js".text = ''
+    // ── 彻底关闭 Zotero 首次启动新手向导、快速设置、导览与所有弹窗 ──
+    user_pref("extensions.zotero.firstRun", false);
+    user_pref("extensions.zotero.firstRunGuidance", false);
+    user_pref("extensions.zotero.firstRun.showTour", false);
+    user_pref("extensions.zotero.tour.completed", true);
+    user_pref("extensions.zotero.whatsNew.showOnUpdate", false);
+    user_pref("browser.rights.3.shown", true);
+    user_pref("browser.tabs.warnOnClose", false);
+    user_pref("toolkit.telemetry.prompted", 2);
+    user_pref("toolkit.telemetry.rejected", true);
+
+    // ── 数据目录指向 ~/Storage/zotero（本地 SSD 目录，支持毫秒级全文检索）──
+    user_pref("extensions.zotero.useDataDir", true);
+    user_pref("extensions.zotero.dataDir", "${zoteroDataDir}");
+
+    // ── 核心设计：链接附件基准目录（论文在物理上只在挂载目录 ${papersDir} 存一份纯 PDF）──
     user_pref("extensions.zotero.baseAttachmentPath", "${papersDir}");
-    user_pref("extensions.zotero.useDataDir", false);
+
+    // ── 自动启用并连接 WebDAV 存储（已验证通过，免手动进设置验证）──
+    user_pref("extensions.zotero.sync.storage.enabled", true);
+    user_pref("extensions.zotero.sync.storage.protocol", "webdav");
+    user_pref("extensions.zotero.sync.storage.verified", true);
+    user_pref("extensions.zotero.sync.storage.scheme", "https");
+    user_pref("extensions.zotero.sync.storage.url", "${baseUrl}/zotero");
+    user_pref("extensions.zotero.sync.storage.username", "dav");
+    user_pref("extensions.zotero.sync.auto", true);
 
     // ── 插件自动化配置（免弹窗信任与自启动）──
     user_pref("extensions.autoDisableScopes", 0);
@@ -140,7 +175,7 @@ in
     user_pref("extensions.zotero.translate.ai.serverUrl", "https://cpa.${domain}/v1");
   '';
 
-  # 3. Zotero WebDAV 凭据（自动写入 Mozilla logins.json）
+  # 4. Zotero WebDAV 凭据（自动写入 Mozilla logins.json）
   sops.templates."zotero-logins" = {
     content = builtins.toJSON {
       nextId = 2;
@@ -170,7 +205,7 @@ in
     path = "${profileDir}/logins.json";
   };
 
-  # 4. Zotero AI 插件配置文件（若安装 zotero-gpt / translate 类插件，自动注入公网自定义 URL 与 API Key）
+  # 5. Zotero AI 插件配置文件（自动注入公网自定义 URL 与 API Key，全面兼容中转站）
   sops.templates."zotero-ai-config" = {
     content = builtins.toJSON {
       apiProvider = "openai-compatible";
@@ -183,6 +218,7 @@ in
   };
 
   home.activation.initZoteroProfile = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ${pkgs.coreutils}/bin/mkdir -p "$HOME/${profileDir}"
+    ${pkgs.coreutils}/bin/mkdir -p "$HOME/${profileDir}/extensions"
+    ${pkgs.coreutils}/bin/mkdir -p "${zoteroDataDir}"
   '';
 }

@@ -6,12 +6,80 @@
   ...
 }:
 let
-  vaultRoot = "Sync";
+  # 统一收拢到 ~/Storage 下：本地真实 SSD 目录，由 LiveSync 负责双向同步
+  vaultRoot = "Storage/obsidian";
   domain = osConfig.networking.domain;
-  # 统一 WebDAV 存储 Base URL：Obsidian 独立子目录为 ${storageBaseUrl}/obsidian
-  storageBaseUrl = "https://alist.${domain}/dav/onedrive";
+  baseUrl = "https://alist.${domain}/dav/onedrive";
   papersDir = "${config.home.homeDirectory}/Storage/Papers";
-  couchHost = "sync.${domain}";
+  couchHost = "couchdb.${domain}";
+
+  # 自动化联调验证工具：一键测试 CouchDB、WebDAV 与 CPA AI
+  obsidianCheck = pkgs.writeShellApplication {
+    name = "obsidian-couchdb-check";
+    runtimeInputs = with pkgs; [
+      coreutils
+      curl
+      jq
+    ];
+    text = ''
+      PASSWORD_FILE="${config.sops.secrets."password".path}"
+      if [ ! -f "$PASSWORD_FILE" ]; then
+        echo "[ERROR] Password file not found at $PASSWORD_FILE" >&2
+        exit 1
+      fi
+      PASSWORD="$(cat "$PASSWORD_FILE")"
+
+      echo "========================================================"
+      echo "  Obsidian & Academic Stack Automated Connectivity Test"
+      echo "========================================================"
+
+      # 1. 测试 CouchDB 连通性与认证
+      echo "--> [1/3] Testing CouchDB (${couchHost})..."
+      COUCH_RESP="$(curl -s -u "obsidian:$PASSWORD" "https://${couchHost}/" || true)"
+      if echo "$COUCH_RESP" | jq -e '.couchdb' >/dev/null 2>&1; then
+        VERSION="$(echo "$COUCH_RESP" | jq -r '.version')"
+        echo "    [OK] CouchDB online! Version: $VERSION"
+      else
+        echo "    [FAILED] CouchDB response invalid: $COUCH_RESP"
+      fi
+
+      DB_RESP="$(curl -s -u "obsidian:$PASSWORD" "https://${couchHost}/_all_dbs" || true)"
+      if echo "$DB_RESP" | grep -q "obsidiannotes"; then
+        echo "    [OK] Database 'obsidiannotes' exists and accessible!"
+      else
+        echo "    [WARNING] Database 'obsidiannotes' not detected: $DB_RESP"
+      fi
+
+      # 2. 测试 AList WebDAV 存储
+      echo "--> [2/3] Testing AList WebDAV (${baseUrl})..."
+      HTTP_CODE="$(curl -s -k -o /dev/null -w "%{http_code}" -u "dav:$PASSWORD" -X PROPFIND -H "Depth: 1" "${baseUrl}/" || true)"
+      if [ "$HTTP_CODE" = "207" ] || [ "$HTTP_CODE" = "200" ]; then
+        echo "    [OK] WebDAV connection verified successfully (HTTP $HTTP_CODE)!"
+      else
+        echo "    [WARNING] WebDAV returned HTTP $HTTP_CODE"
+      fi
+
+      # 3. 测试 CPA AI 接口服务
+      echo "--> [3/3] Testing CPA AI Gateway (https://cpa.${domain}/v1)..."
+      CPA_KEY_FILE="${config.sops.secrets."cpa/api_key".path}"
+      CPA_KEY=""
+      if [ -f "$CPA_KEY_FILE" ]; then
+        CPA_KEY="$(cat "$CPA_KEY_FILE")"
+      else
+        CPA_KEY="$PASSWORD"
+      fi
+      CPA_CODE="$(curl -s -k -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $CPA_KEY" "https://cpa.${domain}/v1/models" || true)"
+      if [ "$CPA_CODE" = "200" ]; then
+        echo "    [OK] CPA API Gateway accessible and authorized (HTTP $CPA_CODE)!"
+      else
+        echo "    [WARNING] CPA API returned HTTP $CPA_CODE"
+      fi
+
+      echo "========================================================"
+      echo "  All service connectivity checks finished."
+      echo "========================================================"
+    '';
+  };
 in
 {
   sops.secrets = {
@@ -19,15 +87,27 @@ in
     "cpa/api_key" = { };
   };
 
-  # 声明式安装通用 Obsidian（跟踪 Nixpkgs 最新版）
+  # 声明式安装通用 Obsidian（跟踪 Nixpkgs 最新版）与测试工具
   home.packages = with pkgs; [
     obsidian
+    obsidianCheck
   ];
 
-  # ── 1. 声明式配置已启用的社区插件与核心设置 ─────────────────────
-  # 当 Obsidian 打开 Vault 时，检测到 community-plugins.json 声明的插件
-  # 配合已注入的配置文件即可直接加载使用
+  # ── 1. 彻底跳过新手配置向导：预置全局 obsidian.json 与默认 Vault ───────
+  # 当首次打开 Obsidian 时，检测到已有处于 open: true 状态的 Vault，
+  # 瞬间跳过“创建新库/打开已有库”向导，直接进入主编辑界面！
   home.file = {
+    ".config/obsidian/obsidian.json".text = builtins.toJSON {
+      vaults = {
+        "storage-obsidian-vault" = {
+          path = "${config.home.homeDirectory}/${vaultRoot}";
+          ts = 1726000000000;
+          open = true;
+        };
+      };
+      insider = false;
+    };
+
     "${vaultRoot}/.obsidian/community-plugins.json".text = builtins.toJSON [
       "obsidian-livesync"
       "remotely-save"
@@ -40,10 +120,38 @@ in
       language = "zh";
       attachmentFolderPath = "Attachments";
     };
+
+    # 声明式自动部署插件核心代码（0 手动点击下载，开箱即用）
+    "${vaultRoot}/.obsidian/plugins/obsidian-livesync/main.js".source =
+      "${pkgs.obsidianPlugins.livesync}/main.js";
+    "${vaultRoot}/.obsidian/plugins/obsidian-livesync/manifest.json".source =
+      "${pkgs.obsidianPlugins.livesync}/manifest.json";
+    "${vaultRoot}/.obsidian/plugins/obsidian-livesync/styles.css".source =
+      "${pkgs.obsidianPlugins.livesync}/styles.css";
+
+    "${vaultRoot}/.obsidian/plugins/copilot/main.js".source = "${pkgs.obsidianPlugins.copilot}/main.js";
+    "${vaultRoot}/.obsidian/plugins/copilot/manifest.json".source =
+      "${pkgs.obsidianPlugins.copilot}/manifest.json";
+    "${vaultRoot}/.obsidian/plugins/copilot/styles.css".source =
+      "${pkgs.obsidianPlugins.copilot}/styles.css";
+
+    "${vaultRoot}/.obsidian/plugins/remotely-save/main.js".source =
+      "${pkgs.obsidianPlugins.remotely-save}/main.js";
+    "${vaultRoot}/.obsidian/plugins/remotely-save/manifest.json".source =
+      "${pkgs.obsidianPlugins.remotely-save}/manifest.json";
+    "${vaultRoot}/.obsidian/plugins/remotely-save/styles.css".source =
+      "${pkgs.obsidianPlugins.remotely-save}/styles.css";
+
+    "${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector/main.js".source =
+      "${pkgs.obsidianPlugins.zotero-integration}/main.js";
+    "${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector/manifest.json".source =
+      "${pkgs.obsidianPlugins.zotero-integration}/manifest.json";
+    "${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector/styles.css".source =
+      "${pkgs.obsidianPlugins.zotero-integration}/styles.css";
   };
 
   # ── 2. 核心：CouchDB 数据库自动直连配置（NoSQL 文档型数据库）─────
-  # 替代传统文件同步，每一篇笔记的改动实时入库 CouchDB，实现免 Restic 迁移
+  # 预置 isConfigured = true 与凭据，Obsidian 启动后静默连接 CouchDB，实现免 Restic 迁移
   sops.templates."obsidian-livesync-settings" = {
     content = builtins.toJSON {
       couchDB_URI = "https://${couchHost}";
@@ -66,13 +174,13 @@ in
     path = "${vaultRoot}/.obsidian/plugins/obsidian-livesync/data.json";
   };
 
-  # ── 3. 备用同步：Remotely Save 指向 ${storageBaseUrl}/obsidian ──
+  # ── 3. 备用同步：Remotely Save 指向 ${baseUrl}/obsidian ─────────
   sops.templates."obsidian-remotely-save" = {
     content = builtins.toJSON {
       syncConfigSlug = "remotely-save";
       syncServiceType = "webdav";
       webdav = {
-        url = "${storageBaseUrl}/obsidian/";
+        url = "${baseUrl}/obsidian/";
         username = "dav";
         password = config.sops.placeholder."password";
         depth = "manual";
@@ -154,6 +262,12 @@ in
           apiKey = config.sops.placeholder."cpa/api_key";
         }
         {
+          name = "gemini-3.8-flash";
+          provider = "openai";
+          baseUrl = "https://cpa.${domain}/v1";
+          apiKey = config.sops.placeholder."cpa/api_key";
+        }
+        {
           name = "deepseek-chat";
           provider = "openai";
           baseUrl = "https://cpa.${domain}/v1";
@@ -167,6 +281,7 @@ in
   # 声明式预创建各插件数据目录与 Vault 结构
   home.activation.initObsidianDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     ${pkgs.coreutils}/bin/mkdir -p \
+      "$HOME/.config/obsidian" \
       "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-livesync" \
       "$HOME/${vaultRoot}/.obsidian/plugins/remotely-save" \
       "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector" \
@@ -177,5 +292,6 @@ in
 
   home.global-persistence.directories = [
     "${vaultRoot}/.obsidian"
+    ".config/obsidian"
   ];
 }

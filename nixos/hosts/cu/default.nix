@@ -12,6 +12,7 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
+      nixosModules.optimize.anti-balloon
       # nixosModules.optimize.infini
       nixosModules.services.derp
       nixosModules.services.haproxy-proxy

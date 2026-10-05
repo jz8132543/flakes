@@ -7,6 +7,7 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.ext4
+      nixosModules.optimize.anti-balloon
       # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik

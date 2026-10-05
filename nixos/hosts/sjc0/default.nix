@@ -12,6 +12,7 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.ext4
+      nixosModules.optimize.anti-balloon
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.atc.edge

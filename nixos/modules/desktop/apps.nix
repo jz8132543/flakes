@@ -18,7 +18,6 @@
   services.gvfs.enable = true;
   environment.systemPackages = with pkgs; [
     libmtp
-    simple-mtpfs
     brasero # Added GNOME native burning tool
     qrcp
     android-tools

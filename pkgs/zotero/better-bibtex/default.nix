@@ -5,11 +5,11 @@
 }:
 stdenvNoCC.mkDerivation rec {
   pname = "zotero-better-bibtex";
-  version = "7.0.3";
+  version = "9.0.68";
 
   src = fetchurl {
     url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v${version}/zotero-better-bibtex-${version}.xpi";
-    hash = "sha256-42H5y00000000000000000000000000000000000000=";
+    hash = "sha256-02maNI8AEl85C1pp5aJjM0BELKx3in4Mjwm+r+HK6Lg=";
   };
 
   dontUnpack = true;
