@@ -111,6 +111,7 @@ in
                     serverNames = [ serverName ];
                     privateKey = config.sops.placeholder."xray/private_key";
                     shortIds = [ config.sops.placeholder."xray/short_id" ];
+                    minClientVer = "1.0.0";
                   };
                 };
               }
