@@ -97,7 +97,10 @@
               ${pkgs.jq}/bin/jq '
                 .game.path.china = "/mnt/games/Genshin Impact Game" |
                 .game.path.global = "/mnt/games/Genshin Impact Game" |
-                .launcher.temp = "/mnt/games/.temp"
+                .launcher.temp = "/mnt/games/.temp" |
+                .game.wine.shared_libraries.wine = false |
+                .game.wine.shared_libraries.gstreamer = false |
+                .game.wine.winewayland = false
               ' "$CFG_FILE" > "$CFG_FILE.tmp" && mv "$CFG_FILE.tmp" "$CFG_FILE"
             else
               cat << 'EOF' > "$CFG_FILE"
@@ -109,6 +112,19 @@
           "path": {
             "global": "/mnt/games/Genshin Impact Game",
             "china": "/mnt/games/Genshin Impact Game"
+          },
+          "wine": {
+            "language": "System",
+            "winewayland": false,
+            "shared_libraries": {
+              "wine": false,
+              "gstreamer": false
+            }
+          },
+          "enhancements": {
+            "gamescope": {
+              "enabled": false
+            }
           }
         }
       }

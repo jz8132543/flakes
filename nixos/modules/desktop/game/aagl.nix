@@ -1,10 +1,26 @@
-{ inputs, ... }:
+{ inputs, pkgs, ... }:
+let
+  aaglPkg = inputs.aagl.packages.${pkgs.system}.anime-game-launcher;
+in
 {
   imports = [ inputs.aagl.nixosModules.default ];
 
   # 启用原神专属启动器 (An Anime Game Launcher)
-  # AAGL 社区用代号 "An Anime Game" 代表原神，这是原神在 Linux 下唯一的正式专用启动器
-  programs.anime-game-launcher.enable = true;
+  programs.anime-game-launcher = {
+    enable = true;
+    # 包装启动脚本：在 steam-run (Bubblewrap) 容器内先将 /tmp/.X11-unix 赋权为 1777，
+    # 解决 Gamescope 内部 Xwayland 因目录权限不是 1777 导致的:
+    # "wlserver: /tmp/.X11-unix not owned by root or us" 及启动失败问题。
+    package = pkgs.symlinkJoin {
+      name = "anime-game-launcher-wrapped";
+      paths = [
+        (pkgs.writeShellScriptBin "anime-game-launcher" ''
+          ${pkgs.steam-run}/bin/steam-run bash -c 'chmod 1777 /tmp/.X11-unix 2>/dev/null || true; exec "${aaglPkg.unwrapped}/bin/anime-game-launcher" "$@"' -- "$@"
+        '')
+        aaglPkg
+      ];
+    };
+  };
 
   # 全能版 anime-games-launcher 目前上游 registry 尚未收录原神，可按需保留或关闭
   programs.anime-games-launcher.enable = true;
