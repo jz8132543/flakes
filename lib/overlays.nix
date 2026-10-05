@@ -31,13 +31,8 @@
 
     # inherit (final.qt6Packages) fcitx5-qt;
 
-    fcitx5-configtool = prev.fcitx5-configtool.override { kcmSupport = false; };
-
-    fcitx5-chinese-addons = prev.fcitx5-chinese-addons.override {
-      enableCloudPinyin = false;
-      enableOpencc = false;
-      qtwebengine = null;
-    };
+    # 移除破坏官方二进制缓存的 fcitx5-configtool 与 fcitx5-chinese-addons override，
+    # 避免在每次 nixpkgs 更新时于本地从 C++ 源码重新编译这两个组件
 
     wpsoffice-cn = prev.symlinkJoin {
       name = "${prev.wpsoffice-cn.name or "wpsoffice-cn"}-no-scale";

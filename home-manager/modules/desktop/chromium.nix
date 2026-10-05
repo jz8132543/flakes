@@ -42,6 +42,8 @@ in
       "mpkodccbngfoacfalldjimigihfbocjn" # Aria2 Explorer
       # Linkwarden - Bookmark Manager
       "efpglpohdfnodejoimcladancmgeibao"
+      # Zotero Connector - 一键抓取文献与PDF附件
+      "ekhagklcjbdpajgpjgmbionohlpdbjgc"
     ];
     # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
     # commandLineArgs = [

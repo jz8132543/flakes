@@ -311,18 +311,17 @@ in
     man-pages
     man-pages-posix
     # APPS
-    # logseq
-    obsidian
-    zotero
-    libreoffice
+    # logseq (obsidian and zotero managed in their respective dedicated modules)
+    onlyoffice-desktopeditors
+    typst
+    tinymist
     teamspeak6-client
     mumble
     jellyfin-desktop
     wechat
     antigravity-ide-fhs
-    google-chrome
-    code-cursor
     codex
+
     gnome-connections
     # CD/DVD Burning is configured system-wide via programs.k3b.
     # kdePackages.k3b
@@ -622,7 +621,7 @@ in
       ".cache/connections"
       ".local/share/remmina"
       ".config/remmina"
-      ".config/libreoffice"
+      ".config/onlyoffice"
       ".config/google-chrome"
       ".cache/google-chrome"
       ".config/Mumble"

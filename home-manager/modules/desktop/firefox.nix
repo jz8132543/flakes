@@ -56,6 +56,11 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/immersive-translate/latest.xpi";
         };
+        # Zotero Connector - 浏览器一键抓取论文与文献
+        "zotero@chnm.gmu.edu" = {
+          installation_mode = "force_installed";
+          install_url = "https://www.zotero.org/download/connector/dl?browser=firefox";
+        };
       };
       "3rdparty" = {
         Extensions = {

@@ -43,7 +43,7 @@ in
         };
         nvidia = {
           package = config.boot.kernelPackages.nvidiaPackages.stable;
-          open = lib.mkDefault false;
+          open = lib.mkDefault true;
           modesetting.enable = true;
           nvidiaSettings = true;
           powerManagement.enable = true;

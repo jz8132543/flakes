@@ -42,11 +42,9 @@ in
   config = {
     time.timeZone = "Asia/Shanghai";
 
-    i18n.supportedLocales = [
-      "C.UTF-8/UTF-8"
-      "en_US.UTF-8/UTF-8"
-      "zh_CN.UTF-8/UTF-8"
-    ];
+    # 移除自定义 supportedLocales，使用 upstream 预构建的全量 glibcLocales，
+    # 彻底避免每次 glibc 更新时在本地从源码重新编译 glibc-locales (可节省数分钟构建时间)
+    # i18n.supportedLocales = [ "all" ];
 
     # Build the fully deployed Rime data as part of the system closure so the
     # first Rime launch does not need to run rime_deployer at runtime.
