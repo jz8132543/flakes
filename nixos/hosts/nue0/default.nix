@@ -27,6 +27,7 @@
       nixosModules.services.syncthing
       nixosModules.services.lobechat
       nixosModules.services.obsidian-livesync
+      nixosModules.services.zotero-sync-server
       nixosModules.services.reader
       (import nixosModules.services.xray {
       })

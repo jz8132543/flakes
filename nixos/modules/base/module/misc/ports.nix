@@ -120,6 +120,7 @@
       easytier-quic = 444;
       easytier-web = 11211;
       headscale = 8085;
+      zotero-sync = 8086;
       headscale_metrics = 8095;
       headscale_grpc = 50443;
       alist = 5244;

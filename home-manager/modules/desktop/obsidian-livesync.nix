@@ -80,6 +80,9 @@ let
       echo "========================================================"
     '';
   };
+  obsidianPkg = pkgs.obsidian.override {
+    commandLineArgs = "--lang=zh-CN";
+  };
 in
 {
   sops.secrets = {
@@ -87,15 +90,15 @@ in
     "cpa/api_key" = { };
   };
 
-  # 声明式安装通用 Obsidian（跟踪 Nixpkgs 最新版）与测试工具
-  home.packages = with pkgs; [
-    obsidian
+  # 声明式安装通用 Obsidian（预注入中文环境）与测试工具
+  home.packages = [
+    obsidianPkg
     obsidianCheck
   ];
 
   # ── 1. 彻底跳过新手配置向导：预置全局 obsidian.json 与默认 Vault ───────
   # 当首次打开 Obsidian 时，检测到已有处于 open: true 状态的 Vault，
-  # 瞬间跳过“创建新库/打开已有库”向导，直接进入主编辑界面！
+  # 瞬间跳过“创建新库/打开已有库”向导，直接进入主编辑界面，并锁定中文！
   home.file = {
     ".config/obsidian/obsidian.json".text = builtins.toJSON {
       vaults = {
@@ -105,14 +108,29 @@ in
           open = true;
         };
       };
+      language = "zh";
       insider = false;
     };
 
     "${vaultRoot}/.obsidian/community-plugins.json".text = builtins.toJSON [
+      # 跨端秒级同步与学术研究插件
       "obsidian-livesync"
       "remotely-save"
       "obsidian-zotero-desktop-connector"
       "copilot"
+
+      # Life Compass (Life OS) 模板核心插件体系
+      "dataview"
+      "templater-obsidian"
+      "periodic-notes"
+      "quickadd"
+      "obsidian-tasks-plugin"
+      "obsidian-kanban"
+      "omnisearch"
+      "obsidian-local-rest-api"
+      "agent-client"
+      "seo"
+      "life-os-app"
     ];
 
     "${vaultRoot}/.obsidian/app.json".text = builtins.toJSON {
@@ -236,58 +254,69 @@ in
     path = "${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector/data.json";
   };
 
-  # ── 5. AI Copilot 自动配置：全面支持第三方中转站（自定义公网 URL 与 APIKey）──
+  # ── 5. AI Copilot 自动配置：全面支持第三方中转站（精准适配 Copilot v4 数据模型）──
   sops.templates."obsidian-copilot-settings" = {
     content = builtins.toJSON {
       openAIApiKey = config.sops.placeholder."cpa/api_key";
-      openAIBaseUrl = "https://cpa.${domain}/v1";
-      defaultModel = "gpt-4o";
-      temperature = 0.5;
+      openAIProxyBaseUrl = "https://cpa.${domain}/v1";
+      defaultModelKey = "gpt-4o|openai";
+      defaultChainType = "llm_chain";
       stream = true;
-      systemPrompt = "You are a professional academic research assistant and knowledge synthesizer.";
-      activeProvider = "openai";
-      customModelApiUrl = "https://cpa.${domain}/v1";
-      customModelApiKey = config.sops.placeholder."cpa/api_key";
-      models = [
+      userSystemPrompt = "你是一个专业的学术研究助手和知识合成专家，请始终使用中文进行回复。";
+      activeModels = [
         {
           name = "gpt-4o";
           provider = "openai";
-          baseUrl = "https://cpa.${domain}/v1";
-          apiKey = config.sops.placeholder."cpa/api_key";
+          enabled = true;
+          isBuiltIn = true;
+          capabilities = [ "vision" ];
         }
         {
-          name = "claude-3-5-sonnet-20241022";
+          name = "claude-3-5-sonnet";
           provider = "openai";
-          baseUrl = "https://cpa.${domain}/v1";
-          apiKey = config.sops.placeholder."cpa/api_key";
+          enabled = true;
+          isBuiltIn = false;
+          capabilities = [
+            "vision"
+            "reasoning"
+          ];
         }
         {
           name = "gemini-3.8-flash";
           provider = "openai";
-          baseUrl = "https://cpa.${domain}/v1";
-          apiKey = config.sops.placeholder."cpa/api_key";
-        }
-        {
-          name = "deepseek-chat";
-          provider = "openai";
-          baseUrl = "https://cpa.${domain}/v1";
-          apiKey = config.sops.placeholder."cpa/api_key";
+          enabled = true;
+          isBuiltIn = false;
+          capabilities = [ "vision" ];
         }
       ];
     };
     path = "${vaultRoot}/.obsidian/plugins/copilot/data.json";
   };
 
-  # 声明式预创建各插件数据目录与 Vault 结构
+  # 声明式预创建各插件数据目录与 Vault 结构，并确保全局 UI 中文字符集生效
   home.activation.initObsidianDirectories = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ${pkgs.coreutils}/bin/mkdir -p \
-      "$HOME/.config/obsidian" \
-      "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-livesync" \
-      "$HOME/${vaultRoot}/.obsidian/plugins/remotely-save" \
-      "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector" \
-      "$HOME/${vaultRoot}/.obsidian/plugins/copilot" \
-      "$HOME/${vaultRoot}/Literature" \
-      "$HOME/${vaultRoot}/Attachments"
+        ${pkgs.coreutils}/bin/mkdir -p \
+          "$HOME/.config/obsidian" \
+          "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-livesync" \
+          "$HOME/${vaultRoot}/.obsidian/plugins/remotely-save" \
+          "$HOME/${vaultRoot}/.obsidian/plugins/obsidian-zotero-desktop-connector" \
+          "$HOME/${vaultRoot}/.obsidian/plugins/copilot" \
+          "$HOME/${vaultRoot}/Literature" \
+          "$HOME/${vaultRoot}/Attachments"
+
+        if [ -d "$HOME/.config/obsidian/Local Storage/leveldb" ]; then
+          ${pkgs.python3.withPackages (ps: [ ps.plyvel ])}/bin/python3 - <<'PYEOF' || true
+    import os
+    try:
+        import plyvel
+        path = os.path.expanduser("~/.config/obsidian/Local Storage/leveldb")
+        db = plyvel.DB(path, create_if_missing=False)
+        db.put(b"_app://obsidian.md\x00\x01language", b"\x01zh")
+        db.close()
+    except Exception:
+        pass
+    PYEOF
+        fi
   '';
 
   home.global-persistence.directories = [

@@ -25,7 +25,6 @@ in
       url = ${baseUrl}/Papers
       vendor = other
       user = dav
-      pass = ${config.sops.placeholder."password"}
     '';
   };
 
@@ -34,10 +33,10 @@ in
     ${pkgs.coreutils}/bin/mkdir -p "${papersMountPoint}"
   '';
 
-  # 3. 注册 systemd user 服务：按需缓存透明挂载 (VFS Cache Mode Full)
+  # 3. 注册 systemd user 服务：按需流式缓存透明挂载 (VFS Cache Mode Full + 严格容量上限)
   systemd.user.services.mount-papers = {
     Unit = {
-      Description = "Mount Remote Academic Papers (${baseUrl}/Papers) to Local Virtual POSIX Path";
+      Description = "Mount Remote Academic Papers (${baseUrl}/Papers) to Local Virtual POSIX Path (On-Demand Cache)";
       After = [ "network-online.target" ];
       Wants = [ "network-online.target" ];
     };
@@ -49,18 +48,27 @@ in
     Service = {
       Type = "simple";
       ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p ${papersMountPoint}";
-      ExecStart = ''
-        ${pkgs.rclone}/bin/rclone mount papers-remote: ${papersMountPoint} \
-          --config=${rcloneConfig} \
-          --vfs-cache-mode=full \
-          --vfs-cache-max-age=72h \
-          --vfs-cache-max-size=10G \
-          --vfs-read-chunk-size=32M \
-          --buffer-size=64M \
-          --dir-cache-time=1m \
-          --no-modtime \
-          --umask=022
-      '';
+      ExecStart = toString (
+        pkgs.writeShellScript "mount-papers-start" ''
+          PASSWORD_FILE="${config.sops.secrets."password".path}"
+          if [ -f "$PASSWORD_FILE" ]; then
+            PASSWORD="$(cat "$PASSWORD_FILE")"
+            export RCLONE_CONFIG_PAPERS_REMOTE_PASS="$(${pkgs.rclone}/bin/rclone obscure "$PASSWORD")"
+          fi
+          exec ${pkgs.rclone}/bin/rclone mount papers-remote: ${papersMountPoint} \
+            --config=${rcloneConfig} \
+            --vfs-cache-mode=full \
+            --vfs-cache-max-size=5G \
+            --vfs-cache-max-age=24h \
+            --vfs-cache-poll-interval=1m \
+            --vfs-read-chunk-size=16M \
+            --vfs-read-chunk-size-limit=64M \
+            --buffer-size=32M \
+            --dir-cache-time=2m \
+            --no-modtime \
+            --umask=022
+        ''
+      );
       ExecStop = "${pkgs.fuse}/bin/fusermount -u ${papersMountPoint}";
       Restart = "on-failure";
       RestartSec = "10s";
