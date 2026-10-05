@@ -371,6 +371,10 @@
     "zone": {
       "on": "zone.cdn",
       "proxy": false
+    },
+    "zotero": {
+      "on": "nue0",
+      "proxy": false
     }
   }
 }

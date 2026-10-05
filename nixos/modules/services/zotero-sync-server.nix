@@ -17,7 +17,11 @@ in
   ];
 
   options.services.zoteroSyncServer = {
-    enable = lib.mkEnableOption "Self-hosted Zotero Data Synchronization Server with PostgreSQL backend";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Self-hosted Zotero Data Synchronization Server with PostgreSQL backend";
+    };
 
     port = lib.mkOption {
       type = lib.types.port;

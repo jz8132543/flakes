@@ -127,6 +127,7 @@ locals {
     memos              = { on = "nue0", proxy = false }
     chat               = { on = "chat.cdn", proxy = false }
     couchdb            = { on = "nue0", proxy = false }
+    zotero             = { on = "nue0", proxy = false }
     kaogong            = { on = "nue0", proxy = false }
     dns                = { on = "nue0", proxy = false }
     search             = { on = "search.cdn", proxy = false }
