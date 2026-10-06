@@ -8,116 +8,142 @@ with lib;
 let
   cfg = config.services.atc.router;
   domain = config.networking.domain;
-  data = import ./data.nix;
+  data = (importJSON ../../../../lib/data/data.json).cdn;
+  inherit (data) nsHost;
 
-  # ── Helpers ────────────────────────────────────────────────────────────────
+  # Pinned GeoLite2-City snapshot. The database is replaceable through the
+  # option below; updating this hash is an intentional rebuild-time update.
+  defaultGeoIpDatabase = pkgs.fetchurl {
+    url = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb";
+    hash = "sha256-/+2ydRyuFv3YhoFKbISAYzyRXsE2wVgspcn8WGH3gao=";
+  };
 
-  # Build-time serial derived from current date (YYYYMMDDXX).
-  # We use a fixed 00 counter; for same-day bumps, rebuild is sufficient
-  # because CoreDNS re-reads zone files on SIGHUP without restart.
-
-  # The public IP of the current host, looked up from edgeNodes by hostName.
-  # Falls back to the first available router IP (nue0's by default).
   selfNode = findFirst (n: n.name == config.networking.hostName) null data.edgeNodes;
-  selfIpv4 = if selfNode != null then selfNode.ipv4 else "127.0.0.1";
-  selfIpv6 = if selfNode != null && selfNode.ipv6 != null then selfNode.ipv6 else null;
+  nsNode = findFirst (n: n.name == nsHost) null data.edgeNodes;
+  selfIpv4 = if selfNode != null then (selfNode.ipv4 or "127.0.0.1") else "127.0.0.1";
+  selfIpv6 = if selfNode != null then (selfNode.ipv6 or null) else null;
+  nsIpv4 = if nsNode != null then (nsNode.ipv4 or "127.0.0.1") else "127.0.0.1";
+  nsIpv6 = if nsNode != null then (nsNode.ipv6 or null) else null;
 
-  # All edge nodes' A records (multi-value, round-robin).
+  # CoreDNS's geoip/view plugins use continent codes. AP and HK share AS;
+  # region remains in cdn.tf for future finer-grained policies.
+  geoRegion =
+    region:
+    if
+      elem region [
+        "AP"
+        "HK"
+      ]
+    then
+      "AS"
+    else if region == "EU" then
+      "EU"
+    else
+      "NA";
+  geoRegions = unique (map (n: geoRegion n.region) data.edgeNodes);
+  nodesForRegion = region: filter (n: geoRegion n.region == region) data.edgeNodes;
 
-  # NS hostnames for the cdn.<domain> zone.
-  # Each host running router.nix self-registers as an NS.
-  # nsNodes is derived from edgeNodes filtered by the router hosts list.
-  # Since we cannot know all router hosts at eval time without a separate list,
-  # we accept cfg.nsNames (default ["ns1" "ns2"]) and pair them with the two
-  # first router hosts declared in cfg.nsHosts (default ["nue0" "fra0"]).
-  nsHostPairs = zipLists cfg.nsNames cfg.nsHosts;
+  # Higher weight means more DNS answers from that node. The file plugin has
+  # no weighted-record primitive, so represent weight with repeated RRs.
+  weightedNodes =
+    nodes:
+    concatMap (n: genList (_: n) (n.weight or 1)) (
+      filter (n: (n.ipv4 or null) != null && (n.weight or 1) > 0) nodes
+    );
+  addressRecords =
+    name: nodes:
+    concatMapStringsSep "\n    " (
+      n:
+      "${name} IN A ${n.ipv4}"
+      + optionalString ((n.ipv6 or null) != null) "\n    ${name} IN AAAA ${n.ipv6}"
+    ) (weightedNodes nodes);
 
-  nsRRecords = concatMapStringsSep "\n    " (
-    pair:
+  serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
+
+  soaSerial =
     let
-      nsName = pair.fst;
-      hostName = pair.snd;
-      node = findFirst (n: n.name == hostName) null data.edgeNodes;
-      aRec = optionalString (node != null) "${nsName} IN A ${node.ipv4}";
-      aaaaRec = optionalString (node != null && node.ipv6 != null) "${nsName} IN AAAA ${node.ipv6}";
+      serialFile = pkgs.runCommand "atc-cdn-soa-serial" { } ''
+        date -u +%Y%m%d%H > "$out"
+      '';
     in
-    ''
-      @ IN NS ${nsName}.cdn.${domain}.
-      ${aRec}
-      ${aaaaRec}''
-  ) nsHostPairs;
+    removeSuffix "\n" (builtins.readFile serialFile);
 
-  # Per-service origin records: <label>.cdn.<domain>. answers with all edge IPs.
-  # The origin host itself (e.g. nue0.cdn.dora.im) resolves to the origin's own IP.
+  zoneFor =
+    suffix: nodes:
+    pkgs.writeText "cdn-${suffix}.${domain}.zone" ''
+      $ORIGIN cdn.${domain}.
+      $TTL ${toString cfg.dns.ttl}
+      @ IN SOA ${nsHost}.${domain}. admin.${domain}. (
+          ${soaSerial} ; UTC YYYYMMDDHH
+          7200
+          3600
+          1209600
+          ${toString cfg.dns.ttl}
+      )
 
-  # All unique upstream origin names (deduplicated).
-  uniqueOrigins = unique (attrValues data.services);
+      @ IN NS ${nsHost}.${domain}.
+      ; DoH is served at the zone apex by the NS host.
+      @ IN A ${nsIpv4}
+      ${optionalString (nsIpv6 != null) "@ IN AAAA ${nsIpv6}"}
 
-  # For each unique origin, generate its A/AAAA record inside the zone.
-  originGlueRecords = concatMapStringsSep "\n    " (
-    originHost:
-    let
-      node = findFirst (n: n.name == originHost) null data.edgeNodes;
-      aRec = optionalString (node != null) "${originHost} IN A ${node.ipv4}";
-      aaaaRec = optionalString (node != null && node.ipv6 != null) "${originHost} IN AAAA ${node.ipv6}";
-    in
-    ''
-      ${aRec}
-      ${aaaaRec}''
-  ) uniqueOrigins;
+      ; Service labels and origin labels are edge-pool aliases.
+      ${concatMapStringsSep "\n    " (label: addressRecords label nodes) serviceLabels}
 
-  # Edge-pool records for each service label (clients resolve label.cdn → all edges).
-  serviceLabelRecords = concatStringsSep "\n    " (
-    mapAttrsToList (
-      label: _originHost:
-      concatMapStringsSep "\n    " (
-        n: "${label} IN A ${n.ipv4}" + optionalString (n.ipv6 != null) "\n    ${label} IN AAAA ${n.ipv6}"
-      ) data.edgeNodes
-    ) data.services
+      ; Unmapped names fall back to this view's edge pool.
+      ${addressRecords "*" nodes}
+    '';
+
+  defaultZone = zoneFor "default" data.edgeNodes;
+  regionalZones = listToAttrs (
+    map (region: {
+      name = region;
+      value = zoneFor region (nodesForRegion region);
+    }) geoRegions
   );
 
-  cdnZone = pkgs.writeText "cdn.${domain}.zone" ''
-    $ORIGIN cdn.${domain}.
-    $TTL ${toString cfg.dns.ttl}
-    @ IN SOA ns1.cdn.${domain}. admin.${domain}. (
-        2026010100 ; Serial (placeholder — overridden by soaSerial at build time)
-        7200       ; Refresh
-        3600       ; Retry
-        1209600    ; Expire
-        ${toString cfg.dns.ttl} ; Minimum TTL
-    )
-
-    ; ── NS records with glue ──────────────────────────────────────────────
-    ${nsRRecords}
-
-    ; ── Per-service label → edge pool (all edges, round-robin) ───────────
-    ${serviceLabelRecords}
-
-    ; ── Origin host glue records (origin.cdn.<domain> → origin IP) ───────
-    ${originGlueRecords}
-
-    ; ── Wildcard fallback: unmapped names → full edge pool ────────────────
-    ${concatMapStringsSep "\n    " (n: "* IN A ${n.ipv4}") data.edgeNodes}
-    ${concatMapStringsSep "\n    " (
-      n: optionalString (n.ipv6 != null) "* IN AAAA ${n.ipv6}"
-    ) data.edgeNodes}
+  geoipBlock = optionalString cfg.geoip.enable ''
+    geoip ${cfg.geoip.databaseFile} {
+        edns-subnet
+    }
+    metadata
   '';
 
+  regionalCorefiles = concatMapStringsSep "\n\n" (
+    region:
+    let
+      expr =
+        {
+          AS = "metadata('geoip/continent/code') == 'AS'";
+          EU = "metadata('geoip/continent/code') == 'EU'";
+          NA = "metadata('geoip/continent/code') == 'NA'";
+        }
+        .${region};
+    in
+    ''
+      cdn.${domain}:${toString cfg.dns.port} {
+          bind ${concatStringsSep " " cfg.dns.listenAddresses}
+          ${geoipBlock}
+          view ${region} {
+              expr ${expr}
+          }
+          file ${regionalZones.${region}} cdn.${domain}
+          errors
+          ${optionalString cfg.dns.log "log"}
+      }
+    ''
+  ) geoRegions;
+
   corefile = pkgs.writeText "Corefile" ''
+    ${regionalCorefiles}
+
+    ; Default view: all edges, including clients without GeoIP/ECS data.
     cdn.${domain}:${toString cfg.dns.port} {
         bind ${concatStringsSep " " cfg.dns.listenAddresses}
-        file ${cdnZone} cdn.${domain}
+        file ${defaultZone} cdn.${domain}
         errors
         ${optionalString cfg.dns.log "log"}
     }
 
-    ${optionalString cfg.doh.enable ''
-      http://.:${toString cfg.doh.port} {
-          bind 127.0.0.1
-          file ${cdnZone} cdn.${domain}
-          errors
-      }
-    ''}
   '';
 in
 {
@@ -125,46 +151,27 @@ in
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = "Apache Traffic Control Traffic Router (CoreDNS DNS steering & DoH). Enable on each NS host.";
+      description = "Run authoritative CoreDNS for cdn.<networking.domain>.";
     };
 
     package = mkOption {
       type = types.package;
       default = pkgs.coredns;
-      description = "CoreDNS package to use for DNS steering.";
-    };
-
-    nsNames = mkOption {
-      type = types.listOf types.str;
-      default = [
-        "ns1"
-        "ns2"
-      ];
-      description = "NS record short names inside cdn.<domain> zone (e.g. [\"ns1\" \"ns2\"]).";
-    };
-
-    nsHosts = mkOption {
-      type = types.listOf types.str;
-      default = [
-        "nue0"
-        "fra0"
-      ];
-      description = ''
-        Host names (matching edgeNodes[].name in data.nix) that correspond to the
-        nsNames entries. Must be the same length as nsNames. Each host running this
-        module acts as an authoritative NS for cdn.<domain>.
-      '';
+      description = "CoreDNS package with geoip, metadata and view when GeoIP is enabled.";
     };
 
     dns = {
       listenAddresses = mkOption {
         type = types.listOf types.str;
-        default = (optional (selfIpv4 != "127.0.0.1") selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
-        defaultText = "Derived from data.edgeNodes for the current host";
-        description = ''
-          Addresses to bind the DNS server. Defaults to the current host's public
-          IPs from data.edgeNodes. Override if the host has additional interfaces.
-        '';
+        default =
+          (optional (selfIpv4 != "127.0.0.1") selfIpv4)
+          ++ (optional (selfIpv6 != null) selfIpv6)
+          ++ [
+            "127.0.0.1"
+            "::1"
+          ];
+        defaultText = "Current host's public addresses from terraform/cdn.tf";
+        description = "Addresses on which authoritative DNS listens.";
       };
 
       port = mkOption {
@@ -182,10 +189,21 @@ in
       log = mkOption {
         type = types.bool;
         default = false;
-        description = ''
-          Enable CoreDNS query logging. Disabled by default — on authoritative
-          servers, per-query logs saturate the journal very quickly.
-        '';
+        description = "Enable CoreDNS query logging; disabled by default.";
+      };
+    };
+
+    geoip = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Enable GeoIP2 continent views; databaseFile must exist on the host.";
+      };
+
+      databaseFile = mkOption {
+        type = types.path;
+        default = defaultGeoIpDatabase;
+        description = "MaxMind GeoLite2 City/GeoIP2 database path.";
       };
     };
 
@@ -193,13 +211,25 @@ in
       enable = mkOption {
         type = types.bool;
         default = true;
-        description = "Enable local DoH endpoint (for Traefik TLS termination).";
+        description = "Enable DoH at https://cdn.<domain>/dns-query.";
       };
 
       port = mkOption {
         type = types.port;
         default = 5305;
-        description = "Internal HTTP port for DoH queries (127.0.0.1 only).";
+        description = "Internal HTTP port for DoH, bound to loopback.";
+      };
+
+      package = mkOption {
+        type = types.package;
+        default = pkgs.dns-over-https;
+        description = "DoH HTTP server package. It forwards DNS queries to the local authoritative CoreDNS listener.";
+      };
+
+      upstream = mkOption {
+        type = types.str;
+        default = "tcp:127.0.0.1:53";
+        description = "DoH upstream DNS endpoint. Keep this pointed at local CoreDNS to preserve ECS-based GeoIP steering.";
       };
     };
   };
@@ -207,8 +237,20 @@ in
   config = mkIf cfg.enable {
     assertions = [
       {
-        assertion = length cfg.nsNames == length cfg.nsHosts;
-        message = "services.atc.router: nsNames and nsHosts must have the same length.";
+        assertion = selfNode != null;
+        message = "services.atc.router: networking.hostName must be present in terraform/cdn.tf cdn_edge_nodes.";
+      }
+      {
+        assertion = nsNode != null;
+        message = "services.atc.router: cdn.nsHost must be present in terraform/cdn.tf cdn_edge_nodes.";
+      }
+      {
+        assertion = all (n: (n.ipv4 or null) != null) data.edgeNodes;
+        message = "services.atc.router: every cdn_edge_nodes entry must resolve to an A record in terraform/hosts.tf.";
+      }
+      {
+        assertion = all (origin: any (n: n.name == origin) data.edgeNodes) (attrValues data.services);
+        message = "services.atc.router: every CDN service origin must be present in cdn_edge_nodes.";
       }
     ];
 
@@ -224,19 +266,31 @@ in
 
     systemd.tmpfiles.rules = [
       "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
-      "d /etc/traffic_router/zones 0750 trafficrouter trafficrouter -"
-      "d /var/log/traffic_router 0750 trafficrouter trafficrouter -"
+      "d /var/lib/traffic_router 0750 trafficrouter trafficrouter -"
     ];
 
     environment.etc."traffic_router/Corefile".source = corefile;
-    environment.etc."traffic_router/zones/cdn.${domain}.zone".source = cdnZone;
+
+    environment.etc."traffic_router/doh-server.conf".text = ''
+      listen = [ "127.0.0.1:${toString cfg.doh.port}" ]
+      local_addr = ""
+      cert = ""
+      key = ""
+      path = "/dns-query"
+      upstream = [ "${cfg.doh.upstream}" ]
+      timeout = 5
+      tries = 2
+      verbose = false
+      log_guessed_client_ip = false
+      ecs_allow_non_global_ip = false
+      ecs_use_precise_ip = false
+    '';
 
     systemd.services.traffic-router = {
       description = "Apache Traffic Control Traffic Router (CoreDNS DNS Steering & DoH)";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
-
       serviceConfig = {
         Type = "simple";
         User = "trafficrouter";
@@ -253,12 +307,29 @@ in
       };
     };
 
-    # DoH endpoint: Traefik forwards dns.cdn.<domain>/dns-query → CoreDNS on 127.0.0.1:5305
+    systemd.services.traffic-router-doh = {
+      description = "DNS-over-HTTPS frontend for the ATC authoritative DNS server";
+      after = [ "traffic-router.service" ];
+      wants = [ "traffic-router.service" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "simple";
+        User = "trafficrouter";
+        Group = "trafficrouter";
+        Restart = "on-failure";
+        RestartSec = "5s";
+        MemoryMax = "128M";
+        LimitNOFILE = 16384;
+        ExecStart = "${cfg.doh.package}/bin/doh-server -conf /etc/traffic_router/doh-server.conf";
+      };
+    };
+
     services.traefik.proxies.traffic-router-doh =
       mkIf (cfg.doh.enable && (config.services.traefik.enable or false))
         {
-          rule = "Host(`dns.cdn.${domain}`) && PathPrefix(`/dns-query`)";
+          rule = "Host(`cdn.${domain}`) && PathPrefix(`/dns-query`)";
           target = "http://127.0.0.1:${toString cfg.doh.port}";
+          entryPoints = [ "https" ];
         };
   };
 }

@@ -96,10 +96,18 @@ in
     '';
 
     networking.firewall.extraStopCommands = mkIf (cfg.clampMssInterface != null) ''
-      iptables  -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss} 2>/dev/null || true
-      iptables  -t mangle -D PREROUTING  -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss} 2>/dev/null || true
-      ip6tables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss} 2>/dev/null || true
-      ip6tables -t mangle -D PREROUTING  -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss} 2>/dev/null || true
+      if iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}; then
+        iptables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}
+      fi
+      if iptables -t mangle -C PREROUTING -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}; then
+        iptables -t mangle -D PREROUTING -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}
+      fi
+      if ip6tables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}; then
+        ip6tables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}
+      fi
+      if ip6tables -t mangle -C PREROUTING -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}; then
+        ip6tables -t mangle -D PREROUTING -p tcp --tcp-flags SYN,RST SYN -i ${cfg.clampMssInterface} -j TCPMSS --set-mss ${toString cfg.clampMss}
+      fi
     '';
   };
 }

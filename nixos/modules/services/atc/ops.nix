@@ -28,11 +28,6 @@ let
         db_query_timeout_seconds = 30;
         traffic_vault_backend = "disabled";
       };
-      # CORS: restrict to the same domain family.
-      # Wildcard ("*") is avoided — Traffic Ops API is not a public endpoint.
-      cors = {
-        access_control_allow_origin = "https://*.${config.networking.domain}";
-      };
     }
   );
 
@@ -129,10 +124,9 @@ in
         Group = "trafficops";
         # Restart on any failure and keep retrying — this is the simplest way
         # to handle transient DB unavailability without over-engineering.
-        Restart = "on-failure";
+        Restart = "always";
         RestartSec = "10s";
-        StartLimitIntervalSec = "120s";
-        StartLimitBurst = 10;
+        StartLimitIntervalSec = 0;
         MemoryMax = "512M";
         LimitNOFILE = 65536;
 

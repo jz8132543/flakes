@@ -117,7 +117,12 @@ output "service_cname_mappings" {
 }
 
 resource "cloudflare_dns_record" "general_cname" {
-  for_each = local.service_cname_mappings
+  # CDN-managed labels are created by terraform/cdn.tf. Excluding them here
+  # prevents two Terraform resources from managing the same DNS record.
+  for_each = {
+    for name, mapping in local.service_cname_mappings : name => mapping
+    if !contains(keys(local.cdn_services), name)
+  }
 
   name    = "${each.key}.${cloudflare_zone.im_dora.name}"
   proxied = each.value.proxy
@@ -133,7 +138,7 @@ resource "cloudflare_dns_record" "dora" {
   proxied = false
   ttl     = 1
   type    = "CNAME"
-  content = "nue0.dora.im"
+  content = "fra0.dora.im"
   zone_id = cloudflare_zone.im_dora.id
 }
 

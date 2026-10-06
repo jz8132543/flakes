@@ -127,10 +127,9 @@ in
         Type = "simple";
         User = "trafficmonitor";
         Group = "trafficmonitor";
-        Restart = "on-failure";
+        Restart = "always";
         RestartSec = "10s";
-        StartLimitIntervalSec = "120s";
-        StartLimitBurst = 10;
+        StartLimitIntervalSec = 0;
         MemoryMax = "256M";
         LimitNOFILE = 65536;
 
