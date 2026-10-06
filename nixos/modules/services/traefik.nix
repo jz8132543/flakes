@@ -194,7 +194,7 @@ with lib;
                 idleTimeout = 180;
               };
             };
-            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+            http.tls = true;
             http3 = { };
           };
           https-alt = {
@@ -210,7 +210,7 @@ with lib;
                 idleTimeout = 180;
               };
             };
-            http.tls = if config.environment.isNAT then true else { certresolver = "zerossl"; };
+            http.tls = true;
             http3 = { };
           };
           dot = {
@@ -221,14 +221,6 @@ with lib;
           };
           ldaps = {
             address = ":636";
-          };
-        };
-        certificatesResolvers.zerossl.acme = {
-          email = "blackhole@dora.im";
-          storage = "/var/lib/traefik/acme.json";
-          keyType = "EC256";
-          dnsChallenge = {
-            provider = "cloudflare";
           };
         };
         ping = {
@@ -250,6 +242,14 @@ with lib;
         serversTransport = {
           insecureSkipVerify = true;
         };
+        certificatesResolvers.zerossl.acme = {
+          email = "blackhole@dora.im";
+          storage = "/var/lib/traefik/acme.json";
+          keyType = "EC256";
+          dnsChallenge = {
+            provider = "cloudflare";
+          };
+        };
       };
       dynamicConfigOptions = {
         tls = {
@@ -259,8 +259,6 @@ with lib;
               alpnProtocols = [ "dot" ];
             };
           };
-        }
-        // lib.optionalAttrs config.environment.isNAT {
           certificates = [
             {
               certFile = "${config.security.acme.certs."main".directory}/fullchain.pem";
@@ -288,10 +286,16 @@ with lib;
                   entryPoints
                   ;
                 service = name;
-                # For non-NAT machines, explicitly set certresolver on each router to trigger ACME DNS Challenge.
-                # Traefik v3 requires routers to reference certresolver explicitly;
-                # entrypoint-level certresolver alone does not trigger certificate acquisition.
-                tls = if config.environment.isNAT then null else { certResolver = "zerossl"; };
+                # Only the CDN DoH endpoint uses the shared security.acme
+                # wildcard certificate. Other services keep Traefik's own
+                # Cloudflare DNS-01 resolver.
+                tls =
+                  if name == "traffic-router-doh" then
+                    { }
+                  else if config.environment.isNAT then
+                    null
+                  else
+                    { certResolver = "zerossl"; };
               })
             ) config.services.traefik.proxies)
             {
