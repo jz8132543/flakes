@@ -94,12 +94,6 @@ let
     '';
 
   defaultZone = zoneFor "default" data.edgeNodes;
-  regionalZones = listToAttrs (
-    map (region: {
-      name = region;
-      value = zoneFor region (nodesForRegion region);
-    }) geoRegions
-  );
 
   geoipBlock = optionalString cfg.geoip.enable ''
     geoip ${cfg.geoip.databaseFile} {
@@ -108,37 +102,68 @@ let
     metadata
   '';
 
-  regionalCorefiles = concatMapStringsSep "\n\n" (
+  regexDomain = replaceStrings [ "." ] [ "\\." ] domain;
+  regionExpr = region: "metadata('geoip/continent/code') == '${region}'";
+
+  templateRecords =
+    type: nodes:
+    let
+      records = weightedNodes nodes;
+      addressRecordsForType =
+        if type == "A" then
+          filter (n: (n.ipv4 or null) != null) records
+        else
+          filter (n: (n.ipv6 or null) != null) records;
+      answer = type: address: ''answer "{{ .Name }} ${toString cfg.dns.ttl} IN ${type} ${address}"'';
+    in
+    concatStringsSep "\n        " (
+      map (n: answer type (if type == "A" then n.ipv4 else n.ipv6)) addressRecordsForType
+    );
+
+  templateFor =
+    match: nodes: optionalExpr:
+    let
+      exprLine = optionalString (optionalExpr != null) "expr ${optionalExpr}";
+      templateForType =
+        type:
+        let
+          hasAddress = any (n: (if type == "A" then (n.ipv4 or null) else (n.ipv6 or null)) != null) nodes;
+        in
+        optionalString hasAddress ''
+          template IN ${type} cdn.${domain} {
+              match "${match}"
+              ${exprLine}
+              ${templateRecords type nodes}
+          }
+        '';
+    in
+    templateForType "A" + templateForType "AAAA";
+
+  regionalTemplates = concatMapStringsSep "\n" (
     region:
     let
-      expr =
-        {
-          AS = "metadata('geoip/continent/code') == 'AS'";
-          EU = "metadata('geoip/continent/code') == 'EU'";
-          NA = "metadata('geoip/continent/code') == 'NA'";
-        }
-        .${region};
+      nodes = nodesForRegion region;
     in
-    ''
-      cdn.${domain}:${toString cfg.dns.port} {
-          bind ${concatStringsSep " " cfg.dns.listenAddresses}
-          ${geoipBlock}
-          view ${region} {
-              expr ${expr}
-          }
-          file ${regionalZones.${region}} cdn.${domain}
-          errors
-          ${optionalString cfg.dns.log "log"}
-      }
-    ''
+    (concatMapStringsSep "\n" (
+      label: templateFor "^${label}\\.cdn\\.${regexDomain}\\.$" nodes (regionExpr region)
+    ) serviceLabels)
+    + templateFor "^.*\\.cdn\\.${regexDomain}\\.$" nodes (regionExpr region)
   ) geoRegions;
 
-  corefile = pkgs.writeText "Corefile" ''
-    ${regionalCorefiles}
+  defaultTemplates = concatStringsSep "\n" (
+    (map (label: templateFor "^${label}\\.cdn\\.${regexDomain}\\.$" data.edgeNodes null) serviceLabels)
+    ++ [ (templateFor "^.*\\.cdn\\.${regexDomain}\\.$" data.edgeNodes null) ]
+  );
 
-    ; Default view: all edges, including clients without GeoIP/ECS data.
+  corefile = pkgs.writeText "Corefile" ''
     cdn.${domain}:${toString cfg.dns.port} {
         bind ${concatStringsSep " " cfg.dns.listenAddresses}
+        ${geoipBlock}
+        # GeoIP metadata is consumed by template rules below. A single server
+        # block is intentional: CoreDNS cannot bind multiple identical listeners.
+        ${regionalTemplates}
+        # Clients without a usable GeoIP result, and unknown continents, use all edges.
+        ${defaultTemplates}
         file ${defaultZone} cdn.${domain}
         errors
         ${optionalString cfg.dns.log "log"}
