@@ -10,7 +10,7 @@ let
   synapseClientId = "01J0YJ8F7Q8X2V6K9M4T1A3BCD";
   dbName = "matrix-authentication-service";
   dbUser = dbName;
-  databaseHost = config.services.matrix.databaseHost or "postgres.mag";
+  databaseHost = config.services.matrix.databaseHost or "postgres.ts";
   stateDir = "/var/lib/matrix-authentication-service";
   secretsDir = "${stateDir}/secrets";
   signingKeysDir = "${secretsDir}/keys";

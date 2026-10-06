@@ -35,5 +35,5 @@
   };
 
   # Internal hostname alias
-  networking.hosts."127.0.0.1" = [ "mysql.mag" ];
+  networking.hosts."127.0.0.1" = [ "mysql.ts" ];
 }

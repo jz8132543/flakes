@@ -35,7 +35,7 @@ func main() {
 	flag.Parse()
 
 	if flag.NArg() != 2 {
-		fmt.Fprintln(os.Stderr, "usage: ssh-race [-domains dn42,dora.im,mag,et] [-timeout 3s] [-window 25ms] [-dn42-bonus 15ms] [-fallback=true] host port")
+		fmt.Fprintln(os.Stderr, "usage: ssh-race [-domains dn42,dora.im,ts,et] [-timeout 3s] [-window 25ms] [-dn42-bonus 15ms] [-fallback=true] host port")
 		os.Exit(2)
 	}
 

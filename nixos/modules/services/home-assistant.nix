@@ -7,7 +7,7 @@ let
   domain = "ha.${config.networking.domain}";
   dbName = "homeassistant";
   dbUser = "homeassistant";
-  dbHost = "postgres.mag";
+  dbHost = "postgres.ts";
   dbUrl = "postgresql://${dbUser}@${dbHost}/${dbName}?sslmode=disable";
 in
 {

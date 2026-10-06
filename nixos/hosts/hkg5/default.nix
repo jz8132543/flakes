@@ -32,8 +32,8 @@
     enableCluster = true;
     grpcPort = 9090;
     clusterTargets = [
-      "sjc0.mag:9090"
-      "cu.mag:9090"
+      "sjc0.ts:9090"
+      "cu.ts:9090"
     ];
   };
 

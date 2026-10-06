@@ -3,7 +3,7 @@ with lib;
 {
   options.environment.domains = lib.mkOption {
     type = types.listOf types.str;
-    default = [ "mag" ];
+    default = [ "ts" ];
     description = ''
       tailscale search domains.
     '';

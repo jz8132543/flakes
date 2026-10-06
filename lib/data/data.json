@@ -30,7 +30,7 @@
     "imap": "mail.dora.im"
   },
   "ldap": "ldap://ldap.dora.im:389",
-  "database": "postgres.mag",
+  "database": "postgres.ts",
   "hosts": {
     "arx8": {
       "dn42_addresses_v4": ["172.20.232.31"],

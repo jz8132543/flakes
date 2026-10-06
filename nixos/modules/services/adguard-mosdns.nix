@@ -150,7 +150,7 @@ in
           port = 5300; # Internal bind port to avoid conflict with dnsmasq
           # 核心上游配置
           upstream_dns = [
-            "[/mag/]100.100.100.100" # Tailscale MagicDNS
+            "[/ts/]100.100.100.100" # Tailscale MagicDNS
             "127.0.0.1:5333" # Mosdns
           ];
           bootstrap_dns = [

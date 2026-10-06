@@ -28,7 +28,7 @@ let
     };
     dns = {
       override_local_dns = false;
-      base_domain = "mag";
+      base_domain = "ts";
       magic_dns = true;
       inherit (config.environment) domains;
       nameservers.global = [
@@ -37,27 +37,27 @@ let
       ];
       extra_records = [
         {
-          name = "m.mag";
+          name = "m.ts";
           type = "A";
           value = "100.64.0.2";
         }
         {
-          name = "m-admin.mag";
+          name = "m-admin.ts";
           type = "A";
           value = "100.64.0.2";
         }
         {
-          name = "postgres.mag";
+          name = "postgres.ts";
           type = "A";
           value = "100.64.0.1";
         }
         {
-          name = "mysql.mag";
+          name = "mysql.ts";
           type = "A";
           value = "100.64.0.1";
         }
         {
-          name = "tv.mag";
+          name = "tv.ts";
           type = "A";
           value = "100.64.0.1";
         }
@@ -124,7 +124,7 @@ with lib.strings;
         };
         dns = {
           override_local_dns = false;
-          base_domain = "mag";
+          base_domain = "ts";
           magic_dns = true;
           inherit (config.environment) domains;
           nameservers.global = [
@@ -133,7 +133,7 @@ with lib.strings;
           ];
           extra_records = [
             {
-              name = "postgres.mag";
+              name = "postgres.ts";
               type = "A";
               value = "100.64.0.1";
             }

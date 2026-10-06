@@ -36,8 +36,8 @@
     enableCluster = true;
     grpcPort = 9090;
     clusterTargets = [
-      "sjc0.mag:9090"
-      "hkg5.mag:9090"
+      "sjc0.ts:9090"
+      "hkg5.ts:9090"
     ];
   };
 
@@ -50,7 +50,7 @@
     ipFamily = "ipv4";
     haproxy.stats = {
       enable = true;
-      port = 8404; # 仅在 Tailscale 内网 (http://cu.mag:8404) 可访问，不占用公网端口
+      port = 8404; # 仅在 Tailscale 内网 (http://cu.ts:8404) 可访问，不占用公网端口
     };
     mappings = [
       {

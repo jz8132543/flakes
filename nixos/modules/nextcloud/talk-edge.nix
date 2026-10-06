@@ -26,7 +26,7 @@ let
 
     nat: {
       # 排除虚拟内网网卡（如 Tailscale/Docker），防止将内网 IP 广播给公网客户端导致黑屏
-      nic_ign = "tailscale0,docker0,nebula.mag,lo,dummy*,tun*,tap*"
+      nic_ign = "tailscale0,docker0,nebula.ts,lo,dummy*,tun*,tap*"
       # nat_1_1_mapping 由 ExecStartPre 在运行时动态填入
       nat_1_1_mapping = "__PUBLIC_IP__"
       keep_private_host = true
@@ -174,7 +174,7 @@ in
     clusterTargets = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
-      description = "List of remote gRPC target endpoints in the signaling cluster (e.g. ['cu.mag:9090']).";
+      description = "List of remote gRPC target endpoints in the signaling cluster (e.g. ['cu.ts:9090']).";
     };
   };
 

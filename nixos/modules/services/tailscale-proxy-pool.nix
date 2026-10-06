@@ -119,7 +119,8 @@ in
 
               # --- Phase 2: set exit node (wait until available) ---
               NODE_NAME="${node}"
-              NODE_BASE="''${NODE_NAME%.mag}"
+              NODE_BASE="''${NODE_NAME%.ts}"
+              NODE_BASE="''${NODE_BASE%.mag}"
 
               echo "Waiting for exit node $NODE_BASE to become available..."
               while true; do

@@ -1,5 +1,5 @@
 {
-  PG ? "postgres.mag",
+  PG ? "postgres.ts",
   hydraURL ? null,
   notificationSender ? "services@dora.im",
   hydraHost ? null,

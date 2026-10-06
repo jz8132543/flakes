@@ -27,7 +27,7 @@
       nixosModules.services.mysql
       nixosModules.matrix.matrix
       {
-        services.matrix.databaseHost = "postgres.mag";
+        services.matrix.databaseHost = "postgres.ts";
       }
       (import nixosModules.services.keycloak { })
       (import nixosModules.services.vaultwarden { })

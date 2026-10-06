@@ -145,7 +145,7 @@ in
 {
   options.services.matrix.databaseHost = lib.mkOption {
     type = lib.types.str;
-    default = "postgres.mag";
+    default = "postgres.ts";
     description = "PostgreSQL host for Synapse.";
   };
 

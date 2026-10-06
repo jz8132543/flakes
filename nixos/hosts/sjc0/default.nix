@@ -43,8 +43,8 @@
     enableCluster = true;
     grpcPort = 9090;
     clusterTargets = [
-      "cu.mag:9090"
-      "hkg5.mag:9090"
+      "cu.ts:9090"
+      "hkg5.ts:9090"
     ];
   };
 

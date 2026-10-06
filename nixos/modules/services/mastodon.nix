@@ -1,5 +1,5 @@
 {
-  PG ? "postgres.mag",
+  PG ? "postgres.ts",
   ...
 }:
 { config, ... }:

@@ -139,10 +139,10 @@
   services.tailscale-proxy-pool = {
     enable = true;
     exitNodes = [
-      "surface.mag"
-      "arx8.mag"
-      "shg0.mag"
-      # "op13.mag"
+      "surface.ts"
+      "arx8.ts"
+      "shg0.ts"
+      # "op13.ts"
     ];
 
     poolPort = 10080;

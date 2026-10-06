@@ -668,7 +668,7 @@ in
           "--api-server-port"
           (toString cfg.web.port)
           "--api-host"
-          "http://${config.networking.hostName}.mag:11211"
+          "http://${config.networking.hostName}.ts:11211"
           "--config-server-port"
           "22020"
           "--config-server-protocol"

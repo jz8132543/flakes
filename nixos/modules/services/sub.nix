@@ -228,7 +228,7 @@ let
       ];
       skip-domain = [
         "*.dora.im"
-        "*.mag"
+        "*.ts"
         "*.et"
       ];
     };

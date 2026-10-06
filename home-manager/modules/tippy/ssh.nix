@@ -8,7 +8,7 @@ let
   sshRaceDomains = [
     "dn42"
     "dora.im"
-    "mag"
+    "ts"
     "et"
   ];
 in

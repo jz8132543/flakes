@@ -13,8 +13,8 @@ in
     customDomains = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [
-        "op13.mag"
-        "opap.mag"
+        "op13.ts"
+        "opap.ts"
       ];
       description = "List of custom domains or IPs for KDE Connect default search list";
     };

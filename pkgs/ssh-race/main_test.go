@@ -7,15 +7,15 @@ import (
 )
 
 func TestBuildCandidatesBareHost(t *testing.T) {
-	got := buildCandidates("test", []string{"dn42", "dora.im", "mag", "et"}, true)
-	want := []string{"test.dn42", "test.dora.im", "test.mag", "test.et", "test"}
+	got := buildCandidates("test", []string{"dn42", "dora.im", "ts", "et"}, true)
+	want := []string{"test.dn42", "test.dora.im", "test.ts", "test.et", "test"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("buildCandidates() = %#v, want %#v", got, want)
 	}
 }
 
 func TestBuildCandidatesFullyQualifiedHost(t *testing.T) {
-	got := buildCandidates("github.com", []string{"dn42", "dora.im", "mag", "et"}, true)
+	got := buildCandidates("github.com", []string{"dn42", "dora.im", "ts", "et"}, true)
 	want := []string{"github.com"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("buildCandidates() = %#v, want %#v", got, want)
@@ -23,8 +23,8 @@ func TestBuildCandidatesFullyQualifiedHost(t *testing.T) {
 }
 
 func TestSplitList(t *testing.T) {
-	got := splitList("dn42, dora.im mag et\n")
-	want := []string{"dn42", "dora.im", "mag", "et"}
+	got := splitList("dn42, dora.im ts et\n")
+	want := []string{"dn42", "dora.im", "ts", "et"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("splitList() = %#v, want %#v", got, want)
 	}
