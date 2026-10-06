@@ -31,14 +31,20 @@ in
     before = [ "podman-save-restricted-content-bot.service" ];
     # 确保 podman 服务本身可用（socket/daemon 已启动），否则无法运行 podman build
     requires = [ "podman.service" ];
+    wants = [ "network-online.target" ];
     after = [
-      "network.target"
+      "network-online.target"
       "podman.service"
     ];
     wantedBy = [ "multi-user.target" ];
+    unitConfig = {
+      StartLimitIntervalSec = 0;
+    };
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = "10s";
       ExecStart = pkgs.writeShellScript "build-bot-image" ''
         if ! ${pkgs.podman}/bin/podman image exists ${imageTag}; then
           echo "Building image ${imageTag} from ${botSrc}..."

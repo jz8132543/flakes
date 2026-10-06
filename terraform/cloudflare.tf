@@ -109,18 +109,6 @@ locals {
     couchdb     = { on = "fra0", proxy = false }
     zotero      = { on = "fra0", proxy = false }
     dns         = { on = "fra0", proxy = false }
-    zone        = { on = "zone.cdn", proxy = false }
-    jellyfin    = { on = "jellyfin.cdn", proxy = false }
-    alist       = { on = "alist.cdn", proxy = false }
-    office      = { on = "office.cdn", proxy = false }
-    code        = { on = "code.cdn", proxy = false }
-    cloud       = { on = "cloud.cdn", proxy = false }
-    api         = { on = "api.cdn", proxy = false }
-    cpa         = { on = "cpa.cdn", proxy = false }
-    m           = { on = "m.cdn", proxy = false }
-    chat        = { on = "chat.cdn", proxy = false }
-    cache       = { on = "cache.cdn", proxy = false }
-    s           = { on = "s.cdn", proxy = false }
   }, local.media_service_cname_mappings)
 }
 output "service_cname_mappings" {
@@ -244,35 +232,7 @@ resource "cloudflare_dns_record" "dora_mx_mxroute2" {
 #   zone_id = cloudflare_zone.im_dora.id
 # }
 
-# ------------------------------------------------------------------------------
-# CDN Traffic Router Authority & Subdomain Delegation
-# ------------------------------------------------------------------------------
-resource "cloudflare_dns_record" "cdn_tr_a" {
-  name    = "tr.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "A"
-  content = "185.216.178.70"
-  zone_id = cloudflare_zone.im_dora.id
-}
-
-resource "cloudflare_dns_record" "cdn_tr_aaaa" {
-  name    = "tr.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "AAAA"
-  content = "2a03:4000:4f:92d::"
-  zone_id = cloudflare_zone.im_dora.id
-}
-
-resource "cloudflare_dns_record" "cdn_ns" {
-  name    = "cdn.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "NS"
-  content = "tr.${cloudflare_zone.im_dora.name}"
-  zone_id = cloudflare_zone.im_dora.id
-}
+# (CDN NS delegation and router records are managed in terraform/cdn.tf)
 
 resource "cloudflare_dns_record" "dora_lax0" {
   name    = "lax0.${cloudflare_zone.im_dora.name}"

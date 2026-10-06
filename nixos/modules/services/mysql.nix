@@ -1,8 +1,11 @@
 {
   pkgs,
+  nixosModules,
   ...
 }:
 {
+  imports = [ nixosModules.services.restic ];
+
   services.mysql = {
     enable = true;
     package = pkgs.mariadb;
@@ -10,6 +13,19 @@
       bind-address = "0.0.0.0";
       skip-networking = false;
     };
+  };
+
+  # backup mysql database via automysqlbackup (原生全库自动备份与轮转)
+  services.automysqlbackup = {
+    enable = true;
+    calendar = "01:15:00"; # 备份时间调度（如 postgresqlBackup.startAt，支持 systemd OnCalendar 表达式）
+  };
+
+  services.restic.backups.borgbase.paths = [
+    "/var/backup/mysql"
+  ];
+  systemd.services."restic-backups-borgbase" = {
+    after = [ "automysqlbackup.service" ];
   };
 
   # Separate setup service to avoid blocking mysql.service startup

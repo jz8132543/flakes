@@ -74,7 +74,7 @@ in
         [alist]
         type = webdav
         url = https://alist.${config.networking.domain}/dav
-        vendor = rclone
+        vendor = other
         user = ${config.sops.placeholder."alist/app/username"}
         pass = ${config.sops.placeholder."alist/app/password-rclone"}
       '';
@@ -94,8 +94,14 @@ in
         RCLONE_CACHE_DIR = rcloneCacheDir;
       };
 
+      unitConfig = {
+        StartLimitIntervalSec = 0;
+      };
+
       serviceConfig = {
         Type = "oneshot";
+        Restart = "on-failure";
+        RestartSec = "30s";
         User = cfg.user;
 
         # 性能与调度优化 (针对 4核/8G)

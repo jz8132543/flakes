@@ -71,6 +71,10 @@ in
     "Z '${config.users.users.nextcloud.home}/' 0700 nextcloud nextcloud - -"
   ];
 
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/nextcloud/config/config.php"
+  ];
+
   # ── Nextcloud 主服务配置 ─────────────────────────────────────
   services.nextcloud = {
     enable = true;

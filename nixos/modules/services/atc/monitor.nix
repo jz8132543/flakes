@@ -12,6 +12,9 @@ let
     builtins.toJSON {
       traffic_ops_url = cfg.trafficOpsUrl;
       traffic_ops_user = cfg.trafficOpsUser;
+      # traffic_ops_pass: Traffic Monitor's own admin-UI password (NOT the PG password).
+      # The PG database uses trust/peer auth; this field controls the TM web UI login.
+      # Leave empty for now — evaluate whether the UI is exposed before hardening.
       traffic_ops_pass = "";
       traffic_ops_disk_retry_max = 5;
       traffic_ops_retry_interval_ms = 10000;
@@ -39,68 +42,63 @@ in
 
     listenAddress = mkOption {
       type = types.str;
-      default = "100.64.0.1";
-      description = "IP address to bind Traffic Monitor (strictly Tailscale overlay IP)";
+      default = "0.0.0.0";
+      description = "IP address to bind Traffic Monitor. Defaults to all interfaces.";
     };
 
     port = mkOption {
       type = types.port;
       default = 8080;
-      description = "Port to serve CrStates and TM health stats";
+      description = "Port to serve CrStates and TM health stats.";
     };
 
     trafficOpsUrl = mkOption {
       type = types.str;
-      default = "https://100.64.0.1:443";
-      description = "Traffic Ops API URL on Tailscale overlay";
+      default = "https://ops.${config.networking.domain}";
+      defaultText = "https://ops.<networking.domain>";
+      description = "Traffic Ops API URL. Must use HTTPS (Traefik terminates TLS).";
     };
 
     trafficOpsUser = mkOption {
       type = types.str;
       default = "traffic_monitor";
-      description = "Traffic Ops monitoring service account username";
-    };
-
-    trafficOpsPasswordFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to file containing password for Traffic Ops";
+      description = "Traffic Ops service account username for monitoring.";
     };
 
     healthPollingIntervalMs = mkOption {
       type = types.int;
-      default = 20000; # 20 seconds (Task 3: 15s~30s)
-      description = "Health check polling interval in ms (relaxed from 1s to avoid DDOSing weak edge nodes)";
+      default = 20000;
+      description = "Health check polling interval in ms (relaxed from 1s to avoid overloading weak edge nodes).";
     };
 
     healthTimeoutMs = mkOption {
       type = types.int;
-      default = 8000; # 8 seconds (Task 3: tolerate nue0 latency)
-      description = "Health probe timeout in ms to tolerate high-latency links";
+      default = 8000;
+      description = "Health probe timeout in ms (generous for high-latency links).";
     };
 
     healthConnectionTimeoutMs = mkOption {
       type = types.int;
       default = 5000;
-      description = "Health probe connection timeout in ms";
+      description = "Health probe connection timeout in ms.";
     };
 
     statPollingIntervalMs = mkOption {
       type = types.int;
-      default = 60000; # 60 seconds
-      description = "Cache statistics polling interval in ms";
+      default = 60000;
+      description = "Cache statistics polling interval in ms.";
     };
 
     statTimeoutMs = mkOption {
       type = types.int;
       default = 10000;
-      description = "Cache statistics timeout in ms";
+      description = "Cache statistics timeout in ms.";
     };
 
     package = mkOption {
       type = types.package;
       default = pkgs.trafficcontrol;
-      description = "Package providing traffic_monitor binary";
+      description = "Package providing traffic_monitor binary.";
     };
   };
 
@@ -129,10 +127,13 @@ in
         Type = "simple";
         User = "trafficmonitor";
         Group = "trafficmonitor";
-        Restart = "always";
+        Restart = "on-failure";
         RestartSec = "10s";
+        StartLimitIntervalSec = "120s";
+        StartLimitBurst = 10;
+        MemoryMax = "256M";
+        LimitNOFILE = 65536;
 
-        # 仅绑定 Tailscale 内网地址与端口
         ExecStart = ''
           ${cfg.package}/bin/traffic_monitor \
             -opsCfg /etc/traffic_monitor/traffic_monitor.cfg \

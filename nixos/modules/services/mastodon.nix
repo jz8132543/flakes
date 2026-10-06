@@ -129,4 +129,8 @@
     rule = "Host(`${config.services.mastodon.extraConfig.WEB_DOMAIN}`)";
     target = "http://localhost:${toString config.ports.nginx}";
   };
+
+  services.restic.backups.borgbase.paths = [
+    "/var/lib/mastodon/secrets"
+  ];
 }

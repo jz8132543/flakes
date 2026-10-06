@@ -76,7 +76,7 @@
   sops.secrets = {
     "alist/JWT" = { };
     "mail/services" = { };
-    "password" = { };
+    "alist/app/password" = { };
   };
 
   systemd.services.alist-init-dav = {
@@ -95,7 +95,7 @@
       util-linux
     ];
     script = ''
-      pw="$(cat ${config.sops.secrets."password".path})"
+      pw="$(cat ${config.sops.secrets."alist/app/password".path})"
       salt="$(runuser -u postgres -- psql -d alist -t -A -c "SELECT salt FROM x_users WHERE username = 'dav';" 2>/dev/null || true)"
       if [ -z "$salt" ]; then
         salt="$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 16)"

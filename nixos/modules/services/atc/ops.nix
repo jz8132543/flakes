@@ -17,7 +17,9 @@ let
         read_timeout = 60;
         write_timeout = 60;
         idle_timeout = 300;
-        insecure = true;
+        # Running over plain HTTP on the public interface, TLS is terminated
+        # by Traefik (or handled by the origin's own TLS stack).
+        # No insecure flag needed — we are the origin server.
         log_location_error = "stderr";
         log_location_warning = "stderr";
         log_location_info = "null";
@@ -26,8 +28,10 @@ let
         db_query_timeout_seconds = 30;
         traffic_vault_backend = "disabled";
       };
+      # CORS: restrict to the same domain family.
+      # Wildcard ("*") is avoided — Traffic Ops API is not a public endpoint.
       cors = {
-        access_control_allow_origin = "*";
+        access_control_allow_origin = "https://*.${config.networking.domain}";
       };
     }
   );
@@ -38,7 +42,8 @@ let
       dbname = cfg.dbName;
       hostname = cfg.dbHost;
       user = cfg.dbUser;
-      password = "";
+      # Password-less peer/trust authentication assumed (PostgreSQL pg_hba.conf).
+      # password field intentionally omitted.
       port = toString cfg.dbPort;
       ssl = false;
       type = "Pg";
@@ -52,50 +57,44 @@ in
 
     listenAddress = mkOption {
       type = types.str;
-      default = "100.64.0.1";
-      description = "Address to bind Traffic Ops API (strictly Tailscale overlay IP)";
+      default = "0.0.0.0";
+      description = "Address to bind Traffic Ops API. Use 0.0.0.0 for public access (Traefik will restrict exposure).";
     };
 
     port = mkOption {
       type = types.port;
-      default = 443;
-      description = "Port to listen on Tailscale overlay";
+      default = 8088;
+      description = "Port to listen on (plain HTTP; Traefik terminates TLS externally).";
     };
 
     dbHost = mkOption {
       type = types.str;
       default = "127.0.0.1";
-      description = "PostgreSQL host";
+      description = "PostgreSQL host.";
     };
 
     dbPort = mkOption {
       type = types.port;
       default = 5432;
-      description = "PostgreSQL port";
+      description = "PostgreSQL port.";
     };
 
     dbName = mkOption {
       type = types.str;
       default = "traffic_ops";
-      description = "PostgreSQL database name";
+      description = "PostgreSQL database name.";
     };
 
     dbUser = mkOption {
       type = types.str;
       default = "traffic_ops";
-      description = "PostgreSQL database username";
-    };
-
-    dbPasswordFile = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "Path to PostgreSQL password file";
+      description = "PostgreSQL database username.";
     };
 
     package = mkOption {
       type = types.package;
       default = pkgs.trafficcontrol;
-      description = "Package providing traffic_ops_golang binary";
+      description = "Package providing traffic_ops_golang binary.";
     };
   };
 
@@ -115,27 +114,28 @@ in
     environment.etc."traffic_ops/cdn.conf".source = cdnConfigFile;
     environment.etc."traffic_ops/database.conf".source = dbConfigFile;
 
-    # 依赖并连接 PostgreSQL 服务
     systemd.services.traffic-ops = {
       description = "Apache Traffic Control Traffic Ops API";
-      after = [
-        "network-online.target"
-        "postgresql.service"
-      ];
-      wants = [
-        "network-online.target"
-        "postgresql.service"
-      ];
+      # Do not declare postgresql.service as a dependency — the database may
+      # be on a remote host. Instead rely on the Restart policy: if the DB
+      # is not ready the process will exit and systemd will retry.
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "simple";
         User = "trafficops";
         Group = "trafficops";
-        Restart = "always";
+        # Restart on any failure and keep retrying — this is the simplest way
+        # to handle transient DB unavailability without over-engineering.
+        Restart = "on-failure";
         RestartSec = "10s";
+        StartLimitIntervalSec = "120s";
+        StartLimitBurst = 10;
+        MemoryMax = "512M";
+        LimitNOFILE = 65536;
 
-        # 仅绑定 Tailscale 内网地址，绝不向公网暴露
         ExecStart = ''
           ${cfg.package}/bin/traffic_ops_golang \
             -cfg /etc/traffic_ops/cdn.conf \

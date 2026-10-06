@@ -22,10 +22,13 @@ let
         unsigned long long free_bytes = (unsigned long long)si.freeram * si.mem_unit;
         unsigned long long total_bytes = (unsigned long long)si.totalram * si.mem_unit;
 
-        // 保留安全余量：至少保留 12.5% 或 64MB（以较小者为准），确保不触发 earlyoom 或系统卡顿
-        unsigned long long safety_margin = total_bytes / 8;
-        if (safety_margin > 64ULL * 1024 * 1024) {
-            safety_margin = 64ULL * 1024 * 1024;
+        // 保留安全余量：至少保留 256MB ~ 512MB，确保不触发 OOM 或系统卡顿
+        unsigned long long safety_margin = total_bytes / 16;
+        if (safety_margin < 256ULL * 1024 * 1024) {
+            safety_margin = 256ULL * 1024 * 1024;
+        }
+        if (safety_margin > 512ULL * 1024 * 1024) {
+            safety_margin = 512ULL * 1024 * 1024;
         }
 
         if (free_bytes <= safety_margin + 16ULL * 1024 * 1024) {
@@ -96,8 +99,10 @@ in
         Type = "oneshot";
         ExecStart = "${memPreFault}/bin/mem-pre-fault";
         RemainAfterExit = false;
-        # 即使在低内存机型上发生极端情况，也优先牺牲此服务而非其他关键守护进程
-        OOMScoreAdjust = 1000;
+        # 严禁将内存换出到 Swap 分区（cgroup 级别限制）
+        MemorySwapMax = "0";
+        # 免受内核 OOM Killer 杀除（-1000 为完全豁免）
+        OOMScoreAdjust = -1000;
       };
     };
 

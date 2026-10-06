@@ -65,7 +65,7 @@ in
       [alist]
       type = webdav
       url = https://alist.${config.networking.domain}/dav
-      vendor = rclone
+      vendor = other
       user = ${config.sops.placeholder."alist/app/username"}
       pass = ${config.sops.placeholder."alist/app/password-rclone"}
     '';
