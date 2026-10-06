@@ -28,6 +28,10 @@ let
       key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
       owned = true;
     };
+    fra0 = {
+      key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
+      owned = true;
+    };
   };
   allHostKeys = lib.mapAttrsToList (_: cfg: cfg.key) hosts;
 
