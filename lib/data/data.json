@@ -59,6 +59,15 @@
       "endpoints_v6": [],
       "host_indices": [6]
     },
+    "fra0": {
+      "dn42_addresses_v4": ["172.20.232.1"],
+      "dn42_addresses_v6": ["fd53:90fd:4bb6:1::1"],
+      "dn42_v6_prefixes": ["fd53:90fd:4bb6:1::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [1]
+    },
     "hkg5": {
       "dn42_addresses_v4": ["172.20.232.7"],
       "dn42_addresses_v6": ["fd53:90fd:4bb6:7::1"],
