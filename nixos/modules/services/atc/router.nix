@@ -150,7 +150,7 @@ in
   options.services.atc.router = {
     enable = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = "Run authoritative CoreDNS for cdn.<networking.domain>.";
     };
 

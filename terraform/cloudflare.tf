@@ -66,7 +66,6 @@ resource "cloudflare_dns_record" "dora_shg0" {
 
 locals {
   media_service_cname_mappings = {
-    jellyfin       = { on = "jellyfin.cdn", proxy = false }
     seerr          = { on = "fra0", proxy = false }
     sonarr         = { on = "fra0", proxy = false }
     "sonarr-anime" = { on = "fra0", proxy = false }

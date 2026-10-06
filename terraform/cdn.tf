@@ -53,11 +53,6 @@ locals {
       weight = 1
     },
     {
-      name   = "nue0"
-      region = "EU"
-      weight = 1
-    },
-    {
       name   = "fra0"
       region = "EU"
       weight = 1
@@ -119,6 +114,14 @@ resource "cloudflare_dns_record" "cdn_ns" {
   proxied = false
   ttl     = 3600
   type    = "NS"
+  content = "${local.cdn_ns_host}.${cloudflare_zone.im_dora.name}"
+  zone_id = cloudflare_zone.im_dora.id
+}
+resource "cloudflare_dns_record" "cdn_dns" {
+  name    = "cdn.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 3600
+  type    = "CNAME"
   content = "${local.cdn_ns_host}.${cloudflare_zone.im_dora.name}"
   zone_id = cloudflare_zone.im_dora.id
 }

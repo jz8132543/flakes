@@ -5,6 +5,7 @@
     ++ nixosModules.services.media.all
     ++ nixosModules.matrix.all
     ++ nixosModules.services.networking.dn42.router.all
+    ++ nixosModules.services.atc.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -64,8 +65,6 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
       nixosModules.services.adguard-mosdns
-      nixosModules.services.atc.router
-      nixosModules.services.atc.edge
     ];
 
   services.moviepilot.enable = true;

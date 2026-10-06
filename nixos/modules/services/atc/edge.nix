@@ -19,7 +19,7 @@ in
 {
   options.services.atc.edge.enable = mkOption {
     type = types.bool;
-    default = false;
+    default = true;
     description = "Enable per-service SNI passthrough routes from terraform/cdn.tf.";
   };
 
