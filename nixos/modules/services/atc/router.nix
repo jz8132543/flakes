@@ -34,10 +34,9 @@ let
     );
   addressRecords =
     name: nodes:
-    concatMapStringsSep "\n    " (
+    concatMapStringsSep "\n" (
       n:
-      "${name} IN A ${n.ipv4}"
-      + optionalString ((n.ipv6 or null) != null) "\n    ${name} IN AAAA ${n.ipv6}"
+      "${name} IN A ${n.ipv4}" + optionalString ((n.ipv6 or null) != null) "\n${name} IN AAAA ${n.ipv6}"
     ) (weightedNodes nodes);
 
   serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
@@ -69,7 +68,7 @@ let
       ${optionalString (nsIpv6 != null) "@ IN AAAA ${nsIpv6}"}
 
       ; Service labels and origin labels are edge-pool aliases.
-      ${concatMapStringsSep "\n    " (label: addressRecords label nodes) serviceLabels}
+      ${concatMapStringsSep "\n" (label: addressRecords label nodes) serviceLabels}
 
       ; Unmapped names fall back to this view's edge pool.
       ${addressRecords "*" nodes}
@@ -174,8 +173,8 @@ in
 
       upstream = mkOption {
         type = types.str;
-        default = "tcp:${selfIpv4}:53";
-        description = "DoH upstream DNS endpoint. It uses the host's public CoreDNS listener because local dnsmasq may already own 127.0.0.1:53.";
+        default = "tcp:1.1.1.1:53";
+        description = "Recursive DNS upstream for DoH. The public resolver can resolve both dora.im and its delegated cdn.dora.im child zone.";
       };
     };
   };
@@ -251,12 +250,19 @@ in
         LimitNOFILE = 65536;
         ExecStart = "${cfg.package}/bin/coredns -conf /etc/traffic_router/Corefile";
       };
+      restartTriggers = [ corefile ];
     };
 
     systemd.services.traffic-router-doh = {
       description = "DNS-over-HTTPS frontend for the ATC authoritative DNS server";
-      after = [ "traffic-router.service" ];
-      wants = [ "traffic-router.service" ];
+      after = [
+        "network-online.target"
+        "traffic-router.service"
+      ];
+      wants = [
+        "network-online.target"
+        "traffic-router.service"
+      ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "simple";
@@ -268,6 +274,7 @@ in
         LimitNOFILE = 16384;
         ExecStart = "${cfg.doh.package}/bin/doh-server -conf /etc/traffic_router/doh-server.conf";
       };
+      restartTriggers = [ config.environment.etc."traffic_router/doh-server.conf".source ];
     };
 
     services.traefik.proxies.traffic-router-doh =
