@@ -359,7 +359,7 @@ in
   };
 
   # ── Talk TURN 服务器配置（occ）——直接复用 Matrix matrixRtcHosts 节点的 Coturn ──
-  # 读取 Matrix 配置中的 matrixRtcHosts（如 nue0, sjc0 等），为 Talk 注册对应的 TURN/TURNS 节点
+  # 读取 Matrix 配置中的 matrixRtcHosts，为 Talk 注册对应的 TURN/TURNS 节点
   systemd.services.nextcloud-config-talk = {
     wantedBy = [ "multi-user.target" ];
     after = [

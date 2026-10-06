@@ -46,7 +46,6 @@ in
       rule = "Host(`mta-sts.dora.im`)";
       target = "http://localhost:${toString config.ports.nginx}";
     };
-
   };
 
   services.nginx = {
@@ -95,10 +94,6 @@ in
           </clientConfig>
         '';
     };
-    # Redirect root to the canonical homepage host/path
-    virtualHosts."dora.im".locations."/".extraConfig = ''
-      return 301 https://nue0.dora.im/home/;
-    '';
     virtualHosts."mta-sts.dora.im".locations."=/.well-known/mta-sts.txt".alias =
       pkgs.writeText "mta-sts.txt" ''
         version: STSv1

@@ -38,7 +38,7 @@
     enableIpv6 = false;
     edgeDomain = "sjc0.dora.im";
     edgePublicIp = "45.143.130.230";
-    centralNatsHost = "nue0.dora.im";
+    centralNatsHost = "cloud.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
     enableCluster = true;
     grpcPort = 9090;

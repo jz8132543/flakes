@@ -87,7 +87,7 @@ in
 
     centralNatsHost = lib.mkOption {
       type = lib.types.str;
-      default = "nue0.${domain}";
+      default = "cloud.${domain}";
       description = "Central node public domain or IP for NATS message bus.";
     };
 

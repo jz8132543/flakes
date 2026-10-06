@@ -31,7 +31,7 @@
     enableCoturn = false;
     stunServer = "hkg5.dora.im";
     stunPort = 3479;
-    centralNatsHost = "nue0.dora.im";
+    centralNatsHost = "cloud.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
     enableCluster = true;
     grpcPort = 9090;
@@ -55,7 +55,7 @@
     mappings = [
       {
         listenPort = 50561;
-        remoteAddr = "nue0.dora.im";
+        remoteAddr = "fra0.dora.im";
         remotePort = 8555;
       }
       {

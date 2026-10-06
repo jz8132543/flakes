@@ -89,6 +89,9 @@ let
     nue0 = {
       system = "x86_64-linux";
     };
+    fra0 = {
+      system = "x86_64-linux";
+    };
     # isk = {
     #   system = "x86_64-linux";
     # };
@@ -137,15 +140,12 @@ let
     extraModules
     ++ lib.optional (configurationName != null) ../nixos/hosts/${configurationName}
     ++ [
-      (
-        { lib, ... }:
-        {
-          networking.hostName = lib.mkDefault name;
-          # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
-          nixpkgs.hostPlatform = system;
-          # nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
-        }
-      )
+      ({ lib, ... }: {
+        networking.hostName = lib.mkDefault name;
+        # _module.args.pkgs = lib.mkForce (getSystem system).allModuleArgs.pkgs;
+        nixpkgs.hostPlatform = system;
+        # nix.package = lib.mkDefault inputs.lix.packages.${system}.default;
+      })
     ];
 
   mkHost =

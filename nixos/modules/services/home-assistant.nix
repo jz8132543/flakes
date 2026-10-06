@@ -56,7 +56,7 @@ in
       default_config = { };
 
       homeassistant = {
-        name = "nue0 smart home";
+        name = "smart home";
         unit_system = "metric";
         time_zone = config.time.timeZone;
       };

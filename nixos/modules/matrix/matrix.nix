@@ -153,8 +153,7 @@ in
     type = lib.types.listOf lib.types.str;
     default =
       config.lib.self.data.matrix.rtcHosts or [
-        "nue0"
-        "sjc0"
+        "m"
       ];
     description = "Matrix RTC hosts";
   };
@@ -225,7 +224,6 @@ in
           per_second = 1000;
           burst_count = 10000;
         };
-
       };
       extraConfigFiles = [
         config.sops.templates."synapse-extra-config".path
@@ -388,9 +386,6 @@ in
             </clientConfig>
           '';
       };
-      virtualHosts."dora.im".locations."/".extraConfig = ''
-        return 301 https://nue0.dora.im/home/;
-      '';
       virtualHosts."mta-sts.dora.im".locations."=/.well-known/mta-sts.txt".alias =
         pkgs.writeText "mta-sts.txt" ''
           version: STSv1

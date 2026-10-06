@@ -22,6 +22,28 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    fra0 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "94.249.174.75"
+        }
+        aaaa = {
+          proxied = false
+          type    = "AAAA"
+          value   = "2a0e:6a80:3:b60::"
+        }
+        # removed 'memos' CNAME because CNAME cannot coexist with other
+        # records for the same name (it caused CNAME self-reference errors).
+        # If you need a subdomain like 'memos.nue0', add a separate host entry
+        # below with name = "memos" and value = "nue0.dora.im".
+      }
+      ddns_records = {}
+      host_indices = [3]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     tyo1 = {
       records = {
         a = {

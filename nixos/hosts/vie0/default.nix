@@ -1,5 +1,4 @@
-{ nixosModules, ... }:
-{
+{ nixosModules, ... }: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -18,7 +17,7 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.proxy
-      # Media Stack removed - use nue0 for media services
+      # Media Stack removed - use for media services
       # nixosModules.services.syncthing
       nixosModules.services.reader
       # nixosModules.services.searx

@@ -2,7 +2,7 @@
   needProxy ? false,
   xrayPort ? 8555,
   proxyHosts ? [
-    "nue0.dora.im"
+    "fra0.dora.im"
     "tyo0.dora.im"
     "sjc0.dora.im"
   ],
@@ -15,7 +15,6 @@
   lib,
   ...
 }:
-
 let
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
 in

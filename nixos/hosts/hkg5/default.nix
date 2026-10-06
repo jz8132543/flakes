@@ -1,5 +1,4 @@
-{ nixosModules, ... }:
-{
+{ nixosModules, ... }: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -28,7 +27,7 @@
     edgePublicIp = "216.23.94.148";
     edgePublicIpv6 = "2401:2660:2:93::a";
     enableCoturn = true;
-    centralNatsHost = "nue0.dora.im";
+    centralNatsHost = "cloud.dora.im";
     centralNextcloudUrl = "https://cloud.dora.im";
     enableCluster = true;
     grpcPort = 9090;

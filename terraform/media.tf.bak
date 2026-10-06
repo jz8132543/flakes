@@ -16,7 +16,7 @@ locals {
   radarr_url   = "https://radarr.dora.im"
   prowlarr_url = "https://prowlarr.dora.im"
 
-  # Internal URLs for service-to-service communication on nue0
+  # Internal URLs for service-to-service communication
   sonarr_internal   = "http://127.0.0.1:8989"
   radarr_internal   = "http://127.0.0.1:7878"
   prowlarr_internal = "http://127.0.0.1:9696"
@@ -274,22 +274,22 @@ output "media_config_notes" {
     =========================================
     Home Theater System - Auto-Configuration
     =========================================
-    
+
     All services are configured with:
     - Username: i
     - Password: (from sops secret 'password')
     - Email: noreply@dora.im
     - SMTP: noreply@dora.im (password from 'smtp/password')
-    
+
     Service URLs:
     - Jellyfin:    https://jellyfin.dora.im
-    - Jellyseerr:  https://seerr.dora.im  
+    - Jellyseerr:  https://seerr.dora.im
     - Sonarr:      https://sonarr.dora.im
     - Radarr:      https://radarr.dora.im
     - Prowlarr:    https://prowlarr.dora.im
     - Bazarr:      https://bazarr.dora.im
     - qBittorrent: https://qbit.dora.im
-    
+
     Auto-configured by NixOS:
     ✓ Jellyfin - Initial user created
     ✓ qBittorrent - Credentials and categories set
@@ -297,12 +297,12 @@ output "media_config_notes" {
     ✓ Radarr - Root folder and authentication
     ✓ Prowlarr - Authentication enabled
     ✓ Bazarr - Connected to Sonarr/Radarr
-    
+
     Configured by Terraform:
     ✓ Sonarr - Naming, download client, notifications
     ✓ Radarr - Naming, download client, notifications
     ✓ Prowlarr - FlareSolverr, app sync
-    
+
     Manual steps (one-time):
     1. Jellyseerr - Complete setup wizard with Jellyfin login
     2. Prowlarr - Add indexers (torrent sites)

@@ -7,8 +7,8 @@ import (
 )
 
 func TestBuildCandidatesBareHost(t *testing.T) {
-	got := buildCandidates("nue0", []string{"dn42", "dora.im", "mag", "et"}, true)
-	want := []string{"nue0.dn42", "nue0.dora.im", "nue0.mag", "nue0.et", "nue0"}
+	got := buildCandidates("test", []string{"dn42", "dora.im", "mag", "et"}, true)
+	want := []string{"test.dn42", "test.dora.im", "test.mag", "test.et", "test"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("buildCandidates() = %#v, want %#v", got, want)
 	}
