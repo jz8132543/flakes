@@ -67,33 +67,48 @@ resource "cloudflare_dns_record" "dora_shg0" {
 locals {
   media_service_cname_mappings = {
     jellyfin       = { on = "jellyfin.cdn", proxy = false }
-    seerr          = { on = "nue0", proxy = false }
-    sonarr         = { on = "nue0", proxy = false }
-    "sonarr-anime" = { on = "nue0", proxy = false }
-    radarr         = { on = "nue0", proxy = false }
-    prowlarr       = { on = "nue0", proxy = false }
-    lidarr         = { on = "nue0", proxy = false }
-    bazarr         = { on = "nue0", proxy = false }
-    qbit           = { on = "nue0", proxy = false }
-    vertex         = { on = "nue0", proxy = false }
-    iyuu           = { on = "nue0", proxy = false }
-    autobrr        = { on = "nue0", proxy = false }
-    navidrome      = { on = "nue0", proxy = false }
-    maintainerr    = { on = "nue0", proxy = false }
-    movie          = { on = "nue0", proxy = false }
+    seerr          = { on = "fra0", proxy = false }
+    sonarr         = { on = "fra0", proxy = false }
+    "sonarr-anime" = { on = "fra0", proxy = false }
+    radarr         = { on = "fra0", proxy = false }
+    prowlarr       = { on = "fra0", proxy = false }
+    lidarr         = { on = "fra0", proxy = false }
+    bazarr         = { on = "fra0", proxy = false }
+    qbit           = { on = "fra0", proxy = false }
+    vertex         = { on = "fra0", proxy = false }
+    iyuu           = { on = "fra0", proxy = false }
+    autobrr        = { on = "fra0", proxy = false }
+    navidrome      = { on = "fra0", proxy = false }
+    maintainerr    = { on = "fra0", proxy = false }
+    movie          = { on = "fra0", proxy = false }
   }
 
   service_cname_mappings = merge({
-    call        = { on = "nue0", proxy = false }
-    vault       = { on = "nue0", proxy = false }
-    ts          = { on = "nue0", proxy = false }
-    ldap        = { on = "nue0", proxy = false }
-    sso         = { on = "nue0", proxy = false }
-    mta-sts     = { on = "nue0", proxy = false }
-    atuin       = { on = "nue0", proxy = false }
-    ntfy        = { on = "nue0", proxy = false }
-    pb          = { on = "nue0", proxy = false }
-    "admin.m"   = { on = "nue0", proxy = false }
+    call        = { on = "fra0", proxy = false }
+    vault       = { on = "fra0", proxy = false }
+    ts          = { on = "fra0", proxy = false }
+    ldap        = { on = "fra0", proxy = false }
+    sso         = { on = "fra0", proxy = false }
+    mta-sts     = { on = "fra0", proxy = false }
+    atuin       = { on = "fra0", proxy = false }
+    ntfy        = { on = "fra0", proxy = false }
+    pb          = { on = "fra0", proxy = false }
+    "admin.m"   = { on = "fra0", proxy = false }
+    talk        = { on = "fra0", proxy = false }
+    dash        = { on = "fra0", proxy = false }
+    metrics     = { on = "fra0", proxy = false }
+    cookiecloud = { on = "fra0", proxy = false }
+    cookie      = { on = "fra0", proxy = false }
+    home        = { on = "fra0", proxy = false }
+    ha          = { on = "fra0", proxy = false }
+    link        = { on = "fra0", proxy = false }
+    et          = { on = "fra0", proxy = false }
+    hydra       = { on = "fra0", proxy = false }
+    sub         = { on = "fra0", proxy = false }
+    memos       = { on = "fra0", proxy = false }
+    couchdb     = { on = "fra0", proxy = false }
+    zotero      = { on = "fra0", proxy = false }
+    dns         = { on = "fra0", proxy = false }
     zone        = { on = "zone.cdn", proxy = false }
     jellyfin    = { on = "jellyfin.cdn", proxy = false }
     alist       = { on = "alist.cdn", proxy = false }
@@ -103,24 +118,8 @@ locals {
     api         = { on = "api.cdn", proxy = false }
     cpa         = { on = "cpa.cdn", proxy = false }
     m           = { on = "m.cdn", proxy = false }
-    talk        = { on = "nue0", proxy = false }
-    dash        = { on = "nue0", proxy = false }
-    metrics     = { on = "nue0", proxy = false }
-    cookiecloud = { on = "nue0", proxy = false }
-    cookie      = { on = "nue0", proxy = false }
-    home        = { on = "nue0", proxy = false }
-    ha          = { on = "nue0", proxy = false }
-    link        = { on = "nue0", proxy = false }
-    et          = { on = "nue0", proxy = false }
-    hydra       = { on = "nue0", proxy = false }
-    cache       = { on = "cache.cdn", proxy = false }
-    sub         = { on = "nue0", proxy = false }
-    memos       = { on = "nue0", proxy = false }
     chat        = { on = "chat.cdn", proxy = false }
-    couchdb     = { on = "nue0", proxy = false }
-    zotero      = { on = "nue0", proxy = false }
-    kaogong     = { on = "nue0", proxy = false }
-    dns         = { on = "nue0", proxy = false }
+    cache       = { on = "cache.cdn", proxy = false }
     s           = { on = "s.cdn", proxy = false }
   }, local.media_service_cname_mappings)
 }

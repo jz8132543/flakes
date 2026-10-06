@@ -134,11 +134,7 @@
   },
   "service_cname_mappings": {
     "admin.m": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "ai": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "alist": {
@@ -150,19 +146,15 @@
       "proxy": false
     },
     "atuin": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "autobrr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "bazarr": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "book": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "cache": {
@@ -170,15 +162,11 @@
       "proxy": false
     },
     "call": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "chat": {
       "on": "chat.cdn",
-      "proxy": false
-    },
-    "claw": {
-      "on": "nue0",
       "proxy": false
     },
     "cloud": {
@@ -190,15 +178,15 @@
       "proxy": false
     },
     "cookie": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "cookiecloud": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "couchdb": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "cpa": {
@@ -206,51 +194,47 @@
       "proxy": false
     },
     "dash": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "dns": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "et": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "ha": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "home": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "hydra": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "iyuu": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "jellyfin": {
       "on": "jellyfin.cdn",
       "proxy": false
     },
-    "kaogong": {
-      "on": "nue0",
-      "proxy": false
-    },
     "ldap": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "lidarr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "link": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "m": {
@@ -258,123 +242,91 @@
       "proxy": false
     },
     "maintainerr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "memos": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "metrics": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "movie": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "mta-sts": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "murmur": {
-      "on": "hkg4",
+      "on": "fra0",
       "proxy": false
     },
     "navidrome": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "ntfy": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "office": {
       "on": "office.cdn",
       "proxy": false
     },
-    "ollama": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "ollama-ui": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "p": {
-      "on": "hkg4",
-      "proxy": false
-    },
     "pb": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "perplexica-backend": {
-      "on": "hkg4",
-      "proxy": false
-    },
-    "plex": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "prowlarr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "qbit": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "radarr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
-    "reader": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "search": {
-      "on": "search.cdn",
+    "s": {
+      "on": "s.cdn",
       "proxy": false
     },
     "seerr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "sonarr": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "sonarr-anime": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "sso": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "sub": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "talk": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "ts": {
-      "on": "nue0",
-      "proxy": false
-    },
-    "tv": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "vault": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "vertex": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     },
     "zone": {
@@ -382,7 +334,7 @@
       "proxy": false
     },
     "zotero": {
-      "on": "nue0",
+      "on": "fra0",
       "proxy": false
     }
   }
