@@ -1,4 +1,5 @@
 {
+  inputs,
   config,
   lib,
   nixosModules,
@@ -16,6 +17,7 @@ let
 in
 {
   imports = [
+    inputs.degoog.nixosModules.default
     nixosModules.services.traefik
     nixosModules.services.media.flaresolverr
   ];
@@ -23,7 +25,7 @@ in
   options.services.degoog = {
     domain = lib.mkOption {
       type = lib.types.str;
-      default = "search.${config.networking.domain}";
+      default = "s.${config.networking.domain}";
       description = "Public domain for Degoog.";
     };
 

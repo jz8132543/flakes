@@ -1,6 +1,5 @@
 {
   nixosModules,
-  inputs,
   ...
 }:
 {
@@ -8,6 +7,8 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.services.media.all
+    ++ nixosModules.matrix.all
+    ++ nixosModules.services.networking.dn42.router.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -39,9 +40,6 @@
       nixosModules.services.openclaw.default
       nixosModules.services.new-api
       nixosModules.services.cpa
-      # nixosModules.services.litellm.default
-      inputs.degoog.nixosModules.default
-      inputs.openclaw-nix.nixosModules.openclaw-gateway
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
@@ -57,10 +55,8 @@
       nixosModules.nextcloud.talk-central
       # Coturn TURN 服务器由 nixosModules.matrix.all 中的 stun.nix 配置，Talk 复用它
       (import nixosModules.services.mastodon { PG = "127.0.0.1"; })
-      # TODO
       nixosModules.services.pastebin
       nixosModules.services.linkwarden
-      nixosModules.services.kaogong
       # nixosModules.services.easytier-web
       nixosModules.services.save-restricted-content-bot
 
@@ -75,11 +71,8 @@
       nixosModules.services.adguard-mosdns
       nixosModules.services.atc.router
       nixosModules.services.atc.edge
-    ]
-    ++ nixosModules.matrix.all
-    ++ nixosModules.services.networking.dn42.router.all;
+    ];
 
-  services.kaogong.enable = false;
   services.moviepilot.enable = true;
   services.openclaw.enable = false;
   # services.ai.litellm.enable = true;

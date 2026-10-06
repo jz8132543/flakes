@@ -157,12 +157,6 @@
     aagl = {
       url = "github:ezKEa/aagl-gtk-on-nix";
     };
-
-    openclaw-nix = {
-      url = "github:openclaw/nix-openclaw";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
     degoog = {
       url = "github:degoog-org/degoog";
       inputs.nixpkgs.follows = "nixpkgs";
