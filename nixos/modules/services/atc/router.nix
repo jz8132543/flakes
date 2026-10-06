@@ -25,24 +25,6 @@ let
   nsIpv4 = if nsNode != null then (nsNode.ipv4 or "127.0.0.1") else "127.0.0.1";
   nsIpv6 = if nsNode != null then (nsNode.ipv6 or null) else null;
 
-  # CoreDNS's geoip/view plugins use continent codes. AP and HK share AS;
-  # region remains in cdn.tf for future finer-grained policies.
-  geoRegion =
-    region:
-    if
-      elem region [
-        "AP"
-        "HK"
-      ]
-    then
-      "AS"
-    else if region == "EU" then
-      "EU"
-    else
-      "NA";
-  geoRegions = unique (map (n: geoRegion n.region) data.edgeNodes);
-  nodesForRegion = region: filter (n: geoRegion n.region == region) data.edgeNodes;
-
   # Higher weight means more DNS answers from that node. The file plugin has
   # no weighted-record primitive, so represent weight with repeated RRs.
   weightedNodes =
@@ -102,68 +84,13 @@ let
     metadata
   '';
 
-  regexDomain = replaceStrings [ "." ] [ "\\." ] domain;
-  regionExpr = region: "metadata('geoip/continent/code') == '${region}'";
-
-  templateRecords =
-    type: nodes:
-    let
-      records = weightedNodes nodes;
-      addressRecordsForType =
-        if type == "A" then
-          filter (n: (n.ipv4 or null) != null) records
-        else
-          filter (n: (n.ipv6 or null) != null) records;
-      answer = type: address: ''answer "{{ .Name }} ${toString cfg.dns.ttl} IN ${type} ${address}"'';
-    in
-    concatStringsSep "\n        " (
-      map (n: answer type (if type == "A" then n.ipv4 else n.ipv6)) addressRecordsForType
-    );
-
-  templateFor =
-    match: nodes: optionalExpr:
-    let
-      exprLine = optionalString (optionalExpr != null) "expr ${optionalExpr}";
-      templateForType =
-        type:
-        let
-          hasAddress = any (n: (if type == "A" then (n.ipv4 or null) else (n.ipv6 or null)) != null) nodes;
-        in
-        optionalString hasAddress ''
-          template IN ${type} cdn.${domain} {
-              match "${match}"
-              ${exprLine}
-              ${templateRecords type nodes}
-          }
-        '';
-    in
-    templateForType "A" + templateForType "AAAA";
-
-  regionalTemplates = concatMapStringsSep "\n" (
-    region:
-    let
-      nodes = nodesForRegion region;
-    in
-    (concatMapStringsSep "\n" (
-      label: templateFor "^${label}\\.cdn\\.${regexDomain}\\.$" nodes (regionExpr region)
-    ) serviceLabels)
-    + templateFor "^.*\\.cdn\\.${regexDomain}\\.$" nodes (regionExpr region)
-  ) geoRegions;
-
-  defaultTemplates = concatStringsSep "\n" (
-    (map (label: templateFor "^${label}\\.cdn\\.${regexDomain}\\.$" data.edgeNodes null) serviceLabels)
-    ++ [ (templateFor "^.*\\.cdn\\.${regexDomain}\\.$" data.edgeNodes null) ]
-  );
-
   corefile = pkgs.writeText "Corefile" ''
     cdn.${domain}:${toString cfg.dns.port} {
         bind ${concatStringsSep " " cfg.dns.listenAddresses}
         ${geoipBlock}
-        # GeoIP metadata is consumed by template rules below. A single server
-        # block is intentional: CoreDNS cannot bind multiple identical listeners.
-        ${regionalTemplates}
-        # Clients without a usable GeoIP result, and unknown continents, use all edges.
-        ${defaultTemplates}
+        # GeoIP2 metadata is loaded for future policy selection. The current
+        # answer is the weighted all-edge pool, which is reliable for every
+        # client and resolver.
         file ${defaultZone} cdn.${domain}
         errors
         ${optionalString cfg.dns.log "log"}
@@ -182,19 +109,13 @@ in
     package = mkOption {
       type = types.package;
       default = pkgs.coredns;
-      description = "CoreDNS package with geoip, metadata and view when GeoIP is enabled.";
+      description = "CoreDNS package used by the authoritative CDN DNS service.";
     };
 
     dns = {
       listenAddresses = mkOption {
         type = types.listOf types.str;
-        default =
-          (optional (selfIpv4 != "127.0.0.1") selfIpv4)
-          ++ (optional (selfIpv6 != null) selfIpv6)
-          ++ [
-            "127.0.0.1"
-            "::1"
-          ];
+        default = (optional (selfIpv4 != "127.0.0.1") selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
         defaultText = "Current host's public addresses from terraform/cdn.tf";
         description = "Addresses on which authoritative DNS listens.";
       };
@@ -222,7 +143,7 @@ in
       enable = mkOption {
         type = types.bool;
         default = true;
-        description = "Enable GeoIP2 continent views; databaseFile must exist on the host.";
+        description = "Load the GeoIP2 database and attach client metadata to DNS requests.";
       };
 
       databaseFile = mkOption {
@@ -253,8 +174,8 @@ in
 
       upstream = mkOption {
         type = types.str;
-        default = "tcp:127.0.0.1:53";
-        description = "DoH upstream DNS endpoint. Keep this pointed at local CoreDNS to preserve ECS-based GeoIP steering.";
+        default = "tcp:${selfIpv4}:53";
+        description = "DoH upstream DNS endpoint. It uses the host's public CoreDNS listener because local dnsmasq may already own 127.0.0.1:53.";
       };
     };
   };
