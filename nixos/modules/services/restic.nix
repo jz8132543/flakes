@@ -73,16 +73,19 @@ let
       systemctl start postgresql.service 2>/dev/null || true
 
       echo "==> [PostgreSQL Restore] Waiting for PostgreSQL service to be ready..."
-      for i in $(seq 1 30); do
-        if pg_isready -h /run/postgresql -q; do
+      READY=0
+      for _ in $(seq 1 30); do
+        if pg_isready -h /run/postgresql -q; then
+          READY=1
           break
-        fi
-        if [ "$i" -eq 30 ]; then
-          echo "Error: Timed out waiting for PostgreSQL to be ready." >&2
-          exit 1
         fi
         sleep 1
       done
+
+      if [ "$READY" -eq 0 ]; then
+        echo "Error: Timed out waiting for PostgreSQL to be ready." >&2
+        exit 1
+      fi
 
       # 优先恢复全库转储 all.sql.zst (当 backupAll = true 时由 services.postgresqlBackup 生成)
       if [ -f "$BACKUP_DIR/all.sql.zst" ]; then
