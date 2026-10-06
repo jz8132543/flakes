@@ -1,8 +1,4 @@
-{
-  nixosModules,
-  ...
-}:
-{
+{ nixosModules, ... }: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -37,7 +33,6 @@
       nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
-      nixosModules.services.openclaw.default
       nixosModules.services.new-api
       nixosModules.services.cpa
       nixosModules.services.memos
@@ -74,7 +69,6 @@
     ];
 
   services.moviepilot.enable = true;
-  services.openclaw.enable = false;
   # services.ai.litellm.enable = true;
   services.new-api = {
     enable = true;

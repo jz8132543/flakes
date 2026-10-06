@@ -1,6 +1,5 @@
 {
   nixosModules,
-  inputs,
   ...
 }:
 {
@@ -36,12 +35,9 @@
       nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
-      nixosModules.services.openclaw.default
       nixosModules.services.new-api
       nixosModules.services.cpa
       # nixosModules.services.litellm.default
-      inputs.degoog.nixosModules.default
-      inputs.openclaw-nix.nixosModules.openclaw-gateway
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
@@ -81,7 +77,6 @@
 
   services.kaogong.enable = false;
   services.moviepilot.enable = true;
-  services.openclaw.enable = false;
   # services.ai.litellm.enable = true;
   services.new-api = {
     enable = true;
