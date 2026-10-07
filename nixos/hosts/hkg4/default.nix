@@ -1,8 +1,4 @@
-{
-  nixosModules,
-  ...
-}:
-{
+{ nixosModules, ... }: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -33,9 +29,4 @@
     cpus = 4; # vCPU 数
     highLoss = true; # 高丢包国际线路
   };
-
-  networking.hosts."100.64.0.4" = [
-    "cu.dora.im"
-    "cuv6.dora.im"
-  ];
 }

@@ -98,6 +98,9 @@ let
     tyo0 = {
       system = "x86_64-linux";
     };
+    hkg0 = {
+      system = "x86_64-linux";
+    };
     hkg5 = {
       system = "x86_64-linux";
     };
