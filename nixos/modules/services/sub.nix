@@ -118,6 +118,22 @@ let
       "UID,999,DIRECT"
       "PROCESS-NAME,microsocks,DIRECT"
 
+      # 防环路与直连放行：IPsec/IKE (charon) 与 BIRD 路由守护进程
+      "PROCESS-NAME,charon,DIRECT"
+      "PROCESS-NAME,charon-systemd,DIRECT"
+      "PROCESS-NAME,bird,DIRECT"
+
+      # 放行 IPsec 协商 (500/4500) 与 Babel IGP (6696) 端口
+      "DST-PORT,500,DIRECT"
+      "DST-PORT,4500,DIRECT"
+      "DST-PORT,6696,DIRECT"
+
+      # DN42 专用内网段直连，不走外部代理
+      "IP-CIDR,172.20.0.0/14,DIRECT,no-resolve"
+      "IP-CIDR,172.31.0.0/16,DIRECT,no-resolve"
+      "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
+      "IP-CIDR,fd00::/8,DIRECT,no-resolve"
+
       # 防环路，直接放行 EasyTier 核心进程
       # "PROCESS-NAME,easytier-core,DIRECT"
 
@@ -212,11 +228,22 @@ let
       exclude-interface = [
         "tailscale0"
         "easytier0"
-      ];
+      ]
+      ++ (lib.optionals (config ? services && config.services ? dn42 && config.services.dn42.enable) (
+        [ "dn42" ]
+        ++ (map (name: "dn42x-${lib.substring 0 9 name}") (
+          builtins.attrNames (config.services.dn42.mesh.nodes or { })
+        ))
+      ));
       route-exclude-address = [
         "100.64.0.0/10"
         # Keep EasyTier's overlay subnet out of Mihomo's TUN.
         "10.100.0.0/24"
+        # Keep DN42 subnets out of Mihomo's TUN.
+        "172.20.0.0/14"
+        "172.31.0.0/16"
+        "10.0.0.0/8"
+        "fd00::/8"
       ];
     };
 

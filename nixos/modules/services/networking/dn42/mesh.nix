@@ -335,12 +335,11 @@ in
       services.strongswan-swanctl = {
         enable = true;
         # 优化说明：
-        # 1. threads = 16: 保证工作线程池充足，防止多节点并发握手及 DNS 阻塞导致 VICI IPC 死锁
+        # 1. threads: 采用 StrongSwan 官方默认线程池 (16 线程)，常驻物理内存仅 ~5.6MB，避免极限低线程导致 VICI IPC 死锁
         # 2. install_routes = no: 禁用 strongswan 自带路由安装，由 Bird 2 全权接管选路
         # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
         strongswan.extraConfig = ''
           charon {
-            threads = 16
             install_routes = no
             install_virtual_ip = no
             cisco_unity = no
@@ -426,11 +425,12 @@ in
         includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
       };
 
-      # 防火墙放行 IPsec 相关端口与协议
+      # 防火墙放行 IPsec 相关端口、Babel IGP 路由协议与协议号
       networking.firewall = {
         allowedUDPPorts = [
           500
           4500
+          6696
         ];
         extraCommands = optionalString (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true

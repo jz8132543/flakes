@@ -24,6 +24,11 @@
     enable = true;
   };
 
+  # ── 350MB 超小内存节点：开机内核级物理内存着色（0 运行期内存开销）──
+  services.anti-balloon = {
+    bootMemtest = true;
+  };
+
   boot.kernelParams = [
     "console=ttyS0"
     "console=tty0"
