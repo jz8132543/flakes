@@ -173,6 +173,12 @@ in
         default = 1400;
         description = "MTU for XFRM interfaces";
       };
+
+      forceUdpEncap = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Force UDP encapsulation for ESP (NAT-T on port 4500) to bypass ISP ESP (protocol 50) blocking";
+      };
     };
 
     listenPort = mkOption {
@@ -364,6 +370,8 @@ in
                   ]
                 else
                   [ "%any" ];
+
+              encap = cfg.ipsec.forceUdpEncap;
 
               # 采用现代高效 AEAD 加密套件与 x25519 曲线：
               # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
