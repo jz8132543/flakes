@@ -22,7 +22,7 @@
   networking = {
     usePredictableInterfaceNames = false;
 
-    interfaces.ens17 = {
+    interfaces.eth0 = {
       useDHCP = false;
       ipv4.addresses = [
         {
@@ -34,7 +34,7 @@
 
     defaultGateway = {
       address = "103.231.56.1";
-      interface = "ens17";
+      interface = "eth0";
     };
   };
 

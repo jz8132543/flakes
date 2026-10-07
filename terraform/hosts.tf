@@ -76,7 +76,7 @@ locals {
         }
       }
       ddns_records = {}
-      host_indices = [6]
+      host_indices = [2]
       endpoints_v4 = []
       endpoints_v6 = []
     }

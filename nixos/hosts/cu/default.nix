@@ -78,6 +78,11 @@
         remoteAddr = "tyo1.dora.im";
         remotePort = 8555;
       }
+      {
+        listenPort = 50566;
+        remoteAddr = "hkg0.dora.im";
+        remotePort = 8555;
+      }
     ];
   };
 

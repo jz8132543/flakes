@@ -215,6 +215,18 @@
       #   regions = [ "HK" ];
       # }
       {
+        name = "hkg0";
+        server = "hkg0.dora.im";
+        port = 8555;
+        regions = [ "HK" ];
+      }
+      {
+        name = "hkg0-kxy";
+        server = "cu.dora.im";
+        port = 50566;
+        regions = [ "HK" ];
+      }
+      {
         name = "hkg5";
         server = "hkg5.dora.im";
         port = 8555;
