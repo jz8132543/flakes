@@ -11,6 +11,28 @@ let
     "ts"
     "et"
   ];
+
+  customHostSettings = lib.mapAttrs' (
+    name: hostCfg:
+    lib.nameValuePair name (
+      lib.hm.dag.entryBefore [ "*" ] (
+        lib.filterAttrs (_: v: v != null) {
+          inherit (hostCfg) hostname;
+          inherit (hostCfg) port;
+          inherit (hostCfg) user;
+        }
+      )
+    )
+  ) (osConfig.programs.ssh.customHosts or { });
+
+  jumpRoutingSettings = lib.optionalAttrs (osConfig.programs.ssh.enableJumpRouting or true) {
+    "*-* !*.*" = lib.hm.dag.entryBefore [ "*" ] {
+      canonicalizeHostname = "no";
+      proxyCommand = "sh -c 'target=$(echo %h | cut -d- -f1); jump=$(echo %h | cut -d- -f2); info=$(ssh -G \"$target\" 2>/dev/null); target_host=$(echo \"$info\" | awk \"/^hostname / {print \\$2}\"); target_port=$(echo \"$info\" | awk \"/^port / {print \\$2}\"); case \"$target_host\" in *.*) ;; *) target_host=\"$target_host.${
+        osConfig.programs.ssh.jumpDomain or "dora.im"
+      }\" ;; esac; exec ssh -W \"$target_host:\${target_port:-22}\" \"$jump\"'";
+    };
+  };
 in
 with lib.strings;
 {
@@ -28,39 +50,42 @@ with lib.strings;
         # fix kde connection for android
         "HostKeyAlgorithms" = "+ssh-rsa";
       };
-      settings = {
-        github = {
-          host = "github.com";
-          user = "git";
-          hostname = "ssh.github.com";
-          port = 443;
+      settings =
+        customHostSettings
+        // jumpRoutingSettings
+        // {
+          github = {
+            host = "github.com";
+            user = "git";
+            hostname = "ssh.github.com";
+            port = 443;
+          };
+          gitlab = {
+            host = "gitlab.com";
+            user = "git";
+            hostname = "altssh.gitlab.com";
+            port = 443;
+          };
+          raceDomains = lib.hm.dag.entryBefore [ "*" ] {
+            match = "canonical final host ${concatMapStringsSep "," (x: "*.${x}") sshRaceDomains}";
+            user = "tippy";
+            port = osConfig.ports.ssh;
+          };
+          "*" = {
+            checkHostIP = false;
+            forwardAgent = true;
+            port = osConfig.ports.ssh;
+            proxyCommand = "${pkgs.ssh-race}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
+            # ForwardX11 = true;
+            userKnownHostsFile = "/dev/null";
+            serverAliveInterval = 3;
+            serverAliveCountMax = 6;
+            compression = false;
+            controlMaster = "auto";
+            controlPath = "~/.ssh/master-%r@%n:%p";
+            controlPersist = "10m";
+          };
         };
-        gitlab = {
-          host = "gitlab.com";
-          user = "git";
-          hostname = "altssh.gitlab.com";
-          port = 443;
-        };
-        raceDomains = lib.hm.dag.entryBefore [ "*" ] {
-          match = "canonical final host ${concatMapStringsSep "," (x: "*.${x}") sshRaceDomains}";
-          user = "tippy";
-          port = osConfig.ports.ssh;
-        };
-        "*" = {
-          checkHostIP = false;
-          forwardAgent = true;
-          port = osConfig.ports.ssh;
-          proxyCommand = "${pkgs.ssh-race}/bin/ssh-race -domains ${concatStringsSep "," sshRaceDomains} %h %p";
-          # ForwardX11 = true;
-          userKnownHostsFile = "/dev/null";
-          serverAliveInterval = 3;
-          serverAliveCountMax = 6;
-          compression = false;
-          controlMaster = "auto";
-          controlPath = "~/.ssh/master-%r@%n:%p";
-          controlPersist = "10m";
-        };
-      };
       includes = [
         "config.d/*"
       ];

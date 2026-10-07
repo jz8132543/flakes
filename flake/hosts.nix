@@ -11,23 +11,7 @@ let
   # Fix infinite recursion by importing lib locally instead of via self
   selfLib = import ../lib { inherit inputs lib; };
   rawNixosModules = selfLib.rake ../nixos/modules;
-  dn42Compat = rawNixosModules.services.networking.dn42 // {
-    all = rawNixosModules.services.networking.dn42.default;
-    node = {
-      all = [ rawNixosModules.services.networking.dn42.mesh ];
-    };
-    router = {
-      all = [ rawNixosModules.services.networking.dn42.default ];
-    };
-  };
-  nixosModules = rawNixosModules // {
-    dn42 = dn42Compat;
-    services = rawNixosModules.services // {
-      networking = rawNixosModules.services.networking // {
-        dn42 = dn42Compat;
-      };
-    };
-  };
+  nixosModules = rawNixosModules;
   hmModules = selfLib.rake ../home-manager/modules;
   overlays = import ../lib/overlays.nix { inherit inputs lib self; };
 

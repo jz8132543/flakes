@@ -6,8 +6,11 @@
   ...
 }:
 let
+  data = import ./data.nix;
   cfg = config.services.nextcloud-talk-edge;
   domain = config.networking.domain;
+
+  matchingNode = lib.findFirst (n: n.name == cfg.nodeName) null data.edgeNodes;
 
   # ── 生成 Janus WebRTC Gateway 配置文件（不含 nat_1_1_mapping，由启动脚本动态填入）────
   janusConfigFile = pkgs.writeText "janus.jcfg" ''
@@ -17,7 +20,7 @@ let
       transports_folder = "/run/janus/transports"
       events_folder = "${pkgs.janus-gateway}/lib/janus/events"
       log_to_stdout = true
-      debug_level = 4
+      debug_level = 3
     }
 
     media: {
@@ -55,45 +58,51 @@ in
   options.services.nextcloud-talk-edge = {
     enable = lib.mkEnableOption "Nextcloud Talk High Performance Backend Edge Node";
 
+    nodeName = lib.mkOption {
+      type = lib.types.str;
+      default = config.networking.hostName;
+      description = "Node name matching entry in data.edgeNodes for self-identification.";
+    };
+
     enableIpv4 = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default = if matchingNode != null then matchingNode.enableIpv4 else true;
       description = "Whether to enable IPv4 for this edge node.";
     };
 
     enableIpv6 = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = if matchingNode != null then matchingNode.enableIpv6 else false;
       description = "Whether to enable IPv6 for this edge node.";
     };
 
     edgeDomain = lib.mkOption {
       type = lib.types.str;
-      default = config.networking.fqdn;
+      default = if matchingNode != null then matchingNode.fqdn else config.networking.fqdn;
       description = "Public domain name of this edge node (e.g., sjc0.dora.im).";
     };
 
     edgePublicIp = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = null;
+      default = if matchingNode != null then matchingNode.publicIp else null;
       description = "Real public IPv4 address or DDNS domain of this edge node.";
     };
 
     edgePublicIpv6 = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = null;
+      default = if matchingNode != null then matchingNode.publicIpv6 else null;
       description = "Real public IPv6 address or DDNS domain of this edge node for WebRTC.";
     };
 
     centralNatsHost = lib.mkOption {
       type = lib.types.str;
-      default = "cloud.${domain}";
+      default = data.nats.host;
       description = "Central node public domain or IP for NATS message bus.";
     };
 
     centralNatsPort = lib.mkOption {
       type = lib.types.port;
-      default = 4222;
+      default = data.nats.port;
       description = "Port of the central NATS server.";
     };
 
@@ -123,13 +132,17 @@ in
 
     edgePort = lib.mkOption {
       type = lib.types.nullOr lib.types.port;
-      default = null;
+      default = if matchingNode != null then matchingNode.edgePort else null;
       description = "Custom public HTTPS port if non-standard (e.g. 50569).";
     };
 
     enableCoturn = lib.mkOption {
       type = lib.types.bool;
-      default = true;
+      default =
+        if matchingNode != null then
+          (matchingNode.hasTurn or (matchingNode.enableCoturn or true))
+        else
+          true;
       description = "Whether to run Coturn STUN/TURN on this edge node.";
     };
 
@@ -141,19 +154,19 @@ in
 
     stunPort = lib.mkOption {
       type = lib.types.port;
-      default = if cfg.enableCoturn then 3479 else 3478;
+      default = if cfg.enableCoturn then data.turn.port else 3478;
       description = "STUN server port.";
     };
 
     rtpPortRange = {
       min = lib.mkOption {
         type = lib.types.port;
-        default = 49152;
+        default = data.rtpPortRange.min;
         description = "Minimum UDP port for WebRTC media streams and TURN relay.";
       };
       max = lib.mkOption {
         type = lib.types.port;
-        default = 65535;
+        default = data.rtpPortRange.max;
         description = "Maximum UDP port for WebRTC media streams and TURN relay.";
       };
     };
@@ -161,20 +174,30 @@ in
     # ── gRPC 原生集群配置 ───────────────────────────────────────
     enableCluster = lib.mkOption {
       type = lib.types.bool;
-      default = false;
+      default = if matchingNode != null then (matchingNode.enableCluster or true) else false;
       description = "Whether to enable gRPC mesh clustering for nextcloud-spreed-signaling.";
     };
 
     grpcPort = lib.mkOption {
       type = lib.types.port;
-      default = 9090;
+      default = data.grpc.port;
       description = "gRPC cluster communication port.";
     };
 
     clusterTargets = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ ];
-      description = "List of remote gRPC target endpoints in the signaling cluster (e.g. ['cu.ts:9090']).";
+      default =
+        map
+          (
+            n:
+            "${n.clusterAddr or (if n.inboundFromForeign then n.fqdn else n.tsName)}:${toString data.grpc.port}"
+          )
+          (
+            builtins.filter (
+              n: (n.hasSignaling or true) && (n.enableCluster or true) && n.name != cfg.nodeName
+            ) data.edgeNodes
+          );
+      description = "List of remote gRPC target endpoints in the signaling cluster (derived from data.nix).";
     };
   };
 
@@ -377,8 +400,8 @@ in
           blockkeyFile = "/run/nextcloud-spreed-signaling/blockkey";
         };
         http.listen = "127.0.0.1:${toString config.ports.nextcloud-talk-hpb}";
-        # 连接中心节点的 NATS 消息总线
-        nats.url = [ "nats://${cfg.centralNatsHost}:${toString cfg.centralNatsPort}" ];
+        # 连接中心节点的 NATS 消息总线（使用 TLS + 环境变量运行时展开凭据）
+        nats.url = [ "tls://$(NATS_CREDENTIALS)@${cfg.centralNatsHost}:${toString cfg.centralNatsPort}" ];
         # MCU 连接本机 Janus WebRTC SFU
         mcu = {
           type = "janus";
@@ -389,18 +412,34 @@ in
           lib.optionalString (cfg.edgePort != null) ":${toString cfg.edgePort}"
         }/standalone-signaling/";
 
-        # gRPC 集群节点间直连互联
+        # gRPC 集群节点间直连互联（启用 TLS，各节点使用 ACME 证书）
+        # 注释：
+        # 上游 Go 源码中的 reloadableCredentials 强制使用 Go 标准库 tls.Client 校验对端 SAN，
+        # 且上游配置项无 skipverify / servername 覆盖选项。当 target 包含 .ts 域名（如 cu.ts）时，
+        # 若需要标准公网 CA 强校验，target 须匹配证书 SAN；
+        # 此处配置 server/client 证书，各节点使用自己的 ACME 证书。
         grpc = lib.optionalAttrs cfg.enableCluster {
           listen = "0.0.0.0:${toString cfg.grpcPort}";
           targettype = "static";
           targets = cfg.clusterTargets;
+          servercertificate = "${config.security.acme.certs."main".directory}/fullchain.pem";
+          serverkey = "${config.security.acme.certs."main".directory}/key.pem";
+          clientcertificate = "${config.security.acme.certs."main".directory}/fullchain.pem";
+          clientkey = "${config.security.acme.certs."main".directory}/key.pem";
         };
       };
     };
 
     systemd.services.nextcloud-spreed-signaling = {
-      after = [ "janus-gateway.service" ];
+      after = [
+        "janus-gateway.service"
+        "sops-nix.service"
+      ];
       requires = [ "janus-gateway.service" ];
+      serviceConfig = {
+        EnvironmentFile = [ "/run/nextcloud-spreed-signaling/nats.env" ];
+        SupplementaryGroups = [ "acme" ];
+      };
       preStart = lib.mkBefore ''
         head -c 32 ${
           config.sops.templates."nextcloud-talk-hpb-hashkey".path
@@ -409,14 +448,27 @@ in
           config.sops.templates."nextcloud-talk-hpb-blockkey".path
         } > /run/nextcloud-spreed-signaling/blockkey
         chmod 0400 /run/nextcloud-spreed-signaling/hashkey /run/nextcloud-spreed-signaling/blockkey
+
+        # 运行时注入 NATS 认证凭据到 /run，禁止明文进入 nix store
+        CRED="$(cat ${config.sops.secrets."nextcloud/nats-credentials".path})"
+        if echo "$CRED" | grep -q ':'; then
+          NATS_AUTH="$CRED"
+        else
+          NATS_AUTH="spreed:$CRED"
+        fi
+        echo "NATS_CREDENTIALS=$NATS_AUTH" > /run/nextcloud-spreed-signaling/nats.env
+        chmod 0400 /run/nextcloud-spreed-signaling/nats.env
       '';
     };
+
+    # ACME 证书更新后重载信令服务
+    security.acme.certs."main".reloadServices = [ "nextcloud-spreed-signaling.service" ];
 
     # ── 3. Coturn STUN & TURN 中继服务 ──────────────────────────
     services.coturn = lib.mkIf cfg.enableCoturn {
       enable = true;
-      listening-port = lib.mkDefault 3479;
-      tls-listening-port = lib.mkDefault 5349;
+      listening-port = lib.mkDefault data.turn.port;
+      tls-listening-port = lib.mkDefault data.turn.tlsPort;
       use-auth-secret = lib.mkDefault true;
       static-auth-secret-file = lib.mkDefault cfg.turnSecretFile;
       realm = lib.mkForce cfg.edgeDomain;
@@ -426,17 +478,34 @@ in
       cert = lib.mkDefault "${config.security.acme.certs."main".directory}/fullchain.pem";
       pkey = lib.mkDefault "${config.security.acme.certs."main".directory}/key.pem";
       no-tcp-relay = lib.mkDefault false;
-      extraConfig = ''
-        ${lib.optionalString (cfg.enableIpv4 && cfg.edgePublicIp != null) ''
-          external-ip=${cfg.edgePublicIp}
-          relay-ip=${cfg.edgePublicIp}
-        ''}
-        ${lib.optionalString (cfg.enableIpv6 && cfg.edgePublicIpv6 != null) ''
-          external-ip=${cfg.edgePublicIpv6}
-          relay-ip=${cfg.edgePublicIpv6}
-        ''}
-        no-loopback-peers
-      '';
+      extraConfig =
+        let
+          hasV4 = cfg.enableIpv4 && cfg.edgePublicIp != null;
+          hasV6 = cfg.enableIpv6 && cfg.edgePublicIpv6 != null;
+        in
+        ''
+          ${
+            if (hasV4 && hasV6) then
+              ''
+                external-ip=${cfg.edgePublicIp}/${cfg.edgePublicIpv6}
+                relay-ip=${cfg.edgePublicIp}
+                relay-ip=${cfg.edgePublicIpv6}
+              ''
+            else if hasV4 then
+              ''
+                external-ip=${cfg.edgePublicIp}
+                relay-ip=${cfg.edgePublicIp}
+              ''
+            else if hasV6 then
+              ''
+                external-ip=${cfg.edgePublicIpv6}
+                relay-ip=${cfg.edgePublicIpv6}
+              ''
+            else
+              ""
+          }
+          no-loopback-peers
+        '';
     };
 
     systemd.services.coturn = lib.mkIf cfg.enableCoturn {
@@ -474,15 +543,14 @@ in
         443
       ]
       ++ lib.optionals cfg.enableCluster [
-        cfg.grpcPort # gRPC 集群端口
+        cfg.grpcPort # gRPC 集群端口（覆盖所有接口包含 tailscale0）
       ]
       ++ lib.optionals cfg.enableCoturn [
-        3479 # Coturn TURN TCP
-        5349 # Coturn TURNS TCP
+        data.turn.port # 3479 Coturn TURN TCP
+        data.turn.tlsPort # 5349 Coturn TURNS TCP
       ];
       allowedUDPPorts = lib.optionals cfg.enableCoturn [
-        3479 # Coturn STUN/TURN UDP
-        5349 # Coturn TURNS UDP
+        data.turn.port # 3479 Coturn STUN/TURN UDP (注意：5349 TURNS 仅限 TCP+TLS，不放行 UDP)
       ];
       # Janus WebRTC SFU 始终需要这个 UDP 端口范围用于媒体流（ICE），
       # 与是否启用 Coturn 无关。cu 节点 enableCoturn=false 时此范围仍必须放行！

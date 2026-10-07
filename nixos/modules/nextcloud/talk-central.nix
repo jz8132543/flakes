@@ -5,6 +5,7 @@
   ...
 }:
 let
+  data = import ./data.nix;
   cfg = config.services.nextcloud-talk-central;
   occ = config.services.nextcloud.occ;
   domain = config.networking.domain;
@@ -25,14 +26,8 @@ in
 
     natsPort = lib.mkOption {
       type = lib.types.port;
-      default = 4222;
+      default = data.nats.port;
       description = "NATS client communication port.";
-    };
-
-    natsClusterPort = lib.mkOption {
-      type = lib.types.port;
-      default = 6222;
-      description = "NATS cluster routing port.";
     };
 
     spreedSecretFile = lib.mkOption {
@@ -48,72 +43,9 @@ in
     };
 
     edgeNodes = lib.mkOption {
-      type = lib.types.listOf (
-        lib.types.submodule {
-          options = {
-            name = lib.mkOption {
-              type = lib.types.str;
-              description = "Identifier for the edge node.";
-            };
-            fqdn = lib.mkOption {
-              type = lib.types.str;
-              description = "FQDN of the edge node (e.g., sjc0.dora.im).";
-            };
-            port = lib.mkOption {
-              type = lib.types.nullOr lib.types.port;
-              default = null;
-              description = "Custom public HTTPS port if non-standard (e.g. 50569).";
-            };
-            enableIpv4 = lib.mkOption {
-              type = lib.types.bool;
-              default = true;
-              description = "Whether IPv4 is enabled on this edge node.";
-            };
-            enableIpv6 = lib.mkOption {
-              type = lib.types.bool;
-              default = false;
-              description = "Whether IPv6 is enabled on this edge node.";
-            };
-            publicIp = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-              description = "Public IPv4 of the edge node.";
-            };
-            publicIpv6 = lib.mkOption {
-              type = lib.types.nullOr lib.types.str;
-              default = null;
-              description = "Public IPv6 of the edge node.";
-            };
-            hasSignaling = lib.mkOption {
-              type = lib.types.bool;
-              default = true;
-              description = "Whether this node provides Spreed signaling.";
-            };
-            hasTurn = lib.mkOption {
-              type = lib.types.bool;
-              default = true;
-              description = "Whether this node provides STUN/TURN services.";
-            };
-            verify = lib.mkOption {
-              type = lib.types.bool;
-              default = true;
-              description = "Whether to pass --verify when adding signaling server in OCC.";
-            };
-          };
-        }
-      );
-      default = [
-        {
-          name = "sjc0";
-          fqdn = "sjc0.${domain}";
-          enableIpv4 = true;
-          enableIpv6 = false;
-          publicIp = "45.143.130.230";
-          hasSignaling = true;
-          hasTurn = true;
-        }
-      ];
-      description = "List of edge signaling/TURN nodes in the cluster.";
+      type = lib.types.listOf lib.types.attrs;
+      default = data.edgeNodes;
+      description = "List of edge signaling/TURN nodes in the cluster (default from data.nix).";
     };
 
     enableLocalSignaling = lib.mkOption {
@@ -130,20 +62,51 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # ── 1. NATS 内部消息总线 ─────────────────────────────────────
+    # ── 1. NATS 公网 TLS + 认证消息总线 ─────────────────────────
+    # 凭据由 sops template 渲染，完全隔离于 Nix store 之外；
+    # 证书复用 ACME "main" 通配符证书，nats 服务加入 acme 组并配置证书续期重载。
+    sops.templates."nats.conf" = {
+      content = ''
+        listen: "${cfg.natsListen}:${toString cfg.natsPort}"
+        server_name: "nats-${config.networking.hostName}"
+        jetstream: "disabled"
+        tls: {
+          cert_file: "${config.security.acme.certs."main".directory}/fullchain.pem"
+          key_file: "${config.security.acme.certs."main".directory}/key.pem"
+          timeout: 5
+        }
+        authorization: {
+          user: "spreed"
+          password: "${config.sops.placeholder."nextcloud/nats-credentials"}"
+        }
+      '';
+      owner = "nats";
+      group = "acme";
+      mode = "0400";
+    };
+
     services.nats = {
       enable = true;
-      serverName = "nats-${config.networking.hostName}";
-      settings = {
-        listen = "${cfg.natsListen}:${toString cfg.natsPort}";
-        jetstream = lib.mkForce "disabled";
+      # 凭据由 sops template 在运行时渲染，跳过构建期静态校验
+      validateConfig = false;
+    };
+
+    systemd.services.nats = {
+      after = [ "sops-nix.service" ];
+      serviceConfig = {
+        SupplementaryGroups = [ "acme" ];
+        ExecStart = lib.mkForce "${pkgs.nats-server}/bin/nats-server -c ${
+          config.sops.templates."nats.conf".path
+        }";
       };
     };
 
-    # 防火墙：放行 NATS 端口
+    # ACME 证书续期后重载 NATS 服务
+    security.acme.certs."main".reloadServices = [ "nats.service" ];
+
+    # 防火墙：仅放行 NATS TLS 端口（显式禁用并不再放行 6222 cluster 端口）
     networking.firewall.allowedTCPPorts = [
       cfg.natsPort
-      cfg.natsClusterPort
     ];
 
     # ── 2. 中心可选本地 HPB 信令服务 ──────────────────────────────
@@ -160,13 +123,21 @@ in
           hashkeyFile = "/run/nextcloud-spreed-signaling/hashkey";
           blockkeyFile = "/run/nextcloud-spreed-signaling/blockkey";
         };
-        nats.url = [ "nats://127.0.0.1:${toString cfg.natsPort}" ];
+        # 本地信令通过 TLS + 运行时凭据接入 NATS
+        nats.url = [
+          "tls://spreed:${
+            config.sops.placeholder."nextcloud/nats-credentials"
+          }@127.0.0.1:${toString cfg.natsPort}"
+        ];
         http.listen = "127.0.0.1:${toString config.ports.nextcloud-talk-hpb}";
       };
     };
 
     systemd.services.nextcloud-spreed-signaling = lib.mkIf cfg.enableLocalSignaling {
-      after = [ "nats.service" ];
+      after = [
+        "nats.service"
+        "sops-nix.service"
+      ];
       preStart = lib.mkBefore ''
         head -c 32 ${
           config.sops.templates."nextcloud-talk-hpb-hashkey".path
@@ -186,6 +157,11 @@ in
     };
 
     # ── 3. 声明式注册集群节点至 Nextcloud 核心（occ）────────────
+    # 注释：
+    # 关于 TURN 凭据 TTL：
+    # 上游 Nextcloud Talk (nextcloud-app-spreed) 在 lib/Config.php:516 中硬编码了 24 小时有效时间：
+    #   $timestamp = $this->timeFactory->getTime() + 86400; // FIXME add the TTL to the response and properly reconnect then
+    # 目前上游不支持通过配置项修改为 7 天，因此维持 24 小时刷新机制。
     systemd.services.nextcloud-setup-talk-hpb = {
       description = "Declarative Nextcloud Talk HPB Cluster Registration";
       wantedBy = [ "multi-user.target" ];
@@ -202,7 +178,7 @@ in
         TURN_SECRET="$(cat ${cfg.turnSecretFile})"
 
         # ── 确保全局高清与信令集群配置生效 ──
-        ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value "external" || true
+        ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value "external" || echo "Warning: failed to set signaling_mode to external" >&2 || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_resolution --value "7680" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_framerate --value "180" || true
         ${occ}/bin/nextcloud-occ config:app:set spreed max_video_bitrate --value "200000000" || true
@@ -214,9 +190,11 @@ in
         EXPECTED_SERVERS="${lib.optionalString cfg.enableLocalSignaling "wss://${cfg.localSignalingHost} "}${
           lib.concatMapStringsSep " " (
             node:
-            lib.optionalString node.hasSignaling "https://${node.fqdn}${
-              lib.optionalString (node.port != null) ":${toString node.port}"
-            }/standalone-signaling/"
+            lib.optionalString (node.hasSignaling or true)
+              "https://${node.fqdn}${
+                lib.optionalString (node.edgePort or (node.port or null) != null)
+                  ":${toString (if node.edgePort != null then node.edgePort else node.port)}"
+              }/standalone-signaling/"
           ) cfg.edgeNodes
         }"
 
@@ -227,7 +205,7 @@ in
                 *" $srv "*) ;; # 期望节点，保留
                 *)
                   echo "Removing obsolete signaling server: $srv"
-                  ${occ}/bin/nextcloud-occ talk:signaling:delete "$srv" || true
+                  ${occ}/bin/nextcloud-occ talk:signaling:delete "$srv" || echo "Warning: failed to delete signaling server $srv" >&2 || true
                   ;;
               esac
             done
@@ -235,7 +213,7 @@ in
         # ── 清理未在当前期望配置中的废弃 STUN 服务器 ──
         EXPECTED_STUN="${
           lib.concatMapStringsSep " " (
-            node: lib.optionalString node.hasTurn "${node.fqdn}:3479"
+            node: lib.optionalString (node.hasTurn or true) "${node.fqdn}:${toString data.turn.port}"
           ) cfg.edgeNodes
         }"
 
@@ -246,7 +224,7 @@ in
                 *" $srv "*) ;; # 期望节点，保留
                 *)
                   echo "Removing obsolete stun server: $srv"
-                  ${occ}/bin/nextcloud-occ talk:stun:delete "$srv" || true
+                  ${occ}/bin/nextcloud-occ talk:stun:delete "$srv" || echo "Warning: failed to delete stun server $srv" >&2 || true
                   ;;
               esac
             done
@@ -254,7 +232,9 @@ in
         # ── 清理未在当前期望配置中的废弃 TURN 服务器 ──
         EXPECTED_TURN="${
           lib.concatMapStringsSep " " (
-            node: lib.optionalString node.hasTurn "${node.fqdn}:3479 ${node.fqdn}:5349"
+            node:
+            lib.optionalString (node.hasTurn or true
+            ) "${node.fqdn}:${toString data.turn.port} ${node.fqdn}:${toString data.turn.tlsPort}"
           ) cfg.edgeNodes
         }"
 
@@ -265,7 +245,7 @@ in
                 *" $srv "*) ;; # 期望节点，保留
                 *)
                   echo "Removing obsolete turn server: $schemes $srv $protocols"
-                  ${occ}/bin/nextcloud-occ talk:turn:delete "$schemes" "$srv" "$protocols" || true
+                  ${occ}/bin/nextcloud-occ talk:turn:delete "$schemes" "$srv" "$protocols" || echo "Warning: failed to delete turn server $srv" >&2 || true
                   ;;
               esac
             done
@@ -274,46 +254,64 @@ in
         CURRENT_MODE="$(${occ}/bin/nextcloud-occ config:app:get spreed signaling_mode 2>/dev/null || true)"
         if [ "$CURRENT_MODE" != "conversation_cluster" ]; then
           echo "Setting Talk signaling_mode to conversation_cluster..."
-          ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value=conversation_cluster || true
+          ${occ}/bin/nextcloud-occ config:app:set spreed signaling_mode --value=conversation_cluster || echo "Warning: failed to set signaling_mode to conversation_cluster" >&2 || true
         fi
 
         # ── 注册中心本地信令服务（若启用）──
         ${lib.optionalString cfg.enableLocalSignaling ''
           LOCAL_SIG_URL="wss://${cfg.localSignalingHost}"
           if ! ${occ}/bin/nextcloud-occ talk:signaling:list 2>/dev/null | grep -Fq "$LOCAL_SIG_URL"; then
-            ${occ}/bin/nextcloud-occ talk:signaling:add "$LOCAL_SIG_URL" "$SIGNALING_SECRET" --verify || true
+            ${occ}/bin/nextcloud-occ talk:signaling:add "$LOCAL_SIG_URL" "$SIGNALING_SECRET" --verify || echo "Warning: failed to register local signaling server" >&2 || true
           fi
         ''}
 
         # ── 注册所有边缘节点 ──
-        ${lib.concatMapStringsSep "\n" (node: ''
-          # --- 节点: ${node.name} (${node.fqdn}) ---
-          ${lib.optionalString node.hasSignaling ''
-            EDGE_SIG_URL="https://${node.fqdn}${
-              lib.optionalString (node.port != null) ":${toString node.port}"
-            }/standalone-signaling/"
-            if ! ${occ}/bin/nextcloud-occ talk:signaling:list 2>/dev/null | grep -Fq "$EDGE_SIG_URL"; then
-              ${occ}/bin/nextcloud-occ talk:signaling:add "$EDGE_SIG_URL" "$SIGNALING_SECRET" ${lib.optionalString node.verify "--verify"} || true
-            fi
-          ''}
+        ${lib.concatMapStringsSep "\n" (
+          node:
+          let
+            portNum = if (node.edgePort or null) != null then node.edgePort else (node.port or null);
+            inboundFromForeign = node.inboundFromForeign or true;
+          in
+          ''
+            # --- 节点: ${node.name} (${node.fqdn}) ---
+            ${lib.optionalString (node.hasSignaling or true) ''
+              EDGE_SIG_URL="https://${node.fqdn}${
+                lib.optionalString (portNum != null) ":${toString portNum}"
+              }/standalone-signaling/"
+              if ! ${occ}/bin/nextcloud-occ talk:signaling:list 2>/dev/null | grep -Fq "$EDGE_SIG_URL"; then
+                ${
+                  if inboundFromForeign then
+                    ''
+                      echo "Adding signaling server: $EDGE_SIG_URL (with --verify)..."
+                      ${occ}/bin/nextcloud-occ talk:signaling:add "$EDGE_SIG_URL" "$SIGNALING_SECRET" --verify || echo "Warning: talk:signaling:add with --verify failed for ${node.name}" >&2 || true
+                    ''
+                  else
+                    ''
+                      echo "Notice: 节点 ${node.name} inboundFromForeign=false，跳过 --verify（该节点无法从国外中心直接探测，Talk 面板可能显示 Error，属预期）"
+                      ${occ}/bin/nextcloud-occ talk:signaling:add "$EDGE_SIG_URL" "$SIGNALING_SECRET" || echo "Warning: talk:signaling:add without --verify failed for ${node.name}" >&2 || true
+                    ''
+                }
+              fi
+            ''}
 
-          ${lib.optionalString node.hasTurn ''
-            # 注册 STUN
-            if ! ${occ}/bin/nextcloud-occ talk:stun:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:3479"; then
-              ${occ}/bin/nextcloud-occ talk:stun:add "${node.fqdn}:3479" || true
-            fi
+            ${lib.optionalString (node.hasTurn or true) ''
+              # 注册 STUN
+              if ! ${occ}/bin/nextcloud-occ talk:stun:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:${toString data.turn.port}"; then
+                ${occ}/bin/nextcloud-occ talk:stun:add "${node.fqdn}:${toString data.turn.port}" || echo "Warning: failed to add stun server ${node.fqdn}" >&2 || true
+              fi
 
-            # 注册 TURN (UDP/TCP 3479)
-            if ! ${occ}/bin/nextcloud-occ talk:turn:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:3479"; then
-              ${occ}/bin/nextcloud-occ talk:turn:add turn "${node.fqdn}:3479" udp,tcp --secret="$TURN_SECRET" || true
-            fi
+              # 注册 TURN (UDP/TCP ${toString data.turn.port})
+              if ! ${occ}/bin/nextcloud-occ talk:turn:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:${toString data.turn.port}"; then
+                ${occ}/bin/nextcloud-occ talk:turn:add turn "${node.fqdn}:${toString data.turn.port}" udp,tcp --secret="$TURN_SECRET" || echo "Warning: failed to add turn server ${node.fqdn}" >&2 || true
+              fi
 
-            # 注册 TURNS (TLS TCP 5349)
-            if ! ${occ}/bin/nextcloud-occ talk:turn:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:5349"; then
-              ${occ}/bin/nextcloud-occ talk:turn:add turns "${node.fqdn}:5349" tcp --secret="$TURN_SECRET" || true
-            fi
-          ''}
-        '') cfg.edgeNodes}
+              # 注册 TURNS (TLS TCP ${toString data.turn.tlsPort})
+              if ! ${occ}/bin/nextcloud-occ talk:turn:list --output=json 2>/dev/null | grep -Fq "${node.fqdn}:${toString data.turn.tlsPort}"; then
+                ${occ}/bin/nextcloud-occ talk:turn:add turns "${node.fqdn}:${toString data.turn.tlsPort}" tcp --secret="$TURN_SECRET" || echo "Warning: failed to add turns server ${node.fqdn}" >&2 || true
+              fi
+            ''}
+          ''
+        ) cfg.edgeNodes}
       '';
       serviceConfig = {
         Type = "oneshot";

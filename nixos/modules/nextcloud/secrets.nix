@@ -21,6 +21,16 @@ in
       restartUnits = lib.optional hasSpreed "nextcloud-spreed-signaling.service";
     };
 
+    # NATS 消息总线连接凭据（支持单独配置或通过 data.nats.secretKey 保持单源继承）
+    "nextcloud/nats-credentials" = lib.mkIf (hasNextcloud || hasSpreed) {
+      restartUnits =
+        (lib.optional hasNextcloud "nats.service")
+        ++ (lib.optional hasSpreed "nextcloud-spreed-signaling.service");
+      key = (import ./data.nix).nats.secretKey;
+      mode = "0440";
+      group = lib.mkDefault "acme";
+    };
+
     "mail/services" = lib.mkIf hasNextcloud {
       restartUnits = [ "nextcloud-setup.service" ];
     };

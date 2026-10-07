@@ -39,8 +39,7 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [31],
-      "dn42_public_key": "9zY8xW7vU6tS5rQ4pP3oN2mM1lL0kK9jJ8hH7gG6fF5="
+      "host_indices": [31]
     },
     "can0": {
       "dn42_addresses_v4": ["172.20.232.11"],
@@ -67,8 +66,7 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [1],
-      "dn42_public_key": "3bF1p0aQ9wE8rT7yU6iO5pA4sD3fG2hJ1kL0zX9cV8m="
+      "host_indices": [1]
     },
     "hkg0": {
       "dn42_addresses_v4": ["172.20.232.2"],
@@ -104,8 +102,7 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [3],
-      "dn42_public_key": "8d7Vp9mE0X6uQw2yA4bC6dE8fG0hI2jK4lM6nO8pQ1s="
+      "host_indices": [3]
     },
     "sjc0": {
       "dn42_addresses_v4": ["172.20.232.16"],
@@ -123,8 +120,7 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [30],
-      "dn42_public_key": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV2wX3yZ4aB5="
+      "host_indices": [30]
     },
     "tyo0": {
       "dn42_addresses_v4": ["172.20.232.5"],
@@ -367,43 +363,114 @@
   },
   "dn42": {
     "asn": 4242420115,
+    "externalPeers": {
+      "g-load-de2": {
+        "asn": 4242423914,
+        "bandwidth": "1000m",
+        "crypto": "wireguard",
+        "endpoint": "de2.g-load.eu:20137",
+        "extendedNextHop": true,
+        "host": "fra0",
+        "latency": "10ms",
+        "linkLocal": "fe80::ade0",
+        "ourLinkLocal": "fe80::ade1",
+        "listenPort": 51820,
+        "publicKey": "B1xSG/XTJRLd+GrWDsB06BqnIq8Xud93YVh/LYYYtUY="
+      },
+      "g-load-hk1": {
+        "asn": 4242423914,
+        "bandwidth": "1000m",
+        "crypto": "wireguard",
+        "endpoint": "hk1.g-load.eu:20087",
+        "extendedNextHop": true,
+        "host": "hkg0",
+        "latency": "10ms",
+        "linkLocal": "fe80::ade0",
+        "ourLinkLocal": "fe80::ade1",
+        "listenPort": 51820,
+        "publicKey": "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
+      },
+      "g-load-uk1": {
+        "asn": 4242423914,
+        "bandwidth": "1000m",
+        "crypto": "wireguard",
+        "endpoint": "uk1.g-load.eu:20031",
+        "extendedNextHop": true,
+        "host": "cu",
+        "latency": "10ms",
+        "linkLocal": "fe80::ade0",
+        "ourLinkLocal": "fe80::ade1",
+        "listenPort": 51820,
+        "publicKey": "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
+      }
+    },
     "ipv4": "172.20.232.0/26",
     "ipv6": "fd53:90fd:4bb6::/48",
     "mesh": {
-      "nue0": {
-        "role": "border",
-        "endpoint": "nue0.dora.im:51821",
-        "listenPort": 51821
+      "arx8": {
+        "endpoint": null,
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
+      },
+      "cu": {
+        "endpoint": null,
+        "ibgp": true,
+        "listenPort": 51821,
+        "role": "border"
       },
       "fra0": {
-        "role": "border",
         "endpoint": "fra0.dora.im:51821",
-        "listenPort": 51821
+        "ibgp": true,
+        "listenPort": 51821,
+        "role": "border"
+      },
+      "hkg0": {
+        "endpoint": "hkg0.dora.im:51821",
+        "ibgp": true,
+        "listenPort": 51821,
+        "role": "border"
+      },
+      "hkg5": {
+        "endpoint": "hkg5.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
+      },
+      "sjc0": {
+        "endpoint": "sjc0.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
       },
       "surface": {
-        "role": "internal",
         "endpoint": null,
-        "listenPort": 51821
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
       },
-      "arx8": {
-        "role": "internal",
-        "endpoint": null,
-        "listenPort": 51821
+      "tyo0": {
+        "endpoint": "tyo0.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
+      },
+      "tyo1": {
+        "endpoint": "tyo1.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
       }
     },
-    "externalPeers": {
-      "kioubit": {
-        "host": "nue0",
-        "asn": 4242423914,
-        "endpoint": "de-nue.kioubit.dn42:51820",
-        "listenPort": 51820,
-        "publicKey": "jH2n8zQn1bT5kX0mP6qW4yV8rL2aC9eD3fG7hI1jK3M=",
-        "linkLocal": "fe80::3914",
-        "latency": "10ms",
-        "bandwidth": "1000m",
-        "crypto": "wireguard",
-        "extendedNextHop": true
-      }
+    "peerAliases": {
+      "peer1": "fra0",
+      "peer2": "hkg0",
+      "peer3": "cu"
+    },
+    "peerPublicKeys": {
+      "peer1": "aPD/ej1dswyojJ+u41Pgsw1XSca7tMOwdhEpiv4Ntl0=",
+      "peer2": "k4Um5FjJ1yS7aDDvs9v9jSpUePFL7YcATFr5q79y3yU=",
+      "peer3": "PJ24FpCqARflKn0Cbhg/c9dG8TuViBcFrco5b2BLdw8="
     }
   }
 }

@@ -7,6 +7,7 @@
 let
   inherit (lib)
     mkIf
+    mkMerge
     mkOption
     types
     mapAttrs'
@@ -58,10 +59,16 @@ let
           description = "Role of this mesh node ('border' or 'internal')";
         };
 
+        ibgp = mkOption {
+          type = types.bool;
+          default = nodeMeshCfg.ibgp or ((nodeMeshCfg.role or "internal") == "border");
+          description = "Whether this node participates in iBGP";
+        };
+
         endpoint = mkOption {
           type = types.nullOr types.str;
           default = nodeMeshCfg.endpoint or null;
-          description = "Public WireGuard endpoint (host:port) for this node, or null if behind NAT";
+          description = "Public WireGuard / IPsec endpoint for this node, or null if behind NAT";
         };
 
         listenPort = mkOption {
@@ -125,7 +132,47 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Enable DN42 internal pairwise WireGuard mesh + Bird 2 Babel IGP";
+      description = "Enable DN42 internal pairwise mesh + Bird 2 Babel IGP";
+    };
+
+    backend = mkOption {
+      type = types.enum [
+        "ipsec"
+        "wireguard"
+      ];
+      default = "ipsec";
+      description = "Internal mesh tunnel backend ('ipsec' with XFRM or 'wireguard')";
+    };
+
+    ipsec = {
+      psk = mkOption {
+        type = types.str;
+        default = "dn42-internal-mesh-psk-doraim-secure-secret-token";
+        description = "Pre-shared key (PSK) used for IKEv2 authentication between mesh nodes";
+      };
+
+      pskFile = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Path to file containing PSK secret (if null, uses cfg.ipsec.psk)";
+      };
+
+      hwOffload = mkOption {
+        type = types.enum [
+          "auto"
+          "crypto"
+          "packet"
+          "no"
+        ];
+        default = "auto";
+        description = "Hardware crypto/packet offload for IPsec Child SA (auto selects NIC offload when supported)";
+      };
+
+      mtu = mkOption {
+        type = types.int;
+        default = 1400;
+        description = "MTU for XFRM interfaces";
+      };
     };
 
     listenPort = mkOption {
@@ -150,6 +197,7 @@ in
         ipv4 = lib.head (lib.splitString "/" baseCfg.nodeIpv4);
         ipv6 = lib.head (lib.splitString "/" baseCfg.nodeIpv6);
         inherit (baseCfg) hostIndex;
+        ibgp = dn42Data.mesh.${hostName}.ibgp or (baseCfg.role == "border");
       };
       description = "Local node mesh attributes";
     };
@@ -189,8 +237,8 @@ in
     ibgp = {
       enable = mkOption {
         type = types.bool;
-        default = baseCfg.role == "border";
-        description = "Enable iBGP full-mesh across border nodes (and optional internal nodes)";
+        default = dn42Data.mesh.${hostName}.ibgp or (baseCfg.role == "border");
+        description = "Enable iBGP full-mesh across border nodes and configured internal nodes";
       };
 
       receiveFullTable = mkOption {
@@ -207,222 +255,413 @@ in
     };
   };
 
-  config = mkIf (baseCfg.enable && cfg.enable) {
-    # ── 1. 公钥完整性校验（公钥缺失时给出明确指导报错） ────────────
-    assertions = mapAttrsToList (peerName: peerCfg: {
-      assertion = peerCfg.publicKey != null;
-      message = "services.dn42.mesh: Public key for mesh peer '${peerName}' is missing. Please configure 'hosts.${peerName}.dn42_public_key' in lib/data/data.json or 'services.dn42.mesh.nodes.${peerName}.publicKey'.";
-    }) activePeers;
+  config = mkIf (baseCfg.enable && cfg.enable) (mkMerge [
+    # ── 1. 通用校验 ──────────────────────────────────────────────────
+    {
+      assertions = lib.optionals (cfg.backend == "wireguard") (
+        mapAttrsToList (peerName: peerCfg: {
+          assertion = peerCfg.publicKey != null;
+          message = "services.dn42.mesh: WireGuard public key for peer '${peerName}' is missing. Configure 'hosts.${peerName}.dn42_public_key' in lib/data/data.json.";
+        }) activePeers
+      );
+    }
 
-    # ── 2. 点对点 Pairwise WireGuard 接口 (dn42-mesh-<peer>) ─────────
-    networking.wireguard.interfaces = mapAttrs' (
-      peerName: peerCfg:
-      nameValuePair "dn42-mesh-${peerName}" {
-        ips = [ baseCfg.linkLocalIpv6 ];
-        inherit (cfg) listenPort;
-        inherit (baseCfg) privateKeyFile;
-        peers = [
-          (
-            {
-              inherit (peerCfg) publicKey;
-              # AllowedIPs 设置为 0.0.0.0/0 与 ::/0 解耦 Crypto Routing 与动态路由。
-              # 注意：此处使用的是原生内核 WireGuard 接口（非 wg-quick），不会在内核主表注入默认路由。
-              # 真正的网络选路与下一跳完全由 Bird 动态路由协议（Babel / BGP）掌控。
-              allowedIPs = [
-                "0.0.0.0/0"
-                "::/0"
+    # ── 2. IPsec / IKEv2 + XFRM 后端实现 ──────────────────────────────
+    (mkIf (cfg.backend == "ipsec") {
+      boot.kernelModules = [
+        "xfrm_interface"
+        "esp4"
+        "esp6"
+      ];
+
+      environment.systemPackages = [ pkgs.strongswan ];
+
+      # XFRM 虚拟网络网卡管理（oneshot 服务，无需强依赖 systemd-networkd，兼容标准脚本网络）
+      systemd.services = mapAttrs' (
+        peerName: peerCfg:
+        let
+          ifName = "dn42x-${lib.substring 0 9 peerName}";
+          xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
+        in
+        nameValuePair ifName {
+          description = "DN42 XFRM interface for peer ${peerName}";
+          after = [ "network-pre.target" ];
+          wants = [ "network-pre.target" ];
+          before = [
+            "bird.service"
+            "strongswan-swanctl.service"
+          ];
+          wantedBy = [ "multi-user.target" ];
+          path = [ pkgs.iproute2 ];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStart = pkgs.writeShellScript "${ifName}-up" ''
+              set -eu
+              if ! ip link show ${ifName} >/dev/null 2>&1; then
+                ip link add ${ifName} type xfrm if_id ${toString xfrmId}
+              fi
+              ip link set ${ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
+              ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${ifName}
+            '';
+            ExecStop = pkgs.writeShellScript "${ifName}-down" ''
+              ip link del ${ifName} 2>/dev/null || true
+            '';
+          };
+        }
+      ) activePeers;
+
+      # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
+      systemd.network.networks = mkIf config.systemd.network.enable (
+        mapAttrs' (
+          peerName: _:
+          let
+            ifName = "dn42x-${lib.substring 0 9 peerName}";
+          in
+          nameValuePair "70-${ifName}" {
+            matchConfig.Name = ifName;
+            linkConfig.Unmanaged = true;
+          }
+        ) activePeers
+      );
+
+      # Strongswan Swanctl 守护进程配置与 350M 内存极限优化
+      services.strongswan-swanctl = {
+        enable = true;
+        # 优化说明：
+        # 1. threads = 2: 极大削减多线程虚拟内存和调用栈开销（默认 16 线程占用 ~30MB+，2 线程常驻内存仅 ~3-5MB）
+        # 2. install_routes = no: 禁用 strongswan 自带路由安装，由 Bird 2 全权接管选路
+        # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
+        strongswan.extraConfig = ''
+          charon {
+            threads = 2
+            install_routes = no
+            install_virtual_ip = no
+            cisco_unity = no
+            send_vendor_id = no
+          }
+        '';
+
+        swanctl = {
+          connections = mapAttrs' (
+            peerName: peerCfg:
+            let
+              peerHost =
+                if peerCfg.endpoint != null then lib.head (lib.splitString ":" peerCfg.endpoint) else null;
+              xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
+            in
+            nameValuePair "mesh-peer-${peerName}" {
+              version = 2;
+              mobike = true;
+              dpd_delay = "15s";
+              dpd_timeout = "60s";
+
+              remote_addrs =
+                if peerHost != null then
+                  [
+                    peerHost
+                    "%any"
+                  ]
+                else
+                  [ "%any" ];
+
+              # 采用现代高效 AEAD 加密套件与 x25519 曲线：
+              # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
+              proposals = [
+                "aes256gcm128-sha256-x25519"
+                "chacha20poly1305-sha256-x25519"
+                "aes128gcm128-sha256-x25519"
               ];
+
+              local.main = {
+                auth = "psk";
+                id = "${hostName}.dn42";
+              };
+
+              remote.main = {
+                auth = "psk";
+                id = "${peerName}.dn42";
+              };
+
+              children.mesh = {
+                esp_proposals = [
+                  "aes256gcm128-x25519"
+                  "chacha20poly1305-x25519"
+                  "aes128gcm128-x25519"
+                ];
+                local_ts = [
+                  "0.0.0.0/0"
+                  "::/0"
+                ];
+                remote_ts = [
+                  "0.0.0.0/0"
+                  "::/0"
+                ];
+                if_id_in = toString xfrmId;
+                if_id_out = toString xfrmId;
+                # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
+                hw_offload = cfg.ipsec.hwOffload;
+                mode = "tunnel";
+                start_action = if peerHost != null then "start" else "trap";
+                dpd_action = "restart";
+              };
             }
-            // (optionalAttrs (peerCfg.endpoint != null) {
-              inherit (peerCfg) endpoint;
-            })
-            // (optionalAttrs (peerCfg.persistentKeepalive != null) {
-              inherit (peerCfg) persistentKeepalive;
-            })
-          )
+          ) activePeers;
+
+          secrets.ike = mkIf (cfg.ipsec.pskFile == null) {
+            mesh = {
+              secret = cfg.ipsec.psk;
+            };
+          };
+        };
+
+        includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
+      };
+
+      # 防火墙放行 IPsec 相关端口与协议
+      networking.firewall = {
+        allowedUDPPorts = [
+          500
+          4500
         ];
-      }
-    ) activePeers;
+        extraCommands = optionalString (!config.networking.nftables.enable) ''
+          ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
+          ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
+        '';
+        extraInputRules = optionalString config.networking.nftables.enable ''
+          meta l4proto esp counter accept
+          meta l4proto ah  counter accept
+        '';
+      };
+    })
 
-    # 确保 WireGuard 接口在密钥准备完毕后启动
-    systemd.services = mapAttrs' (
-      peerName: _:
-      nameValuePair "wireguard-dn42-mesh-${peerName}" {
-        after = [ "dn42-wireguard-keygen.service" ];
-        wants = [ "dn42-wireguard-keygen.service" ];
-      }
-    ) activePeers;
-
-    # 防火墙放行 WireGuard Mesh 端口
-    networking.firewall.allowedUDPPorts = optional (activePeers != { }) cfg.listenPort;
-
-    # ── 3. BIRD 2 路由服务核心配置 ───────────────────────────────────
-    services.bird = {
-      enable = true;
-      package = pkgs.bird2;
-      config = lib.mkOrder 200 ''
-        log syslog all;
-        router id ${baseCfg.routerId};
-
-        define OWNAS = ${toString baseCfg.asn};
-        define OWNIPv4 = ${baseCfg.ipv4};
-        define OWNIPv6 = ${baseCfg.ipv6};
-        define OWN_LOOPBACK_V4 = ${lib.head (lib.splitString "/" baseCfg.nodeIpv4)};
-        define OWN_LOOPBACK_V6 = ${lib.head (lib.splitString "/" baseCfg.nodeIpv6)};
-
-        protocol device {
-          scan time 10;
-        }
-
-        # ── Direct 协议：只监听 dummy 'dn42' 接口导入 Loopback /32 与 /128 ──
-        protocol direct direct_dn42 {
-          ipv4;
-          ipv6;
-          interface "dn42";
-        }
-
-        # ── 内核路由同步（设置 krt_prefsrc 为本机 Loopback IP） ──────────
-        protocol kernel kernel_v4 {
-          ipv4 {
-            import none;
-            export filter {
-              if source = RTS_STATIC then reject; # 不向内核下发用于宣告的 unreachable 黑洞路由
-              krt_prefsrc = OWN_LOOPBACK_V4;
-              accept;
-            };
-          };
-          scan time 20;
-          merge paths on;
-        }
-
-        protocol kernel kernel_v6 {
-          ipv6 {
-            import none;
-            export filter {
-              if source = RTS_STATIC then reject;
-              krt_prefsrc = OWN_LOOPBACK_V6;
-              accept;
-            };
-          };
-          scan time 20;
-          merge paths on;
-        }
-
-        ${optionalString cfg.exportExitRoutes ''
-          # ── 边界路由向内部注入的 DN42 汇总出口路由 ──
-          protocol static static_dn42_exit_v4 {
-            ipv4;
-            route 172.20.0.0/14 unreachable;
-            route 172.31.0.0/16 unreachable;
-            route 10.0.0.0/8 unreachable;
-          }
-
-          protocol static static_dn42_exit_v6 {
-            ipv6;
-            route fd00::/8 unreachable;
-          }
-        ''}
-
-        # ── Babel IGP 导出过滤器（仅宣告 Loopback /32, /128 与可选出口路由） ──
-        filter babel_export_v4 {
-          if proto = "direct_dn42" && net ~ OWNIPv4 && net.len = 32 then accept;
-          ${optionalString cfg.exportExitRoutes ''
-            if proto = "static_dn42_exit_v4" then accept;
-          ''}
-          reject;
-        }
-
-        filter babel_export_v6 {
-          if proto = "direct_dn42" && net ~ OWNIPv6 && net.len = 128 then accept;
-          ${optionalString cfg.exportExitRoutes ''
-            if proto = "static_dn42_exit_v6" then accept;
-          ''}
-          reject;
-        }
-
-        # ── Babel IGP 协议：监听所有内部 pairwise 隧道接口 ───────────────
-        protocol babel dn42_babel {
-          ipv4 {
-            import all;
-            export filter babel_export_v4;
-          };
-          ipv6 {
-            import all;
-            export filter babel_export_v6;
-          };
-          interface "dn42-mesh-*" {
-            type tunnel;
-            ${optionalString cfg.babel.rttMetric ''
-              rtt cost 1024;
-              rtt min ${toString cfg.babel.rttMin} ms;
-              rtt max ${toString cfg.babel.rttMax} ms;
-              rtt decay ${toString cfg.babel.rttDecay};
-            ''}
-            check link yes;
-          };
-        }
-
-        ${optionalString cfg.ibgp.enable ''
-          # ── iBGP 全互联（Full-Mesh，基于 Loopback IPv6 + next hop self） ──
-          template bgp dn42_ibgp_template {
-            local as OWNAS;
-            multihop;
-            path metric on;
-          }
-
-          ${concatStringsSep "\n" (
-            mapAttrsToList (peerName: peerCfg: ''
-              protocol bgp ibgp_${peerName} from dn42_ibgp_template {
-                neighbor ${peerCfg.ipv6} as OWNAS;
-                source address OWN_LOOPBACK_V6;
-
-                ipv6 {
-                  next hop self;
-                  import filter {
-                    ${
-                      if cfg.ibgp.receiveFullTable then
-                        ''
-                          accept;
-                        ''
-                      else
-                        ''
-                          if net = fd00::/8 then accept;
-                          reject;
-                        ''
-                    }
-                  };
-                  export filter {
-                    if source ~ [ RTS_BGP, RTS_STATIC ] then accept;
-                    reject;
-                  };
-                };
-
-                ipv4 {
-                  extended next hop on;
-                  next hop self;
-                  import filter {
-                    ${
-                      if cfg.ibgp.receiveFullTable then
-                        ''
-                          accept;
-                        ''
-                      else
-                        ''
-                          if net ~ [ 172.20.0.0/14, 172.31.0.0/16, 10.0.0.0/8 ] then accept;
-                          reject;
-                        ''
-                    }
-                  };
-                  export filter {
-                    if source ~ [ RTS_BGP, RTS_STATIC ] then accept;
-                    reject;
-                  };
-                };
+    # ── 3. WireGuard 后端实现（保留备选支持） ─────────────────────────
+    (mkIf (cfg.backend == "wireguard") {
+      networking.wireguard.interfaces = mapAttrs' (
+        peerName: peerCfg:
+        let
+          ifName = "dn42m-${lib.substring 0 9 peerName}";
+        in
+        nameValuePair ifName {
+          ips = [ baseCfg.linkLocalIpv6 ];
+          inherit (cfg) listenPort;
+          inherit (baseCfg) privateKeyFile;
+          allowedIPsAsRoutes = false;
+          peers = [
+            (
+              {
+                inherit (peerCfg) publicKey;
+                allowedIPs = [
+                  "0.0.0.0/0"
+                  "::/0"
+                ];
               }
-            '') (filterAttrs (n: p: n != hostName && p.role == "border") cfg.nodes)
-          )}
-        ''}
-      '';
-    };
-  };
+              // (optionalAttrs (peerCfg.endpoint != null) {
+                inherit (peerCfg) endpoint;
+              })
+              // (optionalAttrs (peerCfg.persistentKeepalive != null) {
+                inherit (peerCfg) persistentKeepalive;
+              })
+            )
+          ];
+        }
+      ) activePeers;
+
+      systemd.services = mapAttrs' (
+        peerName: _:
+        let
+          ifName = "dn42m-${lib.substring 0 9 peerName}";
+        in
+        nameValuePair "wireguard-${ifName}" {
+          after = [ "dn42-wireguard-keygen.service" ];
+          wants = [ "dn42-wireguard-keygen.service" ];
+        }
+      ) activePeers;
+
+      networking.firewall.allowedUDPPorts = optional (activePeers != { }) cfg.listenPort;
+    })
+
+    # ── 4. BIRD 2 动态路由系统 ───────────────────────────────────────
+    {
+      services.bird = {
+        enable = true;
+        package = pkgs.bird2;
+        config = lib.mkOrder 200 ''
+          log syslog all;
+          router id ${baseCfg.routerId};
+
+          define OWNAS = ${toString baseCfg.asn};
+          define OWNIPv4 = ${baseCfg.ipv4};
+          define OWNIPv6 = ${baseCfg.ipv6};
+          define OWN_LOOPBACK_V4 = ${lib.head (lib.splitString "/" baseCfg.nodeIpv4)};
+          define OWN_LOOPBACK_V6 = ${lib.head (lib.splitString "/" baseCfg.nodeIpv6)};
+
+          protocol device {
+            scan time 10;
+          }
+
+          # ── Direct 协议：只监听 dummy 'dn42' 接口导入 Loopback /32 与 /128 ──
+          protocol direct direct_dn42 {
+            ipv4;
+            ipv6;
+            interface "dn42";
+          }
+
+          # ── 内核路由同步（设置 krt_prefsrc 为本机 Loopback IP） ──────────
+          # 严格限制：只向内核注入 DN42 专用内网段，绝不污染外网默认网关或公共互联网路由！
+          protocol kernel kernel_v4 {
+            ipv4 {
+              import none;
+              export filter {
+                if source = RTS_STATIC then reject;
+                if net = 0.0.0.0/0 then reject;
+                if ! (net ~ [ 172.20.0.0/14+, 172.31.0.0/16+, 10.0.0.0/8+ ]) then reject;
+                krt_prefsrc = OWN_LOOPBACK_V4;
+                accept;
+              };
+            };
+            scan time 20;
+            merge paths on;
+          }
+
+          protocol kernel kernel_v6 {
+            ipv6 {
+              import none;
+              export filter {
+                if source = RTS_STATIC then reject;
+                if net = ::/0 then reject;
+                if ! (net ~ [ fd00::/8+ ]) then reject;
+                krt_prefsrc = OWN_LOOPBACK_V6;
+                accept;
+              };
+            };
+            scan time 20;
+            merge paths on;
+          }
+
+          ${optionalString cfg.exportExitRoutes ''
+            # ── 边界路由向内部注入的 DN42 汇总出口路由 ──
+            protocol static static_dn42_exit_v4 {
+              ipv4;
+              route 172.20.0.0/14 unreachable;
+              route 172.31.0.0/16 unreachable;
+              route 10.0.0.0/8 unreachable;
+            }
+
+            protocol static static_dn42_exit_v6 {
+              ipv6;
+              route fd00::/8 unreachable;
+            }
+          ''}
+
+          # ── Babel IGP 导出过滤器（宣告本机 Loopback 与可选出口路由） ──
+          filter babel_export_v4 {
+            if proto = "direct_dn42" && net ~ OWNIPv4 && net.len = 32 then accept;
+            ${optionalString cfg.exportExitRoutes ''
+              if proto = "static_dn42_exit_v4" then accept;
+            ''}
+            reject;
+          }
+
+          filter babel_export_v6 {
+            if proto = "direct_dn42" && net ~ OWNIPv6 && net.len = 128 then accept;
+            ${optionalString cfg.exportExitRoutes ''
+              if proto = "static_dn42_exit_v6" then accept;
+            ''}
+            reject;
+          }
+
+          # ── Babel IGP 协议：监听所有内部 pairwise 虚拟网卡 ──────────────
+          protocol babel dn42_babel {
+            ipv4 {
+              import all;
+              export filter babel_export_v4;
+            };
+            ipv6 {
+              import all;
+              export filter babel_export_v6;
+            };
+            # 兼容监听 IPsec (dn42x-*) 与 WireGuard (dn42m-*) 网卡
+            interface "dn42x-*", "dn42m-*" {
+              type tunnel;
+              ${optionalString cfg.babel.rttMetric ''
+                rtt cost 1024;
+                rtt min ${toString cfg.babel.rttMin} ms;
+                rtt max ${toString cfg.babel.rttMax} ms;
+                rtt decay ${toString cfg.babel.rttDecay};
+              ''}
+              check link yes;
+            };
+          }
+
+          ${optionalString cfg.ibgp.enable ''
+            # ── iBGP 全互联（Full-Mesh，基于 Loopback IPv6 + next hop self） ──
+            template bgp dn42_ibgp_template {
+              local as OWNAS;
+              multihop;
+              path metric on;
+            }
+
+            ${concatStringsSep "\n" (
+              mapAttrsToList
+                (peerName: peerCfg: ''
+                  protocol bgp ibgp_${peerName} from dn42_ibgp_template {
+                    neighbor ${peerCfg.ipv6} as OWNAS;
+                    source address OWN_LOOPBACK_V6;
+
+                    ipv6 {
+                      next hop self;
+                      import filter {
+                        ${
+                          if cfg.ibgp.receiveFullTable then
+                            ''
+                              accept;
+                            ''
+                          else
+                            ''
+                              if net = fd00::/8 then accept;
+                              reject;
+                            ''
+                        }
+                      };
+                      export filter {
+                        if source ~ [ RTS_BGP, RTS_STATIC ] then accept;
+                        reject;
+                      };
+                    };
+
+                    ipv4 {
+                      extended next hop on;
+                      next hop self;
+                      import filter {
+                        ${
+                          if cfg.ibgp.receiveFullTable then
+                            ''
+                              accept;
+                            ''
+                          else
+                            ''
+                              if net ~ [ 172.20.0.0/14, 172.31.0.0/16, 10.0.0.0/8 ] then accept;
+                              reject;
+                            ''
+                        }
+                      };
+                      export filter {
+                        if source ~ [ RTS_BGP, RTS_STATIC ] then accept;
+                        reject;
+                      };
+                    };
+                  }
+                '')
+                (
+                  filterAttrs (
+                    n: p: n != hostName && p.ipv6 != null && (p.role == "border" || (p.ibgp or false))
+                  ) cfg.nodes
+                )
+            )}
+          ''}
+        '';
+      };
+    }
+  ]);
 }

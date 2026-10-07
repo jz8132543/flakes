@@ -70,10 +70,31 @@ let
           description = "Path to local WireGuard private key file for this peer";
         };
 
+        presharedKeyFile = mkOption {
+          type = types.nullOr types.str;
+          default = rawPeer.presharedKeyFile or null;
+          description = "Optional WireGuard preshared key file for this external peer";
+        };
+
         ourLinkLocalIpv6 = mkOption {
           type = types.str;
-          default = baseCfg.linkLocalIpv6;
+          default =
+            if (rawPeer.ourLinkLocal or null) != null then
+              if lib.hasInfix "/" rawPeer.ourLinkLocal then rawPeer.ourLinkLocal else "${rawPeer.ourLinkLocal}/64"
+            else if (rawPeer.ourLinkLocalIpv6 or null) != null then
+              if lib.hasInfix "/" rawPeer.ourLinkLocalIpv6 then
+                rawPeer.ourLinkLocalIpv6
+              else
+                "${rawPeer.ourLinkLocalIpv6}/64"
+            else
+              baseCfg.linkLocalIpv6;
           description = "Our link-local IPv6 address with mask (e.g. fe80::3/64)";
+        };
+
+        ourLinkLocal = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Our link-local IPv6 address from data.json";
         };
 
         linkLocal = mkOption {
@@ -229,26 +250,39 @@ in
     # 确保外部 Peer 的私钥纳入统一生成管理范围
     services.dn42.extraKeyFiles = mapAttrsToList (_: p: p.privateKeyFile) activePeers;
 
-    # ── 1. 外部 Peer WireGuard 虚拟网卡 (dn42-peer-<name>) ───────────
+    # ── 1. 外部 Peer WireGuard 虚拟网卡 (dn42-<name>) ───────────
+    # Linux IFNAMSIZ = 16，网络接口名最长 15 字符
+    # 格式为 "dn42-" (5 字符) + Peer 名字截取前 10 字符，总长不超过 15 字符
     networking.wireguard.interfaces = mapAttrs' (
       name: p:
-      nameValuePair "dn42-peer-${name}" {
+      let
+        ifName = "dn42-${lib.substring 0 10 name}";
+      in
+      nameValuePair ifName {
         ips = [ p.ourLinkLocalIpv6 ] ++ optional (p.ourIpv4 != null) p.ourIpv4;
         inherit (p) listenPort;
         inherit (p) privateKeyFile;
+        # 必须禁用自动添加路由！BGP 网络中路由全权由 Bird 负责，否则 WireGuard 会将 0.0.0.0/0 与 ::/0 写入系统路由表从而冲垮物理公网网关！
+        allowedIPsAsRoutes = false;
         peers = [
           (
             {
               inherit (p) publicKey;
-              # AllowedIPs 设置为全放行，由 Bird eBGP 与过滤器决定路由
+              # 仅允许 DN42、ULA 与 Link-Local 流量，避免污染公网路由或流量逃逸
               allowedIPs = [
-                "0.0.0.0/0"
-                "::/0"
+                "fe80::/10"
+                "172.20.0.0/14"
+                "172.31.0.0/16"
+                "10.0.0.0/8"
+                "fd00::/8"
               ];
               persistentKeepalive = 25;
             }
             // (optionalAttrs (p.endpoint != null) {
               inherit (p) endpoint;
+            })
+            // (optionalAttrs (p.presharedKeyFile != null) {
+              inherit (p) presharedKeyFile;
             })
           )
         ];
@@ -258,87 +292,34 @@ in
     systemd.services =
       (mapAttrs' (
         name: _:
-        nameValuePair "wireguard-dn42-peer-${name}" {
-          after = [ "dn42-wireguard-keygen.service" ];
-          wants = [ "dn42-wireguard-keygen.service" ];
+        let
+          ifName = "dn42-${lib.substring 0 10 name}";
+        in
+        nameValuePair "wireguard-${ifName}" {
+          after = [
+            "dn42-wireguard-keygen.service"
+            "dnsmasq.service"
+            "network-online.target"
+          ];
+          wants = [
+            "dn42-wireguard-keygen.service"
+            "dnsmasq.service"
+            "network-online.target"
+          ];
         }
       ) activePeers)
       // (optionalAttrs cfg.roa.enable {
-        dn42-roa-updater = {
-          description = "DN42 ROA table auto-updater with configuration pre-check";
+        stayrtr-dn42 = {
+          description = "StayRTR RPKI server for DN42";
           after = [ "network-online.target" ];
           wants = [ "network-online.target" ];
-          path = with pkgs; [
-            curl
-            bird2
-            coreutils
-          ];
-          script = ''
-            mkdir -p /var/lib/dn42-roa
-            ROA4_TMP="/var/lib/dn42-roa/roa_v4.conf.tmp"
-            ROA6_TMP="/var/lib/dn42-roa/roa_v6.conf.tmp"
-
-            fetch_file() {
-              local out="$1"
-              local url1="$2"
-              local url2="$3"
-              if curl -fsSL --connect-timeout 10 --max-time 30 -o "$out" "$url1"; then
-                return 0
-              fi
-              echo "Primary URL ($url1) failed, trying fallback ($url2)..." >&2
-              if curl -fsSL --connect-timeout 10 --max-time 30 -o "$out" "$url2"; then
-                return 0
-              fi
-              echo "Both primary and fallback failed for $out" >&2
-              return 1
-            }
-
-            echo "Fetching DN42 IPv4 ROA..."
-            fetch_file "$ROA4_TMP" "https://dn42.burble.dn42/roa/dn42_roa_bird2_4.conf" "https://dn42.eu/roa/dn42_roa_bird2_4.conf"
-
-            echo "Fetching DN42 IPv6 ROA..."
-            fetch_file "$ROA6_TMP" "https://dn42.burble.dn42/roa/dn42_roa_bird2_6.conf" "https://dn42.eu/roa/dn42_roa_bird2_6.conf"
-
-            if [ ! -s "$ROA4_TMP" ] || [ ! -s "$ROA6_TMP" ]; then
-              echo "ERROR: Downloaded ROA file is empty, aborting update." >&2
-              exit 1
-            fi
-
-            # 备份旧配置
-            cp -f /var/lib/dn42-roa/roa_v4.conf /var/lib/dn42-roa/roa_v4.conf.bak 2>/dev/null || true
-            cp -f /var/lib/dn42-roa/roa_v6.conf /var/lib/dn42-roa/roa_v6.conf.bak 2>/dev/null || true
-
-            # 移动新文件
-            mv "$ROA4_TMP" /var/lib/dn42-roa/roa_v4.conf
-            mv "$ROA6_TMP" /var/lib/dn42-roa/roa_v6.conf
-
-            # 若 BIRD 运行中，先执行语法检查再重载，失败则回滚并退出
-            if systemctl is-active --quiet bird; then
-              echo "Checking BIRD configuration with new ROA..."
-              if birdc configure check; then
-                echo "Configuration valid, applying new ROA tables..."
-                birdc configure
-              else
-                echo "ERROR: birdc configure check failed with new ROA! Rolling back..." >&2
-                cp -f /var/lib/dn42-roa/roa_v4.conf.bak /var/lib/dn42-roa/roa_v4.conf 2>/dev/null || true
-                cp -f /var/lib/dn42-roa/roa_v6.conf.bak /var/lib/dn42-roa/roa_v6.conf 2>/dev/null || true
-                exit 1
-              fi
-            fi
-            echo "DN42 ROA tables updated successfully."
-          '';
-        };
-
-        bird = {
-          preStart = ''
-            mkdir -p /var/lib/dn42-roa
-            if [ ! -f /var/lib/dn42-roa/roa_v4.conf ]; then
-              echo "roa4 table dn42_roa_v4;" > /var/lib/dn42-roa/roa_v4.conf
-            fi
-            if [ ! -f /var/lib/dn42-roa/roa_v6.conf ]; then
-              echo "roa6 table dn42_roa_v6;" > /var/lib/dn42-roa/roa_v6.conf
-            fi
-          '';
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            DynamicUser = true;
+            ExecStart = "${pkgs.stayrtr}/bin/stayrtr -cache=https://dn42.burble.com/roa/dn42_roa_46.json -checktime=false -bind=127.0.0.1:8282 -metrics.addr=127.0.0.1:9847 -rtr.retry=10";
+            Restart = "always";
+            RestartSec = "10s";
+          };
         };
       });
 
@@ -346,20 +327,22 @@ in
     networking.firewall.allowedUDPPorts = mapAttrsToList (_: p: p.listenPort) activePeers;
     networking.firewall.allowedTCPPorts = [ 179 ]; # BGP
 
-    systemd.timers.dn42-roa-updater = mkIf cfg.roa.enable {
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnBootSec = "2min";
-        OnUnitActiveSec = cfg.roa.updateInterval;
-        Persistent = true;
-      };
-    };
-
     # ── 3. BIRD 2 外部 BGP Peer 与过滤规则 ───────────────────────────
     services.bird.config = lib.mkOrder 300 ''
-      # ── ROA 验证表导入 ──
-      include "/var/lib/dn42-roa/roa_v4.conf";
-      include "/var/lib/dn42-roa/roa_v6.conf";
+      # ── ROA 验证表导入（RPKI via StayRTR） ──
+      roa4 table dn42_roa_v4;
+      roa6 table dn42_roa_v6;
+
+      ${optionalString cfg.roa.enable ''
+        protocol rpki rtr_dn42 {
+          roa4 { table dn42_roa_v4; };
+          roa6 { table dn42_roa_v6; };
+          remote "127.0.0.1" port 8282;
+          retry keep 90;
+          refresh keep 900;
+          expire keep 172800;
+        }
+      ''}
 
       ${optionalString cfg.staticAggregate.enable ''
         # ── 本地静态汇总黑洞路由（用于 BGP 聚合宣告） ──
@@ -415,57 +398,34 @@ in
 
       # ── 外部 eBGP Peers ──
       ${concatStringsSep "\n" (
-        mapAttrsToList (name: p: ''
-          # Peer: ${name} (AS${toString p.asn})
-          protocol bgp bgp_${name}_v6 from dn42_peer_template {
-            neighbor ${p.peerLinkLocalIpv6} % 'dn42-peer-${name}' as ${toString p.asn};
+        mapAttrsToList (
+          name: p:
+          let
+            ifName = "dn42-${lib.substring 0 10 name}";
+            protoName = lib.replaceStrings [ "-" ] [ "_" ] name;
+          in
+          ''
+            # Peer: ${name} (AS${toString p.asn})
+            protocol bgp bgp_${protoName}_v6 from dn42_peer_template {
+              neighbor ${p.peerLinkLocalIpv6} % '${ifName}' as ${toString p.asn};
+              source address ${lib.head (lib.splitString "/" p.ourLinkLocalIpv6)};
 
-            ipv6 {
-              import filter {
-                if !is_valid_dn42_v6() then reject;
-                if net ~ OWNIPv6 then reject;
-                ${
-                  if cfg.roa.strict then
-                    ''
-                      if roa_check(dn42_roa_v6, net, bgp_path.last) != ROA_VALID then {
-                        print "Rejecting ROA invalid/unknown IPv6 from ${name}: ", net;
-                        reject;
-                      }
-                    ''
-                  else
-                    ''
-                      if roa_check(dn42_roa_v6, net, bgp_path.last) = ROA_INVALID then {
-                        print "Rejecting ROA invalid IPv6 from ${name}: ", net;
-                        reject;
-                      }
-                    ''
-                }
-                bgp_community.add(${latencyCommunity p.latency});
-                bgp_community.add(${bandwidthCommunity p.bandwidth});
-                bgp_community.add(${cryptoCommunity p.crypto});
-                accept;
-              };
-              export filter dn42_export_v6;
-            };
-
-            ${optionalString p.extendedNextHop ''
-              ipv4 {
-                extended next hop on;
+              ipv6 {
                 import filter {
-                  if !is_valid_dn42_v4() then reject;
-                  if net ~ OWNIPv4 then reject;
+                  if !is_valid_dn42_v6() then reject;
+                  if net ~ OWNIPv6 then reject;
                   ${
                     if cfg.roa.strict then
                       ''
-                        if roa_check(dn42_roa_v4, net, bgp_path.last) != ROA_VALID then {
-                          print "Rejecting ROA invalid/unknown IPv4 from ${name}: ", net;
+                        if roa_check(dn42_roa_v6, net, bgp_path.last) != ROA_VALID then {
+                          print "Rejecting ROA invalid/unknown IPv6 from ${name}: ", net;
                           reject;
                         }
                       ''
                     else
                       ''
-                        if roa_check(dn42_roa_v4, net, bgp_path.last) = ROA_INVALID then {
-                          print "Rejecting ROA invalid IPv4 from ${name}: ", net;
+                        if roa_check(dn42_roa_v6, net, bgp_path.last) = ROA_INVALID then {
+                          print "Rejecting ROA invalid IPv6 from ${name}: ", net;
                           reject;
                         }
                       ''
@@ -475,44 +435,75 @@ in
                   bgp_community.add(${cryptoCommunity p.crypto});
                   accept;
                 };
-                export filter dn42_export_v4;
+                export filter dn42_export_v6;
               };
-            ''}
-          }
 
-          ${optionalString (!p.extendedNextHop && p.peerIpv4 != null) ''
-            protocol bgp bgp_${name}_v4 from dn42_peer_template {
-              neighbor ${p.peerIpv4} as ${toString p.asn};
-              ipv4 {
-                import filter {
-                  if !is_valid_dn42_v4() then reject;
-                  if net ~ OWNIPv4 then reject;
-                  ${
-                    if cfg.roa.strict then
-                      ''
-                        if roa_check(dn42_roa_v4, net, bgp_path.last) != ROA_VALID then {
-                          print "Rejecting ROA invalid/unknown IPv4 from ${name}: ", net;
-                          reject;
-                        }
-                      ''
-                    else
-                      ''
-                        if roa_check(dn42_roa_v4, net, bgp_path.last) = ROA_INVALID then {
-                          print "Rejecting ROA invalid IPv4 from ${name}: ", net;
-                          reject;
-                        }
-                      ''
-                  }
-                  bgp_community.add(${latencyCommunity p.latency});
-                  bgp_community.add(${bandwidthCommunity p.bandwidth});
-                  bgp_community.add(${cryptoCommunity p.crypto});
-                  accept;
+              ${optionalString p.extendedNextHop ''
+                ipv4 {
+                  extended next hop on;
+                  import filter {
+                    if !is_valid_dn42_v4() then reject;
+                    if net ~ OWNIPv4 then reject;
+                    ${
+                      if cfg.roa.strict then
+                        ''
+                          if roa_check(dn42_roa_v4, net, bgp_path.last) != ROA_VALID then {
+                            print "Rejecting ROA invalid/unknown IPv4 from ${name}: ", net;
+                            reject;
+                          }
+                        ''
+                      else
+                        ''
+                          if roa_check(dn42_roa_v4, net, bgp_path.last) = ROA_INVALID then {
+                            print "Rejecting ROA invalid IPv4 from ${name}: ", net;
+                            reject;
+                          }
+                        ''
+                    }
+                    bgp_community.add(${latencyCommunity p.latency});
+                    bgp_community.add(${bandwidthCommunity p.bandwidth});
+                    bgp_community.add(${cryptoCommunity p.crypto});
+                    accept;
+                  };
+                  export filter dn42_export_v4;
                 };
-                export filter dn42_export_v4;
-              };
+              ''}
             }
-          ''}
-        '') activePeers
+
+            ${optionalString (!p.extendedNextHop && p.peerIpv4 != null) ''
+                protocol bgp bgp_${protoName}_v4 from dn42_peer_template {
+                  neighbor ${p.peerIpv4} as ${toString p.asn};
+                ipv4 {
+                  import filter {
+                    if !is_valid_dn42_v4() then reject;
+                    if net ~ OWNIPv4 then reject;
+                    ${
+                      if cfg.roa.strict then
+                        ''
+                          if roa_check(dn42_roa_v4, net, bgp_path.last) != ROA_VALID then {
+                            print "Rejecting ROA invalid/unknown IPv4 from ${name}: ", net;
+                            reject;
+                          }
+                        ''
+                      else
+                        ''
+                          if roa_check(dn42_roa_v4, net, bgp_path.last) = ROA_INVALID then {
+                            print "Rejecting ROA invalid IPv4 from ${name}: ", net;
+                            reject;
+                          }
+                        ''
+                    }
+                    bgp_community.add(${latencyCommunity p.latency});
+                    bgp_community.add(${bandwidthCommunity p.bandwidth});
+                    bgp_community.add(${cryptoCommunity p.crypto});
+                    accept;
+                  };
+                  export filter dn42_export_v4;
+                };
+              }
+            ''}
+          ''
+        ) activePeers
       )}
     '';
   };

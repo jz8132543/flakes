@@ -13,6 +13,7 @@
       nixosModules.optimize.minimal
       nixosModules.optimize.ext4
       nixosModules.optimize.anti-balloon
+      nixosModules.services.networking.dn42.mesh
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.atc.edge
@@ -34,18 +35,6 @@
   # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
   services.nextcloud-talk-edge = {
     enable = true;
-    enableIpv4 = true;
-    enableIpv6 = false;
-    edgeDomain = "sjc0.dora.im";
-    edgePublicIp = "45.143.130.230";
-    centralNatsHost = "cloud.dora.im";
-    centralNextcloudUrl = "https://cloud.dora.im";
-    enableCluster = true;
-    grpcPort = 9090;
-    clusterTargets = [
-      "cu.ts:9090"
-      "hkg5.ts:9090"
-    ];
   };
 
   environment.networkTune = {

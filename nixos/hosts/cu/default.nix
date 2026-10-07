@@ -9,6 +9,7 @@
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
+    ++ nixosModules.services.networking.dn42.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
@@ -21,24 +22,9 @@
     ];
 
   services.nextcloud-talk-edge = {
-    # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式
+    # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）
     enable = true;
-    enableIpv4 = false;
-    enableIpv6 = true;
-    edgeDomain = "cuv6.dora.im";
-    edgePort = 50569;
-    edgePublicIpv6 = "cuv6.dora.im";
-    enableCoturn = false;
     stunServer = "hkg5.dora.im";
-    stunPort = 3479;
-    centralNatsHost = "cloud.dora.im";
-    centralNextcloudUrl = "https://cloud.dora.im";
-    enableCluster = true;
-    grpcPort = 9090;
-    clusterTargets = [
-      "sjc0.ts:9090"
-      "hkg5.ts:9090"
-    ];
   };
 
   boot.loader.grub.device = lib.mkForce "nodev";

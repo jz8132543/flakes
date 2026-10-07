@@ -58,6 +58,10 @@ let
       }) (v4s ++ v6s)
     ) (selfData.hosts or { })
   );
+
+  peerAliases = dn42Data.peerAliases or { };
+  myAssignedPeers = lib.filterAttrs (_alias: targetHost: targetHost == hostName) peerAliases;
+  myPeerAlias = if myAssignedPeers != { } then lib.head (lib.attrNames myAssignedPeers) else null;
 in
 {
   options.services.dn42 = {
@@ -124,16 +128,38 @@ in
       description = "Link-local IPv6 address with mask for point-to-point tunnels";
     };
 
+    peerAlias = mkOption {
+      type = types.nullOr types.str;
+      default = myPeerAlias;
+      description = "Public peering alias assigned to this host (e.g. 'peer1', 'peer2', 'peer3', or null)";
+    };
+
+    useSopsSecret = mkOption {
+      type = types.bool;
+      default = cfg.peerAlias != null && config ? sops-file;
+      description = "Automatically fetch WireGuard private key from sops encrypted peer secret";
+    };
+
     privateKeyFile = mkOption {
       type = types.str;
-      default = "/var/lib/wireguard/dn42.key";
+      default =
+        if cfg.useSopsSecret && cfg.peerAlias != null && config ? sops-file then
+          config.sops.secrets."dn42/wireguard_private_key".path
+        else
+          "/var/lib/wireguard/dn42.key";
       description = "Path to local WireGuard private key file (supports /run/secrets/...)";
     };
 
     publicKey = mkOption {
       type = types.nullOr types.str;
-      default = thisHostData.dn42_public_key or null;
-      description = "WireGuard public key of this host (read from data.json)";
+      default =
+        if
+          cfg.peerAlias != null && dn42Data ? peerPublicKeys && dn42Data.peerPublicKeys ? ${cfg.peerAlias}
+        then
+          dn42Data.peerPublicKeys.${cfg.peerAlias}
+        else
+          thisHostData.dn42_public_key or null;
+      description = "WireGuard public key of this host (read from peerPublicKeys or data.json)";
     };
 
     extraKeyFiles = mkOption {
@@ -144,6 +170,14 @@ in
   };
 
   config = mkIf cfg.enable {
+    # ── 0. Peer 专属 WireGuard 密钥（由 sops-nix 解密） ───────────────
+    sops.secrets = lib.mkIf (cfg.useSopsSecret && cfg.peerAlias != null && config ? sops-file) {
+      "dn42/wireguard_private_key" = {
+        sopsFile = config.sops-file.get "dn42/${cfg.peerAlias}.yaml";
+        key = "wireguard_private_key";
+        mode = "0400";
+      };
+    };
     # ── 1. 基础系统工具 ─────────────────────────────────────────────
     environment.systemPackages = [
       pkgs.wireguard-tools
@@ -152,11 +186,14 @@ in
 
     # ── 2. 内核转发与宽松反向路径过滤（sysctl） ─────────────────────
     boot.kernel.sysctl = {
-      "net.ipv4.ip_forward" = 1;
-      "net.ipv6.conf.all.forwarding" = 1;
-      "net.ipv6.conf.default.forwarding" = 1;
+      "net.ipv4.ip_forward" = lib.mkDefault 1;
+      "net.ipv6.conf.all.forwarding" = lib.mkDefault 1;
+      "net.ipv6.conf.default.forwarding" = lib.mkDefault 1;
       "net.ipv4.conf.all.rp_filter" = lib.mkDefault 2;
       "net.ipv4.conf.default.rp_filter" = lib.mkDefault 2;
+      # 开启 IPv6 转发时，Linux 内核默认会将 accept_ra 设为 0，导致外网物理网卡丢失 IPv6 默认网关。显式设为 2 确保继续接收路由通告
+      "net.ipv6.conf.all.accept_ra" = lib.mkDefault 2;
+      "net.ipv6.conf.default.accept_ra" = lib.mkDefault 2;
     };
 
     networking.firewall.checkReversePath = lib.mkDefault "loose";
@@ -167,9 +204,58 @@ in
     '';
 
     # ── 3. Dummy Loopback 接口（绑定单播 /32 与 /128） ─────────────
+    boot.kernelModules = [ "dummy" ];
+
+    # 对于 systemd-networkd 环境
+    systemd.network = lib.mkIf config.systemd.network.enable {
+      netdevs."10-dn42" = {
+        netdevConfig = {
+          Name = "dn42";
+          Kind = "dummy";
+        };
+      };
+    };
+
+    # 保证在配置网络地址前 dummy 设备已存在并处于 UP 状态
+    systemd.services.dn42-dummy = {
+      description = "Create DN42 dummy network interface";
+      wantedBy = [
+        "multi-user.target"
+        "network-setup.service"
+      ];
+      before = [
+        "network-setup.service"
+        "bird.service"
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${pkgs.runtimeShell} -c '${pkgs.iproute2}/bin/ip link add dev dn42 type dummy 2>/dev/null || true; ${pkgs.iproute2}/bin/ip link set dev dn42 up 2>/dev/null || true'";
+        ExecStop = "${pkgs.runtimeShell} -c '${pkgs.iproute2}/bin/ip link delete dev dn42 2>/dev/null || true'";
+      };
+    };
+
+    systemd.services.network-addresses-dn42 = {
+      wantedBy = [ "multi-user.target" ];
+      after = [ "dn42-dummy.service" ];
+      wants = [ "dn42-dummy.service" ];
+      before = [ "bird.service" ];
+    };
+
+    systemd.services.bird = {
+      after = [ "network-addresses-dn42.service" ];
+      wants = [ "network-addresses-dn42.service" ];
+    };
+
+    # ── 集成 dnsmasq：转发 *.dn42 查询至 DN42 Anycast DNS ─────────
+    services.dnsmasq.settings.server = [
+      "/dn42/172.20.0.53"
+      "/dn42/172.23.0.53"
+      "/dn42/fd42:d42:d42:54::1"
+      "/dn42/fd42:d42:d42:53::1"
+    ];
+
     networking.interfaces.dn42 = {
-      virtual = true;
-      virtualType = "dummy";
       ipv4.addresses = [
         {
           address = lib.head (lib.splitString "/" cfg.nodeIpv4);

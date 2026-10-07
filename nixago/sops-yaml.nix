@@ -96,6 +96,15 @@ in
       ];
     }
     {
+      path_regex = "secrets/dn42/.*\\.yaml$";
+      key_groups = [
+        {
+          pgp = [ main ];
+          age = yubikeyKeys ++ allHostKeys ++ [ github ];
+        }
+      ];
+    }
+    {
       path_regex = "^/tmp/encrypt.*$";
       key_groups = [
         {
