@@ -71,6 +71,16 @@ let
           description = "Public WireGuard / IPsec endpoint for this node, or null if behind NAT";
         };
 
+        endpointV6 = mkOption {
+          type = types.nullOr types.str;
+          default =
+            let
+              edgeNode = lib.findFirst (n: n.name == name) null (selfData.cdn.edgeNodes or [ ]);
+            in
+            nodeMeshCfg.endpointV6 or (if edgeNode != null && edgeNode ? ipv6 then edgeNode.ipv6 else null);
+          description = "Public IPv6 endpoint for this peer (preferred for IPsec when IPv4 is behind NAT)";
+        };
+
         listenPort = mkOption {
           type = types.port;
           default = nodeMeshCfg.listenPort or 51821;
@@ -288,6 +298,7 @@ in
         let
           ifName = "dn42x-${lib.substring 0 9 peerName}";
           xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
+          peerV6 = peerCfg.endpointV6;
         in
         nameValuePair ifName {
           description = "DN42 XFRM interface for peer ${peerName}";
@@ -298,7 +309,10 @@ in
             "strongswan-swanctl.service"
           ];
           wantedBy = [ "multi-user.target" ];
-          path = [ pkgs.iproute2 ];
+          path = [
+            pkgs.iproute2
+            pkgs.gawk
+          ];
           serviceConfig = {
             Type = "oneshot";
             RemainAfterExit = true;
@@ -309,13 +323,48 @@ in
               fi
               ip link set ${ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
               ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${ifName}
+
+              ${lib.optionalString (peerV6 != null) ''
+                gw=$(ip -6 route show default | awk '/via/ {print $3; exit}')
+                dev=$(ip -6 route show default | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+                if [ -n "$gw" ] && [ -n "$dev" ]; then
+                  ip -6 route replace ${peerV6}/128 via "$gw" dev "$dev" metric 100 || true
+                fi
+              ''}
             '';
             ExecStop = pkgs.writeShellScript "${ifName}-down" ''
+              ${lib.optionalString (peerV6 != null) ''
+                ip -6 route del ${peerV6}/128 2>/dev/null || true
+              ''}
               ip link del ${ifName} 2>/dev/null || true
             '';
           };
         }
       ) activePeers;
+
+      networking.networkmanager.dispatcherScripts = mkIf config.networking.networkmanager.enable [
+        {
+          source = pkgs.writeShellScript "dn42-mesh-routes" ''
+            if [ "$2" = "up" ] || [ "$2" = "dhcp6-change" ]; then
+              gw=$(ip -6 route show default | awk '/via/ {print $3; exit}')
+              dev=$(ip -6 route show default | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+              if [ -n "$gw" ] && [ -n "$dev" ]; then
+                ${lib.concatStringsSep "\n" (
+                  lib.mapAttrsToList (
+                    _: peerCfg:
+                    let
+                      peerV6 = peerCfg.endpointV6;
+                    in
+                    lib.optionalString (peerV6 != null) ''
+                      ip -6 route replace ${peerV6}/128 via "$gw" dev "$dev" metric 100 || true
+                    ''
+                  ) activePeers
+                )}
+              fi
+            fi
+          '';
+        }
+      ];
 
       # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
       systemd.network.networks = mkIf config.systemd.network.enable (
@@ -344,6 +393,7 @@ in
             install_virtual_ip = no
             cisco_unity = no
             send_vendor_id = no
+            interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
           }
         '';
 
@@ -353,6 +403,7 @@ in
             let
               peerHost =
                 if peerCfg.endpoint != null then lib.head (lib.splitString ":" peerCfg.endpoint) else null;
+              peerV6 = peerCfg.endpointV6;
               xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
             in
             nameValuePair "mesh-peer-${peerName}" {
@@ -363,8 +414,14 @@ in
 
               remote_addrs =
                 if peerHost != null then
-                  [
+                  (lib.optional (peerV6 != null) peerV6)
+                  ++ [
                     peerHost
+                    "%any"
+                  ]
+                else if peerV6 != null then
+                  [
+                    peerV6
                     "%any"
                   ]
                 else
