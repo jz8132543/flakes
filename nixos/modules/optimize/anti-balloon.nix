@@ -9,19 +9,23 @@ let
 
   # 超轻量 C 防气球与内存保护常驻守护程序：
   # 1. 击穿宿主机内存压缩 (Defeat ESXi/Hyper-V/zswap Compression)：
-  #    - full 模式：每页 4096 字节全部填充高熵 SplitMix64 伪随机数，压缩率接近 1:1，杜绝 ESXi/Hyper-V/zswap 压缩。
-  #    - sparse 模式：每页散布 16 个 cacheline (128 字节) 伪随机数，瓦解 KSM 及简单游程压缩。
-  # 2. 批量 madvise 自修复 (Batched LazyFree Recovery)：
-  #    - 扫描触碰检测到零页（被内核回收重用）时，自动重填伪随机数，并将连续页面合并为区间单次调用 madvise(MADV_FREE)，
-  #      将数万次系统调用骤降为极少数区间调用。
-  # 3. 动态多区域扩容 (Dynamic Expansion via Multi-Block List)：
-  #    - 维护动态区域数组，定时保温时重新探测可用内存。若系统有业务退出释放出新的闲置内存，自动追加 mmap 分配并初始化。
+  #    - full 模式：每页 4096 字节全部填充高熵 SplitMix64 伪随机数，数据熵接近 8.0 bits/byte，杜绝 ESXi/Hyper-V/zswap 压缩。
+  #    - sparse 模式：每页散布 16 个 cacheline (128 字节) 伪随机数，仅用于瓦解 KSM 及基础气球探测，无法防御宿主机整页内存压缩。
+  # 2. 零误判自修复与批量 madvise (Dual-Sampling & Batched Recovery)：
+  #    - 首字节强制非零 + 双采样（偏移 0 和 2048 均为 0 才判定为被内核回收），消除 0.4% 的误报重填损耗。
+  #    - 扫描触碰检测到零页时重填随机数，并将连续页面合并为区间单次调用 madvise(MADV_FREE)，系统调用大幅下降。
+  # 3. 统一口径的真正动态扩容 (Dynamic Expansion via smaps_rollup LazyFree)：
+  #    - 动态从 /proc/self/smaps_rollup 读取当前进程真实存活的 LazyFree 内存，
+  #      将 meminfo 路径扣除自身持有量，与 cgroup 路径（memory.max - memory.current）统一为“外部可用内存”口径。
+  #      彻底解决 g_total_held 静态记账失真导致的扩容一次后永久失效 Bug。
   # 4. cgroup 与容器内存限制感知 (cgroup v1/v2 Awareness)：
   #    - 优先探测 /sys/fs/cgroup/memory.max (v2) 与 memory.limit_in_bytes (v1)，防止打爆容器或 slice 限制。
   # 5. 规避 THP 干扰 (MADV_NOHUGEPAGE)：
   #    - 分配时显式禁用透明大页，避免 2MB THP 拆分延迟，保证细粒度 4KB 页面分配可控。
   # 6. EPT Accessed 保温与绝对零 OOM (Keep-Warm & Zero OOM)：
   #    - 纯读 1 字节/页刷新硬件 EPT Accessed=1，不置脏位；MADV_FREE 保证全部计入 MemAvailable，内核按需秒级丢弃。
+  # 7. 全链路日志与信号响应：
+  #    - 填充循环内层定期检查 g_running，收到 SIGTERM 秒级退出；所有关键动作与异常输出 stderr 记录至 journal。
   antiBalloonDaemon = pkgs.writeCBin "anti-balloon-daemon" ''
     #include <stdio.h>
     #include <stdlib.h>
@@ -46,7 +50,6 @@ let
 
     static MemBlock g_blocks[MAX_BLOCKS];
     static size_t g_num_blocks = 0;
-    static size_t g_total_held = 0;
 
     static volatile sig_atomic_t g_running = 1;
     static void handle_sig(int sig) {
@@ -63,14 +66,18 @@ let
     }
 
     // 整页填充：每页 4096 字节全部填入高熵随机数，彻底击穿 ESXi/Hyper-V/zswap 内存压缩
+    // 强制首字节非零，消除误判为零页的微小概率（1/256 -> 0）
     static inline void fill_page_full(char *page, uint64_t *state) {
         uint64_t *p64 = (uint64_t *)page;
         for (int i = 0; i < 512; i++) {
             p64[i] = splitmix64(state);
         }
+        if ((*(unsigned char *)page) == 0) {
+            *(unsigned char *)page = 1;
+        }
     }
 
-    // 稀疏填充：每页散布 16 个 cacheline (128 字节)，瓦解 KSM 及简单游程压缩
+    // 稀疏填充：每页散布 16 个 cacheline (128 字节)，仅瓦解 KSM 及基础气球探测，无法防宿主整页压缩
     static inline void fill_page_sparse(char *page, uint64_t *state) {
         for (int k = 0; k < 16; k++) {
             uint64_t r = splitmix64(state);
@@ -99,6 +106,23 @@ let
             if (strcasecmp(end, "h") == 0) return (int)(val * 3600);
         }
         return (int)val;
+    }
+
+    // 从 /proc/self/smaps_rollup 读取当前进程真实存活的 LazyFree 内存（字节）
+    static unsigned long long get_self_lazyfree(void) {
+        FILE *f = fopen("/proc/self/smaps_rollup", "r");
+        if (!f) return 0;
+        char line[256];
+        unsigned long long lf = 0;
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "LazyFree:", 9) == 0) {
+                sscanf(line + 9, "%llu", &lf);
+                lf *= 1024ULL; // kB to bytes
+                break;
+            }
+        }
+        fclose(f);
+        return lf;
     }
 
     static int get_meminfo(unsigned long long *total, unsigned long long *avail) {
@@ -196,14 +220,27 @@ let
         }
     }
 
+    // 统一口径：返回系统中除本进程已持有的 LazyFree 内存外的“外部实际可用内存”
     static int get_effective_memory(unsigned long long *out_total, unsigned long long *out_avail) {
         unsigned long long total = 0, avail = 0;
         if (get_meminfo(&total, &avail) != 0) {
             struct sysinfo si;
-            if (sysinfo(&si) != 0) return -1;
+            if (sysinfo(&si) != 0) {
+                fprintf(stderr, "anti-balloon: failed to query /proc/meminfo and sysinfo\n");
+                return -1;
+            }
             total = (unsigned long long)si.totalram * si.mem_unit;
-            // sysinfo.freeram 未包含 cache/buffer，保守低估真实可用量
             avail = (unsigned long long)si.freeram * si.mem_unit;
+        }
+
+        // MemAvailable 包含了本进程的 LazyFree 内存。在此减去本进程存活的 LazyFree，
+        // 将口径统一为“本守护进程之外的外部可用内存”，与 cgroup 路径（memory.max - memory.current）
+        // 严格一致，彻底消除重复扣减与动态扩容失效问题。
+        unsigned long long my_lazyfree = get_self_lazyfree();
+        if (avail > my_lazyfree) {
+            avail -= my_lazyfree;
+        } else {
+            avail = 0;
         }
 
         unsigned long long cg_limit = ULLONG_MAX, cg_avail = ULLONG_MAX;
@@ -224,12 +261,15 @@ let
         if (alloc_sz < 4096) return 0;
 
         char *buf = mmap(NULL, alloc_sz, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (buf == MAP_FAILED) return -1;
+        if (buf == MAP_FAILED) {
+            fprintf(stderr, "anti-balloon: mmap failed for %zu bytes: %m\n", alloc_sz);
+            return -1;
+        }
 
         // 显式禁用 THP (Transparent Huge Pages)，避免 2MB 拆分延迟，保证 4KB 粒度可控
         madvise(buf, alloc_sz, MADV_NOHUGEPAGE);
 
-        for (size_t offset = 0; offset < alloc_sz; offset += CHUNK_SZ) {
+        for (size_t offset = 0; offset < alloc_sz && g_running; offset += CHUNK_SZ) {
             size_t this_chunk = CHUNK_SZ;
             if (offset + this_chunk > alloc_sz) this_chunk = alloc_sz - offset;
 
@@ -239,10 +279,17 @@ let
             madvise(buf + offset, this_chunk, MADV_FREE);
         }
 
+        if (!g_running) {
+            fprintf(stderr, "anti-balloon: received termination signal during allocation, aborting\n");
+            munmap(buf, alloc_sz);
+            return -1;
+        }
+
         g_blocks[g_num_blocks].buf = buf;
         g_blocks[g_num_blocks].sz = alloc_sz;
         g_num_blocks++;
-        g_total_held += alloc_sz;
+        fprintf(stderr, "anti-balloon: allocated block %zu (%zu MB, mode=%s)\n",
+                g_num_blocks, alloc_sz / 1024 / 1024, is_full ? "full" : "sparse");
         return 0;
     }
 
@@ -270,6 +317,9 @@ let
         sigaction(SIGTERM, &sa, NULL);
         sigaction(SIGINT, &sa, NULL);
 
+        fprintf(stderr, "anti-balloon: daemon started (interval=%ds, margin=%dMB, fillMode=%s)\n",
+                interval_sec, margin_mb, is_full ? "full" : "sparse");
+
         uint64_t prng_state = (uint64_t)time(NULL) ^ 0xa5a5a5a512345678ULL;
 
         unsigned long long total_bytes = 0, avail_bytes = 0;
@@ -281,6 +331,9 @@ let
             if (avail_bytes > safety_margin + 16ULL * 1024 * 1024) {
                 size_t alloc_sz = (size_t)(avail_bytes - safety_margin);
                 allocate_and_fill_block(alloc_sz, is_full, &prng_state);
+            } else {
+                fprintf(stderr, "anti-balloon: available memory (%llu MB) <= safety margin (%llu MB), waiting for memory\n",
+                        avail_bytes / 1024 / 1024, safety_margin / 1024 / 1024);
             }
         }
 
@@ -307,24 +360,28 @@ let
                 for (size_t i = 0; i < sz; i += 4096) {
                     volatile unsigned char *p = (volatile unsigned char *)(buf + i);
                     unsigned char c = *p;
+                    // 双采样判定：偏移 0 和偏移 2048 均为 0 才确认页面已被内核回收为共享零页
                     if (__builtin_expect(c == 0, 0)) {
-                        refill_page(buf + i, is_full, &prng_state);
-                        if (batch_start == NULL) {
-                            batch_start = buf + i;
-                            batch_len = 4096;
-                        } else if (batch_start + batch_len == buf + i) {
-                            batch_len += 4096;
-                        } else {
-                            madvise(batch_start, batch_len, MADV_FREE);
-                            batch_start = buf + i;
-                            batch_len = 4096;
+                        unsigned char c_mid = *(volatile unsigned char *)(buf + i + 2048);
+                        if (c_mid == 0) {
+                            refill_page(buf + i, is_full, &prng_state);
+                            if (batch_start == NULL) {
+                                batch_start = buf + i;
+                                batch_len = 4096;
+                            } else if (batch_start + batch_len == buf + i) {
+                                batch_len += 4096;
+                            } else {
+                                madvise(batch_start, batch_len, MADV_FREE);
+                                batch_start = buf + i;
+                                batch_len = 4096;
+                            }
+                            continue;
                         }
-                    } else {
-                        if (batch_start != NULL) {
-                            madvise(batch_start, batch_len, MADV_FREE);
-                            batch_start = NULL;
-                            batch_len = 0;
-                        }
+                    }
+                    if (batch_start != NULL) {
+                        madvise(batch_start, batch_len, MADV_FREE);
+                        batch_start = NULL;
+                        batch_len = 0;
                     }
                 }
                 if (batch_start != NULL) {
@@ -332,19 +389,22 @@ let
                 }
             }
 
-            // 2. 动态自适应扩容：若业务退出释放出新内存，追加新 VMA 块
+            // 2. 动态自适应扩容：口径已统一为“除自身 LazyFree 外的外部可用内存”，
+            //    只要 avail_bytes 超过安全余量与阈值，即说明有新内存被外部业务释放
             if (get_effective_memory(&total_bytes, &avail_bytes) == 0) {
                 unsigned long long safety_margin = (unsigned long long)margin_mb * 1024ULL * 1024ULL;
                 if (safety_margin > total_bytes / 3) safety_margin = total_bytes / 3;
                 if (safety_margin < 64ULL * 1024 * 1024) safety_margin = 64ULL * 1024 * 1024;
 
-                if (avail_bytes > g_total_held + safety_margin + MIN_EXPAND_SZ) {
-                    size_t expand_sz = (size_t)(avail_bytes - g_total_held - safety_margin);
+                if (avail_bytes > safety_margin + MIN_EXPAND_SZ) {
+                    size_t expand_sz = (size_t)(avail_bytes - safety_margin);
+                    fprintf(stderr, "anti-balloon: dynamic expansion triggered (+%zu MB)\n", expand_sz / 1024 / 1024);
                     allocate_and_fill_block(expand_sz, is_full, &prng_state);
                 }
             }
         }
 
+        fprintf(stderr, "anti-balloon: shutting down, unmapping %zu blocks\n", g_num_blocks);
         for (size_t b = 0; b < g_num_blocks; b++) {
             munmap(g_blocks[b].buf, g_blocks[b].sz);
         }
@@ -383,17 +443,21 @@ in
       default = "full";
       description = ''
         页面填充模式：
-        - "full": 整页 4096 字节填满 SplitMix64 伪随机数（高熵，彻底击穿 ESXi、Hyper-V 及宿主机 zswap 的内存压缩）；
-        - "sparse": 每页散布 16 个 cacheline (128 字节) 伪随机数，瓦解 KSM 及基础游程压缩（更低初始化 CPU 成本）。
+        - "full": 整页 4096 字节填满 SplitMix64 伪随机数（高熵，彻底击穿 ESXi、Hyper-V 及宿主机 zswap 的整页内存压缩与 KSM 去重，推荐）；
+        - "sparse": 每页散布 16 个 cacheline (128 字节) 伪随机数，仅用于瓦解 KSM 及基础气球探测，无法防御宿主机整页内存压缩（初始化 CPU 开销极低）。
       '';
     };
   };
 
   config = lib.mkIf cfg.enable {
     # 1. 禁用 QEMU Guest Agent 与相关探测
+    # 注意：禁用 qemuGuest 会使 Proxmox/SolusVM 等控制面板无法获取客户机内部 IP，
+    # 且基于 QEMU-GA 的 fsfreeze 快照一致性保障将失效（但 ACPI 在线关机等不受影响）。
     services.qemuGuest.enable = lib.mkForce false;
 
     # 2. 彻底焊死各大虚拟化厂商的内存气球回收驱动（Fake install）
+    # 注意：若内核将 virtio_balloon 等驱动编译为 built-in (=y)，modprobe 黑名单无法阻止驱动加载，
+    # 此时主要依靠上述守护进程的真实物理页扣押与定期 keep-warm 保温提供防护。
     boot.extraModprobeConfig = ''
       install virtio_balloon /bin/false
       install vmw_balloon /bin/false
@@ -414,7 +478,7 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "multi-user.target" ];
       unitConfig = {
-        ConditionVirtualization = "vm";
+        ConditionVirtualization = true;
         StartLimitIntervalSec = "60s";
         StartLimitBurst = 5;
       };

@@ -325,16 +325,16 @@ in
         ) activePeers
       );
 
-      # Strongswan Swanctl 守护进程配置与 350M 内存极限优化
+      # Strongswan Swanctl 守护进程配置
       services.strongswan-swanctl = {
         enable = true;
         # 优化说明：
-        # 1. threads = 2: 极大削减多线程虚拟内存和调用栈开销（默认 16 线程占用 ~30MB+，2 线程常驻内存仅 ~3-5MB）
+        # 1. threads = 16: 保证工作线程池充足，防止多节点并发握手及 DNS 阻塞导致 VICI IPC 死锁
         # 2. install_routes = no: 禁用 strongswan 自带路由安装，由 Bird 2 全权接管选路
         # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
         strongswan.extraConfig = ''
           charon {
-            threads = 2
+            threads = 16
             install_routes = no
             install_virtual_ip = no
             cisco_unity = no
@@ -403,7 +403,7 @@ in
                 hw_offload = cfg.ipsec.hwOffload;
                 mode = "tunnel";
                 start_action = if peerHost != null then "start" else "trap";
-                dpd_action = "restart";
+                dpd_action = if peerHost != null then "restart" else "clear";
               };
             }
           ) activePeers;
