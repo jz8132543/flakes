@@ -9,8 +9,8 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.desktop.all
-    ++ nixosModules.services.networking.dn42.node.all
     ++ [
+      nixosModules.dn42.mesh
       ./hardware-configuration.nix
       ./hardware.nix
       # ./auto-external-monitor.nix

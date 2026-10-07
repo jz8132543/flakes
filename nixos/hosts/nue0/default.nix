@@ -73,7 +73,7 @@
       nixosModules.services.atc.edge
     ]
     ++ nixosModules.matrix.all
-    ++ nixosModules.services.networking.dn42.router.all;
+    ++ [ nixosModules.dn42.all ];
 
   services.kaogong.enable = false;
   services.moviepilot.enable = true;

@@ -9,7 +9,8 @@ let
   cfg = config.services.atc.router;
   domain = config.networking.domain;
   data = (importJSON ../../../../lib/data/data.json).cdn;
-  inherit (data) nsHost;
+  nsHosts = data.nsHosts or [ (data.nsHost or "fra0") ];
+  primaryNsHost = head nsHosts;
 
   # Pinned GeoLite2-City snapshot. The database is replaceable through the
   # option below; updating this hash is an intentional rebuild-time update.
@@ -19,11 +20,8 @@ let
   };
 
   selfNode = findFirst (n: n.name == config.networking.hostName) null data.edgeNodes;
-  nsNode = findFirst (n: n.name == nsHost) null data.edgeNodes;
   selfIpv4 = if selfNode != null then (selfNode.ipv4 or "127.0.0.1") else "127.0.0.1";
   selfIpv6 = if selfNode != null then (selfNode.ipv6 or null) else null;
-  nsIpv4 = if nsNode != null then (nsNode.ipv4 or "127.0.0.1") else "127.0.0.1";
-  nsIpv6 = if nsNode != null then (nsNode.ipv6 or null) else null;
 
   # Higher weight means more DNS answers from that node. The file plugin has
   # no weighted-record primitive, so represent weight with repeated RRs.
@@ -41,7 +39,7 @@ let
 
   serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
 
-  soaSerial =
+  defaultSoaSerial =
     let
       serialFile = pkgs.runCommand "atc-cdn-soa-serial" { } ''
         date -u +%Y%m%d%H > "$out"
@@ -54,18 +52,26 @@ let
     pkgs.writeText "cdn-${suffix}.${domain}.zone" ''
       $ORIGIN cdn.${domain}.
       $TTL ${toString cfg.dns.ttl}
-      @ IN SOA ${nsHost}.${domain}. admin.${domain}. (
-          ${soaSerial} ; UTC YYYYMMDDHH
+      @ IN SOA ${primaryNsHost}.${domain}. admin.${domain}. (
+          ${cfg.dns.soaSerial} ; UTC YYYYMMDDHH
           7200
           3600
           1209600
           ${toString cfg.dns.ttl}
       )
 
-      @ IN NS ${nsHost}.${domain}.
-      ; DoH is served at the zone apex by the NS host.
-      @ IN A ${nsIpv4}
-      ${optionalString (nsIpv6 != null) "@ IN AAAA ${nsIpv6}"}
+      ${concatMapStringsSep "\n" (h: "@ IN NS ${h}.${domain}.") nsHosts}
+      ; DoH is served at the zone apex by the NS host(s).
+      ${concatMapStringsSep "\n" (
+        h:
+        let
+          n = findFirst (node: node.name == h) null data.edgeNodes;
+        in
+        if n != null then
+          "@ IN A ${n.ipv4}" + optionalString ((n.ipv6 or null) != null) "\n@ IN AAAA ${n.ipv6}"
+        else
+          ""
+      ) nsHosts}
 
       ; Service labels and origin labels are edge-pool aliases.
       ${concatMapStringsSep "\n" (label: addressRecords label nodes) serviceLabels}
@@ -136,6 +142,13 @@ in
         default = false;
         description = "Enable CoreDNS query logging; disabled by default.";
       };
+
+      soaSerial = mkOption {
+        type = types.str;
+        default = defaultSoaSerial;
+        defaultText = "Derived at build time as UTC YYYYMMDDHH";
+        description = "SOA serial number for the CDN zone.";
+      };
     };
 
     geoip = {
@@ -186,16 +199,12 @@ in
         message = "services.atc.router: networking.hostName must be present in terraform/cdn.tf cdn_edge_nodes.";
       }
       {
-        assertion = nsNode != null;
-        message = "services.atc.router: cdn.nsHost must be present in terraform/cdn.tf cdn_edge_nodes.";
+        assertion = all (h: any (n: n.name == h) data.edgeNodes) nsHosts;
+        message = "services.atc.router: all cdn.nsHosts entries must be present in terraform/cdn.tf cdn_edge_nodes.";
       }
       {
         assertion = all (n: (n.ipv4 or null) != null) data.edgeNodes;
         message = "services.atc.router: every cdn_edge_nodes entry must resolve to an A record in terraform/hosts.tf.";
-      }
-      {
-        assertion = all (origin: any (n: n.name == origin) data.edgeNodes) (attrValues data.services);
-        message = "services.atc.router: every CDN service origin must be present in cdn_edge_nodes.";
       }
     ];
 

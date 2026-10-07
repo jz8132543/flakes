@@ -42,6 +42,7 @@
                 .key == "dn42_addresses_v4" or
                 .key == "dn42_v6_prefixes" or
                 .key == "dn42_addresses_v6" or
+                .key == "dn42_public_key" or
                 .key == "as198764_addresses_v6" or
                 .key == "endpoints" or
                 .key == "endpoints_v4" or
@@ -52,5 +53,6 @@
     ),
 
     "service_cname_mappings": .service_cname_mappings.value,
-    "cdn": .cdn_data.value
+    "cdn": .cdn_data.value,
+    "dn42": .dn42_data.value
 }

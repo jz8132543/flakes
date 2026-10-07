@@ -39,7 +39,8 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [31]
+      "host_indices": [31],
+      "dn42_public_key": "9zY8xW7vU6tS5rQ4pP3oN2mM1lL0kK9jJ8hH7gG6fF5="
     },
     "can0": {
       "dn42_addresses_v4": ["172.20.232.11"],
@@ -66,7 +67,8 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [1]
+      "host_indices": [1],
+      "dn42_public_key": "3bF1p0aQ9wE8rT7yU6iO5pA4sD3fG2hJ1kL0zX9cV8m="
     },
     "hkg0": {
       "dn42_addresses_v4": ["172.20.232.2"],
@@ -102,7 +104,8 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [3]
+      "host_indices": [3],
+      "dn42_public_key": "8d7Vp9mE0X6uQw2yA4bC6dE8fG0hI2jK4lM6nO8pQ1s="
     },
     "sjc0": {
       "dn42_addresses_v4": ["172.20.232.16"],
@@ -120,7 +123,8 @@
       "endpoints": [],
       "endpoints_v4": [],
       "endpoints_v6": [],
-      "host_indices": [30]
+      "host_indices": [30],
+      "dn42_public_key": "1aB2cD3eF4gH5iJ6kL7mN8oP9qR0sT1uV2wX3yZ4aB5="
     },
     "tyo0": {
       "dn42_addresses_v4": ["172.20.232.5"],
@@ -316,6 +320,13 @@
         "weight": 1
       },
       {
+        "ipv4": "103.231.56.56",
+        "ipv6": null,
+        "name": "hkg0",
+        "region": "HK",
+        "weight": 1
+      },
+      {
         "ipv4": "216.23.94.148",
         "ipv6": "2401:2660:2:93::a",
         "name": "hkg5",
@@ -338,6 +349,7 @@
       }
     ],
     "nsHost": "fra0",
+    "nsHosts": ["fra0"],
     "services": {
       "alist": "fra0",
       "api": "fra0",
@@ -351,6 +363,47 @@
       "office": "fra0",
       "s": "fra0",
       "zone": "fra0"
+    }
+  },
+  "dn42": {
+    "asn": 4242420115,
+    "ipv4": "172.20.232.0/26",
+    "ipv6": "fd53:90fd:4bb6::/48",
+    "mesh": {
+      "nue0": {
+        "role": "border",
+        "endpoint": "nue0.dora.im:51821",
+        "listenPort": 51821
+      },
+      "fra0": {
+        "role": "border",
+        "endpoint": "fra0.dora.im:51821",
+        "listenPort": 51821
+      },
+      "surface": {
+        "role": "internal",
+        "endpoint": null,
+        "listenPort": 51821
+      },
+      "arx8": {
+        "role": "internal",
+        "endpoint": null,
+        "listenPort": 51821
+      }
+    },
+    "externalPeers": {
+      "kioubit": {
+        "host": "nue0",
+        "asn": 4242423914,
+        "endpoint": "de-nue.kioubit.dn42:51820",
+        "listenPort": 51820,
+        "publicKey": "jH2n8zQn1bT5kX0mP6qW4yV8rL2aC9eD3fG7hI1jK3M=",
+        "linkLocal": "fe80::3914",
+        "latency": "10ms",
+        "bandwidth": "1000m",
+        "crypto": "wireguard",
+        "extendedNextHop": true
+      }
     }
   }
 }

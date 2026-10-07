@@ -4,7 +4,7 @@
     ++ nixosModules.users.tippy.all
     ++ nixosModules.services.media.all
     ++ nixosModules.matrix.all
-    ++ nixosModules.services.networking.dn42.router.all
+    ++ [ nixosModules.dn42.all ]
     ++ nixosModules.services.atc.all
     ++ [
       ./hardware-configuration.nix

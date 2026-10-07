@@ -19,9 +19,10 @@ locals {
   # ── Router hosts ─────────────────────────────────────────────────────────
   # The machines that run CoreDNS and act as authoritative NS for cdn.<domain>.
   # Must be names present in cdn_edge_nodes below.
-  # The initial deployment uses fra0 as the sole authoritative NS. A second
-  # NS can be added later after another router is actually deployed.
-  cdn_ns_host = "fra0"
+  # The initial deployment uses fra0 as the authoritative NS. Additional
+  # NS hosts can be appended to the list as needed.
+  cdn_ns_hosts = ["fra0"]
+  cdn_ns_host  = local.cdn_ns_hosts[0]
 
   # ── Edge nodes ───────────────────────────────────────────────────────────
   # Fields:
@@ -40,6 +41,11 @@ locals {
     {
       name   = "tyo1"
       region = "AP"
+      weight = 1
+    },
+    {
+      name   = "hkg0"
+      region = "HK"
       weight = 1
     },
     {
@@ -96,6 +102,7 @@ output "cdn_data" {
   sensitive   = false
   value = {
     nsHost    = local.cdn_ns_host
+    nsHosts   = local.cdn_ns_hosts
     edgeNodes = local.cdn_edge_nodes_with_addresses
     services  = local.cdn_services
   }
