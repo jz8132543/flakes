@@ -20,6 +20,8 @@ let
           inherit (hostCfg) hostname;
           inherit (hostCfg) port;
           inherit (hostCfg) user;
+          inherit (hostCfg) addressFamily;
+          inherit (hostCfg) proxyCommand;
         }
       )
     )

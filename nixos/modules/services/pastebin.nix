@@ -16,7 +16,7 @@ in
   # - Web file upload
   # - Self-destruction, encryption, etc.
   virtualisation.oci-containers.containers.microbin = {
-    image = "danielszabo99/microbin:latest";
+    image = "docker.io/danielszabo99/microbin:latest";
     ports = [ "${toString port}:8080" ];
     volumes = [ "/var/lib/microbin:/app/data" ];
     environment = {

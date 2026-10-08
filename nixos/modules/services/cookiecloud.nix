@@ -31,7 +31,7 @@ in
 
   config = lib.mkIf cfg.enable {
     virtualisation.oci-containers.containers.cookiecloud = {
-      image = "easychen/cookiecloud:latest";
+      image = "docker.io/easychen/cookiecloud:latest";
       ports = [ "${toString port}:8088" ];
       environment = { };
       volumes = [

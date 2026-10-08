@@ -26,7 +26,7 @@
       "Z /data/.state/recyclarr 0777 recyclarr media -"
       "Z /data/.state/autobrr 0777 autobrr media -"
       "Z /data/.state/vertex 0777 root media -"
-      "Z /data/.state/iyuu 0777 root media -"
+      "d /data/.state/iyuu 0777 root media -"
       "d /data/.state/tdarr 0777 root media -"
       "d /data/.state/tdarr/server 0777 root media -"
       "d /data/.state/tdarr/configs 0777 root media -"

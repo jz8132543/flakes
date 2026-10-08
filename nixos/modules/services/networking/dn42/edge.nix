@@ -296,6 +296,7 @@ in
           ifName = "dn42-${lib.substring 0 10 name}";
         in
         nameValuePair "wireguard-${ifName}" {
+          before = lib.mkForce [ ];
           after = [
             "dn42-wireguard-keygen.service"
             "dnsmasq.service"

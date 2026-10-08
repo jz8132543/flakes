@@ -24,6 +24,10 @@
       group = "media";
     };
 
+    systemd.tmpfiles.rules = [
+      "d /data/.state/iyuu 0777 root media -"
+    ];
+
     virtualisation.oci-containers.containers.iyuu = {
       image = "docker://iyuucn/iyuuplus:latest";
       volumes = [

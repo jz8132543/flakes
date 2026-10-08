@@ -209,7 +209,7 @@ in
       };
       torrentBackupDir = lib.mkOption {
         type = lib.types.path;
-        default = "/var/lib/qBittorrent/qBittorrent/BT_backup";
+        default = "/var/lib/qBittorrent/qBittorrent/data/BT_backup";
         description = "qBittorrent BT_backup directory for cross-seed and inspection.";
       };
       transferType = lib.mkOption {
@@ -434,6 +434,12 @@ in
       };
       "${cfg.paths.downloadDir}/torrents".d = {
         mode = "0755";
+      };
+      "${cfg.paths.torrentBackupDir}".d = {
+        mode = "0755";
+      };
+      "/var/lib/qBittorrent/qBittorrent/BT_backup"."L+" = {
+        argument = "/var/lib/qBittorrent/qBittorrent/data/BT_backup";
       };
     };
 

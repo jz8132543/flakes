@@ -71,7 +71,8 @@ let
               nodeMeshCfg.endpoints
             else if edgeEndpoints != { } then
               edgeEndpoints
-            else nodeMeshCfg.endpoint or "${targetNode}.dora.im:${toString (nodeMeshCfg.listenPort or 51821)}";
+            else
+              nodeMeshCfg.endpoint or "${targetNode}.dora.im:${toString (nodeMeshCfg.listenPort or 51821)}";
         in
         if rawEp == null then
           { }
@@ -102,10 +103,9 @@ let
         endpoint = mkOption {
           type = types.nullOr (types.either types.str (types.attrsOf types.str));
           default =
-            nodeMeshCfg.endpoint or (normalizedEndpoints.default or (if normalizedEndpoints != { } then
-              normalizedEndpoints
-            else
-              null));
+            nodeMeshCfg.endpoint or (normalizedEndpoints.default
+              or (if normalizedEndpoints != { } then normalizedEndpoints else null)
+            );
           description = "Public WireGuard / IPsec endpoint for this node, or null if behind NAT";
         };
 

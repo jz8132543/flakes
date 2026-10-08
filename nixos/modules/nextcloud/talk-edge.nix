@@ -400,8 +400,8 @@ in
           blockkeyFile = "/run/nextcloud-spreed-signaling/blockkey";
         };
         http.listen = "127.0.0.1:${toString config.ports.nextcloud-talk-hpb}";
-        # 连接中心节点的 NATS 消息总线（使用 TLS + 环境变量运行时展开凭据）
-        nats.url = [ "tls://$(NATS_CREDENTIALS)@${cfg.centralNatsHost}:${toString cfg.centralNatsPort}" ];
+        # 连接中心节点的 NATS 消息总线（密码若含 URL 特殊字符，由 preStart 动态转义注入）
+        nats.url = [ "tls://#NATS_CREDENTIALS#@${cfg.centralNatsHost}:${toString cfg.centralNatsPort}" ];
         # MCU 连接本机 Janus WebRTC SFU
         mcu = {
           type = "janus";
@@ -435,30 +435,32 @@ in
         "janus-gateway.service"
         "sops-nix.service"
       ];
+      wants = [ "sops-nix.service" ];
       requires = [ "janus-gateway.service" ];
       serviceConfig = {
-        EnvironmentFile = [ "/run/nextcloud-spreed-signaling/nats.env" ];
         SupplementaryGroups = [ "acme" ];
       };
-      preStart = lib.mkBefore ''
-        head -c 32 ${
-          config.sops.templates."nextcloud-talk-hpb-hashkey".path
-        } > /run/nextcloud-spreed-signaling/hashkey
-        head -c 32 ${
-          config.sops.templates."nextcloud-talk-hpb-blockkey".path
-        } > /run/nextcloud-spreed-signaling/blockkey
-        chmod 0400 /run/nextcloud-spreed-signaling/hashkey /run/nextcloud-spreed-signaling/blockkey
-
-        # 运行时注入 NATS 认证凭据到 /run，禁止明文进入 nix store
-        CRED="$(cat ${config.sops.secrets."nextcloud/nats-credentials".path})"
-        if echo "$CRED" | grep -q ':'; then
-          NATS_AUTH="$CRED"
-        else
-          NATS_AUTH="spreed:$CRED"
-        fi
-        echo "NATS_CREDENTIALS=$NATS_AUTH" > /run/nextcloud-spreed-signaling/nats.env
-        chmod 0400 /run/nextcloud-spreed-signaling/nats.env
-      '';
+      preStart = lib.mkMerge [
+        (lib.mkBefore ''
+          head -c 32 ${
+            config.sops.templates."nextcloud-talk-hpb-hashkey".path
+          } > /run/nextcloud-spreed-signaling/hashkey
+          head -c 32 ${
+            config.sops.templates."nextcloud-talk-hpb-blockkey".path
+          } > /run/nextcloud-spreed-signaling/blockkey
+          chmod 0400 /run/nextcloud-spreed-signaling/hashkey /run/nextcloud-spreed-signaling/blockkey
+        '')
+        (lib.mkAfter ''
+          NATS_PASS="$(cat ${
+            config.sops.templates."nextcloud-talk-hpb-backend-secret".path
+          } | ${pkgs.gnused}/bin/sed -e 's|%|%25|g' -e 's|/|%2F|g' -e 's|+|\%2B|g' -e 's|:|\%3A|g' -e 's|@|\%40|g')"
+          echo -n "spreed:$NATS_PASS" > /run/nextcloud-spreed-signaling/nats-credentials
+          chmod 0400 /run/nextcloud-spreed-signaling/nats-credentials
+          chmod u+w /var/lib/nextcloud-spreed-signaling/server.conf
+          ${lib.getExe pkgs.replace-secret} '#NATS_CREDENTIALS#' /run/nextcloud-spreed-signaling/nats-credentials /var/lib/nextcloud-spreed-signaling/server.conf
+          chmod 0400 /var/lib/nextcloud-spreed-signaling/server.conf
+        '')
+      ];
     };
 
     # ACME 证书更新后重载信令服务

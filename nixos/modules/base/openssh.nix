@@ -37,6 +37,22 @@
               default = null;
               description = "SSH user.";
             };
+            addressFamily = lib.mkOption {
+              type = lib.types.nullOr (
+                lib.types.enum [
+                  "any"
+                  "inet"
+                  "inet6"
+                ]
+              );
+              default = null;
+              description = "Address family (any, inet, inet6).";
+            };
+            proxyCommand = lib.mkOption {
+              type = lib.types.nullOr lib.types.str;
+              default = null;
+              description = "ProxyCommand for this host.";
+            };
           };
         }
       );
@@ -44,10 +60,14 @@
         cu = {
           hostname = "cu.dora.im";
           port = 50560;
+          addressFamily = "inet";
+          proxyCommand = "none";
         };
         "cu.dora.im" = {
           hostname = "cu.dora.im";
           port = 50560;
+          addressFamily = "inet";
+          proxyCommand = "none";
         };
       };
       description = "Custom host entries with non-standard ports or specific settings.";
@@ -107,6 +127,8 @@
               ${lib.optionalString (hostCfg.hostname != null) "HostName ${hostCfg.hostname}"}
               Port ${toString hostCfg.port}
               ${lib.optionalString (hostCfg.user != null) "User ${hostCfg.user}"}
+              ${lib.optionalString (hostCfg.addressFamily != null) "AddressFamily ${hostCfg.addressFamily}"}
+              ${lib.optionalString (hostCfg.proxyCommand != null) "ProxyCommand ${hostCfg.proxyCommand}"}
           '') config.programs.ssh.customHosts
         );
         jumpBlock = lib.optionalString config.programs.ssh.enableJumpRouting ''

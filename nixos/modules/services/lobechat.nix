@@ -35,7 +35,7 @@ in
   };
 
   virtualisation.oci-containers.containers.lobechat = {
-    image = "lobehub/lobehub:latest";
+    image = "docker.io/lobehub/lobehub:latest";
     autoStart = true;
     extraOptions = [
       "--network=host"

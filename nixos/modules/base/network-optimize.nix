@@ -465,7 +465,7 @@ in
         "net.ipv4.tcp_tw_reuse" = 1; # TIME_WAIT 端口复用（仅出站连接）
         "net.ipv4.tcp_rfc1337" = 1; # 防 TIME_WAIT 劫持攻击
         "net.ipv4.tcp_syncookies" = 1; # SYN flood 防护
-        "net.ipv4.ip_local_port_range" = "1024 65535"; # 放开出站端口范围，支持高并发
+        "net.ipv4.ip_local_port_range" = "10240 65535"; # 放开出站端口范围，支持高并发并保留 1024-10239 服务端口
 
         # ── Keepalive & 超时 ─────────────────────────────────────────────
         # 60s 后开始探测，每 10s 探测一次，共 6 次 → 约 120s 检测断链

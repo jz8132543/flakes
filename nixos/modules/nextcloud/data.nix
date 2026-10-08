@@ -2,11 +2,126 @@
 # 该文件为集群唯一的数据源（Single Source of Truth），
 # 导出的 plain attrset 被 talk-central.nix 与 talk-edge.nix 引用。
 # 拓扑、端口、密钥路径变更仅需修改本文件。
+let
+  # ── 全局域名与 Tailscale 后缀可配置项（用户可在此处自定义）────
+  domain = "dora.im"; # 公网主域名后缀（默认生成 <name>.dora.im）
+  tsSuffix = "ts"; # Tailscale 域名后缀（默认生成 <name>.ts）
+
+  # ── 读取全局基础设施数据源 data.json ─────────────────────────
+  dataJson = builtins.fromJSON (builtins.readFile ../../../lib/data/data.json);
+
+  cdnNodesMap = builtins.listToAttrs (
+    map (n: {
+      inherit (n) name;
+      value = n;
+    }) (dataJson.cdn.edgeNodes or [ ])
+  );
+
+  # ── 节点规范化函数：自动推导/补充缺省字段 ────────────────────
+  # 1. publicIp / publicIpv6: 优先使用节点显式配置，留空则自动从 data.json 获取
+  # 2. enableIpv4 / enableIpv6: 优先使用节点显式配置，留空则根据 IP 是否存在自动推导
+  # 3. fqdn: 留空则自动计算为 "${name}.${domain}"
+  # 4. tsName: 留空则自动计算为 "${name}.${tsSuffix}"
+  # 5. clusterAddr: 留空则普通节点走 fqdn，国外入站阻断节点（inboundFromForeign=false）走 tsName
+  normalizeNode =
+    raw:
+    let
+      cdnNode = cdnNodesMap.${raw.name} or null;
+
+      publicIp =
+        if raw ? publicIp && raw.publicIp != null then
+          raw.publicIp
+        else if cdnNode != null then
+          cdnNode.ipv4
+        else
+          null;
+
+      publicIpv6 =
+        if raw ? publicIpv6 && raw.publicIpv6 != null then
+          raw.publicIpv6
+        else if cdnNode != null then
+          cdnNode.ipv6
+        else
+          null;
+
+      enableIpv4 = raw.enableIpv4 or (publicIp != null);
+
+      enableIpv6 = raw.enableIpv6 or (publicIpv6 != null);
+
+      fqdn = if raw ? fqdn && raw.fqdn != null then raw.fqdn else "${raw.name}.${domain}";
+
+      tsName = if raw ? tsName && raw.tsName != null then raw.tsName else "${raw.name}.${tsSuffix}";
+
+      inboundFromForeign = raw.inboundFromForeign or true;
+
+      clusterAddr =
+        if raw ? clusterAddr && raw.clusterAddr != null then
+          raw.clusterAddr
+        else if inboundFromForeign then
+          fqdn
+        else
+          tsName;
+    in
+    raw
+    // {
+      inherit
+        fqdn
+        tsName
+        clusterAddr
+        publicIp
+        publicIpv6
+        enableIpv4
+        enableIpv6
+        inboundFromForeign
+        ;
+      hasSignaling = raw.hasSignaling or true;
+      hasTurn = raw.hasTurn or true;
+      enableCoturn = raw.enableCoturn or (raw.hasTurn or true);
+      enableCluster = raw.enableCluster or true;
+      edgePort = raw.edgePort or null;
+      capacity = raw.capacity or 100;
+    };
+
+  # ── 边缘节点原始拓扑声明 ─────────────────────────────────────
+  # 说明：凡是可从 data.json 获取或由规则推导的字段均已留空，由 normalizeNode 自动计算！
+  rawEdgeNodes = [
+    {
+      name = "sjc0";
+      # 缺省字段（fqdn, tsName, publicIp, publicIpv6, enableIpv4, enableIpv6 等）
+      # 全部由 normalizeNode 自动从 data.json 计算并补齐默认值
+    }
+    {
+      name = "cu";
+      # cu 位于国内且为独立 IPv6 DDNS 端口映射，特殊字段显式覆盖：
+      fqdn = "cuv6.dora.im";
+      publicIpv6 = "cuv6.dora.im";
+      enableIpv4 = false;
+      enableIpv6 = true;
+      hasSignaling = true;
+      hasTurn = false;
+      enableCoturn = false;
+      inboundFromForeign = false; # 关键标志：国外对端必须通过 tsName 连它，禁止国外公网直拨 cuv6.dora.im
+      edgePort = 50569;
+      enableCluster = true;
+      capacity = 50;
+    }
+    {
+      name = "hkg0";
+      # 缺省字段由 normalizeNode 自动从 data.json 计算并补齐默认值
+    }
+    {
+      name = "hkg5";
+      # 缺省字段由 normalizeNode 自动从 data.json 计算并补齐默认值
+    }
+  ];
+in
 {
+  inherit domain tsSuffix;
+
   nats = {
     port = 4222;
-    host = "cloud.dora.im";
-    secretKey = "nextcloud/turn-secret"; # 单源密钥体系：默认复用 turn-secret，也可在 sops 单独添加 nextcloud/nats-credentials 后指向它
+    host = "fra0.${domain}";
+    secretKey = "nextcloud/turn-secret";
   };
 
   turn = {
@@ -24,60 +139,5 @@
     max = 20100;
   };
 
-  edgeNodes = [
-    {
-      name = "sjc0"; # 与 hostName 一致，用于自识别
-      fqdn = "sjc0.dora.im"; # 公网地址（客户端 + 对端互联默认用它）
-      tsName = "sjc0.ts"; # Tailscale 地址（仅 inboundFromForeign=false 的对端用它）
-      clusterAddr = "sjc0.dora.im"; # gRPC 集群互联目标地址
-      hasSignaling = true;
-      hasTurn = true;
-      inboundFromForeign = true;
-      enableIpv4 = true;
-      enableIpv6 = false;
-      publicIp = "45.143.130.230";
-      publicIpv6 = null;
-      edgePort = null; # 非标准端口时填数值
-      enableCluster = true;
-      capacity = 100; # 节点容量/权重注释，供人工调度参考（上游不支持跨节点房间分片）
-    }
-    {
-      name = "cu";
-      fqdn = "cuv6.dora.im";
-      tsName = "cu.ts";
-      # clusterAddr 说明：
-      # 上游 nextcloud-spreed-signaling 使用 Go 标准库 tls.Client 进行 gRPC 互联校验，
-      # 且源码中未提供 skipverify / servername 覆盖选项，强制验证证书 SAN 与 target 主机名一致。
-      # 对端节点互联默认写入 cu.ts:9090 走 Tailscale 内网通道以突破 CN 入站封锁；
-      # 若开启公网 CA 强校验，可为互联单独指定 FQDN 并配合内网 DNS/hosts 映射。
-      clusterAddr = "cu.ts";
-      hasSignaling = true;
-      hasTurn = false;
-      enableCoturn = false;
-      inboundFromForeign = false; # 关键标志：国外对端必须通过 tsName 连它，禁止国外公网直拨 cuv6.dora.im
-      enableIpv4 = false;
-      enableIpv6 = true;
-      publicIp = null;
-      publicIpv6 = "cuv6.dora.im";
-      edgePort = 50569;
-      enableCluster = true;
-      capacity = 50; # 节点容量/权重注释，供人工调度参考
-    }
-    {
-      name = "hkg5";
-      fqdn = "hkg5.dora.im";
-      tsName = "hkg5.ts";
-      clusterAddr = "hkg5.dora.im";
-      hasSignaling = true;
-      hasTurn = true;
-      inboundFromForeign = true;
-      enableIpv4 = true;
-      enableIpv6 = true;
-      publicIp = "216.23.94.148";
-      publicIpv6 = "2401:2660:2:93::a";
-      edgePort = null;
-      enableCluster = true;
-      capacity = 100; # 节点容量/权重注释，供人工调度参考
-    }
-  ];
+  edgeNodes = map normalizeNode rawEdgeNodes;
 }
