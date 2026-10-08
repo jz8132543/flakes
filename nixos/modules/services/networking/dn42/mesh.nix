@@ -477,6 +477,8 @@ in
             install_virtual_ip = no
             cisco_unity = no
             send_vendor_id = no
+            # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
+            uniqueids = no
             interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
             # 借鉴 linyinfeng/dotfiles: 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
             ignore_routing_tables = 2022
@@ -695,20 +697,24 @@ in
             }
           ''}
 
-          # ── Babel IGP 导出过滤器（宣告本机 Loopback 与可选出口路由） ──
+          # ── Babel IGP 导出过滤器（宣告本机 Loopback、中继内部 Loopback 与可选出口路由） ──
           filter babel_export_v4 {
             if proto = "direct_dn42" && net ~ OWNIPv4 && net.len = 32 then accept;
+            if source = RTS_BABEL && net ~ OWNIPv4 && net.len = 32 then accept;
             ${optionalString cfg.exportExitRoutes ''
               if proto = "static_dn42_exit_v4" then accept;
             ''}
+            if source = RTS_BABEL && net ~ [ 172.20.0.0/14, 172.31.0.0/16, 10.0.0.0/8 ] then accept;
             reject;
           }
 
           filter babel_export_v6 {
             if proto = "direct_dn42" && net ~ OWNIPv6 && net.len = 128 then accept;
+            if source = RTS_BABEL && net ~ OWNIPv6 && net.len = 128 then accept;
             ${optionalString cfg.exportExitRoutes ''
               if proto = "static_dn42_exit_v6" then accept;
             ''}
+            if source = RTS_BABEL && net = fd00::/8 then accept;
             reject;
           }
 
