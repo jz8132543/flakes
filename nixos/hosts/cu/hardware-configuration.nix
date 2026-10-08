@@ -17,8 +17,9 @@
 
   # utils.disk = "/dev/sda";
   networking = {
+    dhcpcd.enable = false;
     interfaces.eth0 = {
-      useDHCP = true;
+      useDHCP = false;
       ipv4.addresses = [
         {
           address = "10.105.0.56";
@@ -27,7 +28,7 @@
       ];
       ipv6.addresses = [
         {
-          address = "2409:8a00:2643:c551:6666:0016:3efc:9adf";
+          address = "2409:8a00:272a:2361:6666:0016:3efc:9adf";
           prefixLength = 64;
         }
         {

@@ -373,8 +373,8 @@
         "host": "fra0",
         "latency": "10ms",
         "linkLocal": "fe80::ade0",
-        "ourLinkLocal": "fe80::ade1",
         "listenPort": 51820,
+        "ourLinkLocal": "fe80::ade1",
         "publicKey": "B1xSG/XTJRLd+GrWDsB06BqnIq8Xud93YVh/LYYYtUY="
       },
       "g-load-hk1": {
@@ -386,8 +386,8 @@
         "host": "hkg0",
         "latency": "10ms",
         "linkLocal": "fe80::ade0",
-        "ourLinkLocal": "fe80::ade1",
         "listenPort": 51820,
+        "ourLinkLocal": "fe80::ade1",
         "publicKey": "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
       },
       "g-load-uk1": {
@@ -399,8 +399,8 @@
         "host": "cu",
         "latency": "10ms",
         "linkLocal": "fe80::ade0",
-        "ourLinkLocal": "fe80::ade1",
         "listenPort": 51820,
+        "ourLinkLocal": "fe80::ade1",
         "publicKey": "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
       }
     },
@@ -414,7 +414,12 @@
         "role": "internal"
       },
       "cu": {
-        "endpoint": null,
+        "endpoint": {
+          "cm": "cm.dora.im",
+          "cmv6": "cmv6.dora.im",
+          "cu": "cu.dora.im",
+          "cuv6": "cuv6.dora.im"
+        },
         "ibgp": true,
         "listenPort": 51821,
         "role": "border"

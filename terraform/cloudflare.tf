@@ -252,7 +252,7 @@ resource "cloudflare_dns_record" "dora_cmv6" {
   proxied = false
   ttl     = 1
   type    = "AAAA"
-  content = "2409:8a00:2643:c551:6666:16:3efc:9adf"
+  content = "2409:8a00:272a:2361:6666:16:3efc:9adf"
   zone_id = cloudflare_zone.im_dora.id
 }
 resource "cloudflare_dns_record" "dora_cu" {

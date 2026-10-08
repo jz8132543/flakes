@@ -35,9 +35,4 @@
       (import nixosModules.services.office { })
       (import nixosModules.services.nextcloud { })
     ];
-
-  networking.hosts."100.64.0.4" = [
-    "cu.dora.im"
-    "cuv6.dora.im"
-  ];
 }

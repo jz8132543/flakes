@@ -45,6 +45,11 @@ resource "b2_bucket" "lobechat_files" {
   bucket_name = "doraim-lobechat-files"
   bucket_type = "allPrivate"
 
+  default_server_side_encryption {
+    algorithm = "AES256"
+    mode      = "SSE-B2"
+  }
+
   lifecycle_rules {
     file_name_prefix              = ""
     days_from_uploading_to_hiding = null
@@ -78,8 +83,8 @@ resource "b2_bucket" "lobechat_files" {
 }
 
 resource "b2_application_key" "lobechat_files" {
-  key_name  = "lobechat-files"
-  bucket_id = b2_bucket.lobechat_files.id
+  key_name   = "lobechat-files"
+  bucket_ids = [b2_bucket.lobechat_files.id]
   capabilities = [
     "deleteFiles",
     "listAllBucketNames",
@@ -113,6 +118,11 @@ output "b2_lobechat_files_access_key" {
 #   bucket_name = "doraim-synapse-media"
 #   bucket_type = "allPrivate"
 #
+#   default_server_side_encryption {
+#     algorithm = "AES256"
+#     mode      = "SSE-B2"
+#   }
+#
 #   # keep only the last version of the file
 #   lifecycle_rules {
 #     file_name_prefix              = ""
@@ -121,8 +131,8 @@ output "b2_lobechat_files_access_key" {
 #   }
 # }
 # resource "b2_application_key" "synapse_media" {
-#   key_name  = "synapse-media"
-#   bucket_id = b2_bucket.synapse_media.id
+#   key_name   = "synapse-media"
+#   bucket_ids = [b2_bucket.synapse_media.id]
 #   capabilities = [
 #     "deleteFiles",
 #     "listAllBucketNames",
@@ -154,6 +164,11 @@ output "b2_lobechat_files_access_key" {
 #   bucket_name = "doraim-mastodon-media"
 #   bucket_type = "allPublic"
 #
+#   default_server_side_encryption {
+#     algorithm = "AES256"
+#     mode      = "SSE-B2"
+#   }
+#
 #   # keep only the last version of the file
 #   lifecycle_rules {
 #     file_name_prefix              = ""
@@ -176,8 +191,8 @@ output "b2_lobechat_files_access_key" {
 #   }
 # }
 # resource "b2_application_key" "mastodon_media" {
-#   key_name  = "mastodon-media"
-#   bucket_id = b2_bucket.mastodon_media.id
+#   key_name   = "mastodon-media"
+#   bucket_ids = [b2_bucket.mastodon_media.id]
 #   capabilities = [
 #     "deleteFiles",
 #     "listAllBucketNames",
@@ -209,6 +224,11 @@ output "b2_lobechat_files_access_key" {
 #   bucket_name = "doraim-pastebin-media"
 #   bucket_type = "allPublic"
 #
+#   default_server_side_encryption {
+#     algorithm = "AES256"
+#     mode      = "SSE-B2"
+#   }
+#
 #   # keep only the last version of the file
 #   lifecycle_rules {
 #     file_name_prefix              = ""
@@ -236,8 +256,8 @@ output "b2_lobechat_files_access_key" {
 #   }
 # }
 # resource "b2_application_key" "pastebin_media" {
-#   key_name  = "pastebin-media"
-#   bucket_id = b2_bucket.pastebin_media.id
+#   key_name   = "pastebin-media"
+#   bucket_ids = [b2_bucket.pastebin_media.id]
 #   capabilities = [
 #     "deleteFiles",
 #     "listAllBucketNames",

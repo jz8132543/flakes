@@ -81,8 +81,12 @@ locals {
       role       = "border"
       ibgp       = true
       listenPort = local.dn42_mesh_listen_port
-      endpoint   = null # Behind NAT / dynamic IPv6; dials out to fixed peers
-    }
+      endpoint = {
+        cuv6 = "cuv6.dora.im"
+        cmv6 = "cmv6.dora.im"
+        cu   = "cu.dora.im"
+        cm   = "cm.dora.im"
+    } }
 
     # ── Internals ──
     tyo0 = {

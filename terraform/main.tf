@@ -8,6 +8,11 @@ resource "b2_bucket" "zotero_attachments" {
   bucket_name = var.zotero_bucket_name
   bucket_type = "allPrivate"
 
+  default_server_side_encryption {
+    algorithm = "AES256"
+    mode      = "SSE-B2"
+  }
+
   lifecycle_rules {
     file_name_prefix              = ""
     days_from_uploading_to_hiding = null
@@ -16,8 +21,8 @@ resource "b2_bucket" "zotero_attachments" {
 }
 
 resource "b2_application_key" "zotero_attachments" {
-  key_name  = "zotero-attachments"
-  bucket_id = b2_bucket.zotero_attachments.id
+  key_name   = "zotero-attachments"
+  bucket_ids = [b2_bucket.zotero_attachments.id]
   capabilities = [
     "deleteFiles",
     "listFiles",

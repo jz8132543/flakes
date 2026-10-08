@@ -40,8 +40,9 @@ let
   meshNodeSubmodule = types.submodule (
     { name, config, ... }:
     let
-      nodeHostData = selfData.hosts.${name} or { };
-      nodeMeshCfg = dn42Data.mesh.${name} or { };
+      targetNode = if name == "thisNode" then hostName else name;
+      nodeHostData = selfData.hosts.${targetNode} or { };
+      nodeMeshCfg = dn42Data.mesh.${targetNode} or { };
       v4 =
         if nodeHostData ? dn42_addresses_v4 && nodeHostData.dn42_addresses_v4 != [ ] then
           lib.head nodeHostData.dn42_addresses_v4
@@ -57,6 +58,29 @@ let
           lib.head nodeHostData.host_indices
         else
           null;
+
+      normalizedEndpoints =
+        let
+          edgeNode = lib.findFirst (n: n.name == targetNode) null (selfData.cdn.edgeNodes or [ ]);
+          edgeEndpoints = lib.optionalAttrs (edgeNode != null) (
+            lib.optionalAttrs (edgeNode ? ipv6 && edgeNode.ipv6 != null) { v6 = edgeNode.ipv6; }
+            // lib.optionalAttrs (edgeNode ? ipv4 && edgeNode.ipv4 != null) { v4 = edgeNode.ipv4; }
+          );
+          rawEp =
+            if nodeMeshCfg ? endpoints && nodeMeshCfg.endpoints != { } then
+              nodeMeshCfg.endpoints
+            else if edgeEndpoints != { } then
+              edgeEndpoints
+            else nodeMeshCfg.endpoint or "${targetNode}.dora.im:${toString (nodeMeshCfg.listenPort or 51821)}";
+        in
+        if rawEp == null then
+          { }
+        else if lib.isAttrs rawEp then
+          lib.mapAttrs (_: stripPort) rawEp
+        else if lib.isString rawEp && rawEp != "" then
+          { default = stripPort rawEp; }
+        else
+          { };
     in
     {
       options = {
@@ -76,8 +100,12 @@ let
         };
 
         endpoint = mkOption {
-          type = types.nullOr types.str;
-          default = nodeMeshCfg.endpoint or null;
+          type = types.nullOr (types.either types.str (types.attrsOf types.str));
+          default =
+            nodeMeshCfg.endpoint or (normalizedEndpoints.default or (if normalizedEndpoints != { } then
+              normalizedEndpoints
+            else
+              null));
           description = "Public WireGuard / IPsec endpoint for this node, or null if behind NAT";
         };
 
@@ -129,39 +157,7 @@ let
 
         endpoints = mkOption {
           type = types.attrsOf types.str;
-          default =
-            let
-              edgeNode = lib.findFirst (n: n.name == name) null (selfData.cdn.edgeNodes or [ ]);
-              cuHosts =
-                if name == "cu" then
-                  {
-                    cm6 = "cmv6.dora.im";
-                    cu6 = "cuv6.dora.im";
-                    cm4 = "cm.dora.im";
-                    cu4 = "cu.dora.im";
-                  }
-                else
-                  { };
-              edgeEndpoints = lib.optionalAttrs (edgeNode != null) (
-                lib.optionalAttrs (edgeNode ? ipv6 && edgeNode.ipv6 != null) { v6 = edgeNode.ipv6; }
-                // lib.optionalAttrs (edgeNode ? ipv4 && edgeNode.ipv4 != null) { v4 = edgeNode.ipv4; }
-              );
-              legacyEndpoint =
-                if nodeMeshCfg ? endpoint && nodeMeshCfg.endpoint != null then
-                  {
-                    default = stripPort nodeMeshCfg.endpoint;
-                  }
-                else
-                  { };
-            in
-            if nodeMeshCfg ? endpoints && nodeMeshCfg.endpoints != { } then
-              nodeMeshCfg.endpoints
-            else if cuHosts != { } then
-              cuHosts
-            else if edgeEndpoints != { } then
-              edgeEndpoints
-            else
-              legacyEndpoint;
+          default = normalizedEndpoints;
           description = "All available public IP/domain endpoints for multi-path/dual-stack tunnels";
         };
 
@@ -188,7 +184,11 @@ let
 
   # Active mesh peers: a pairwise connection can be formed if at least one side has a public endpoint!
   activePeers = filterAttrs (
-    _: peer: (cfg.thisNode.endpoint != null) || (peer.endpoint != null) || (peer.endpoints != { })
+    _: peer:
+    (cfg.thisNode.endpoint != null)
+    || (cfg.thisNode.endpoints != { })
+    || (peer.endpoint != null)
+    || (peer.endpoints != { })
   ) otherNodes;
 
   # 隧道实例集合：将每个 activePeer 展开为一个或多个物理隧道实例
@@ -222,7 +222,9 @@ let
                   map (ep: stripPort ep.addr) epList
                 else
                   (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6)
-                  ++ (lib.optional (peerCfg.endpoint != null) (stripPort peerCfg.endpoint));
+                  ++ (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
+                    stripPort peerCfg.endpoint
+                  ));
               v6Addrs = lib.filter (a: lib.hasInfix ":" a || lib.hasInfix "v6" a) rawAddrs;
               v4Addrs = lib.filter (a: !(lib.hasInfix ":" a || lib.hasInfix "v6" a)) rawAddrs;
             in
@@ -595,7 +597,7 @@ in
                   "::/0"
                 ];
               }
-              // (optionalAttrs (peerCfg.endpoint != null) {
+              // (optionalAttrs (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) {
                 inherit (peerCfg) endpoint;
               })
               // (optionalAttrs (peerCfg.persistentKeepalive != null) {
