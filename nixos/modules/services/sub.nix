@@ -128,6 +128,10 @@ let
       "DST-PORT,4500,DIRECT"
       "DST-PORT,6696,DIRECT"
 
+      # 放行 SSH 端口直连
+      "DST-PORT,22,DIRECT"
+      "DST-PORT,1022,DIRECT"
+
       # DN42 专用内网段直连，不走外部代理
       "IP-CIDR,172.20.0.0/14,DIRECT,no-resolve"
       "IP-CIDR,172.31.0.0/16,DIRECT,no-resolve"

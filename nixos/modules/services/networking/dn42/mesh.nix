@@ -18,17 +18,27 @@ let
     optionalString
     concatStringsSep
     filterAttrs
+    listToAttrs
     ;
 
   cfg = config.services.dn42.mesh;
   baseCfg = config.services.dn42;
   hostName = config.networking.hostName or "unknown";
 
+  stripPort =
+    str:
+    if lib.hasPrefix "[" str then
+      lib.head (lib.splitString "]" (lib.removePrefix "[" str))
+    else if (lib.length (lib.splitString ":" str)) == 2 then
+      lib.head (lib.splitString ":" str)
+    else
+      str;
+
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
 
   meshNodeSubmodule = types.submodule (
-    { name, ... }:
+    { name, config, ... }:
     let
       nodeHostData = selfData.hosts.${name} or { };
       nodeMeshCfg = dn42Data.mesh.${name} or { };
@@ -117,6 +127,52 @@ let
           description = "Peer link-local IPv6 address";
         };
 
+        endpoints = mkOption {
+          type = types.attrsOf types.str;
+          default =
+            let
+              edgeNode = lib.findFirst (n: n.name == name) null (selfData.cdn.edgeNodes or [ ]);
+              cuHosts =
+                if name == "cu" then
+                  {
+                    cm6 = "cmv6.dora.im";
+                    cu6 = "cuv6.dora.im";
+                    cm4 = "cm.dora.im";
+                    cu4 = "cu.dora.im";
+                  }
+                else
+                  { };
+              edgeEndpoints = lib.optionalAttrs (edgeNode != null) (
+                lib.optionalAttrs (edgeNode ? ipv6 && edgeNode.ipv6 != null) { v6 = edgeNode.ipv6; }
+                // lib.optionalAttrs (edgeNode ? ipv4 && edgeNode.ipv4 != null) { v4 = edgeNode.ipv4; }
+              );
+              legacyEndpoint =
+                if nodeMeshCfg ? endpoint && nodeMeshCfg.endpoint != null then
+                  {
+                    default = stripPort nodeMeshCfg.endpoint;
+                  }
+                else
+                  { };
+            in
+            if nodeMeshCfg ? endpoints && nodeMeshCfg.endpoints != { } then
+              nodeMeshCfg.endpoints
+            else if cuHosts != { } then
+              cuHosts
+            else if edgeEndpoints != { } then
+              edgeEndpoints
+            else
+              legacyEndpoint;
+          description = "All available public IP/domain endpoints for multi-path/dual-stack tunnels";
+        };
+
+        multipath = mkOption {
+          type = types.bool;
+          default =
+            (cfg.multipath.enable || (lib.elem name cfg.multipath.peers))
+            && (lib.length (lib.attrNames config.endpoints) > 1);
+          description = "Whether to establish concurrent tunnels for all endpoints of this peer";
+        };
+
         persistentKeepalive = mkOption {
           type = types.nullOr types.int;
           default =
@@ -132,8 +188,59 @@ let
 
   # Active mesh peers: a pairwise connection can be formed if at least one side has a public endpoint!
   activePeers = filterAttrs (
-    _: peer: (cfg.thisNode.endpoint != null) || (peer.endpoint != null)
+    _: peer: (cfg.thisNode.endpoint != null) || (peer.endpoint != null) || (peer.endpoints != { })
   ) otherNodes;
+
+  # 隧道实例集合：将每个 activePeer 展开为一个或多个物理隧道实例
+  tunnelInstances = lib.flatten (
+    lib.mapAttrsToList (
+      peerName: peerCfg:
+      let
+        baseXfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
+        epList = lib.mapAttrsToList (name: addr: { inherit name addr; }) peerCfg.endpoints;
+      in
+      if peerCfg.multipath && epList != [ ] then
+        lib.imap0 (i: ep: {
+          key = "${peerName}-${ep.name}";
+          inherit peerName peerCfg;
+          epName = ep.name;
+          epAddr = stripPort ep.addr;
+          ifName = "dn42x-${lib.substring 0 5 peerName}-${ep.name}";
+          xfrmId = 42000 + (if peerCfg.hostIndex != null then peerCfg.hostIndex * 10 else 990) + i;
+          remoteAddrs = [
+            (stripPort ep.addr)
+            "%any"
+          ];
+        }) epList
+      else
+        let
+          # 单隧道模式：按优先级自动排列所有候选端点（IPv6 优先、IPv4 兜底、多出口节点全量候选）
+          sortedCandidateAddrs =
+            let
+              rawAddrs =
+                if epList != [ ] then
+                  map (ep: stripPort ep.addr) epList
+                else
+                  (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6)
+                  ++ (lib.optional (peerCfg.endpoint != null) (stripPort peerCfg.endpoint));
+              v6Addrs = lib.filter (a: lib.hasInfix ":" a || lib.hasInfix "v6" a) rawAddrs;
+              v4Addrs = lib.filter (a: !(lib.hasInfix ":" a || lib.hasInfix "v6" a)) rawAddrs;
+            in
+            lib.unique (v6Addrs ++ v4Addrs);
+        in
+        [
+          {
+            key = peerName;
+            inherit peerName peerCfg;
+            epName = "default";
+            epAddr = if sortedCandidateAddrs != [ ] then lib.head sortedCandidateAddrs else null;
+            ifName = "dn42x-${lib.substring 0 9 peerName}";
+            xfrmId = baseXfrmId;
+            remoteAddrs = sortedCandidateAddrs ++ [ "%any" ];
+          }
+        ]
+    ) activePeers
+  );
 in
 {
   imports = [ ./base.nix ];
@@ -188,6 +295,20 @@ in
         type = types.bool;
         default = true;
         description = "Force UDP encapsulation for ESP (NAT-T on port 4500) to bypass ISP ESP (protocol 50) blocking";
+      };
+    };
+
+    multipath = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "Globally enable multi-path dual-stack concurrent tunnels for mesh nodes with multiple endpoints";
+      };
+
+      peers = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of peer names to enable concurrent multi-path tunnels for";
       };
     };
 
@@ -293,91 +414,52 @@ in
       environment.systemPackages = [ pkgs.strongswan ];
 
       # XFRM 虚拟网络网卡管理（oneshot 服务，无需强依赖 systemd-networkd，兼容标准脚本网络）
-      systemd.services = mapAttrs' (
-        peerName: peerCfg:
-        let
-          ifName = "dn42x-${lib.substring 0 9 peerName}";
-          xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
-          peerV6 = peerCfg.endpointV6;
-        in
-        nameValuePair ifName {
-          description = "DN42 XFRM interface for peer ${peerName}";
-          after = [ "network-pre.target" ];
-          wants = [ "network-pre.target" ];
-          before = [
-            "bird.service"
-            "strongswan-swanctl.service"
-          ];
-          wantedBy = [ "multi-user.target" ];
-          path = [
-            pkgs.iproute2
-            pkgs.gawk
-          ];
-          serviceConfig = {
-            Type = "oneshot";
-            RemainAfterExit = true;
-            ExecStart = pkgs.writeShellScript "${ifName}-up" ''
-              set -eu
-              if ! ip link show ${ifName} >/dev/null 2>&1; then
-                ip link add ${ifName} type xfrm if_id ${toString xfrmId}
-              fi
-              ip link set ${ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
-              ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${ifName}
-
-              ${lib.optionalString (peerV6 != null) ''
-                gw=$(ip -6 route show default | awk '/via/ {print $3; exit}')
-                dev=$(ip -6 route show default | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
-                if [ -n "$gw" ] && [ -n "$dev" ]; then
-                  ip -6 route replace ${peerV6}/128 via "$gw" dev "$dev" metric 100 || true
+      systemd.services = listToAttrs (
+        map (
+          t:
+          nameValuePair t.ifName {
+            description = "DN42 XFRM interface for tunnel ${t.key}";
+            after = [ "network-pre.target" ];
+            wants = [ "network-pre.target" ];
+            before = [
+              "bird.service"
+              "strongswan-swanctl.service"
+            ];
+            wantedBy = [ "multi-user.target" ];
+            path = [
+              pkgs.iproute2
+              pkgs.gawk
+            ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+                set -eu
+                if ! ip link show ${t.ifName} >/dev/null 2>&1; then
+                  ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
                 fi
-              ''}
-            '';
-            ExecStop = pkgs.writeShellScript "${ifName}-down" ''
-              ${lib.optionalString (peerV6 != null) ''
-                ip -6 route del ${peerV6}/128 2>/dev/null || true
-              ''}
-              ip link del ${ifName} 2>/dev/null || true
-            '';
-          };
-        }
-      ) activePeers;
-
-      networking.networkmanager.dispatcherScripts = mkIf config.networking.networkmanager.enable [
-        {
-          source = pkgs.writeShellScript "dn42-mesh-routes" ''
-            if [ "$2" = "up" ] || [ "$2" = "dhcp6-change" ]; then
-              gw=$(ip -6 route show default | awk '/via/ {print $3; exit}')
-              dev=$(ip -6 route show default | awk '/dev/ {for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
-              if [ -n "$gw" ] && [ -n "$dev" ]; then
-                ${lib.concatStringsSep "\n" (
-                  lib.mapAttrsToList (
-                    _: peerCfg:
-                    let
-                      peerV6 = peerCfg.endpointV6;
-                    in
-                    lib.optionalString (peerV6 != null) ''
-                      ip -6 route replace ${peerV6}/128 via "$gw" dev "$dev" metric 100 || true
-                    ''
-                  ) activePeers
-                )}
-              fi
-            fi
-          '';
-        }
-      ];
+                ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
+                ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
+              '';
+              ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
+                ip link del ${t.ifName} 2>/dev/null || true
+              '';
+            };
+          }
+        ) tunnelInstances
+      );
 
       # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
       systemd.network.networks = mkIf config.systemd.network.enable (
-        mapAttrs' (
-          peerName: _:
-          let
-            ifName = "dn42x-${lib.substring 0 9 peerName}";
-          in
-          nameValuePair "70-${ifName}" {
-            matchConfig.Name = ifName;
-            linkConfig.Unmanaged = true;
-          }
-        ) activePeers
+        listToAttrs (
+          map (
+            t:
+            nameValuePair "70-${t.ifName}" {
+              matchConfig.Name = t.ifName;
+              linkConfig.Unmanaged = true;
+            }
+          ) tunnelInstances
+        )
       );
 
       # Strongswan Swanctl 守护进程配置
@@ -394,83 +476,75 @@ in
             cisco_unity = no
             send_vendor_id = no
             interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
+            # 借鉴 linyinfeng/dotfiles: 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
+            ignore_routing_tables = 2022
+            plugins {
+              socket-default {
+                # 设置 socket fwmark 为 0x1，使 IKE 与 NAT-T 流量原生匹配策略路由 lookup main，免于被代理 TUN 劫持
+                fwmark = 0x1
+              }
+            }
           }
         '';
 
         swanctl = {
-          connections = mapAttrs' (
-            peerName: peerCfg:
-            let
-              peerHost =
-                if peerCfg.endpoint != null then lib.head (lib.splitString ":" peerCfg.endpoint) else null;
-              peerV6 = peerCfg.endpointV6;
-              xfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
-            in
-            nameValuePair "mesh-peer-${peerName}" {
-              version = 2;
-              mobike = true;
-              dpd_delay = "15s";
-              dpd_timeout = "60s";
+          connections = listToAttrs (
+            map (
+              t:
+              nameValuePair "mesh-peer-${t.key}" {
+                version = 2;
+                mobike = !t.peerCfg.multipath;
+                dpd_delay = "15s";
+                dpd_timeout = "60s";
 
-              remote_addrs =
-                if peerHost != null then
-                  (lib.optional (peerV6 != null) peerV6)
-                  ++ [
-                    peerHost
-                    "%any"
-                  ]
-                else if peerV6 != null then
-                  [
-                    peerV6
-                    "%any"
-                  ]
-                else
-                  [ "%any" ];
+                remote_addrs = t.remoteAddrs;
+                encap = cfg.ipsec.forceUdpEncap;
 
-              encap = cfg.ipsec.forceUdpEncap;
-
-              # 采用现代高效 AEAD 加密套件与 x25519 曲线：
-              # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
-              proposals = [
-                "aes256gcm128-sha256-x25519"
-                "chacha20poly1305-sha256-x25519"
-                "aes128gcm128-sha256-x25519"
-              ];
-
-              local.main = {
-                auth = "psk";
-                id = "${hostName}.dn42";
-              };
-
-              remote.main = {
-                auth = "psk";
-                id = "${peerName}.dn42";
-              };
-
-              children.mesh = {
-                esp_proposals = [
-                  "aes256gcm128-x25519"
-                  "chacha20poly1305-x25519"
-                  "aes128gcm128-x25519"
+                # 采用现代高效 AEAD 加密套件与 x25519 曲线：
+                # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
+                proposals = [
+                  "aes256gcm128-sha256-x25519"
+                  "chacha20poly1305-sha256-x25519"
+                  "aes128gcm128-sha256-x25519"
                 ];
-                local_ts = [
-                  "0.0.0.0/0"
-                  "::/0"
-                ];
-                remote_ts = [
-                  "0.0.0.0/0"
-                  "::/0"
-                ];
-                if_id_in = toString xfrmId;
-                if_id_out = toString xfrmId;
-                # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
-                hw_offload = cfg.ipsec.hwOffload;
-                mode = "tunnel";
-                start_action = if peerHost != null then "start" else "trap";
-                dpd_action = if peerHost != null then "restart" else "clear";
-              };
-            }
-          ) activePeers;
+
+                local.main = {
+                  auth = "psk";
+                  id = "${hostName}.dn42";
+                };
+
+                remote.main = {
+                  auth = "psk";
+                  id = "${t.peerName}.dn42";
+                };
+
+                children.mesh = {
+                  esp_proposals = [
+                    "aes256gcm128-x25519"
+                    "chacha20poly1305-x25519"
+                    "aes128gcm128-x25519"
+                  ];
+                  local_ts = [
+                    "0.0.0.0/0"
+                    "::/0"
+                  ];
+                  remote_ts = [
+                    "0.0.0.0/0"
+                    "::/0"
+                  ];
+                  if_id_in = toString t.xfrmId;
+                  if_id_out = toString t.xfrmId;
+                  # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
+                  set_mark_out = "0x1";
+                  # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
+                  hw_offload = cfg.ipsec.hwOffload;
+                  mode = "tunnel";
+                  start_action = if t.epAddr != null then "start" else "trap";
+                  dpd_action = if t.epAddr != null then "restart" else "clear";
+                };
+              }
+            ) tunnelInstances
+          );
 
           secrets.ike = mkIf (cfg.ipsec.pskFile == null) {
             mesh = {
