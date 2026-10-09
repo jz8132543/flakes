@@ -15,12 +15,15 @@
       ./hardware.nix
       # ./auto-external-monitor.nix
       nixosModules.optimize.network-desktop
+      nixosModules.optimize.brutal
       nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.optimize.dev
       nixosModules.services.qbittorrent
       # nixosModules.services.microsocks
     ];
+
+  optimize.brutal.target = "!cn";
 
   # hardware.microsoft-surface = {
   #   kernelVersion = "longterm";

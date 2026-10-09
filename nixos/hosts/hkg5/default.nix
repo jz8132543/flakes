@@ -7,6 +7,7 @@
       nixosModules.optimize.minimal
       nixosModules.optimize.ext4
       nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
       # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp

@@ -14,12 +14,15 @@
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
       nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
       # nixosModules.optimize.infini
       nixosModules.services.derp
       nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
       nixosModules.nextcloud.talk-edge
     ];
+
+  optimize.brutal.target = "!cn";
 
   services.nextcloud-talk-edge = {
     # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）

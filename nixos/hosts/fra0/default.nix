@@ -13,6 +13,7 @@
       # nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
       nixosModules.services.headscale
       # nixosModules.services.derp
       nixosModules.services.postgres

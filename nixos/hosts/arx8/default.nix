@@ -14,10 +14,13 @@
       nixosModules.optimize.fakehttp
       nixosModules.services.networking.dn42.mesh
       nixosModules.optimize.network-desktop
+      nixosModules.optimize.brutal
       nixosModules.services.traefik
       nixosModules.optimize.dev
       # nixosModules.services.microsocks
     ];
+
+  optimize.brutal.target = "!cn";
 
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [

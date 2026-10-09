@@ -12,6 +12,7 @@
       nixosModules.optimize.infini
       nixosModules.optimize.ext4
       nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik

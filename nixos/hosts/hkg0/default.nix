@@ -8,6 +8,7 @@
       nixosModules.optimize.minimal
       nixosModules.optimize.ext4
       nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
       # ../../modules/optimize/disk-reliability.nix
       # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
