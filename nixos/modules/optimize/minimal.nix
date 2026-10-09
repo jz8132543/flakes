@@ -43,19 +43,30 @@ in
       systemd.services.btrfsBalance.enable = lib.mkForce false;
       services.easytierMesh.lowResource = true;
 
-      # 3. 保留 self 注册表项，供 Flake 指标读取，其余条目仍然清空
+      # 3. 保留 self 注册表项，供 Flake 指标读取，但重写 to 指向远端，避免将整个源码闭包(377MB)打包进系统
       nix.registry = lib.mkForce {
         self = {
           flake = self;
+          to = {
+            type = "github";
+            owner = "jz8132543";
+            repo = "flakes";
+            rev = self.rev or "main";
+          };
         };
       };
       # nix.nixPath has been renamed to nix.settings.nix-path
       nix.settings.nix-path = lib.mkForce [ ];
 
-      # 4. Nix 运行环境优化
+      # 4. Nix 运行环境优化与激进 GC
       nix.settings = {
         keep-outputs = lib.mkForce false;
         keep-derivations = lib.mkForce false;
+      };
+      nix.gc = {
+        automatic = lib.mkDefault true;
+        dates = lib.mkDefault "daily";
+        options = lib.mkDefault "--delete-older-than 1d";
       };
 
       # 5. 禁用不必要的硬件固件 (针对虚拟机优化)
@@ -68,7 +79,7 @@ in
       xdg.sounds.enable = lib.mkForce false;
 
       # 7. 强制替换重型工具为最小化版本
-      # programs.git.package = lib.mkForce pkgs.gitMinimal;
+      programs.git.package = lib.mkForce pkgs.gitMinimal;
       # programs.nix-index.enable = lib.mkForce false;
       # programs.tmux.enable = lib.mkForce false;
       # programs.mtr.enable = lib.mkForce false;

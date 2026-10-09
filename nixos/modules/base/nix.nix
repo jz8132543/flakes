@@ -47,7 +47,8 @@
       use-cgroups = true;
       auto-optimise-store = true;
       warn-dirty = false;
-      min-free = 1024 * 1024 * 1024; # bytes
+      min-free = 3500 * 1024 * 1024; # 3.5 GiB: trigger auto-GC when free space drops below 3.5G
+      max-free = 5000 * 1024 * 1024; # 5.0 GiB: stop GC when free space recovers to 5.0G
       sandbox = true;
       keep-outputs = true;
       keep-derivations = true;
