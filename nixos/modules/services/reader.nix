@@ -44,11 +44,8 @@
       RestartMaxDelaySec = lib.mkOverride 90 "1m";
       RestartSec = lib.mkOverride 90 "1000ms";
       RestartSteps = lib.mkOverride 90 9;
-      StateDirectory = "reader";
       RuntimeDirectory = "reader";
       RuntimeDirectoryPreserve = "reader";
-      WorkingDirectory = "/var/lib/reader";
-      StateDirectoryMode = "0700";
       NoNewPrivileges = true;
     };
     after = [ "vaultwarden.service" ];

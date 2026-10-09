@@ -1415,6 +1415,7 @@
         "rust-overlay": "rust-overlay_2",
         "sops-nix": "sops-nix",
         "systems": "systems_6",
+        "tcp-brutal": "tcp-brutal",
         "treefmt-nix": "treefmt-nix_3",
         "winapps": "winapps",
         "xremap-flake": "xremap-flake"
@@ -1585,6 +1586,29 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "tcp-brutal": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790398114,
+        "narHash": "sha256-bTONQmOOt5EICvR3lHRo3YhiGIFKX7dOV+8qtr5r+lI=",
+        "owner": "HyNetworks",
+        "repo": "tcp-brutal",
+        "rev": "d2397ff8bca04a29fd2de01cf7d2d4b825224de8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "HyNetworks",
+        "repo": "tcp-brutal",
         "type": "github"
       }
     },
