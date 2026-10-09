@@ -326,9 +326,11 @@ with lib;
               };
             }
           ];
-          services = mapAttrs (_name: value: {
-            loadBalancer.servers = [ { url = value.target; } ];
-          }) config.services.traefik.proxies;
+          services = mkIf (config.services.traefik.proxies != { }) (
+            mapAttrs (_name: value: {
+              loadBalancer.servers = [ { url = value.target; } ];
+            }) config.services.traefik.proxies
+          );
           middlewares = {
             auth.basicauth = {
               usersFile = config.sops.secrets."traefik/TRAEFIK_AUTH".path;
@@ -340,32 +342,36 @@ with lib;
           };
         };
         tcp = {
-          routers = mapAttrs (
-            name: value:
-            (filterAttrs (_n: v: v != null) {
-              inherit (value)
-                rule
-                entryPoints
-                priority
-                ;
-              service = name;
-              tls =
-                if value.passthrough then
-                  { passthrough = true; }
-                else if value.tls then
-                  (
-                    let
-                      base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
-                    in
-                    if value.tlsOptions != null then base // { options = value.tlsOptions; } else base
-                  )
-                else
-                  null;
-            })
-          ) config.services.traefik.tcpProxies;
-          services = mapAttrs (_name: value: {
-            loadBalancer.servers = [ { address = value.target; } ];
-          }) config.services.traefik.tcpProxies;
+          routers = mkIf (config.services.traefik.tcpProxies != { }) (
+            mapAttrs (
+              name: value:
+              (filterAttrs (_n: v: v != null) {
+                inherit (value)
+                  rule
+                  entryPoints
+                  priority
+                  ;
+                service = name;
+                tls =
+                  if value.passthrough then
+                    { passthrough = true; }
+                  else if value.tls then
+                    (
+                      let
+                        base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
+                      in
+                      if value.tlsOptions != null then base // { options = value.tlsOptions; } else base
+                    )
+                  else
+                    null;
+              })
+            ) config.services.traefik.tcpProxies
+          );
+          services = mkIf (config.services.traefik.tcpProxies != { }) (
+            mapAttrs (_name: value: {
+              loadBalancer.servers = [ { address = value.target; } ];
+            }) config.services.traefik.tcpProxies
+          );
         };
         udp = mkIf (config.services.traefik.udpProxies != { }) {
           routers = mapAttrs (name: value: {
