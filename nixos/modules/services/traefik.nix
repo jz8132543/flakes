@@ -222,6 +222,9 @@ with lib;
           ldaps = {
             address = ":636";
           };
+          metrics = {
+            address = "127.0.0.1:${toString config.ports.traefik-metrics}";
+          };
         };
         ping = {
           entryPoint = "https";
@@ -230,8 +233,8 @@ with lib;
         metrics = {
           prometheus = {
             addRoutersLabels = true;
-            entryPoint = "https";
-            manualRouting = true;
+            entryPoint = "metrics";
+            manualRouting = false;
           };
         };
         api = {
@@ -307,11 +310,6 @@ with lib;
                   "https"
                   "https-alt"
                 ];
-              };
-              traefik-internal-metrics = {
-                rule = "Host(`${config.networking.fqdn}`) && Path(`/metrics`)";
-                service = "prometheus@internal";
-                entryPoints = [ "https" ]; # Internal services still benefit from explicit binding
               };
               traefik-dashboard = {
                 rule = "Host(`${config.networking.fqdn}`) && PathPrefix(`/dashboard`)";

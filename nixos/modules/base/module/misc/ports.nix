@@ -172,6 +172,13 @@
       new-api = 3280;
       cpa = 8317;
       degoog = 8888;
+      # Monitoring stack
+      victoriametrics = 8428;
+      vmalert = 8881;
+      node-exporter = 9100;
+      redis-exporter = 9121;
+      matrix-metrics = 9092;
+      traefik-metrics = 8082;
     };
   };
 }

@@ -19,9 +19,9 @@
     # --- 极限资源削减策略 (向 Alpine 看齐) ---
 
     # 1. 禁用所有监控与可观测性组件
+    services.cluster-monitoring.client.enable = lib.mkForce false;
     services.prometheus.exporters.node.enable = lib.mkForce false;
     services.prometheus.exporters.blackbox.enable = lib.mkForce false;
-    services.prometheus.exporters.nix-registry.enable = lib.mkForce false;
     systemd.services.prometheus-vmagent.enable = lib.mkForce false;
 
     # 2. 禁用多余的网络辅助服务

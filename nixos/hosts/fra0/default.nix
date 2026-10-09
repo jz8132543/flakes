@@ -61,7 +61,7 @@
 
       # 📊 监控服务 (alertmanager 已合并到 prometheus, postgres-exporter 已合并到 postgres)
       nixosModules.services.telegraf
-      nixosModules.services.prometheus
+      nixosModules.services.monitoring
       nixosModules.services.grafana.default
       nixosModules.services.homepage
       nixosModules.services.homepage-machine

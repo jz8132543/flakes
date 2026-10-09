@@ -224,7 +224,7 @@ in
               description = "Reverse Proxy";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.services.prometheus.port}";
+                url = "http://localhost:${toString config.ports.victoriametrics}";
                 metrics = [
                   {
                     label = "Req/s";
@@ -264,13 +264,13 @@ in
             };
           }
           {
-            "Prometheus" = {
+            "VictoriaMetrics" = {
               href = "https://metrics.${config.networking.domain}";
-              icon = "prometheus.png";
+              icon = "victoriametrics.png";
               description = "Metrics";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.services.prometheus.port}";
+                url = "http://localhost:${toString config.ports.victoriametrics}";
                 metrics = [
                   {
                     label = "CPU Usage";
@@ -303,7 +303,7 @@ in
               description = "Database";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.services.prometheus.port}";
+                url = "http://localhost:${toString config.ports.victoriametrics}";
                 metrics = [
                   {
                     label = "Connections";
