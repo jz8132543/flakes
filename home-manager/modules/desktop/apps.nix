@@ -321,13 +321,14 @@ in
     wechat
     antigravity-ide-fhs
     codex
+    devin-desktop
+    code-cursor
 
     gnome-connections
     # CD/DVD Burning is configured system-wide via programs.k3b.
     # kdePackages.k3b
     # vcdimager
     feishu
-    nextcloud-client
   ];
   programs = {
     # TODO
@@ -635,6 +636,9 @@ in
       ".local/share/zathura"
       ".config/dconf"
       ".codex"
+      ".config/Devin"
+      ".devin"
+      ".local/share/Devin"
     ];
     files = [
       # ".config/monitors.xml" # Removed to allow GNOME to adaptively configure monitors based on EDID
