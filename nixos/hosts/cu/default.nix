@@ -49,7 +49,7 @@
       }
       {
         listenPort = 50562;
-        remoteAddr = "sjc0.dora.im";
+        remoteAddr = "fra1.dora.im";
         remotePort = 8555;
       }
       {

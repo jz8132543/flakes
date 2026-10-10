@@ -1,4 +1,8 @@
-{ pkgs, inputs, ... }:
+{
+  pkgs,
+  inputs,
+  ...
+}:
 {
   imports = [
     inputs.nvf.nixosModules.default
@@ -253,8 +257,34 @@
     inetutils
     findutils
     dnsutils
-
     nixos-install-tools
+
+    # Utils
+    # gnutar
+    # jq
+    # curl
+    # bc
+    # dmidecode
+    # lm_sensors
+    # pciutils
+    # util-linux
+    # smartmontools
+    # fio
+    # sysbench
+    # cacert
+    # bash
+    # gnutar
+    # jq
+    # curl
+    # bc
+    # dmidecode
+    # lm_sensors # 提供 sensors 命令
+    # pciutils # 提供 lspci
+    # util-linux # 提供 lscpu
+    # smartmontools # 提供 smartctl
+    # fio
+    # sysbench
+    # cacert # ca-certificates
   ];
   environment.global-persistence = {
     files = [
@@ -275,5 +305,4 @@
       ".antigravity-server"
     ];
   };
-
 }

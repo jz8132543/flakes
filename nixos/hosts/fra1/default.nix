@@ -1,5 +1,6 @@
 {
   nixosModules,
+  lib,
   ...
 }:
 {
@@ -19,6 +20,7 @@
       (import nixosModules.services.xray { })
     ];
 
+  services.dnsmasq.settings.server = lib.mkBefore [ "10.10.10.10" ];
   environment.networkTune = {
     enable = true;
     bandwidth = 500; # Mbps 单向

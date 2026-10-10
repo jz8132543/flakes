@@ -59,6 +59,70 @@ let
 
   regionGroupNames = map (group: group.name) regionGroups;
 
+  # 通用成员解析函数：
+  # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
+  # groups: 手动指定的群组名列表（支持引用策略组名如 UNLOCK、地区名如 JP，以及 "!HK" 排除语法）
+  # expandGroups: 是否将群组展开为其所包含的底层节点
+  resolveMembers =
+    {
+      nodes ? [ ],
+      groups ? [ ],
+      expandGroups ? false,
+    }:
+    let
+      resolvedGroupNames = lib.concatMap (
+        g:
+        if lib.hasPrefix "!" g then
+          let
+            excluded = lib.removePrefix "!" g;
+          in
+          lib.filter (r: r != excluded) regionNames
+        else
+          [ g ]
+      ) groups;
+
+      expandedNodeNames =
+        if expandGroups then
+          lib.concatMap (
+            g:
+            if builtins.elem g regionNames then
+              map (n: n.name) (lib.filter (n: builtins.elem g n.regions) cfg.nodes)
+            else
+              [ g ]
+          ) resolvedGroupNames
+        else
+          resolvedGroupNames;
+    in
+    lib.unique (nodes ++ expandedNodeNames);
+
+  mkUserGroup =
+    g:
+    let
+      resolvedProxies =
+        if g.proxies != [ ] then
+          g.proxies
+        else
+          resolveMembers {
+            inherit (g) nodes groups expandGroups;
+          };
+    in
+    if resolvedProxies == [ ] then
+      null
+    else
+      {
+        inherit (g)
+          name
+          type
+          url
+          interval
+          tolerance
+          ;
+        proxies = resolvedProxies;
+      };
+
+  userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
+  userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
+
   mihomoConfig = {
     mixed-port = 7890;
     mode = "Rule";
@@ -82,36 +146,40 @@ let
     # proxies = map mkNode cfg.nodes ++ [ easyTierProxy ];
     proxies = map mkNode cfg.nodes;
 
-    proxy-groups = regionGroups ++ [
-      {
-        name = "ALL-AUTO-FASTEST";
-        type = "url-test";
-        url = cfg.healthCheckUrl;
-        interval = 300;
-        tolerance = 20;
-        proxies = map (node: node.name) cfg.nodes;
-      }
-      {
-        name = "SPEED-BOOST";
-        type = "load-balance";
-        url = cfg.healthCheckUrl;
-        interval = 300;
-        strategy = "consistent-hashing";
-        proxies = map (node: node.name) cfg.nodes;
-      }
-      {
-        name = "PROXY";
-        type = "select";
-        proxies = [
-          "ALL-AUTO-FASTEST"
-          "SPEED-BOOST"
-        ]
-        ++ regionGroupNames
-        ++ [
-          "DIRECT"
-        ];
-      }
-    ];
+    proxy-groups =
+      regionGroups
+      ++ userGroupDefs
+      ++ [
+        {
+          name = "ALL-AUTO-FASTEST";
+          type = "url-test";
+          url = cfg.healthCheckUrl;
+          interval = 300;
+          tolerance = 20;
+          proxies = map (node: node.name) cfg.nodes;
+        }
+        {
+          name = "SPEED-BOOST";
+          type = "load-balance";
+          url = cfg.healthCheckUrl;
+          interval = 300;
+          strategy = "consistent-hashing";
+          proxies = map (node: node.name) cfg.nodes;
+        }
+        {
+          name = "PROXY";
+          type = "select";
+          proxies = [
+            "ALL-AUTO-FASTEST"
+            "SPEED-BOOST"
+          ]
+          ++ (map (g: g.name) userGroupDefs)
+          ++ regionGroupNames
+          ++ [
+            "DIRECT"
+          ];
+        }
+      ];
 
     rules = [
       # 绕过本机的 microsocks 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
@@ -167,7 +235,9 @@ let
 
       # 阻断海外 QUIC (UDP 443)，强降 TCP 防视频断流
       "AND,((NETWORK,UDP),(DST-PORT,443),(OR,((GEOSITE,geolocation-!cn),(NOT,((GEOIP,cn)))))),REJECT"
-
+    ]
+    ++ userGroupRules
+    ++ [
       # 国外域名与非国内 IP，全走代理
       "GEOSITE,geolocation-!cn,PROXY"
       "AND,((NOT,((GEOIP,cn))),(NOT,((GEOIP,private)))),PROXY"
@@ -340,6 +410,17 @@ in
               regions = lib.mkOption {
                 type = lib.types.listOf lib.types.str;
                 default = [ ];
+                description = "所属地区（如 HK, JP, EU, US 等）";
+              };
+              tags = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                description = "节点标签，如 [ \"unlock\" \"ai\" ] 等";
+              };
+              unlock = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "是否直接标记为解锁节点";
               };
             };
           }
@@ -347,6 +428,68 @@ in
       );
       default = [ ];
       description = "Node definitions to publish.";
+    };
+
+    groups = lib.mkOption {
+      type = lib.types.listOf (
+        lib.types.submodule (
+          { ... }: {
+            options = {
+              name = lib.mkOption {
+                type = lib.types.str;
+                description = "策略组名称，例如 UNLOCK, AI, STREAMING 等";
+              };
+              type = lib.mkOption {
+                type = lib.types.str;
+                default = "url-test";
+                description = "策略组类型 (url-test, fallback, select, load-balance)，默认 url-test";
+              };
+              url = lib.mkOption {
+                type = lib.types.str;
+                default = cfg.healthCheckUrl;
+                description = "健康检查 URL，默认继承 healthCheckUrl";
+              };
+              interval = lib.mkOption {
+                type = lib.types.int;
+                default = 300;
+                description = "健康检查间隔 (秒)，默认 300";
+              };
+              tolerance = lib.mkOption {
+                type = lib.types.int;
+                default = 20;
+                description = "容差延迟 (ms)，默认 20";
+              };
+              nodes = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                description = "手动指定的机器节点列表（排在最前面，可作为高优先级）";
+              };
+              groups = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                description = "手动指定的群组列表，支持策略组名、地区名、以及 \"!HK\" 排除语法";
+              };
+              expandGroups = lib.mkOption {
+                type = lib.types.bool;
+                default = false;
+                description = "是否将群组展开为底层节点机器。默认 false (直接引用策略组名)";
+              };
+              proxies = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                description = "自定义 proxies 列表（若显式指定则优先使用，为空则由 nodes + groups 自动生成）";
+              };
+              rules = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                description = "绑定至该策略组的分流规则列表，随 groups 列表定义顺序依次排入 rules";
+              };
+            };
+          }
+        )
+      );
+      default = [ ];
+      description = "用户自定义策略组列表，定义顺序在 YAML 中严格保持。";
     };
   };
 

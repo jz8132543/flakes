@@ -42,6 +42,7 @@ Options:
   --dd-only                 Skip stage 1 and run dd-only flow on current Alpine
   --skip-deps-check         Skip local/remote dependency checks
   --no-upload-zstd          Do not upload local zstd binary when remote zstd is missing
+  --no-reboot               Do not reboot target after dd
   -h, --help                Show help
 
 Behavior:
@@ -49,8 +50,9 @@ Behavior:
   2) Wait for target reboot into Alpine Live OS (strictly verify ID=alpine)
   3) Build/download image locally (never require target internet)
   4) Stream image: local zstd -> SSH -> remote zstd -d -> dd of=<device>
-  5) Print missing dependency list (local + remote)
-  6) Show transfer progress bar when local pv is available
+  5) Stage 3: sync filesystems and reboot target into installed system
+  6) Print missing dependency list (local + remote)
+  7) Show transfer progress bar when local pv is available
 EOF
   exit 1
 }
@@ -81,6 +83,7 @@ SKIP_DEPS_CHECK="no"
 REMOTE_ZSTD_PATH="/tmp/deploy-reinstall-zstd"
 UPLOAD_ZSTD_IF_MISSING="yes"
 SHOW_PROGRESS="yes"
+REBOOT_AFTER_DD="yes"
 
 SSH_OPTS=()
 LOCAL_MISSING_DEPS=()
@@ -354,6 +357,10 @@ parse_args() {
       SHOW_PROGRESS="no"
       shift
       ;;
+    --no-reboot)
+      REBOOT_AFTER_DD="no"
+      shift
+      ;;
     -h | --help)
       usage
       ;;
@@ -450,7 +457,7 @@ check_remote_deps() {
     if out="$(
       run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" "sh -s" <<'EOF'
 set -eu
-for c in dd sync; do
+for c in dd sync reboot; do
   command -v "$c" >/dev/null 2>&1 || echo "$c"
 done
 
@@ -906,6 +913,48 @@ stream_dd_to_remote() {
   done
 }
 
+sync_and_reboot_target() {
+  if [ "$REBOOT_AFTER_DD" != "yes" ]; then
+    log "Syncing remote disk (--no-reboot was set)..."
+    run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" 'export PATH=/sbin:/bin:/usr/sbin:/usr/bin:$PATH; sync' || true
+    log "Skipping reboot as requested (--no-reboot)"
+    return 0
+  fi
+
+  log "Stage 3: syncing remote disk and triggering reboot"
+  local attempt=0
+  local rc=0
+
+  while true; do
+    if run_ssh "${SSH_OPTS[@]}" "$TARGET_HOST" \
+      "export PATH=/sbin:/bin:/usr/sbin:/usr/bin:\$PATH; sync; if command -v nohup >/dev/null 2>&1; then nohup sh -c 'sleep 1; reboot' >/dev/null 2>&1 & else sh -c 'trap \"\" HUP; sleep 1; reboot' >/dev/null 2>&1 & fi"; then
+      break
+    fi
+
+    rc=$?
+    if is_retryable_ssh_rc "$rc"; then
+      if ! run_ssh "${SSH_OPTS[@]}" -o ConnectTimeout=3 "$TARGET_HOST" "true" >/dev/null 2>&1; then
+        log "Target disconnected immediately upon dispatch; reboot is underway"
+        break
+      fi
+    fi
+
+    if ! is_retryable_ssh_rc "$rc"; then
+      die "Stage 3 failed: unable to trigger sync and reboot (rc=$rc)"
+    fi
+
+    attempt=$((attempt + 1))
+    if retry_limit_reached "$attempt"; then
+      die "Stage 3 sync and reboot trigger failed after ${attempt} attempts (rc=$rc)"
+    fi
+    retry_log_and_wait "stage3_sync_reboot" "$attempt" "$rc"
+  done
+
+  log "Reboot dispatched to target. Waiting for target SSH disconnect..."
+  wait_for_ssh_disconnect 180
+  log "Target disconnected and is rebooting into the new system."
+}
+
 main() {
   parse_args "$@"
   setup_auth_mode
@@ -944,7 +993,9 @@ main() {
   resolve_local_pv_cmd
   stream_dd_to_remote "$local_img"
 
-  log "All done. Image was downloaded/built locally and streamed to target with immediate dd."
+  sync_and_reboot_target
+
+  log "All done. Image was streamed to target, disk synced, and system rebooted."
 }
 
 main "$@"
