@@ -56,7 +56,7 @@ in
               description = "Request Management";
               widget = {
                 type = "jellyseerr";
-                url = "http://localhost:${toString config.ports.jellyseerr}";
+                url = "https://seerr.${domain}";
                 key = "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}";
               };
             };
@@ -68,7 +68,7 @@ in
               description = "TV Series";
               widget = {
                 type = "sonarr";
-                url = "http://localhost:${toString config.ports.sonarr}";
+                url = "https://sonarr.${domain}/sonarr";
                 key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
               };
             };
@@ -80,7 +80,7 @@ in
               description = "Movies";
               widget = {
                 type = "radarr";
-                url = "http://localhost:${toString config.ports.radarr}";
+                url = "https://radarr.${domain}/radarr";
                 key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
                 enableQueue = true;
               };
@@ -93,7 +93,7 @@ in
               description = "Anime";
               widget = {
                 type = "sonarr";
-                url = "http://localhost:${toString config.ports.sonarr-anime}";
+                url = "https://sonarr-anime.${domain}/sonarr-anime";
                 key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
               };
             };
@@ -105,7 +105,7 @@ in
               description = "Indexer Manager";
               widget = {
                 type = "prowlarr";
-                url = "http://localhost:${toString config.ports.prowlarr}";
+                url = "https://prowlarr.${domain}/prowlarr";
                 key = "{{HOMEPAGE_VAR_PROWLARR_KEY}}";
               };
             };
@@ -117,7 +117,7 @@ in
               description = "Music";
               widget = {
                 type = "lidarr";
-                url = "http://localhost:${toString config.ports.lidarr}";
+                url = "https://lidarr.${domain}/lidarr";
                 key = "{{HOMEPAGE_VAR_LIDARR_KEY}}";
               };
             };
@@ -136,7 +136,7 @@ in
               description = "Torrent Client";
               widget = {
                 type = "qbittorrent";
-                url = "http://localhost:${toString config.ports.qbittorrent}";
+                url = media.qbit;
                 username = "i";
                 password = "{{HOMEPAGE_VAR_PASSWORD}}";
                 enableLeechProgress = false; # Download list
@@ -164,7 +164,7 @@ in
               description = "Music Streamer";
               widget = {
                 type = "navidrome";
-                url = "http://localhost:${toString config.ports.navidrome}";
+                url = media.navidrome;
                 user = "i"; # your username
                 salt = "doraemon";
                 token = "{{HOMEPAGE_VAR_NAVIDROME_TOKEN}}";
@@ -224,7 +224,7 @@ in
               description = "Reverse Proxy";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.ports.victoriametrics}";
+                url = "https://metrics.${config.networking.domain}";
                 metrics = [
                   {
                     label = "Req/s";
@@ -270,7 +270,7 @@ in
               description = "Metrics";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.ports.victoriametrics}";
+                url = "https://metrics.${config.networking.domain}";
                 metrics = [
                   {
                     label = "CPU Usage";
@@ -303,7 +303,7 @@ in
               description = "Database";
               widget = {
                 type = "prometheusmetric";
-                url = "http://localhost:${toString config.ports.victoriametrics}";
+                url = "https://metrics.${config.networking.domain}";
                 metrics = [
                   {
                     label = "Connections";
@@ -419,12 +419,12 @@ in
           }
           {
             "AdGuard Home" = {
-              href = "https://adguard.${domain}";
+              href = "https://dns.${domain}";
               icon = "adguard-home.png";
               description = "DNS & Ad Blocker";
               widget = {
                 type = "adguard";
-                url = "http://localhost:${toString config.services.adguardhome.port}";
+                url = "https://dns.${domain}";
                 username = "i";
                 password = "{{HOMEPAGE_VAR_PASSWORD}}";
               };
@@ -437,7 +437,7 @@ in
               description = "Tailscale Control Server";
               widget = {
                 type = "headscale";
-                url = "http://localhost:${toString config.ports.headscale}";
+                url = "https://headscale.${domain}";
                 key = "{{HOMEPAGE_VAR_HEADSCALE_KEY}}";
               };
             };
@@ -549,6 +549,7 @@ in
       HOMEPAGE_VAR_PROWLARR_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
       HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
+      HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_HEADSCALE_KEY=${config.sops.placeholder."homepage/headscale_key"}

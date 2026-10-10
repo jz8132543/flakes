@@ -38,6 +38,10 @@
       SPRING_PROFILES_ACTIVE=prod
     '';
   };
+  systemd.tmpfiles.rules = [
+    "d /var/lib/reader 0700 100 101 - -"
+    "Z /var/lib/reader - - - - -"
+  ];
   systemd.services."podman-reader" = {
     serviceConfig = {
       Restart = lib.mkOverride 90 "always";

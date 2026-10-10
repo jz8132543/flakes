@@ -12,6 +12,9 @@ lib.mkMerge [
       defaultNetwork.settings = {
         network_interface = "podman0";
         dns_enabled = true;
+        options = {
+          mtu = "1500";
+        };
       };
     };
     virtualisation.containers.registries.settings = {

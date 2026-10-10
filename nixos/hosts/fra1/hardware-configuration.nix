@@ -13,19 +13,26 @@
     "uhci_hcd"
     "virtio_pci"
     "virtio_scsi"
+    "ahci"
     "sd_mod"
     "sr_mod"
   ];
   boot.kernelModules = [ "kvm-amd" ];
   utils.disk = "/dev/sda";
-  networking.defaultGateway = {
-    address = "176.116.18.1";
-    interface = "eth0";
-  };
-  networking.defaultGateway6 = {
-    address = "fe80::1";
-    interface = "eth0";
+  systemd.network = {
+    enable = true;
+    networks."10-lan" = {
+      matchConfig.Name = "e*";
+      networkConfig.DHCP = "yes";
+      address = [
+        "213.145.82.205/25"
+        "2a12:6e40:eff7:36::a/64"
+      ];
+      routes = [
+        { Gateway = "213.145.82.129"; }
+        { Gateway = "2a12:6e40:eff7::1"; }
+      ];
+    };
   };
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  nix.gc.automatic = lib.mkForce false;
 }

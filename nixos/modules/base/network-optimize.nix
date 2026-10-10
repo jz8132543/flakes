@@ -301,7 +301,8 @@ in
 
     cca = lib.mkOption {
       type = lib.types.str;
-      default = "bbrv1";
+      # default = "bbrv1";
+      default = "bbr";
       description = "TCP 拥塞控制算法（如 bbrv1 / bbr / cubic）。";
     };
 
@@ -357,7 +358,6 @@ in
         default = "1.1.1.1";
         description = "主动探测目的地址。";
       };
-
     };
 
     cpuBerserk = {
@@ -560,12 +560,12 @@ in
     {
       # 默认偏向 XanMod，但允许更具体的主机/硬件模块覆盖。
       # 例如 Surface 等需要专用补丁内核的机型，应当能压过这里的选择。
-      boot.kernelPackages = lib.mkOverride 900 pkgs.linuxPackages_xanmod_latest;
-      boot.extraModulePackages = lib.mkIf (cfg.cca == "bbrv1") [
-        (config.boot.kernelPackages.callPackage ../../../pkgs/bbrv1-kmod { })
-      ];
-      boot.kernelModules =
-        lib.optional (cfg.cca == "bbrv1") "tcp_bbrv1" ++ lib.optional (cfg.cca == "bbr") "tcp_bbr";
+      #   boot.kernelPackages = lib.mkOverride 900 pkgs.linuxPackages_xanmod_latest;
+      #   boot.extraModulePackages = lib.mkIf (cfg.cca == "bbrv1") [
+      #     (config.boot.kernelPackages.callPackage ../../../pkgs/bbrv1-kmod { })
+      #   ];
+      #   boot.kernelModules =
+      #     lib.optional (cfg.cca == "bbrv1") "tcp_bbrv1" ++ lib.optional (cfg.cca == "bbr") "tcp_bbr";
     }
 
     # ════════════════════════════════════════════════════════════════════════

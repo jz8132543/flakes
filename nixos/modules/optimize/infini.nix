@@ -50,7 +50,7 @@
     # 5. Xray / Sing-box 内存回收优化
     # 由于内存已经非常宽裕（目前剩余超过100M），将 GOGC 放宽至 60，
     # 减少单核 CPU 因为过于频繁的垃圾回收 (GC) 导致的上下文切换开销。
-    systemd.services.xray.environment.GOGC = lib.mkForce "60";
+    systemd.services.sing-box.environment.GOGC = lib.mkForce "60";
     systemd.services.sing-box.environment.GOGC = lib.mkForce "60";
   };
 }

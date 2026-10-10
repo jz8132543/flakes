@@ -36,32 +36,37 @@ locals {
     {
       name   = "tyo0"
       region = "AP"
-      weight = 1
+      weight = 3
     },
     {
       name   = "tyo1"
       region = "AP"
-      weight = 1
+      weight = 3
     },
     {
       name   = "hkg0"
       region = "HK"
-      weight = 1
+      weight = 6
     },
     {
       name   = "hkg5"
       region = "HK"
-      weight = 1
+      weight = 3
     },
     {
       name   = "sjc0"
       region = "US"
-      weight = 1
+      weight = 10
     },
     {
       name   = "fra0"
       region = "EU"
       weight = 1
+    },
+    {
+      name   = "fra1"
+      region = "EU"
+      weight = 10
     },
   ]
 

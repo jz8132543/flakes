@@ -499,11 +499,6 @@ in
       autobrr = mkProxy "autobrr" config.ports.autobrr;
       bazarr = mkProxy "bazarr" config.ports.bazarr;
       qbittorrent = mkProxy "qbit" config.ports.qbittorrent;
-      whoami = {
-        rule = "Host(`${fqdn}`) && PathPrefix(`/whoami`)";
-        target = "http://127.0.0.1:8082";
-        middlewares = [ "strip-prefix" ];
-      };
     };
 
     nixflix.torrentClients.qbittorrent = {
@@ -795,18 +790,6 @@ in
     networking.firewall = {
       allowedTCPPorts = [ 51413 ];
       allowedUDPPorts = [ 51413 ];
-    };
-
-    virtualisation.oci-containers = {
-      backend = "podman";
-      containers.whoami = {
-        image = "docker.io/traefik/whoami";
-        cmd = [
-          "--port"
-          "8082"
-        ];
-        extraOptions = [ "--network=host" ];
-      };
     };
   };
 }

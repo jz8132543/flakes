@@ -1,38 +1,33 @@
-{ nixosModules, ... }: {
+{
+  nixosModules,
+  ...
+}:
+{
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
-    # ++ nixosModules.services.mail.all ++ [
     ++ [
       ./hardware-configuration.nix
+      nixosModules.optimize.infini
+      nixosModules.optimize.anti-balloon
+      nixosModules.optimize.brutal
+      nixosModules.services.networking.dn42.mesh
+      # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
-      nixosModules.services.headscale
+      nixosModules.services.atc.edge
       # nixosModules.services.derp
-      # nixosModules.services.stun
-      nixosModules.services.postgres
-      nixosModules.services.minio
-      nixosModules.services.doraim
-      nixosModules.services.ntfy
-      nixosModules.services.vscode
-      # nixosModules.services.sogo
-      # nixosModules.services.pastebin
-      # nixosModules.services.ollama
-      nixosModules.services.proxy
-      # Media Stack removed - use for media services
-      nixosModules.services.syncthing
-      nixosModules.services.reader
-      # (import nixosModules.services.ebook-sender { })
-      # (import nixosModules.services.kindle-sender { })
-      # TEST
-      nixosModules.services.mysql
-      nixosModules.matrix.matrix
-      {
-        services.matrix.databaseHost = "postgres.ts";
-      }
-      (import nixosModules.services.keycloak { })
-      (import nixosModules.services.vaultwarden { })
-      (import nixosModules.services.alist { })
-      (import nixosModules.services.office { })
-      (import nixosModules.services.nextcloud { })
+      (import nixosModules.services.xray { })
     ];
+
+  environment.networkTune = {
+    enable = true;
+    bandwidth = 500; # Mbps 单向
+    realBandwidth = 500;
+    rtt = 200; # ms
+    ram = 425; # MB，预留内存给Xray
+    cpus = 1; # vCPU 数
+    highLoss = true;
+    # 禁用 FQ 速率整形墙，配合 BBRv1 的野蛮发包，不受任何人工带宽限制
+    fqMaxrate = 0;
+  };
 }

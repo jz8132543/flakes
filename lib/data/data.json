@@ -68,6 +68,15 @@
       "endpoints_v6": [],
       "host_indices": [1]
     },
+    "fra1": {
+      "dn42_addresses_v4": ["172.20.232.10"],
+      "dn42_addresses_v6": ["fd53:90fd:4bb6:a::1"],
+      "dn42_v6_prefixes": ["fd53:90fd:4bb6:a::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [10]
+    },
     "hkg0": {
       "dn42_addresses_v4": ["172.20.232.2"],
       "dn42_addresses_v6": ["fd53:90fd:4bb6:2::1"],
@@ -306,35 +315,35 @@
         "ipv6": null,
         "name": "tyo0",
         "region": "AP",
-        "weight": 1
+        "weight": 3
       },
       {
         "ipv4": "216.23.85.218",
         "ipv6": "2a13:edc0:24:1d5::a",
         "name": "tyo1",
         "region": "AP",
-        "weight": 1
+        "weight": 3
       },
       {
         "ipv4": "103.231.56.56",
         "ipv6": null,
         "name": "hkg0",
         "region": "HK",
-        "weight": 1
+        "weight": 6
       },
       {
         "ipv4": "216.23.94.148",
         "ipv6": "2401:2660:2:93::a",
         "name": "hkg5",
         "region": "HK",
-        "weight": 1
+        "weight": 3
       },
       {
         "ipv4": "45.143.130.230",
         "ipv6": "2604:a840:101:2d9::a",
         "name": "sjc0",
         "region": "US",
-        "weight": 1
+        "weight": 10
       },
       {
         "ipv4": "94.249.174.75",
@@ -342,6 +351,13 @@
         "name": "fra0",
         "region": "EU",
         "weight": 1
+      },
+      {
+        "ipv4": "213.145.82.205",
+        "ipv6": "2a12:6e40:eff7:36::a",
+        "name": "fra1",
+        "region": "EU",
+        "weight": 10
       }
     ],
     "nsHost": "fra0",
@@ -429,6 +445,12 @@
         "ibgp": true,
         "listenPort": 51821,
         "role": "border"
+      },
+      "fra1": {
+        "endpoint": "fra1.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "role": "internal"
       },
       "hkg0": {
         "endpoint": "hkg0.dora.im:51821",

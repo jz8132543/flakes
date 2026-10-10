@@ -113,6 +113,12 @@ locals {
       listenPort = local.dn42_mesh_listen_port
       endpoint   = "sjc0.dora.im:${local.dn42_mesh_listen_port}"
     }
+    fra1 = {
+      role       = "internal"
+      ibgp       = false
+      listenPort = local.dn42_mesh_listen_port
+      endpoint   = "fra1.dora.im:${local.dn42_mesh_listen_port}"
+    }
     arx8 = {
       role       = "internal"
       ibgp       = false

@@ -74,6 +74,7 @@ in
       HOMEPAGE_VAR_PROWLARR_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
       HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
       HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
+      HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_ALLOWED_HOSTS="*"
@@ -102,7 +103,7 @@ in
             description = "Media Server";
             widget = {
               type = "jellyfin";
-              url = "http://localhost:${toString config.ports.jellyfin}/jellyfin";
+              url = media.jellyfin;
               key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
               version = 2;
               enableBlocks = true;
@@ -120,7 +121,7 @@ in
             description = "Request Management";
             widget = {
               type = "jellyseerr";
-              url = "http://localhost:${toString config.ports.jellyseerr}";
+              url = media.seerr;
               key = "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}";
             };
           };
@@ -132,7 +133,7 @@ in
             description = "TV Series";
             widget = {
               type = "sonarr";
-              url = "http://localhost:${toString config.ports.sonarr}";
+              url = media.sonarr;
               key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
             };
           };
@@ -144,7 +145,7 @@ in
             description = "Movies";
             widget = {
               type = "radarr";
-              url = "http://localhost:${toString config.ports.radarr}";
+              url = media.radarr;
               key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
               enableQueue = true;
             };
@@ -157,7 +158,7 @@ in
             description = "Indexer Manager";
             widget = {
               type = "prowlarr";
-              url = "http://localhost:${toString config.ports.prowlarr}";
+              url = media.prowlarr;
               key = "{{HOMEPAGE_VAR_PROWLARR_KEY}}";
             };
           };
@@ -169,7 +170,7 @@ in
             description = "Music";
             widget = {
               type = "lidarr";
-              url = "http://localhost:${toString config.ports.lidarr}";
+              url = media.lidarr;
               key = "{{HOMEPAGE_VAR_LIDARR_KEY}}";
             };
           };
@@ -188,7 +189,7 @@ in
             description = "Torrent Client";
             widget = {
               type = "qbittorrent";
-              url = "http://localhost:${toString config.ports.qbittorrent}";
+              url = media.qbit;
               username = "i";
               password = "{{HOMEPAGE_VAR_PASSWORD}}";
               enableLeechProgress = false;

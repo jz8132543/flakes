@@ -93,6 +93,9 @@ let
     fra0 = {
       system = "x86_64-linux";
     };
+    fra1 = {
+      system = "x86_64-linux";
+    };
     # isk = {
     #   system = "x86_64-linux";
     # };

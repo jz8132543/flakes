@@ -4,7 +4,6 @@
   pkgs,
   ...
 }:
-
 let
   cfg = config.services.tailscale-proxy-pool;
   safeName = node: lib.replaceStrings [ "." ] [ "_" ] node;
@@ -27,7 +26,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-
     # iptables kernel modules are required for tailscale in kernel TUN mode inside containers.
     # NixOS defaults to nftables, so these legacy modules may not be loaded otherwise.
     # Containers with NET_ADMIN can use iptables only if the host kernel has these loaded.
@@ -120,7 +118,6 @@ in
               # --- Phase 2: set exit node (wait until available) ---
               NODE_NAME="${node}"
               NODE_BASE="''${NODE_NAME%.ts}"
-              NODE_BASE="''${NODE_BASE%.mag}"
 
               echo "Waiting for exit node $NODE_BASE to become available..."
               while true; do
