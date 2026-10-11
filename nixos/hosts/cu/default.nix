@@ -31,6 +31,7 @@
   };
 
   boot.loader.grub.device = lib.mkForce "nodev";
+  boot.loader.grub.devices = lib.mkForce [ "nodev" ];
 
   services.kernel-relay = {
     enable = true;

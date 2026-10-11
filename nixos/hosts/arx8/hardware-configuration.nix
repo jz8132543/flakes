@@ -47,6 +47,7 @@ in
       efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
         device = lib.mkForce "nodev";
+        devices = lib.mkForce [ "nodev" ];
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
         default = 0;

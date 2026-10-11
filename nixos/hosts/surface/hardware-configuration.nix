@@ -46,8 +46,8 @@
     loader = {
       efi.canTouchEfiVariables = lib.mkDefault true;
       grub = {
-        # theme = pkgs.nixos-grub2-theme;
         device = lib.mkForce "nodev";
+        devices = lib.mkForce [ "nodev" ];
         efiInstallAsRemovable = lib.mkForce false;
         # useOSProber = true;
 
