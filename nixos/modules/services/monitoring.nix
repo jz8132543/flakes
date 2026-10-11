@@ -2,7 +2,6 @@
   config,
   lib,
   pkgs,
-  self,
   ...
 }:
 let
@@ -43,9 +42,8 @@ let
     h: !isInternalOrRegex h && !isNodeSpecific h && isPrimaryDomainPublic h
   ) traefikProxyHosts;
 
-  # Build list of blackbox targets
-  hostEndpoints = map (name: "https://${name}.${config.networking.domain}") (self.hostNames or [ ]);
-  allBlackboxTargets = lib.unique (hostEndpoints ++ cfg.publicEndpoints);
+  # Build list of blackbox targets (public endpoints only)
+  allBlackboxTargets = lib.unique cfg.publicEndpoints;
 
   # Target hostnames without scheme for comparison
   monitoredHostnames = map (
@@ -239,6 +237,10 @@ in
       configuration = {
         route = {
           receiver = "telegram";
+          group_by = [
+            "alertname"
+            "instance"
+          ];
           group_wait = "30s";
           group_interval = "5m";
           repeat_interval = "4h";
@@ -252,6 +254,16 @@ in
                 chat_id = -5282327602;
                 parse_mode = "HTML";
                 send_resolved = true;
+                message = ''
+                  {{ if eq .Status "firing" }}🔥 <b>[FIRING] {{ .GroupLabels.alertname }}</b>{{ else }}✅ <b>[RESOLVED] {{ .GroupLabels.alertname }}</b>{{ end }}
+                  {{ if .GroupLabels.instance }}<b>Target:</b> {{ .GroupLabels.instance }}
+                  {{ end }}
+                  {{ range .Alerts }}
+                  <b>Severity:</b> {{ .Labels.severity }}
+                  {{ if .Annotations.summary }}<b>Summary:</b> {{ .Annotations.summary }}{{ end }}
+                  {{ if .Annotations.description }}<b>Description:</b> {{ .Annotations.description }}{{ end }}
+                  {{ end }}
+                '';
               }
             ];
           }

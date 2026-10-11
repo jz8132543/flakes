@@ -2,6 +2,14 @@
   lib,
   ...
 }:
+let
+  # 离线告警判定等待时间（服务器/服务重启或维护在此时间内恢复则不报警）
+  # 可根据需要自由修改，例如 "10m", "15m", "30m"
+  offlineDuration = "10m";
+
+  # 排除的桌面/笔记本主机名正则（不监控其 HostDown 离线状态）
+  excludedDesktopHosts = "arx8|surface";
+in
 {
   options.services.cluster-monitoring.alertRules = lib.mkOption {
     type = lib.types.attrsOf lib.types.anything;
@@ -13,14 +21,14 @@
           rules = [
             {
               alert = "HostDown";
-              expr = "time() - timestamp(node_time_seconds) > 180";
-              for = "3m";
+              expr = ''time() - max_over_time(timestamp(node_time_seconds{instance!~"${excludedDesktopHosts}"})[1h]) > 180'';
+              for = offlineDuration;
               labels = {
                 severity = "critical";
               };
               annotations = {
                 summary = "Host {{ $labels.instance }} is down";
-                description = "Host {{ $labels.instance }} heartbeat stopped (no metrics for > 180s).";
+                description = "Host {{ $labels.instance }} heartbeat stopped for more than ${offlineDuration}.";
               };
             }
             {
@@ -32,7 +40,7 @@
               };
               annotations = {
                 summary = "Low disk space on {{ $labels.instance }}";
-                description = "Disk usage for {{ $labels.mountpoint }} on {{ $labels.instance }} is above 90% (free space < 10%).";
+                description = "Disk usage for {{ $labels.mountpoint }} on {{ $labels.instance }} is above 90% (free space under 10%).";
               };
             }
             {
@@ -44,7 +52,7 @@
               };
               annotations = {
                 summary = "Critical disk space on {{ $labels.instance }}";
-                description = "Disk usage for {{ $labels.mountpoint }} on {{ $labels.instance }} is above 95% (free space < 5%).";
+                description = "Disk usage for {{ $labels.mountpoint }} on {{ $labels.instance }} is above 95% (free space under 5%).";
               };
             }
             {
@@ -79,13 +87,13 @@
             {
               alert = "ServiceHttpDown";
               expr = "probe_success == 0";
-              for = "3m";
+              for = offlineDuration;
               labels = {
                 severity = "critical";
               };
               annotations = {
                 summary = "Service HTTP probe failed for {{ $labels.instance }}";
-                description = "Blackbox probe_success == 0 for {{ $labels.instance }} for more than 3 minutes.";
+                description = "Blackbox probe_success == 0 for {{ $labels.instance }} for more than ${offlineDuration}.";
               };
             }
             {
