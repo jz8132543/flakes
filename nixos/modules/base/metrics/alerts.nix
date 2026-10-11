@@ -70,13 +70,13 @@ in
             {
               alert = "SystemdUnitFailed";
               expr = ''node_systemd_unit_state{state="failed"} > 0'';
-              for = "5m";
+              for = offlineDuration;
               labels = {
                 severity = "warning";
               };
               annotations = {
                 summary = "Systemd unit failed on {{ $labels.instance }}";
-                description = "Systemd service {{ $labels.name }} on {{ $labels.instance }} is in failed state.";
+                description = "Systemd service {{ $labels.name }} on {{ $labels.instance }} has been in failed state for more than ${offlineDuration}.";
               };
             }
           ];
