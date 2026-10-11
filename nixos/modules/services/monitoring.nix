@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  self ? { },
   ...
 }:
 let
@@ -29,10 +30,20 @@ let
     || lib.hasInfix "*" h
     || lib.hasInfix "tailscale" h;
 
-  # Node-specific subdomains like *.nue0.dora.im are private backend routes
+  # Node hostnames like fra0.dora.im or subdomains like *.fra0.dora.im are node-specific
+  isHostNodeEndpoint =
+    h:
+    lib.any (
+      name:
+      h == "${name}.${config.networking.domain}"
+      || lib.hasSuffix ".${name}.${config.networking.domain}" h
+      || lib.hasInfix ".${name}." h
+    ) (self.hostNames or [ ]);
+
   isNodeSpecific =
     h:
-    lib.hasSuffix ".${config.networking.hostName}.${config.networking.domain}" h
+    isHostNodeEndpoint h
+    || lib.hasSuffix ".${config.networking.hostName}.${config.networking.domain}" h
     || lib.hasInfix ".${config.networking.hostName}." h;
 
   isPrimaryDomainPublic =
