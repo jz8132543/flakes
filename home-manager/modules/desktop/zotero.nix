@@ -59,7 +59,7 @@ in
 
   # 注册通用 zotero 桌面端（不固定版本号，统一引用 pkgs.zotero）与扩展管理
   home.packages = [
-    pkgs.zotero
+    # pkgs.zotero # disabled due to build issue
     zoteroConfigDav
   ];
 

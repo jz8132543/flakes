@@ -291,7 +291,7 @@ in
   imports = [
     ./storage-papers.nix
     ./obsidian-livesync.nix
-    ./zotero.nix
+    # ./zotero.nix  # disabled due to Zotero build issues
     ./cc-switch.nix
   ];
 
