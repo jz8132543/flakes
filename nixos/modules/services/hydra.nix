@@ -57,11 +57,8 @@ in
         hydraURL = resolvedHydraURL;
         inherit notificationSender;
         useSubstitutes = true;
-        dbi = "dbi:Pg:dbname=hydra;host=${PG};user=hydra;";
-        buildMachinesFiles = [
-          "/etc/nix/machines"
-        ]
-        ++ lib.optional enableBuilderMachine "/etc/nix-build-machines/hydra-builder/machines";
+        dbUrl = "postgres://hydra@${PG}/hydra";
+        # buildMachinesFiles and builder machine config removed (deprecated)
         extraConfig = lib.concatStringsSep "\n\n" (
           lib.filter (s: s != "") [
             (lib.optionalString enableGithubAuth ''

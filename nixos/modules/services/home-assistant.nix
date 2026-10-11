@@ -45,7 +45,7 @@ in
       "zeroconf"
     ];
     customComponents = with pkgs; [
-      haier
+      #      haier
       home-assistant-custom-components.midea_ac
       home-assistant-custom-components.midea-air-appliances-lan
       home-assistant-custom-components.xiaomi_miot
