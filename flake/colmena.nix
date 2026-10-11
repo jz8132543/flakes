@@ -29,7 +29,7 @@ in
       # This can be overriden by node nixpkgs
       nixpkgs = import inputs.nixpkgs {
         localSystem = {
-          system = inputs.nixpkgs.stdenv.hostPlatform.system;
+          system = "x86_64-linux";
         };
       };
       specialArgs = {
