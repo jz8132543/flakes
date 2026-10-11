@@ -6,6 +6,8 @@
     ++ nixosModules.matrix.all
     ++ nixosModules.services.networking.dn42.all
     ++ nixosModules.services.atc.all
+    ++ nixosModules.services.ai.dify.all # Dify AI 应用平台（含 db-init、容器、traefik、backup）
+    ++ nixosModules.services.ai.mcp.all # IBM ContextForge MCP 总线
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -24,7 +26,7 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.syncthing
-      nixosModules.services.lobechat
+      # nixosModules.services.lobechat  # ← 已由 Dify 替代，chat.dora.im 释放
       nixosModules.services.obsidian-livesync
       nixosModules.services.zotero-sync-server
       nixosModules.services.reader
@@ -70,6 +72,21 @@
 
   services.moviepilot.enable = true;
   # services.ai.litellm.enable = true;
+
+  # ── Dify AI 应用平台（接管 chat.dora.im）────────────────────────
+  services.ai.dify = {
+    enable = true;
+    domain = "chat.dora.im";
+    # gatewayApiBase 默认已指向 CPA（http://127.0.0.1:<cpa_port>/v1）
+    # 如需对接 BGE-reranker，取消以下注释：
+    # rerankApiBase = "http://127.0.0.1:8000";
+  };
+
+  # ── IBM ContextForge MCP 总线 ────────────────────────────────────
+  services.ai.mcp = {
+    enable = true;
+    domain = "mcp.dora.im";
+  };
   services.new-api = {
     enable = true;
     oidc = {

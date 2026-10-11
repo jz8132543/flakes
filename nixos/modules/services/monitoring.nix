@@ -98,6 +98,7 @@ in
         "https://api.${config.networking.domain}"
         "https://sub.${config.networking.domain}"
         "https://chat.${config.networking.domain}"
+        "https://mcp.${config.networking.domain}"
       ];
       description = "List of public HTTP(S) endpoints to monitor via blackbox_exporter.";
     };

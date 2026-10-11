@@ -179,6 +179,18 @@
       redis-exporter = 9121;
       matrix-metrics = 9092;
       traefik-metrics = 8082;
+
+      # ── Dify AI 应用平台 ──────────────────────────────────────
+      dify-api = 5001; # Dify Flask API (gunicorn)
+      dify-web = 5004; # Dify Next.js Web
+      dify-sandbox = 8194; # Dify 代码执行沙箱
+      dify-redis = 6380; # Dify 专属 Redis 实例（与系统 Redis 隔离）
+      dify-qdrant = 6333; # Qdrant HTTP API
+      dify-qdrant-grpc = 6334; # Qdrant gRPC
+
+      # ── IBM ContextForge MCP 总线 ─────────────────────────────
+      mcp-contextforge-api = 5002; # ContextForge API + Virtual MCP 端点
+      mcp-contextforge-ui = 5003; # ContextForge Web 管理 UI
     };
   };
 }

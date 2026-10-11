@@ -85,6 +85,7 @@ locals {
     cpa      = "fra0"
     m        = "fra0"
     chat     = "fra0"
+    mcp      = "fra0"
     cache    = "fra0"
     s        = "fra0"
   }
