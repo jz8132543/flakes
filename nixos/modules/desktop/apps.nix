@@ -25,6 +25,7 @@
     dvdplusrwtools
     peazip
     # mihomo-party
+    deepin.dde-file-manager
   ];
   environment.shellAliases = {
     qrcp = "qrcp --port ${toString config.ports.qrcp}";

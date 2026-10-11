@@ -30,188 +30,192 @@ in
     allowedHosts = "*";
     services = [
       {
-        "Media" = [
+        "Apps" = [
           {
-            "Jellyfin" = {
-              href = media.jellyfin;
-              icon = "jellyfin.png";
-              description = "Media Server";
-              widget = {
-                type = "jellyfin";
-                url = media.jellyfin;
-                key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
-                version = 2;
-                enableBlocks = true;
-                enableNowPlaying = true;
-                enableUser = true;
-                showEpisodeNumber = true;
-                expandOneStreamToTwoRows = true;
-              };
-            };
+            "Media" = [
+              {
+                "Jellyfin" = {
+                  href = media.jellyfin;
+                  icon = "jellyfin.png";
+                  description = "Media Server";
+                  widget = {
+                    type = "jellyfin";
+                    url = media.jellyfin;
+                    key = "{{HOMEPAGE_VAR_JELLYFIN_GENERATED_KEY}}";
+                    version = 2;
+                    enableBlocks = true;
+                    enableNowPlaying = true;
+                    enableUser = true;
+                    showEpisodeNumber = true;
+                    expandOneStreamToTwoRows = true;
+                  };
+                };
+              }
+              {
+                "Jellyseerr" = {
+                  href = media.seerr;
+                  icon = "jellyseerr.png";
+                  description = "Request Management";
+                  widget = {
+                    type = "jellyseerr";
+                    url = "https://seerr.${domain}";
+                    key = "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}";
+                  };
+                };
+              }
+              {
+                "Sonarr" = {
+                  href = media.sonarr;
+                  icon = "sonarr.png";
+                  description = "TV Series";
+                  widget = {
+                    type = "sonarr";
+                    url = "https://sonarr.${domain}/sonarr";
+                    key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
+                  };
+                };
+              }
+              {
+                "Radarr" = {
+                  href = media.radarr;
+                  icon = "radarr.png";
+                  description = "Movies";
+                  widget = {
+                    type = "radarr";
+                    url = "https://radarr.${domain}/radarr";
+                    key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
+                    enableQueue = true;
+                  };
+                };
+              }
+              {
+                "Sonarr Anime" = {
+                  href = media.sonarrAnime;
+                  icon = "sonarr.png";
+                  description = "Anime";
+                  widget = {
+                    type = "sonarr";
+                    url = "https://sonarr-anime.${domain}/sonarr-anime";
+                    key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
+                  };
+                };
+              }
+              {
+                "Prowlarr" = {
+                  href = media.prowlarr;
+                  icon = "prowlarr.png";
+                  description = "Indexer Manager";
+                  widget = {
+                    type = "prowlarr";
+                    url = "https://prowlarr.${domain}/prowlarr";
+                    key = "{{HOMEPAGE_VAR_PROWLARR_KEY}}";
+                  };
+                };
+              }
+              {
+                "Lidarr" = {
+                  href = media.lidarr;
+                  icon = "lidarr.png";
+                  description = "Music";
+                  widget = {
+                    type = "lidarr";
+                    url = "https://lidarr.${domain}/lidarr";
+                    key = "{{HOMEPAGE_VAR_LIDARR_KEY}}";
+                  };
+                };
+              }
+              # {
+              #   "Bazarr" = {
+              #     href = media.bazarr;
+              #     icon = "bazarr.png";
+              #     description = "Subtitles";
+              #   };
+              # }
+              {
+                "qBittorrent" = {
+                  href = media.qbit;
+                  icon = "qbittorrent.png";
+                  description = "Torrent Client";
+                  widget = {
+                    type = "qbittorrent";
+                    url = media.qbit;
+                    username = "i";
+                    password = "{{HOMEPAGE_VAR_PASSWORD}}";
+                    enableLeechProgress = false; # Download list
+                  };
+                };
+              }
+              {
+                "Vertex" = {
+                  href = media.vertex;
+                  icon = "vertex.png"; # Homepage will try to find it, or show default if missing
+                  description = "PT Manager";
+                };
+              }
+              {
+                "autobrr" = {
+                  href = media.autobrr;
+                  icon = "autobrr.png";
+                  description = "Auto Downloader";
+                };
+              }
+              {
+                "Navidrome" = {
+                  href = media.navidrome;
+                  icon = "navidrome.png";
+                  description = "Music Streamer";
+                  widget = {
+                    type = "navidrome";
+                    url = media.navidrome;
+                    user = "i"; # your username
+                    salt = "doraemon";
+                    token = "{{HOMEPAGE_VAR_NAVIDROME_TOKEN}}";
+                  };
+                };
+              }
+              {
+                "Maintainerr" = {
+                  href = media.maintainerr;
+                  icon = "maintainerr.png";
+                  description = "Media Maintenance";
+                };
+              }
+              {
+                "Flaresolverr" = {
+                  icon = "flaresolverr.png";
+                  description = "Cloudflare Proxy";
+                };
+              }
+            ];
           }
           {
-            "Jellyseerr" = {
-              href = media.seerr;
-              icon = "jellyseerr.png";
-              description = "Request Management";
-              widget = {
-                type = "jellyseerr";
-                url = "https://seerr.${domain}";
-                key = "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}";
-              };
-            };
-          }
-          {
-            "Sonarr" = {
-              href = media.sonarr;
-              icon = "sonarr.png";
-              description = "TV Series";
-              widget = {
-                type = "sonarr";
-                url = "https://sonarr.${domain}/sonarr";
-                key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
-              };
-            };
-          }
-          {
-            "Radarr" = {
-              href = media.radarr;
-              icon = "radarr.png";
-              description = "Movies";
-              widget = {
-                type = "radarr";
-                url = "https://radarr.${domain}/radarr";
-                key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
-                enableQueue = true;
-              };
-            };
-          }
-          {
-            "Sonarr Anime" = {
-              href = media.sonarrAnime;
-              icon = "sonarr.png";
-              description = "Anime";
-              widget = {
-                type = "sonarr";
-                url = "https://sonarr-anime.${domain}/sonarr-anime";
-                key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
-              };
-            };
-          }
-          {
-            "Prowlarr" = {
-              href = media.prowlarr;
-              icon = "prowlarr.png";
-              description = "Indexer Manager";
-              widget = {
-                type = "prowlarr";
-                url = "https://prowlarr.${domain}/prowlarr";
-                key = "{{HOMEPAGE_VAR_PROWLARR_KEY}}";
-              };
-            };
-          }
-          {
-            "Lidarr" = {
-              href = media.lidarr;
-              icon = "lidarr.png";
-              description = "Music";
-              widget = {
-                type = "lidarr";
-                url = "https://lidarr.${domain}/lidarr";
-                key = "{{HOMEPAGE_VAR_LIDARR_KEY}}";
-              };
-            };
-          }
-          # {
-          #   "Bazarr" = {
-          #     href = media.bazarr;
-          #     icon = "bazarr.png";
-          #     description = "Subtitles";
-          #   };
-          # }
-          {
-            "qBittorrent" = {
-              href = media.qbit;
-              icon = "qbittorrent.png";
-              description = "Torrent Client";
-              widget = {
-                type = "qbittorrent";
-                url = media.qbit;
-                username = "i";
-                password = "{{HOMEPAGE_VAR_PASSWORD}}";
-                enableLeechProgress = false; # Download list
-              };
-            };
-          }
-          {
-            "Vertex" = {
-              href = media.vertex;
-              icon = "vertex.png"; # Homepage will try to find it, or show default if missing
-              description = "PT Manager";
-            };
-          }
-          {
-            "autobrr" = {
-              href = media.autobrr;
-              icon = "autobrr.png";
-              description = "Auto Downloader";
-            };
-          }
-          {
-            "Navidrome" = {
-              href = media.navidrome;
-              icon = "navidrome.png";
-              description = "Music Streamer";
-              widget = {
-                type = "navidrome";
-                url = media.navidrome;
-                user = "i"; # your username
-                salt = "doraemon";
-                token = "{{HOMEPAGE_VAR_NAVIDROME_TOKEN}}";
-              };
-            };
-          }
-          {
-            "Maintainerr" = {
-              href = media.maintainerr;
-              icon = "maintainerr.png";
-              description = "Media Maintenance";
-            };
-          }
-          {
-            "Flaresolverr" = {
-              icon = "flaresolverr.png";
-              description = "Cloudflare Proxy";
-            };
-          }
-        ];
-      }
-      {
-        "Social" = [
-          {
-            "Mastodon" = {
-              href = "https://zone.${config.networking.domain}";
-              icon = "mastodon.png";
-              description = "Social Network";
-              widget = {
-                type = "mastodon";
-                url = "https://zone.${config.networking.domain}";
-              };
-            };
-          }
-          {
-            "Element" = {
-              href = "https://m.${config.networking.domain}";
-              icon = "element.png";
-              description = "Matrix Client";
-            };
-          }
-          {
-            "Matrix Admin" = {
-              href = "https://admin.m.${config.networking.domain}";
-              icon = "matrix.png";
-              description = "Matrix Admin";
-            };
+            "Social" = [
+              {
+                "Mastodon" = {
+                  href = "https://zone.${config.networking.domain}";
+                  icon = "mastodon.png";
+                  description = "Social Network";
+                  widget = {
+                    type = "mastodon";
+                    url = "https://zone.${config.networking.domain}";
+                  };
+                };
+              }
+              {
+                "Element" = {
+                  href = "https://m.${config.networking.domain}";
+                  icon = "element.png";
+                  description = "Matrix Client";
+                };
+              }
+              {
+                "Matrix Admin" = {
+                  href = "https://admin.m.${config.networking.domain}";
+                  icon = "matrix.png";
+                  description = "Matrix Admin";
+                };
+              }
+            ];
           }
         ];
       }
@@ -225,6 +229,8 @@ in
               widget = {
                 type = "prometheusmetric";
                 url = "https://metrics.${config.networking.domain}";
+                username = "i";
+                password = "{{HOMEPAGE_VAR_PASSWORD}}";
                 metrics = [
                   {
                     label = "Req/s";
@@ -271,24 +277,26 @@ in
               widget = {
                 type = "prometheusmetric";
                 url = "https://metrics.${config.networking.domain}";
+                username = "i";
+                password = "{{HOMEPAGE_VAR_PASSWORD}}";
                 metrics = [
                   {
                     label = "CPU Usage";
-                    query = "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
+                    query = "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)";
                     format = {
                       type = "percent";
                     };
                   }
                   {
                     label = "Memory Usage";
-                    query = "(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100";
+                    query = "(sum(node_memory_MemTotal_bytes) - sum(node_memory_MemAvailable_bytes)) / sum(node_memory_MemTotal_bytes) * 100";
                     format = {
                       type = "percent";
                     };
                   }
                   {
                     label = "Disk Usage";
-                    query = "100 - ((node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} * 100) / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"})";
+                    query = "100 - ((sum(node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}) * 100) / sum(node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}))";
                     format = {
                       type = "percent";
                     };
@@ -304,6 +312,8 @@ in
               widget = {
                 type = "prometheusmetric";
                 url = "https://metrics.${config.networking.domain}";
+                username = "i";
+                password = "{{HOMEPAGE_VAR_PASSWORD}}";
                 metrics = [
                   {
                     label = "Connections";
@@ -338,6 +348,25 @@ in
               href = "https://ntfy.${config.networking.domain}";
               icon = "ntfy.png";
               description = "Notification Service";
+              widget = {
+                type = "ntfy";
+                url = "https://ntfy.${config.networking.domain}";
+                topic = "alerts";
+                username = "i";
+                password = "{{HOMEPAGE_VAR_PASSWORD}}";
+              };
+            };
+          }
+          {
+            "Nextcloud" = {
+              href = "https://cloud.${domain}";
+              icon = "nextcloud.png";
+              description = "Cloud Storage";
+              widget = {
+                type = "nextcloud";
+                url = "https://cloud.${domain}";
+                key = "{{HOMEPAGE_VAR_NEXTCLOUD_TOKEN}}";
+              };
             };
           }
           {
@@ -373,6 +402,11 @@ in
               href = "https://${config.networking.fqdn}/syncthing";
               icon = "syncthing.png";
               description = "File Sync";
+              widget = {
+                type = "syncthing";
+                url = "https://${config.networking.fqdn}/syncthing";
+                key = "{{HOMEPAGE_VAR_SYNCTHING_KEY}}";
+              };
             };
           }
           {
@@ -380,13 +414,6 @@ in
               href = "https://cookie.${config.networking.domain}";
               icon = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/cookiecloud.png";
               description = "Cookie Sync";
-            };
-          }
-          {
-            "Headscale" = {
-              href = "https://ts.${config.networking.domain}";
-              icon = "https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3_header_stacked_left.png";
-              description = "VPN Control";
             };
           }
           {
@@ -432,13 +459,14 @@ in
           }
           {
             "Headscale" = {
-              href = "https://headscale.${domain}";
+              href = "https://ts.${domain}";
               icon = "https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3_header_stacked_left.png";
               description = "Tailscale Control Server";
               widget = {
                 type = "headscale";
-                url = "https://headscale.${domain}";
+                url = "https://ts.${domain}";
                 key = "{{HOMEPAGE_VAR_HEADSCALE_KEY}}";
+                nodeId = 456;
               };
             };
           }
@@ -481,26 +509,42 @@ in
         saturate = 50; # 0, 50, 100... see https://tailwindcss.com/docs/backdrop-saturate
         brightness = 50; # 0, 50, 75... see https://tailwindcss.com/docs/backdrop-brightness
       };
-      # Layout: Set groups to be side-by-side (horizontal)
-      layout = [
-        {
+      # Layout: Set groups to be side-by-side (left: Apps [Media + Social], right: Tools)
+      layout = {
+        "Apps" = {
+          header = false;
           "Media" = {
             header = true;
-            columns = 4;
+            style = "row";
+            columns = 1;
           };
           "Social" = {
             header = true;
-            columns = 4;
+            style = "row";
+            columns = 1;
           };
-        }
-        {
-          "Tools" = {
-            header = true;
-            columns = 4;
-          };
-        }
-      ];
+        };
+        "Tools" = {
+          header = true;
+          style = "row";
+          columns = 1;
+        };
+      };
     };
+    customCSS = ''
+      #services > .services-group:not(.subgroup),
+      #layout-groups > .services-group:not(.subgroup) {
+        flex-basis: 50% !important;
+        max-width: 50% !important;
+      }
+      @media (max-width: 768px) {
+        #services > .services-group:not(.subgroup),
+        #layout-groups > .services-group:not(.subgroup) {
+          flex-basis: 100% !important;
+          max-width: 100% !important;
+        }
+      }
+    '';
   };
 
   services.traefik.proxies.homepage = {
@@ -526,6 +570,12 @@ in
       TOKEN=$(echo -n "''${PASSWORD}''${SALT}" | ${pkgs.coreutils}/bin/md5sum | ${pkgs.gawk}/bin/awk '{print $1}')
       echo "HOMEPAGE_VAR_NAVIDROME_TOKEN=''${TOKEN}" > /var/lib/homepage/navidrome.env
       chmod 644 /var/lib/homepage/navidrome.env
+
+      if [ -f /var/lib/syncthing/.config/syncthing/config.xml ]; then
+        SYNCTHING_KEY=$(${pkgs.gnused}/bin/sed -n 's/.*<apikey>\(.*\)<\/apikey>.*/\1/p' /var/lib/syncthing/.config/syncthing/config.xml | head -n 1)
+        echo "HOMEPAGE_VAR_SYNCTHING_KEY=''${SYNCTHING_KEY}" > /var/lib/homepage/syncthing.env
+        chmod 644 /var/lib/homepage/syncthing.env
+      fi
     '';
     serviceConfig = {
       Type = "oneshot";
@@ -539,6 +589,7 @@ in
     serviceConfig.EnvironmentFile = lib.mkAfter [
       "-/var/lib/homepage/jellyfin.env"
       "-/var/lib/homepage/navidrome.env"
+      "-/var/lib/homepage/syncthing.env"
     ];
   };
 
@@ -553,8 +604,10 @@ in
       HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_GRAFANA_PASSWORD=${config.sops.placeholder."password"}
       HOMEPAGE_VAR_HEADSCALE_KEY=${config.sops.placeholder."homepage/headscale_key"}
+      HOMEPAGE_VAR_NEXTCLOUD_TOKEN=${config.sops.placeholder."homepage/nextcloud_token"}
     '';
   };
 
   sops.secrets."homepage/headscale_key" = { };
+  sops.secrets."homepage/nextcloud_token" = { };
 }

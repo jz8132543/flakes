@@ -71,6 +71,26 @@ in
           DocumentServerInternalUrl = "http://127.0.0.1:${toString config.ports.office}/";
           StorageUrl = "https://${hostName}/";
         };
+
+        # ── OIDC 登录（Keycloak）──────────────────────────────────
+        lost_password_link = "disabled";
+        oidc_login_provider_url = "https://sso.${domain}/realms/users";
+        oidc_login_client_id = "nextcloud";
+        oidc_login_auto_redirect = false;
+        oidc_login_end_session_redirect = false;
+        oidc_login_button_text = "Log in with KeyCloak";
+        oidc_login_hide_password_form = true;
+        oidc_login_use_id_token = true;
+        oidc_login_attributes = {
+          id = "preferred_username";
+          name = "name";
+          mail = "email";
+          groups = "groups";
+        };
+        oidc_login_default_group = "oidc";
+        oidc_login_use_external_storage = false;
+        oidc_login_scope = "openid profile email";
+        oidc_login_disable_registration = false;
       };
 
       secretFile = config.sops.templates."nextcloud-secret-config".path;
@@ -266,6 +286,30 @@ in
         OnCalendar = "daily";
         Persistent = true;
         RandomizedDelaySec = "1h";
+      };
+    };
+
+    # ── Serverinfo 监控令牌配置（Homepage Dashboard 等集成）────────
+    sops.secrets."homepage/nextcloud_token" = {
+      restartUnits = [ "nextcloud-config-serverinfo.service" ];
+    };
+
+    systemd.services.nextcloud-config-serverinfo = {
+      description = "Set Nextcloud serverinfo monitoring token";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "nextcloud-setup.service" ];
+      requires = [ "nextcloud-setup.service" ];
+      script = ''
+        if [ -f "${config.sops.secrets."homepage/nextcloud_token".path}" ]; then
+          token="$(cat ${config.sops.secrets."homepage/nextcloud_token".path} | tr -d '\n\r')"
+          if [ -n "$token" ]; then
+            ${occ}/bin/nextcloud-occ config:app:set serverinfo token --value "$token"
+          fi
+        fi
+      '';
+      serviceConfig = {
+        Type = "oneshot";
+        User = "root";
       };
     };
 

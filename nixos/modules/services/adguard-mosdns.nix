@@ -239,7 +239,7 @@ in
 
     services.traefik.proxies.adguard-mosdns = lib.mkIf (config.services.traefik.enable or false) {
       rule = "Host(`dns.${config.networking.domain}`)";
-      target = "https://127.0.0.1:3054";
+      target = "http://127.0.0.1:${toString cfg.webPort}";
     };
 
     services.traefik.tcpProxies.adguard-dot = lib.mkIf (config.services.traefik.enable or false) {
