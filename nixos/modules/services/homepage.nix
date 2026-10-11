@@ -148,7 +148,7 @@ in
               {
                 "Vertex" = {
                   href = media.vertex;
-                  icon = "vertex.png"; # Homepage will try to find it, or show default if missing
+                  icon = "https://cdn.jsdelivr.net/gh/vertex-app/vertex@stable/webui/public/assets/images/logo.svg";
                   description = "PT Manager";
                 };
               }
