@@ -20,7 +20,7 @@ in
   config = {
     services.autobrr = {
       enable = true;
-      secretFile = config.sops.secrets."media/autobrr_session_token".path;
+      # secretFile removed (deprecated)
       settings = {
         host = "0.0.0.0";
         port = config.ports.autobrr;
