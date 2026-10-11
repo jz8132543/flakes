@@ -9,7 +9,7 @@
     services.bazarr = {
       enable = true;
       group = "media";
-      listenPort = config.ports.bazarr;
+      settings.general.port = config.ports.bazarr;
     };
 
     systemd.services.bazarr.serviceConfig = {
