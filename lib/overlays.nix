@@ -80,13 +80,4 @@
     };
   })
   (import "${self}/pkgs").overlay
-  (
-    _final: prev:
-    let
-      ddePkgs = import inputs.dde-nixos.packages { inherit (prev) pkgs lib config; };
-    in
-    {
-      deepin = ddePkgs;
-    }
-  )
 ]
