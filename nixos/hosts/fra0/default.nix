@@ -211,17 +211,20 @@
         groups = [ "AI" ]; # 手动放入 US 群组
         # expandGroups = true; # 将 US 展开为具体的 sjc0 机器，在组内进行测速选优
         rules = [
-          # 优先拦截 Meta AI 与 Muse
-          "GEOSITE,meta,UNLOCK"
           "GEOSITE,category-ai-chat-!cn,UNLOCK"
           # 流媒体解锁
           "GEOSITE,category-entertainment,UNLOCK"
+          "GEOSITE,category-media,UNLOCK"
+          "DOMAIN-SUFFIX,zdf.de,UNLOCK"
+          "DOMAIN-SUFFIX,joyn.de,UNLOCK"
+          "DOMAIN-SUFFIX,sky.de,UNLOCK"
+          "GEOSITE,reddit,UNLOCK"
         ];
       }
       # AI 组：排在 UNLOCK 之后，通用 AI 自然流入此处
       {
         name = "AI";
-        type = "fallback"; # 故障转移组：按列表顺序作为优先级！
+        type = "url-test"; # 故障转移组：按列表顺序作为优先级！
         # nodes = [ "tyo0-kxy" ];# 最高优先级置顶节点
         groups = [ "!HK" ]; # 其次走 UNLOCK，再次走非 HK 地区组 (JP, EU, US)
         expandGroups = true;

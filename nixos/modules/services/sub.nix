@@ -57,8 +57,6 @@ let
     ) regionNames
   );
 
-  regionGroupNames = map (group: group.name) regionGroups;
-
   # 通用成员解析函数：
   # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
   # groups: 手动指定的群组名列表（支持引用策略组名如 UNLOCK、地区名如 JP，以及 "!HK" 排除语法）
@@ -172,11 +170,6 @@ let
           proxies = [
             "ALL-AUTO-FASTEST"
             "SPEED-BOOST"
-          ]
-          ++ (map (g: g.name) userGroupDefs)
-          ++ regionGroupNames
-          ++ [
-            "DIRECT"
           ];
         }
       ];
