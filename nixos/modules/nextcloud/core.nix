@@ -201,13 +201,18 @@ in
       after = [
         "nextcloud-setup.service"
         "podman-eurooffice.service"
+        "postgresql.service"
+        "redis-nextcloud.service"
+      ];
+      requires = [
+        "nextcloud-setup.service"
       ];
       wants = [
         "podman-eurooffice.service"
       ];
       script = ''
         # 等待 eurooffice 容器准备就绪（健康检查）
-        for i in $(seq 1 30); do
+        for i in $(seq 1 60); do
           if ${pkgs.curl}/bin/curl -sf http://127.0.0.1:${toString config.ports.office}/healthcheck >/dev/null 2>&1; then
             break
           fi
@@ -223,9 +228,58 @@ in
         ${occ}/bin/nextcloud-occ config:app:set onlyoffice editFormats --value '{"csv":true,"doc":true,"docm":true,"docx":true,"dotm":true,"dotx":true,"odp":true,"ods":true,"odt":true,"potm":true,"potx":true,"ppsm":true,"ppsx":true,"ppt":true,"pptm":true,"pptx":true,"rtf":true,"txt":true,"xls":true,"xlsb":true,"xlsm":true,"xlsx":true,"xltm":true,"xltx":true}'
         ${occ}/bin/nextcloud-occ onlyoffice:documentserver --check || true
       '';
+      unitConfig = {
+        StartLimitIntervalSec = 300;
+        StartLimitBurst = 5;
+      };
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "10s";
+      };
+    };
+
+    # ── notify_push 初始化配置保障 ─────────────────────────────
+    systemd.services.nextcloud-notify_push_setup = {
+      after = [
+        "nextcloud-setup.service"
+        "phpfpm-nextcloud.service"
+        "postgresql.service"
+        "redis-nextcloud.service"
+        "traefik.service"
+        "nginx.service"
+      ];
+      requires = [
+        "nextcloud-setup.service"
+      ];
+      unitConfig = {
+        StartLimitIntervalSec = lib.mkForce 300;
+        StartLimitBurst = lib.mkForce 10;
+      };
+      serviceConfig = {
+        Restart = lib.mkForce "on-failure";
+        RestartSec = lib.mkForce "10s";
+      };
+    };
+
+    # ── 数据库更新服务容错 ─────────────────────────────────────
+    systemd.services.nextcloud-update-db = {
+      after = [
+        "nextcloud-setup.service"
+        "postgresql.service"
+        "redis-nextcloud.service"
+      ];
+      requires = [
+        "nextcloud-setup.service"
+      ];
+      unitConfig = {
+        StartLimitIntervalSec = 120;
+        StartLimitBurst = 5;
+      };
+      serviceConfig = {
+        Restart = "on-failure";
+        RestartSec = "5s";
       };
     };
 

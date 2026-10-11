@@ -647,7 +647,17 @@ in
           map
             (name: {
               inherit name;
-              value.serviceConfig.TimeoutStartSec = lib.mkForce "5min";
+              value = {
+                serviceConfig = {
+                  TimeoutStartSec = lib.mkForce "5min";
+                  Restart = lib.mkDefault "on-failure";
+                  RestartSec = lib.mkDefault "5s";
+                };
+                unitConfig = {
+                  StartLimitIntervalSec = lib.mkDefault 120;
+                  StartLimitBurst = lib.mkDefault 5;
+                };
+              };
             })
             [
               "jellyfin-setup-wizard"
@@ -677,6 +687,9 @@ in
               "radarr-delayprofiles"
               "lidarr-delayprofiles"
               "prowlarr-applications"
+              "radarr-notifications"
+              "sonarr-notifications"
+              "lidarr-notifications"
             ]
         ))
         // {
@@ -747,6 +760,29 @@ in
               "seerr-libraries.service"
               "seerr-sonarr.service"
               "seerr-radarr.service"
+            ];
+          };
+          seerr-libraries = {
+            after = [
+              "seerr.service"
+              "jellyfin.service"
+              "seerr-jellyfin.service"
+              "jellyfin-libraries.service"
+            ];
+            requires = [
+              "seerr.service"
+              "jellyfin.service"
+            ];
+          };
+          radarr-notifications = {
+            after = [
+              "postgresql.service"
+              "radarr.service"
+              "radarr-config.service"
+              "jellyfin.service"
+            ];
+            requires = [
+              "radarr.service"
             ];
           };
           sonarr-anime.serviceConfig.UMask = lib.mkForce "0002";

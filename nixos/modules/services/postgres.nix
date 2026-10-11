@@ -26,6 +26,7 @@
       host replication all fd7a:115c:a1e0::/48 trust
     '';
     settings = {
+      max_connections = 300;
       shared_preload_libraries = "";
       password_encryption = "scram-sha-256";
       hot_standby = "on";
