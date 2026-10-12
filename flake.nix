@@ -3,7 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    # latest.url = "github:NixOS/nixpkgs/master"; # 注释：避免在评估阶段触发不必要的平台兼容性求值
+    latest.url = "github:NixOS/nixpkgs/master"; # 使用 master 分支的 nixpkgs
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -121,14 +121,14 @@ let
     after = [
       "dify-db-init.service"
       "redis-dify.service" # services.redis.servers."dify" 生成的 unit 名
-      "podman-qdrant.service" # 改为依赖 qdrant 容器
+      "qdrant.service" # 原生 NixOS services.qdrant
       "sops-install-secrets.service"
     ]
     ++ extraAfter;
     requires = [
       "dify-db-init.service"
       "redis-dify.service"
-      "podman-qdrant.service" # 改为依赖 qdrant 容器
+      "qdrant.service" # 原生 NixOS services.qdrant
     ];
     wantedBy = [ "multi-user.target" ];
   };
@@ -153,7 +153,7 @@ in
         PORT = toString apiPort;
         SERVER_WORKER_AMOUNT = "2"; # 6核机器，API 给 2 个 worker
         SERVER_WORKER_CLASS = "gevent";
-        GUNICORN_TIMEOUT = "360"; # 超过 3600s 的 SSE 由 Traefik 层维持
+        GUNICORN_TIMEOUT = "3600"; # 超过 3600s 的 SSE 由 Traefik 层维持
       };
       environmentFiles = [
         config.sops.templates."dify-secret.env".path

@@ -43,11 +43,14 @@ in
   # Traefik 动态配置中注入自定义 transport，覆盖全局 180s
   services.traefik.dynamicConfigOptions.http = {
     serversTransports.dify-sse = {
-      # SSE 流式响应：至少 3600s（1小时）不超时
-      responseHeaderTimeout = "3600s";
-      # 与上游保持长连接
-      dialKeepAlive = "30s";
-      dialTimeout = "10s";
+      maxIdleConnsPerHost = 100;
+      forwardingTimeouts = {
+        dialTimeout = "30s";
+        responseHeaderTimeout = "3600s"; # 放大：等待后端大模型响应的首包时间
+        idleConnTimeout = "3600s"; # 放大：官方示例的 idleConnTimeout
+        readIdleTimeout = "3600s"; # 放大：官方示例的 readIdleTimeout
+        pingTimeout = "15s";
+      };
     };
 
     # 为 dify-api 服务绑定自定义 transport

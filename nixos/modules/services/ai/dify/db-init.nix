@@ -100,7 +100,7 @@ in
         -h ${pgHost} -p ${toString pgPort} \
         -U postgres \
         --set=ON_ERROR_STOP=1 \
-        -c "SELECT 1 FROM pg_database WHERE datname='${difyPgDb}'" \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='${difyPgDb}'" \
         | grep -q 1 || \
         ${psql} \
           -h ${pgHost} -p ${toString pgPort} \

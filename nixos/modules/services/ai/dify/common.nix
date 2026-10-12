@@ -22,7 +22,7 @@ let
   cfg = config.services.ai.dify;
 
   # ── 顶层连接变量（约束：禁止在子模块硬编码 localhost）────────────────────
-  pgHost = "127.0.0.1";
+  pgHost = "postgres.ts";
   pgPort = 5432;
   difyPgUser = "dify";
   difyPgDb = "dify";
@@ -52,7 +52,11 @@ in
   ];
 
   options.services.ai.dify = {
-    enable = lib.mkEnableOption "Dify AI Application Platform";
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether to enable Dify AI Application Platform.";
+    };
 
     domain = lib.mkOption {
       type = lib.types.str;
@@ -64,17 +68,17 @@ in
     image = {
       api = lib.mkOption {
         type = lib.types.str;
-        default = "docker.io/langgenius/dify-api:1.3.1";
+        default = "docker.io/langgenius/dify-api:latest";
         description = "Dify API / Worker container image.";
       };
       web = lib.mkOption {
         type = lib.types.str;
-        default = "docker.io/langgenius/dify-web:1.3.1";
+        default = "docker.io/langgenius/dify-web:latest";
         description = "Dify Web (Next.js) container image.";
       };
       sandbox = lib.mkOption {
         type = lib.types.str;
-        default = "docker.io/langgenius/dify-sandbox:0.2.10";
+        default = "docker.io/langgenius/dify-sandbox:latest";
         description = "Dify Sandbox (code executor) container image.";
       };
     };
@@ -119,30 +123,23 @@ in
 
     # ── 主配置（受 enable 控制）──────────────────────────────────────────
     (lib.mkIf cfg.enable {
-      # ── Qdrant 向量数据库（改为 OCI 容器，避免本地编译问题）────────────
-      virtualisation.oci-containers.containers.qdrant = {
-        image = "docker.io/qdrant/qdrant:v1.18.2";
-        autoStart = true;
-        extraOptions = [
-          "--network=host"
-          "--pull=missing"
-        ];
-        environment = {
-          QDRANT__SERVICE__HOST = qdrantHost;
-          QDRANT__SERVICE__HTTP_PORT = toString qdrantPort;
-          QDRANT__SERVICE__GRPC_PORT = toString config.ports.dify-qdrant-grpc;
-          QDRANT__STORAGE__STORAGE_PATH = "${cfg.dataDir}/qdrant/storage";
-          QDRANT__TELEMETRY_DISABLED = "true";
+      # ── Qdrant 向量数据库（NixOS 原生 service）───────────────────
+      # 使用 services.qdrant（nixos/modules/services/search/qdrant.nix）
+      # 数据目录默认为 /var/lib/qdrant，此处覆盖为 cfg.dataDir/qdrant/storage
+      services.qdrant = {
+        enable = true;
+        settings = {
+          storage = {
+            storage_path = "${cfg.dataDir}/qdrant/storage";
+            snapshots_path = "${cfg.dataDir}/qdrant/snapshots";
+          };
+          service = {
+            host = qdrantHost;
+            http_port = qdrantPort;
+            grpc_port = config.ports.dify-qdrant-grpc;
+          };
+          telemetry_disabled = true;
         };
-        volumes = [
-          "${cfg.dataDir}/qdrant/storage:/qdrant/storage"
-        ];
-      };
-
-      # Qdrant 容器的 systemd 依赖
-      systemd.services.podman-qdrant = {
-        after = [ "network-online.target" ];
-        wantedBy = [ "multi-user.target" ];
       };
 
       # ── Redis（独立实例，与系统其它 Redis 隔离）────────────────────────
@@ -166,10 +163,12 @@ in
 
       # ── 数据目录 tmpfiles ───────────────────────────────────────────
       systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir}                      0750 root root - -"
-        "d ${cfg.dataDir}/storage              0750 root root - -"
-        "d ${cfg.dataDir}/qdrant              0750 root root - -"
-        "d ${cfg.dataDir}/qdrant/storage      0750 root root - -"
+        "d ${cfg.dataDir}                        0750 root   root   - -"
+        "d ${cfg.dataDir}/storage                0750 root   root   - -"
+        # qdrant user 由 services.qdrant 自动创建，此处预先建目录并赋权
+        "d ${cfg.dataDir}/qdrant                 0750 qdrant qdrant - -"
+        "d ${cfg.dataDir}/qdrant/storage         0750 qdrant qdrant - -"
+        "d ${cfg.dataDir}/qdrant/snapshots       0750 qdrant qdrant - -"
       ];
 
       # ── 持久化（impermanence）─────────────────────────────────────

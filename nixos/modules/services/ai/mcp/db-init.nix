@@ -75,10 +75,10 @@ in
           END
         \$\$;"
 
-      echo "[contextforge-db-init] Creating database '${mcpPgDb}'..."
+      echo "[contextforge-db-init] Creating database '${mcpPgDb}' if not exists..."
       ${psql} -h ${pgHost} -p ${toString pgPort} -U postgres \
         --set=ON_ERROR_STOP=1 \
-        -c "SELECT 1 FROM pg_database WHERE datname='${mcpPgDb}'" \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='${mcpPgDb}'" \
         | grep -q 1 || \
       ${psql} -h ${pgHost} -p ${toString pgPort} -U postgres \
         --set=ON_ERROR_STOP=1 \
