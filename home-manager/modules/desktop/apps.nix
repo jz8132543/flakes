@@ -323,6 +323,7 @@ in
     codex
     devin-desktop
     code-cursor
+    nur.repos.lonerOrz.trae
 
     gnome-connections
     # CD/DVD Burning is configured system-wide via programs.k3b.

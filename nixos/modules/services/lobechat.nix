@@ -22,7 +22,7 @@ in
   sops.secrets = {
     "lobechat/auth_secret" = { };
     "lobechat/keycloak_client_secret" = { };
-    "cpa/api_key" = { };
+    "openai_api_key" = { };
     "lobechat/OPENAI_API_KEY" = { };
     "lobechat/OPENAI_PROXY_URL" = { };
     "lobechat/jwks_key" = { };
@@ -158,7 +158,7 @@ in
     S3_ACCESS_KEY_ID=${config.sops.placeholder."lobechat/b2_key_id"}
     S3_SECRET_ACCESS_KEY=${config.sops.placeholder."lobechat/b2_access_key"}
     OPENAI_PROXY_URL=http://127.0.0.1:${toString config.ports.cpa}/v1
-    OPENAI_API_KEY=${config.sops.placeholder."cpa/api_key"}
+    OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
     OPENROUTER_PROXY_URL=${config.sops.placeholder."lobechat/OPENAI_PROXY_URL"}
     OPENROUTER_API_KEY=${config.sops.placeholder."lobechat/OPENAI_API_KEY"}
   '';

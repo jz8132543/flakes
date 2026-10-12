@@ -18,6 +18,7 @@
       nixosModules.services.traefik
       nixosModules.optimize.dev
       # nixosModules.services.microsocks
+      ./ai.nix
     ];
 
   optimize.brutal.target = "!cn";

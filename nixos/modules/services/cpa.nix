@@ -43,7 +43,7 @@ in
 
     apiKeySecretKey = lib.mkOption {
       type = lib.types.str;
-      default = "cpa/api_key";
+      default = "openai_api_key";
       description = "SOPS secret path for CPA API key (OpenAI-compatible client key).";
     };
   };

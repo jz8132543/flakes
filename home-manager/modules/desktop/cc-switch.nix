@@ -46,7 +46,7 @@ in
 
   sops.secrets = {
     "cc_switch/api_key" = { };
-    "cpa/api_key" = { };
+    "openai_api_key" = { };
     "password" = { };
   };
 
@@ -73,8 +73,8 @@ in
                     fi
 
                     CPA_API_KEY=""
-                    if [ -f "${config.sops.secrets."cpa/api_key".path}" ]; then
-                      CPA_API_KEY=$(cat "${config.sops.secrets."cpa/api_key".path}")
+                    if [ -f "${config.sops.secrets."openai_api_key".path}" ]; then
+                      CPA_API_KEY=$(cat "${config.sops.secrets."openai_api_key".path}")
                     elif [ -f "${config.sops.secrets."password".path}" ]; then
                       CPA_API_KEY=$(cat "${config.sops.secrets."password".path}")
                     fi

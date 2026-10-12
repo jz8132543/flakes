@@ -345,7 +345,7 @@ in
       };
     };
 
-  sops.secrets."cpa/api_key" = { };
+  sops.secrets."openai_api_key" = { };
 
   systemd.tmpfiles.rules = [
     "d /home/${user}/.continue 0750 ${user} users -"
@@ -358,10 +358,10 @@ in
   sops.templates."vscode-web-environment" = {
     content = ''
       GITHUB_TOKEN=${config.sops.placeholder."github-token"}
-      CPA_API_KEY=${config.sops.placeholder."cpa/api_key"}
-      OPENAI_API_KEY=${config.sops.placeholder."cpa/api_key"}
+      CPA_API_KEY=${config.sops.placeholder."openai_api_key"}
+      OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
       OPENAI_BASE_URL=https://${config.services.cpa.domain}/v1
-      ANTHROPIC_API_KEY=${config.sops.placeholder."cpa/api_key"}
+      ANTHROPIC_API_KEY=${config.sops.placeholder."openai_api_key"}
       ANTHROPIC_BASE_URL=https://${config.services.cpa.domain}
     '';
   };

@@ -61,7 +61,7 @@ let
 
       # 3. 测试 CPA AI 接口服务
       echo "--> [3/3] Testing CPA AI Gateway (https://cpa.${domain}/v1)..."
-      CPA_KEY_FILE="${config.sops.secrets."cpa/api_key".path}"
+      CPA_KEY_FILE="${config.sops.secrets."openai_api_key".path}"
       CPA_KEY=""
       if [ -f "$CPA_KEY_FILE" ]; then
         CPA_KEY="$(cat "$CPA_KEY_FILE")"
@@ -87,7 +87,7 @@ in
 {
   sops.secrets = {
     "password" = { };
-    "cpa/api_key" = { };
+    "openai_api_key" = { };
   };
 
   # 声明式安装通用 Obsidian（预注入中文环境）与测试工具
@@ -257,7 +257,7 @@ in
   # ── 5. AI Copilot 自动配置：全面支持第三方中转站（精准适配 Copilot v4 数据模型）──
   sops.templates."obsidian-copilot-settings" = {
     content = builtins.toJSON {
-      openAIApiKey = config.sops.placeholder."cpa/api_key";
+      openAIApiKey = config.sops.placeholder."openai_api_key";
       openAIProxyBaseUrl = "https://cpa.${domain}/v1";
       defaultModelKey = "gpt-4o|openai";
       defaultChainType = "llm_chain";

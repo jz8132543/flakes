@@ -54,7 +54,7 @@ in
 {
   sops.secrets = {
     "password" = { };
-    "cpa/api_key" = { };
+    "openai_api_key" = { };
   };
 
   # 注册通用 zotero 桌面端（不固定版本号，统一引用 pkgs.zotero）与扩展管理
@@ -129,7 +129,7 @@ in
 
       // ── Zotero GPT 官方原生字段：完整自动写入公网 URL、API Key 与默认模型 ──
       user_pref("extensions.zotero.zoterogpt.api", "https://cpa.${domain}/v1/chat/completions");
-      user_pref("extensions.zotero.zoterogpt.secretKey", "${config.sops.placeholder."cpa/api_key"}");
+      user_pref("extensions.zotero.zoterogpt.secretKey", "${config.sops.placeholder."openai_api_key"}");
       user_pref("extensions.zotero.zoterogpt.model", "gpt-4o");
       user_pref("extensions.zotero.zoterogpt.api.protocol", "openai-chat");
       user_pref("extensions.zotero.zoterogpt.prompt.system", "You are a large language model serving Zotero plugin called Awesome GPT. You can directly output markdown language. Output language is Simplified Chinese.");

@@ -101,7 +101,7 @@ in
     sops.secrets = lib.mkMerge [
       {
         "password" = { };
-        "cpa/api_key" = { };
+        "openai_api_key" = { };
         "lobechat/OPENAI_API_KEY" = { };
         "lobechat/OPENAI_PROXY_URL" = { };
       }
@@ -202,7 +202,7 @@ in
 
           # 自动注册/更新直连本地 CPA 的渠道 (CPA-Local-Gateway)
           CPA_KEY="$(cat ${
-            config.sops.secrets."cpa/api_key".path
+            config.sops.secrets."openai_api_key".path
           } 2>/dev/null | head -n 1 | tr -d '\n\r' || true)"
           if [ -z "$CPA_KEY" ]; then
             CPA_KEY="$PASS"
