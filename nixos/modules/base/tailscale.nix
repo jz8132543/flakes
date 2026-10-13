@@ -21,7 +21,7 @@ in
         # Internet. Leaving the default netfilter mode enabled is required for
         # both the exit-node hosts and the local proxy daemon to work correctly.
         extraSetFlags = [
-          "--accept-dns=false"
+          "--accept-dns=true"
           "--advertise-exit-node"
         ];
         extraDaemonFlags = [ "--no-logs-no-support" ];
@@ -190,6 +190,5 @@ in
         "/var/lib/tailscale/tailscaled.state"
       ];
     }
-
   ];
 }

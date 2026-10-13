@@ -304,6 +304,7 @@ let
       ));
       route-exclude-address = [
         "100.64.0.0/10"
+        "100.42.0.0/10"
         # Keep EasyTier's overlay subnet out of Mihomo's TUN.
         "10.100.0.0/24"
         # Keep DN42 subnets out of Mihomo's TUN.

@@ -37,29 +37,14 @@ let
       ];
       extra_records = [
         {
-          name = "m.ts";
-          type = "A";
-          value = "100.64.0.2";
-        }
-        {
-          name = "m-admin.ts";
-          type = "A";
-          value = "100.64.0.2";
-        }
-        {
           name = "postgres.ts";
           type = "A";
-          value = "100.64.0.1";
+          value = "10.222.222.1";
         }
         {
           name = "mysql.ts";
           type = "A";
-          value = "100.64.0.1";
-        }
-        {
-          name = "tv.ts";
-          type = "A";
-          value = "100.64.0.1";
+          value = "10.222.222.1";
         }
       ];
     };
@@ -71,9 +56,14 @@ let
       format = "text";
     };
     prefixes = {
-      v4 = "100.64.0.0/10";
-      v6 = "fd7a:115c:a1e0::/48";
+      # allocation 决定分配策略，保持 sequential（顺序分配）
       allocation = "sequential";
+
+      # v4: 使用包含列表的字符串数组，巧妙避开 100.0.0.0 和 100.0.0.1
+      v4 = "100.0.1.0/24";
+
+      # v6: 根据需要配置，或者保持默认的 ULA 范围
+      v6 = "fd7a:115c:a1e0::/48";
     };
     derp = {
       paths = [ "/run/credentials/headscale.service/map.yaml" ];
@@ -130,13 +120,6 @@ with lib.strings;
           nameservers.global = [
             "1.1.1.1"
             "9.9.9.9"
-          ];
-          extra_records = [
-            {
-              name = "postgres.ts";
-              type = "A";
-              value = "100.64.0.1";
-            }
           ];
         };
         logtail = {

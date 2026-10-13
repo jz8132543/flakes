@@ -22,7 +22,7 @@ let
   cfg = config.services.ai.dify;
 
   # ── 顶层连接变量（约束：禁止在子模块硬编码 localhost）────────────────────
-  pgHost = "postgres.ts";
+  pgHost = "127.0.0.1";
   pgPort = 5432;
   difyPgUser = "dify";
   difyPgDb = "dify";
