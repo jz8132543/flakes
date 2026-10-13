@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     latest.url = "github:NixOS/nixpkgs/master"; # 使用 master 分支的 nixpkgs
+    nixos-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";

@@ -183,13 +183,13 @@ in
         # Dify 应用密钥（SECRET_KEY，用于 JWT/加密）
         "dify/secret_key" = { };
         # CPA/NewAPI 网关 API Key（用于 Dify 调用 LLM）
-        "cpa/api_key" = { };
+        "openai_api_key" = { };
       };
 
       # ── sops template：生成含密文的 env 文件（不进 Nix Store）────────
       sops.templates."dify-secret.env".content = ''
         SECRET_KEY=${config.sops.placeholder."dify/secret_key"}
-        OPENAI_API_KEY=${config.sops.placeholder."cpa/api_key"}
+        OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
       '';
     })
   ];
