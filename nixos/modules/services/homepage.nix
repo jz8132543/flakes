@@ -457,19 +457,6 @@ in
               };
             };
           }
-          {
-            "Headscale" = {
-              href = "https://ts.${domain}";
-              icon = "https://raw.githubusercontent.com/juanfont/headscale/main/docs/assets/logo/headscale3_header_stacked_left.png";
-              description = "Tailscale Control Server";
-              widget = {
-                type = "headscale";
-                url = "https://ts.${domain}";
-                key = "{{HOMEPAGE_VAR_HEADSCALE_KEY}}";
-                nodeId = 456;
-              };
-            };
-          }
         ];
       }
     ];

@@ -29,9 +29,8 @@ let
     mcpPgDb
     ;
 
-  # API/UI 端口（由 ports 注册表统一管理）
+  # API/UI 端口（ContextForge 单服务同时承载 UI 与 API，由 ports 统一管理）
   mcpApiPort = config.ports.mcp-contextforge-api;
-  mcpUiPort = config.ports.mcp-contextforge-ui;
 in
 {
   virtualisation.oci-containers.containers.contextforge = {
@@ -39,42 +38,43 @@ in
     autoStart = true;
     extraOptions = [
       "--network=host"
-      "--pull=missing"
-      "--label=io.containers.autoupdate=registry"
     ];
 
     environment = {
-      # ── 数据库 ────────────────────────────────────────────────────
-      DATABASE_URL = "postgresql://${mcpPgUser}@${pgHost}:${toString pgPort}/${mcpPgDb}";
-      DB_HOST = pgHost;
-      DB_PORT = toString pgPort;
-      DB_USER = mcpPgUser;
-      DB_PASSWORD = ""; # 内网 trust
-      DB_NAME = mcpPgDb;
+      # ── 数据库 (psycopg3 驱动要求 postgresql+psycopg://) ────────────
+      DATABASE_URL = "postgresql+psycopg://${mcpPgUser}@${pgHost}:${toString pgPort}/${mcpPgDb}";
 
       # ── 服务绑定 ──────────────────────────────────────────────────
-      # API 端口（供 Dify 调用 Virtual MCP 端点）
-      API_PORT = toString mcpApiPort;
-      # Web UI 端口（管理界面，仅内网访问）
-      UI_PORT = toString mcpUiPort;
+      HOST = "0.0.0.0";
+      PORT = toString mcpApiPort;
 
       # ── 对外访问地址 ──────────────────────────────────────────────
-      PUBLIC_URL = "https://${cfg.domain}";
+      APP_DOMAIN = "https://${cfg.domain}";
 
-      # ── MCP 网关配置 ──────────────────────────────────────────────
-      # 允许注册的 MCP Server 来源（内网信任，允许所有）
-      MCP_TRUSTED_ORIGINS = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10";
+      # ── 管理员账户 (邮箱认证) ─────────────────────────────────────
+      PLATFORM_ADMIN_EMAIL = "i@${config.networking.domain}";
 
-      # ── 日志 ──────────────────────────────────────────────────────
+      # ── 跨网关路由域名白名单 ───────────────────────────────────────
+      UAID_ALLOWED_DOMAINS = "[ \"${cfg.domain}\" ]";
+
+      # ── UI 与 API 启用 ────────────────────────────────────────────
+      MCPGATEWAY_UI_ENABLED = "true";
+      MCPGATEWAY_ADMIN_API_ENABLED = "true";
+
+      # ── MCP 网关与 SSRF 白名单（允许与同宿主机及局域网 MCP Server 通信）─
+      SSRF_PROTECTION_ENABLED = "true";
+      SSRF_ALLOW_LOCALHOST = "true";
+      SSRF_ALLOW_PRIVATE_NETWORKS = "true";
+
+      # ── 运行环境与日志 ────────────────────────────────────────────
+      ENVIRONMENT = "production";
       LOG_LEVEL = "info";
-      NODE_ENV = "production";
-
-      # ── Dify 集成：向 Dify Workflow 暴露 Virtual MCP 端点 ─────────
-      # ContextForge 将在此基础路径下注册所有虚拟 MCP 端点
-      MCP_BASE_PATH = "/mcp";
-
-      # ── 可选功能 ──────────────────────────────────────────────────
-      TELEMETRY_ENABLED = "false";
+      # ── 密码安全策略控制 ───────────────────────────────────────
+      PASSWORD_POLICY_ENABLED = "false"; # 完全关闭密码复杂度与规则检查（允许任意密码）
+      ADMIN_REQUIRE_PASSWORD_CHANGE_ON_BOOTSTRAP = "false"; # 禁用初次登录强制改密
+      PASSWORD_CHANGE_ENFORCEMENT_ENABLED = "false"; # 关闭强制密码修改检查
+      PASSWORD_MIN_LENGTH_USER = "8"; # 普通用户最小长度
+      PASSWORD_MIN_LENGTH_PRIVILEGED = "8"; # 管理员最小长度（默认22，调小以防容器启动校验）
     };
 
     environmentFiles = [

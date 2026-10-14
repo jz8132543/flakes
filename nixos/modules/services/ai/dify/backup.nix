@@ -27,12 +27,8 @@ in
   # ── 将 Dify 数据纳入全局 Restic borgbase 备份 ─────────────────────
   services.restic.backups.borgbase = {
     paths = lib.mkAfter [
-      # 用户上传的文件和多模态附件
-      "${cfg.dataDir}/storage"
-      # Qdrant 向量数据库持久化目录
-      "${cfg.dataDir}/qdrant/storage"
-      # PG 全量 dump（已由 postgres.nix 的 postgresqlBackup 自动包含）
-      # 此处显式声明便于文档化，实际由 postgresqlBackup.location 覆盖
+      # 仅备份租户私钥（用于解密大模型 API Key 凭据），排除庞大的上传附件与向量库
+      "${cfg.dataDir}/storage/privkeys"
     ];
 
     exclude = lib.mkAfter [
@@ -59,7 +55,8 @@ in
       "${cfg.dataDir}/**/*.cache"
 
       # ── Qdrant 的 WAL（仅备份 storage，WAL 是临时的）────────────
-      "${cfg.dataDir}/qdrant/storage/wal"
+      "/var/lib/private/qdrant/storage/wal"
+      "/var/lib/qdrant/storage/wal"
     ];
   };
 

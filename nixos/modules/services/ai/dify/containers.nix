@@ -145,12 +145,13 @@ in
       autoStart = true;
       extraOptions = [
         "--network=host"
-        "--pull=missing"
-        "--label=io.containers.autoupdate=registry"
       ];
       environment = commonApiEnv // {
         MODE = "api";
+        MIGRATION_ENABLED = "true";
         PORT = toString apiPort;
+        DIFY_PORT = toString apiPort;
+        DIFY_BIND_ADDRESS = "0.0.0.0";
         SERVER_WORKER_AMOUNT = "2"; # 6核机器，API 给 2 个 worker
         SERVER_WORKER_CLASS = "gevent";
         GUNICORN_TIMEOUT = "3600"; # 超过 3600s 的 SSE 由 Traefik 层维持
@@ -170,8 +171,6 @@ in
       autoStart = true;
       extraOptions = [
         "--network=host"
-        "--pull=missing"
-        "--label=io.containers.autoupdate=registry"
       ];
       environment = commonApiEnv // {
         MODE = "worker";
@@ -196,12 +195,11 @@ in
       autoStart = true;
       extraOptions = [
         "--network=host"
-        "--pull=missing"
-        "--label=io.containers.autoupdate=registry"
       ];
       environment = {
         PORT = toString webPort;
-        CONSOLE_API_URL = ""; # 留空：前端与 API 同域，由 Traefik 路由
+        HOSTNAME = "0.0.0.0";
+        CONSOLE_API_URL = "";
         APP_API_URL = "";
         # SSE 流式传输：禁用 Next.js 响应缓冲
         NEXT_TELEMETRY_DISABLED = "1";
@@ -215,7 +213,6 @@ in
       autoStart = true;
       extraOptions = [
         "--network=host"
-        "--pull=missing"
         "--security-opt=seccomp=unconfined" # sandbox 内部自行管理 seccomp
       ];
       environment = {
@@ -232,7 +229,7 @@ in
 
   # ── Systemd 依赖拓扑注入 ─────────────────────────────────────────────
   systemd.services = {
-    podman-dify-api = mkContainerDeps [ ];
+    podman-dify-api = mkContainerDeps [ "podman-dify-sandbox.service" ];
     podman-dify-worker = mkContainerDeps [ "podman-dify-api.service" ];
     podman-dify-web = mkContainerDeps [ "podman-dify-api.service" ];
     podman-dify-sandbox = {

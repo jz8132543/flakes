@@ -14,23 +14,13 @@
 }:
 let
   cfg = config.services.ai.mcp;
-  mcpApiPort = config.ports.mcp-contextforge-api;
-  mcpUiPort = config.ports.mcp-contextforge-ui;
+  mcpPort = config.ports.mcp-contextforge-api;
 in
 {
   services.traefik.proxies = {
-    # ── UI 路由（低优先级兜底）────────────────────────────────────
-    contextforge-ui = {
+    contextforge = {
       rule = "Host(`${cfg.domain}`)";
-      target = "http://127.0.0.1:${toString mcpUiPort}";
-      priority = 1;
-    };
-
-    # ── API/MCP 路由（高优先级，精确前缀匹配）────────────────────
-    contextforge-api = {
-      rule = "Host(`${cfg.domain}`) && (PathPrefix(`/api`) || PathPrefix(`/mcp`) || PathPrefix(`/v1`))";
-      target = "http://127.0.0.1:${toString mcpApiPort}";
-      priority = 10;
+      target = "http://127.0.0.1:${toString mcpPort}";
     };
   };
 }

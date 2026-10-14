@@ -52,10 +52,10 @@ in
 
     image = lib.mkOption {
       type = lib.types.str;
-      default = "docker.io/ibm/contextforge:latest";
+      default = "ghcr.io/ibm/mcp-context-forge:latest";
       description = ''
         ContextForge container image.
-        IBM ContextForge 官方镜像，定期 podman pull 更新。
+        IBM ContextForge 官方镜像 (GitHub Container Registry)。
       '';
     };
 
@@ -81,12 +81,12 @@ in
 
     # ── 主配置（受 enable 控制）──────────────────────────────────────────
     (lib.mkIf cfg.enable {
-      # ── 数据目录 ─────────────────────────────────────────────────
+      # ── 数据目录 (容器内非 root 用户 10001:10001 需要写入权限) ──
       systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir}          0750 root root - -"
-        "d ${cfg.dataDir}/config   0750 root root - -"
-        "d ${cfg.dataDir}/data     0750 root root - -"
-        "d ${cfg.dataDir}/logs     0750 root root - -"
+        "d ${cfg.dataDir}          0755 root  root  - -"
+        "d ${cfg.dataDir}/config   0777 10001 10001 - -"
+        "d ${cfg.dataDir}/data     0777 10001 10001 - -"
+        "d ${cfg.dataDir}/logs     0777 10001 10001 - -"
       ];
 
       # ── 持久化 ───────────────────────────────────────────────────
@@ -105,9 +105,14 @@ in
       };
 
       # ── sops template：含密文的环境文件 ──────────────────────────
+      # 约束：ContextForge 强制要求 JWT_SECRET_KEY / AUTH_ENCRYPTION_SECRET >= 32 字符，
+      # 且管理员密码 >= 12 字符并具备复杂度。此处组合 SOPS 主密码生成合规凭证。
       sops.templates."contextforge-secret.env".content = ''
-        SECRET_KEY=${config.sops.placeholder."contextforge/secret_key"}
-        ADMIN_PASSWORD=${config.sops.placeholder."password"}
+        JWT_SECRET_KEY=${config.sops.placeholder."contextforge/secret_key"}
+        AUTH_ENCRYPTION_SECRET=${config.sops.placeholder."contextforge/secret_key"}
+        PLATFORM_ADMIN_PASSWORD=${config.sops.placeholder."password"}Admin123!
+        DEFAULT_USER_PASSWORD=${config.sops.placeholder."password"}Admin123!
+        BASIC_AUTH_PASSWORD=${config.sops.placeholder."password"}Admin123!
         MCP_API_KEY=${config.sops.placeholder."contextforge/mcp_api_key"}
       '';
     })

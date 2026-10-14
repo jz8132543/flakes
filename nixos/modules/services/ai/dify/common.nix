@@ -42,8 +42,6 @@ let
 in
 {
   imports = [
-    nixosModules.services.podman
-    nixosModules.services.postgres
     nixosModules.services.traefik
     nixosModules.services.restic
     # 注意：db-init.nix / containers.nix / traefik-proxy.nix / backup.nix
@@ -125,14 +123,10 @@ in
     (lib.mkIf cfg.enable {
       # ── Qdrant 向量数据库（NixOS 原生 service）───────────────────
       # 使用 services.qdrant（nixos/modules/services/search/qdrant.nix）
-      # 数据目录默认为 /var/lib/qdrant，此处覆盖为 cfg.dataDir/qdrant/storage
+      # 使用原生默认路径 /var/lib/qdrant，由 systemd StateDirectory 自动管理权限
       services.qdrant = {
         enable = true;
         settings = {
-          storage = {
-            storage_path = "${cfg.dataDir}/qdrant/storage";
-            snapshots_path = "${cfg.dataDir}/qdrant/snapshots";
-          };
           service = {
             host = qdrantHost;
             http_port = qdrantPort;
@@ -163,17 +157,14 @@ in
 
       # ── 数据目录 tmpfiles ───────────────────────────────────────────
       systemd.tmpfiles.rules = [
-        "d ${cfg.dataDir}                        0750 root   root   - -"
-        "d ${cfg.dataDir}/storage                0750 root   root   - -"
-        # qdrant user 由 services.qdrant 自动创建，此处预先建目录并赋权
-        "d ${cfg.dataDir}/qdrant                 0750 qdrant qdrant - -"
-        "d ${cfg.dataDir}/qdrant/storage         0750 qdrant qdrant - -"
-        "d ${cfg.dataDir}/qdrant/snapshots       0750 qdrant qdrant - -"
+        "d ${cfg.dataDir}                        0755 root   root   - -"
+        "d ${cfg.dataDir}/storage                0777 root   root   - -"
       ];
 
       # ── 持久化（impermanence）─────────────────────────────────────
       environment.global-persistence.directories = [
         cfg.dataDir
+        "/var/lib/private/qdrant"
       ];
 
       # ── SOPS 密钥声明 ──────────────────────────────────────────────

@@ -8,20 +8,8 @@
   lib,
   ...
 }:
-let
-  cfg = config.services.ai.mcp;
-in
 {
-  services.restic.backups.borgbase = {
-    paths = lib.mkAfter [
-      "${cfg.dataDir}/config"
-      "${cfg.dataDir}/data"
-    ];
-
-    exclude = lib.mkAfter [
-      "${cfg.dataDir}/logs"
-    ];
-  };
+  # ContextForge 数据 100% 存储于 PostgreSQL 中，由 services.postgresqlBackup 统一备份，无需备份本地空目录。
 
   systemd.services."restic-backups-borgbase" = {
     after = lib.mkAfter [
