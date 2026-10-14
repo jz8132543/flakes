@@ -71,17 +71,19 @@
       "discard=async"
       "space_cache=v2"
       "nofail"
+      "x-systemd.automount"
+      "x-systemd.device-timeout=5s"
     ];
   };
 
-  # 自动创建 Steam 共享库及原神共享目录，保证权限归属 tippy:users
+  # 自动创建 Steam 共享库及原神共享目录，保证权限归属 tippy:users 并开放给 Windows (0777)
   systemd.tmpfiles.rules = [
-    "d /mnt/games 0755 tippy users -"
-    "d /mnt/games/SteamLibrary 0775 tippy users -"
-    "d /mnt/games/SteamLibrary/steamapps 0775 tippy users -"
-    "d /mnt/games/SteamLibrary/steamapps/common 0775 tippy users -"
-    "d '/mnt/games/Genshin Impact Game' 0755 tippy users -"
-    "d /mnt/games/.temp 0755 tippy users -"
+    "d /mnt/games 0777 tippy users -"
+    "d /mnt/games/SteamLibrary 0777 tippy users -"
+    "d /mnt/games/SteamLibrary/steamapps 0777 tippy users -"
+    "d /mnt/games/SteamLibrary/steamapps/common 0777 tippy users -"
+    "d '/mnt/games/Genshin Impact Game' 0777 tippy users -"
+    "d /mnt/games/.temp 0777 tippy users -"
   ];
 
   # 将第二块游戏磁盘纳入系统月度 Btrfs 数据校验

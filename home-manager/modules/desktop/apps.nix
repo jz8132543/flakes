@@ -289,7 +289,7 @@ let
 in
 {
   imports = [
-    ./storage-papers.nix
+    # ./storage-papers.nix (Migrated to NixOS system-level autofs)
     ./obsidian-livesync.nix
     # ./zotero.nix  # disabled due to Zotero build issues
     ./cc-switch.nix
@@ -340,6 +340,14 @@ in
     # };
     intelli-shell = {
       enable = true;
+      # Upstream v3.4.6 bug (PR #74): `bind \c$char` causes an "Invalid token '\c$char'" syntax error on Fish 4.x.
+      # Patch the embedded init template directly so official `enableFishIntegration` works cleanly.
+      package = pkgs.intelli-shell.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace src/_shell/intelli-shell.fish \
+            --replace-fail 'bind \c$char $target_func' 'eval "bind \\c$char \$target_func"'
+        '';
+      });
     };
     # Document viewer
     zathura = {
@@ -514,6 +522,7 @@ in
         [UnixUpdateInfo]
         UserRejectUpdateVersion=${pkgs.wpsoffice-cn.version}
       '';
+      ".config/Kingsoft/Office.conf".force = true;
     }
     (lib.optionalAttrs (builtins.pathExists writerTemplate) {
       ".local/share/Kingsoft/office6/templates/wps/en_US/Normal.dotm".source = writerTemplate;

@@ -284,7 +284,7 @@ in
   ];
 
   home.activation.allowGdmReadFace = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME"
+    ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME" || true
   '';
 
   gtk = {
