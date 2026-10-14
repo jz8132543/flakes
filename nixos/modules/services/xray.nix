@@ -23,6 +23,20 @@ let
   dn42Data = selfData.dn42 or { };
   ownDn42Ipv4 = config.services.dn42.ipv4 or dn42Data.ipv4 or "172.20.232.0/26";
   ownDn42Ipv6 = config.services.dn42.ipv6 or dn42Data.ipv6 or "fd53:90fd:4bb6::/48";
+
+  # 将 IPv4 CIDR 动态转换为对应双栈 socket 下的 IPv4-mapped IPv6 CIDR（掩码 + 96）
+  toMappedV6 =
+    cidr:
+    let
+      parts = lib.splitString "/" cidr;
+      ip = lib.elemAt parts 0;
+    in
+    if builtins.length parts == 2 then
+      "::ffff:${ip}/${toString ((lib.toInt (lib.elemAt parts 1)) + 96)}"
+    else
+      "::ffff:${ip}/128";
+
+  ownDn42Ipv4Mapped = toMappedV6 ownDn42Ipv4;
 in
 {
   sops.secrets = {
@@ -160,14 +174,24 @@ in
         rules =
           (lib.optionals socks [
             {
-              inbound = [ "socks-in" ];
-              source_ip_cidr = [
-                ownDn42Ipv4
-                ownDn42Ipv6
-                "127.0.0.0/8"
-                "::1/128"
+              type = "logical";
+              mode = "and";
+              rules = [
+                {
+                  inbound = [ "socks-in" ];
+                }
+                {
+                  invert = true;
+                  source_ip_cidr = [
+                    ownDn42Ipv4
+                    ownDn42Ipv6
+                    "127.0.0.0/8"
+                    "::1/128"
+                    ownDn42Ipv4Mapped
+                    (toMappedV6 "127.0.0.0/8")
+                  ];
+                }
               ];
-              invert = true;
               outbound = "block";
             }
           ])

@@ -167,6 +167,10 @@
       "on": "fra0",
       "proxy": false
     },
+    "cache": {
+      "on": "fra0",
+      "proxy": false
+    },
     "call": {
       "on": "fra0",
       "proxy": false
@@ -365,7 +369,6 @@
     "services": {
       "alist": "fra0",
       "api": "fra0",
-      "cache": "fra0",
       "chat": "fra0",
       "cloud": "fra0",
       "code": "fra0",

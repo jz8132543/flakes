@@ -16,19 +16,8 @@ let
   serverHost = server: lib.head (lib.splitString "." server);
 
   # 从主机名或 server 字段提取区域标识（如 "tyo0" -> "TYO", "fra0" -> "FRA", "hkg5" -> "HKG"）
-  extractRegion =
-    serverName:
-    let
-      base = serverHost serverName;
-      matched = builtins.match "([a-zA-Z]+)[0-9]*" base;
-    in
-    lib.toUpper (if matched != null then builtins.head matched else base);
-
-  getNodeRegions =
-    node: if node.regions != [ ] then node.regions else [ (extractRegion node.server) ];
 
   # 动态提取并去重的 regionNames 列表（无需手动硬编码）
-  regionNames = lib.unique (lib.concatMap getNodeRegions cfg.nodes);
 
   publicServer = server: if lib.hasInfix "." server then server else "${server}.${domain}";
 
@@ -71,10 +60,20 @@ let
         client-fingerprint = "chrome";
       };
 
+  getDn42Ip =
+    serverName:
+    let
+      h = serverHost serverName;
+      hData = allHostsData.${h} or { };
+      v4s = hData.dn42_addresses_v4 or [ ];
+    in
+    if v4s != [ ] then lib.head v4s else dn42Server serverName;
+
   # DN42 内网节点：因内部网络天然受 WireGuard/XFRM 隧道加密，直接使用高性能免加密 SOCKS5 协议
+  # 使用真实 DN42 IP 作为 server，避免 Mihomo 的 proxy-server-nameserver (223.5.5.5) 因无法解析 .dn42 导致 NXDOMAIN 超时
   mkDn42Node = node: {
     name = "${node.name}-DN42";
-    server = dn42Server node.server;
+    server = getDn42Ip node.server;
     port = if node.socksPort != null then node.socksPort else cfg.socksPort;
     type = "socks5";
     udp = true;
@@ -89,102 +88,11 @@ let
   allNodeNames = publicNodeNames ++ dn42NodeNames;
 
   # 双轨区域策略组：针对每个 Region 生成 <REGION>（公网）和 <REGION>-DN42（内网）
-  mkPublicRegionGroup = region: {
-    name = region;
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 300;
-    tolerance = 20;
-    proxies = map (node: node.name) (
-      lib.filter (node: builtins.elem region (getNodeRegions node)) cfg.nodes
-    );
-  };
-
-  mkDn42RegionGroup = region: {
-    name = "${region}-DN42";
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 120;
-    tolerance = 20;
-    proxies = map (node: "${node.name}-DN42") (
-      lib.filter (node: shouldGenDn42 node && builtins.elem region (getNodeRegions node)) cfg.nodes
-    );
-  };
-
-  publicRegionGroups = lib.filter (g: g.proxies != [ ]) (map mkPublicRegionGroup regionNames);
-  dn42RegionGroups = lib.filter (g: g.proxies != [ ]) (map mkDn42RegionGroup regionNames);
-
-  allRegionGroupNames = (map (g: g.name) publicRegionGroups) ++ (map (g: g.name) dn42RegionGroups);
 
   # 通用成员解析函数：
   # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
   # groups: 手动指定的群组名列表（支持引用策略组名如 UNLOCK、地区名如 JP，以及 "!HK" 排除语法）
   # expandGroups: 是否将群组展开为其所包含的底层节点
-  resolveMembers =
-    {
-      nodes ? [ ],
-      groups ? [ ],
-      expandGroups ? false,
-    }:
-    let
-      resolvedGroupNames = lib.concatMap (
-        g:
-        if lib.hasPrefix "!" g then
-          let
-            excluded = lib.removePrefix "!" g;
-          in
-          lib.filter (r: r != excluded && r != "${excluded}-DN42") allRegionGroupNames
-        else
-          [ g ]
-      ) groups;
-
-      expandedNodeNames =
-        if expandGroups then
-          lib.concatMap (
-            g:
-            if builtins.elem g regionNames then
-              map (n: n.name) (lib.filter (n: builtins.elem g (getNodeRegions n)) cfg.nodes)
-            else if lib.hasSuffix "-DN42" g && builtins.elem (lib.removeSuffix "-DN42" g) regionNames then
-              let
-                baseRegion = lib.removeSuffix "-DN42" g;
-              in
-              map (n: "${n.name}-DN42") (
-                lib.filter (n: shouldGenDn42 n && builtins.elem baseRegion (getNodeRegions n)) cfg.nodes
-              )
-            else
-              [ g ]
-          ) resolvedGroupNames
-        else
-          resolvedGroupNames;
-    in
-    lib.unique (nodes ++ expandedNodeNames);
-
-  mkUserGroup =
-    g:
-    let
-      resolvedProxies =
-        if g.proxies != [ ] then
-          g.proxies
-        else
-          resolveMembers {
-            inherit (g) nodes groups expandGroups;
-          };
-    in
-    if resolvedProxies == [ ] then
-      null
-    else
-      {
-        inherit (g)
-          name
-          type
-          url
-          interval
-          tolerance
-          ;
-        proxies = resolvedProxies;
-      };
-
-  userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
 
   # 三大汇总策略组：ALL, DN42-ONLY, PUBLIC-ONLY
@@ -218,15 +126,6 @@ let
   ];
 
   # 当用户未自定义 AI 规则时，默认创建的非 HK AI/流媒体专用组（优先走 DN42 节点）
-  nonHkGroups =
-    (builtins.filter (n: !(lib.hasPrefix "HK" n)) (map (g: g.name) dn42RegionGroups))
-    ++ (builtins.filter (n: !(lib.hasPrefix "HK" n)) (map (g: g.name) publicRegionGroups));
-
-  aiUnlockGroup = lib.optional (nonHkGroups != [ ]) {
-    name = "AI-UNLOCK";
-    type = "select";
-    proxies = nonHkGroups;
-  };
 
   # 自动提取所有节点 *.dn42 映射字典，直接写入 Mihomo hosts 配置
   dn42HostsMapping = lib.foldr (
@@ -263,43 +162,54 @@ let
     proxies = allProxies;
 
     proxy-groups = [
-      # 主选择组：第一位放 DIRECT！
-      # 当选中 DIRECT 时，常规流量直接穿透 Mihomo 交给 Linux 内核 table 200 (DN42 L3 就近加速 + eth0 容灾)
+      # GLOBAL 全局组：用于 Mihomo 切换到全局模式（Global）时的统一出口，默认遵循 PROXY
+      {
+        name = "GLOBAL";
+        type = "select";
+        proxies = [
+          "PROXY"
+          "ALL"
+          "PUBLIC-ONLY"
+        ]
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
+        ++ [ "DIRECT" ];
+      }
+
+      # PROXY 规则代理主选择组：仅保留 全部、公网、DN42 三个核心汇总策略
       {
         name = "PROXY";
         type = "select";
         proxies = [
-          "DIRECT"
           "ALL"
+          "PUBLIC-ONLY"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
-        ++ [ "PUBLIC-ONLY" ]
-        ++ allRegionGroupNames;
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY";
       }
     ]
-    ++ userGroupDefs
-    ++ (if userGroupDefs == [ ] then aiUnlockGroup else [ ])
-    ++ publicRegionGroups
-    ++ dn42RegionGroups
     ++ summaryGroups
-    ++ [
-      {
-        name = "ALL-AUTO-FASTEST";
-        type = "url-test";
-        url = cfg.healthCheckUrl;
-        interval = 300;
-        tolerance = 20;
-        proxies = publicNodeNames;
-      }
-      {
-        name = "SPEED-BOOST";
-        type = "load-balance";
-        url = cfg.healthCheckUrl;
-        interval = 300;
-        strategy = "consistent-hashing";
-        proxies = publicNodeNames;
-      }
-    ];
+    # ++ userGroupDefs
+    # ++ (if userGroupDefs == [ ] then aiUnlockGroup else [ ])
+    # ++ publicRegionGroups
+    # ++ dn42RegionGroups
+    # ++ [
+    #   {
+    #     name = "ALL-AUTO-FASTEST";
+    #     type = "url-test";
+    #     url = cfg.healthCheckUrl;
+    #     interval = 300;
+    #     tolerance = 20;
+    #     proxies = publicNodeNames;
+    #   }
+    #   {
+    #     name = "SPEED-BOOST";
+    #     type = "load-balance";
+    #     url = cfg.healthCheckUrl;
+    #     interval = 300;
+    #     strategy = "consistent-hashing";
+    #     proxies = publicNodeNames;
+    #   }
+    # ]
+    ;
 
     rules = [
       # 绕过本机的 microsocks / sing-box 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
@@ -354,10 +264,10 @@ let
     ++ (
       if userGroupRules == [ ] then
         [
-          "GEOSITE,openai,AI-UNLOCK"
-          "GEOSITE,anthropic,AI-UNLOCK"
-          "GEOSITE,google-gemini,AI-UNLOCK"
-          "GEOSITE,netflix,AI-UNLOCK"
+          "GEOSITE,openai,PROXY"
+          "GEOSITE,anthropic,PROXY"
+          "GEOSITE,google-gemini,PROXY"
+          "GEOSITE,netflix,PROXY"
         ]
       else
         [ ]
@@ -378,6 +288,7 @@ let
 
     dns = {
       enable = true;
+      hosts = dn42HostsMapping;
       listen = "0.0.0.0:1053";
       ipv6 = true;
       prefer-ipv4 = true;
