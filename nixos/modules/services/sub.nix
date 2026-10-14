@@ -16,8 +16,19 @@ let
   serverHost = server: lib.head (lib.splitString "." server);
 
   # 从主机名或 server 字段提取区域标识（如 "tyo0" -> "TYO", "fra0" -> "FRA", "hkg5" -> "HKG"）
+  extractRegion =
+    server:
+    let
+      base = serverHost server;
+      matched = builtins.match "^([a-zA-Z]+)[0-9].*" base;
+    in
+    lib.toUpper (if matched != null then builtins.head matched else base);
+
+  getNodeRegions =
+    node: if node.regions != [ ] then node.regions else [ (extractRegion node.server) ];
 
   # 动态提取并去重的 regionNames 列表（无需手动硬编码）
+  regionNames = lib.unique (lib.concatMap getNodeRegions cfg.nodes);
 
   publicServer = server: if lib.hasInfix "." server then server else "${server}.${domain}";
 
@@ -88,11 +99,102 @@ let
   allNodeNames = publicNodeNames ++ dn42NodeNames;
 
   # 双轨区域策略组：针对每个 Region 生成 <REGION>（公网）和 <REGION>-DN42（内网）
+  mkPublicRegionGroup = region: {
+    name = region;
+    type = "url-test";
+    url = cfg.healthCheckUrl;
+    interval = 300;
+    tolerance = 20;
+    proxies = map (node: node.name) (
+      lib.filter (node: builtins.elem region (getNodeRegions node)) cfg.nodes
+    );
+  };
+
+  mkDn42RegionGroup = region: {
+    name = "${region}-DN42";
+    type = "url-test";
+    url = cfg.healthCheckUrl;
+    interval = 120;
+    tolerance = 20;
+    proxies = map (node: "${node.name}-DN42") (
+      lib.filter (node: shouldGenDn42 node && builtins.elem region (getNodeRegions node)) cfg.nodes
+    );
+  };
+
+  publicRegionGroups = lib.filter (g: g.proxies != [ ]) (map mkPublicRegionGroup regionNames);
+  dn42RegionGroups = lib.filter (g: g.proxies != [ ]) (map mkDn42RegionGroup regionNames);
+
+  allRegionGroupNames = (map (g: g.name) publicRegionGroups) ++ (map (g: g.name) dn42RegionGroups);
 
   # 通用成员解析函数：
   # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
   # groups: 手动指定的群组名列表（支持引用策略组名如 UNLOCK、地区名如 JP，以及 "!HK" 排除语法）
   # expandGroups: 是否将群组展开为其所包含的底层节点
+  resolveMembers =
+    {
+      nodes ? [ ],
+      groups ? [ ],
+      expandGroups ? false,
+    }:
+    let
+      resolvedGroupNames = lib.concatMap (
+        g:
+        if lib.hasPrefix "!" g then
+          let
+            excluded = lib.removePrefix "!" g;
+          in
+          lib.filter (r: r != excluded && r != "${excluded}-DN42") allRegionGroupNames
+        else
+          [ g ]
+      ) groups;
+
+      expandedNodeNames =
+        if expandGroups then
+          lib.concatMap (
+            g:
+            if builtins.elem g regionNames then
+              map (n: n.name) (lib.filter (n: builtins.elem g (getNodeRegions n)) cfg.nodes)
+            else if lib.hasSuffix "-DN42" g && builtins.elem (lib.removeSuffix "-DN42" g) regionNames then
+              let
+                baseRegion = lib.removeSuffix "-DN42" g;
+              in
+              map (n: "${n.name}-DN42") (
+                lib.filter (n: shouldGenDn42 n && builtins.elem baseRegion (getNodeRegions n)) cfg.nodes
+              )
+            else
+              [ g ]
+          ) resolvedGroupNames
+        else
+          resolvedGroupNames;
+    in
+    lib.unique (nodes ++ expandedNodeNames);
+
+  mkUserGroup =
+    g:
+    let
+      resolvedProxies =
+        if g.proxies != [ ] then
+          g.proxies
+        else
+          resolveMembers {
+            inherit (g) nodes groups expandGroups;
+          };
+    in
+    if resolvedProxies == [ ] then
+      null
+    else
+      {
+        inherit (g)
+          name
+          type
+          url
+          interval
+          tolerance
+          ;
+        proxies = resolvedProxies;
+      };
+
+  userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
 
   # 三大汇总策略组：ALL, DN42-ONLY, PUBLIC-ONLY
@@ -172,10 +274,12 @@ let
           "PUBLIC-ONLY"
         ]
         ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
+        ++ (map (g: g.name) userGroupDefs)
+        ++ allRegionGroupNames
         ++ [ "DIRECT" ];
       }
 
-      # PROXY 规则代理主选择组：仅保留 全部、公网、DN42 三个核心汇总策略
+      # PROXY 规则代理主选择组：保留 全部、公网、DN42 以及用户自定义组与各地区组
       {
         name = "PROXY";
         type = "select";
@@ -184,32 +288,14 @@ let
           "PUBLIC-ONLY"
         ]
         ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY";
+        # ++ (map (g: g.name) userGroupDefs)
+        # ++ allRegionGroupNames;
       }
     ]
+    ++ userGroupDefs
     ++ summaryGroups
-    # ++ userGroupDefs
-    # ++ (if userGroupDefs == [ ] then aiUnlockGroup else [ ])
-    # ++ publicRegionGroups
-    # ++ dn42RegionGroups
-    # ++ [
-    #   {
-    #     name = "ALL-AUTO-FASTEST";
-    #     type = "url-test";
-    #     url = cfg.healthCheckUrl;
-    #     interval = 300;
-    #     tolerance = 20;
-    #     proxies = publicNodeNames;
-    #   }
-    #   {
-    #     name = "SPEED-BOOST";
-    #     type = "load-balance";
-    #     url = cfg.healthCheckUrl;
-    #     interval = 300;
-    #     strategy = "consistent-hashing";
-    #     proxies = publicNodeNames;
-    #   }
-    # ]
-    ;
+    ++ publicRegionGroups
+    ++ dn42RegionGroups;
 
     rules = [
       # 绕过本机的 microsocks / sing-box 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
@@ -326,7 +412,9 @@ let
       stack = "system";
       auto-redirect = true;
       auto-route = true;
-      auto-detect-interface = true;
+      # 必须设为 false：否则 Mihomo 会将所有代理出站强制绑定 (SO_BINDTODEVICE) 到默认网关物理网卡 (如 Wi-Fi/eth0)，
+      # 从而直接绕过内核路由表，导致发往 DN42 内网 SOCKS5 节点的包被错误扔给家用路由器丢弃
+      auto-detect-interface = false;
       inet4_route_address = [
         "0.0.0.0/1"
         "128.0.0.0/1"
@@ -486,16 +574,6 @@ in
                 type = lib.types.listOf lib.types.str;
                 default = [ ];
                 description = "所属地区（如 HK, JP, EU, US 等）";
-              };
-              tags = lib.mkOption {
-                type = lib.types.listOf lib.types.str;
-                default = [ ];
-                description = "节点标签，如 [ \"unlock\" \"ai\" ] 等";
-              };
-              unlock = lib.mkOption {
-                type = lib.types.bool;
-                default = false;
-                description = "是否直接标记为解锁节点";
               };
             };
           }

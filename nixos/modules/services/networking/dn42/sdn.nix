@@ -196,7 +196,10 @@ let
         if os.path.exists(COUNTRY_META_FILE):
             try:
                 with open(COUNTRY_META_FILE) as f:
-                    return json.load(f)
+                    meta = json.load(f)
+                    total_cidrs = sum(len(c.get("cidrs", [])) for c in meta.values())
+                    if total_cidrs > 0:
+                        return meta
             except Exception as e:
                 print(f"Warning: could not read {COUNTRY_META_FILE}: {e}")
 
@@ -205,6 +208,16 @@ let
         for iso, (lat, lon) in COUNTRY_CENTROIDS.items():
             cidr_file = os.path.join(COUNTRY_CIDR_DIR, f"{iso.lower()}.cidr")
             cidrs = []
+            if not os.path.exists(cidr_file) or os.path.getsize(cidr_file) == 0:
+                try:
+                    url = f"https://cdn.jsdelivr.net/gh/ipverse/country-ip-blocks@master/country/{iso.lower()}/ipv4-aggregated.txt"
+                    resp = requests.get(url, timeout=5)
+                    if resp.status_code == 200 and resp.text:
+                        with open(cidr_file, "w") as cf:
+                            cf.write(resp.text)
+                except Exception:
+                    pass
+
             if os.path.exists(cidr_file):
                 try:
                     with open(cidr_file) as f:
@@ -217,11 +230,13 @@ let
                     pass
             meta[iso] = {"lat": lat, "lon": lon, "cidrs": cidrs}
 
-        try:
-            with open(COUNTRY_META_FILE, "w") as f:
-                json.dump(meta, f, indent=2)
-        except Exception as e:
-            print(f"Warning: could not write {COUNTRY_META_FILE}: {e}")
+        total_cidrs = sum(len(c.get("cidrs", [])) for c in meta.values())
+        if total_cidrs > 0:
+            try:
+                with open(COUNTRY_META_FILE, "w") as f:
+                    json.dump(meta, f, indent=2)
+            except Exception as e:
+                print(f"Warning: could not write {COUNTRY_META_FILE}: {e}")
         return meta
 
 
@@ -333,10 +348,6 @@ let
                     + n["internal_rtt"],
                 )
 
-            if best_node["name"] == LOCAL_HOSTNAME:
-                lines.append(f"# {iso_code} -> local {LOCAL_HOSTNAME} (eth0)")
-                continue
-
             for cidr in cidrs:
                 lines.append(
                     f"route {cidr} via {best_node['dn42Ip']}; "
@@ -392,6 +403,18 @@ in
       description = "Whether this node acts as an SDN Controller (generates country routes and acts as iBGP Route Reflector)";
     };
 
+    enableClient = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200";
+    };
+
+    enableExit = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether this node acts as a public internet exit node (NAT masquerade) for forwarded traffic";
+    };
+
     controllers = mkOption {
       type = types.listOf types.str;
       default = defaultControllers;
@@ -437,7 +460,7 @@ in
 
   config = mkIf (baseCfg.enable && cfg.enable) {
     # ── 1. 注册内核路由表 200 (sdn_accel) ─────────────────────────────
-    networking.iproute2 = {
+    networking.iproute2 = mkIf cfg.enableClient {
       enable = true;
       rttablesExtraConfig = ''
         ${toString cfg.table} ${cfg.tableName}
@@ -478,9 +501,10 @@ in
           ip rule add to 172.20.0.0/14 lookup main priority 90
           ip rule add to 10.0.0.0/8 lookup main priority 90
 
-          # Priority 100: 所有公网流量优先查 table ${toString cfg.table} (${cfg.tableName})
-          # 若直连更快未下发路由，或集群故障导致表为空，自动 Fall-through 到 main 表走物理网卡直连！
-          ip rule add lookup ${cfg.tableName} priority 100
+          # Priority 100: 仅在启用客户端出站加速 (enableClient) 时，优先查 table ${toString cfg.table}
+          ${lib.optionalString cfg.enableClient ''
+            ip rule add lookup ${cfg.tableName} priority 100
+          ''}
 
           # IPv6 防环与策略路由
           while ip -6 rule del priority 80 2>/dev/null; do :; done
@@ -512,9 +536,13 @@ in
     };
 
     # ── 3. 全节点公网出口能力（Border + Internal 均可作出口 SNAT） ───
-    networking.nat = {
+    networking.nat = mkIf cfg.enableExit {
       enable = true;
       externalInterface = lib.mkDefault cfg.externalInterface;
+      internalIPs = [
+        "172.20.0.0/14"
+        "10.0.0.0/8"
+      ];
       internalInterfaces = [
         "xfrm+"
         "dn42+"
@@ -539,16 +567,34 @@ in
         };
       }
 
-      protocol kernel kernel_sdn {
-        kernel table ${toString cfg.table};
-        persist no;        # BIRD 退出时立即清空内核 table ${toString cfg.table}，毫秒级回退物理网卡
-        graceful restart;
-        ipv4 {
-          table sdn_table;
-          import none;
-          export all;
+      # 将 master4 中的 DN42 内网路由导入 sdn_table，供静态路由与 BGP 递归解析出口下一跳
+      protocol pipe pipe_sdn_dn42 {
+        table sdn_table;
+        peer table master4;
+        import filter {
+          if net ~ [ 172.20.0.0/14+, 10.0.0.0/8+ ] then accept;
+          reject;
         };
+        export none;
       }
+
+      ${lib.optionalString cfg.enableClient ''
+        protocol kernel kernel_sdn {
+          kernel table ${toString cfg.table};
+          persist no;        # BIRD 退出时立即清空内核 table ${toString cfg.table}，毫秒级回退物理网卡
+          graceful restart;
+          ipv4 {
+            table sdn_table;
+            import none;
+            export filter {
+              if proto = "pipe_sdn_dn42" then reject;
+              if gw = OWN_LOOPBACK_V4 then reject;
+              krt_prefsrc = OWN_LOOPBACK_V4;
+              accept;
+            };
+          };
+        }
+      ''}
 
       ${lib.optionalString cfg.isController ''
         # Controller 节点加载外部动态国家级路由表文件
@@ -568,6 +614,7 @@ in
           bfd on;
           ipv4 {
             table sdn_table;
+            igp table master4;
             import none;
             export where proto = "global_country_routes";
             next hop keep; # 保留各节点出口真实的 Loopback IP
@@ -591,6 +638,7 @@ in
           bfd on;
           ipv4 {
             table sdn_table;
+            igp table master4;
             import all;
             export none;
           };
@@ -661,12 +709,19 @@ in
       ];
       script = ''
         mkdir -p ${cfg.countryCidrDir}
-        # 如果国家 CIDR 目录未就绪，尝试从公开源拉取主要国家 CIDR
-        for code in de us jp hk gb fr sg ca au kr nl; do
+        # 如果国家 CIDR 目录未就绪，使用 jsDelivr CDN 从公开源拉取主要国家 CIDR
+        for code in de us jp hk gb fr sg ca au kr nl tw; do
           f="${cfg.countryCidrDir}/$code.cidr"
           if [ ! -s "$f" ]; then
-            echo "Fetching CIDR for $code..."
-            curl -sSfL "https://raw.githubusercontent.com/herrbischoff/country-ip-blocks/master/ipv4/$code.cidr" -o "$f" || true
+            echo "Fetching CIDR for $code via jsDelivr CDN..."
+            curl -sSfL "https://cdn.jsdelivr.net/gh/ipverse/country-ip-blocks@master/country/$code/ipv4-aggregated.txt" -o "$f.tmp" \
+              || curl -sSfL "https://raw.githubusercontent.com/ipverse/country-ip-blocks/master/country/$code/ipv4-aggregated.txt" -o "$f.tmp" \
+              || true
+            if [ -s "$f.tmp" ]; then
+              mv "$f.tmp" "$f"
+            else
+              rm -f "$f.tmp"
+            fi
           fi
         done
       '';
