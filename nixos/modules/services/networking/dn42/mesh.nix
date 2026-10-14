@@ -245,7 +245,10 @@ let
   );
 in
 {
-  imports = [ ./base.nix ];
+  imports = [
+    ./base.nix
+    ./sdn.nix
+  ];
 
   options.services.dn42.mesh = {
     enable = mkOption {
@@ -348,10 +351,44 @@ in
         description = "Run Babel IGP on mesh interfaces";
       };
 
+      type = mkOption {
+        type = types.enum [
+          "wireless"
+          "tunnel"
+          "wired"
+        ];
+        default = "wireless";
+        description = "Babel interface type ('wireless' activates ETX packet loss calculation)";
+      };
+
+      rxCost = mkOption {
+        type = types.int;
+        default = 256;
+        description = "Babel rx cost for interface";
+      };
+
+      helloInterval = mkOption {
+        type = types.int;
+        default = 2;
+        description = "Babel hello interval (seconds)";
+      };
+
+      updateInterval = mkOption {
+        type = types.int;
+        default = 8;
+        description = "Babel update interval (seconds)";
+      };
+
       rttMetric = mkOption {
         type = types.bool;
         default = true;
         description = "Enable Babel RTT-based metric (real-time latency + loss routing)";
+      };
+
+      rttCost = mkOption {
+        type = types.int;
+        default = 512;
+        description = "Babel RTT cost penalty added at rttMax";
       };
 
       rttMin = mkOption {
@@ -362,13 +399,13 @@ in
 
       rttMax = mkOption {
         type = types.int;
-        default = 1000;
+        default = 300;
         description = "Babel RTT max (ms)";
       };
 
       rttDecay = mkOption {
         type = types.int;
-        default = 120;
+        default = 84;
         description = "Babel RTT decay parameter";
       };
     };
@@ -567,11 +604,11 @@ in
           4500
           6696
         ];
-        extraCommands = optionalString (!config.networking.nftables.enable) ''
+        extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
           ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
         '';
-        extraInputRules = optionalString config.networking.nftables.enable ''
+        extraInputRules = mkIf config.networking.nftables.enable ''
           meta l4proto esp counter accept
           meta l4proto ah  counter accept
         '';
@@ -643,11 +680,11 @@ in
             scan time 10;
           }
 
-          # ── Direct 协议：只监听 dummy 'dn42' 接口导入 Loopback /32 与 /128 ──
+          # ── Direct 协议：只监听 dummy 'dn42'/'dummy0' 接口导入 Loopback /32 与 /128 ──
           protocol direct direct_dn42 {
             ipv4;
             ipv6;
-            interface "dn42";
+            interface "dn42", "dummy0";
           }
 
           # ── 内核路由同步（设置 krt_prefsrc 为本机 Loopback IP） ──────────
@@ -728,11 +765,15 @@ in
               import all;
               export filter babel_export_v6;
             };
-            # 兼容监听 IPsec (dn42x-*) 与 WireGuard (dn42m-*) 网卡
-            interface "dn42x-*", "dn42m-*" {
-              type tunnel;
+            # 兼容监听 IPsec (dn42x-*, xfrm*) 与 WireGuard (dn42m-*) 内部网卡，排除外部 eBGP 网卡
+            interface "dn42x-*", "dn42m-*", "xfrm*" {
+              type ${cfg.babel.type};
+              rxcost ${toString cfg.babel.rxCost};
+              hello interval ${toString cfg.babel.helloInterval} s;
+              update interval ${toString cfg.babel.updateInterval} s;
               ${optionalString cfg.babel.rttMetric ''
-                rtt cost 1024;
+                send timestamps yes;
+                rtt cost ${toString cfg.babel.rttCost};
                 rtt min ${toString cfg.babel.rttMin} ms;
                 rtt max ${toString cfg.babel.rttMax} ms;
                 rtt decay ${toString cfg.babel.rttDecay};

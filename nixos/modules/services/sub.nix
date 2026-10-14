@@ -6,56 +6,115 @@
 }:
 let
   cfg = config.services.subscriptionPublisher;
+  domain = config.networking.domain;
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
-  regionNames = [
-    "HK"
-    "JP"
-    "EU"
-    "US"
-  ];
 
-  mkNode = node: {
-    inherit (node) name server port;
-    type = "vless";
-    uuid = config.sops.placeholder."xray/uuid";
-    network = "tcp";
-    tls = true;
+  selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
+  allHostsData = selfData.hosts or { };
+
+  # 从 server 字段提取主机名标识符（如 "fra0.dora.im" -> "fra0", "fra0" -> "fra0"）
+  serverHost = server: lib.head (lib.splitString "." server);
+
+  # 从主机名或 server 字段提取区域标识（如 "tyo0" -> "TYO", "fra0" -> "FRA", "hkg5" -> "HKG"）
+  extractRegion =
+    serverName:
+    let
+      base = serverHost serverName;
+      matched = builtins.match "([a-zA-Z]+)[0-9]*" base;
+    in
+    lib.toUpper (if matched != null then builtins.head matched else base);
+
+  getNodeRegions =
+    node: if node.regions != [ ] then node.regions else [ (extractRegion node.server) ];
+
+  # 动态提取并去重的 regionNames 列表（无需手动硬编码）
+  regionNames = lib.unique (lib.concatMap getNodeRegions cfg.nodes);
+
+  publicServer = server: if lib.hasInfix "." server then server else "${server}.${domain}";
+
+  dn42Server = server: "${serverHost server}.dn42";
+
+  # 判断节点是否自动裂变为 DN42 节点（例如中转节点 *-kxy 不自动生成 DN42）
+  shouldGenDn42 = node: node.enableDn42 && !lib.hasInfix "kxy" node.name;
+
+  # 公网直连节点（VLESS Reality 或 Shadowsocks）
+  mkPublicNode =
+    node:
+    let
+      server = publicServer node.server;
+      nodeType = node.type or "vless";
+    in
+    if nodeType == "ss" then
+      {
+        inherit (node) name port;
+        type = "ss";
+        inherit server;
+        cipher = node.cipher or "2022-blake3-aes-128-gcm";
+        password = if node.password != null then node.password else config.sops.placeholder."xray/uuid";
+        udp = true;
+      }
+    else
+      {
+        inherit (node) name port;
+        type = "vless";
+        inherit server;
+        uuid = config.sops.placeholder."xray/uuid";
+        network = "tcp";
+        tls = true;
+        udp = true;
+        flow = "xtls-rprx-vision";
+        servername = cfg.serverName;
+        reality-opts = {
+          public-key = config.sops.placeholder."xray/public_key";
+          short-id = config.sops.placeholder."xray/short_id";
+        };
+        client-fingerprint = "chrome";
+      };
+
+  # DN42 内网节点：因内部网络天然受 WireGuard/XFRM 隧道加密，直接使用高性能免加密 SOCKS5 协议
+  mkDn42Node = node: {
+    name = "${node.name}-DN42";
+    server = dn42Server node.server;
+    port = if node.socksPort != null then node.socksPort else cfg.socksPort;
+    type = "socks5";
     udp = true;
-    flow = "xtls-rprx-vision";
-    servername = cfg.serverName;
-    reality-opts = {
-      public-key = config.sops.placeholder."xray/public_key";
-      short-id = config.sops.placeholder."xray/short_id";
-    };
-    client-fingerprint = "chrome";
   };
 
-  # easyTierProxy = {
-  #   name = "EasyTier-Socks";
-  #   type = "socks5";
-  #   server = "127.0.0.1";
-  #   port = 12223;
-  #   udp = true;
-  # };
+  publicNodes = map mkPublicNode cfg.nodes;
+  dn42Nodes = map mkDn42Node (lib.filter shouldGenDn42 cfg.nodes);
+  allProxies = publicNodes ++ dn42Nodes;
 
-  mkRegionGroup = region: {
+  publicNodeNames = map (n: n.name) publicNodes;
+  dn42NodeNames = map (n: n.name) dn42Nodes;
+  allNodeNames = publicNodeNames ++ dn42NodeNames;
+
+  # 双轨区域策略组：针对每个 Region 生成 <REGION>（公网）和 <REGION>-DN42（内网）
+  mkPublicRegionGroup = region: {
     name = region;
     type = "url-test";
     url = cfg.healthCheckUrl;
     interval = 300;
     tolerance = 20;
-    proxies = map (node: node.name) (lib.filter (node: builtins.elem region node.regions) cfg.nodes);
+    proxies = map (node: node.name) (
+      lib.filter (node: builtins.elem region (getNodeRegions node)) cfg.nodes
+    );
   };
 
-  regionGroups = lib.filter (group: group != null) (
-    map (
-      region:
-      let
-        proxies = map (node: node.name) (lib.filter (node: builtins.elem region node.regions) cfg.nodes);
-      in
-      if proxies == [ ] then null else mkRegionGroup region
-    ) regionNames
-  );
+  mkDn42RegionGroup = region: {
+    name = "${region}-DN42";
+    type = "url-test";
+    url = cfg.healthCheckUrl;
+    interval = 120;
+    tolerance = 20;
+    proxies = map (node: "${node.name}-DN42") (
+      lib.filter (node: shouldGenDn42 node && builtins.elem region (getNodeRegions node)) cfg.nodes
+    );
+  };
+
+  publicRegionGroups = lib.filter (g: g.proxies != [ ]) (map mkPublicRegionGroup regionNames);
+  dn42RegionGroups = lib.filter (g: g.proxies != [ ]) (map mkDn42RegionGroup regionNames);
+
+  allRegionGroupNames = (map (g: g.name) publicRegionGroups) ++ (map (g: g.name) dn42RegionGroups);
 
   # 通用成员解析函数：
   # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
@@ -74,7 +133,7 @@ let
           let
             excluded = lib.removePrefix "!" g;
           in
-          lib.filter (r: r != excluded) regionNames
+          lib.filter (r: r != excluded && r != "${excluded}-DN42") allRegionGroupNames
         else
           [ g ]
       ) groups;
@@ -84,7 +143,14 @@ let
           lib.concatMap (
             g:
             if builtins.elem g regionNames then
-              map (n: n.name) (lib.filter (n: builtins.elem g n.regions) cfg.nodes)
+              map (n: n.name) (lib.filter (n: builtins.elem g (getNodeRegions n)) cfg.nodes)
+            else if lib.hasSuffix "-DN42" g && builtins.elem (lib.removeSuffix "-DN42" g) regionNames then
+              let
+                baseRegion = lib.removeSuffix "-DN42" g;
+              in
+              map (n: "${n.name}-DN42") (
+                lib.filter (n: shouldGenDn42 n && builtins.elem baseRegion (getNodeRegions n)) cfg.nodes
+              )
             else
               [ g ]
           ) resolvedGroupNames
@@ -121,6 +187,57 @@ let
   userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
 
+  # 三大汇总策略组：ALL, DN42-ONLY, PUBLIC-ONLY
+  summaryGroups = [
+    {
+      name = "ALL";
+      type = "url-test";
+      url = cfg.healthCheckUrl;
+      interval = 300;
+      tolerance = 20;
+      proxies = allNodeNames;
+    }
+  ]
+  ++ lib.optional (dn42NodeNames != [ ]) {
+    name = "DN42-ONLY";
+    type = "url-test";
+    url = cfg.healthCheckUrl;
+    interval = 120;
+    tolerance = 20;
+    proxies = dn42NodeNames;
+  }
+  ++ [
+    {
+      name = "PUBLIC-ONLY";
+      type = "url-test";
+      url = cfg.healthCheckUrl;
+      interval = 300;
+      tolerance = 20;
+      proxies = publicNodeNames;
+    }
+  ];
+
+  # 当用户未自定义 AI 规则时，默认创建的非 HK AI/流媒体专用组（优先走 DN42 节点）
+  nonHkGroups =
+    (builtins.filter (n: !(lib.hasPrefix "HK" n)) (map (g: g.name) dn42RegionGroups))
+    ++ (builtins.filter (n: !(lib.hasPrefix "HK" n)) (map (g: g.name) publicRegionGroups));
+
+  aiUnlockGroup = lib.optional (nonHkGroups != [ ]) {
+    name = "AI-UNLOCK";
+    type = "select";
+    proxies = nonHkGroups;
+  };
+
+  # 自动提取所有节点 *.dn42 映射字典，直接写入 Mihomo hosts 配置
+  dn42HostsMapping = lib.foldr (
+    name: acc:
+    let
+      hData = allHostsData.${name} or { };
+      v4s = hData.dn42_addresses_v4 or [ ];
+    in
+    if v4s != [ ] then acc // { "${name}.dn42" = lib.head v4s; } else acc
+  ) { } (builtins.attrNames allHostsData);
+
   mihomoConfig = {
     mixed-port = 7890;
     mode = "Rule";
@@ -137,47 +254,58 @@ let
     external-ui = "./dashboard";
     redir-port = 9797;
     tproxy-port = 9898;
-    #external-ui-url = "https://codeload.github.com/MetaCubeX/metacubexd/zip/refs/heads/gh-pages";
-    #external-ui-name = "metacubexd";
     secret = "";
 
-    # proxies = map mkNode cfg.nodes ++ [ easyTierProxy ];
-    proxies = map mkNode cfg.nodes;
+    # 注入内网 *.dn42 hosts 解析，确保所有订阅客户端秒级直达 DN42 Loopback IP
+    hosts = dn42HostsMapping;
 
-    proxy-groups =
-      regionGroups
-      ++ userGroupDefs
-      ++ [
-        {
-          name = "ALL-AUTO-FASTEST";
-          type = "url-test";
-          url = cfg.healthCheckUrl;
-          interval = 300;
-          tolerance = 20;
-          proxies = map (node: node.name) cfg.nodes;
-        }
-        {
-          name = "SPEED-BOOST";
-          type = "load-balance";
-          url = cfg.healthCheckUrl;
-          interval = 300;
-          strategy = "consistent-hashing";
-          proxies = map (node: node.name) cfg.nodes;
-        }
-        {
-          name = "PROXY";
-          type = "select";
-          proxies = [
-            "ALL-AUTO-FASTEST"
-            "SPEED-BOOST"
-          ];
-        }
-      ];
+    # 包含公网节点及 DN42 SOCKS5 节点
+    proxies = allProxies;
+
+    proxy-groups = [
+      # 主选择组：第一位放 DIRECT！
+      # 当选中 DIRECT 时，常规流量直接穿透 Mihomo 交给 Linux 内核 table 200 (DN42 L3 就近加速 + eth0 容灾)
+      {
+        name = "PROXY";
+        type = "select";
+        proxies = [
+          "DIRECT"
+          "ALL"
+        ]
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
+        ++ [ "PUBLIC-ONLY" ]
+        ++ allRegionGroupNames;
+      }
+    ]
+    ++ userGroupDefs
+    ++ (if userGroupDefs == [ ] then aiUnlockGroup else [ ])
+    ++ publicRegionGroups
+    ++ dn42RegionGroups
+    ++ summaryGroups
+    ++ [
+      {
+        name = "ALL-AUTO-FASTEST";
+        type = "url-test";
+        url = cfg.healthCheckUrl;
+        interval = 300;
+        tolerance = 20;
+        proxies = publicNodeNames;
+      }
+      {
+        name = "SPEED-BOOST";
+        type = "load-balance";
+        url = cfg.healthCheckUrl;
+        interval = 300;
+        strategy = "consistent-hashing";
+        proxies = publicNodeNames;
+      }
+    ];
 
     rules = [
-      # 绕过本机的 microsocks 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
+      # 绕过本机的 microsocks / sing-box 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
       "UID,999,DIRECT"
       "PROCESS-NAME,microsocks,DIRECT"
+      "PROCESS-NAME,sing-box,DIRECT"
 
       # 防环路与直连放行：IPsec/IKE (charon) 与 BIRD 路由守护进程
       "PROCESS-NAME,charon,DIRECT"
@@ -193,14 +321,11 @@ let
       "DST-PORT,22,DIRECT"
       "DST-PORT,1022,DIRECT"
 
-      # DN42 专用内网段直连，不走外部代理
+      # DN42 专用内网段直连，交由内核 Babel 路由表处理，绝不进代理环路
       "IP-CIDR,172.20.0.0/14,DIRECT,no-resolve"
       "IP-CIDR,172.31.0.0/16,DIRECT,no-resolve"
       "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
       "IP-CIDR,fd00::/8,DIRECT,no-resolve"
-
-      # 防环路，直接放行 EasyTier 核心进程
-      # "PROCESS-NAME,easytier-core,DIRECT"
 
       # PT 与特殊业务直连
       "DOMAIN-KEYWORD,m-team,DIRECT"
@@ -218,10 +343,6 @@ let
       "GEOSITE,category-ads-all,REJECT"
       "GEOIP,ad,REJECT,no-resolve"
 
-      # EasyTier 专属路由与沙盒隔离
-      # "DOMAIN-SUFFIX,et,EasyTier-Socks"
-      # "IP-CIDR,10.100.0.0/24,EasyTier-Socks,no-resolve"
-
       # 局域网直连，防误伤
       "GEOSITE,private,DIRECT"
       "GEOIP,private,DIRECT,no-resolve"
@@ -230,8 +351,19 @@ let
       "AND,((NETWORK,UDP),(DST-PORT,443),(OR,((GEOSITE,geolocation-!cn),(NOT,((GEOIP,cn)))))),REJECT"
     ]
     ++ userGroupRules
+    ++ (
+      if userGroupRules == [ ] then
+        [
+          "GEOSITE,openai,AI-UNLOCK"
+          "GEOSITE,anthropic,AI-UNLOCK"
+          "GEOSITE,google-gemini,AI-UNLOCK"
+          "GEOSITE,netflix,AI-UNLOCK"
+        ]
+      else
+        [ ]
+    )
     ++ [
-      # 国外域名与非国内 IP，全走代理
+      # 国外域名与非国内 IP，全走代理（当 PROXY 选 DIRECT 时，全部交由内核 L3 路由表按国家就近加速或走 eth0）
       "GEOSITE,geolocation-!cn,PROXY"
       "AND,((NOT,((GEOIP,cn))),(NOT,((GEOIP,private)))),PROXY"
       "GEOSITE,google,PROXY"
@@ -361,11 +493,12 @@ let
     map (
       node:
       let
+        server = publicServer node.server;
         safeName = lib.replaceStrings [ " " "#" "%" ] [ "-" "-" "-" ] node.name;
       in
       "vless://${
         config.sops.placeholder."xray/uuid"
-      }@${node.server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=chrome&type=tcp&flow=xtls-rprx-vision&pbk=${
+      }@${server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=chrome&type=tcp&flow=xtls-rprx-vision&pbk=${
         config.sops.placeholder."xray/public_key"
       }&sid=${config.sops.placeholder."xray/short_id"}#${safeName}"
     ) cfg.nodes
@@ -393,14 +526,51 @@ in
       description = "URL used by URL-test and load-balance groups.";
     };
 
+    socksPort = lib.mkOption {
+      type = lib.types.port;
+      default = 1080;
+      description = "Default SOCKS5 port for DN42 internal nodes.";
+    };
+
     nodes = lib.mkOption {
       type = lib.types.listOf (
         lib.types.submodule (
           { ... }: {
             options = {
               name = lib.mkOption { type = lib.types.str; };
-              server = lib.mkOption { type = lib.types.str; };
+              server = lib.mkOption {
+                type = lib.types.str;
+                description = "Server hostname (e.g. fra0) or FQDN (e.g. cu.dora.im)";
+              };
               port = lib.mkOption { type = lib.types.port; };
+              socksPort = lib.mkOption {
+                type = lib.types.nullOr lib.types.port;
+                default = null;
+                description = "Custom SOCKS5 port for DN42 node (defaults to cfg.socksPort)";
+              };
+              enableDn42 = lib.mkOption {
+                type = lib.types.bool;
+                default = true;
+                description = "Whether to auto-generate a DN42 SOCKS5 proxy node (auto-disabled if name contains kxy)";
+              };
+              type = lib.mkOption {
+                type = lib.types.enum [
+                  "vless"
+                  "ss"
+                ];
+                default = "vless";
+                description = "Public proxy protocol";
+              };
+              cipher = lib.mkOption {
+                type = lib.types.str;
+                default = "2022-blake3-aes-128-gcm";
+                description = "Shadowsocks cipher if type is ss";
+              };
+              password = lib.mkOption {
+                type = lib.types.nullOr lib.types.str;
+                default = null;
+                description = "Shadowsocks password if type is ss";
+              };
               regions = lib.mkOption {
                 type = lib.types.listOf lib.types.str;
                 default = [ ];

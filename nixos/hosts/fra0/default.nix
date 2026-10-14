@@ -139,7 +139,7 @@
     nodes = [
       {
         name = "fra0";
-        server = "fra0.dora.im";
+        server = "fra0";
         port = 8555;
         regions = [ "EU" ];
       }
@@ -151,7 +151,7 @@
       }
       {
         name = "fra1";
-        server = "fra1.dora.im";
+        server = "fra1";
         port = 8555;
         regions = [ "EU" ];
       }
@@ -163,7 +163,7 @@
       }
       {
         name = "tyo0";
-        server = "tyo0.dora.im";
+        server = "tyo0";
         port = 8555;
         regions = [ "JP" ];
       }
@@ -175,7 +175,7 @@
       }
       {
         name = "tyo1";
-        server = "tyo1.dora.im";
+        server = "tyo1";
         port = 8555;
         regions = [ "JP" ];
       }
@@ -187,13 +187,13 @@
       }
       {
         name = "sjc0";
-        server = "sjc0.dora.im";
+        server = "sjc0";
         port = 8555;
         regions = [ "US" ];
       }
       {
         name = "hkg0";
-        server = "hkg0.dora.im";
+        server = "hkg0";
         port = 8555;
         regions = [ "HK" ];
       }
@@ -205,7 +205,7 @@
       }
       {
         name = "hkg5";
-        server = "hkg5.dora.im";
+        server = "hkg5";
         port = 8555;
         regions = [ "HK" ];
       }

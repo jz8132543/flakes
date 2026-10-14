@@ -7,7 +7,7 @@
   ...
 }:
 let
-  version = "93129e163377f0ce292471c6f202f8eaf40106d1-p1";
+  version = "93129e163377f0ce292471c6f202f8eaf40106d1-p2";
   src = fetchFromGitHub {
     owner = "VJBots";
     repo = "VJ-Save-Restricted-Content";
@@ -57,6 +57,17 @@ pkgs.stdenv.mkDerivation {
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
     print("Successfully patched TechVJ/start.py for query parameters and format handling")
+
+    cfg_path = os.path.join(os.environ["out"], "config.py")
+    with open(cfg_path, "r", encoding="utf-8") as f:
+        cfg = f.read()
+    cfg = cfg.replace(
+        "LOGIN_SYSTEM = bool(os.environ.get('LOGIN_SYSTEM', True))",
+        "LOGIN_SYSTEM = str(os.environ.get('LOGIN_SYSTEM', 'True')).strip().lower() in ('true', '1', 't', 'yes')"
+    )
+    with open(cfg_path, "w", encoding="utf-8") as f:
+        f.write(cfg)
+    print("Successfully patched config.py for LOGIN_SYSTEM boolean parsing")
     PYEOF
 
         cat > "$out/Dockerfile" <<'EOF'
@@ -68,6 +79,8 @@ pkgs.stdenv.mkDerivation {
         ffmpeg \
         libsm6 \
         libxext6 \
+        build-essential \
+        python3-dev \
         && rm -rf /var/lib/apt/lists/*
 
     WORKDIR /app
@@ -77,7 +90,7 @@ pkgs.stdenv.mkDerivation {
     # Copy requirements and install
     COPY requirements.txt .
     RUN pip3 install --no-cache-dir -U pip && \
-        pip3 install --no-cache-dir -U -r requirements.txt
+        pip3 install --no-cache-dir -r requirements.txt
 
     # Copy application code
     COPY . .

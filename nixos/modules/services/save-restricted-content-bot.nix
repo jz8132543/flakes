@@ -27,15 +27,9 @@ in
   # 只在镜像不存在时才构建，源码版本变更时 tag 变化会触发重建
   systemd.services.podman-build-save-restricted-content-bot = {
     description = "Build Save Restricted Content Bot container image using Podman";
-    # 必须在容器服务启动前完成
     before = [ "podman-save-restricted-content-bot.service" ];
-    # 确保 podman 服务本身可用（socket/daemon 已启动），否则无法运行 podman build
-    requires = [ "podman.service" ];
     wants = [ "network-online.target" ];
-    after = [
-      "network-online.target"
-      "podman.service"
-    ];
+    after = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
     unitConfig = {
       StartLimitIntervalSec = 0;
@@ -50,8 +44,8 @@ in
           echo "Building image ${imageTag} from ${botSrc}..."
           ${pkgs.podman}/bin/podman build \
             --tag ${imageTag} \
-            --file ${pkgs.save-restricted-content-bot}/Dockerfile \
-            ${pkgs.save-restricted-content-bot}
+            --file ${botSrc}/Dockerfile \
+            ${botSrc}
         else
           echo "Image ${imageTag} already exists, skipping build."
         fi
@@ -63,7 +57,11 @@ in
   virtualisation.oci-containers.containers.save-restricted-content-bot = {
     image = imageTag;
     # 使用 host 网络，容器内可直连 127.0.0.1:27017 的 MongoDB
-    extraOptions = [ "--network=host" ];
+    # --pull=never 严禁 podman 尝试从外部 registry (localhost) 拉取本地构建的镜像
+    extraOptions = [
+      "--network=host"
+      "--pull=never"
+    ];
     # 从 sops template 注入环境变量
     environmentFiles = [
       config.sops.templates."save-restricted-content-bot".path
@@ -71,15 +69,26 @@ in
     dependsOn = [ "mongodb" ]; # podman 会自动确保 mongodb 容器先启动
   };
 
-  # 确保容器服务在镜像构建完成后才启动
+  # 确保容器服务在启动前镜像必然存在，并等待 sops secrets 与依赖服务就绪
   systemd.services.podman-save-restricted-content-bot = {
+    preStart = ''
+      if ! ${pkgs.podman}/bin/podman image exists ${imageTag}; then
+        echo "Image ${imageTag} not found locally, building from ${botSrc}..."
+        ${pkgs.podman}/bin/podman build \
+          --tag ${imageTag} \
+          --file ${botSrc}/Dockerfile \
+          ${botSrc}
+      fi
+    '';
     after = [
       "podman-build-save-restricted-content-bot.service"
       "podman-mongodb.service"
+      "sops-install-secrets.service"
+      "network-online.target"
     ];
     requires = [
-      "podman-build-save-restricted-content-bot.service"
       "podman-mongodb.service"
+      "sops-install-secrets.service"
     ];
   };
 
