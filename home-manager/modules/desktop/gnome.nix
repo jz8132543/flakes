@@ -75,7 +75,6 @@ in
     ]
     ++ (with pkgs; [
       blackbox-terminal
-      kdePackages.dolphin
       gnome-tweaks
       seahorse
     ])
@@ -301,6 +300,14 @@ in
       name = "capitaine-cursors-white";
       package = pkgs.capitaine-cursors;
     };
+    gtk3.bookmarks = [
+      "file://${config.home.homeDirectory}/.local/XDG/Desktop 桌面"
+      "file://${config.home.homeDirectory}/.local/XDG/Documents"
+      "file://${config.home.homeDirectory}/.local/XDG/Downloads"
+      "file://${config.home.homeDirectory}/.local/XDG/Music"
+      "file://${config.home.homeDirectory}/.local/XDG/Pictures"
+      "file://${config.home.homeDirectory}/.local/XDG/Videos"
+    ];
   };
   qt = {
     enable = true;

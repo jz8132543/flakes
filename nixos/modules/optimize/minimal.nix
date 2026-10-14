@@ -69,6 +69,52 @@ in
         options = lib.mkDefault "--delete-older-than 1d";
       };
 
+      boot.loader.grub.configurationLimit = lib.mkForce 2;
+      boot.loader.systemd-boot.configurationLimit = lib.mkForce 2;
+
+      # 每次切换系统（无论是本地构建还是 colmena 等远程推送）后执行：
+      # 1. 动态判断启用的 bootloader (grub / systemd-boot) 读取其 configurationLimit 值
+      # 2. 读取 nix.settings.min-free，如果当前 /nix/store 剩余空间低于 min-free，则直接清理所有历史版本
+      # 3. 如果空间充足，则修剪保留最新的 limit 个 generation，并立即触发 GC 回收旧代数
+      system.activationScripts.pruneOldGenerationsAndGc =
+        let
+          grubCfg = config.boot.loader.grub;
+          systemdBootCfg = config.boot.loader.systemd-boot;
+          limit =
+            if grubCfg.enable && (grubCfg.configurationLimit != null) then
+              grubCfg.configurationLimit
+            else if systemdBootCfg.enable && (systemdBootCfg.configurationLimit != null) then
+              systemdBootCfg.configurationLimit
+            else
+              2;
+          minFreeBytes =
+            let
+              mf = config.nix.settings.min-free or null;
+            in
+            if mf != null then mf else (5 * 1024 * 1024 * 1024);
+        in
+        {
+          supportsDryActivation = false;
+          text = ''
+            if [ -e /nix/var/nix/profiles/system ]; then
+              FREE_BYTES=$(${pkgs.coreutils}/bin/df -B1 --output=avail /nix/store 2>/dev/null | ${pkgs.coreutils}/bin/tail -n 1 | ${pkgs.coreutils}/bin/tr -d ' ')
+              THRESHOLD_BYTES=${toString minFreeBytes}
+
+              if [ -n "$FREE_BYTES" ] && [ "$FREE_BYTES" -lt "$THRESHOLD_BYTES" ]; then
+                echo "[auto-gc] Free disk space ($FREE_BYTES bytes) is below min-free threshold ($THRESHOLD_BYTES bytes)!"
+                echo "[auto-gc] Purging ALL older system generations..."
+                ${config.nix.package}/bin/nix-env -p /nix/var/nix/profiles/system --delete-generations old || true
+              else
+                echo "[auto-gc] Free disk space is healthy. Keeping latest ${toString limit} generations..."
+                ${config.nix.package}/bin/nix-env -p /nix/var/nix/profiles/system --delete-generations +${toString limit} || true
+              fi
+
+              echo "[auto-gc] Collecting garbage..."
+              ${config.nix.package}/bin/nix-collect-garbage || true
+            fi
+          '';
+        };
+
       # 5. 禁用不必要的硬件固件 (针对虚拟机优化)
       hardware.enableRedistributableFirmware = lib.mkForce false;
 

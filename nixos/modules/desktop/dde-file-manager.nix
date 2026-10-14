@@ -6,8 +6,7 @@
 let
   dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin;
 
-  # 修复 dde-file-manager 的 DBus 调用问题
-  # 原脚本调用不存在的 Open 方法，应使用 ShowFolders
+  # 修复 dde-file-manager 的 DBus 调用问题，并保留完整的 desktop 与 icon 资源
   dde-file-manager-fixed =
     pkgs.runCommandLocal "dde-file-manager-fixed"
       {
@@ -15,13 +14,27 @@ let
         nativeBuildInputs = [ pkgs.makeWrapper ];
       }
       ''
-        mkdir -p $out/bin
-        cp ${dde-pkgs.dde-file-manager}/bin/dde-file-manager $out/bin/dde-file-manager
+        mkdir -p $out
+        cp -a ${dde-pkgs.dde-file-manager}/* $out/
+        chmod -R u+w $out
         substituteInPlace $out/bin/dde-file-manager \
           --replace-fail 'org.freedesktop.FileManager1.Open' 'org.freedesktop.FileManager1.ShowFolders' \
           --replace-fail 'array:string:"$dbus_args_str"' 'array:string:"$dbus_args_str" string:""'
         wrapProgram $out/bin/dde-file-manager \
-          --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils ]}
+          --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils ]}:$out/bin
+
+        # 修复 desktop 文件中的 Exec 绝对路径，使其指向 Nix 包装后的二进制
+        substituteInPlace $out/share/applications/dde-file-manager.desktop \
+          --replace-fail '/usr/bin/dde-file-manager' "$out/bin/dde-file-manager"
+
+        # 添加搜索关键字，支持在应用搜索中通过 dde、deepin、文件、深度 等关键词检索
+        echo "Keywords=dde;deepin;file;files;manager;" >> $out/share/applications/dde-file-manager.desktop
+        echo "Keywords[zh_CN]=dde;deepin;文件;文件管理器;深度;" >> $out/share/applications/dde-file-manager.desktop
+
+        # 拷贝 SVG 图标到标准 hicolor 路径，确保 GNOME Dock 和启动器可以正确渲染图标
+        mkdir -p $out/share/icons/hicolor/scalable/apps
+        cp $out/share/deepin-manual/manual-assets/application/dde-file-manager/file-manager/common/dde-file-manager.svg \
+          $out/share/icons/hicolor/scalable/apps/dde-file-manager.svg
       '';
 in
 {
