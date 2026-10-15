@@ -490,16 +490,16 @@ in
           while ip rule del priority 82 2>/dev/null; do :; done
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
+          while ip rule del priority 8980 2>/dev/null; do :; done
+          while ip rule del priority 9999 2>/dev/null; do :; done
 
           # Priority 79: 豁免所有集群节点的公网 IP 强制查 main 表，彻底杜绝底层通信误入 table 200
           ${lib.concatMapStringsSep "\n" (
             ip: "ip rule add to ${ip}/32 lookup main priority 79"
           ) allClusterPublicIps}
 
-          # Priority 80-82: 豁免 strongSwan (ESP / IKE UDP 34500,4500,500) 与外部 WireGuard 加密底包，强制查 main 表走物理网卡
+          # Priority 80-82: 豁免 strongSwan (ESP / IKE UDP 4500,500) 与外部 WireGuard 加密底包，强制查 main 表走物理网卡
           ip rule add ipproto esp lookup main priority 80
-          ip rule add ipproto udp dport 34500 lookup main priority 81
-          ip rule add ipproto udp sport 34500 lookup main priority 81
           ip rule add ipproto udp dport 4500 lookup main priority 81
           ip rule add ipproto udp sport 4500 lookup main priority 81
           ip rule add ipproto udp dport 500 lookup main priority 81
@@ -510,9 +510,14 @@ in
           ip rule add to 172.20.0.0/14 lookup main priority 90
           ip rule add to 10.0.0.0/8 lookup main priority 90
 
-          # Priority 100: 仅在启用客户端出站加速 (enableClient) 时，优先查 table ${toString cfg.table}
+          # Priority 8980: 允许打有 fwmark 0x1 的代理出站流量（如 Mihomo DIRECT）优先查 table 200 (sdn_accel) 实现 DN42 全局出海
           ${lib.optionalString cfg.enableClient ''
-            ip rule add lookup ${cfg.tableName} priority 100
+            ip rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
+          ''}
+
+          # Priority 9999: 当 Mihomo 未启动（或流量未被 TUN 捕获）时，所有本地与转发流量查 table 200 (sdn_accel) 直通 DN42
+          ${lib.optionalString cfg.enableClient ''
+            ip rule add lookup ${cfg.tableName} priority 9999
           ''}
 
           # IPv6 防环与策略路由
@@ -521,20 +526,26 @@ in
           while ip -6 rule del priority 81 2>/dev/null; do :; done
           while ip -6 rule del priority 82 2>/dev/null; do :; done
           while ip -6 rule del priority 90 2>/dev/null; do :; done
+          while ip -6 rule del priority 100 2>/dev/null; do :; done
+          while ip -6 rule del priority 8980 2>/dev/null; do :; done
+          while ip -6 rule del priority 9999 2>/dev/null; do :; done
 
           ${lib.concatMapStringsSep "\n" (
             ip: "ip -6 rule add to ${ip}/128 lookup main priority 79"
           ) allClusterPublicV6s}
 
           ip -6 rule add ipproto esp lookup main priority 80
-          ip -6 rule add ipproto udp dport 34500 lookup main priority 81
-          ip -6 rule add ipproto udp sport 34500 lookup main priority 81
           ip -6 rule add ipproto udp dport 4500 lookup main priority 81
           ip -6 rule add ipproto udp sport 4500 lookup main priority 81
           ip -6 rule add ipproto udp dport 500 lookup main priority 81
           ip -6 rule add ipproto udp sport 500 lookup main priority 81
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
+
+          ${lib.optionalString cfg.enableClient ''
+            ip -6 rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
+            ip -6 rule add lookup ${cfg.tableName} priority 9999
+          ''}
         '';
         ExecStop = pkgs.writeShellScript "sdn-policy-routing-stop" ''
           while ip rule del priority 79 2>/dev/null; do :; done
@@ -543,11 +554,16 @@ in
           while ip rule del priority 82 2>/dev/null; do :; done
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
+          while ip rule del priority 8980 2>/dev/null; do :; done
+          while ip rule del priority 9999 2>/dev/null; do :; done
           while ip -6 rule del priority 79 2>/dev/null; do :; done
           while ip -6 rule del priority 80 2>/dev/null; do :; done
           while ip -6 rule del priority 81 2>/dev/null; do :; done
           while ip -6 rule del priority 82 2>/dev/null; do :; done
           while ip -6 rule del priority 90 2>/dev/null; do :; done
+          while ip -6 rule del priority 100 2>/dev/null; do :; done
+          while ip -6 rule del priority 8980 2>/dev/null; do :; done
+          while ip -6 rule del priority 9999 2>/dev/null; do :; done
           ip route flush table ${toString cfg.table} 2>/dev/null || true
         '';
       };
