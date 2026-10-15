@@ -65,6 +65,16 @@ let
 
   clusterNodesJson = builtins.toJSON (lib.filter (n: n.dn42Ip != null) clusterNodes);
 
+  allClusterPublicIps = lib.unique (
+    lib.filter (
+      ip: ip != null && ip != "" && (builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$" ip != null)
+    ) ((map (e: e.ipv4 or null) edgeNodes) ++ (map (n: n.publicHost) clusterNodes))
+  );
+
+  allClusterPublicV6s = lib.unique (
+    lib.filter (ip: ip != null && ip != "" && (lib.hasInfix ":" ip)) (map (e: e.ipv6 or null) edgeNodes)
+  );
+
   pythonEnv = pkgs.python3.withPackages (
     ps: with ps; [
       geoip2
@@ -208,17 +218,7 @@ let
         for iso, (lat, lon) in COUNTRY_CENTROIDS.items():
             cidr_file = os.path.join(COUNTRY_CIDR_DIR, f"{iso.lower()}.cidr")
             cidrs = []
-            if not os.path.exists(cidr_file) or os.path.getsize(cidr_file) == 0:
-                try:
-                    url = f"https://cdn.jsdelivr.net/gh/ipverse/country-ip-blocks@master/country/{iso.lower()}/ipv4-aggregated.txt"
-                    resp = requests.get(url, timeout=5)
-                    if resp.status_code == 200 and resp.text:
-                        with open(cidr_file, "w") as cf:
-                            cf.write(resp.text)
-                except Exception:
-                    pass
-
-            if os.path.exists(cidr_file):
+            if os.path.exists(cidr_file) and os.path.getsize(cidr_file) > 0:
                 try:
                     with open(cidr_file) as f:
                         cidrs = [
@@ -228,7 +228,8 @@ let
                         ]
                 except Exception:
                     pass
-            meta[iso] = {"lat": lat, "lon": lon, "cidrs": cidrs}
+            if cidrs:
+                meta[iso] = {"lat": lat, "lon": lon, "cidrs": cidrs}
 
         total_cidrs = sum(len(c.get("cidrs", [])) for c in meta.values())
         if total_cidrs > 0:
@@ -350,7 +351,7 @@ let
 
             for cidr in cidrs:
                 lines.append(
-                    f"route {cidr} via {best_node['dn42Ip']}; "
+                    f"route {cidr} recursive {best_node['dn42Ip']}; "
                     f"# {iso_code} -> {best_node['name']}"
                 )
                 total_routes += 1
@@ -483,18 +484,26 @@ in
         ExecStart = pkgs.writeShellScript "sdn-policy-routing-start" ''
           set -eu
           # 清理旧规则防止重复叠加
+          while ip rule del priority 79 2>/dev/null; do :; done
           while ip rule del priority 80 2>/dev/null; do :; done
           while ip rule del priority 81 2>/dev/null; do :; done
           while ip rule del priority 82 2>/dev/null; do :; done
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
 
-          # Priority 80-82: 豁免 strongSwan (ESP / IKE UDP 500,4500) 与外部 WireGuard 加密底包，强制查 main 表走物理网卡
+          # Priority 79: 豁免所有集群节点的公网 IP 强制查 main 表，彻底杜绝底层通信误入 table 200
+          ${lib.concatMapStringsSep "\n" (
+            ip: "ip rule add to ${ip}/32 lookup main priority 79"
+          ) allClusterPublicIps}
+
+          # Priority 80-82: 豁免 strongSwan (ESP / IKE UDP 34500,4500,500) 与外部 WireGuard 加密底包，强制查 main 表走物理网卡
           ip rule add ipproto esp lookup main priority 80
-          ip rule add ipproto udp dport 500 lookup main priority 81
-          ip rule add ipproto udp sport 500 lookup main priority 81
+          ip rule add ipproto udp dport 34500 lookup main priority 81
+          ip rule add ipproto udp sport 34500 lookup main priority 81
           ip rule add ipproto udp dport 4500 lookup main priority 81
           ip rule add ipproto udp sport 4500 lookup main priority 81
+          ip rule add ipproto udp dport 500 lookup main priority 81
+          ip rule add ipproto udp sport 500 lookup main priority 81
           ip rule add fwmark 51820 lookup main priority 82
 
           # Priority 90: 访问 DN42 内部网段强制查 main 表（走 Babel 内部最优路径）
@@ -507,25 +516,34 @@ in
           ''}
 
           # IPv6 防环与策略路由
+          while ip -6 rule del priority 79 2>/dev/null; do :; done
           while ip -6 rule del priority 80 2>/dev/null; do :; done
           while ip -6 rule del priority 81 2>/dev/null; do :; done
           while ip -6 rule del priority 82 2>/dev/null; do :; done
           while ip -6 rule del priority 90 2>/dev/null; do :; done
 
+          ${lib.concatMapStringsSep "\n" (
+            ip: "ip -6 rule add to ${ip}/128 lookup main priority 79"
+          ) allClusterPublicV6s}
+
           ip -6 rule add ipproto esp lookup main priority 80
-          ip -6 rule add ipproto udp dport 500 lookup main priority 81
-          ip -6 rule add ipproto udp sport 500 lookup main priority 81
+          ip -6 rule add ipproto udp dport 34500 lookup main priority 81
+          ip -6 rule add ipproto udp sport 34500 lookup main priority 81
           ip -6 rule add ipproto udp dport 4500 lookup main priority 81
           ip -6 rule add ipproto udp sport 4500 lookup main priority 81
+          ip -6 rule add ipproto udp dport 500 lookup main priority 81
+          ip -6 rule add ipproto udp sport 500 lookup main priority 81
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
         '';
         ExecStop = pkgs.writeShellScript "sdn-policy-routing-stop" ''
+          while ip rule del priority 79 2>/dev/null; do :; done
           while ip rule del priority 80 2>/dev/null; do :; done
           while ip rule del priority 81 2>/dev/null; do :; done
           while ip rule del priority 82 2>/dev/null; do :; done
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
+          while ip -6 rule del priority 79 2>/dev/null; do :; done
           while ip -6 rule del priority 80 2>/dev/null; do :; done
           while ip -6 rule del priority 81 2>/dev/null; do :; done
           while ip -6 rule del priority 82 2>/dev/null; do :; done
@@ -709,8 +727,8 @@ in
       ];
       script = ''
         mkdir -p ${cfg.countryCidrDir}
-        # 如果国家 CIDR 目录未就绪，使用 jsDelivr CDN 从公开源拉取主要国家 CIDR
-        for code in de us jp hk gb fr sg ca au kr nl tw; do
+        # 使用 jsDelivr CDN 从公开源拉取主要国家 CIDR
+        for code in de us jp hk gb fr sg ca au kr nl tw se no fi dk ie it es pt pl at cz ru ua in my id th vn ph br mx ar cl za ae sa il tr nz; do
           f="${cfg.countryCidrDir}/$code.cidr"
           if [ ! -s "$f" ]; then
             echo "Fetching CIDR for $code via jsDelivr CDN..."
@@ -724,6 +742,7 @@ in
             fi
           fi
         done
+        rm -f ${cfg.countryCidrDir}/countries_meta.json
       '';
       serviceConfig = {
         Type = "oneshot";
@@ -734,7 +753,7 @@ in
       description = "Weekly sync of Country CIDR blocks";
       wantedBy = [ "timers.target" ];
       timerConfig = {
-        OnBootSec = "10m";
+        OnBootSec = "10s";
         OnUnitActiveSec = "7d";
       };
     };

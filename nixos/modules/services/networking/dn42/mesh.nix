@@ -243,6 +243,7 @@ let
         ]
     ) activePeers
   );
+
 in
 {
   imports = [
@@ -292,14 +293,40 @@ in
 
       mtu = mkOption {
         type = types.int;
-        default = 1400;
-        description = "MTU for XFRM interfaces";
+        default = 1360;
+        description = "MTU for XFRM interfaces (lowered to 1360 to accommodate Mimic Fake-TCP header and UDP encapsulation overhead)";
       };
 
       forceUdpEncap = mkOption {
         type = types.bool;
         default = true;
-        description = "Force UDP encapsulation for ESP (NAT-T on port 4500) to bypass ISP ESP (protocol 50) blocking";
+        description = "Force UDP encapsulation for ESP (NAT-T on port 34500) to bypass ISP ESP (protocol 50) blocking";
+      };
+
+      port = mkOption {
+        type = types.port;
+        default = 34500;
+        description = "Unified port for strongSwan IKEv2 and NAT-T UDP traffic";
+      };
+
+      mimic = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Whether to run mimic to obfuscate IPsec UDP traffic into Fake-TCP on the physical WAN interface";
+        };
+
+        interface = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "Physical WAN interface to attach mimic eBPF (null to auto-detect default route interface from table main)";
+        };
+
+        extraArgs = mkOption {
+          type = types.listOf types.str;
+          default = [ "-W" ];
+          description = "Extra arguments passed to mimic run";
+        };
       };
     };
 
@@ -450,43 +477,87 @@ in
         "esp6"
       ];
 
-      environment.systemPackages = [ pkgs.strongswan ];
+      environment.systemPackages = [
+        pkgs.strongswan
+        pkgs.mimic
+      ];
 
       # XFRM 虚拟网络网卡管理（oneshot 服务，无需强依赖 systemd-networkd，兼容标准脚本网络）
-      systemd.services = listToAttrs (
-        map (
-          t:
-          nameValuePair t.ifName {
-            description = "DN42 XFRM interface for tunnel ${t.key}";
-            after = [ "network-pre.target" ];
-            wants = [ "network-pre.target" ];
-            before = [
-              "bird.service"
-              "strongswan-swanctl.service"
-            ];
+      systemd.services =
+        listToAttrs (
+          map (
+            t:
+            nameValuePair t.ifName {
+              description = "DN42 XFRM interface for tunnel ${t.key}";
+              after = [ "network-pre.target" ];
+              wants = [ "network-pre.target" ];
+              before = [
+                "bird.service"
+                "strongswan-swanctl.service"
+              ];
+              wantedBy = [ "multi-user.target" ];
+              path = [
+                pkgs.iproute2
+                pkgs.gawk
+              ];
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+                ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+                  set -eu
+                  if ! ip link show ${t.ifName} >/dev/null 2>&1; then
+                    ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
+                  fi
+                  ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
+                  ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
+                '';
+                ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
+                  ip link del ${t.ifName} 2>/dev/null || true
+                '';
+              };
+            }
+          ) tunnelInstances
+        )
+        // (optionalAttrs cfg.ipsec.mimic.enable {
+          mimic-mesh = {
+            description = "Mimic eBPF UDP-to-TCP Obfuscator for DN42 IPsec Mesh";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            before = [ "strongswan-swanctl.service" ];
             wantedBy = [ "multi-user.target" ];
             path = [
+              pkgs.mimic
               pkgs.iproute2
               pkgs.gawk
+              pkgs.coreutils
             ];
             serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "2s";
+              LimitMEMLOCK = "infinity";
+              ExecStart = pkgs.writeShellScript "mimic-mesh-start" ''
                 set -eu
-                if ! ip link show ${t.ifName} >/dev/null 2>&1; then
-                  ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
+                IFACE="${if cfg.ipsec.mimic.interface != null then cfg.ipsec.mimic.interface else ""}"
+                if [ -z "$IFACE" ]; then
+                  IFACE=$(ip route show default table main 2>/dev/null | awk '{print $5; exit}' || true)
                 fi
-                ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
-                ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
-              '';
-              ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
-                ip link del ${t.ifName} 2>/dev/null || true
+                if [ -z "$IFACE" ]; then
+                  echo "mimic-mesh: could not detect default WAN interface from table main" >&2
+                  exit 1
+                fi
+                echo "Starting mimic on interface $IFACE for port ${toString cfg.ipsec.port}..."
+                exec mimic run \
+                  -f "local=0.0.0.0:${toString cfg.ipsec.port}" \
+                  -f "remote=0.0.0.0:${toString cfg.ipsec.port}" \
+                  -f "local=[::]:${toString cfg.ipsec.port}" \
+                  -f "remote=[::]:${toString cfg.ipsec.port}" \
+                  ${lib.escapeShellArgs cfg.ipsec.mimic.extraArgs} \
+                  "$IFACE"
               '';
             };
-          }
-        ) tunnelInstances
-      );
+          };
+        });
 
       # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
       systemd.network.networks = mkIf config.systemd.network.enable (
@@ -510,6 +581,8 @@ in
         # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
         strongswan.extraConfig = ''
           charon {
+            port = 0
+            port_nat_t = ${toString cfg.ipsec.port}
             install_routes = no
             install_virtual_ip = no
             cisco_unity = no
@@ -538,6 +611,8 @@ in
                 dpd_delay = "15s";
                 dpd_timeout = "60s";
 
+                local_port = cfg.ipsec.port;
+                remote_port = cfg.ipsec.port;
                 remote_addrs = t.remoteAddrs;
                 encap = cfg.ipsec.forceUdpEncap;
 
@@ -597,16 +672,42 @@ in
         includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
       };
 
-      # 防火墙放行 IPsec 相关端口、Babel IGP 路由协议与协议号
+      # MSS 钳制：防止内层经过 table 200 加速或 DN42 路由的 TCP 连接因外层多重封装 (XFRM + Mimic TCP) 超出 MTU 而卡顿白屏
+      networking.nftables.tables.dn42-mss-clamp = mkIf config.networking.nftables.enable {
+        family = "inet";
+        content = ''
+          chain forward {
+            type filter hook forward priority mangle; policy accept;
+            oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
+          }
+          chain postrouting {
+            type filter hook postrouting priority mangle; policy accept;
+            oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
+          }
+        '';
+      };
+
+      # 防火墙放行：
+      # - UDP 34500: Mimic XDP 在网卡驱动层将入站 Fake-TCP 还原为 UDP 后交给内核协议栈
+      # - TCP 34500: 放行可能在网卡/驱动层之外被探测的 Fake-TCP 入站连接
+      # - UDP 6696: Babel IGP 动态路由
       networking.firewall = {
         allowedUDPPorts = [
+          cfg.ipsec.port
           500
           4500
           6696
         ];
+        allowedTCPPorts = [
+          cfg.ipsec.port
+        ];
         extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
           ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
+          iptables -t mangle -A FORWARD -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+          iptables -t mangle -A POSTROUTING -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+          iptables -t mangle -A FORWARD -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+          iptables -t mangle -A POSTROUTING -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
         '';
         extraInputRules = mkIf config.networking.nftables.enable ''
           meta l4proto esp counter accept
