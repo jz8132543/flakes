@@ -244,6 +244,64 @@ let
     ) activePeers
   );
 
+  # ── Mimic Fake-TCP 目标端点白名单生成 ──
+  # 避免对整个 0.0.0.0:4500 进行全局拦截，全局拦截会导致未升级 Mimic 的节点（如 fra1/sjc0/tyo0）
+  # 握手超时进而导致整网震荡。通过精准白名单 -f remote=<endpoint>:4500，仅对需要穿透国内运营商封锁的
+  # 对等节点（如 cu 与海外核心节点 fra0）启用 Fake-TCP，其余同地域/无封锁节点保持 100% 原生 UDP 全速转发！
+  mimicTargetPeers =
+    if cfg.ipsec.mimic.allPeers then
+      (lib.attrNames activePeers)
+    else
+      (lib.filter (p: cfg.nodes ? ${p}) cfg.ipsec.mimic.peers);
+
+  mimicRemoteEndpoints = lib.unique (
+    lib.flatten (
+      map (
+        peerName:
+        let
+          peerCfg = cfg.nodes.${peerName};
+          epList =
+            if peerCfg.endpoints != { } then
+              lib.attrValues peerCfg.endpoints
+            else
+              (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) peerCfg.endpoint)
+              ++ (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6);
+        in
+        map stripPort epList
+      ) mimicTargetPeers
+    )
+  );
+
+  mimicGeneratedFilters = map (
+    ep:
+    let
+      cleanEp =
+        if lib.hasPrefix "[" ep && lib.hasSuffix "]" ep then
+          lib.removePrefix "[" (lib.removeSuffix "]" ep)
+        else
+          ep;
+      isV6 = lib.hasInfix ":" cleanEp;
+      formattedEp = if isV6 then "[${cleanEp}]" else cleanEp;
+    in
+    "remote=${formattedEp}:${toString cfg.ipsec.port}"
+  ) mimicRemoteEndpoints;
+
+  mimicFilterArgs =
+    if cfg.ipsec.mimic.allTraffic then
+      [
+        "local=0.0.0.0:${toString cfg.ipsec.port}"
+        "local=[::]:${toString cfg.ipsec.port}"
+      ]
+    else if (mimicGeneratedFilters ++ cfg.ipsec.mimic.extraFilters) != [ ] then
+      (mimicGeneratedFilters ++ cfg.ipsec.mimic.extraFilters)
+    else
+      [
+        "local=0.0.0.0:${toString cfg.ipsec.port}"
+        "local=[::]:${toString cfg.ipsec.port}"
+      ];
+
+  mimicCliFilterFlags = concatStringsSep " " (map (f: "-f ${f}") mimicFilterArgs);
+
   # ── Mimic Fake-TCP 辅助脚本（硬件路由器友好，零源码补丁与零物理网卡全局卸载损耗） ──
   # 1. 挂载前清洗脚本：加载内核 act_csum 模块，关闭 GRO/LRO 防止 skb-XDP 粘包破坏 12 字节尾部边界
   mimicPreScript = pkgs.writeShellScript "mimic-pre-sanitize" ''
@@ -391,6 +449,30 @@ in
           ];
           default = "auto";
           description = "Force XDP mode ('auto', 'native', 'skb'). Native XDP runs before GRO; skb mode runs after GRO.";
+        };
+
+        peers = mkOption {
+          type = types.listOf types.str;
+          default = if (config.environment.isCN or false) then [ "fra0" ] else [ "cu" ];
+          description = "List of peer node names to obfuscate with Fake-TCP. Non-obfuscated peers communicate over pure native UDP.";
+        };
+
+        allPeers = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to obfuscate all mesh peers with Fake-TCP (requires all nodes to run Mimic simultaneously)";
+        };
+
+        allTraffic = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
+        };
+
+        extraFilters = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = "Extra filter arguments to pass to mimic run (e.g. ['remote=x.x.x.x:4500'])";
         };
       };
     };
@@ -603,25 +685,20 @@ in
               Restart = "always";
               RestartSec = "2s";
               ExecStartPre = "+${mimicPreScript} %I";
-              # 绑定双栈本地 4500 端口，天然兼容公网节点 (fra0/tyo0)、国内 NAT 节点 (cu) 与双栈移动客户端 (arx8/surface)
+              # 绑定白名单对端端口，天然兼容公网节点 (fra0/tyo0)、国内 NAT 节点 (cu) 与双栈移动客户端 (arx8/surface)
               ExecStart = "${pkgs.mimic}/bin/mimic run %I ${
                 if cfg.ipsec.mimic.xdpMode != "auto" then "-x ${cfg.ipsec.mimic.xdpMode} " else ""
-              }-f local=0.0.0.0:4500 -f local=[::]:4500";
+              }${mimicCliFilterFlags}";
               ExecStartPost = "+${mimicPostScript} %I";
               ExecStopPost = "+${mimicCleanScript} %I";
             };
           };
-        })
-        // (optionalAttrs (cfg.ipsec.mimic.enable && !config.networking.networkmanager.enable) (
-          listToAttrs (
-            map (
-              iface:
-              nameValuePair "mimic@${iface}" {
-                wantedBy = [ "multi-user.target" ];
-              }
-            ) cfg.ipsec.mimic.interfaces
-          )
-        ));
+        });
+
+      # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
+      systemd.targets.multi-user.wants = mkIf (
+        cfg.ipsec.mimic.enable && !config.networking.networkmanager.enable
+      ) (map (iface: "mimic@${iface}.service") cfg.ipsec.mimic.interfaces);
 
       # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
       systemd.network.networks = mkIf config.systemd.network.enable (
