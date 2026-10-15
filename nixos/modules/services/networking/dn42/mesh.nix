@@ -305,15 +305,21 @@ in
 
       port = mkOption {
         type = types.port;
-        default = 34500;
-        description = "Unified port for strongSwan IKEv2 and NAT-T UDP traffic";
+        default = 4500;
+        description = "Standard strongSwan NAT-T UDP port for cluster mesh";
       };
 
       mimic = {
         enable = mkOption {
           type = types.bool;
           default = true;
-          description = "Whether to run mimic to obfuscate IPsec UDP traffic into Fake-TCP on the physical WAN interface";
+          description = "Whether to enable mimic Fake-TCP obfuscation for NAT client mesh links";
+        };
+
+        port = mkOption {
+          type = types.port;
+          default = 34500;
+          description = "Custom high-port for Fake-TCP Mimic obfuscation";
         };
 
         interface = mkOption {
@@ -324,7 +330,7 @@ in
 
         extraArgs = mkOption {
           type = types.listOf types.str;
-          default = [ "-W" ];
+          default = [ "-W" ] ++ (lib.optional (cfg.thisNode.endpoint != null) "-x skb");
           description = "Extra arguments passed to mimic run";
         };
       };
@@ -546,12 +552,12 @@ in
                   echo "mimic-mesh: could not detect default WAN interface from table main" >&2
                   exit 1
                 fi
-                echo "Starting mimic on interface $IFACE for port ${toString cfg.ipsec.port}..."
+                echo "Starting mimic on interface $IFACE for port ${toString cfg.ipsec.mimic.port}..."
                 exec mimic run \
-                  -f "local=0.0.0.0:${toString cfg.ipsec.port}" \
-                  -f "remote=0.0.0.0:${toString cfg.ipsec.port}" \
-                  -f "local=[::]:${toString cfg.ipsec.port}" \
-                  -f "remote=[::]:${toString cfg.ipsec.port}" \
+                  -f "local=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
+                  -f "remote=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
+                  -f "local=[::]:${toString cfg.ipsec.mimic.port}" \
+                  -f "remote=[::]:${toString cfg.ipsec.mimic.port}" \
                   ${lib.escapeShellArgs cfg.ipsec.mimic.extraArgs} \
                   "$IFACE"
               '';
@@ -581,8 +587,10 @@ in
         # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
         strongswan.extraConfig = ''
           charon {
-            port = 0
-            port_nat_t = ${toString cfg.ipsec.port}
+            port = ${if cfg.thisNode.endpoint == null then "0" else "500"}
+            port_nat_t = ${
+              toString (if cfg.thisNode.endpoint == null then cfg.ipsec.mimic.port else cfg.ipsec.port)
+            }
             install_routes = no
             install_virtual_ip = no
             cisco_unity = no
@@ -605,14 +613,19 @@ in
           connections = listToAttrs (
             map (
               t:
+              let
+                isMimicPeer =
+                  cfg.ipsec.mimic.enable && (cfg.thisNode.endpoint == null || t.peerCfg.endpoint == null);
+                connPort = if isMimicPeer then cfg.ipsec.mimic.port else cfg.ipsec.port;
+              in
               nameValuePair "mesh-peer-${t.key}" {
                 version = 2;
-                mobike = !t.peerCfg.multipath;
+                mobike = !t.peerCfg.multipath && !isMimicPeer;
                 dpd_delay = "15s";
                 dpd_timeout = "60s";
 
-                local_port = cfg.ipsec.port;
-                remote_port = cfg.ipsec.port;
+                local_port = if cfg.thisNode.endpoint == null then cfg.ipsec.mimic.port else cfg.ipsec.port;
+                remote_port = connPort;
                 remote_addrs = t.remoteAddrs;
                 encap = cfg.ipsec.forceUdpEncap;
 
@@ -687,6 +700,19 @@ in
         '';
       };
 
+      # 针对 Mimic 入站流量的 NAT 重定向（具有公网端点的服务器端将 34500 重定向至原生 4500）
+      networking.nftables.tables.dn42-mimic-redirect =
+        mkIf (config.networking.nftables.enable && cfg.ipsec.mimic.enable && cfg.thisNode.endpoint != null)
+          {
+            family = "inet";
+            content = ''
+              chain prerouting {
+                type nat hook prerouting priority dstnat; policy accept;
+                udp dport ${toString cfg.ipsec.mimic.port} redirect to :${toString cfg.ipsec.port}
+              }
+            '';
+          };
+
       # 防火墙放行：
       # - UDP 34500: Mimic XDP 在网卡驱动层将入站 Fake-TCP 还原为 UDP 后交给内核协议栈
       # - TCP 34500: 放行可能在网卡/驱动层之外被探测的 Fake-TCP 入站连接
@@ -694,12 +720,13 @@ in
       networking.firewall = {
         allowedUDPPorts = [
           cfg.ipsec.port
+          cfg.ipsec.mimic.port
           500
           4500
           6696
         ];
         allowedTCPPorts = [
-          cfg.ipsec.port
+          cfg.ipsec.mimic.port
         ];
         extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
