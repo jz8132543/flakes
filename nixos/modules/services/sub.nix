@@ -384,34 +384,25 @@ let
       default-nameserver = [
         "223.5.5.5"
         "1.12.12.12"
-        "https://223.5.5.5/dns-query"
-        "https://1.12.12.12/dns-query"
       ];
       proxy-server-nameserver = [
         "223.5.5.5"
         "1.12.12.12"
-        "https://223.5.5.5/dns-query"
-        "https://1.12.12.12/dns-query"
       ];
       nameserver = [
+        "127.0.0.1"
         "https://1.1.1.1/dns-query#PROXY"
         "https://9.9.9.9/dns-query#PROXY"
-        "223.5.5.5"
-        "1.12.12.12"
       ];
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
         "+.dora.im,+.kxy.ovh" = [
           "223.5.5.5"
           "1.12.12.12"
-          "https://223.5.5.5/dns-query"
-          "https://1.12.12.12/dns-query"
         ];
         "geosite:cn,apple,private,steam,onedrive" = [
-          "https://223.5.5.5/dns-query"
-          "https://1.12.12.12/dns-query"
-          "tls://223.5.5.5"
-          "tls://1.12.12.12"
+          "223.5.5.5"
+          "1.12.12.12"
         ];
       };
     };
