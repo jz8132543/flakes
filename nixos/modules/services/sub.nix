@@ -332,9 +332,10 @@ let
       "DOMAIN-SUFFIX,cloudflare.com,DIRECT"
       "DOMAIN-SUFFIX,nsupdate.info,DIRECT"
       "DOMAIN-SUFFIX,dora.im,DIRECT"
-      "IP-CIDR,1.1.1.1/32,PROXY,no-resolve"
-      "IP-CIDR,1.0.0.1/32,PROXY,no-resolve"
-      "IP-CIDR,9.9.9.9/32,PROXY,no-resolve"
+      "IP-CIDR,1.1.1.1/32,DIRECT,no-resolve"
+      "IP-CIDR,1.0.0.1/32,DIRECT,no-resolve"
+      "IP-CIDR,8.8.8.8/32,DIRECT,no-resolve"
+      "IP-CIDR,8.8.4.4/32,DIRECT,no-resolve"
 
       # 拦截广告
       "GEOSITE,category-ads-all,REJECT"
@@ -441,6 +442,11 @@ let
         "172.31.0.0/16"
         "10.0.0.0/8"
         "fd00::/8"
+        # 豁免 DoH 纯净上游服务器 IP，避免本机 SmartDNS 发往 1.1.1.1:443 / 8.8.8.8:443 的查询被 TUN 捕获引发环路死锁
+        "1.1.1.1/32"
+        "1.0.0.1/32"
+        "8.8.8.8/32"
+        "8.8.4.4/32"
       ];
     };
 
