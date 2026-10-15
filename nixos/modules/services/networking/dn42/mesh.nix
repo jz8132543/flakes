@@ -653,8 +653,8 @@ in
 
       # 客户端出站源地址校正 (SNAT):
       # 当本机应用（如 Mihomo 代理进程发起 DIRECT 出站）在初次路由选路时选取了物理网卡私网 IP (如 192.168.x.x)，
-      # 随后经策略路由 re-route 转发至 dn42x+ 接口出海时，强制将源地址伪装 (SNAT) 为本机的 DN42 Loopback IP。
-      # 确保所有经 DN42 出口加速的流量均具备合法的 DN42 骨干网源地址，防止因私网 IP 被出口机 drop。
+      # 随后经策略路由 re-route 转发至 dn42x+ 接口出海时，强制将源地址伪装 (SNAT) 为本机的 DN42 Loopback 单播 IP (baseCfg.routerId)。
+      # 确保所有经 DN42 出口加速的流量均具备合法的本机 DN42 IP，防止因私网 IP 或错误网段被出口机 drop。
       networking.nftables.tables.dn42-client-snat =
         mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint == null)
           {
@@ -662,7 +662,7 @@ in
             content = ''
               chain postrouting {
                 type nat hook postrouting priority srcnat; policy accept;
-                oifname "dn42x*" ip saddr != 172.20.0.0/14 snat to ${baseCfg.ipv4}
+                oifname "dn42x*" ip saddr != 172.20.0.0/14 snat to ${baseCfg.routerId}
               }
             '';
           };
