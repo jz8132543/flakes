@@ -27,17 +27,47 @@ let
     )
   ) (osConfig.programs.ssh.customHosts or { });
 
+  sshJumpRouter = pkgs.writeShellScript "ssh-jump-router" ''
+    target="''${1%%-*}"
+    jump="''${1#*-}"
+    port="$2"
+    [ -z "$port" ] || [ "$port" = "%p" ] && port=22
+
+    info=$(ssh -G "$target" 2>/dev/null)
+    t_host=$(echo "$info" | awk '/^hostname / {print $2}')
+    t_port=$(echo "$info" | awk '/^port / {print $2}')
+    [ -n "$t_host" ] && target="$t_host"
+    [ -n "$t_port" ] && port="$t_port"
+
+    exec ssh "$jump" "sh -c '
+      racer=\$(command -v ssh-race 2>/dev/null || ls -1d /nix/store/*-ssh-race-*/bin/ssh-race 2>/dev/null | tail -n 1)
+      if [ -n \"\$racer\" ] && [ -x \"\$racer\" ]; then
+        exec \"\$racer\" -domains ${lib.concatStringsSep "," sshRaceDomains} \"$target\" \"$port\"
+      fi
+      for d in ${lib.concatStringsSep " " sshRaceDomains} \"\"; do
+        h=\"$target\"
+        [ -n \"\$d\" ] && case \"\$h\" in *.*) ;; *) h=\"\$h.\$d\" ;; esac
+        if command -v nc >/dev/null 2>&1 && nc -z -w 1 \"\$h\" \"$port\" 2>/dev/null; then
+          exec nc \"\$h\" \"$port\"
+        fi
+      done
+      exec nc \"$target\" \"$port\" 2>/dev/null
+    '"
+  '';
+
   jumpRoutingSettings = lib.optionalAttrs (osConfig.programs.ssh.enableJumpRouting or true) {
     "*-* !*.*" = lib.hm.dag.entryBefore [ "*" ] {
       canonicalizeHostname = "no";
-      proxyCommand = "sh -c 'target=$(echo %h | cut -d- -f1); jump=$(echo %h | cut -d- -f2); info=$(ssh -G \"$target\" 2>/dev/null); target_host=$(echo \"$info\" | awk \"/^hostname / {print \\$2}\"); target_port=$(echo \"$info\" | awk \"/^port / {print \\$2}\"); case \"$target_host\" in *.*) ;; *) target_host=\"$target_host.${
-        osConfig.programs.ssh.jumpDomain or "dora.im"
-      }\" ;; esac; exec ssh -W \"$target_host:\${target_port:-22}\" \"$jump\"'";
+      proxyCommand = "${sshJumpRouter} %h %p";
     };
   };
 in
 with lib.strings;
 {
+  home.packages = [
+    pkgs.ssh-race
+  ];
+
   programs = {
     ssh = {
       enable = true;
