@@ -279,17 +279,18 @@ let
         ++ [ "DIRECT" ];
       }
 
-      # PROXY 规则代理主选择组：保留 全部、公网、DN42 以及用户自定义组与各地区组
+      # PROXY 规则代理主选择组：支持 DIRECT 直连穿透（交给内核 DN42 策略路由加速），以及全部、公网、DN42、自定义组与各地区组
       {
         name = "PROXY";
         type = "select";
         proxies = [
+          "DIRECT"
           "ALL"
           "PUBLIC-ONLY"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY";
-        # ++ (map (g: g.name) userGroupDefs)
-        # ++ allRegionGroupNames;
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
+        ++ (map (g: g.name) userGroupDefs)
+        ++ allRegionGroupNames;
       }
     ]
     ++ userGroupDefs
