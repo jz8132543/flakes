@@ -23,6 +23,11 @@
         "https://8.8.8.8/dns-query"
       ];
 
+      # 对 AAAA (IPv6) 查询直接返回 SOA (NOERROR 空应答)：
+      # 1. 杜绝因境外 IPv6 未走 DN42 加速而直连物理网卡导致的 GFW 嗅探阻断；
+      # 2. 避免 SmartDNS 因无可用境外 IPv6 路由而返回 SERVFAIL，从而误触发 dnsmasq 向后 Fallback 到被污染的国内 DNS。
+      force-AAAA-SOA = true;
+
       cache-size = 4096;
       prefetch-domain = true;
       serve-expired = true;
