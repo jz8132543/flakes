@@ -250,6 +250,14 @@ in
             exec "''${args[@]}"
           ''
         );
+        # 显式豁免 Fake-TCP 4500 端口，防止 FakeHTTP 注入伪造 HTTP 报文篡改 Mimic 握手包
+        ExecStartPost = pkgs.writeShellScript "fakehttp-bypass-4500" ''
+          sleep 1
+          ${pkgs.nftables}/bin/nft insert rule ip fakehttp fh_rules tcp sport 4500 return 2>/dev/null || true
+          ${pkgs.nftables}/bin/nft insert rule ip fakehttp fh_rules tcp dport 4500 return 2>/dev/null || true
+          ${pkgs.nftables}/bin/nft insert rule ip6 fakehttp fh_rules tcp sport 4500 return 2>/dev/null || true
+          ${pkgs.nftables}/bin/nft insert rule ip6 fakehttp fh_rules tcp dport 4500 return 2>/dev/null || true
+        '';
         # 停止时清理防火墙规则
         ExecStop = "${pkgs.fakehttp}/bin/fakehttp -k";
         Restart = "on-failure";

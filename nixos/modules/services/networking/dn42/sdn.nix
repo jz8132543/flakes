@@ -500,17 +500,16 @@ in
           ) allClusterPublicIps}
 
           # ── Priority 80-82: 底层加密隧道与协议防死锁 ──
-          # 豁免 strongSwan (ESP / IKE UDP 4500, 500, 以及 NAT 客户端高位 34500) 与外部 WireGuard 加密底包，强制查 main 表
+          # 豁免 strongSwan (ESP / IKE UDP 4500, 500) 与外部 WireGuard 加密底包，强制查 main 表
+          # 关键：同时对 udp 与 tcp (Mimic Fake-TCP) 双协议在 500 和 4500 端口进行对称豁免，
+          # 防止 Mimic 发出的原生 TCP 握手/保活包穿透 priority 81 掉入 table 200 (SDN 加速) 或 table 2022 (Mihomo TUN) 导致握手死锁！
           ip rule add ipproto esp lookup main priority 80
-          ip rule add ipproto udp dport 4500 lookup main priority 81
-          ip rule add ipproto udp sport 4500 lookup main priority 81
-          ip rule add ipproto udp dport 500 lookup main priority 81
-          ip rule add ipproto udp sport 500 lookup main priority 81
-          ${lib.optionalString (baseCfg.mesh.ipsec.clientPort != baseCfg.mesh.ipsec.port) ''
-            # 豁免 NAT 客户端出海使用的防 ISP 封锁高位端口 (34500)
-            ip rule add ipproto udp dport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
-            ip rule add ipproto udp sport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
-          ''}
+          for proto in udp tcp; do
+            for port in 500 4500; do
+              ip rule add ipproto $proto sport $port lookup main priority 81
+              ip rule add ipproto $proto dport $port lookup main priority 81
+            done
+          done
           ip rule add fwmark 51820 lookup main priority 82
 
           # ── Priority 90: DN42 内部网段直连 ──
@@ -547,14 +546,12 @@ in
           ) allClusterPublicV6s}
 
           ip -6 rule add ipproto esp lookup main priority 80
-          ip -6 rule add ipproto udp dport 4500 lookup main priority 81
-          ip -6 rule add ipproto udp sport 4500 lookup main priority 81
-          ip -6 rule add ipproto udp dport 500 lookup main priority 81
-          ip -6 rule add ipproto udp sport 500 lookup main priority 81
-          ${lib.optionalString (baseCfg.mesh.ipsec.clientPort != baseCfg.mesh.ipsec.port) ''
-            ip -6 rule add ipproto udp dport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
-            ip -6 rule add ipproto udp sport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
-          ''}
+          for proto in udp tcp; do
+            for port in 500 4500; do
+              ip -6 rule add ipproto $proto sport $port lookup main priority 81
+              ip -6 rule add ipproto $proto dport $port lookup main priority 81
+            done
+          done
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
 

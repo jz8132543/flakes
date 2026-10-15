@@ -244,6 +244,55 @@ let
     ) activePeers
   );
 
+  # ── Mimic Fake-TCP 辅助脚本（硬件路由器友好，零源码补丁与零物理网卡全局卸载损耗） ──
+  # 1. 挂载前清洗脚本：加载内核 act_csum 模块，关闭 GRO/LRO 防止 skb-XDP 粘包破坏 12 字节尾部边界
+  mimicPreScript = pkgs.writeShellScript "mimic-pre-sanitize" ''
+    set -euo pipefail
+    IFACE="$1"
+    ${pkgs.kmod}/bin/modprobe act_csum 2>/dev/null || true
+
+    # 关闭 GRO / LRO，防止内核在 Mimic 还原前将多个 Fake-TCP 4500 包合并导致 ESP 校验失败
+    ${pkgs.ethtool}/bin/ethtool -K "$IFACE" gro off rx-gro-hw off lro off 2>/dev/null || true
+
+    # 关闭 UDP 隧道硬件分段卸载与泛型校验和卸载，为 Fake-TCP 提供干净环境
+    ${pkgs.ethtool}/bin/ethtool -K "$IFACE" tx-udp_tnl-segmentation off tx-udp_tnl-csum-segmentation off 2>/dev/null || true
+    ${pkgs.iproute2}/bin/tc qdisc add dev "$IFACE" clsact 2>/dev/null || true
+  '';
+
+  # 2. 挂载后 TC 校验和闭合脚本：在 Mimic eBPF (TC Egress) 之后追加 prio 65000 的 act_csum 动作
+  #    自动将 XFRM 遗留的 CHECKSUM_PARTIAL 或 IPv4 UDP 零校验和重置为 CHECKSUM_NONE 并完整计算 TCP 校验和。
+  #    物理网卡 eth0 本身的硬件校验和与 GSO 丝毫不用关，保障硬件路由器转发全速！
+  mimicPostScript = pkgs.writeShellScript "mimic-post-csum" ''
+    set -euo pipefail
+    IFACE="$1"
+    sleep 1
+
+    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65000 2>/dev/null || true
+    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65001 2>/dev/null || true
+
+    # IPv4 Fake-TCP 4500 全量软件重算 TCP Checksum
+    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65000 protocol ip \
+      u32 match ip protocol 6 0xff match ip sport 4500 0xffff \
+      action csum ip4h and tcp
+    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65000 protocol ip \
+      u32 match ip protocol 6 0xff match ip dport 4500 0xffff \
+      action csum ip4h and tcp
+
+    # IPv6 Fake-TCP 4500 全量软件重算 TCP Checksum
+    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65001 protocol ipv6 \
+      u32 match ip6 protocol 6 0xff match ip6 sport 4500 0xffff \
+      action csum tcp
+    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65001 protocol ipv6 \
+      u32 match ip6 protocol 6 0xff match ip6 dport 4500 0xffff \
+      action csum tcp
+  '';
+
+  mimicCleanScript = pkgs.writeShellScript "mimic-clean-csum" ''
+    IFACE="$1"
+    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65000 2>/dev/null || true
+    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65001 2>/dev/null || true
+  '';
+
 in
 {
   imports = [
@@ -300,7 +349,7 @@ in
       forceUdpEncap = mkOption {
         type = types.bool;
         default = true;
-        description = "Force UDP encapsulation for ESP (NAT-T on port 34500) to bypass ISP ESP (protocol 50) blocking";
+        description = "Force UDP encapsulation for ESP (NAT-T on port 4500) to ensure 100% interception by Mimic into Fake-TCP";
       };
 
       port = mkOption {
@@ -311,8 +360,38 @@ in
 
       clientPort = mkOption {
         type = types.port;
-        default = 34500;
-        description = "High UDP port for NAT clients to bypass ISP UDP 4500/500 international blocking";
+        default = 4500;
+        description = "NAT client NAT-T port (defaults symmetrically to 4500)";
+      };
+
+      mimic = {
+        enable = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Enable Mimic eBPF UDP-4500 to Fake-TCP-4500 obfuscation for IPsec mesh tunnel";
+        };
+
+        interfaces = mkOption {
+          type = types.listOf types.str;
+          default =
+            let
+              configuredInterfaces = builtins.filter (
+                i: !lib.hasPrefix "dn42" i && !lib.hasPrefix "tailscale" i && !lib.hasPrefix "virbr" i && i != "lo"
+              ) (builtins.attrNames (config.networking.interfaces or { }));
+            in
+            if configuredInterfaces != [ ] then configuredInterfaces else [ "eth0" ];
+          description = "Physical network interfaces to attach Mimic on fixed server nodes";
+        };
+
+        xdpMode = mkOption {
+          type = types.enum [
+            "auto"
+            "native"
+            "skb"
+          ];
+          default = "auto";
+          description = "Force XDP mode ('auto', 'native', 'skb'). Native XDP runs before GRO; skb mode runs after GRO.";
+        };
       };
     };
 
@@ -467,41 +546,82 @@ in
         pkgs.strongswan
       ];
 
-      # XFRM 虚拟网络网卡管理（oneshot 服务，无需强依赖 systemd-networkd，兼容标准脚本网络）
-      systemd.services = listToAttrs (
-        map (
-          t:
-          nameValuePair t.ifName {
-            description = "DN42 XFRM interface for tunnel ${t.key}";
-            after = [ "network-pre.target" ];
-            wants = [ "network-pre.target" ];
-            before = [
-              "bird.service"
-              "strongswan-swanctl.service"
+      # XFRM 虚拟网络网卡管理与 Mimic Fake-TCP 守护服务
+      systemd.services =
+        (listToAttrs (
+          map (
+            t:
+            nameValuePair t.ifName {
+              description = "DN42 XFRM interface for tunnel ${t.key}";
+              after = [ "network-pre.target" ];
+              wants = [ "network-pre.target" ];
+              before = [
+                "bird.service"
+                "strongswan-swanctl.service"
+              ];
+              wantedBy = [ "multi-user.target" ];
+              path = [
+                pkgs.iproute2
+                pkgs.gawk
+              ];
+              serviceConfig = {
+                Type = "oneshot";
+                RemainAfterExit = true;
+                ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+                  set -eu
+                  if ! ip link show ${t.ifName} >/dev/null 2>&1; then
+                    ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
+                  fi
+                  ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
+                  ${pkgs.ethtool}/bin/ethtool -K ${t.ifName} tx off gso off gro off 2>/dev/null || true
+                  ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
+                '';
+                ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
+                  ip link del ${t.ifName} 2>/dev/null || true
+                '';
+              };
+            }
+          ) tunnelInstances
+        ))
+        // (optionalAttrs cfg.ipsec.mimic.enable {
+          "mimic@" = {
+            description = "Mimic eBPF UDP-4500 to Fake-TCP-4500 on %I";
+            after = [
+              "network-online.target"
+              "sys-subsystem-net-devices-%i.device"
             ];
-            wantedBy = [ "multi-user.target" ];
-            path = [
-              pkgs.iproute2
-              pkgs.gawk
+            wants = [ "network-online.target" ];
+            bindsTo = [ "sys-subsystem-net-devices-%i.device" ];
+            path = with pkgs; [
+              iproute2
+              ethtool
+              kmod
+              coreutils
             ];
             serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
-                set -eu
-                if ! ip link show ${t.ifName} >/dev/null 2>&1; then
-                  ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
-                fi
-                ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
-                ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
-              '';
-              ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
-                ip link del ${t.ifName} 2>/dev/null || true
-              '';
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "2s";
+              ExecStartPre = "+${mimicPreScript} %I";
+              # 绑定双栈本地 4500 端口，天然兼容公网节点 (fra0/tyo0)、国内 NAT 节点 (cu) 与双栈移动客户端 (arx8/surface)
+              ExecStart = "${pkgs.mimic}/bin/mimic run %I ${
+                if cfg.ipsec.mimic.xdpMode != "auto" then "-x ${cfg.ipsec.mimic.xdpMode} " else ""
+              }-f local=0.0.0.0:4500 -f local=[::]:4500";
+              ExecStartPost = "+${mimicPostScript} %I";
+              ExecStopPost = "+${mimicCleanScript} %I";
             };
-          }
-        ) tunnelInstances
-      );
+          };
+        })
+        // (optionalAttrs (cfg.ipsec.mimic.enable && !config.networking.networkmanager.enable) (
+          listToAttrs (
+            map (
+              iface:
+              nameValuePair "mimic@${iface}" {
+                wantedBy = [ "multi-user.target" ];
+              }
+            ) cfg.ipsec.mimic.interfaces
+          )
+        ));
 
       # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
       systemd.network.networks = mkIf config.systemd.network.enable (
@@ -527,6 +647,12 @@ in
           charon {
             port = 500
             port_nat_t = ${toString cfg.ipsec.port}
+            fragment_size = 1240
+            keep_alive = 10s
+            # 放宽重传窗口与超时，容忍 Fake-TCP 遭遇运营商 RST 重握手，避免引发 BGP/Babel 路由震荡
+            retransmit_tries = 8
+            retransmit_timeout = 2.0
+            retransmit_base = 1.2
             install_routes = no
             install_virtual_ip = no
             cisco_unity = no
@@ -549,23 +675,16 @@ in
           connections = listToAttrs (
             map (
               t:
-              let
-                # NAT 客户端向具有公网端点的对端发起连接时，使用高位 clientPort (34500) 突破 ISP 4500 封锁
-                # 服务端通过 nftables PREROUTING 规则透明重定向至内部 4500 处理。
-                # 境外 VPS 节点之间相互连接依然保持原生 4500 端口直连。
-                targetPort =
-                  if cfg.thisNode.endpoint == null && t.epAddr != null then cfg.ipsec.clientPort else cfg.ipsec.port;
-              in
               nameValuePair "mesh-peer-${t.key}" {
                 version = 2;
-                mobike = !t.peerCfg.multipath;
-                dpd_delay = "15s";
-                dpd_timeout = "60s";
+                mobike = true;
+                dpd_delay = "30s";
+                dpd_timeout = "120s";
 
                 local_port = cfg.ipsec.port;
-                remote_port = targetPort;
+                remote_port = cfg.ipsec.port;
                 remote_addrs = t.remoteAddrs;
-                encap = cfg.ipsec.forceUdpEncap;
+                encap = true; # 强制封装为 UDP 4500，由 Mimic 转换为 Fake-TCP 4500，防止裸 ESP 泄露被丢弃
 
                 # 采用现代高效 AEAD 加密套件与 x25519 曲线：
                 # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
@@ -638,18 +757,28 @@ in
         '';
       };
 
-      # 针对 NAT 客户端高位端口出海的透明 NAT 重定向（具有公网端点的服务器端将 34500 重定向至原生 4500）
-      networking.nftables.tables.dn42-ipsec-redirect =
-        mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint != null)
-          {
-            family = "inet";
-            content = ''
-              chain prerouting {
-                type nat hook prerouting priority dstnat; policy accept;
-                udp dport ${toString cfg.ipsec.clientPort} redirect to :${toString cfg.ipsec.port}
-              }
-            '';
-          };
+      # 消除冲突 1：在 nftables raw 阶段 (priority -300) 彻底绕过 nf_conntrack
+      # 无论底层是原生 UDP 还是 Mimic 伪装后的 Fake-TCP，一律跳过连接跟踪，杜绝 INVALID 丢包
+      networking.nftables.tables."dn42-mimic-raw" = mkIf config.networking.nftables.enable {
+        family = "inet";
+        content = ''
+          chain raw_prerouting {
+            type filter hook prerouting priority raw; policy accept;
+            udp sport { 500, 4500 } notrack
+            udp dport { 500, 4500 } notrack
+            tcp sport { 500, 4500 } notrack
+            tcp dport { 500, 4500 } notrack
+          }
+
+          chain raw_output {
+            type filter hook output priority raw; policy accept;
+            udp sport { 500, 4500 } notrack
+            udp dport { 500, 4500 } notrack
+            tcp sport { 500, 4500 } notrack
+            tcp dport { 500, 4500 } notrack
+          }
+        '';
+      };
 
       # 客户端出站源地址校正 (SNAT):
       # 当本机应用（如 Mihomo 代理进程发起 DIRECT 出站）在初次路由选路时选取了物理网卡私网 IP (如 192.168.x.x)，
@@ -668,17 +797,18 @@ in
           };
 
       # 防火墙放行：
-      # - UDP 4500: StrongSwan IPsec NAT-T 原生端口
-      # - UDP 34500: StrongSwan IPsec NAT-T 客户端高位防封锁端口
-      # - UDP 500: StrongSwan IKEv2 原生协商端口
+      # - UDP 500 / 4500: StrongSwan IKEv2 与 NAT-T 原生端口
+      # - TCP 500 / 4500: Mimic Fake-TCP 端口
       # - UDP 6696: Babel IGP 动态路由
       networking.firewall = {
         allowedUDPPorts = [
-          cfg.ipsec.port
-          cfg.ipsec.clientPort
           500
           4500
           6696
+        ];
+        allowedTCPPorts = [
+          500
+          4500
         ];
         extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
@@ -693,6 +823,32 @@ in
           meta l4proto ah  counter accept
         '';
       };
+
+      # 针对启用了 NetworkManager 的移动节点 (arx8, surface)，切换 Wi-Fi / 有线 / 热点时自动热挂载 Mimic
+      networking.networkmanager.dispatcherScripts =
+        lib.mkIf (cfg.ipsec.mimic.enable && config.networking.networkmanager.enable)
+          [
+            {
+              type = "basic";
+              source = pkgs.writeText "90-mimic-roaming" ''
+                IFACE="$1"
+                ACTION="$2"
+                case "$IFACE" in
+                  lo|dn42*|xfrm*|tailscale*|mihomo*|tun*|veth*|docker*|virbr*|br-*|podman*)
+                    exit 0
+                    ;;
+                esac
+                case "$ACTION" in
+                  up|dhcp4-change|dhcp6-change)
+                    systemctl reload-or-restart "mimic@$IFACE.service" || true
+                    ;;
+                  down)
+                    systemctl stop "mimic@$IFACE.service" || true
+                    ;;
+                esac
+              '';
+            }
+          ];
     })
 
     # ── 3. WireGuard 后端实现（保留备选支持） ─────────────────────────
