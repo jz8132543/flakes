@@ -493,29 +493,41 @@ in
           while ip rule del priority 8980 2>/dev/null; do :; done
           while ip rule del priority 9999 2>/dev/null; do :; done
 
-          # Priority 79: 豁免所有集群节点的公网 IP 强制查 main 表，彻底杜绝底层通信误入 table 200
+          # ── Priority 79: 集群公网端点防死锁 ──
+          # 强制将所有集群节点的公网 IP 解析到 main 表（走物理网卡原生出口），彻底杜绝底层通信误入 table 200
           ${lib.concatMapStringsSep "\n" (
             ip: "ip rule add to ${ip}/32 lookup main priority 79"
           ) allClusterPublicIps}
 
-          # Priority 80-82: 豁免 strongSwan (ESP / IKE UDP 4500,500) 与外部 WireGuard 加密底包，强制查 main 表走物理网卡
+          # ── Priority 80-82: 底层加密隧道与协议防死锁 ──
+          # 豁免 strongSwan (ESP / IKE UDP 4500, 500, 以及 NAT 客户端高位 34500) 与外部 WireGuard 加密底包，强制查 main 表
           ip rule add ipproto esp lookup main priority 80
           ip rule add ipproto udp dport 4500 lookup main priority 81
           ip rule add ipproto udp sport 4500 lookup main priority 81
           ip rule add ipproto udp dport 500 lookup main priority 81
           ip rule add ipproto udp sport 500 lookup main priority 81
+          ${lib.optionalString (baseCfg.mesh.ipsec.clientPort != baseCfg.mesh.ipsec.port) ''
+            # 豁免 NAT 客户端出海使用的防 ISP 封锁高位端口 (34500)
+            ip rule add ipproto udp dport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
+            ip rule add ipproto udp sport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
+          ''}
           ip rule add fwmark 51820 lookup main priority 82
 
-          # Priority 90: 访问 DN42 内部网段强制查 main 表（走 Babel 内部最优路径）
+          # ── Priority 90: DN42 内部网段直连 ──
+          # 访问 DN42 内部网段强制查 main 表（走 Babel / BGP 内部最优 IGP 路径）
           ip rule add to 172.20.0.0/14 lookup main priority 90
           ip rule add to 10.0.0.0/8 lookup main priority 90
 
-          # Priority 8980: 允许打有 fwmark 0x1 的代理出站流量（如 Mihomo DIRECT）优先查 table 200 (sdn_accel) 实现 DN42 全局出海
+          # ── Priority 8980: Mihomo DIRECT 流量出海分流 ──
+          # 当 Mihomo 运行时，打有 fwmark 0x1 的 DIRECT 出站流量优先查 table 200 (sdn_accel)，
+          # 使得 Mihomo 中配置为 DIRECT 的国外网站（如 PROXY 组选 DIRECT）通过 DN42 骨干网出海加速
           ${lib.optionalString cfg.enableClient ''
             ip rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
           ''}
 
-          # Priority 9999: 当 Mihomo 未启动（或流量未被 TUN 捕获）时，所有本地与转发流量查 table 200 (sdn_accel) 直通 DN42
+          # ── Priority 9999: 无 Mihomo 时的原生全系统 DN42 兜底加速 ──
+          # 当系统未开启 Mihomo（或流量未被 TUN 捕获）时，所有出站流量降级匹配 priority 9999，
+          # 查 table 200 (sdn_accel) 直接通过 DN42 访问 Google 及全球互联网，实现无代理开箱即用
           ${lib.optionalString cfg.enableClient ''
             ip rule add lookup ${cfg.tableName} priority 9999
           ''}
@@ -539,6 +551,10 @@ in
           ip -6 rule add ipproto udp sport 4500 lookup main priority 81
           ip -6 rule add ipproto udp dport 500 lookup main priority 81
           ip -6 rule add ipproto udp sport 500 lookup main priority 81
+          ${lib.optionalString (baseCfg.mesh.ipsec.clientPort != baseCfg.mesh.ipsec.port) ''
+            ip -6 rule add ipproto udp dport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
+            ip -6 rule add ipproto udp sport ${toString baseCfg.mesh.ipsec.clientPort} lookup main priority 81
+          ''}
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
 

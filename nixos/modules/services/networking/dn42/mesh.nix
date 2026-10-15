@@ -309,6 +309,11 @@ in
         description = "Standard strongSwan NAT-T UDP port for cluster mesh";
       };
 
+      clientPort = mkOption {
+        type = types.port;
+        default = 34500;
+        description = "High UDP port for NAT clients to bypass ISP UDP 4500/500 international blocking";
+      };
     };
 
     multipath = {
@@ -544,6 +549,13 @@ in
           connections = listToAttrs (
             map (
               t:
+              let
+                # NAT 客户端向具有公网端点的对端发起连接时，使用高位 clientPort (34500) 突破 ISP 4500 封锁
+                # 服务端通过 nftables PREROUTING 规则透明重定向至内部 4500 处理。
+                # 境外 VPS 节点之间相互连接依然保持原生 4500 端口直连。
+                targetPort =
+                  if cfg.thisNode.endpoint == null && t.epAddr != null then cfg.ipsec.clientPort else cfg.ipsec.port;
+              in
               nameValuePair "mesh-peer-${t.key}" {
                 version = 2;
                 mobike = !t.peerCfg.multipath;
@@ -551,7 +563,7 @@ in
                 dpd_timeout = "60s";
 
                 local_port = cfg.ipsec.port;
-                remote_port = cfg.ipsec.port;
+                remote_port = targetPort;
                 remote_addrs = t.remoteAddrs;
                 encap = cfg.ipsec.forceUdpEncap;
 
@@ -626,13 +638,44 @@ in
         '';
       };
 
+      # 针对 NAT 客户端高位端口出海的透明 NAT 重定向（具有公网端点的服务器端将 34500 重定向至原生 4500）
+      networking.nftables.tables.dn42-ipsec-redirect =
+        mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint != null)
+          {
+            family = "inet";
+            content = ''
+              chain prerouting {
+                type nat hook prerouting priority dstnat; policy accept;
+                udp dport ${toString cfg.ipsec.clientPort} redirect to :${toString cfg.ipsec.port}
+              }
+            '';
+          };
+
+      # 客户端出站源地址校正 (SNAT):
+      # 当本机应用（如 Mihomo 代理进程发起 DIRECT 出站）在初次路由选路时选取了物理网卡私网 IP (如 192.168.x.x)，
+      # 随后经策略路由 re-route 转发至 dn42x+ 接口出海时，强制将源地址伪装 (SNAT) 为本机的 DN42 Loopback IP。
+      # 确保所有经 DN42 出口加速的流量均具备合法的 DN42 骨干网源地址，防止因私网 IP 被出口机 drop。
+      networking.nftables.tables.dn42-client-snat =
+        mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint == null)
+          {
+            family = "inet";
+            content = ''
+              chain postrouting {
+                type nat hook postrouting priority srcnat; policy accept;
+                oifname "dn42x*" ip saddr != 172.20.0.0/14 snat to ${baseCfg.ipv4}
+              }
+            '';
+          };
+
       # 防火墙放行：
-      # - UDP 4500: StrongSwan IPsec NAT-T
-      # - UDP 500: StrongSwan IKEv2
+      # - UDP 4500: StrongSwan IPsec NAT-T 原生端口
+      # - UDP 34500: StrongSwan IPsec NAT-T 客户端高位防封锁端口
+      # - UDP 500: StrongSwan IKEv2 原生协商端口
       # - UDP 6696: Babel IGP 动态路由
       networking.firewall = {
         allowedUDPPorts = [
           cfg.ipsec.port
+          cfg.ipsec.clientPort
           500
           4500
           6696
