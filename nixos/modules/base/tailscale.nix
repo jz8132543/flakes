@@ -21,7 +21,8 @@ in
         # Internet. Leaving the default netfilter mode enabled is required for
         # both the exit-node hosts and the local proxy daemon to work correctly.
         extraSetFlags = [
-          "--accept-dns=true"
+          # 禁用 Tailscale 覆盖 /etc/resolv.conf，避免抢占 127.0.0.1 (dnsmasq)；*.ts 域名已在 dnsmasq 中定向转发至 100.100.100.100
+          "--accept-dns=false"
           "--advertise-exit-node"
         ];
         extraDaemonFlags = [ "--no-logs-no-support" ];
