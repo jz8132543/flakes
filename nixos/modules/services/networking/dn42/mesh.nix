@@ -330,7 +330,13 @@ in
 
         extraArgs = mkOption {
           type = types.listOf types.str;
-          default = [ "-W" ] ++ (lib.optional (cfg.thisNode.endpoint != null) "-x skb");
+          default = [
+            "-W"
+          ]
+          ++ (lib.optionals (cfg.thisNode.endpoint != null) [
+            "-x"
+            "skb"
+          ]);
           description = "Extra arguments passed to mimic run";
         };
       };
@@ -554,10 +560,20 @@ in
                 fi
                 echo "Starting mimic on interface $IFACE for port ${toString cfg.ipsec.mimic.port}..."
                 exec mimic run \
-                  -f "local=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
-                  -f "remote=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
-                  -f "local=[::]:${toString cfg.ipsec.mimic.port}" \
-                  -f "remote=[::]:${toString cfg.ipsec.mimic.port}" \
+                  ${
+                    if cfg.thisNode.endpoint != null then
+                      ''
+                        -f "local=0.0.0.0:${toString cfg.ipsec.mimic.port},handshake=0:0" \
+                        -f "local=[::]:${toString cfg.ipsec.mimic.port},handshake=0:0" \
+                      ''
+                    else
+                      ''
+                        -f "local=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
+                        -f "remote=0.0.0.0:${toString cfg.ipsec.mimic.port}" \
+                        -f "local=[::]:${toString cfg.ipsec.mimic.port}" \
+                        -f "remote=[::]:${toString cfg.ipsec.mimic.port}" \
+                      ''
+                  } \
                   ${lib.escapeShellArgs cfg.ipsec.mimic.extraArgs} \
                   "$IFACE"
               '';
@@ -618,60 +634,64 @@ in
                   cfg.ipsec.mimic.enable && (cfg.thisNode.endpoint == null || t.peerCfg.endpoint == null);
                 connPort = if isMimicPeer then cfg.ipsec.mimic.port else cfg.ipsec.port;
               in
-              nameValuePair "mesh-peer-${t.key}" {
-                version = 2;
-                mobike = !t.peerCfg.multipath && !isMimicPeer;
-                dpd_delay = "15s";
-                dpd_timeout = "60s";
+              nameValuePair "mesh-peer-${t.key}" (
+                {
+                  version = 2;
+                  mobike = !t.peerCfg.multipath && !isMimicPeer;
+                  dpd_delay = "15s";
+                  dpd_timeout = "60s";
 
-                local_port = if cfg.thisNode.endpoint == null then cfg.ipsec.mimic.port else cfg.ipsec.port;
-                remote_port = connPort;
-                remote_addrs = t.remoteAddrs;
-                encap = cfg.ipsec.forceUdpEncap;
+                  local_port = if cfg.thisNode.endpoint == null then cfg.ipsec.mimic.port else cfg.ipsec.port;
+                  remote_addrs = t.remoteAddrs;
+                  encap = cfg.ipsec.forceUdpEncap;
 
-                # 采用现代高效 AEAD 加密套件与 x25519 曲线：
-                # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
-                proposals = [
-                  "aes256gcm128-sha256-x25519"
-                  "chacha20poly1305-sha256-x25519"
-                  "aes128gcm128-sha256-x25519"
-                ];
-
-                local.main = {
-                  auth = "psk";
-                  id = "${hostName}.dn42";
-                };
-
-                remote.main = {
-                  auth = "psk";
-                  id = "${t.peerName}.dn42";
-                };
-
-                children.mesh = {
-                  esp_proposals = [
-                    "aes256gcm128-x25519"
-                    "chacha20poly1305-x25519"
-                    "aes128gcm128-x25519"
+                  # 采用现代高效 AEAD 加密套件与 x25519 曲线：
+                  # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
+                  proposals = [
+                    "aes256gcm128-sha256-x25519"
+                    "chacha20poly1305-sha256-x25519"
+                    "aes128gcm128-sha256-x25519"
                   ];
-                  local_ts = [
-                    "0.0.0.0/0"
-                    "::/0"
-                  ];
-                  remote_ts = [
-                    "0.0.0.0/0"
-                    "::/0"
-                  ];
-                  if_id_in = toString t.xfrmId;
-                  if_id_out = toString t.xfrmId;
-                  # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
-                  set_mark_out = "0x1";
-                  # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
-                  hw_offload = cfg.ipsec.hwOffload;
-                  mode = "tunnel";
-                  start_action = if t.epAddr != null then "start" else "trap";
-                  dpd_action = if t.epAddr != null then "restart" else "clear";
-                };
-              }
+
+                  local.main = {
+                    auth = "psk";
+                    id = "${hostName}.dn42";
+                  };
+
+                  remote.main = {
+                    auth = "psk";
+                    id = "${t.peerName}.dn42";
+                  };
+
+                  children.mesh = {
+                    esp_proposals = [
+                      "aes256gcm128-x25519"
+                      "chacha20poly1305-x25519"
+                      "aes128gcm128-x25519"
+                    ];
+                    local_ts = [
+                      "0.0.0.0/0"
+                      "::/0"
+                    ];
+                    remote_ts = [
+                      "0.0.0.0/0"
+                      "::/0"
+                    ];
+                    if_id_in = toString t.xfrmId;
+                    if_id_out = toString t.xfrmId;
+                    # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
+                    set_mark_out = "0x1";
+                    # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
+                    hw_offload = cfg.ipsec.hwOffload;
+                    mode = "tunnel";
+                    start_action = if t.epAddr != null then "start" else "trap";
+                    dpd_action = if t.epAddr != null then "restart" else "clear";
+                  };
+                }
+                // (lib.optionalAttrs (t.epAddr != null) {
+                  remote_port = connPort;
+                })
+              )
             ) tunnelInstances
           );
 
