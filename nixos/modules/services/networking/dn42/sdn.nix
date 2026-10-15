@@ -406,7 +406,7 @@ in
 
     enableClient = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200";
     };
 

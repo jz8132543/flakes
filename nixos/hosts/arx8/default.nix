@@ -22,7 +22,6 @@
     ];
 
   optimize.brutal.target = "!cn";
-  services.dn42.sdn.enableClient = true;
 
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [
