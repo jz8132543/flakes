@@ -23,10 +23,10 @@
         "https://8.8.8.8/dns-query"
       ];
 
-      # 对 AAAA (IPv6) 查询直接返回 SOA (NOERROR 空应答)：
-      # 1. 杜绝因境外 IPv6 未走 DN42 加速而直连物理网卡导致的 GFW 嗅探阻断；
-      # 2. 避免 SmartDNS 因无可用境外 IPv6 路由而返回 SERVFAIL，从而误触发 dnsmasq 向后 Fallback 到被污染的国内 DNS。
-      force-AAAA-SOA = true;
+      # 允许正常解析 AAAA (IPv6) 记录，支持纯 IPv6 网站、教育网/校园网 IPv6 资源与专用节点。
+      # 对于双栈域名（如 Google、Bilibili），底层通过本文件末尾配置的 gai.conf (RFC 6724 规则)
+      # 自动使系统优先选择 IPv4，从而无缝享受 DN42 骨干网出国加速，同时兼顾 IPv6-only 站点的正常连通。
+      force-AAAA-SOA = false;
 
       cache-size = 4096;
       prefetch-domain = true;
