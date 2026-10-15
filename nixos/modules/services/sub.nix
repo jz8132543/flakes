@@ -295,9 +295,9 @@ let
           "ALL"
           "PUBLIC-ONLY"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
-        ++ (map (g: g.name) userGroupDefs)
-        ++ allRegionGroupNames;
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY";
+        # ++ (map (g: g.name) userGroupDefs)
+        # ++ allRegionGroupNames;
       }
     ]
     ++ userGroupDefs
