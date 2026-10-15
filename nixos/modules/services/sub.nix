@@ -391,8 +391,6 @@ let
       ];
       nameserver = [
         "127.0.0.1"
-        "https://1.1.1.1/dns-query#PROXY"
-        "https://9.9.9.9/dns-query#PROXY"
       ];
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
