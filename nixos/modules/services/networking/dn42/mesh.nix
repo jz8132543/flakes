@@ -459,13 +459,13 @@ in
 
         allPeers = mkOption {
           type = types.bool;
-          default = true;
+          default = false;
           description = "Whether to obfuscate all mesh peers with Fake-TCP (requires all nodes to run Mimic simultaneously)";
         };
 
         allTraffic = mkOption {
           type = types.bool;
-          default = true;
+          default = false;
           description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
         };
 

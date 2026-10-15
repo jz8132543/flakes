@@ -406,8 +406,8 @@ in
 
     enableClient = mkOption {
       type = types.bool;
-      default = true;
-      description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200";
+      default = baseCfg.role == "internal";
+      description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200 (defaults to true on internal/client nodes, false on border exit nodes)";
     };
 
     enableExit = mkOption {
