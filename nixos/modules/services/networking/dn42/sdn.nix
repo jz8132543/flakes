@@ -23,6 +23,8 @@ let
   meshEndpoints = dn42Data.mesh or { };
   allHosts = selfData.hosts or { };
 
+  isAccelerated = cfg.enableAcceleration || cfg.enableClient;
+
   # 动态筛选所有具备 border 角色或开启 ibgp 的骨干节点作为 Controller 候选
   borderNodes = lib.filterAttrs (
     _name: meshCfg: (meshCfg.role or "internal") == "border" || (meshCfg.ibgp or false)
@@ -404,10 +406,16 @@ in
       description = "Whether this node acts as an SDN Controller (generates country routes and acts as iBGP Route Reflector)";
     };
 
+    enableAcceleration = mkOption {
+      type = types.bool;
+      default = dn42Data.mesh.${hostName}.acceleration or dn42Data.mesh.${hostName}.enableClient or false;
+      description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200 for overseas acceleration (configured via terraform/dn42.tf, defaults to false)";
+    };
+
     enableClient = mkOption {
       type = types.bool;
-      default = baseCfg.role == "internal";
-      description = "Whether this machine routes its own local outbound traffic through DN42 SDN table 200 (defaults to true on internal/client nodes, false on border exit nodes)";
+      default = cfg.enableAcceleration;
+      description = "Deprecated alias for enableAcceleration";
     };
 
     enableExit = mkOption {
@@ -461,7 +469,7 @@ in
 
   config = mkIf (baseCfg.enable && cfg.enable) {
     # ── 1. 注册内核路由表 200 (sdn_accel) ─────────────────────────────
-    networking.iproute2 = mkIf cfg.enableClient {
+    networking.iproute2 = mkIf isAccelerated {
       enable = true;
       rttablesExtraConfig = ''
         ${toString cfg.table} ${cfg.tableName}
@@ -520,14 +528,14 @@ in
           # ── Priority 8980: Mihomo DIRECT 流量出海分流 ──
           # 当 Mihomo 运行时，打有 fwmark 0x1 的 DIRECT 出站流量优先查 table 200 (sdn_accel)，
           # 使得 Mihomo 中配置为 DIRECT 的国外网站（如 PROXY 组选 DIRECT）通过 DN42 骨干网出海加速
-          ${lib.optionalString cfg.enableClient ''
+          ${lib.optionalString isAccelerated ''
             ip rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
           ''}
 
           # ── Priority 9999: 无 Mihomo 时的原生全系统 DN42 兜底加速 ──
           # 当系统未开启 Mihomo（或流量未被 TUN 捕获）时，所有出站流量降级匹配 priority 9999，
           # 查 table 200 (sdn_accel) 直接通过 DN42 访问 Google 及全球互联网，实现无代理开箱即用
-          ${lib.optionalString cfg.enableClient ''
+          ${lib.optionalString isAccelerated ''
             ip rule add lookup ${cfg.tableName} priority 9999
           ''}
 
@@ -555,7 +563,7 @@ in
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
 
-          ${lib.optionalString cfg.enableClient ''
+          ${lib.optionalString isAccelerated ''
             ip -6 rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
             ip -6 rule add lookup ${cfg.tableName} priority 9999
           ''}
@@ -625,7 +633,7 @@ in
         export none;
       }
 
-      ${lib.optionalString cfg.enableClient ''
+      ${lib.optionalString isAccelerated ''
         protocol kernel kernel_sdn {
           kernel table ${toString cfg.table};
           persist no;        # BIRD 退出时立即清空内核 table ${toString cfg.table}，毫秒级回退物理网卡

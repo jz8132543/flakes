@@ -428,6 +428,7 @@
     "ipv6": "fd53:90fd:4bb6::/48",
     "mesh": {
       "arx8": {
+        "acceleration": true,
         "endpoint": null,
         "ibgp": false,
         "listenPort": 51821,
@@ -475,6 +476,7 @@
         "role": "internal"
       },
       "surface": {
+        "acceleration": true,
         "endpoint": null,
         "ibgp": false,
         "listenPort": 51821,

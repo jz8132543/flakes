@@ -175,6 +175,12 @@ let
             if (cfg.thisNode.endpoint == null && (nodeMeshCfg.endpoint or null != null)) then 25 else null;
           description = "WireGuard persistentKeepalive in seconds (25s on NAT/client side, null on server)";
         };
+
+        acceleration = mkOption {
+          type = types.bool;
+          default = nodeMeshCfg.acceleration or nodeMeshCfg.enableClient or false;
+          description = "Whether this node routes its outbound internet traffic via DN42 SDN table 200";
+        };
       };
     }
   );
@@ -459,13 +465,13 @@ in
 
         allPeers = mkOption {
           type = types.bool;
-          default = false;
+          default = true;
           description = "Whether to obfuscate all mesh peers with Fake-TCP (requires all nodes to run Mimic simultaneously)";
         };
 
         allTraffic = mkOption {
           type = types.bool;
-          default = false;
+          default = true;
           description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
         };
 

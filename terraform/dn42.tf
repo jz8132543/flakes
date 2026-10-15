@@ -120,16 +120,18 @@ locals {
       endpoint   = "fra1.dora.im:${local.dn42_mesh_listen_port}"
     }
     arx8 = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = null
+      role         = "internal"
+      ibgp         = false
+      listenPort   = local.dn42_mesh_listen_port
+      endpoint     = null
+      acceleration = true
     }
     surface = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = null
+      role         = "internal"
+      ibgp         = false
+      listenPort   = local.dn42_mesh_listen_port
+      endpoint     = null
+      acceleration = true
     }
   }
 
