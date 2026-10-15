@@ -257,6 +257,13 @@ let
     tproxy-port = 9898;
     secret = "";
 
+    # Linux 策略路由防火墙标记 (fwmark)：
+    # 与 sdn.nix 中 priority 8980 (fwmark 0x1/0x1 lookup sdn_accel) 完美联动。
+    # 所有 Mihomo 出站 socket（包括 DIRECT 直连及节点健康检查）均携带 fwmark 1，
+    # 强制匹配 8980 策略路由查 table 200 (sdn_accel) 经 DN42 出海加速，
+    # 从而彻底越过 TUN 的 priority 9003 (table 2022)，根除本地 DIRECT 流量环路回流死锁。
+    routing-mark = 1;
+
     # 注入内网 *.dn42 hosts 解析，确保所有订阅客户端秒级直达 DN42 Loopback IP
     hosts = dn42HostsMapping;
 
