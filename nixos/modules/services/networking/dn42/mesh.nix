@@ -259,7 +259,25 @@ let
     set -euo pipefail
     IFACE="$1"
 
-    # 1. 关闭 GRO/LRO 以及 TX/RX 硬件校验和卸载：
+    # 1. 清理该网卡上可能残留的旧 BPF clsact qdisc、XDP 挂载与 /run/mimic 锁文件（彻底根除 EEXIST status=17 循环崩溃）
+    ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
+    ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
+    IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
+    if [ -n "$IFINDEX" ]; then
+      for lock in /run/mimic/*_"''${IFINDEX}".lock; do
+        if [ -f "$lock" ]; then
+          PID=$(${pkgs.gawk}/bin/awk -F'=' '$1=="pid"{print $2}' "$lock" 2>/dev/null || true)
+          if [ -n "$PID" ] && [ -d "/proc/$PID" ]; then
+            kill -15 "$PID" 2>/dev/null || true
+            sleep 0.2
+            kill -9 "$PID" 2>/dev/null || true
+          fi
+          rm -f "$lock" 2>/dev/null || true
+        fi
+      done
+    fi
+
+    # 2. 关闭 GRO/LRO 以及 TX/RX 硬件校验和卸载：
     #    - 关 gro/lro：防止 skb-XDP 模式下多个 Fake-TCP 包被合并破坏 12 字节尾部边界
     #    - 关 tx/rx csum offload：迫使内核在进入 Mimic (TC Egress) 前完成软件校验和计算，且接收端网卡不因 IPv4 ESP 零校验和丢弃 Fake-TCP 包
     ${pkgs.ethtool}/bin/ethtool -K "$IFACE" gro off rx-gro-hw off lro off gso off tso off tx off rx off 2>/dev/null || true
@@ -273,21 +291,15 @@ let
       sleep 1
     done
 
-    # 2. 绑定本机端口 (4500 与 500)：
-    #    - 使用 0.0.0.0 与 [::] 通配符交由 Mimic 内部 Netlink 机制动态监听接口 IP 变更
-    #    - 同时显式追加当前已就绪的 Global IPv4/IPv6，确保冷启动与热切换时均能零延迟立即命中
+    # 3. 绑定本机端口 (4500 与 500)：
+    #    - 仅使用 0.0.0.0 与 [::] 通配符，由 Mimic 原生 Netlink 机制自动注入接口全部当前及动态变更的真实 IP
+    #    - 绝不重复传递具体单播 IP，防止 BPF_NOEXIST 插入重复键触发内核 EEXIST (status=17) 崩溃
     FILTER_ARGS=(
       "-f" "local=0.0.0.0:4500"
       "-f" "local=[::]:4500"
       "-f" "local=0.0.0.0:500"
       "-f" "local=[::]:500"
     )
-    for ip4 in $(${pkgs.iproute2}/bin/ip -4 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
-      FILTER_ARGS+=("-f" "local=''${ip4}:4500" "-f" "local=''${ip4}:500")
-    done
-    for ip6 in $(${pkgs.iproute2}/bin/ip -6 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
-      FILTER_ARGS+=("-f" "local=[''${ip6}]:4500" "-f" "local=[''${ip6}]:500")
-    done
 
     ${lib.concatMapStringsSep "\n" (f: ''
       FILTER_ARGS+=("-f" "${f}")
@@ -634,6 +646,16 @@ in
               Restart = "always";
               RestartSec = "2s";
               ExecStart = "${mimicStartScript} %I";
+              ExecStopPost = pkgs.writeShellScript "mimic-stop-post" ''
+                set -u
+                IFACE="$1"
+                ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
+                ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
+                IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
+                if [ -n "$IFINDEX" ]; then
+                  rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
+                fi
+              '';
             };
           };
         })
