@@ -68,17 +68,25 @@ let
   clusterNodesJson = builtins.toJSON (lib.filter (n: n.dn42Ip != null) clusterNodes);
 
   allClusterPublicIps = lib.unique (
-    lib.filter (
-      ip: ip != null && ip != "" && (builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$" ip != null)
-    ) ((map (e: e.ipv4 or null) edgeNodes) ++ (map (n: n.publicHost) clusterNodes))
+    lib.filter
+      (ip: ip != null && ip != "" && (builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$" ip != null))
+      (
+        (map (e: e.ipv4 or null) edgeNodes)
+        ++ (map (n: n.publicHost) clusterNodes)
+        ++ (lib.flatten (lib.mapAttrsToList (_: h: h.endpoints_v4 or [ ]) allHosts))
+      )
   );
 
   allClusterPublicV6s = lib.unique (
-    lib.filter (ip: ip != null && ip != "" && (lib.hasInfix ":" ip)) (map (e: e.ipv6 or null) edgeNodes)
+    lib.filter (ip: ip != null && ip != "" && (lib.hasInfix ":" ip)) (
+      (map (e: e.ipv6 or null) edgeNodes)
+      ++ (lib.flatten (lib.mapAttrsToList (_: h: h.endpoints_v6 or [ ]) allHosts))
+    )
   );
 
   pythonEnv = pkgs.python3.withPackages (
     ps: with ps; [
+      maxminddb
       geoip2
       requests
     ]
@@ -87,65 +95,55 @@ let
   # SDN Country Arbiter 算路脚本（仅在 Controller 节点上激活）
   sdnArbiterPkg = pkgs.writeScriptBin "sdn-country-arbiter" ''
     #!${pythonEnv}/bin/python3
+    import collections
+    import glob
+    import ipaddress
     import json
     import math
     import os
+    import re
     import socket
     import subprocess
     import time
-    import geoip2.database
+    import maxminddb
 
     NODES = json.loads('${clusterNodesJson}')
     GEOIP_PKG = "${cfg.geoIpDatabase}"
     COUNTRY_CIDR_DIR = "${cfg.countryCidrDir}"
-    COUNTRY_META_FILE = f"{COUNTRY_CIDR_DIR}/countries_meta.json"
     OUTPUT_CONF = "${cfg.routesOutputFile}"
     LOCAL_HOSTNAME = "${hostName}"
 
-    # 标准国家地理中心坐标锚点（用于 Haversine 球面距离折算光纤延迟）
-    COUNTRY_CENTROIDS = {
-        "US": (37.0902, -95.7129),
-        "CA": (56.1304, -106.3468),
-        "GB": (55.3781, -3.4360),
-        "DE": (51.1657, 10.4515),
-        "FR": (46.2276, 2.2137),
-        "NL": (52.1326, 5.2913),
-        "JP": (36.2048, 138.2529),
-        "SG": (1.3521, 103.8198),
-        "HK": (22.3193, 114.1694),
-        "TW": (23.6978, 120.9605),
-        "KR": (35.9078, 127.7669),
-        "AU": (-25.2744, 133.7751),
-        "CH": (46.8182, 8.2275),
-        "SE": (60.1282, 18.6435),
-        "NO": (60.4720, 8.4689),
-        "FI": (61.9241, 25.7482),
-        "DK": (56.2639, 9.5018),
-        "IE": (53.1424, -7.6921),
-        "IT": (41.8719, 12.5674),
-        "ES": (40.4637, -3.7492),
-        "PT": (39.3999, -8.2245),
-        "PL": (51.9194, 19.1451),
-        "AT": (47.5162, 14.5501),
-        "CZ": (49.8175, 15.4730),
-        "RU": (61.5240, 105.3188),
-        "UA": (48.3794, 31.1656),
-        "IN": (20.5937, 78.9629),
-        "MY": (4.2105, 101.9758),
-        "ID": (-0.7893, 113.9213),
-        "TH": (15.8700, 100.9925),
-        "VN": (14.0583, 108.2772),
-        "PH": (12.8797, 121.7740),
-        "BR": (-14.2350, -51.9253),
-        "MX": (23.6345, -102.5528),
-        "AR": (-38.4161, -63.6167),
-        "CL": (-35.6751, -71.5430),
-        "ZA": (-30.5595, 22.9375),
-        "AE": (23.4241, 53.8478),
-        "SA": (23.8859, 45.0792),
-        "IL": (31.0461, 34.8516),
-        "TR": (38.9637, 35.2433),
-        "NZ": (-40.9006, 174.8860),
+    # 紧凑 IATA 机场前缀基准表（用于节点命名校准、防商家广播 IP 漂移及 Fallback）
+    IATA_LOCATIONS = {
+        "fra": {"country": "DE", "lat": 50.1109, "lon": 8.6821, "city": "Frankfurt"},
+        "nue": {"country": "DE", "lat": 49.4521, "lon": 11.0767, "city": "Nuremberg"},
+        "tyo": {"country": "JP", "lat": 35.6762, "lon": 139.6503, "city": "Tokyo"},
+        "sjc": {"country": "US", "lat": 37.3382, "lon": -121.8863, "city": "San Jose"},
+        "dfw": {"country": "US", "lat": 32.7767, "lon": -96.7970, "city": "Dallas"},
+        "ams": {"country": "NL", "lat": 52.3676, "lon": 4.9041, "city": "Amsterdam"},
+        "vie": {"country": "AT", "lat": 48.2082, "lon": 16.3738, "city": "Vienna"},
+        "hkg": {"country": "HK", "lat": 22.3193, "lon": 114.1694, "city": "Hong Kong"},
+        "can": {"country": "CN", "lat": 23.1291, "lon": 113.2644, "city": "Guangzhou"},
+        "xiy": {"country": "CN", "lat": 34.3416, "lon": 108.9398, "city": "Xi'an"},
+        "isk": {"country": "JP", "lat": 34.6937, "lon": 135.5023, "city": "Osaka"},
+        "sin": {"country": "SG", "lat": 1.3521, "lon": 103.8198, "city": "Singapore"},
+        "lon": {"country": "GB", "lat": 51.5074, "lon": -0.1278, "city": "London"},
+        "lhr": {"country": "GB", "lat": 51.4700, "lon": -0.4543, "city": "London"},
+        "par": {"country": "FR", "lat": 48.8566, "lon": 2.3522, "city": "Paris"},
+        "cdg": {"country": "FR", "lat": 49.0097, "lon": 2.5479, "city": "Paris"},
+        "syd": {"country": "AU", "lat": -33.8688, "lon": 151.2093, "city": "Sydney"},
+        "sea": {"country": "US", "lat": 47.6062, "lon": -122.3321, "city": "Seattle"},
+        "lax": {"country": "US", "lat": 33.9416, "lon": -118.4085, "city": "Los Angeles"},
+        "ord": {"country": "US", "lat": 41.9742, "lon": -87.9073, "city": "Chicago"},
+        "iad": {"country": "US", "lat": 38.9531, "lon": -77.4565, "city": "Washington"},
+        "ewr": {"country": "US", "lat": 40.6895, "lon": -74.1745, "city": "Newark"},
+        "jfk": {"country": "US", "lat": 40.6413, "lon": -73.7781, "city": "New York"},
+        "icn": {"country": "KR", "lat": 37.4602, "lon": 126.4407, "city": "Seoul"},
+        "tpe": {"country": "TW", "lat": 25.0797, "lon": 121.2342, "city": "Taipei"},
+        "pek": {"country": "CN", "lat": 40.0799, "lon": 116.6031, "city": "Beijing"},
+        "pvg": {"country": "CN", "lat": 31.1443, "lon": 121.8083, "city": "Shanghai"},
+        "sha": {"country": "CN", "lat": 31.1979, "lon": 121.3363, "city": "Shanghai"},
+        "szx": {"country": "CN", "lat": 22.6393, "lon": 113.8107, "city": "Shenzhen"},
     }
 
 
@@ -184,6 +182,46 @@ let
             return None
 
 
+    def check_wan_health():
+        """Verify local external WAN connectivity to prevent WAN Blackhole"""
+        for target in ["1.1.1.1", "8.8.8.8"]:
+            try:
+                subprocess.check_call(
+                    ["ping", "-c", "1", "-W", "2", target],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                return True
+            except Exception:
+                pass
+        return False
+
+
+    def get_swanctl_remote_ips():
+        """Extract active IKE SA remote-host IPs for NAT / mobile clients from swanctl --list-sas"""
+        remote_ips = {}
+        try:
+            out = subprocess.check_output(
+                ["swanctl", "--list-sas"], text=True, stderr=subprocess.DEVNULL
+            )
+            current_peer = None
+            for line in out.splitlines():
+                line = line.strip()
+                if line.startswith("mesh-peer-"):
+                    pname = line.split(":")[0].replace("mesh-peer-", "")
+                    current_peer = pname.split("-")[0]
+                elif current_peer and ("remote:" in line or "remote-host:" in line):
+                    parts = line.split()
+                    for part in parts:
+                        m = re.match(r"^(\d+\.\d+\.\d+\.\d+)$", part)
+                        if m:
+                            remote_ips[current_peer] = m.group(1)
+                            break
+        except Exception:
+            pass
+        return remote_ips
+
+
     def find_geoip_db():
         candidates = [
             f"{GEOIP_PKG}/share/dbip/dbip-city-lite.mmdb",
@@ -203,57 +241,24 @@ let
         return None
 
 
-    def ensure_country_meta():
-        os.makedirs(COUNTRY_CIDR_DIR, exist_ok=True)
-        if os.path.exists(COUNTRY_META_FILE):
-            try:
-                with open(COUNTRY_META_FILE) as f:
-                    meta = json.load(f)
-                    total_cidrs = sum(len(c.get("cidrs", [])) for c in meta.values())
-                    if total_cidrs > 0:
-                        return meta
-            except Exception as e:
-                print(f"Warning: could not read {COUNTRY_META_FILE}: {e}")
-
-        meta = {}
-        print(f"Scanning for country CIDRs in {COUNTRY_CIDR_DIR}...")
-        for iso, (lat, lon) in COUNTRY_CENTROIDS.items():
-            cidr_file = os.path.join(COUNTRY_CIDR_DIR, f"{iso.lower()}.cidr")
-            cidrs = []
-            if os.path.exists(cidr_file) and os.path.getsize(cidr_file) > 0:
-                try:
-                    with open(cidr_file) as f:
-                        cidrs = [
-                            line.strip()
-                            for line in f
-                            if line.strip() and not line.startswith("#")
-                        ]
-                except Exception:
-                    pass
-            if cidrs:
-                meta[iso] = {"lat": lat, "lon": lon, "cidrs": cidrs}
-
-        total_cidrs = sum(len(c.get("cidrs", [])) for c in meta.values())
-        if total_cidrs > 0:
-            try:
-                with open(COUNTRY_META_FILE, "w") as f:
-                    json.dump(meta, f, indent=2)
-            except Exception as e:
-                print(f"Warning: could not write {COUNTRY_META_FILE}: {e}")
-        return meta
-
-
     def main():
         mmdb_path = find_geoip_db()
         reader = None
         if mmdb_path and os.path.exists(mmdb_path):
             try:
-                reader = geoip2.database.Reader(mmdb_path)
+                reader = maxminddb.open_database(mmdb_path)
                 print(f"Loaded GeoIP City DB from {mmdb_path}")
             except Exception as e:
                 print(f"Error opening GeoIP DB {mmdb_path}: {e}")
         else:
             print("Warning: No GeoIP City DB found in package or system!")
+
+        # Check local node WAN health
+        local_wan_ok = check_wan_health()
+        if not local_wan_ok:
+            print("Warning: Local WAN probe to 1.1.1.1/8.8.8.8 failed! Local node will not serve as public exit.")
+
+        swanctl_ips = get_swanctl_remote_ips()
 
         active_nodes = []
         for node in NODES:
@@ -263,6 +268,9 @@ let
                 continue
 
             if name == LOCAL_HOSTNAME:
+                if not local_wan_ok:
+                    print(f"Skipping local node {name} from exit pool due to WAN failure")
+                    continue
                 rtt = 0.1
             else:
                 rtt = ping_rtt(dn42_ip)
@@ -271,39 +279,56 @@ let
                 print(f"Node {name} ({dn42_ip}) unreachable via Babel")
                 continue
 
+            # Resolve public IP: prefer publicHost, fallback to active swanctl IKE SA remote IP
             public_host = node.get("publicHost")
             public_ip = resolve_ip(public_host) if public_host else None
-            if not public_ip:
-                print(f"Node {name} host ({public_host}) cannot be resolved")
-                continue
+            if not public_ip and name in swanctl_ips:
+                public_ip = swanctl_ips[name]
 
             country, lat, lon = None, None, None
-            if reader:
+            if reader and public_ip:
                 try:
-                    resp = reader.city(public_ip)
-                    country = resp.country.iso_code
-                    lat = resp.location.latitude
-                    lon = resp.location.longitude
+                    rec = reader.get(public_ip)
+                    if rec:
+                        country = rec.get("country", {}).get("iso_code")
+                        loc = rec.get("location", {})
+                        lat = loc.get("latitude")
+                        lon = loc.get("longitude")
                 except Exception as e:
                     print(f"GeoIP failed for {name} ({public_ip}): {e}")
 
+            # IATA 三字码纠偏与 Fallback 机制：防商家广播 IP 跨区漂移 (如香港广播 IP 归属 US)
+            m_iata = re.match(r"^([a-z]{3})[0-9]+.*", name.lower())
+            if m_iata:
+                iata_code = m_iata.group(1)
+                if iata_code in IATA_LOCATIONS:
+                    ref = IATA_LOCATIONS[iata_code]
+                    if not country or country != ref["country"]:
+                        print(
+                            f"IATA drift correction for {name}: {country} -> "
+                            f"{ref['country']} ({ref['city']})"
+                        )
+                        country = ref["country"]
+                        lat = ref["lat"]
+                        lon = ref["lon"]
+                    elif lat is None or lon is None:
+                        lat = ref["lat"]
+                        lon = ref["lon"]
+
             if not country or lat is None or lon is None:
-                print(
-                    f"Warning: Could not determine location for node "
-                    f"{name} ({public_ip}), skipping from exit pool"
-                )
+                print(f"Warning: Could not determine location for node {name}, skipping from exit pool")
                 continue
 
             active_nodes.append({
                 "name": name,
                 "dn42Ip": dn42_ip,
-                "publicIp": public_ip,
+                "publicIp": public_ip or "unknown",
                 "country": country,
                 "lat": lat,
                 "lon": lon,
                 "internal_rtt": rtt,
             })
-            print(f"Healthy node {name}: {country}, RTT={rtt:.1f}ms")
+            print(f"Healthy exit candidate {name}: {country} ({lat:.2f}, {lon:.2f}), RTT={rtt:.1f}ms")
 
         os.makedirs(os.path.dirname(OUTPUT_CONF), exist_ok=True)
         if not active_nodes:
@@ -313,49 +338,86 @@ let
             subprocess.run(["birdc", "configure"], check=False)
             return
 
-        countries = ensure_country_meta()
+        node_by_ip = {n["dn42Ip"]: n["name"] for n in active_nodes}
+        # Group subnets by best exit node
+        node_assigned_nets = collections.defaultdict(list)
+
+        # 遍历 COUNTRY_CIDR_DIR 下所有国家的 CIDR 文件（如 de.cidr, us.cidr 等）
+        cidr_files = glob.glob(os.path.join(COUNTRY_CIDR_DIR, "*.cidr"))
+        if not cidr_files:
+            print(f"Notice: No .cidr files found in {COUNTRY_CIDR_DIR}. Waiting for sdn-sync-cidrs.")
+
+        for cpath in sorted(cidr_files):
+            c_code = os.path.basename(cpath).replace(".cidr", "").upper()
+            # 跳过国内网段（由策略路由直通 eth0 出口）
+            if c_code == "CN":
+                continue
+
+            same_country_nodes = [n for n in active_nodes if n["country"] == c_code]
+
+            try:
+                with open(cpath) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        try:
+                            net = ipaddress.ip_network(line)
+                        except Exception:
+                            continue
+
+                        # 精确查询目标网段在 MMDB 中的具体坐标（实现同国多出口自动分流，如 sjc0 vs dfw0）
+                        sub_lat, sub_lon = None, None
+                        if reader:
+                            try:
+                                rec = reader.get(str(net.network_address))
+                                if rec and "location" in rec:
+                                    loc = rec["location"]
+                                    sub_lat = loc.get("latitude")
+                                    sub_lon = loc.get("longitude")
+                            except Exception:
+                                pass
+
+                        # 选路决策：
+                        if same_country_nodes:
+                            # 本国已有在线节点：
+                            if sub_lat is not None and sub_lon is not None and len(same_country_nodes) > 1:
+                                best_node = min(
+                                    same_country_nodes,
+                                    key=lambda n: haversine_km(sub_lat, sub_lon, n["lat"], n["lon"]),
+                                )
+                            else:
+                                best_node = min(same_country_nodes, key=lambda n: n["internal_rtt"])
+                        else:
+                            # 本国无在线节点（如加拿大 CA）：按距目标网段坐标球面距离折算延迟 + 内网 RTT 择优
+                            if sub_lat is not None and sub_lon is not None:
+                                best_node = min(
+                                    active_nodes,
+                                    key=lambda n: (haversine_km(sub_lat, sub_lon, n["lat"], n["lon"]) * 0.01) + n["internal_rtt"],
+                                )
+                            else:
+                                best_node = min(active_nodes, key=lambda n: n["internal_rtt"])
+
+                        node_assigned_nets[best_node["dn42Ip"]].append(net)
+            except Exception as e:
+                print(f"Error processing CIDR file {cpath}: {e}")
+
+        # 超级聚合（Supernet Collapse）：将归属同一个出口节点的相邻网段合并，大幅降低内核 table 200 路由表条目
         gen_time = time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())
         lines = [
             "# Auto-generated by SDN Country Arbiter",
             f"# Generated at {gen_time}",
             f"# Active cluster nodes: {len(active_nodes)}",
         ]
-
         for node in active_nodes:
-            lines.append(f"# Node {node['name']} ({node['publicIp']}) exempted")
+            lines.append(f"# Node {node['name']} ({node['country']}) -> {node['dn42Ip']}")
 
         total_routes = 0
-        for iso_code, c_info in sorted(countries.items()):
-            if iso_code == "CN":
-                continue
-
-            c_lat = c_info.get("lat")
-            c_lon = c_info.get("lon")
-            cidrs = c_info.get("cidrs", [])
-            if not cidrs or c_lat is None or c_lon is None:
-                continue
-
-            same_country_nodes = [
-                n for n in active_nodes if n["country"] == iso_code
-            ]
-            if same_country_nodes:
-                best_node = min(
-                    same_country_nodes, key=lambda n: n["internal_rtt"]
-                )
-            else:
-                best_node = min(
-                    active_nodes,
-                    key=lambda n: (
-                        haversine_km(c_lat, c_lon, n["lat"], n["lon"]) * 0.01
-                    )
-                    + n["internal_rtt"],
-                )
-
-            for cidr in cidrs:
-                lines.append(
-                    f"route {cidr} recursive {best_node['dn42Ip']}; "
-                    f"# {iso_code} -> {best_node['name']}"
-                )
+        for dn42_ip, nets in node_assigned_nets.items():
+            collapsed = list(ipaddress.collapse_addresses(nets))
+            exit_name = node_by_ip.get(dn42_ip, "exit")
+            for cnet in collapsed:
+                lines.append(f"route {cnet} recursive {dn42_ip}; # -> {exit_name}")
                 total_routes += 1
 
         new_content = "\n".join(lines) + "\n"
@@ -373,7 +435,7 @@ let
             with open(temp_file, "w") as f:
                 f.write(new_content)
             os.replace(temp_file, OUTPUT_CONF)
-            print(f"Updated {OUTPUT_CONF} with {total_routes} routes.")
+            print(f"Updated {OUTPUT_CONF} with {total_routes} collapsed routes.")
             try:
                 res = subprocess.run(
                     ["birdc", "configure"],
@@ -520,10 +582,14 @@ in
           done
           ip rule add fwmark 51820 lookup main priority 82
 
-          # ── Priority 90: DN42 内部网段直连 ──
+          # ── Priority 90: DN42 内部网段双向直连与 ICMP 差错放行 ──
           # 访问 DN42 内部网段强制查 main 表（走 Babel / BGP 内部最优 IGP 路径）
+          # 同时豁免源为 DN42 的出向报文（特别是 XFRM 接口 MTU 1360 产生的 ICMP Fragmentation Needed / Packet Too Big 报错），
+          # 彻底杜绝 PMTUD 失败导致的 QUIC (HTTP/3 UDP 443) 网页加载无限转圈假死
           ip rule add to 172.20.0.0/14 lookup main priority 90
+          ip rule add from 172.20.0.0/14 lookup main priority 90
           ip rule add to 10.0.0.0/8 lookup main priority 90
+          ip rule add from 10.0.0.0/8 lookup main priority 90
 
           # ── Priority 8980: Mihomo DIRECT 流量出海分流 ──
           # 当 Mihomo 运行时，打有 fwmark 0x1 的 DIRECT 出站流量优先查 table 200 (sdn_accel)，
@@ -562,6 +628,9 @@ in
           done
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
+          ip -6 rule add from fd00::/8 lookup main priority 90
+          ip -6 rule add to fe80::/10 lookup main priority 90
+          ip -6 rule add from fe80::/10 lookup main priority 90
 
           ${lib.optionalString isAccelerated ''
             ip -6 rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
@@ -619,6 +688,11 @@ in
           min rx interval 100 ms;
           min tx interval 100 ms;
           multiplier 3;
+        };
+        multihop {
+          min rx interval 1000 ms;
+          min tx interval 1000 ms;
+          multiplier 5;
         };
       }
 
@@ -737,6 +811,7 @@ in
         pkgs.bird2
         pkgs.coreutils
         pkgs.iproute2
+        pkgs.strongswan
       ];
       serviceConfig = {
         Type = "oneshot";
@@ -765,7 +840,7 @@ in
       script = ''
         mkdir -p ${cfg.countryCidrDir}
         # 使用 jsDelivr CDN 从公开源拉取主要国家 CIDR
-        for code in de us jp hk gb fr sg ca au kr nl tw se no fi dk ie it es pt pl at cz ru ua in my id th vn ph br mx ar cl za ae sa il tr nz; do
+        for code in de us jp hk gb fr sg ca au kr nl tw se no fi dk ie it es pt pl at cz ru ua in my id th vn ph br mx ar cl za ae sa il tr nz ch be ro bg hu gr sk ee lv lt lu is cy mt; do
           f="${cfg.countryCidrDir}/$code.cidr"
           if [ ! -s "$f" ]; then
             echo "Fetching CIDR for $code via jsDelivr CDN..."
@@ -779,7 +854,6 @@ in
             fi
           fi
         done
-        rm -f ${cfg.countryCidrDir}/countries_meta.json
       '';
       serviceConfig = {
         Type = "oneshot";

@@ -254,107 +254,88 @@ let
   # 避免对整个 0.0.0.0:4500 进行全局拦截，全局拦截会导致未升级 Mimic 的节点（如 fra1/sjc0/tyo0）
   # 握手超时进而导致整网震荡。通过精准白名单 -f remote=<endpoint>:4500，仅对需要穿透国内运营商封锁的
   # 对等节点（如 cu 与海外核心节点 fra0）启用 Fake-TCP，其余同地域/无封锁节点保持 100% 原生 UDP 全速转发！
-  mimicTargetPeers =
-    if cfg.ipsec.mimic.allPeers then
-      (lib.attrNames activePeers)
-    else
-      (lib.filter (p: cfg.nodes ? ${p}) cfg.ipsec.mimic.peers);
 
-  mimicRemoteEndpoints = lib.unique (
-    lib.flatten (
-      map (
-        peerName:
-        let
-          peerCfg = cfg.nodes.${peerName};
-          epList =
-            if peerCfg.endpoints != { } then
-              lib.attrValues peerCfg.endpoints
-            else
-              (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) peerCfg.endpoint)
-              ++ (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6);
-        in
-        map stripPort epList
-      ) mimicTargetPeers
-    )
-  );
-
-  mimicGeneratedFilters = map (
-    ep:
+  formatEndpoint =
+    rawEp:
     let
+      ep = stripPort rawEp;
       cleanEp =
         if lib.hasPrefix "[" ep && lib.hasSuffix "]" ep then
           lib.removePrefix "[" (lib.removeSuffix "]" ep)
         else
           ep;
       isV6 = lib.hasInfix ":" cleanEp;
-      formattedEp = if isV6 then "[${cleanEp}]" else cleanEp;
     in
-    "remote=${formattedEp}:${toString cfg.ipsec.port}"
-  ) mimicRemoteEndpoints;
+    if isV6 then "[${cleanEp}]" else cleanEp;
 
-  mimicFilterArgs =
-    if cfg.ipsec.mimic.allTraffic then
-      [
-        "local=0.0.0.0:${toString cfg.ipsec.port}"
-        "local=[::]:${toString cfg.ipsec.port}"
-      ]
-    else if (mimicGeneratedFilters ++ cfg.ipsec.mimic.extraFilters) != [ ] then
-      (mimicGeneratedFilters ++ cfg.ipsec.mimic.extraFilters)
-    else
-      [
-        "local=0.0.0.0:${toString cfg.ipsec.port}"
-        "local=[::]:${toString cfg.ipsec.port}"
-      ];
+  peerEndpoints = map (
+    peerName:
+    let
+      peerCfg = cfg.nodes.${peerName};
+      epList =
+        (if peerCfg.endpoints != { } then lib.attrValues peerCfg.endpoints else [ ])
+        ++ (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) peerCfg.endpoint)
+        ++ (lib.optional (
+          peerCfg.endpointV6 != null && lib.isString peerCfg.endpointV6
+        ) peerCfg.endpointV6);
+    in
+    map formatEndpoint (lib.filter (e: e != null && e != "" && !lib.hasPrefix "%" e) epList)
+  ) (lib.attrNames cfg.nodes);
 
-  mimicCliFilterFlags = concatStringsSep " " (map (f: "-f ${f}") mimicFilterArgs);
+  edgePublicEndpoints = map (
+    e:
+    let
+      v4 = e.ipv4 or null;
+      v6 = e.ipv6 or null;
+    in
+    (lib.optional (v4 != null && v4 != "") v4) ++ (lib.optional (v6 != null && v6 != "") "[${v6}]")
+  ) (selfData.cdn.edgeNodes or [ ]);
 
-  # ── Mimic Fake-TCP 辅助脚本（硬件路由器友好，零源码补丁与零物理网卡全局卸载损耗） ──
-  # 1. 挂载前清洗脚本：加载内核 act_csum 模块，关闭 GRO/LRO 防止 skb-XDP 粘包破坏 12 字节尾部边界
-  mimicPreScript = pkgs.writeShellScript "mimic-pre-sanitize" ''
+  allPeerPublicEndpoints = lib.unique (lib.flatten (peerEndpoints ++ edgePublicEndpoints));
+
+  # ── Mimic Fake-TCP 启动包装脚本 ──
+  # 1. 彻底移除引起内核 TC_ACT_SHOT 丢包的 act_csum 脚本；
+  # 2. 网卡层关闭 TX/RX 硬件校验和卸载与 GRO，迫使内核在 TC Egress 软件计算完整校验和；
+  # 3. 动态提取本机真实网卡 Global IP 绑定 local=，并追加所有集群对端 public endpoints 为 remote=；
+  # 4. 强制使用 --xdp-mode skb，完全规避 virtio_net 驱动级 XDP 挂载/尾部调整失败问题。
+  mimicStartScript = pkgs.writeShellScript "mimic-start-wrapper" ''
     set -euo pipefail
     IFACE="$1"
-    ${pkgs.kmod}/bin/modprobe act_csum 2>/dev/null || true
 
-    # 关闭 GRO / LRO，防止内核在 Mimic 还原前将多个 Fake-TCP 4500 包合并导致 ESP 校验失败
-    ${pkgs.ethtool}/bin/ethtool -K "$IFACE" gro off rx-gro-hw off lro off 2>/dev/null || true
-
-    # 关闭 UDP 隧道硬件分段卸载与泛型校验和卸载，为 Fake-TCP 提供干净环境
+    # 1. 关闭 GRO/LRO 以及 TX/RX 硬件校验和卸载：
+    #    - 关 gro/lro：防止 skb-XDP 模式下多个 Fake-TCP 包被合并破坏 12 字节尾部边界
+    #    - 关 tx/rx csum offload：迫使内核在进入 Mimic (TC Egress) 前完成软件校验和计算，且接收端网卡不因 IPv4 ESP 零校验和丢弃 Fake-TCP 包
+    ${pkgs.ethtool}/bin/ethtool -K "$IFACE" gro off rx-gro-hw off lro off gso off tso off tx off rx off 2>/dev/null || true
     ${pkgs.ethtool}/bin/ethtool -K "$IFACE" tx-udp_tnl-segmentation off tx-udp_tnl-csum-segmentation off 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc qdisc add dev "$IFACE" clsact 2>/dev/null || true
-  '';
 
-  # 2. 挂载后 TC 校验和闭合脚本：在 Mimic eBPF (TC Egress) 之后追加 prio 65000 的 act_csum 动作
-  #    自动将 XFRM 遗留的 CHECKSUM_PARTIAL 或 IPv4 UDP 零校验和重置为 CHECKSUM_NONE 并完整计算 TCP 校验和。
-  #    物理网卡 eth0 本身的硬件校验和与 GSO 丝毫不用关，保障硬件路由器转发全速！
-  mimicPostScript = pkgs.writeShellScript "mimic-post-csum" ''
-    set -euo pipefail
-    IFACE="$1"
-    sleep 1
+    # 如果暂未获得 Global IP，短暂等待最多 5 秒
+    for i in $(seq 1 5); do
+      if [ -n "$(${pkgs.iproute2}/bin/ip -o addr show dev "$IFACE" scope global 2>/dev/null)" ]; then
+        break
+      fi
+      sleep 1
+    done
 
-    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65000 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65001 2>/dev/null || true
+    # 2. 动态获取当前网卡 (%I) 上的真实 Global IPv4 与 IPv6 地址（绝不能用 0.0.0.0 或 [::]！）
+    FILTER_ARGS=()
+    for ip4 in $(${pkgs.iproute2}/bin/ip -4 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
+      FILTER_ARGS+=("-f" "local=''${ip4}:4500" "-f" "local=''${ip4}:500")
+    done
+    for ip6 in $(${pkgs.iproute2}/bin/ip -6 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
+      FILTER_ARGS+=("-f" "local=[''${ip6}]:4500" "-f" "local=[''${ip6}]:500")
+    done
 
-    # IPv4 Fake-TCP 4500 全量软件重算 TCP Checksum
-    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65000 protocol ip \
-      u32 match ip protocol 6 0xff match ip sport 4500 0xffff \
-      action csum ip4h and tcp
-    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65000 protocol ip \
-      u32 match ip protocol 6 0xff match ip dport 4500 0xffff \
-      action csum ip4h and tcp
+    # 3. 追加所有对端公网 IP 的 remote= 规则（确保 NAT 节点与移动设备主动出站也能匹配）
+    ${lib.concatMapStringsSep "\n" (ep: ''
+      FILTER_ARGS+=("-f" "remote=${ep}:4500" "-f" "remote=${ep}:500")
+    '') allPeerPublicEndpoints}
 
-    # IPv6 Fake-TCP 4500 全量软件重算 TCP Checksum
-    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65001 protocol ipv6 \
-      u32 match ip6 protocol 6 0xff match ip6 sport 4500 0xffff \
-      action csum tcp
-    ${pkgs.iproute2}/bin/tc filter add dev "$IFACE" egress prio 65001 protocol ipv6 \
-      u32 match ip6 protocol 6 0xff match ip6 dport 4500 0xffff \
-      action csum tcp
-  '';
+    ${lib.concatMapStringsSep "\n" (f: ''
+      FILTER_ARGS+=("-f" "${f}")
+    '') cfg.ipsec.mimic.extraFilters}
 
-  mimicCleanScript = pkgs.writeShellScript "mimic-clean-csum" ''
-    IFACE="$1"
-    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65000 2>/dev/null || true
-    ${pkgs.iproute2}/bin/tc filter del dev "$IFACE" egress prio 65001 2>/dev/null || true
+    echo "Starting mimic on $IFACE with xdp-mode ${cfg.ipsec.mimic.xdpMode} and filters: ''${FILTER_ARGS[*]}"
+    exec ${pkgs.mimic}/bin/mimic run "$IFACE" --xdp-mode ${cfg.ipsec.mimic.xdpMode} "''${FILTER_ARGS[@]}"
   '';
 
 in
@@ -453,8 +434,8 @@ in
             "native"
             "skb"
           ];
-          default = "auto";
-          description = "Force XDP mode ('auto', 'native', 'skb'). Native XDP runs before GRO; skb mode runs after GRO.";
+          default = "skb";
+          description = "Force XDP mode ('auto', 'native', 'skb'). Generic SKB mode runs reliably across all virtio_net and physical NICs.";
         };
 
         peers = mkOption {
@@ -651,6 +632,8 @@ in
               path = [
                 pkgs.iproute2
                 pkgs.gawk
+                pkgs.ethtool
+                pkgs.coreutils
               ];
               serviceConfig = {
                 Type = "oneshot";
@@ -673,7 +656,7 @@ in
         ))
         // (optionalAttrs cfg.ipsec.mimic.enable {
           "mimic@" = {
-            description = "Mimic eBPF UDP-4500 to Fake-TCP-4500 on %I";
+            description = "Mimic eBPF UDP-4500/500 to Fake-TCP on %I";
             after = [
               "network-online.target"
               "sys-subsystem-net-devices-%i.device"
@@ -685,18 +668,13 @@ in
               ethtool
               kmod
               coreutils
+              gawk
             ];
             serviceConfig = {
               Type = "simple";
               Restart = "always";
               RestartSec = "2s";
-              ExecStartPre = "+${mimicPreScript} %I";
-              # 绑定白名单对端端口，天然兼容公网节点 (fra0/tyo0)、国内 NAT 节点 (cu) 与双栈移动客户端 (arx8/surface)
-              ExecStart = "${pkgs.mimic}/bin/mimic run %I ${
-                if cfg.ipsec.mimic.xdpMode != "auto" then "-x ${cfg.ipsec.mimic.xdpMode} " else ""
-              }${mimicCliFilterFlags}";
-              ExecStartPost = "+${mimicPostScript} %I";
-              ExecStopPost = "+${mimicCleanScript} %I";
+              ExecStart = "${mimicStartScript} %I";
             };
           };
         });
@@ -896,6 +874,14 @@ in
         extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
           ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
+          iptables -t raw -A PREROUTING -p udp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
+          iptables -t raw -A PREROUTING -p tcp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
+          iptables -t raw -A OUTPUT -p udp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
+          iptables -t raw -A OUTPUT -p tcp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
+          ip6tables -t raw -A PREROUTING -p udp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
+          ip6tables -t raw -A PREROUTING -p tcp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
+          ip6tables -t raw -A OUTPUT -p udp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
+          ip6tables -t raw -A OUTPUT -p tcp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
           iptables -t mangle -A FORWARD -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
           iptables -t mangle -A POSTROUTING -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
           iptables -t mangle -A FORWARD -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
@@ -904,6 +890,8 @@ in
         extraInputRules = mkIf config.networking.nftables.enable ''
           meta l4proto esp counter accept
           meta l4proto ah  counter accept
+          udp dport { 500, 4500, 6696 } counter accept
+          tcp dport { 500, 4500 } counter accept
         '';
       };
 
@@ -1097,6 +1085,7 @@ in
                 rtt max ${toString cfg.babel.rttMax} ms;
                 rtt decay ${toString cfg.babel.rttDecay};
               ''}
+              extended next hop yes;
               check link yes;
             };
           }

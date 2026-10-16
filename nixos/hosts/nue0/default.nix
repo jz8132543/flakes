@@ -131,7 +131,7 @@
       }
       {
         name = "nue0-kxy";
-        server = "cu.dora.im";
+        server = "cu";
         port = 50561;
         regions = [ "EU" ];
       }
@@ -143,7 +143,7 @@
       }
       {
         name = "tyo0-kxy";
-        server = "cu.dora.im";
+        server = "cu";
         port = 50563;
         regions = [ "JP" ];
       }
@@ -155,7 +155,7 @@
       }
       {
         name = "tyo1-kxy";
-        server = "cu.dora.im";
+        server = "cu";
         port = 50565;
         regions = [ "JP" ];
       }
@@ -167,7 +167,7 @@
       }
       {
         name = "sjc0-kxy";
-        server = "cu.dora.im";
+        server = "cu";
         port = 50562;
         regions = [ "US" ];
       }
@@ -191,7 +191,7 @@
       }
       {
         name = "hkg5-kxy";
-        server = "cu.dora.im";
+        server = "cu";
         port = 50564;
         regions = [ "HK" ];
       }

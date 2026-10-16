@@ -71,20 +71,11 @@ let
         client-fingerprint = "chrome";
       };
 
-  getDn42Ip =
-    serverName:
-    let
-      h = serverHost serverName;
-      hData = allHostsData.${h} or { };
-      v4s = hData.dn42_addresses_v4 or [ ];
-    in
-    if v4s != [ ] then lib.head v4s else dn42Server serverName;
-
   # DN42 内网节点：因内部网络天然受 WireGuard/XFRM 隧道加密，直接使用高性能免加密 SOCKS5 协议
-  # 使用真实 DN42 IP 作为 server，避免 Mihomo 的 proxy-server-nameserver (223.5.5.5) 因无法解析 .dn42 导致 NXDOMAIN 超时
+  # 使用真实 DN42 域名 (如 tyo0.dn42)，由 hosts 映射直接解析到 Loopback IP (172.20.232.x)
   mkDn42Node = node: {
     name = "${node.name}-DN42";
-    server = getDn42Ip node.server;
+    server = dn42Server node.server;
     port = if node.socksPort != null then node.socksPort else cfg.socksPort;
     type = "socks5";
     udp = true;
@@ -152,7 +143,13 @@ let
         if expandGroups then
           lib.concatMap (
             g:
-            if builtins.elem g regionNames then
+            if g == "ALL" then
+              allNodeNames
+            else if g == "DN42" || g == "DN42-ONLY" then
+              dn42NodeNames
+            else if g == "NO-DN42" || g == "PUBLIC-ONLY" then
+              publicNodeNames
+            else if builtins.elem g regionNames then
               map (n: n.name) (lib.filter (n: builtins.elem g (getNodeRegions n)) cfg.nodes)
             else if lib.hasSuffix "-DN42" g && builtins.elem (lib.removeSuffix "-DN42" g) regionNames then
               let
@@ -197,7 +194,7 @@ let
   userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
 
-  # 三大汇总策略组：ALL, DN42-ONLY, PUBLIC-ONLY
+  # 三大汇总策略组：ALL, DN42, NO-DN42
   summaryGroups = [
     {
       name = "ALL";
@@ -209,7 +206,7 @@ let
     }
   ]
   ++ lib.optional (dn42NodeNames != [ ]) {
-    name = "DN42-ONLY";
+    name = "DN42";
     type = "url-test";
     url = cfg.healthCheckUrl;
     interval = 120;
@@ -218,7 +215,7 @@ let
   }
   ++ [
     {
-      name = "PUBLIC-ONLY";
+      name = "NO-DN42";
       type = "url-test";
       url = cfg.healthCheckUrl;
       interval = 300;
@@ -278,9 +275,9 @@ let
         proxies = [
           "PROXY"
           "ALL"
-          "PUBLIC-ONLY"
+          "NO-DN42"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY"
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
         ++ (map (g: g.name) userGroupDefs)
         ++ allRegionGroupNames
         ++ [ "DIRECT" ];
@@ -293,11 +290,11 @@ let
         proxies = [
           "DIRECT"
           "ALL"
-          "PUBLIC-ONLY"
+          "NO-DN42"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42-ONLY";
-        # ++ (map (g: g.name) userGroupDefs)
-        # ++ allRegionGroupNames;
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
+        ++ (map (g: g.name) userGroupDefs)
+        ++ allRegionGroupNames;
       }
     ]
     ++ userGroupDefs
