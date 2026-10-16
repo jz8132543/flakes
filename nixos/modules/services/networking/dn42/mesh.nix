@@ -176,6 +176,16 @@ let
           description = "WireGuard persistentKeepalive in seconds (25s on NAT/client side, null on server)";
         };
 
+        nat = mkOption {
+          type = types.bool;
+          default =
+            nodeMeshCfg.nat or (
+              (nodeMeshCfg.role or "internal") == "internal"
+              || (nodeMeshCfg.endpoint or null == null && (nodeMeshCfg.endpoints or { }) == { })
+            );
+          description = "Whether this node is behind NAT (cannot accept inbound connections on IPv4, requiring passive responder on servers)";
+        };
+
         acceleration = mkOption {
           type = types.bool;
           default = nodeMeshCfg.acceleration or nodeMeshCfg.enableClient or false;
@@ -760,16 +770,30 @@ in
           connections = listToAttrs (
             map (
               t:
+              let
+                isV6 =
+                  t.epAddr != null
+                  && (lib.hasInfix ":" t.epAddr || lib.hasInfix "v6" t.epAddr || lib.hasInfix "v6" (t.epName or ""));
+                # 当对端节点处于 NAT 状态时，服务端在 IPv4 上必须作为被动接收方 (passive responder)
+                # 绝不能主动向其发起握手重试，避免死锁及动态 NAT 端口映射混乱
+                isPassiveResponder = (t.peerCfg.nat or false) && !isV6;
+              in
               nameValuePair "mesh-peer-${t.key}" {
                 version = 2;
                 mobike = true;
                 dpd_delay = "30s";
                 dpd_timeout = "120s";
-                keyingtries = if t.epAddr != null then 0 else 1;
+                keyingtries =
+                  if isPassiveResponder then
+                    1
+                  else if t.epAddr != null then
+                    0
+                  else
+                    1;
 
                 local_port = cfg.ipsec.port;
                 remote_port = cfg.ipsec.port;
-                remote_addrs = t.remoteAddrs;
+                remote_addrs = if isPassiveResponder then [ "%any" ] else t.remoteAddrs;
                 encap = true; # 强制封装为 UDP 4500，由 Mimic 转换为 Fake-TCP 4500，防止裸 ESP 泄露被丢弃
 
                 # 采用现代高效 AEAD 加密套件与 x25519 曲线：
@@ -811,8 +835,20 @@ in
                   # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
                   hw_offload = cfg.ipsec.hwOffload;
                   mode = "tunnel";
-                  start_action = if t.epAddr != null then "start" else "none";
-                  dpd_action = if t.epAddr != null then "restart" else "clear";
+                  start_action =
+                    if isPassiveResponder then
+                      "none"
+                    else if t.epAddr != null then
+                      "start"
+                    else
+                      "none";
+                  dpd_action =
+                    if isPassiveResponder then
+                      "clear"
+                    else if t.epAddr != null then
+                      "restart"
+                    else
+                      "clear";
                 };
               }
             ) tunnelInstances
