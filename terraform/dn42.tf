@@ -60,79 +60,63 @@ locals {
   }
 
   # ── 2. Mesh Nodes (All hosts participating in DN42) ──────────────────────────
-  # Roles:
-  #   - "border": fra0, hkg0, cu (runs eBGP + iBGP + Babel)
-  #   - "internal": tyo0, tyo1, hkg5, sjc0, arx8, surface (runs Babel; iBGP optional)
-  dn42_mesh_nodes = {
+  # Manual overrides for specific mesh nodes (roles, multi-endpoints, NAT, acceleration, etc.)
+  # Any node in local.hosts omitted here will be automatically populated with sensible defaults.
+  dn42_mesh_node_overrides = {
     # ── Borders ──
     fra0 = {
-      role       = "border"
-      ibgp       = true
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "fra0.dora.im:${local.dn42_mesh_listen_port}"
+      role = "border"
+      ibgp = true
     }
     hkg0 = {
-      role       = "border"
-      ibgp       = true
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "hkg0.dora.im:${local.dn42_mesh_listen_port}"
+      role = "border"
+      ibgp = true
     }
     cu = {
-      role       = "border"
-      ibgp       = true
-      listenPort = local.dn42_mesh_listen_port
-      nat        = true
+      role = "border"
+      ibgp = true
+      nat  = true
       endpoint = {
         cuv6 = "cuv6.dora.im"
         cmv6 = "cmv6.dora.im"
         cu   = "cu.dora.im"
-    } }
+        cm   = "cm.dora.im"
+      }
+    }
 
-    # ── Internals ──
-    tyo0 = {
-      role       = "internal"
-      ibgp       = false # Set true if you want this node to participate in iBGP
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "tyo0.dora.im:${local.dn42_mesh_listen_port}"
-    }
-    tyo1 = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "tyo1.dora.im:${local.dn42_mesh_listen_port}"
-    }
-    hkg5 = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "hkg5.dora.im:${local.dn42_mesh_listen_port}"
-    }
-    sjc0 = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "sjc0.dora.im:${local.dn42_mesh_listen_port}"
-    }
-    fra1 = {
-      role       = "internal"
-      ibgp       = false
-      listenPort = local.dn42_mesh_listen_port
-      endpoint   = "fra1.dora.im:${local.dn42_mesh_listen_port}"
-    }
+    # ── Internals with special flags ──
     arx8 = {
-      role         = "internal"
-      ibgp         = false
-      listenPort   = local.dn42_mesh_listen_port
-      endpoint     = null
       acceleration = true
     }
     surface = {
-      role         = "internal"
-      ibgp         = false
-      listenPort   = local.dn42_mesh_listen_port
-      endpoint     = null
       acceleration = true
     }
+  }
+
+  # Automatically construct all mesh nodes from local.hosts with smart defaults:
+  # - If a node has public DNS records (records.a or records.aaaa), default to public server node:
+  #     role = "internal", endpoint = "${host}.dora.im:${port}", nat = false, ibgp = false
+  # - If a node has no public records (e.g. roaming/internal like surface, arx8), default to NAT client:
+  #     role = "internal", endpoint = null, nat = true, ibgp = false
+  # Any omitted node from local.hosts is automatically completed with these defaults.
+  # Explicit overrides from dn42_mesh_node_overrides take precedence.
+  dn42_mesh_nodes = {
+    for host_name, host_cfg in local.hosts : host_name => merge(
+      {
+        role       = "internal"
+        ibgp       = false
+        listenPort = local.dn42_mesh_listen_port
+        endpoint = (
+          lookup(lookup(host_cfg, "records", {}), "a", null) != null ||
+          lookup(lookup(host_cfg, "records", {}), "aaaa", null) != null
+        ) ? "${host_name}.dora.im:${local.dn42_mesh_listen_port}" : null
+        nat = !(
+          lookup(lookup(host_cfg, "records", {}), "a", null) != null ||
+          lookup(lookup(host_cfg, "records", {}), "aaaa", null) != null
+        )
+      },
+      lookup(local.dn42_mesh_node_overrides, host_name, {})
+    )
   }
 
   # ── 3. External eBGP Peers ───────────────────────────────────────────────────
