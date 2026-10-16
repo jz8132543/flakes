@@ -250,67 +250,10 @@ let
     ) activePeers
   );
 
-  # ── Mimic Fake-TCP 目标端点白名单生成 ──
-  # 避免对整个 0.0.0.0:4500 进行全局拦截，全局拦截会导致未升级 Mimic 的节点（如 fra1/sjc0/tyo0）
-  # 握手超时进而导致整网震荡。通过精准白名单 -f remote=<endpoint>:4500，仅对需要穿透国内运营商封锁的
-  # 对等节点（如 cu 与海外核心节点 fra0）启用 Fake-TCP，其余同地域/无封锁节点保持 100% 原生 UDP 全速转发！
-
-  formatEndpoint =
-    rawEp:
-    let
-      ep = stripPort rawEp;
-      cleanEp =
-        if lib.hasPrefix "[" ep && lib.hasSuffix "]" ep then
-          lib.removePrefix "[" (lib.removeSuffix "]" ep)
-        else
-          ep;
-      isV6 = lib.hasInfix ":" cleanEp;
-    in
-    if isV6 then "[${cleanEp}]" else cleanEp;
-
-  peerEndpoints = map (
-    peerName:
-    let
-      peerCfg = cfg.nodes.${peerName};
-      epList =
-        (if peerCfg.endpoints != { } then lib.attrValues peerCfg.endpoints else [ ])
-        ++ (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) peerCfg.endpoint)
-        ++ (lib.optional (
-          peerCfg.endpointV6 != null && lib.isString peerCfg.endpointV6
-        ) peerCfg.endpointV6);
-    in
-    map formatEndpoint (lib.filter (e: e != null && e != "" && !lib.hasPrefix "%" e) epList)
-  ) (lib.attrNames cfg.nodes);
-
-  edgePublicEndpoints = map (
-    e:
-    let
-      v4 = e.ipv4 or null;
-      v6 = e.ipv6 or null;
-    in
-    (lib.optional (v4 != null && v4 != "") v4) ++ (lib.optional (v6 != null && v6 != "") "[${v6}]")
-  ) (selfData.cdn.edgeNodes or [ ]);
-
-  isIpEndpoint =
-    raw:
-    if raw == null || raw == "" then
-      false
-    else if (builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$" raw != null) then
-      true
-    else
-      let
-        clean = builtins.replaceStrings [ "[" ] [ "" ] (builtins.replaceStrings [ "]" ] [ "" ] raw);
-      in
-      (builtins.match "^[0-9a-fA-F:]+$" clean != null) && (builtins.match ".*:.*" clean != null);
-
-  allPeerPublicEndpoints = lib.unique (
-    lib.filter isIpEndpoint (lib.flatten (peerEndpoints ++ edgePublicEndpoints))
-  );
-
   # ── Mimic Fake-TCP 启动包装脚本 ──
   # 1. 彻底移除引起内核 TC_ACT_SHOT 丢包的 act_csum 脚本；
   # 2. 网卡层关闭 TX/RX 硬件校验和卸载与 GRO，迫使内核在 TC Egress 软件计算完整校验和；
-  # 3. 动态提取本机真实网卡 Global IP 绑定 local=，并追加所有集群对端 public endpoints 为 remote=；
+  # 3. 动态提取本机真实网卡 Global IP 以及通配符，全网集群节点均运行 Mimic，天然对称互通，无需脆弱的 remote 白名单；
   # 4. 强制使用 --xdp-mode skb，完全规避 virtio_net 驱动级 XDP 挂载/尾部调整失败问题。
   mimicStartScript = pkgs.writeShellScript "mimic-start-wrapper" ''
     set -euo pipefail
@@ -330,19 +273,21 @@ let
       sleep 1
     done
 
-    # 2. 动态获取当前网卡 (%I) 上的真实 Global IPv4 与 IPv6 地址（绝不能用 0.0.0.0 或 [::]！）
-    FILTER_ARGS=()
+    # 2. 绑定本机端口 (4500 与 500)：
+    #    - 使用 0.0.0.0 与 [::] 通配符交由 Mimic 内部 Netlink 机制动态监听接口 IP 变更
+    #    - 同时显式追加当前已就绪的 Global IPv4/IPv6，确保冷启动与热切换时均能零延迟立即命中
+    FILTER_ARGS=(
+      "-f" "local=0.0.0.0:4500"
+      "-f" "local=[::]:4500"
+      "-f" "local=0.0.0.0:500"
+      "-f" "local=[::]:500"
+    )
     for ip4 in $(${pkgs.iproute2}/bin/ip -4 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
       FILTER_ARGS+=("-f" "local=''${ip4}:4500" "-f" "local=''${ip4}:500")
     done
     for ip6 in $(${pkgs.iproute2}/bin/ip -6 -o addr show dev "$IFACE" scope global | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}'); do
       FILTER_ARGS+=("-f" "local=[''${ip6}]:4500" "-f" "local=[''${ip6}]:500")
     done
-
-    # 3. 追加所有对端公网 IP 的 remote= 规则（确保 NAT 节点与移动设备主动出站也能匹配）
-    ${lib.concatMapStringsSep "\n" (ep: ''
-      FILTER_ARGS+=("-f" "remote=${ep}:4500" "-f" "remote=${ep}:500")
-    '') allPeerPublicEndpoints}
 
     ${lib.concatMapStringsSep "\n" (f: ''
       FILTER_ARGS+=("-f" "${f}")
