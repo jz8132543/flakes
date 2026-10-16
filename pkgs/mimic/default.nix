@@ -20,6 +20,10 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-7ztGGWX7asTgLFvSIunpeeb0lA2jWywD0U8v3uien1o=";
   };
 
+  patches = [
+    ./0001-fix-esp-checksum.patch
+  ];
+
   nativeBuildInputs = [
     bpftools
     llvmPackages.clang-unwrapped

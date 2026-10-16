@@ -656,7 +656,7 @@ in
               Restart = "always";
               RestartSec = "2s";
               ExecStart = "${mimicStartScript} %I";
-              ExecStopPost = pkgs.writeShellScript "mimic-stop-post" ''
+              ExecStopPost = "${pkgs.writeShellScript "mimic-stop-post" ''
                 set -u
                 IFACE="$1"
                 ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
@@ -665,7 +665,7 @@ in
                 if [ -n "$IFINDEX" ]; then
                   rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
                 fi
-              '';
+              ''} %I";
             };
           };
         })

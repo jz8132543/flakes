@@ -1,0 +1,95 @@
+diff --git a/bpf/egress.c b/bpf/egress.c
+index 3dd7e4e..9db7f97 100644
+--- a/bpf/egress.c
++++ b/bpf/egress.c
+@@ -236,17 +236,35 @@ int egress_handler(struct __sk_buff* skb) {
+   redecl_shot(struct tcphdr, tcp, ip_end, skb);
+   log_tcp(false, &conn_key, tcp, payload_len);
+ 
+-  tcp->check = 0;
+-  csum_diff =
+-    bpf_csum_diff((__be32*)&old_udp, sizeof(old_udp), (__be32*)tcp, sizeof(*tcp), csum_diff);
+-  tcp->check = old_udp_csum;
+-  bpf_l4_csum_replace(skb, csum_off, 0, csum_diff, 0);
+-
+   __be16 new_len = htons(udp_len + reserve_len);
+-  struct ph_part old_ph = {.protocol = IPPROTO_UDP, .len = old_udp.len};
+-  struct ph_part new_ph = {.protocol = IPPROTO_TCP, .len = new_len};
+-  csum_diff = bpf_csum_diff((__be32*)&old_ph, sizeof(old_ph), (__be32*)&new_ph, sizeof(new_ph), 0);
+-  bpf_l4_csum_replace(skb, csum_off, 0, csum_diff, BPF_F_PSEUDO_HDR);
++  if (old_udp_csum == 0) {
++    __u32 ph_csum = 0;
++    if (ipv4) {
++      redecl_shot(struct iphdr, ipv4, l2_end, skb);
++      ph_csum += u32_fold(ntohl(ipv4->saddr));
++      ph_csum += u32_fold(ntohl(ipv4->daddr));
++      ph_csum += IPPROTO_TCP;
++      ph_csum += ntohs(new_len);
++    }
++    redecl_shot(struct tcphdr, tcp, ip_end, skb);
++    tcp->check = 0;
++    void* d_end = skb_data_end(skb);
++    __u32 tcp_csum = calc_ctx_csum((void*)(__u64)skb->data, d_end, ip_end);
++    redecl_shot(struct tcphdr, tcp, ip_end, skb);
++    tcp->check = htons(csum_fold(ph_csum + tcp_csum));
++    if (tcp->check == 0) tcp->check = 0xffff;
++  } else {
++    tcp->check = 0;
++    csum_diff =
++      bpf_csum_diff((__be32*)&old_udp, sizeof(old_udp), (__be32*)tcp, sizeof(*tcp), csum_diff);
++    tcp->check = old_udp_csum;
++    bpf_l4_csum_replace(skb, csum_off, 0, csum_diff, 0);
++
++    struct ph_part old_ph = {.protocol = IPPROTO_UDP, .len = old_udp.len};
++    struct ph_part new_ph = {.protocol = IPPROTO_TCP, .len = new_len};
++    csum_diff = bpf_csum_diff((__be32*)&old_ph, sizeof(old_ph), (__be32*)&new_ph, sizeof(new_ph), 0);
++    bpf_l4_csum_replace(skb, csum_off, 0, csum_diff, BPF_F_PSEUDO_HDR);
++  }
+ 
+   mimic_change_csum_offset(skb, IPPROTO_TCP);
+ 
+diff --git a/bpf/ingress.c b/bpf/ingress.c
+index f0328c5..8784b2b 100644
+--- a/bpf/ingress.c
++++ b/bpf/ingress.c
+@@ -433,8 +433,12 @@ int ingress_handler(struct xdp_md* xdp) {
+   csum_diff = bpf_csum_diff((__be32*)&old_ph, sizeof(old_ph), (__be32*)&new_ph, sizeof(new_ph), 0);
+   csum += u32_fold(ntohl(csum_diff));
+ 
+-  udp->check = htons(csum_fold(csum));
+-  if (udp->check == 0) udp->check = 0xffff;
++  if (ipv4) {
++    udp->check = 0;
++  } else {
++    udp->check = htons(csum_fold(csum));
++    if (udp->check == 0) udp->check = 0xffff;
++  }
+ 
+   return XDP_PASS;
+ }
+diff --git a/common/checksum.h b/common/checksum.h
+index f338bf1..367c1fb 100644
+--- a/common/checksum.h
++++ b/common/checksum.h
+@@ -18,15 +18,16 @@ static inline __u16 csum_fold(__u32 csum) { return ~u32_fold(u32_fold(csum)); }
+ 
+ #ifdef MIMIC_BPF
+ 
+-static inline __u32 calc_ctx_csum(__u32 data, __u32 data_end, __u32 off) {
++static inline __u32 calc_ctx_csum(void* data, void* data_end, __u32 off) {
+   __u32 csum = 0;
+-  __be16* ptr = (__be16*)((__u64)data + off);
+-  for (size_t i = 0; i < MAX_PACKET_SIZE / sizeof(*ptr); i++) {
+-    if ((__u64)(ptr + 1) > data_end) break;
++  __be16* ptr = (__be16*)((__u8*)data + off);
++  #pragma unroll
++  for (size_t i = 0; i < 1600 / sizeof(*ptr); i++) {
++    if ((void*)(ptr + 1) > data_end) break;
+     csum += ntohs(*ptr);
+     ptr += 1;
+   }
+-  if ((__u64)ptr + 1 <= data_end) {
++  if ((void*)((__u8*)ptr + 1) <= data_end) {
+     csum += (__u16) * ((__u8*)ptr) << 8;
+   }
+   return csum;
