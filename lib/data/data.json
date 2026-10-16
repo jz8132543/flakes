@@ -432,6 +432,14 @@
         "endpoint": null,
         "ibgp": false,
         "listenPort": 51821,
+        "nat": true,
+        "role": "internal"
+      },
+      "can0": {
+        "endpoint": "can0.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       },
       "cu": {
@@ -450,30 +458,49 @@
         "endpoint": "fra0.dora.im:51821",
         "ibgp": true,
         "listenPort": 51821,
+        "nat": false,
         "role": "border"
       },
       "fra1": {
         "endpoint": "fra1.dora.im:51821",
         "ibgp": false,
         "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       },
       "hkg0": {
         "endpoint": "hkg0.dora.im:51821",
         "ibgp": true,
         "listenPort": 51821,
+        "nat": false,
         "role": "border"
       },
       "hkg5": {
         "endpoint": "hkg5.dora.im:51821",
         "ibgp": false,
         "listenPort": 51821,
+        "nat": false,
+        "role": "internal"
+      },
+      "isk": {
+        "endpoint": null,
+        "ibgp": false,
+        "listenPort": 51821,
+        "nat": true,
+        "role": "internal"
+      },
+      "nue0": {
+        "endpoint": "nue0.dora.im:51821",
+        "ibgp": false,
+        "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       },
       "sjc0": {
         "endpoint": "sjc0.dora.im:51821",
         "ibgp": false,
         "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       },
       "surface": {
@@ -481,18 +508,21 @@
         "endpoint": null,
         "ibgp": false,
         "listenPort": 51821,
+        "nat": true,
         "role": "internal"
       },
       "tyo0": {
         "endpoint": "tyo0.dora.im:51821",
         "ibgp": false,
         "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       },
       "tyo1": {
         "endpoint": "tyo1.dora.im:51821",
         "ibgp": false,
         "listenPort": 51821,
+        "nat": false,
         "role": "internal"
       }
     },
