@@ -349,10 +349,6 @@ let
 
         for cpath in sorted(cidr_files):
             c_code = os.path.basename(cpath).replace(".cidr", "").upper()
-            # 跳过国内网段（由策略路由直通 eth0 出口）
-            if c_code == "CN":
-                continue
-
             same_country_nodes = [n for n in active_nodes if n["country"] == c_code]
 
             try:
@@ -840,7 +836,7 @@ in
       script = ''
         mkdir -p ${cfg.countryCidrDir}
         # 使用 jsDelivr CDN 从公开源拉取主要国家 CIDR
-        for code in de us jp hk gb fr sg ca au kr nl tw se no fi dk ie it es pt pl at cz ru ua in my id th vn ph br mx ar cl za ae sa il tr nz ch be ro bg hu gr sk ee lv lt lu is cy mt; do
+        for code in de us jp hk gb fr sg ca au kr nl tw se no fi dk ie it es pt pl at cz ru ua in my id th vn ph br mx ar cl za ae sa il tr nz ch be ro bg hu gr sk ee lv lt lu is cy mt cn; do
           f="${cfg.countryCidrDir}/$code.cidr"
           if [ ! -s "$f" ]; then
             echo "Fetching CIDR for $code via jsDelivr CDN..."

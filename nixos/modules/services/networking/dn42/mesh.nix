@@ -291,7 +291,21 @@ let
     (lib.optional (v4 != null && v4 != "") v4) ++ (lib.optional (v6 != null && v6 != "") "[${v6}]")
   ) (selfData.cdn.edgeNodes or [ ]);
 
-  allPeerPublicEndpoints = lib.unique (lib.flatten (peerEndpoints ++ edgePublicEndpoints));
+  isIpEndpoint =
+    raw:
+    if raw == null || raw == "" then
+      false
+    else if (builtins.match "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+$" raw != null) then
+      true
+    else
+      let
+        clean = builtins.replaceStrings [ "[" ] [ "" ] (builtins.replaceStrings [ "]" ] [ "" ] raw);
+      in
+      (builtins.match "^[0-9a-fA-F:]+$" clean != null) && (builtins.match ".*:.*" clean != null);
+
+  allPeerPublicEndpoints = lib.unique (
+    lib.filter isIpEndpoint (lib.flatten (peerEndpoints ++ edgePublicEndpoints))
+  );
 
   # ── Mimic Fake-TCP 启动包装脚本 ──
   # 1. 彻底移除引起内核 TC_ACT_SHOT 丢包的 act_csum 脚本；
@@ -677,7 +691,50 @@ in
               ExecStart = "${mimicStartScript} %I";
             };
           };
-        });
+        })
+        // (optionalAttrs cfg.ipsec.mimic.enable {
+          "dn42-mimic-autobind" = {
+            description = "Automatically bind Mimic to current default physical interface";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            before = [ "strongswan-swanctl.service" ];
+            wantedBy = [ "multi-user.target" ];
+            path = with pkgs; [
+              iproute2
+              systemd
+              coreutils
+              gawk
+            ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = pkgs.writeShellScript "dn42-mimic-autobind" ''
+                set -eu
+                # 获取系统默认路由出口网卡 (如 wlp1s0 / wlan0 / eth0)
+                IFACE=$(ip -4 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
+                if [ -z "$IFACE" ]; then
+                  IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
+                fi
+                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|tun|veth|docker|virbr|br-) ]]; then
+                  echo "Auto-binding Mimic on default route interface: $IFACE"
+                  systemctl start "mimic@$IFACE.service" || true
+                fi
+              '';
+            };
+          };
+        })
+        // {
+          strongswan-swanctl = {
+            after = [
+              "network-online.target"
+            ]
+            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+            wants = [
+              "network-online.target"
+            ]
+            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+          };
+        };
 
       # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
       systemd.targets.multi-user.wants = mkIf (
@@ -741,6 +798,7 @@ in
                 mobike = true;
                 dpd_delay = "30s";
                 dpd_timeout = "120s";
+                keyingtries = if t.epAddr != null then 0 else 1;
 
                 local_port = cfg.ipsec.port;
                 remote_port = cfg.ipsec.port;
@@ -911,7 +969,8 @@ in
                 esac
                 case "$ACTION" in
                   up|dhcp4-change|dhcp6-change)
-                    systemctl reload-or-restart "mimic@$IFACE.service" || true
+                    systemctl restart "mimic@$IFACE.service" || true
+                    systemctl restart strongswan-swanctl.service || true
                     ;;
                   down)
                     systemctl stop "mimic@$IFACE.service" || true
