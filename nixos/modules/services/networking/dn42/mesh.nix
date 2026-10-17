@@ -299,15 +299,20 @@ let
       sleep 1
     done
 
-    # 3. 绑定本机端口 (4500 与 500)：
-    #    - 仅使用 0.0.0.0 与 [::] 通配符，由 Mimic 原生 Netlink 机制自动注入接口全部当前及动态变更的真实 IP
-    #    - 绝不重复传递具体单播 IP，防止 BPF_NOEXIST 插入重复键触发内核 EEXIST (status=17) 崩溃
-    FILTER_ARGS=(
-      "-f" "local=0.0.0.0:4500"
-      "-f" "local=[::]:4500"
-      "-f" "local=0.0.0.0:500"
-      "-f" "local=[::]:500"
-    )
+    FILTER_ARGS=()
+    if [ "${if cfg.ipsec.mimic.allTraffic then "1" else "0"}" = "1" ]; then
+      FILTER_ARGS+=(
+        "-f" "local=0.0.0.0:4500"
+        "-f" "local=[::]:4500"
+        "-f" "local=0.0.0.0:500"
+        "-f" "local=[::]:500"
+      )
+    else
+      ${lib.concatMapStringsSep "\n" (peerName: ''
+        FILTER_ARGS+=("-f" "remote=${peerName}.dora.im:4500")
+        FILTER_ARGS+=("-f" "remote=${peerName}.dora.im:500")
+      '') cfg.ipsec.mimic.peers}
+    fi
 
     ${lib.concatMapStringsSep "\n" (f: ''
       FILTER_ARGS+=("-f" "${f}")
@@ -419,7 +424,15 @@ in
 
         peers = mkOption {
           type = types.listOf types.str;
-          default = if (config.environment.isCN or false) then [ "fra0" ] else [ "cu" ];
+          default = [
+            "fra0"
+            "fra1"
+            "sjc0"
+            "tyo0"
+            "tyo1"
+            "hkg0"
+            "hkg5"
+          ];
           description = "List of peer node names to obfuscate with Fake-TCP. Non-obfuscated peers communicate over pure native UDP.";
         };
 
@@ -431,7 +444,7 @@ in
 
         allTraffic = mkOption {
           type = types.bool;
-          default = true;
+          default = !((config.environment.isCN or false) || cfg.thisNode.nat);
           description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
         };
 
@@ -930,6 +943,12 @@ in
           500
           4500
         ];
+        extraReversePathFilterRules = ''
+          udp sport { 500, 4500 } accept
+          udp dport { 500, 4500 } accept
+          tcp sport { 500, 4500 } accept
+          tcp dport { 500, 4500 } accept
+        '';
         extraCommands = mkIf (!config.networking.nftables.enable) ''
           ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
           ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
