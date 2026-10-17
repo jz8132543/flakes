@@ -79,8 +79,8 @@ locals {
       natTPort = 50568
       endpoint = {
         cuv6 = "cuv6.dora.im:50568"
-        cmv6 = "cmv6.dora.im:50568"
         cu   = "cu.dora.im:50568"
+        cmv6 = "cmv6.dora.im:50568"
         cm   = "cm.dora.im:50568"
       }
     }
