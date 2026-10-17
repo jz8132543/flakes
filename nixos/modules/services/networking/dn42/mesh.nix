@@ -308,10 +308,32 @@ let
         "-f" "local=[::]:500"
       )
     else
-      ${lib.concatMapStringsSep "\n" (peerName: ''
-        FILTER_ARGS+=("-f" "remote=${peerName}.dora.im:4500")
-        FILTER_ARGS+=("-f" "remote=${peerName}.dora.im:500")
-      '') cfg.ipsec.mimic.peers}
+      ${
+        let
+          peerEndpoints = lib.concatMap (
+            peerName:
+            let
+              peerCfg = otherNodes.${peerName} or null;
+            in
+            if peerCfg == null then
+              [ ]
+            else
+              let
+                epList = lib.mapAttrsToList (_: stripPort) (peerCfg.endpoints or { });
+                singleEp = lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
+                  stripPort peerCfg.endpoint
+                );
+                v6Ep = lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6;
+                allEps = lib.unique (epList ++ singleEp ++ v6Ep);
+              in
+              if allEps != [ ] then allEps else [ "${peerName}.dora.im" ]
+          ) cfg.ipsec.mimic.peers;
+        in
+        lib.concatMapStringsSep "\n" (ep: ''
+          FILTER_ARGS+=("-f" "remote=${ep}:4500")
+          FILTER_ARGS+=("-f" "remote=${ep}:500")
+        '') peerEndpoints
+      }
     fi
 
     ${lib.concatMapStringsSep "\n" (f: ''
@@ -424,16 +446,8 @@ in
 
         peers = mkOption {
           type = types.listOf types.str;
-          default = [
-            "fra0"
-            "fra1"
-            "sjc0"
-            "tyo0"
-            "tyo1"
-            "hkg0"
-            "hkg5"
-          ];
-          description = "List of peer node names to obfuscate with Fake-TCP. Non-obfuscated peers communicate over pure native UDP.";
+          default = builtins.attrNames (filterAttrs (_: p: !p.nat) otherNodes);
+          description = "List of peer node names to obfuscate with Fake-TCP. Defaults generically to all public server nodes (!p.nat). Non-obfuscated peers communicate over pure native UDP.";
         };
 
         allPeers = mkOption {
@@ -444,7 +458,7 @@ in
 
         allTraffic = mkOption {
           type = types.bool;
-          default = !((config.environment.isCN or false) || cfg.thisNode.nat);
+          default = !cfg.thisNode.nat;
           description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
         };
 
