@@ -16,13 +16,14 @@
       nixosModules.optimize.anti-balloon
       nixosModules.optimize.brutal
       # nixosModules.optimize.infini
-      nixosModules.services.derp
+      # nixosModules.services.derp
       nixosModules.services.haproxy-proxy
       # nixosModules.optimize.fakehttp
       nixosModules.nextcloud.talk-edge
     ];
 
   optimize.brutal.target = "!cn";
+  services.dn42.mesh.ipsec.port = 50568;
 
   services.nextcloud-talk-edge = {
     # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）
@@ -97,8 +98,8 @@
       # quic.bootstrapPort = 50566;
     };
   };
-  ports.derp-stun = lib.mkForce 50568;
-  services.traefik.proxies.derp.rule = lib.mkForce "Host(`${config.networking.fqdn}`)";
+  # ports.derp-stun = lib.mkForce 50568;
+  # services.traefik.proxies.derp.rule = lib.mkForce "Host(`${config.networking.fqdn}`)";
   # ports.turn-stun = lib.mkForce 50568;
   environment.altHTTPS = 50569;
 

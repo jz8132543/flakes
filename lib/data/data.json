@@ -443,10 +443,10 @@
       },
       "cu": {
         "endpoint": {
-          "cm": "cm.dora.im",
-          "cmv6": "cmv6.dora.im",
-          "cu": "cu.dora.im",
-          "cuv6": "cuv6.dora.im"
+          "cm": "cm.dora.im:50568",
+          "cmv6": "cmv6.dora.im:50568",
+          "cu": "cu.dora.im:50568",
+          "cuv6": "cuv6.dora.im:50568"
         },
         "ibgp": true,
         "listenPort": 51821,
