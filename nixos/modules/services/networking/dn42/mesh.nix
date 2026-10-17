@@ -312,18 +312,35 @@ let
         peerName:
         let
           peerCfg = otherNodes.${peerName} or null;
-          rawEp =
-            if peerCfg != null && peerCfg.endpoint != null && lib.isString peerCfg.endpoint then
-              stripPort peerCfg.endpoint
+          singleEp =
+            if peerCfg != null && peerCfg.endpoint != null then
+              if lib.isString peerCfg.endpoint then
+                [ (stripPort peerCfg.endpoint) ]
+              else if lib.isAttrs peerCfg.endpoint then
+                lib.mapAttrsToList (_: stripPort) peerCfg.endpoint
+              else
+                [ ]
             else
-              "${peerName}.dora.im";
+              [ ];
+          epsList =
+            if peerCfg != null && (peerCfg.endpoints or { } != { }) then
+              lib.mapAttrsToList (_: stripPort) peerCfg.endpoints
+            else
+              [ ];
+          allEps = lib.unique (singleEp ++ epsList);
+          peerEndpoints = if allEps != [ ] then allEps else [ "${peerName}.dora.im" ];
           formatEp = ep: if lib.hasInfix ":" ep && !lib.hasPrefix "[" ep then "[${ep}]" else ep;
-          ep = formatEp rawEp;
         in
-        ''
-          FILTER_ARGS+=("-f" "remote=${ep}:4500")
-          FILTER_ARGS+=("-f" "remote=${ep}:500")
-        ''
+        lib.concatMapStringsSep "\n" (
+          rawEp:
+          let
+            ep = formatEp rawEp;
+          in
+          ''
+            FILTER_ARGS+=("-f" "remote=${ep}:4500")
+            FILTER_ARGS+=("-f" "remote=${ep}:500")
+          ''
+        ) peerEndpoints
       ) cfg.ipsec.mimic.peers}
     fi
 
@@ -437,8 +454,12 @@ in
 
         peers = mkOption {
           type = types.listOf types.str;
-          default = builtins.attrNames (filterAttrs (_: p: !p.nat) otherNodes);
-          description = "List of peer node names to obfuscate with Fake-TCP. Defaults generically to all public server nodes (!p.nat). Non-obfuscated peers communicate over pure native UDP.";
+          default = builtins.attrNames (
+            filterAttrs (
+              _: p: (p.endpoint != null && p.endpoint != { }) || (p.endpoints or { } != { })
+            ) otherNodes
+          );
+          description = "List of peer node names to obfuscate with Fake-TCP. Defaults generically to all mesh peers with reachable endpoints.";
         };
 
         allPeers = mkOption {
@@ -449,8 +470,10 @@ in
 
         allTraffic = mkOption {
           type = types.bool;
-          default = !cfg.thisNode.nat;
-          description = "Whether to blindly match local=0.0.0.0:4500 / local=[::]:4500 instead of whitelisting remote peer endpoints";
+          default =
+            (cfg.thisNode.endpoint != null && cfg.thisNode.endpoint != { })
+            || (cfg.thisNode.endpoints or { } != { });
+          description = "Whether to match local=0.0.0.0:4500 / local=[::]:4500 (enabled for any node with public endpoints to accept inbound Fake-TCP from clients)";
         };
 
         extraFilters = mkOption {
