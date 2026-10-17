@@ -11,7 +11,6 @@
     ++ nixosModules.desktop.all
     ++ [
       ./hardware-configuration.nix
-      nixosModules.optimize.fakehttp
       nixosModules.services.networking.dn42.mesh
       nixosModules.optimize.network-desktop
       nixosModules.optimize.brutal

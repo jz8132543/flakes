@@ -19,7 +19,6 @@
       # nixosModules.services.traefik
       # nixosModules.services.derp
       nixosModules.services.kernel-relay
-      # nixosModules.optimize.fakehttp
     ];
 
   services.openssh.ports = [

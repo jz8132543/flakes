@@ -12,7 +12,6 @@
       ./hardware-configuration.nix
       nixosModules.services.traefik
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
-      # nixosModules.optimize.fakehttp
       nixosModules.optimize.dev
       nixosModules.optimize.anti-balloon
       nixosModules.optimize.brutal

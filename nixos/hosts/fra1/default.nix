@@ -13,7 +13,6 @@
       nixosModules.optimize.anti-balloon
       nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
-      # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.atc.edge
       # nixosModules.services.derp

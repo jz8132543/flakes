@@ -5,7 +5,6 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.derp
       # nixosModules.services.stun

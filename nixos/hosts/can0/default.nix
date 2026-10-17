@@ -19,7 +19,6 @@
         xrayPort = 16811;
       })
       nixosModules.services.kernel-relay
-      nixosModules.optimize.fakehttp
     ];
 
   services.kernel-relay = {

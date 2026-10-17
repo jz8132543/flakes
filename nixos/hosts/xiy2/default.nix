@@ -9,7 +9,6 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
-      nixosModules.optimize.fakehttp
       # nixosModules.matrix.matrix-rtc
       (import nixosModules.services.xray {
       })

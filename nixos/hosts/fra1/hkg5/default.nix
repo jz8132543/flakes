@@ -10,7 +10,6 @@
       nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
       # ../../modules/optimize/disk-reliability.nix
-      # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.atc.edge
       # nixosModules.services.derp

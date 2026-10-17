@@ -10,7 +10,6 @@
       nixosModules.optimize.anti-balloon
       nixosModules.optimize.brutal
       # ../../modules/optimize/disk-reliability.nix
-      # nixosModules.optimize.fakehttp
       nixosModules.services.traefik
       nixosModules.services.atc.edge
       # nixosModules.services.derp

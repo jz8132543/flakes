@@ -18,7 +18,6 @@
       # nixosModules.optimize.infini
       # nixosModules.services.derp
       nixosModules.services.haproxy-proxy
-      # nixosModules.optimize.fakehttp
       nixosModules.nextcloud.talk-edge
     ];
 
