@@ -222,7 +222,8 @@ let
         multipath = mkOption {
           type = types.bool;
           default =
-            (cfg.multipath.enable || (lib.elem name cfg.multipath.peers))
+            (cfg.thisNode.endpoint != null || (cfg.thisNode.endpoints or { }) != { })
+            && (cfg.multipath.enable || (lib.elem name cfg.multipath.peers))
             && (lib.length (lib.attrNames config.endpoints) > 1);
           description = "Whether to establish concurrent tunnels for all endpoints of this peer";
         };
