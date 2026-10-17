@@ -306,6 +306,10 @@ let
         "-f" "local=[::]:4500"
         "-f" "local=0.0.0.0:500"
         "-f" "local=[::]:500"
+        "-f" "remote=0.0.0.0:4500"
+        "-f" "remote=[::]:4500"
+        "-f" "remote=0.0.0.0:500"
+        "-f" "remote=[::]:500"
       )
     else
       ${lib.concatMapStringsSep "\n" (
@@ -467,10 +471,8 @@ in
 
         allTraffic = mkOption {
           type = types.bool;
-          default =
-            (cfg.thisNode.endpoint != null && cfg.thisNode.endpoint != { })
-            || (cfg.thisNode.endpoints or { } != { });
-          description = "Whether to match local=0.0.0.0:4500 / local=[::]:4500 (enabled for any node with public endpoints to accept inbound Fake-TCP from clients)";
+          default = true;
+          description = "Whether to match local=0.0.0.0:4500 / local=[::]:4500 (transparently processing all inbound and outbound traffic on IPsec ports 4500 and 500 without per-peer whitelists)";
         };
 
         extraFilters = mkOption {
