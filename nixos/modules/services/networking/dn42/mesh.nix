@@ -312,23 +312,20 @@ let
         peerName:
         let
           peerCfg = otherNodes.${peerName} or null;
-          singleEp =
-            if peerCfg != null && peerCfg.endpoint != null then
+          peerEndpoints =
+            if peerCfg == null then
+              [ "${peerName}.dora.im" ]
+            else if (peerCfg.endpoints or { }) != { } then
+              lib.mapAttrsToList (_: stripPort) peerCfg.endpoints
+            else if peerCfg.endpoint != null then
               if lib.isString peerCfg.endpoint then
                 [ (stripPort peerCfg.endpoint) ]
               else if lib.isAttrs peerCfg.endpoint then
                 lib.mapAttrsToList (_: stripPort) peerCfg.endpoint
               else
-                [ ]
+                [ "${peerName}.dora.im" ]
             else
-              [ ];
-          epsList =
-            if peerCfg != null && (peerCfg.endpoints or { } != { }) then
-              lib.mapAttrsToList (_: stripPort) peerCfg.endpoints
-            else
-              [ ];
-          allEps = lib.unique (singleEp ++ epsList);
-          peerEndpoints = if allEps != [ ] then allEps else [ "${peerName}.dora.im" ];
+              [ "${peerName}.dora.im" ];
           formatEp = ep: if lib.hasInfix ":" ep && !lib.hasPrefix "[" ep then "[${ep}]" else ep;
         in
         lib.concatMapStringsSep "\n" (
