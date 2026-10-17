@@ -449,9 +449,9 @@
         "enable": true,
         "ibgp": true,
         "id": 6,
-        "ike_port": 50560,
+        "ike_port": 500,
         "is_controller": false,
-        "nat_t_port": 50561,
+        "nat_t_port": 50568,
         "role": "border"
       },
       "fra0": {
@@ -578,9 +578,9 @@
         "enable": true,
         "ibgp": true,
         "id": 6,
-        "ike_port": 50560,
+        "ike_port": 500,
         "is_controller": false,
-        "nat_t_port": 50561,
+        "nat_t_port": 50568,
         "role": "border"
       },
       "fra0": {

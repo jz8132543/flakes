@@ -123,7 +123,39 @@ let
         if ports != [ ] then lib.head ports else null;
     in
     {
+      freeformType = types.attrsOf types.anything;
+
       options = {
+        enable = mkOption {
+          type = types.bool;
+          default = nodeMeshCfg.enable or true;
+          description = "Whether this node is enabled in the DN42 mesh";
+        };
+
+        id = mkOption {
+          type = types.nullOr types.int;
+          default = nodeMeshCfg.id or hIdx;
+          description = "Unique node ID";
+        };
+
+        ike_port = mkOption {
+          type = types.nullOr types.port;
+          default = nodeMeshCfg.ike_port or null;
+          description = "IKE port alias from Terraform";
+        };
+
+        nat_t_port = mkOption {
+          type = types.nullOr types.port;
+          default = nodeMeshCfg.nat_t_port or null;
+          description = "NAT-T port alias from Terraform";
+        };
+
+        is_controller = mkOption {
+          type = types.nullOr types.bool;
+          default = nodeMeshCfg.is_controller or null;
+          description = "SD-WAN controller flag from Terraform";
+        };
+
         role = mkOption {
           type = types.enum [
             "border"
@@ -166,20 +198,28 @@ let
 
         ikePort = mkOption {
           type = types.port;
-          default = nodeMeshCfg.ikePort or 500;
+          default =
+            if config.ike_port != null then
+              config.ike_port
+            else
+              nodeMeshCfg.ikePort or (nodeMeshCfg.ike_port or 500);
           description = "strongSwan charon.port for IKE (default 500)";
         };
 
         natTPort = mkOption {
           type = types.port;
           default =
-            nodeMeshCfg.natTPort or (nodeMeshCfg.port or (
-              if detectedPort != null && detectedPort != (nodeMeshCfg.listenPort or 51821) then
-                detectedPort
-              else
-                4500
-            )
-            );
+            if config.nat_t_port != null then
+              config.nat_t_port
+            else
+              nodeMeshCfg.natTPort or (nodeMeshCfg.nat_t_port or (nodeMeshCfg.port or (
+                if detectedPort != null && detectedPort != (nodeMeshCfg.listenPort or 51821) then
+                  detectedPort
+                else
+                  4500
+              )
+              )
+              );
           description = "strongSwan charon.port_nat_t (ESP-in-UDP NAT-T / Mimic Fake-TCP port)";
         };
 
@@ -203,7 +243,7 @@ let
 
         hostIndex = mkOption {
           type = types.nullOr types.int;
-          default = hIdx;
+          default = if config.id != null then config.id else (nodeMeshCfg.id or hIdx);
           description = "Host index of this node";
         };
 
@@ -254,8 +294,8 @@ let
     }
   );
 
-  # Exclude self
-  otherNodes = filterAttrs (n: _: n != hostName) cfg.nodes;
+  # Exclude self and disabled nodes
+  otherNodes = filterAttrs (n: p: n != hostName && (p.enable or true)) cfg.nodes;
 
   # Active mesh peers: a pairwise connection can be formed if at least one side has a public endpoint!
   activePeers = filterAttrs (

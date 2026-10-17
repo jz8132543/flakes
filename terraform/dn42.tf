@@ -52,8 +52,8 @@ locals {
 
     # 针对 cu 节点的 1:1 端口映射特例（也可完全交由 nixos/hosts/cu/default.nix 处理）
     "cu" = {
-      ike_port   = 50560
-      nat_t_port = 50561
+      # ike_port   = 50560
+      nat_t_port = 50568
     }
   }
 
