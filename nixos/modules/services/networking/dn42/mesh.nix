@@ -237,14 +237,12 @@ let
                 if epList != [ ] then
                   map (ep: stripPort ep.addr) epList
                 else
-                  (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6)
-                  ++ (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
+                  (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
                     stripPort peerCfg.endpoint
-                  ));
-              v6Addrs = lib.filter (a: lib.hasInfix ":" a || lib.hasInfix "v6" a) rawAddrs;
-              v4Addrs = lib.filter (a: !(lib.hasInfix ":" a || lib.hasInfix "v6" a)) rawAddrs;
+                  ))
+                  ++ (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6);
             in
-            lib.unique (v6Addrs ++ v4Addrs);
+            lib.unique rawAddrs;
         in
         [
           {
@@ -692,7 +690,7 @@ in
                 if [ -z "$IFACE" ]; then
                   IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
                 fi
-                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|tun|veth|docker|virbr|br-) ]]; then
+                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
                   echo "Auto-binding Mimic on default route interface: $IFACE"
                   systemctl start "mimic@$IFACE.service" || true
                 fi
@@ -966,7 +964,7 @@ in
                 IFACE="$1"
                 ACTION="$2"
                 case "$IFACE" in
-                  lo|dn42*|xfrm*|tailscale*|mihomo*|tun*|veth*|docker*|virbr*|br-*|podman*)
+                  lo|dn42*|xfrm*|tailscale*|mihomo*|Meta*|meta*|tun*|veth*|docker*|virbr*|br-*|podman*)
                     exit 0
                     ;;
                 esac

@@ -210,13 +210,17 @@ let
                 if line.startswith("mesh-peer-"):
                     pname = line.split(":")[0].replace("mesh-peer-", "")
                     current_peer = pname.split("-")[0]
-                elif current_peer and ("remote:" in line or "remote-host:" in line):
-                    parts = line.split()
-                    for part in parts:
-                        m = re.match(r"^(\d+\.\d+\.\d+\.\d+)$", part)
-                        if m:
-                            remote_ips[current_peer] = m.group(1)
-                            break
+                elif current_peer and "remote" in line and "@" in line:
+                    m = re.search(r"@\s*([0-9a-fA-F\.:]+)(?:\[\d+\])?", line)
+                    if m:
+                        ip_str = m.group(1).strip()
+                        try:
+                            ip_obj = ipaddress.ip_address(ip_str)
+                            if not ip_obj.is_private and not ip_obj.is_loopback:
+                                if current_peer not in remote_ips or ip_obj.version == 4:
+                                    remote_ips[current_peer] = ip_str
+                        except ValueError:
+                            pass
         except Exception:
             pass
         return remote_ips
@@ -557,6 +561,7 @@ in
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
           while ip rule del priority 8980 2>/dev/null; do :; done
+          while ip rule del priority 8995 2>/dev/null; do :; done
           while ip rule del priority 9999 2>/dev/null; do :; done
 
           # ── Priority 79: 集群公网端点防死锁 ──
@@ -578,14 +583,14 @@ in
           done
           ip rule add fwmark 51820 lookup main priority 82
 
-          # ── Priority 90: DN42 内部网段双向直连与 ICMP 差错放行 ──
+          # ── Priority 90: DN42 内部网段直连路由 ──
           # 访问 DN42 内部网段强制查 main 表（走 Babel / BGP 内部最优 IGP 路径）
-          # 同时豁免源为 DN42 的出向报文（特别是 XFRM 接口 MTU 1360 产生的 ICMP Fragmentation Needed / Packet Too Big 报错），
-          # 彻底杜绝 PMTUD 失败导致的 QUIC (HTTP/3 UDP 443) 网页加载无限转圈假死
+          # 注意：严禁添加 from 172.20.0.0/14 或 from 10.0.0.0/8！
+          # 因为 table 200 导出的路由带有 krt_prefsrc = 172.20.232.x，
+          # 本地进程查 200 表后 Socket 会绑定该源 IP，若匹配 from 规则就会在 90 被短路回 main 表，
+          # 导致出海包以私网 IP 泄漏至物理 Wi-Fi 网关被丢弃！
           ip rule add to 172.20.0.0/14 lookup main priority 90
-          ip rule add from 172.20.0.0/14 lookup main priority 90
           ip rule add to 10.0.0.0/8 lookup main priority 90
-          ip rule add from 10.0.0.0/8 lookup main priority 90
 
           # ── Priority 8980: Mihomo DIRECT 流量出海分流 ──
           # 当 Mihomo 运行时，打有 fwmark 0x1 的 DIRECT 出站流量优先查 table 200 (sdn_accel)，
@@ -593,6 +598,12 @@ in
           ${lib.optionalString isAccelerated ''
             ip rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
           ''}
+
+          # ── Priority 8995: Mihomo fwmark 0x1 出站防回环绝缘墙 ──
+          # 当打标 0x1 的代理出站流量在 table 200 和 main 表中均无可用路由时（例如无原生 IPv6 出口），
+          # 强制在此处阻断返回 unreachable，严禁掉入 priority 9003 的 table 2022 (TUN)，
+          # 彻底根除 Mihomo 将自身出站流量重新吸入 TUN 网卡造成的无限递归死循环与 CPU/内存暴涨崩溃！
+          ip rule add fwmark 0x1/0x1 unreachable priority 8995
 
           # ── Priority 9999: 无 Mihomo 时的原生全系统 DN42 兜底加速 ──
           # 当系统未开启 Mihomo（或流量未被 TUN 捕获）时，所有出站流量降级匹配 priority 9999，
@@ -609,6 +620,7 @@ in
           while ip -6 rule del priority 90 2>/dev/null; do :; done
           while ip -6 rule del priority 100 2>/dev/null; do :; done
           while ip -6 rule del priority 8980 2>/dev/null; do :; done
+          while ip -6 rule del priority 8995 2>/dev/null; do :; done
           while ip -6 rule del priority 9999 2>/dev/null; do :; done
 
           ${lib.concatMapStringsSep "\n" (
@@ -624,12 +636,13 @@ in
           done
           ip -6 rule add fwmark 51820 lookup main priority 82
           ip -6 rule add to fd00::/8 lookup main priority 90
-          ip -6 rule add from fd00::/8 lookup main priority 90
           ip -6 rule add to fe80::/10 lookup main priority 90
-          ip -6 rule add from fe80::/10 lookup main priority 90
 
           ${lib.optionalString isAccelerated ''
             ip -6 rule add fwmark 0x1/0x1 lookup ${cfg.tableName} priority 8980
+          ''}
+          ip -6 rule add fwmark 0x1/0x1 unreachable priority 8995
+          ${lib.optionalString isAccelerated ''
             ip -6 rule add lookup ${cfg.tableName} priority 9999
           ''}
         '';
@@ -641,6 +654,7 @@ in
           while ip rule del priority 90 2>/dev/null; do :; done
           while ip rule del priority 100 2>/dev/null; do :; done
           while ip rule del priority 8980 2>/dev/null; do :; done
+          while ip rule del priority 8995 2>/dev/null; do :; done
           while ip rule del priority 9999 2>/dev/null; do :; done
           while ip -6 rule del priority 79 2>/dev/null; do :; done
           while ip -6 rule del priority 80 2>/dev/null; do :; done
@@ -649,6 +663,7 @@ in
           while ip -6 rule del priority 90 2>/dev/null; do :; done
           while ip -6 rule del priority 100 2>/dev/null; do :; done
           while ip -6 rule del priority 8980 2>/dev/null; do :; done
+          while ip -6 rule del priority 8995 2>/dev/null; do :; done
           while ip -6 rule del priority 9999 2>/dev/null; do :; done
           ip route flush table ${toString cfg.table} 2>/dev/null || true
         '';
