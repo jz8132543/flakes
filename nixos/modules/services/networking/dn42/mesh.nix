@@ -308,32 +308,23 @@ let
         "-f" "local=[::]:500"
       )
     else
-      ${
+      ${lib.concatMapStringsSep "\n" (
+        peerName:
         let
-          peerEndpoints = lib.concatMap (
-            peerName:
-            let
-              peerCfg = otherNodes.${peerName} or null;
-            in
-            if peerCfg == null then
-              [ ]
+          peerCfg = otherNodes.${peerName} or null;
+          rawEp =
+            if peerCfg != null && peerCfg.endpoint != null && lib.isString peerCfg.endpoint then
+              stripPort peerCfg.endpoint
             else
-              let
-                epList = lib.mapAttrsToList (_: stripPort) (peerCfg.endpoints or { });
-                singleEp = lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
-                  stripPort peerCfg.endpoint
-                );
-                v6Ep = lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6;
-                allEps = lib.unique (epList ++ singleEp ++ v6Ep);
-              in
-              if allEps != [ ] then allEps else [ "${peerName}.dora.im" ]
-          ) cfg.ipsec.mimic.peers;
+              "${peerName}.dora.im";
+          formatEp = ep: if lib.hasInfix ":" ep && !lib.hasPrefix "[" ep then "[${ep}]" else ep;
+          ep = formatEp rawEp;
         in
-        lib.concatMapStringsSep "\n" (ep: ''
+        ''
           FILTER_ARGS+=("-f" "remote=${ep}:4500")
           FILTER_ARGS+=("-f" "remote=${ep}:500")
-        '') peerEndpoints
-      }
+        ''
+      ) cfg.ipsec.mimic.peers}
     fi
 
     ${lib.concatMapStringsSep "\n" (f: ''
