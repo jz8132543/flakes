@@ -21,6 +21,16 @@
       server-https = [
         "https://1.1.1.1/dns-query"
         "https://8.8.8.8/dns-query"
+        "https://223.5.5.5/dns-query -fallback"
+        "https://doh.pub/dns-query -fallback"
+      ];
+
+      # 备用 / Fallback 上游服务器（当主用 DoH 失败或无结果时回退）
+      server = [
+        "1.1.1.1 -fallback"
+        "8.8.8.8 -fallback"
+        "223.5.5.5 -fallback"
+        "119.29.29.29 -fallback"
       ];
 
       # 允许正常解析 AAAA (IPv6) 记录，支持纯 IPv6 网站、教育网/校园网 IPv6 资源与专用节点。
