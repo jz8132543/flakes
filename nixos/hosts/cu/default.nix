@@ -23,7 +23,6 @@
     ];
 
   optimize.brutal.target = "!cn";
-  services.dn42.mesh.ipsec.port = 50568;
 
   services.nextcloud-talk-edge = {
     # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）
