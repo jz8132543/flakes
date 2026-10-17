@@ -428,100 +428,120 @@
     "ipv6": "fd53:90fd:4bb6::/48",
     "mesh": {
       "arx8": {
-        "endpoint": null,
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": true,
+        "id": 31,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "can0": {
-        "endpoint": "can0.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 11,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "cu": {
-        "endpoint": {
-          "a": "cuv6.dora.im:50568",
-          "b": "cu.dora.im:50568",
-          "c": "cmv6.dora.im:50568",
-          "d": "cm.dora.im:50568"
-        },
+        "enable": true,
         "ibgp": true,
-        "listenPort": 51821,
-        "nat": true,
-        "natTPort": 50568,
+        "id": 6,
+        "ike_port": 50560,
+        "is_controller": false,
+        "nat_t_port": 50561,
         "role": "border"
       },
       "fra0": {
-        "endpoint": "fra0.dora.im:51821",
+        "enable": true,
         "ibgp": true,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 1,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
         "role": "border"
       },
       "fra1": {
-        "endpoint": "fra1.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 10,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "hkg0": {
-        "endpoint": "hkg0.dora.im:51821",
+        "enable": true,
         "ibgp": true,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 2,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "border"
       },
       "hkg5": {
-        "endpoint": "hkg5.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 7,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "isk": {
-        "endpoint": null,
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": true,
+        "id": 8,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "nue0": {
-        "endpoint": "nue0.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 3,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "sjc0": {
-        "endpoint": "sjc0.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 16,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "surface": {
-        "endpoint": null,
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": true,
+        "id": 30,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "tyo0": {
-        "endpoint": "tyo0.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 5,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
         "role": "internal"
       },
       "tyo1": {
-        "endpoint": "tyo1.dora.im:51821",
+        "enable": true,
         "ibgp": false,
-        "listenPort": 51821,
-        "nat": false,
+        "id": 4,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
         "role": "internal"
       }
     },
@@ -534,6 +554,125 @@
       "peer1": "aPD/ej1dswyojJ+u41Pgsw1XSca7tMOwdhEpiv4Ntl0=",
       "peer2": "k4Um5FjJ1yS7aDDvs9v9jSpUePFL7YcATFr5q79y3yU=",
       "peer3": "PJ24FpCqARflKn0Cbhg/c9dG8TuViBcFrco5b2BLdw8="
+    },
+    "topology": {
+      "arx8": {
+        "enable": true,
+        "ibgp": false,
+        "id": 31,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "can0": {
+        "enable": true,
+        "ibgp": false,
+        "id": 11,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "cu": {
+        "enable": true,
+        "ibgp": true,
+        "id": 6,
+        "ike_port": 50560,
+        "is_controller": false,
+        "nat_t_port": 50561,
+        "role": "border"
+      },
+      "fra0": {
+        "enable": true,
+        "ibgp": true,
+        "id": 1,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
+        "role": "border"
+      },
+      "fra1": {
+        "enable": true,
+        "ibgp": false,
+        "id": 10,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "hkg0": {
+        "enable": true,
+        "ibgp": true,
+        "id": 2,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "border"
+      },
+      "hkg5": {
+        "enable": true,
+        "ibgp": false,
+        "id": 7,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "isk": {
+        "enable": true,
+        "ibgp": false,
+        "id": 8,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "nue0": {
+        "enable": true,
+        "ibgp": false,
+        "id": 3,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "sjc0": {
+        "enable": true,
+        "ibgp": false,
+        "id": 16,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "surface": {
+        "enable": true,
+        "ibgp": false,
+        "id": 30,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "tyo0": {
+        "enable": true,
+        "ibgp": false,
+        "id": 5,
+        "ike_port": 500,
+        "is_controller": true,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "tyo1": {
+        "enable": true,
+        "ibgp": false,
+        "id": 4,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      }
     }
   }
 }

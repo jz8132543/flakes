@@ -1,3 +1,29 @@
+/*
+  =============================================================================
+  [已归档备份] DN42 L3 公网国家级智能加速模块 (原 sdn.nix)
+  =============================================================================
+  1. 架构定位：
+     本模块实现了控制平面（Control Plane）与数据平面（Data Plane）分离的 L3 公网加速系统：
+     - 控制节点 (Border / Controller)：运行 Python 脚本 (sdn.py)，结合 GeoIP 数据库与节点
+       坐标，计算全球各国家/地区网段 (CIDR) 距离哪一个 DN42 节点最近，生成带有
+       `route <CIDR> via <Exit_Node_Loopback_IP>;` 的 BIRD 静态路由表 (/var/lib/bird/sdn_routes.conf)。
+     - 路由分发 (iBGP Route Reflector)：控制节点通过 BIRD `sdn_rr` 将算好的路由表反射给
+       全网所有节点（包括弱算力的 Internal 节点），并开启 `next hop keep` 保留真实出口 IP。
+     - 数据转发 (Kernel Table 200 + Babel Recursive Lookup)：各节点收到 iBGP 路由后导入
+       独立的 `sdn_table`，并通过 `protocol kernel` 写入 Linux 内核路由表 `200 (sdn_accel)`。
+       内核在查表 200 得知目标出口 Loopback IP 后，自动递归查询 `main` 表中由 Babel (ETX+RTT)
+       维护的内网最短路径隧道 (`dn42x-*`) 将数据包送至对应出口节点做 SNAT 出海。
+
+  2. 容灾与回退机制 (Fall-through to eth0)：
+     - 策略路由通过 `ip rule add lookup 200 priority 9999` 挂载在 `main` 表之前。
+     - 当某条方向直连更快、或者整个 DN42 集群全部离线（或 BIRD 停止触发 `ExecStopPost`
+       执行 `ip route flush table 200`）时，`table 200` 未命中或为空，Linux 内核自动穿透
+       (Fall-through) 到 `main` 表，无缝回退至物理网卡 (eth0) 直连出海。
+
+  3. 重新启用方法：
+     将本文件重命名回 `sdn.nix`，并在策略路由中恢复 `priority 8980` 与 `priority 9999` 即可。
+  =============================================================================
+*/
 {
   config,
   lib,

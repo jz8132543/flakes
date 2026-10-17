@@ -17,32 +17,23 @@ let
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
 
-  # Strict host lookup: eval error if missing!
-  thisHostData =
-    if selfData ? hosts && selfData.hosts ? ${hostName} then
-      selfData.hosts.${hostName}
-    else
-      throw "services.dn42: Host '${hostName}' not found in data.json under 'hosts'. Please define it in lib/data/data.json.";
-
+  thisHostData = selfData.hosts.${hostName} or { };
   thisHostMesh = dn42Data.mesh.${hostName} or { };
-
-  nodeIpv4Raw =
-    if thisHostData ? dn42_addresses_v4 && thisHostData.dn42_addresses_v4 != [ ] then
-      lib.head thisHostData.dn42_addresses_v4
-    else
-      throw "services.dn42: Host '${hostName}' has no 'dn42_addresses_v4' configured in lib/data/data.json.";
-
-  nodeIpv6Raw =
-    if thisHostData ? dn42_addresses_v6 && thisHostData.dn42_addresses_v6 != [ ] then
-      lib.head thisHostData.dn42_addresses_v6
-    else
-      throw "services.dn42: Host '${hostName}' has no 'dn42_addresses_v6' configured in lib/data/data.json.";
 
   hostIndex =
     if thisHostData ? host_indices && thisHostData.host_indices != [ ] then
       lib.head thisHostData.host_indices
-    else
-      1;
+    else thisHostMesh.id or (99);
+
+  nodeIpv4Raw =
+    if thisHostData ? dn42_addresses_v4 && thisHostData.dn42_addresses_v4 != [ ] then
+      lib.head thisHostData.dn42_addresses_v4
+    else thisHostMesh.dn42_ip4 or "172.20.232.${toString hostIndex}";
+
+  nodeIpv6Raw =
+    if thisHostData ? dn42_addresses_v6 && thisHostData.dn42_addresses_v6 != [ ] then
+      lib.head thisHostData.dn42_addresses_v6
+    else thisHostMesh.dn42_ip6 or "fd53:90fd:4bb6:${lib.toHexString hostIndex}::1";
 
   # Build /etc/hosts mapping from all hosts in data.json: <host>.dn42 -> IP
   dn42HostList = lib.flatten (
@@ -166,6 +157,42 @@ in
       type = with types; listOf str;
       default = [ ];
       description = "Additional WireGuard private key files to automatically generate if under /var/lib/wireguard/";
+    };
+
+    ikePort = mkOption {
+      type = types.port;
+      default = 500;
+      description = "strongSwan charon.port (IKE 端口，必须与 natTPort 不同以免 Socket 冲突)";
+    };
+
+    natTPort = mkOption {
+      type = types.port;
+      default = 4500;
+      description = "strongSwan charon.port_nat_t (实际承载 ESP-in-UDP 与 Mimic Fake-TCP 的监听端口)";
+    };
+
+    sdwan = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "启用多主控动态 XFRM SD-WAN 模式";
+      };
+
+      isController = mkOption {
+        type = types.bool;
+        default = builtins.elem hostName [
+          "fra0"
+          "tyo0"
+          "sjc0"
+        ];
+        description = "是否作为 SD-WAN 注册中心主控节点 (默认 fra0, tyo0, sjc0 三台互备)";
+      };
+
+      controllerPort = mkOption {
+        type = types.port;
+        default = 54500;
+        description = "SD-WAN 控制端轻量级 HTTP JSON 同步端口";
+      };
     };
   };
 
@@ -315,6 +342,29 @@ in
         Type = "oneshot";
         RemainAfterExit = true;
       };
+    };
+
+    # ── 6. raw 阶段 notrack: 彻底杜绝 nf_conntrack 将 Fake-TCP 标记为 INVALID ────
+    networking.nftables.enable = lib.mkDefault true;
+    networking.nftables.tables."dn42-raw-notrack" = {
+      family = "inet";
+      content = ''
+        chain raw_prerouting {
+          type filter hook prerouting priority raw; policy accept;
+          udp sport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          udp dport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          tcp sport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          tcp dport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+        }
+
+        chain raw_output {
+          type filter hook output priority raw; policy accept;
+          udp sport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          udp dport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          tcp sport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+          tcp dport { ${toString cfg.ikePort}, ${toString cfg.natTPort} } notrack
+        }
+      '';
     };
   };
 }

@@ -253,11 +253,18 @@ in
         # 显式豁免 Fake-TCP 端口，防止 FakeHTTP 注入伪造 HTTP 报文篡改 Mimic 握手包
         ExecStartPost =
           let
-            bypassPorts =
-              config.services.dn42.mesh.allClusterTunnelPorts or [
+            dn42Cfg = config.services.dn42 or null;
+            bypassPorts = lib.unique (
+              [
                 500
                 4500
-              ];
+              ]
+              ++ (lib.optionals (dn42Cfg != null) [
+                (dn42Cfg.ikePort or 500)
+                (dn42Cfg.natTPort or 4500)
+              ])
+              ++ (config.services.dn42.mesh.allClusterTunnelPorts or [ ])
+            );
           in
           pkgs.writeShellScript "fakehttp-bypass-dn42" ''
             sleep 1

@@ -18,7 +18,6 @@ let
     optionalString
     concatStringsSep
     filterAttrs
-    listToAttrs
     ;
 
   cfg = config.services.dn42.mesh;
@@ -55,6 +54,7 @@ let
 
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
+  thisHostMesh = dn42Data.mesh.${hostName} or { };
 
   meshNodeSubmodule = types.submodule (
     { name, config, ... }:
@@ -267,72 +267,123 @@ let
   ) otherNodes;
 
   # 隧道实例集合：将每个 activePeer 展开为一个或多个物理隧道实例
-  tunnelInstances = lib.flatten (
-    lib.mapAttrsToList (
-      peerName: peerCfg:
-      let
-        baseXfrmId = 4200 + (if peerCfg.hostIndex != null then peerCfg.hostIndex else 99);
-        epList = lib.mapAttrsToList (name: addr: { inherit name addr; }) peerCfg.endpoints;
-      in
-      if peerCfg.multipath && epList != [ ] then
-        lib.imap0 (i: ep: {
-          key = "${peerName}-${ep.name}";
-          inherit peerName peerCfg;
-          epName = ep.name;
-          epAddr = stripPort ep.addr;
-          epPort =
-            let
-              p = extractPort ep.addr;
-            in
-            if p != null then p else peerCfg.natTPort;
-          ifName = "dn42x-${lib.substring 0 5 peerName}-${ep.name}";
-          xfrmId = 42000 + (if peerCfg.hostIndex != null then peerCfg.hostIndex * 10 else 990) + i;
-          remoteAddrs = [
-            (stripPort ep.addr)
-            "%any"
-          ];
-        }) epList
-      else
+
+  selfNodeId = baseCfg.hostIndex;
+  selfDn42Ip4 = lib.head (lib.splitString "/" baseCfg.nodeIpv4);
+  selfDn42Ip6 = lib.head (lib.splitString "/" baseCfg.nodeIpv6);
+  selfEdgeNode = lib.findFirst (n: n.name == hostName) null (selfData.cdn.edgeNodes or [ ]);
+  selfPublicIpv4 =
+    if selfEdgeNode != null && selfEdgeNode ? ipv4 && selfEdgeNode.ipv4 != null then
+      selfEdgeNode.ipv4
+    else if hostName == "cu" then
+      "cu.dora.im"
+    else if hostName == "can0" then
+      "can0.dora.im"
+    else if
+      !(thisHostMesh.nat or (builtins.elem hostName [
+        "surface"
+        "arx8"
+        "isk"
+      ])
+      )
+    then
+      "${hostName}.dora.im"
+    else
+      "auto";
+  selfPublicIpv6 =
+    if selfEdgeNode != null && selfEdgeNode ? ipv6 && selfEdgeNode.ipv6 != null then
+      selfEdgeNode.ipv6
+    else if hostName == "cu" then
+      "cuv6.dora.im"
+    else if
+      !(thisHostMesh.nat or (builtins.elem hostName [
+        "surface"
+        "arx8"
+        "isk"
+      ])
+      )
+    then
+      "${hostName}.dora.im"
+    else
+      "auto";
+
+  controllerUrls = [
+    "http://fra0.dora.im:${toString baseCfg.sdwan.controllerPort}"
+    "http://tyo0.dora.im:${toString baseCfg.sdwan.controllerPort}"
+    "http://sjc0.dora.im:${toString baseCfg.sdwan.controllerPort}"
+  ];
+
+  tokenFile =
+    if cfg.ipsec.pskFile != null then
+      cfg.ipsec.pskFile
+    else
+      pkgs.writeText "dn42-sdwan-token" cfg.ipsec.psk;
+
+  bootstrapPeersFile = pkgs.writeText "bootstrap-peers.json" (
+    builtins.toJSON (
+      lib.mapAttrs (
+        name: hData:
         let
-          # 单隧道模式：按优先级自动排列所有候选端点（IPv6 优先、IPv4 兜底、多出口节点全量候选）
-          sortedCandidateAddrs =
-            let
-              rawAddrs =
-                if epList != [ ] then
-                  map (ep: stripPort ep.addr) epList
-                else
-                  (lib.optional (peerCfg.endpoint != null && lib.isString peerCfg.endpoint) (
-                    stripPort peerCfg.endpoint
-                  ))
-                  ++ (lib.optional (peerCfg.endpointV6 != null) peerCfg.endpointV6);
-            in
-            lib.unique rawAddrs;
+          hIdx =
+            if hData ? host_indices && hData.host_indices != [ ] then lib.head hData.host_indices else 99;
+          v4 =
+            if hData ? dn42_addresses_v4 && hData.dn42_addresses_v4 != [ ] then
+              lib.head hData.dn42_addresses_v4
+            else
+              "172.20.232.${toString hIdx}";
+          v6 =
+            if hData ? dn42_addresses_v6 && hData.dn42_addresses_v6 != [ ] then
+              lib.head hData.dn42_addresses_v6
+            else
+              "";
+          edgeNode = lib.findFirst (n: n.name == name) null (selfData.cdn.edgeNodes or [ ]);
+          meshNode = dn42Data.mesh.${name} or { };
+          isNat =
+            meshNode.nat or (builtins.elem name [
+              "surface"
+              "arx8"
+              "isk"
+            ]);
+          pubIpv4 =
+            if edgeNode != null && edgeNode ? ipv4 && edgeNode.ipv4 != null then
+              edgeNode.ipv4
+            else if name == "cu" then
+              "cu.dora.im"
+            else if !isNat then
+              "${name}.dora.im"
+            else
+              "";
+          pubIpv6 =
+            if edgeNode != null && edgeNode ? ipv6 && edgeNode.ipv6 != null then
+              edgeNode.ipv6
+            else if name == "cu" then
+              "cuv6.dora.im"
+            else
+              "";
+          natTPort = if name == "cu" then 50561 else (meshNode.natTPort or 4500);
+          ikePort = if name == "cu" then 50560 else (meshNode.ikePort or 500);
         in
-        [
-          {
-            key = peerName;
-            inherit peerName peerCfg;
-            epName = "default";
-            epAddr = if sortedCandidateAddrs != [ ] then lib.head sortedCandidateAddrs else null;
-            epPort = peerCfg.natTPort;
-            ifName = "dn42x-${lib.substring 0 9 peerName}";
-            xfrmId = baseXfrmId;
-            remoteAddrs = sortedCandidateAddrs ++ [ "%any" ];
-          }
-        ]
-    ) activePeers
+        {
+          id = hIdx;
+          dn42_ip4 = v4;
+          dn42_ip6 = v6;
+          ipv4 = pubIpv4;
+          ipv6 = pubIpv6;
+          nat_t_port = natTPort;
+          ike_port = ikePort;
+          pubkey = "";
+          updated_at = 0;
+        }
+      ) (selfData.hosts or { })
+    )
   );
 
-  # ── Mimic Fake-TCP 启动包装脚本 ──
-  # 1. 彻底移除引起内核 TC_ACT_SHOT 丢包的 act_csum 脚本；
-  # 2. 网卡层关闭 TX/RX 硬件校验和卸载与 GRO，迫使内核在 TC Egress 软件计算完整校验和；
-  # 3. 动态提取本机真实网卡 Global IP 以及通配符，全网集群节点均运行 Mimic，天然对称互通，无需脆弱的 remote 白名单；
-  # 4. 强制使用 --xdp-mode skb，完全规避 virtio_net 驱动级 XDP 挂载/尾部调整失败问题。
+  # ── Mimic Fake-TCP 启动包装脚本 ($O(1) 本机真实 IP 动态自闭环) ──
   mimicStartScript = pkgs.writeShellScript "mimic-start-wrapper" ''
     set -euo pipefail
     IFACE="$1"
 
-    # 1. 清理该网卡上可能残留的旧 BPF clsact qdisc、XDP 挂载与 /run/mimic 锁文件（彻底根除 EEXIST status=17 循环崩溃）
+    # 1. 清理该网卡上残留的旧 BPF clsact qdisc、XDP 挂载与 /run/mimic 锁文件
     ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
     ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
     IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
@@ -350,9 +401,9 @@ let
       done
     fi
 
-    # 2. 关闭 GRO/LRO 以及 TX/RX 硬件校验和卸载：
-    #    - 关 gro/lro：防止 skb-XDP 模式下多个 Fake-TCP 包被合并破坏 12 字节尾部边界
-    #    - 关 tx/rx csum offload：迫使内核在进入 Mimic (TC Egress) 前完成软件校验和计算，且接收端网卡不因 IPv4 ESP 零校验和丢弃 Fake-TCP 包
+    # 2. 靶向关闭网卡 GRO/LRO 与硬件 Checksum Offload：
+    #    - 关 gro/rx-gro-hw/lro：防止 skb-XDP 之前多个 Fake-TCP 包被合并破坏 12 字节尾部边界
+    #    - 关 tx/rx offload：迫使内核在进入 Mimic (TC Egress) 前完成软件校验和计算，且接收端不丢弃包
     ${pkgs.ethtool}/bin/ethtool -K "$IFACE" gro off rx-gro-hw off lro off gso off tso off tx off rx off 2>/dev/null || true
     ${pkgs.ethtool}/bin/ethtool -K "$IFACE" tx-udp_tnl-segmentation off tx-udp_tnl-csum-segmentation off 2>/dev/null || true
 
@@ -364,71 +415,277 @@ let
       sleep 1
     done
 
+    # 3. 动态读取当前网卡 (%I) 上的真实 Global IPv4 与 IPv6 地址（绝不可用 0.0.0.0 或 [::]）
     FILTER_ARGS=()
-    if [ "${if cfg.ipsec.mimic.allTraffic then "1" else "0"}" = "1" ]; then
-      ${lib.concatMapStringsSep "\n" (p: ''
-        FILTER_ARGS+=(
-          "-f" "local=0.0.0.0:${toString p}"
-          "-f" "local=[::]:${toString p}"
-          "-f" "remote=0.0.0.0:${toString p}"
-          "-f" "remote=[::]:${toString p}"
-        )
-      '') cfg.allClusterTunnelPorts}
-    else
-      ${lib.concatMapStringsSep "\n" (
-        peerName:
-        let
-          peerCfg = otherNodes.${peerName} or null;
-          peerPort = if peerCfg != null then peerCfg.natTPort else 4500;
-          peerIke = if peerCfg != null then peerCfg.ikePort else 500;
-          peerEndpoints =
-            if peerCfg == null then
-              [ "${peerName}.dora.im" ]
-            else if (peerCfg.endpoints or { }) != { } then
-              lib.mapAttrsToList (_: stripPort) peerCfg.endpoints
-            else if peerCfg.endpoint != null then
-              if lib.isString peerCfg.endpoint then
-                [ (stripPort peerCfg.endpoint) ]
-              else if lib.isAttrs peerCfg.endpoint then
-                lib.mapAttrsToList (_: stripPort) peerCfg.endpoint
-              else
-                [ "${peerName}.dora.im" ]
-            else
-              [ "${peerName}.dora.im" ];
-          formatEp = ep: if lib.hasInfix ":" ep && !lib.hasPrefix "[" ep then "[${ep}]" else ep;
-        in
-        lib.concatMapStringsSep "\n" (
-          rawEp:
-          let
-            ep = formatEp rawEp;
-          in
-          ''
-            FILTER_ARGS+=("-f" "remote=${ep}:${toString peerPort}")
-            FILTER_ARGS+=("-f" "remote=${ep}:${toString peerIke}")
-          ''
-        ) peerEndpoints
-      ) cfg.ipsec.mimic.peers}
-      FILTER_ARGS+=(
-        "-f" "local=0.0.0.0:${toString cfg.ipsec.natTPort}"
-        "-f" "local=[::]:${toString cfg.ipsec.natTPort}"
-        "-f" "local=0.0.0.0:${toString cfg.ipsec.ikePort}"
-        "-f" "local=[::]:${toString cfg.ipsec.ikePort}"
-      )
+    while read -r ip4; do
+      [ -n "$ip4" ] && FILTER_ARGS+=("-f" "local=''${ip4}:${toString baseCfg.natTPort}" "-f" "local=''${ip4}:${toString baseCfg.ikePort}")
+    done < <(${pkgs.iproute2}/bin/ip -4 -o addr show dev "$IFACE" scope global 2>/dev/null | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}')
+
+    while read -r ip6; do
+      [ -n "$ip6" ] && FILTER_ARGS+=("-f" "local=[''${ip6}]:${toString baseCfg.natTPort}" "-f" "local=[''${ip6}]:${toString baseCfg.ikePort}")
+    done < <(${pkgs.iproute2}/bin/ip -6 -o addr show dev "$IFACE" scope global 2>/dev/null | ${pkgs.gawk}/bin/awk '{split($4,a,"/"); print a[1]}')
+
+    if [ ''${#FILTER_ARGS[@]} -eq 0 ]; then
+      echo "No global IP on $IFACE yet, waiting..."
+      exit 1
     fi
 
-    ${lib.concatMapStringsSep "\n" (f: ''
-      FILTER_ARGS+=("-f" "${f}")
-    '') cfg.ipsec.mimic.extraFilters}
+    echo "Starting mimic on $IFACE (xdp-mode=skb) with filters: ''${FILTER_ARGS[*]}"
+    exec ${pkgs.mimic}/bin/mimic run "$IFACE" --xdp-mode skb "''${FILTER_ARGS[@]}"
+  '';
 
-    echo "Starting mimic on $IFACE with xdp-mode ${cfg.ipsec.mimic.xdpMode} and filters: ''${FILTER_ARGS[*]}"
-    exec ${pkgs.mimic}/bin/mimic run "$IFACE" --xdp-mode ${cfg.ipsec.mimic.xdpMode} "''${FILTER_ARGS[@]}"
+  # ── SD-WAN Controller 轻量级 HTTP 同步处理脚本 ──
+  sdwanControllerScript = pkgs.writeShellScript "dn42-sdwan-controller-handler" ''
+    set -euo pipefail
+    REGISTRY_DIR="/var/lib/dn42-sdwan"
+    REGISTRY_FILE="$REGISTRY_DIR/registry.json"
+    mkdir -p "$REGISTRY_DIR"
+
+    if [ ! -s "$REGISTRY_FILE" ]; then
+      cp "${bootstrapPeersFile}" "$REGISTRY_FILE"
+    fi
+
+    read -r request_line || exit 0
+    read -r method path proto <<< "$request_line"
+    content_length=0
+    auth_header=""
+
+    while IFS= read -r line; do
+      line=$(tr -d "\r" <<< "$line")
+      [ -z "$line" ] && break
+      lower_line=$(tr "[:upper:]" "[:lower:]" <<< "$line")
+      if [[ "$lower_line" =~ ^content-length:[[:space:]]*([0-9]+) ]]; then
+        content_length="''${BASH_REMATCH[1]}"
+      elif [[ "$lower_line" =~ ^x-dn42-auth:[[:space:]]*(.*) ]]; then
+        auth_header="''${BASH_REMATCH[1]}"
+      fi
+    done
+
+    EXPECTED_AUTH=$(cat "${tokenFile}")
+    if [ "$auth_header" != "$EXPECTED_AUTH" ]; then
+      printf "HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\nUnauthorized\n"
+      exit 0
+    fi
+
+    if [ "$method" = "POST" ] && [ "$content_length" -gt 0 ]; then
+      body=$(head -c "$content_length")
+      if echo "$body" | ${pkgs.jq}/bin/jq -e 'type == "object"' >/dev/null 2>&1; then
+        PEER_ADDR="''${SOCAT_PEERADDR:-127.0.0.1}"
+        PROCESSED_BODY=$(echo "$body" | ${pkgs.jq} --arg ip "$PEER_ADDR" '
+          to_entries | map(
+            .value as $val |
+            if $val.ipv4 == "auto" or $val.ipv4 == "" then
+              if ($ip | contains(".")) then .value.ipv4 = $ip else . end
+            else . end |
+            if $val.ipv6 == "auto" or $val.ipv6 == "" then
+              if ($ip | contains(":")) then .value.ipv6 = $ip else . end
+            else . end
+          ) | from_entries
+        ')
+
+        (
+          flock -x 200
+          ${pkgs.jq}/bin/jq -s '
+            (.[0] // {}) as $orig | (.[1] // {}) as $new |
+            reduce ($new | to_entries[]) as $item ($orig;
+              if (.[$item.key] == null) or (($item.value.updated_at // 0) >= (.[$item.key].updated_at // 0))
+              then .[$item.key] = $item.value
+              else . end
+            )
+          ' "$REGISTRY_FILE" <(echo "$PROCESSED_BODY") > "$REGISTRY_FILE.tmp"
+          mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
+        ) 200>"$REGISTRY_DIR/registry.lock"
+      fi
+    fi
+
+    resp=$(cat "$REGISTRY_FILE")
+    len=$(printf "%s" "$resp" | wc -c)
+    printf "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s" "$len" "$resp"
+  '';
+
+  # ── 全节点 SD-WAN Agent 同步维护脚本 ──
+  sdwanAgentScript = pkgs.writeShellScript "dn42-sdwan-agent" ''
+        set -euo pipefail
+        export PATH="${
+          lib.makeBinPath (
+            with pkgs;
+            [
+              bash
+              coreutils
+              jq
+              curl
+              iproute2
+              ethtool
+              strongswan
+              gawk
+              gnugrep
+              findutils
+            ]
+          )
+        }"
+
+        STATE_DIR="/var/lib/dn42-sdwan"
+        CACHE_FILE="$STATE_DIR/peers.json"
+        SWAN_D="/run/swanctl/conf.d"
+        mkdir -p "$STATE_DIR" "$SWAN_D"
+
+        # 1. 若本地缓存不存在，先用 Nix 编译期的 bootstrapPeersJson 初始化
+        if [ ! -s "$CACHE_FILE" ]; then
+          cp "${bootstrapPeersFile}" "$CACHE_FILE"
+        fi
+
+        SELF_NAME="${hostName}"
+        SELF_ID="${toString selfNodeId}"
+        SELF_IP4="${selfDn42Ip4}"
+        SELF_IP6="${selfDn42Ip6}"
+        SELF_PORT="${toString baseCfg.natTPort}"
+        SELF_IKE_PORT="${toString baseCfg.ikePort}"
+        CONTROLLERS=(${lib.concatStringsSep " " controllerUrls})
+
+        # 2. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
+        NOW=$(date +%s)
+        SELF_PAYLOAD=$(jq -n \
+          --arg name "$SELF_NAME" \
+          --argjson id "$SELF_ID" \
+          --arg dn42_ip4 "$SELF_IP4" \
+          --arg dn42_ip6 "$SELF_IP6" \
+          --arg ipv4 "${selfPublicIpv4}" \
+          --arg ipv6 "${selfPublicIpv6}" \
+          --argjson nat_t_port "$SELF_PORT" \
+          --argjson ike_port "$SELF_IKE_PORT" \
+          --arg pubkey "" \
+          --argjson updated_at "$NOW" \
+          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, ipv4: $ipv4, ipv6: $ipv6, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, updated_at: $updated_at}}')
+
+        TOKEN=$(cat "${tokenFile}")
+
+        for ctrl in "''${CONTROLLERS[@]}"; do
+          REMOTE_JSON=$(curl -fsSL --max-time 4 -X POST -H "X-DN42-Auth: $TOKEN" -d "$SELF_PAYLOAD" "$ctrl/sync" 2>/dev/null || true)
+          if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
+            jq -s '
+              (.[0] // {}) as $orig | (.[1] // {}) as $new |
+              reduce ($new | to_entries[]) as $item ($orig;
+                if (.[$item.key] == null) or (($item.value.updated_at // 0) >= (.[$item.key].updated_at // 0))
+                then .[$item.key] = $item.value else . end
+              )
+            ' "$CACHE_FILE" <(echo "$REMOTE_JSON") > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
+          fi
+        done
+
+        # 若本机是 Controller，将最新 peers.json 同步到 registry.json
+        if [ "${if baseCfg.sdwan.isController then "1" else "0"}" = "1" ]; then
+          cp "$CACHE_FILE" "$STATE_DIR/registry.json" 2>/dev/null || true
+        fi
+
+        # 3. 遍历 peers.json，热创建/维护 dn42x-<peer> 接口与 swanctl 配置文件
+        CONF_CHANGED=0
+        HOSTS_TMP="/run/dn42-hosts.tmp"
+        : > "$HOSTS_TMP"
+
+        for peer in $(jq -r 'keys[]' "$CACHE_FILE"); do
+          PEER_IP4=$(jq -r --arg p "$peer" '.[$p].dn42_ip4 // empty' "$CACHE_FILE")
+          [ -z "$PEER_IP4" ] && continue
+          echo "$PEER_IP4 ''${peer}.dn42" >> "$HOSTS_TMP"
+
+          [ "$peer" = "$SELF_NAME" ] && continue
+
+          PEER_ID=$(jq -r --arg p "$peer" '.[$p].id // empty' "$CACHE_FILE")
+          [ -z "$PEER_ID" ] && continue
+
+          PEER_PUB_IP4=$(jq -r --arg p "$peer" '.[$p].ipv4 // empty' "$CACHE_FILE")
+          PEER_PUB_IP6=$(jq -r --arg p "$peer" '.[$p].ipv6 // empty' "$CACHE_FILE")
+          PEER_PORT=$(jq -r --arg p "$peer" '.[$p].nat_t_port // 4500' "$CACHE_FILE")
+          [ -z "$PEER_PORT" ] && PEER_PORT=4500
+
+          IFACE="dn42x-''${peer}"
+
+          # 3a. 确保 XFRM 接口存在、MTU=1360、关闭 GSO/TX offload 并配置好内网 IP 与 fe80:: Link-Local
+          if ! ip link show "$IFACE" >/dev/null 2>&1; then
+            ip link add "$IFACE" type xfrm dev lo if_id "$PEER_ID"
+          fi
+          ip link set "$IFACE" mtu 1360 up
+          ethtool -K "$IFACE" tx off gso off gro off 2>/dev/null || true
+
+          ip -4 addr replace "''${SELF_IP4}/32" peer "''${PEER_IP4}/32" dev "$IFACE" 2>/dev/null || true
+          ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$IFACE" 2>/dev/null || true
+          [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$IFACE" 2>/dev/null || true
+
+          # 3b. 生成该对端的 swanctl 独立连接配置
+          REMOTE_ADDRS=()
+          [ -n "$PEER_PUB_IP4" ] && [ "$PEER_PUB_IP4" != "auto" ] && REMOTE_ADDRS+=("$PEER_PUB_IP4")
+          [ -n "$PEER_PUB_IP6" ] && [ "$PEER_PUB_IP6" != "auto" ] && REMOTE_ADDRS+=("$PEER_PUB_IP6")
+
+          if [ ''${#REMOTE_ADDRS[@]} -eq 0 ]; then
+            REMOTE_ADDR_STR="%any"
+            CHILD_START_ACTION="none"
+            CHILD_DPD_ACTION="clear"
+          else
+            REMOTE_ADDR_STR=$(IFS=,; echo "''${REMOTE_ADDRS[*]}")
+            CHILD_START_ACTION="trap|start"
+            CHILD_DPD_ACTION="restart"
+          fi
+
+          PEER_CONF="$SWAN_D/sdwan-''${peer}.conf"
+          NEW_CONTENT=$(cat <<EOF
+    connections {
+      dn42-''${peer} {
+        version = 2
+        mobike = yes
+        fragmentation = yes
+        encap = yes
+        dpd_delay = 30s
+        dpd_timeout = 120s
+        local_port = ''${SELF_PORT}
+        remote_port = ''${PEER_PORT}
+        local_addrs = %any
+        remote_addrs = ''${REMOTE_ADDR_STR}
+
+        proposals = aes256gcm128-sha256-x25519, chacha20poly1305-sha256-x25519, aes128gcm128-sha256-x25519
+
+        local {
+          auth = psk
+          id = ''${SELF_NAME}.dn42
+        }
+        remote {
+          auth = psk
+          id = ''${peer}.dn42
+        }
+        children {
+          dn42-''${peer} {
+            esp_proposals = aes256gcm128-x25519, chacha20poly1305-x25519, aes128gcm128-x25519
+            local_ts = 0.0.0.0/0, ::/0
+            remote_ts = 0.0.0.0/0, ::/0
+            if_id_in = ''${PEER_ID}
+            if_id_out = ''${PEER_ID}
+            set_mark_out = 0x1
+            mode = tunnel
+            start_action = ''${CHILD_START_ACTION}
+            dpd_action = ''${CHILD_DPD_ACTION}
+          }
+        }
+      }
+    }
+    EOF
+    )
+
+          if [ ! -f "$PEER_CONF" ] || [ "$NEW_CONTENT" != "$(cat "$PEER_CONF" 2>/dev/null || true)" ]; then
+            echo "$NEW_CONTENT" > "$PEER_CONF"
+            CONF_CHANGED=1
+          fi
+        done
+
+        mv "$HOSTS_TMP" /run/dn42-hosts
+
+        # 4. 仅在配置真正发生变化时增量热重载 strongSwan，不中断已有连接
+        if [ "$CONF_CHANGED" -eq 1 ]; then
+          swanctl --load-all --noprompt 2>/dev/null || true
+        fi
   '';
 
 in
 {
   imports = [
     ./base.nix
-    ./sdn.nix
   ];
 
   options.services.dn42.mesh = {
@@ -485,33 +742,13 @@ in
 
       ikePort = mkOption {
         type = types.port;
-        default = dn42Data.mesh.${hostName}.ikePort or 500;
-        description = "strongSwan charon.port for IKE (default 500)";
+        default = baseCfg.ikePort;
+        description = "strongSwan charon.port for IKE (default baseCfg.ikePort)";
       };
 
       port = mkOption {
         type = types.port;
-        default =
-          dn42Data.mesh.${hostName}.natTPort or (dn42Data.mesh.${hostName}.port or (
-            let
-              rawEp = dn42Data.mesh.${hostName}.endpoint or (dn42Data.mesh.${hostName}.endpoints or null);
-              rawList =
-                if rawEp == null then
-                  [ ]
-                else if lib.isString rawEp then
-                  [ rawEp ]
-                else if lib.isAttrs rawEp then
-                  lib.attrValues rawEp
-                else
-                  [ ];
-              ports = lib.filter (p: p != null) (map extractPort rawList);
-            in
-            if ports != [ ] && (lib.head ports) != (dn42Data.mesh.${hostName}.listenPort or 51821) then
-              lib.head ports
-            else
-              4500
-          )
-          );
+        default = baseCfg.natTPort;
         description = "Standard strongSwan NAT-T UDP port for cluster mesh (ESP-in-UDP NAT-T / Mimic Fake-TCP)";
       };
 
@@ -751,8 +988,8 @@ in
     {
       assertions = [
         {
-          assertion = cfg.backend != "ipsec" || cfg.ipsec.ikePort != cfg.ipsec.natTPort;
-          message = "services.dn42.mesh: ipsec.ikePort (${toString cfg.ipsec.ikePort}) and ipsec.natTPort (${toString cfg.ipsec.natTPort}) must be different ports to avoid strongSwan charon socket collision.";
+          assertion = cfg.backend != "ipsec" || baseCfg.ikePort != baseCfg.natTPort;
+          message = "services.dn42: ikePort (${toString baseCfg.ikePort}) and natTPort (${toString baseCfg.natTPort}) must be different ports to avoid strongSwan charon socket collision.";
         }
       ]
       ++ lib.optionals (cfg.backend == "wireguard") (
@@ -779,122 +1016,126 @@ in
           pkgs.strongswan
         ];
 
-        # XFRM 虚拟网络网卡管理与 Mimic Fake-TCP 守护服务
-        systemd.services =
-          (listToAttrs (
-            map (
-              t:
-              nameValuePair t.ifName {
-                description = "DN42 XFRM interface for tunnel ${t.key}";
-                after = [ "network-pre.target" ];
-                wants = [ "network-pre.target" ];
-                before = [
-                  "bird.service"
-                  "strongswan-swanctl.service"
-                ];
-                wantedBy = [ "multi-user.target" ];
-                path = [
-                  pkgs.iproute2
-                  pkgs.gawk
-                  pkgs.ethtool
-                  pkgs.coreutils
-                ];
-                serviceConfig = {
-                  Type = "oneshot";
-                  RemainAfterExit = true;
-                  ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
-                    set -eu
-                    if ! ip link show ${t.ifName} >/dev/null 2>&1; then
-                      ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
-                    fi
-                    ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
-                    ${pkgs.ethtool}/bin/ethtool -K ${t.ifName} tx off gso off gro off 2>/dev/null || true
-                    ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
-                  '';
-                  ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
-                    ip link del ${t.ifName} 2>/dev/null || true
-                  '';
-                };
-              }
-            ) tunnelInstances
-          ))
-          // (optionalAttrs cfg.ipsec.mimic.enable {
-            "mimic@" = {
-              description = "Mimic eBPF UDP/TCP tunnel obfuscation on %I";
-              after = [
-                "network-online.target"
-                "sys-subsystem-net-devices-%i.device"
-              ];
-              wants = [ "network-online.target" ];
-              bindsTo = [ "sys-subsystem-net-devices-%i.device" ];
-              path = with pkgs; [
-                iproute2
-                ethtool
-                kmod
-                coreutils
-                gawk
-              ];
-              serviceConfig = {
-                Type = "simple";
-                Restart = "always";
-                RestartSec = "2s";
-                ExecStart = "${mimicStartScript} %I";
-                ExecStopPost = "${pkgs.writeShellScript "mimic-stop-post" ''
-                  set -u
-                  IFACE="$1"
-                  ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
-                  ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
-                  IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
-                  if [ -n "$IFINDEX" ]; then
-                    rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
-                  fi
-                ''} %I";
-              };
-            };
-          })
-          // (optionalAttrs cfg.ipsec.mimic.enable {
-            "dn42-mimic-autobind" = {
-              description = "Automatically bind Mimic to current default physical interface";
-              after = [ "network-online.target" ];
-              wants = [ "network-online.target" ];
-              before = [ "strongswan-swanctl.service" ];
-              wantedBy = [ "multi-user.target" ];
-              path = with pkgs; [
-                iproute2
-                systemd
-                coreutils
-                gawk
-              ];
-              serviceConfig = {
-                Type = "oneshot";
-                RemainAfterExit = true;
-                ExecStart = pkgs.writeShellScript "dn42-mimic-autobind" ''
-                  set -eu
-                  # 获取系统默认路由出口网卡 (如 wlp1s0 / wlan0 / eth0)
-                  IFACE=$(ip -4 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
-                  if [ -z "$IFACE" ]; then
-                    IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
-                  fi
-                  if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
-                    echo "Auto-binding Mimic on default route interface: $IFACE"
-                    systemctl start "mimic@$IFACE.service" || true
-                  fi
-                '';
-              };
-            };
-          })
-          // {
-            strongswan-swanctl = {
-              after = [
-                "network-online.target"
-              ]
-              ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
-              wants = [
-                "network-online.target"
-              ]
-              ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+        # XFRM 虚拟网络网卡管理、SD-WAN Agent 与 Mimic Fake-TCP 守护服务
+        systemd.services = {
+          "dn42-sdwan-agent" = {
+            description = "DN42 Multi-Master SD-WAN Tunnel Agent";
+            after = [ "network.target" ];
+            wants = [ "network.target" ];
+            before = [
+              "strongswan-swanctl.service"
+              "bird.service"
+            ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = "${sdwanAgentScript}";
             };
           };
+
+          strongswan-swanctl = {
+            after = [
+              "network-online.target"
+              "dn42-sdwan-agent.service"
+            ]
+            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+            wants = [
+              "network-online.target"
+              "dn42-sdwan-agent.service"
+            ]
+            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+            preStart = "mkdir -p /run/swanctl/conf.d";
+          };
+        }
+        // (optionalAttrs (baseCfg.sdwan.enable && baseCfg.sdwan.isController) {
+          "dn42-sdwan-controller" = {
+            description = "DN42 Multi-Master SD-WAN Controller Service";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "3s";
+              ExecStart = "${pkgs.socat}/bin/socat -d -d TCP6-LISTEN:${toString baseCfg.sdwan.controllerPort},reuseaddr,fork,ipv6only=0 SYSTEM:\"${sdwanControllerScript}\"";
+            };
+          };
+        })
+        // (optionalAttrs cfg.ipsec.mimic.enable {
+          "mimic@" = {
+            description = "Mimic eBPF UDP/TCP tunnel obfuscation on %I";
+            after = [
+              "network-online.target"
+              "sys-subsystem-net-devices-%i.device"
+            ];
+            wants = [ "network-online.target" ];
+            bindsTo = [ "sys-subsystem-net-devices-%i.device" ];
+            path = with pkgs; [
+              iproute2
+              ethtool
+              kmod
+              coreutils
+              gawk
+            ];
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "3s";
+              ExecStart = "${mimicStartScript} %I";
+              ExecStopPost = "${pkgs.writeShellScript "mimic-stop-post" ''
+                set -u
+                IFACE="$1"
+                ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
+                ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
+                IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
+                if [ -n "$IFINDEX" ]; then
+                  rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
+                fi
+              ''} %I";
+            };
+          };
+
+          "dn42-mimic-autobind" = {
+            description = "Automatically bind Mimic to current default physical interface";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            before = [ "strongswan-swanctl.service" ];
+            wantedBy = [ "multi-user.target" ];
+            path = with pkgs; [
+              iproute2
+              systemd
+              coreutils
+              gawk
+            ];
+            serviceConfig = {
+              Type = "oneshot";
+              RemainAfterExit = true;
+              ExecStart = pkgs.writeShellScript "dn42-mimic-autobind" ''
+                set -eu
+                # 获取系统默认路由出口网卡 (如 wlp1s0 / wlan0 / eth0)
+                IFACE=$(ip -4 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
+                if [ -z "$IFACE" ]; then
+                  IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
+                fi
+                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
+                  echo "Auto-binding Mimic on default route interface: $IFACE"
+                  systemctl start "mimic@$IFACE.service" || true
+                fi
+              '';
+            };
+          };
+        });
+
+        systemd.timers.dn42-sdwan-agent = {
+          description = "DN42 Multi-Master SD-WAN Agent Sync Timer";
+          wantedBy = [ "timers.target" ];
+          timerConfig = {
+            OnBootSec = "5s";
+            OnUnitActiveSec = "45s";
+            AccuracySec = "5s";
+          };
+        };
 
         # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
         systemd.targets.multi-user.wants = mkIf (
@@ -902,17 +1143,12 @@ in
         ) (map (iface: "mimic@${iface}.service") cfg.ipsec.mimic.interfaces);
 
         # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
-        systemd.network.networks = mkIf config.systemd.network.enable (
-          listToAttrs (
-            map (
-              t:
-              nameValuePair "70-${t.ifName}" {
-                matchConfig.Name = t.ifName;
-                linkConfig.Unmanaged = true;
-              }
-            ) tunnelInstances
-          )
-        );
+        systemd.network.networks = mkIf config.systemd.network.enable {
+          "70-dn42x" = {
+            matchConfig.Name = "dn42x-*";
+            linkConfig.Unmanaged = true;
+          };
+        };
 
         # Strongswan Swanctl 守护进程配置
         services.strongswan-swanctl = {
@@ -923,8 +1159,8 @@ in
           # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
           strongswan.extraConfig = ''
             charon {
-              port = ${toString cfg.ipsec.ikePort}
-              port_nat_t = ${toString cfg.ipsec.natTPort}
+              port = ${toString baseCfg.ikePort}
+              port_nat_t = ${toString baseCfg.natTPort}
               fragment_size = 1240
               keep_alive = 10s
               # 放宽重传窗口与超时，容忍 Fake-TCP 遭遇运营商 RST 重握手，避免引发 BGP/Babel 路由震荡
@@ -950,101 +1186,6 @@ in
           '';
 
           swanctl = {
-            connections = listToAttrs (
-              map (
-                t:
-                let
-                  isV6 =
-                    t.epAddr != null
-                    && (lib.hasInfix ":" t.epAddr || lib.hasInfix "v6" t.epAddr || lib.hasInfix "v6" (t.epName or ""));
-                  # 仅当：
-                  # 1. 本机自身具备公网端点 (作为服务端)；
-                  # 2. 对端节点标记为 nat = true 且使用默认 4500 端口 (即对端纯出站 NAT 无法接收 IPv4 入站)
-                  # 时，本机才作为 passive responder，等待对端主动建连。
-                  # 移动客户端 (如 surface) 自身无公网 IP，绝不能作为 passive responder，必须主动发起连接！
-                  # 若对端已配置非 4500 端口映射 (如 cu:50568)，两端均可互相主动发起连接！
-                  isPassiveResponder =
-                    (t.peerCfg.nat or false)
-                    && !isV6
-                    && (cfg.thisNode.endpoint != null || cfg.thisNode.endpoints != { })
-                    && (t.epAddr == null || t.epPort == 4500);
-                in
-                nameValuePair "mesh-peer-${t.key}" {
-                  version = 2;
-                  mobike = true;
-                  dpd_delay = "30s";
-                  dpd_timeout = "120s";
-                  keyingtries =
-                    if isPassiveResponder then
-                      1
-                    else if t.epAddr != null then
-                      0
-                    else
-                      1;
-
-                  local_port = cfg.ipsec.natTPort;
-                  remote_port = t.epPort;
-                  remote_addrs = if isPassiveResponder then [ "%any" ] else t.remoteAddrs;
-                  encap = true; # 强制封装为 UDP NAT-T，由 Mimic 转换为 Fake-TCP，防止裸 ESP 泄露被丢弃
-
-                  # 采用现代高效 AEAD 加密套件与 x25519 曲线：
-                  # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
-                  proposals = [
-                    "aes256gcm128-sha256-x25519"
-                    "chacha20poly1305-sha256-x25519"
-                    "aes128gcm128-sha256-x25519"
-                  ];
-
-                  local.main = {
-                    auth = "psk";
-                    id = "${hostName}.dn42";
-                  };
-
-                  remote.main = {
-                    auth = "psk";
-                    id = "${t.peerName}.dn42";
-                  };
-
-                  children.mesh = {
-                    esp_proposals = [
-                      "aes256gcm128-x25519"
-                      "chacha20poly1305-x25519"
-                      "aes128gcm128-x25519"
-                    ];
-                    local_ts = [
-                      "0.0.0.0/0"
-                      "::/0"
-                    ];
-                    remote_ts = [
-                      "0.0.0.0/0"
-                      "::/0"
-                    ];
-                    if_id_in = toString t.xfrmId;
-                    if_id_out = toString t.xfrmId;
-                    # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
-                    set_mark_out = "0x1";
-                    # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
-                    hw_offload = cfg.ipsec.hwOffload;
-                    mode = "tunnel";
-                    start_action =
-                      if isPassiveResponder then
-                        "none"
-                      else if t.epAddr != null then
-                        "start"
-                      else
-                        "none";
-                    dpd_action =
-                      if isPassiveResponder then
-                        "clear"
-                      else if t.epAddr != null then
-                        "restart"
-                      else
-                        "clear";
-                  };
-                }
-              ) tunnelInstances
-            );
-
             secrets.ike = mkIf (cfg.ipsec.pskFile == null) {
               mesh = {
                 secret = cfg.ipsec.psk;
@@ -1052,7 +1193,10 @@ in
             };
           };
 
-          includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
+          includes = [
+            "/run/swanctl/conf.d/*.conf"
+          ]
+          ++ optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
         };
 
         # MSS 钳制：防止内层经过 table 200 加速或 DN42 路由的 TCP 连接因外层多重封装 (XFRM + UDP) 超出 MTU 而卡顿白屏
@@ -1066,29 +1210,6 @@ in
             chain postrouting {
               type filter hook postrouting priority mangle; policy accept;
               oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
-            }
-          '';
-        };
-
-        # 消除冲突 1：在 nftables raw 阶段 (priority -300) 彻底绕过 nf_conntrack
-        # 无论底层是原生 UDP 还是 Mimic 伪装后的 Fake-TCP，一律跳过连接跟踪，杜绝 INVALID 丢包
-        networking.nftables.tables."dn42-mimic-raw" = mkIf config.networking.nftables.enable {
-          family = "inet";
-          content = ''
-            chain raw_prerouting {
-              type filter hook prerouting priority raw; policy accept;
-              udp sport { ${portsCsv} } notrack
-              udp dport { ${portsCsv} } notrack
-              tcp sport { ${portsCsv} } notrack
-              tcp dport { ${portsCsv} } notrack
-            }
-
-            chain raw_output {
-              type filter hook output priority raw; policy accept;
-              udp sport { ${portsCsv} } notrack
-              udp dport { ${portsCsv} } notrack
-              tcp sport { ${portsCsv} } notrack
-              tcp dport { ${portsCsv} } notrack
             }
           '';
         };
@@ -1324,8 +1445,8 @@ in
               import all;
               export filter babel_export_v6;
             };
-            # 兼容监听 IPsec (dn42x-*, xfrm*) 与 WireGuard (dn42m-*) 内部网卡，排除外部 eBGP 网卡
-            interface "dn42x-*", "dn42m-*", "xfrm*" {
+            # 针对 XFRM SD-WAN 网卡启用无线模式（ETX 丢包率惩罚）与 RTT 延迟测算
+            interface "dn42x-*" {
               type ${cfg.babel.type};
               rxcost ${toString cfg.babel.rxCost};
               hello interval ${toString cfg.babel.helloInterval} s;
@@ -1340,6 +1461,16 @@ in
               extended next hop yes;
               check link yes;
             };
+            ${optionalString (cfg.backend == "wireguard") ''
+              interface "dn42m-*" {
+                type ${cfg.babel.type};
+                rxcost ${toString cfg.babel.rxCost};
+                hello interval ${toString cfg.babel.helloInterval} s;
+                update interval ${toString cfg.babel.updateInterval} s;
+                extended next hop yes;
+                check link yes;
+              };
+            ''}
           }
 
           ${optionalString cfg.ibgp.enable ''

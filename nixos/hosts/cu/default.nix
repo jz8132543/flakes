@@ -111,8 +111,13 @@
     virt-what
     xz # 解压 .tar.xz 格式的系统镜像
   ];
-  networking.firewall.allowedTCPPorts = lib.range 50561 50569;
-  networking.firewall.allowedUDPPorts = lib.range 50561 50569;
+  services.dn42 = {
+    ikePort = 50560;
+    natTPort = 50561; # 利用 cu 1:1 映射至公网的 5056x 端口
+  };
+
+  networking.firewall.allowedTCPPorts = lib.range 50560 50569;
+  networking.firewall.allowedUDPPorts = lib.range 50560 50569;
 
   environment.networkTune = {
     enable = true;

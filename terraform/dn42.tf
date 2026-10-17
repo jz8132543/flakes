@@ -1,17 +1,10 @@
-# ==============================================================================
-# DN42 Data — THE ONLY FILE THAT NEEDS HUMAN EDITING FOR DN42 CHANGES
-# ==============================================================================
-# This file is the single source of truth for the DN42 BGP / Mesh infrastructure.
-# Both Terraform (outputs) and NixOS (Bird, WireGuard, Babel) consume this data.
-#
-# After editing this file, run terraform-pipe. Its output extraction writes
-# lib/data/data.json, which is consumed directly by the DN42 NixOS modules.
-#
-# To add a new external peer:
-#   Add an entry under `dn42_external_peers` below.
-# To add a new node to the mesh:
-#   Add an entry under `dn42_mesh_nodes` below with role "border" or "internal".
-# ==============================================================================
+# =============================================================================
+# DN42 自动化拓扑与默认值中心 (Zero-Touch Configuration)
+# 说明：
+# 1. 所有在 hosts.tf (或 nixos/hosts) 中定义的节点均会自动启用 DN42 并套用默认值。
+# 2. 新增普通机器时，【无需修改本文件】，一切依靠默认值与自动 ID 推导完成。
+# 3. 仅当某台机器需要特殊覆盖默认参数时，才在下方的 dn42_overrides 中取消注释并配置。
+# =============================================================================
 
 variable "dn42_asn" {
   default = 4242420115
@@ -29,22 +22,7 @@ variable "dn42_v6_cidr" {
 }
 
 locals {
-  dn42_mesh_listen_port = 51821
-
-  # ── 1. Dynamic Public Peering Endpoint Targets (peer1, peer2, ... .dora.im) ──
-  # Define the list/set of border hosts for public peering.
-  # Terraform automatically computes `peer1 -> targets[0]`, `peer2 -> targets[1]`...
-  # and provisions Cloudflare CNAME records:
-  #   peer1.dora.im -> fra0.dora.im  (Pubkey: aPD/ej1dswyojJ+u41Pgsw1XSca7tMOwdhEpiv4Ntl0=)
-  #   peer2.dora.im -> hkg0.dora.im  (Pubkey: k4Um5FjJ1yS7aDDvs9v9jSpUePFL7YcATFr5q79y3yU=)
-  #   peer3.dora.im -> cu.dora.im    (Pubkey: PJ24FpCqARflKn0Cbhg/c9dG8TuViBcFrco5b2BLdw8=)
-  #
-  # When registering at external peering websites, fill in:
-  #   Endpoint:   peerX.dora.im:51820
-  #   Public Key: The static public key corresponding to peerX above
-  #
-  # When swapping a server, simply swap the hostname in `dn42_peer_targets` below.
-  # External peers need 0 updates to either domain or public key!
+  # ── 1. 公网对等别名 (peer1, peer2, peer3 ... .dora.im) ───────────────────────
   dn42_peer_targets = {
     peer1 = "fra0"
     peer2 = "hkg0"
@@ -59,69 +37,48 @@ locals {
     peer3 = "PJ24FpCqARflKn0Cbhg/c9dG8TuViBcFrco5b2BLdw8="
   }
 
-  # ── 2. Mesh Nodes (All hosts participating in DN42) ──────────────────────────
-  # Manual overrides for specific mesh nodes (roles, multi-endpoints, NAT, acceleration, etc.)
-  # Any node in local.hosts omitted here will be automatically populated with sensible defaults.
-  dn42_mesh_node_overrides = {
-    # ── Borders ──
-    fra0 = {
-      role = "border"
-      ibgp = true
+  # ── 2. 个别节点的特殊覆盖配置（默认留空，所有节点均走自动化默认值） ─────────
+  dn42_overrides = {
+    /* -------------------------------------------------------------------------
+    # [注释示例] 如需为某台新机器覆盖默认 DN42 配置，可参考以下格式取消注释：
+    "example0" = {
+      enable        = true          # 是否启用 DN42 (默认: true)
+      id            = 99            # 手动指定节点 ID (默认: 自动根据主机列表顺延分配)
+      ike_port      = 50560         # 自定义 IKE 端口 (默认: 500)
+      nat_t_port    = 50561         # 自定义 NAT-T / Mimic 端口 (默认: 4500)
+      is_controller = false         # 是否作为 SD-WAN 主控节点 (默认: fra0/tyo0/sjc0 为 true)
     }
-    hkg0 = {
-      role = "border"
-      ibgp = true
-    }
-    cu = {
-      role     = "border"
-      ibgp     = true
-      nat      = true
-      natTPort = 50568
-      endpoint = {
-        a = "cuv6.dora.im:50568"
-        b = "cu.dora.im:50568"
-        c = "cmv6.dora.im:50568"
-        d = "cm.dora.im:50568"
-      }
-    }
+    ------------------------------------------------------------------------- */
 
-    # ── Internals with special flags ──
-    arx8 = {
-      # acceleration = true
-    }
-    surface = {
-      # acceleration = true
+    # 针对 cu 节点的 1:1 端口映射特例（也可完全交由 nixos/hosts/cu/default.nix 处理）
+    "cu" = {
+      ike_port   = 50560
+      nat_t_port = 50561
     }
   }
 
-  # Automatically construct all mesh nodes from local.hosts with smart defaults:
-  # - If a node has public DNS records (records.a or records.aaaa), default to public server node:
-  #     role = "internal", endpoint = "${host}.dora.im:${port}", nat = false, ibgp = false
-  # - If a node has no public records (e.g. roaming/internal like surface, arx8), default to NAT client:
-  #     role = "internal", endpoint = null, nat = true, ibgp = false
-  # Any omitted node from local.hosts is automatically completed with these defaults.
-  # Explicit overrides from dn42_mesh_node_overrides take precedence.
-  dn42_mesh_nodes = {
-    for host_name, host_cfg in local.hosts : host_name => merge(
+  # 自动汇总所有主机名称（直接继承自 hosts.tf 中的主机集合，保持确定性排序）
+  all_host_names = sort(keys(local.hosts))
+
+  # 为所有节点自动生成最终的 DN42 参数（合并默认值与 dn42_overrides）
+  dn42_nodes = {
+    for idx, name in local.all_host_names : name => merge(
       {
-        role       = "internal"
-        ibgp       = false
-        listenPort = local.dn42_mesh_listen_port
-        endpoint = (
-          lookup(lookup(host_cfg, "records", {}), "a", null) != null ||
-          lookup(lookup(host_cfg, "records", {}), "aaaa", null) != null
-        ) ? "${host_name}.dora.im:${local.dn42_mesh_listen_port}" : null
-        nat = !(
-          lookup(lookup(host_cfg, "records", {}), "a", null) != null ||
-          lookup(lookup(host_cfg, "records", {}), "aaaa", null) != null
-        )
+        enable = true
+        # 若原 hosts.tf 中已有固定 host_indices/id 则沿用，否则按排序索引自动分配唯一 ID
+        id            = try(local.hosts[name].id, try(local.hosts[name].host_indices[0], idx + 1))
+        ike_port      = 500
+        nat_t_port    = 4500
+        is_controller = contains(["fra0", "tyo0", "sjc0"], name)
+        role          = contains(["fra0", "hkg0", "cu"], name) ? "border" : "internal"
+        ibgp          = contains(["fra0", "hkg0", "cu"], name)
       },
-      lookup(local.dn42_mesh_node_overrides, host_name, {})
+      lookup(local.dn42_overrides, name, {})
     )
+    if try(lookup(local.dn42_overrides, name, {}).enable, true)
   }
 
-  # ── 3. External eBGP Peers ───────────────────────────────────────────────────
-  # Define external peers here. Each peer is attached to a specific border host.
+  # ── 3. 外部 eBGP 互联 Peers ────────────────────────────────────────────────
   dn42_external_peers = {
     g-load-de2 = {
       host            = "fra0"
@@ -165,8 +122,7 @@ locals {
   }
 }
 
-# ── Cloudflare CNAME Records for Peering Endpoints ───────────────────────────
-# Automatically creates peer1.dora.im, peer2.dora.im, peer3.dora.im ...
+# ── Cloudflare CNAME 记录自动发布 ───────────────────────────────────────────
 resource "cloudflare_dns_record" "dn42_peer_cnames" {
   for_each = local.dn42_peer_aliases
 
@@ -188,8 +144,12 @@ output "dn42_v6_cidr" {
   sensitive = false
 }
 
-# Output the full dataset consumed by lib/data/template.yq. The generated
-# lib/data/data.json is an artifact, not a configuration file.
+# 自动导出供 NixOS (lib/data/data.json) 与 SD-WAN 种子表使用的结构化输出
+output "dn42_topology" {
+  description = "Auto-generated DN42 node metadata with zero manual boilerplate"
+  value       = local.dn42_nodes
+}
+
 output "dn42_data" {
   description = "Full DN42 dataset consumed by NixOS DN42 modules"
   sensitive   = false
@@ -197,10 +157,10 @@ output "dn42_data" {
     asn            = var.dn42_asn
     ipv4           = var.dn42_v4_cidr
     ipv6           = var.dn42_v6_cidr
-    mesh           = local.dn42_mesh_nodes
+    mesh           = local.dn42_nodes
+    topology       = local.dn42_nodes
     externalPeers  = local.dn42_external_peers
     peerAliases    = local.dn42_peer_aliases
     peerPublicKeys = local.dn42_peer_public_keys
   }
 }
-
