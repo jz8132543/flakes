@@ -34,6 +34,25 @@ let
     else
       str;
 
+  extractPort =
+    str:
+    if str == null || !lib.isString str then
+      null
+    else if lib.hasInfix "]:" str then
+      let
+        parts = lib.splitString "]:" str;
+        p = if lib.length parts >= 2 then lib.toInt (lib.last parts) else null;
+      in
+      if p != null && p > 0 && p < 65536 then p else null
+    else if !lib.hasInfix "[" str && (lib.length (lib.splitString ":" str)) == 2 then
+      let
+        parts = lib.splitString ":" str;
+        p = lib.toInt (lib.last parts);
+      in
+      if p > 0 && p < 65536 then p else null
+    else
+      null;
+
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
 
@@ -82,6 +101,26 @@ let
           { default = stripPort rawEp; }
         else
           { };
+
+      detectedPort =
+        let
+          rawEp =
+            if nodeMeshCfg ? endpoints && nodeMeshCfg.endpoints != { } then
+              nodeMeshCfg.endpoints
+            else
+              nodeMeshCfg.endpoint or null;
+          rawList =
+            if rawEp == null then
+              [ ]
+            else if lib.isString rawEp then
+              [ rawEp ]
+            else if lib.isAttrs rawEp then
+              lib.attrValues rawEp
+            else
+              [ ];
+          ports = lib.filter (p: p != null) (map extractPort rawList);
+        in
+        if ports != [ ] then lib.head ports else null;
     in
     {
       options = {
@@ -123,6 +162,25 @@ let
           type = types.port;
           default = nodeMeshCfg.listenPort or 51821;
           description = "WireGuard listen port";
+        };
+
+        ikePort = mkOption {
+          type = types.port;
+          default = nodeMeshCfg.ikePort or 500;
+          description = "strongSwan charon.port for IKE (default 500)";
+        };
+
+        natTPort = mkOption {
+          type = types.port;
+          default =
+            nodeMeshCfg.natTPort or (nodeMeshCfg.port or (
+              if detectedPort != null && detectedPort != (nodeMeshCfg.listenPort or 51821) then
+                detectedPort
+              else
+                4500
+            )
+            );
+          description = "strongSwan charon.port_nat_t (ESP-in-UDP NAT-T / Mimic Fake-TCP port)";
         };
 
         publicKey = mkOption {
@@ -221,6 +279,11 @@ let
           inherit peerName peerCfg;
           epName = ep.name;
           epAddr = stripPort ep.addr;
+          epPort =
+            let
+              p = extractPort ep.addr;
+            in
+            if p != null then p else peerCfg.natTPort;
           ifName = "dn42x-${lib.substring 0 5 peerName}-${ep.name}";
           xfrmId = 42000 + (if peerCfg.hostIndex != null then peerCfg.hostIndex * 10 else 990) + i;
           remoteAddrs = [
@@ -250,6 +313,7 @@ let
             inherit peerName peerCfg;
             epName = "default";
             epAddr = if sortedCandidateAddrs != [ ] then lib.head sortedCandidateAddrs else null;
+            epPort = peerCfg.natTPort;
             ifName = "dn42x-${lib.substring 0 9 peerName}";
             xfrmId = baseXfrmId;
             remoteAddrs = sortedCandidateAddrs ++ [ "%any" ];
@@ -301,21 +365,21 @@ let
 
     FILTER_ARGS=()
     if [ "${if cfg.ipsec.mimic.allTraffic then "1" else "0"}" = "1" ]; then
-      FILTER_ARGS+=(
-        "-f" "local=0.0.0.0:4500"
-        "-f" "local=[::]:4500"
-        "-f" "local=0.0.0.0:500"
-        "-f" "local=[::]:500"
-        "-f" "remote=0.0.0.0:4500"
-        "-f" "remote=[::]:4500"
-        "-f" "remote=0.0.0.0:500"
-        "-f" "remote=[::]:500"
-      )
+      ${lib.concatMapStringsSep "\n" (p: ''
+        FILTER_ARGS+=(
+          "-f" "local=0.0.0.0:${toString p}"
+          "-f" "local=[::]:${toString p}"
+          "-f" "remote=0.0.0.0:${toString p}"
+          "-f" "remote=[::]:${toString p}"
+        )
+      '') cfg.allClusterTunnelPorts}
     else
       ${lib.concatMapStringsSep "\n" (
         peerName:
         let
           peerCfg = otherNodes.${peerName} or null;
+          peerPort = if peerCfg != null then peerCfg.natTPort else 4500;
+          peerIke = if peerCfg != null then peerCfg.ikePort else 500;
           peerEndpoints =
             if peerCfg == null then
               [ "${peerName}.dora.im" ]
@@ -338,11 +402,17 @@ let
             ep = formatEp rawEp;
           in
           ''
-            FILTER_ARGS+=("-f" "remote=${ep}:4500")
-            FILTER_ARGS+=("-f" "remote=${ep}:500")
+            FILTER_ARGS+=("-f" "remote=${ep}:${toString peerPort}")
+            FILTER_ARGS+=("-f" "remote=${ep}:${toString peerIke}")
           ''
         ) peerEndpoints
       ) cfg.ipsec.mimic.peers}
+      FILTER_ARGS+=(
+        "-f" "local=0.0.0.0:${toString cfg.ipsec.natTPort}"
+        "-f" "local=[::]:${toString cfg.ipsec.natTPort}"
+        "-f" "local=0.0.0.0:${toString cfg.ipsec.ikePort}"
+        "-f" "local=[::]:${toString cfg.ipsec.ikePort}"
+      )
     fi
 
     ${lib.concatMapStringsSep "\n" (f: ''
@@ -412,16 +482,48 @@ in
         description = "Force UDP encapsulation for ESP (NAT-T on port 4500) to ensure 100% interception by Mimic into Fake-TCP";
       };
 
+      ikePort = mkOption {
+        type = types.port;
+        default = dn42Data.mesh.${hostName}.ikePort or 500;
+        description = "strongSwan charon.port for IKE (default 500)";
+      };
+
       port = mkOption {
         type = types.port;
-        default = 4500;
-        description = "Standard strongSwan NAT-T UDP port for cluster mesh";
+        default =
+          dn42Data.mesh.${hostName}.natTPort or (dn42Data.mesh.${hostName}.port or (
+            let
+              rawEp = dn42Data.mesh.${hostName}.endpoint or (dn42Data.mesh.${hostName}.endpoints or null);
+              rawList =
+                if rawEp == null then
+                  [ ]
+                else if lib.isString rawEp then
+                  [ rawEp ]
+                else if lib.isAttrs rawEp then
+                  lib.attrValues rawEp
+                else
+                  [ ];
+              ports = lib.filter (p: p != null) (map extractPort rawList);
+            in
+            if ports != [ ] && (lib.head ports) != (dn42Data.mesh.${hostName}.listenPort or 51821) then
+              lib.head ports
+            else
+              4500
+          )
+          );
+        description = "Standard strongSwan NAT-T UDP port for cluster mesh (ESP-in-UDP NAT-T / Mimic Fake-TCP)";
+      };
+
+      natTPort = mkOption {
+        type = types.port;
+        default = cfg.ipsec.port;
+        description = "Alias for cfg.ipsec.port (ESP-in-UDP NAT-T / Mimic Fake-TCP port)";
       };
 
       clientPort = mkOption {
         type = types.port;
-        default = 4500;
-        description = "NAT client NAT-T port (defaults symmetrically to 4500)";
+        default = cfg.ipsec.natTPort;
+        description = "NAT client NAT-T port (defaults to cfg.ipsec.natTPort)";
       };
 
       mimic = {
@@ -497,6 +599,36 @@ in
       };
     };
 
+    allClusterTunnelPorts = mkOption {
+      type = types.listOf types.port;
+      internal = true;
+      readOnly = true;
+      default = lib.unique (
+        [
+          500
+          4500
+          cfg.ipsec.ikePort
+          cfg.ipsec.natTPort
+        ]
+        ++ (lib.concatMap (n: [
+          n.ikePort
+          n.natTPort
+        ]) (lib.attrValues cfg.nodes))
+        ++ (lib.concatMap (
+          n:
+          let
+            rawEp = n.endpoints or { };
+            rawList = if lib.isAttrs rawEp then lib.attrValues rawEp else [ ];
+            rawEpSingle = if n.endpoint != null && lib.isString n.endpoint then [ n.endpoint ] else [ ];
+          in
+          lib.filter (p: p != null && p != (n.listenPort or 51821) && p != 51820) (
+            map extractPort (rawList ++ rawEpSingle)
+          )
+        ) (lib.attrValues cfg.nodes))
+      );
+      description = "All IKE and NAT-T ports used across the DN42 mesh cluster";
+    };
+
     listenPort = mkOption {
       type = types.port;
       default = dn42Data.mesh.${hostName}.listenPort or 51821;
@@ -520,6 +652,8 @@ in
         ipv6 = lib.head (lib.splitString "/" baseCfg.nodeIpv6);
         inherit (baseCfg) hostIndex;
         ibgp = dn42Data.mesh.${hostName}.ibgp or (baseCfg.role == "border");
+        ikePort = cfg.ipsec.ikePort;
+        natTPort = cfg.ipsec.natTPort;
       };
       description = "Local node mesh attributes";
     };
@@ -614,7 +748,13 @@ in
   config = mkIf (baseCfg.enable && cfg.enable) (mkMerge [
     # ── 1. 通用校验 ──────────────────────────────────────────────────
     {
-      assertions = lib.optionals (cfg.backend == "wireguard") (
+      assertions = [
+        {
+          assertion = cfg.backend != "ipsec" || cfg.ipsec.ikePort != cfg.ipsec.natTPort;
+          message = "services.dn42.mesh: ipsec.ikePort (${toString cfg.ipsec.ikePort}) and ipsec.natTPort (${toString cfg.ipsec.natTPort}) must be different ports to avoid strongSwan charon socket collision.";
+        }
+      ]
+      ++ lib.optionals (cfg.backend == "wireguard") (
         mapAttrsToList (peerName: peerCfg: {
           assertion = peerCfg.publicKey != null;
           message = "services.dn42.mesh: WireGuard public key for peer '${peerName}' is missing. Configure 'hosts.${peerName}.dn42_public_key' in lib/data/data.json.";
@@ -623,410 +763,415 @@ in
     }
 
     # ── 2. IPsec / IKEv2 + XFRM 后端实现 ──────────────────────────────
-    (mkIf (cfg.backend == "ipsec") {
-      boot.kernelModules = [
-        "xfrm_interface"
-        "esp4"
-        "esp6"
-      ];
+    (mkIf (cfg.backend == "ipsec") (
+      let
+        portsCsv = concatStringsSep ", " (map toString cfg.allClusterTunnelPorts);
+      in
+      {
+        boot.kernelModules = [
+          "xfrm_interface"
+          "esp4"
+          "esp6"
+        ];
 
-      environment.systemPackages = [
-        pkgs.strongswan
-      ];
+        environment.systemPackages = [
+          pkgs.strongswan
+        ];
 
-      # XFRM 虚拟网络网卡管理与 Mimic Fake-TCP 守护服务
-      systemd.services =
-        (listToAttrs (
-          map (
-            t:
-            nameValuePair t.ifName {
-              description = "DN42 XFRM interface for tunnel ${t.key}";
-              after = [ "network-pre.target" ];
-              wants = [ "network-pre.target" ];
-              before = [
-                "bird.service"
-                "strongswan-swanctl.service"
+        # XFRM 虚拟网络网卡管理与 Mimic Fake-TCP 守护服务
+        systemd.services =
+          (listToAttrs (
+            map (
+              t:
+              nameValuePair t.ifName {
+                description = "DN42 XFRM interface for tunnel ${t.key}";
+                after = [ "network-pre.target" ];
+                wants = [ "network-pre.target" ];
+                before = [
+                  "bird.service"
+                  "strongswan-swanctl.service"
+                ];
+                wantedBy = [ "multi-user.target" ];
+                path = [
+                  pkgs.iproute2
+                  pkgs.gawk
+                  pkgs.ethtool
+                  pkgs.coreutils
+                ];
+                serviceConfig = {
+                  Type = "oneshot";
+                  RemainAfterExit = true;
+                  ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+                    set -eu
+                    if ! ip link show ${t.ifName} >/dev/null 2>&1; then
+                      ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
+                    fi
+                    ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
+                    ${pkgs.ethtool}/bin/ethtool -K ${t.ifName} tx off gso off gro off 2>/dev/null || true
+                    ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
+                  '';
+                  ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
+                    ip link del ${t.ifName} 2>/dev/null || true
+                  '';
+                };
+              }
+            ) tunnelInstances
+          ))
+          // (optionalAttrs cfg.ipsec.mimic.enable {
+            "mimic@" = {
+              description = "Mimic eBPF UDP/TCP tunnel obfuscation on %I";
+              after = [
+                "network-online.target"
+                "sys-subsystem-net-devices-%i.device"
               ];
+              wants = [ "network-online.target" ];
+              bindsTo = [ "sys-subsystem-net-devices-%i.device" ];
+              path = with pkgs; [
+                iproute2
+                ethtool
+                kmod
+                coreutils
+                gawk
+              ];
+              serviceConfig = {
+                Type = "simple";
+                Restart = "always";
+                RestartSec = "2s";
+                ExecStart = "${mimicStartScript} %I";
+                ExecStopPost = "${pkgs.writeShellScript "mimic-stop-post" ''
+                  set -u
+                  IFACE="$1"
+                  ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
+                  ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
+                  IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
+                  if [ -n "$IFINDEX" ]; then
+                    rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
+                  fi
+                ''} %I";
+              };
+            };
+          })
+          // (optionalAttrs cfg.ipsec.mimic.enable {
+            "dn42-mimic-autobind" = {
+              description = "Automatically bind Mimic to current default physical interface";
+              after = [ "network-online.target" ];
+              wants = [ "network-online.target" ];
+              before = [ "strongswan-swanctl.service" ];
               wantedBy = [ "multi-user.target" ];
-              path = [
-                pkgs.iproute2
-                pkgs.gawk
-                pkgs.ethtool
-                pkgs.coreutils
+              path = with pkgs; [
+                iproute2
+                systemd
+                coreutils
+                gawk
               ];
               serviceConfig = {
                 Type = "oneshot";
                 RemainAfterExit = true;
-                ExecStart = pkgs.writeShellScript "${t.ifName}-up" ''
+                ExecStart = pkgs.writeShellScript "dn42-mimic-autobind" ''
                   set -eu
-                  if ! ip link show ${t.ifName} >/dev/null 2>&1; then
-                    ip link add ${t.ifName} type xfrm if_id ${toString t.xfrmId}
+                  # 获取系统默认路由出口网卡 (如 wlp1s0 / wlan0 / eth0)
+                  IFACE=$(ip -4 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
+                  if [ -z "$IFACE" ]; then
+                    IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
                   fi
-                  ip link set ${t.ifName} mtu ${toString cfg.ipsec.mtu} multicast on up
-                  ${pkgs.ethtool}/bin/ethtool -K ${t.ifName} tx off gso off gro off 2>/dev/null || true
-                  ip -6 addr replace ${baseCfg.linkLocalIpv6} dev ${t.ifName}
-                '';
-                ExecStop = pkgs.writeShellScript "${t.ifName}-down" ''
-                  ip link del ${t.ifName} 2>/dev/null || true
+                  if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
+                    echo "Auto-binding Mimic on default route interface: $IFACE"
+                    systemctl start "mimic@$IFACE.service" || true
+                  fi
                 '';
               };
-            }
-          ) tunnelInstances
-        ))
-        // (optionalAttrs cfg.ipsec.mimic.enable {
-          "mimic@" = {
-            description = "Mimic eBPF UDP-4500/500 to Fake-TCP on %I";
-            after = [
-              "network-online.target"
-              "sys-subsystem-net-devices-%i.device"
-            ];
-            wants = [ "network-online.target" ];
-            bindsTo = [ "sys-subsystem-net-devices-%i.device" ];
-            path = with pkgs; [
-              iproute2
-              ethtool
-              kmod
-              coreutils
-              gawk
-            ];
-            serviceConfig = {
-              Type = "simple";
-              Restart = "always";
-              RestartSec = "2s";
-              ExecStart = "${mimicStartScript} %I";
-              ExecStopPost = "${pkgs.writeShellScript "mimic-stop-post" ''
-                set -u
-                IFACE="$1"
-                ${pkgs.iproute2}/bin/tc qdisc del dev "$IFACE" clsact 2>/dev/null || true
-                ${pkgs.iproute2}/bin/ip link set dev "$IFACE" xdp off 2>/dev/null || true
-                IFINDEX=$(${pkgs.iproute2}/bin/ip -o link show dev "$IFACE" 2>/dev/null | ${pkgs.gawk}/bin/awk -F': ' '{print $1}' || true)
-                if [ -n "$IFINDEX" ]; then
-                  rm -f /run/mimic/*_"''${IFINDEX}".lock 2>/dev/null || true
-                fi
-              ''} %I";
+            };
+          })
+          // {
+            strongswan-swanctl = {
+              after = [
+                "network-online.target"
+              ]
+              ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
+              wants = [
+                "network-online.target"
+              ]
+              ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
             };
           };
-        })
-        // (optionalAttrs cfg.ipsec.mimic.enable {
-          "dn42-mimic-autobind" = {
-            description = "Automatically bind Mimic to current default physical interface";
-            after = [ "network-online.target" ];
-            wants = [ "network-online.target" ];
-            before = [ "strongswan-swanctl.service" ];
-            wantedBy = [ "multi-user.target" ];
-            path = with pkgs; [
-              iproute2
-              systemd
-              coreutils
-              gawk
-            ];
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ExecStart = pkgs.writeShellScript "dn42-mimic-autobind" ''
-                set -eu
-                # 获取系统默认路由出口网卡 (如 wlp1s0 / wlan0 / eth0)
-                IFACE=$(ip -4 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
-                if [ -z "$IFACE" ]; then
-                  IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
-                fi
-                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
-                  echo "Auto-binding Mimic on default route interface: $IFACE"
-                  systemctl start "mimic@$IFACE.service" || true
-                fi
-              '';
-            };
-          };
-        })
-        // {
-          strongswan-swanctl = {
-            after = [
-              "network-online.target"
-            ]
-            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
-            wants = [
-              "network-online.target"
-            ]
-            ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
-          };
-        };
 
-      # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
-      systemd.targets.multi-user.wants = mkIf (
-        cfg.ipsec.mimic.enable && !config.networking.networkmanager.enable
-      ) (map (iface: "mimic@${iface}.service") cfg.ipsec.mimic.interfaces);
+        # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
+        systemd.targets.multi-user.wants = mkIf (
+          cfg.ipsec.mimic.enable && !config.networking.networkmanager.enable
+        ) (map (iface: "mimic@${iface}.service") cfg.ipsec.mimic.interfaces);
 
-      # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
-      systemd.network.networks = mkIf config.systemd.network.enable (
-        listToAttrs (
-          map (
-            t:
-            nameValuePair "70-${t.ifName}" {
-              matchConfig.Name = t.ifName;
-              linkConfig.Unmanaged = true;
-            }
-          ) tunnelInstances
-        )
-      );
-
-      # Strongswan Swanctl 守护进程配置
-      services.strongswan-swanctl = {
-        enable = true;
-        # 优化说明：
-        # 1. threads: 采用 StrongSwan 官方默认线程池 (16 线程)，常驻物理内存仅 ~5.6MB，避免极限低线程导致 VICI IPC 死锁
-        # 2. install_routes = no: 禁用 strongswan 自带路由安装，由 Bird 2 全权接管选路
-        # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
-        strongswan.extraConfig = ''
-          charon {
-            port = 500
-            port_nat_t = ${toString cfg.ipsec.port}
-            fragment_size = 1240
-            keep_alive = 10s
-            # 放宽重传窗口与超时，容忍 Fake-TCP 遭遇运营商 RST 重握手，避免引发 BGP/Babel 路由震荡
-            retransmit_tries = 8
-            retransmit_timeout = 2.0
-            retransmit_base = 1.2
-            install_routes = no
-            install_virtual_ip = no
-            cisco_unity = no
-            send_vendor_id = no
-            # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
-            uniqueids = no
-            interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
-            # 借鉴 linyinfeng/dotfiles: 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
-            ignore_routing_tables = 2022
-            plugins {
-              socket-default {
-                # 设置 socket fwmark 为 0x1，使 IKE 与 NAT-T 流量原生匹配策略路由 lookup main，免于被代理 TUN 劫持
-                fwmark = 0x1
-              }
-            }
-          }
-        '';
-
-        swanctl = {
-          connections = listToAttrs (
+        # 若系统启用了 systemd-networkd，设置该接口为 Unmanaged 防止被 networkd 重置
+        systemd.network.networks = mkIf config.systemd.network.enable (
+          listToAttrs (
             map (
               t:
-              let
-                isV6 =
-                  t.epAddr != null
-                  && (lib.hasInfix ":" t.epAddr || lib.hasInfix "v6" t.epAddr || lib.hasInfix "v6" (t.epName or ""));
-                # 当对端节点处于 NAT 状态时，服务端在 IPv4 上必须作为被动接收方 (passive responder)
-                # 绝不能主动向其发起握手重试，避免死锁及动态 NAT 端口映射混乱
-                isPassiveResponder = (t.peerCfg.nat or false) && !isV6;
-              in
-              nameValuePair "mesh-peer-${t.key}" {
-                version = 2;
-                mobike = true;
-                dpd_delay = "30s";
-                dpd_timeout = "120s";
-                keyingtries =
-                  if isPassiveResponder then
-                    1
-                  else if t.epAddr != null then
-                    0
-                  else
-                    1;
-
-                local_port = cfg.ipsec.port;
-                remote_port = cfg.ipsec.port;
-                remote_addrs = if isPassiveResponder then [ "%any" ] else t.remoteAddrs;
-                encap = true; # 强制封装为 UDP 4500，由 Mimic 转换为 Fake-TCP 4500，防止裸 ESP 泄露被丢弃
-
-                # 采用现代高效 AEAD 加密套件与 x25519 曲线：
-                # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
-                proposals = [
-                  "aes256gcm128-sha256-x25519"
-                  "chacha20poly1305-sha256-x25519"
-                  "aes128gcm128-sha256-x25519"
-                ];
-
-                local.main = {
-                  auth = "psk";
-                  id = "${hostName}.dn42";
-                };
-
-                remote.main = {
-                  auth = "psk";
-                  id = "${t.peerName}.dn42";
-                };
-
-                children.mesh = {
-                  esp_proposals = [
-                    "aes256gcm128-x25519"
-                    "chacha20poly1305-x25519"
-                    "aes128gcm128-x25519"
-                  ];
-                  local_ts = [
-                    "0.0.0.0/0"
-                    "::/0"
-                  ];
-                  remote_ts = [
-                    "0.0.0.0/0"
-                    "::/0"
-                  ];
-                  if_id_in = toString t.xfrmId;
-                  if_id_out = toString t.xfrmId;
-                  # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
-                  set_mark_out = "0x1";
-                  # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
-                  hw_offload = cfg.ipsec.hwOffload;
-                  mode = "tunnel";
-                  start_action =
-                    if isPassiveResponder then
-                      "none"
-                    else if t.epAddr != null then
-                      "start"
-                    else
-                      "none";
-                  dpd_action =
-                    if isPassiveResponder then
-                      "clear"
-                    else if t.epAddr != null then
-                      "restart"
-                    else
-                      "clear";
-                };
+              nameValuePair "70-${t.ifName}" {
+                matchConfig.Name = t.ifName;
+                linkConfig.Unmanaged = true;
               }
             ) tunnelInstances
-          );
+          )
+        );
 
-          secrets.ike = mkIf (cfg.ipsec.pskFile == null) {
-            mesh = {
-              secret = cfg.ipsec.psk;
+        # Strongswan Swanctl 守护进程配置
+        services.strongswan-swanctl = {
+          enable = true;
+          # 优化说明：
+          # 1. threads: 采用 StrongSwan 官方默认线程池 (16 线程)，常驻物理内存仅 ~5.6MB，避免极限低线程导致 VICI IPC 死锁
+          # 2. install_routes = no: 禁用 strongswan 自带路由安装，由 Bird 2 全权接管选路
+          # 3. install_virtual_ip = no: 禁用虚拟 IP 分配，无状态消耗
+          strongswan.extraConfig = ''
+            charon {
+              port = ${toString cfg.ipsec.ikePort}
+              port_nat_t = ${toString cfg.ipsec.natTPort}
+              fragment_size = 1240
+              keep_alive = 10s
+              # 放宽重传窗口与超时，容忍 Fake-TCP 遭遇运营商 RST 重握手，避免引发 BGP/Babel 路由震荡
+              retransmit_tries = 8
+              retransmit_timeout = 2.0
+              retransmit_base = 1.2
+              install_routes = no
+              install_virtual_ip = no
+              cisco_unity = no
+              send_vendor_id = no
+              # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
+              uniqueids = no
+              interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
+              # 借鉴 linyinfeng/dotfiles: 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
+              ignore_routing_tables = 2022
+              plugins {
+                socket-default {
+                  # 设置 socket fwmark 为 0x1，使 IKE 与 NAT-T 流量原生匹配策略路由 lookup main，免于被代理 TUN 劫持
+                  fwmark = 0x1
+                }
+              }
+            }
+          '';
+
+          swanctl = {
+            connections = listToAttrs (
+              map (
+                t:
+                let
+                  isV6 =
+                    t.epAddr != null
+                    && (lib.hasInfix ":" t.epAddr || lib.hasInfix "v6" t.epAddr || lib.hasInfix "v6" (t.epName or ""));
+                  # 仅当：
+                  # 1. 本机自身具备公网端点 (作为服务端)；
+                  # 2. 对端节点标记为 nat = true 且使用默认 4500 端口 (即对端纯出站 NAT 无法接收 IPv4 入站)
+                  # 时，本机才作为 passive responder，等待对端主动建连。
+                  # 移动客户端 (如 surface) 自身无公网 IP，绝不能作为 passive responder，必须主动发起连接！
+                  # 若对端已配置非 4500 端口映射 (如 cu:50568)，两端均可互相主动发起连接！
+                  isPassiveResponder =
+                    (t.peerCfg.nat or false)
+                    && !isV6
+                    && (cfg.thisNode.endpoint != null || cfg.thisNode.endpoints != { })
+                    && (t.epAddr == null || t.epPort == 4500);
+                in
+                nameValuePair "mesh-peer-${t.key}" {
+                  version = 2;
+                  mobike = true;
+                  dpd_delay = "30s";
+                  dpd_timeout = "120s";
+                  keyingtries =
+                    if isPassiveResponder then
+                      1
+                    else if t.epAddr != null then
+                      0
+                    else
+                      1;
+
+                  local_port = cfg.ipsec.natTPort;
+                  remote_port = t.epPort;
+                  remote_addrs = if isPassiveResponder then [ "%any" ] else t.remoteAddrs;
+                  encap = true; # 强制封装为 UDP NAT-T，由 Mimic 转换为 Fake-TCP，防止裸 ESP 泄露被丢弃
+
+                  # 采用现代高效 AEAD 加密套件与 x25519 曲线：
+                  # 在 AMD/Intel x86_64 具备 AES-NI / AVX-512 / AVX2 指令集下实现近乎零损耗的硬件流水线加速
+                  proposals = [
+                    "aes256gcm128-sha256-x25519"
+                    "chacha20poly1305-sha256-x25519"
+                    "aes128gcm128-sha256-x25519"
+                  ];
+
+                  local.main = {
+                    auth = "psk";
+                    id = "${hostName}.dn42";
+                  };
+
+                  remote.main = {
+                    auth = "psk";
+                    id = "${t.peerName}.dn42";
+                  };
+
+                  children.mesh = {
+                    esp_proposals = [
+                      "aes256gcm128-x25519"
+                      "chacha20poly1305-x25519"
+                      "aes128gcm128-x25519"
+                    ];
+                    local_ts = [
+                      "0.0.0.0/0"
+                      "::/0"
+                    ];
+                    remote_ts = [
+                      "0.0.0.0/0"
+                      "::/0"
+                    ];
+                    if_id_in = toString t.xfrmId;
+                    if_id_out = toString t.xfrmId;
+                    # 内核 XFRM 出向 SA 原生标记：使加密后的外层 ESP/UDP 报文直接打上 mark 0x1，走 main 表默认网关，彻底避免 netfilter mangle 篡改引发的内核重新选路丢包
+                    set_mark_out = "0x1";
+                    # hw_offload = auto: 若网卡支持 IPsec Offload 则硬件卸载，否则无缝使用 CPU AES-NI 加速
+                    hw_offload = cfg.ipsec.hwOffload;
+                    mode = "tunnel";
+                    start_action =
+                      if isPassiveResponder then
+                        "none"
+                      else if t.epAddr != null then
+                        "start"
+                      else
+                        "none";
+                    dpd_action =
+                      if isPassiveResponder then
+                        "clear"
+                      else if t.epAddr != null then
+                        "restart"
+                      else
+                        "clear";
+                  };
+                }
+              ) tunnelInstances
+            );
+
+            secrets.ike = mkIf (cfg.ipsec.pskFile == null) {
+              mesh = {
+                secret = cfg.ipsec.psk;
+              };
             };
           };
+
+          includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
         };
 
-        includes = optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
-      };
-
-      # MSS 钳制：防止内层经过 table 200 加速或 DN42 路由的 TCP 连接因外层多重封装 (XFRM + UDP) 超出 MTU 而卡顿白屏
-      networking.nftables.tables.dn42-mss-clamp = mkIf config.networking.nftables.enable {
-        family = "inet";
-        content = ''
-          chain forward {
-            type filter hook forward priority mangle; policy accept;
-            oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
-          }
-          chain postrouting {
-            type filter hook postrouting priority mangle; policy accept;
-            oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
-          }
-        '';
-      };
-
-      # 消除冲突 1：在 nftables raw 阶段 (priority -300) 彻底绕过 nf_conntrack
-      # 无论底层是原生 UDP 还是 Mimic 伪装后的 Fake-TCP，一律跳过连接跟踪，杜绝 INVALID 丢包
-      networking.nftables.tables."dn42-mimic-raw" = mkIf config.networking.nftables.enable {
-        family = "inet";
-        content = ''
-          chain raw_prerouting {
-            type filter hook prerouting priority raw; policy accept;
-            udp sport { 500, 4500 } notrack
-            udp dport { 500, 4500 } notrack
-            tcp sport { 500, 4500 } notrack
-            tcp dport { 500, 4500 } notrack
-          }
-
-          chain raw_output {
-            type filter hook output priority raw; policy accept;
-            udp sport { 500, 4500 } notrack
-            udp dport { 500, 4500 } notrack
-            tcp sport { 500, 4500 } notrack
-            tcp dport { 500, 4500 } notrack
-          }
-        '';
-      };
-
-      # 客户端出站源地址校正 (SNAT):
-      # 当本机应用（如 Mihomo 代理进程发起 DIRECT 出站）在初次路由选路时选取了物理网卡私网 IP (如 192.168.x.x)，
-      # 随后经策略路由 re-route 转发至 dn42x+ 接口出海时，强制将源地址伪装 (SNAT) 为本机的 DN42 Loopback 单播 IP (baseCfg.routerId)。
-      # 确保所有经 DN42 出口加速的流量均具备合法的本机 DN42 IP，防止因私网 IP 或错误网段被出口机 drop。
-      networking.nftables.tables.dn42-client-snat =
-        mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint == null)
-          {
-            family = "inet";
-            content = ''
-              chain postrouting {
-                type nat hook postrouting priority srcnat; policy accept;
-                oifname "dn42x*" ip saddr != 172.20.0.0/14 snat to ${baseCfg.routerId}
-              }
-            '';
-          };
-
-      # 防火墙放行：
-      # - UDP 500 / 4500: StrongSwan IKEv2 与 NAT-T 原生端口
-      # - TCP 500 / 4500: Mimic Fake-TCP 端口
-      # - UDP 6696: Babel IGP 动态路由
-      networking.firewall = {
-        allowedUDPPorts = [
-          500
-          4500
-          6696
-        ];
-        allowedTCPPorts = [
-          500
-          4500
-        ];
-        extraReversePathFilterRules = ''
-          udp sport { 500, 4500 } accept
-          udp dport { 500, 4500 } accept
-          tcp sport { 500, 4500 } accept
-          tcp dport { 500, 4500 } accept
-        '';
-        extraCommands = mkIf (!config.networking.nftables.enable) ''
-          ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
-          ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
-          iptables -t raw -A PREROUTING -p udp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
-          iptables -t raw -A PREROUTING -p tcp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
-          iptables -t raw -A OUTPUT -p udp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
-          iptables -t raw -A OUTPUT -p tcp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
-          ip6tables -t raw -A PREROUTING -p udp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
-          ip6tables -t raw -A PREROUTING -p tcp -m multiport --dports 500,4500 -j NOTRACK 2>/dev/null || true
-          ip6tables -t raw -A OUTPUT -p udp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
-          ip6tables -t raw -A OUTPUT -p tcp -m multiport --sports 500,4500 -j NOTRACK 2>/dev/null || true
-          iptables -t mangle -A FORWARD -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-          iptables -t mangle -A POSTROUTING -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-          iptables -t mangle -A FORWARD -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-          iptables -t mangle -A POSTROUTING -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-        '';
-        extraInputRules = mkIf config.networking.nftables.enable ''
-          meta l4proto esp counter accept
-          meta l4proto ah  counter accept
-          udp dport { 500, 4500, 6696 } counter accept
-          tcp dport { 500, 4500 } counter accept
-        '';
-      };
-
-      # 针对启用了 NetworkManager 的移动节点 (arx8, surface)，切换 Wi-Fi / 有线 / 热点时自动热挂载 Mimic
-      networking.networkmanager.dispatcherScripts =
-        lib.mkIf (cfg.ipsec.mimic.enable && config.networking.networkmanager.enable)
-          [
-            {
-              type = "basic";
-              source = pkgs.writeText "90-mimic-roaming" ''
-                IFACE="$1"
-                ACTION="$2"
-                case "$IFACE" in
-                  lo|dn42*|xfrm*|tailscale*|mihomo*|Meta*|meta*|tun*|veth*|docker*|virbr*|br-*|podman*)
-                    exit 0
-                    ;;
-                esac
-                case "$ACTION" in
-                  up|dhcp4-change|dhcp6-change)
-                    systemctl restart "mimic@$IFACE.service" || true
-                    systemctl restart strongswan-swanctl.service || true
-                    ;;
-                  down)
-                    systemctl stop "mimic@$IFACE.service" || true
-                    ;;
-                esac
-              '';
+        # MSS 钳制：防止内层经过 table 200 加速或 DN42 路由的 TCP 连接因外层多重封装 (XFRM + UDP) 超出 MTU 而卡顿白屏
+        networking.nftables.tables.dn42-mss-clamp = mkIf config.networking.nftables.enable {
+          family = "inet";
+          content = ''
+            chain forward {
+              type filter hook forward priority mangle; policy accept;
+              oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
             }
-          ];
-    })
+            chain postrouting {
+              type filter hook postrouting priority mangle; policy accept;
+              oifname { "dn42x*", "xfrm*" } tcp flags syn / syn,rst tcp option maxseg size set rt mtu
+            }
+          '';
+        };
+
+        # 消除冲突 1：在 nftables raw 阶段 (priority -300) 彻底绕过 nf_conntrack
+        # 无论底层是原生 UDP 还是 Mimic 伪装后的 Fake-TCP，一律跳过连接跟踪，杜绝 INVALID 丢包
+        networking.nftables.tables."dn42-mimic-raw" = mkIf config.networking.nftables.enable {
+          family = "inet";
+          content = ''
+            chain raw_prerouting {
+              type filter hook prerouting priority raw; policy accept;
+              udp sport { ${portsCsv} } notrack
+              udp dport { ${portsCsv} } notrack
+              tcp sport { ${portsCsv} } notrack
+              tcp dport { ${portsCsv} } notrack
+            }
+
+            chain raw_output {
+              type filter hook output priority raw; policy accept;
+              udp sport { ${portsCsv} } notrack
+              udp dport { ${portsCsv} } notrack
+              tcp sport { ${portsCsv} } notrack
+              tcp dport { ${portsCsv} } notrack
+            }
+          '';
+        };
+
+        # 客户端出站源地址校正 (SNAT):
+        # 当本机应用（如 Mihomo 代理进程发起 DIRECT 出站）在初次路由选路时选取了物理网卡私网 IP (如 192.168.x.x)，
+        # 随后经策略路由 re-route 转发至 dn42x+ 接口出海时，强制将源地址伪装 (SNAT) 为本机的 DN42 Loopback 单播 IP (baseCfg.routerId)。
+        # 确保所有经 DN42 出口加速的流量均具备合法的本机 DN42 IP，防止因私网 IP 或错误网段被出口机 drop。
+        networking.nftables.tables.dn42-client-snat =
+          mkIf (config.networking.nftables.enable && cfg.thisNode.endpoint == null)
+            {
+              family = "inet";
+              content = ''
+                chain postrouting {
+                  type nat hook postrouting priority srcnat; policy accept;
+                  oifname "dn42x*" ip saddr != 172.20.0.0/14 snat to ${baseCfg.routerId}
+                }
+              '';
+            };
+
+        # 防火墙放行：
+        # - UDP / TCP 集群所有隧道端口 (全动态集合 allClusterTunnelPorts)
+        # - UDP 6696: Babel IGP 动态路由
+        networking.firewall = {
+          allowedUDPPorts = cfg.allClusterTunnelPorts ++ [ 6696 ];
+          allowedTCPPorts = cfg.allClusterTunnelPorts;
+          extraReversePathFilterRules = ''
+            udp sport { ${portsCsv} } accept
+            udp dport { ${portsCsv} } accept
+            tcp sport { ${portsCsv} } accept
+            tcp dport { ${portsCsv} } accept
+          '';
+          extraCommands = mkIf (!config.networking.nftables.enable) ''
+            ip46tables --append nixos-fw --protocol 50 --jump nixos-fw-accept 2>/dev/null || true
+            ip46tables --append nixos-fw --protocol 51 --jump nixos-fw-accept 2>/dev/null || true
+            iptables -t raw -A PREROUTING -p udp -m multiport --dports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            iptables -t raw -A PREROUTING -p tcp -m multiport --dports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            iptables -t raw -A OUTPUT -p udp -m multiport --sports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            iptables -t raw -A OUTPUT -p tcp -m multiport --sports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            ip6tables -t raw -A PREROUTING -p udp -m multiport --dports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            ip6tables -t raw -A PREROUTING -p tcp -m multiport --dports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            ip6tables -t raw -A OUTPUT -p udp -m multiport --sports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            ip6tables -t raw -A OUTPUT -p tcp -m multiport --sports ${portsCsv} -j NOTRACK 2>/dev/null || true
+            iptables -t mangle -A FORWARD -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+            iptables -t mangle -A POSTROUTING -o dn42x+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+            iptables -t mangle -A FORWARD -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+            iptables -t mangle -A POSTROUTING -o xfrm+ -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+          '';
+          extraInputRules = mkIf config.networking.nftables.enable ''
+            meta l4proto esp counter accept
+            meta l4proto ah  counter accept
+            udp dport { ${portsCsv}, 6696 } counter accept
+            tcp dport { ${portsCsv} } counter accept
+          '';
+        };
+
+        # 针对启用了 NetworkManager 的移动节点 (arx8, surface)，切换 Wi-Fi / 有线 / 热点时自动热挂载 Mimic
+        networking.networkmanager.dispatcherScripts =
+          lib.mkIf (cfg.ipsec.mimic.enable && config.networking.networkmanager.enable)
+            [
+              {
+                type = "basic";
+                source = pkgs.writeText "90-mimic-roaming" ''
+                  IFACE="$1"
+                  ACTION="$2"
+                  case "$IFACE" in
+                    lo|dn42*|xfrm*|tailscale*|mihomo*|Meta*|meta*|tun*|veth*|docker*|virbr*|br-*|podman*)
+                      exit 0
+                      ;;
+                  esac
+                  case "$ACTION" in
+                    up|dhcp4-change|dhcp6-change)
+                      systemctl restart "mimic@$IFACE.service" || true
+                      systemctl restart strongswan-swanctl.service || true
+                      ;;
+                    down)
+                      systemctl stop "mimic@$IFACE.service" || true
+                      ;;
+                  esac
+                '';
+              }
+            ];
+      }
+    ))
 
     # ── 3. WireGuard 后端实现（保留备选支持） ─────────────────────────
     (mkIf (cfg.backend == "wireguard") {

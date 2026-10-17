@@ -73,9 +73,10 @@ locals {
       ibgp = true
     }
     cu = {
-      role = "border"
-      ibgp = true
-      nat  = true
+      role     = "border"
+      ibgp     = true
+      nat      = true
+      natTPort = 50568
       endpoint = {
         cuv6 = "cuv6.dora.im:50568"
         cmv6 = "cmv6.dora.im:50568"

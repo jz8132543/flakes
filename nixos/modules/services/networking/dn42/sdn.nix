@@ -576,7 +576,16 @@ in
           # 防止 Mimic 发出的原生 TCP 握手/保活包穿透 priority 81 掉入 table 200 (SDN 加速) 或 table 2022 (Mihomo TUN) 导致握手死锁！
           ip rule add ipproto esp lookup main priority 80
           for proto in udp tcp; do
-            for port in 500 4500; do
+            for port in ${
+              lib.concatStringsSep " " (
+                map toString (
+                  config.services.dn42.mesh.allClusterTunnelPorts or [
+                    500
+                    4500
+                  ]
+                )
+              )
+            }; do
               ip rule add ipproto $proto sport $port lookup main priority 81
               ip rule add ipproto $proto dport $port lookup main priority 81
             done
@@ -629,7 +638,16 @@ in
 
           ip -6 rule add ipproto esp lookup main priority 80
           for proto in udp tcp; do
-            for port in 500 4500; do
+            for port in ${
+              lib.concatStringsSep " " (
+                map toString (
+                  config.services.dn42.mesh.allClusterTunnelPorts or [
+                    500
+                    4500
+                  ]
+                )
+              )
+            }; do
               ip -6 rule add ipproto $proto sport $port lookup main priority 81
               ip -6 rule add ipproto $proto dport $port lookup main priority 81
             done

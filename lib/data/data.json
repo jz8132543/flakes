@@ -451,6 +451,7 @@
         "ibgp": true,
         "listenPort": 51821,
         "nat": true,
+        "natTPort": 50568,
         "role": "border"
       },
       "fra0": {

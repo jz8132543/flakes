@@ -312,10 +312,15 @@ let
       "PROCESS-NAME,charon,DIRECT"
       "PROCESS-NAME,charon-systemd,DIRECT"
       "PROCESS-NAME,bird,DIRECT"
-
-      # 放行 IPsec 协商 (500/4500) 与 Babel IGP (6696) 端口
-      "DST-PORT,500,DIRECT"
-      "DST-PORT,4500,DIRECT"
+    ]
+    # 放行 IPsec 协商与 Babel IGP (6696) 端口
+    ++ (map (p: "DST-PORT,${toString p},DIRECT") (
+      config.services.dn42.mesh.allClusterTunnelPorts or [
+        500
+        4500
+      ]
+    ))
+    ++ [
       "DST-PORT,6696,DIRECT"
 
       # 放行 SSH 端口直连
