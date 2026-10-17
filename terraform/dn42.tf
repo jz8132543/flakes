@@ -86,10 +86,10 @@ locals {
 
     # ── Internals with special flags ──
     arx8 = {
-      acceleration = true
+      # acceleration = true
     }
     surface = {
-      acceleration = true
+      # acceleration = true
     }
   }
 
