@@ -2,7 +2,7 @@ diff --git a/bpf/egress.c b/bpf/egress.c
 index 3dd7e4e..9db7f97 100644
 --- a/bpf/egress.c
 +++ b/bpf/egress.c
-@@ -236,17 +236,35 @@ int egress_handler(struct __sk_buff* skb) {
+@@ -236,17 +236,44 @@ int egress_handler(struct __sk_buff* skb) {
    redecl_shot(struct tcphdr, tcp, ip_end, skb);
    log_tcp(false, &conn_key, tcp, payload_len);
  
@@ -23,6 +23,15 @@ index 3dd7e4e..9db7f97 100644
 +      redecl_shot(struct iphdr, ipv4, l2_end, skb);
 +      ph_csum += u32_fold(ntohl(ipv4->saddr));
 +      ph_csum += u32_fold(ntohl(ipv4->daddr));
++      ph_csum += IPPROTO_TCP;
++      ph_csum += ntohs(new_len);
++    } else if (ipv6) {
++      redecl_shot(struct ipv6hdr, ipv6, l2_end, skb);
++      #pragma unroll
++      for (int i = 0; i < 8; i++) {
++        ph_csum += ntohs(ipv6->saddr.in6_u.u6_addr16[i]);
++        ph_csum += ntohs(ipv6->daddr.in6_u.u6_addr16[i]);
++      }
 +      ph_csum += IPPROTO_TCP;
 +      ph_csum += ntohs(new_len);
 +    }

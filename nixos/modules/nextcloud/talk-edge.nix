@@ -213,15 +213,15 @@ in
     systemd.services.janus-gateway = {
       description = "Janus WebRTC Gateway (SFU Media Server)";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ] ++ lib.optional cfg.enableCoturn "coturn.service";
+      wants = [ "network-online.target" ] ++ lib.optional cfg.enableCoturn "coturn.service";
       serviceConfig = {
         User = "janus";
         Group = "janus";
         RuntimeDirectory = "janus janus/etc janus/transports";
         RuntimeDirectoryMode = "0755";
         Restart = "always";
-        RestartSec = "3s";
+        RestartSec = "10s";
         LimitNOFILE = 65536;
         ExecStartPre = pkgs.writeShellScript "janus-setup-config" ''
           RESOLVED_IPV4=""
@@ -439,6 +439,9 @@ in
       requires = [ "janus-gateway.service" ];
       serviceConfig = {
         SupplementaryGroups = [ "acme" ];
+        TimeoutStartSec = "300s";
+        Restart = "on-failure";
+        RestartSec = "10s";
       };
       preStart = lib.mkMerge [
         (lib.mkBefore ''
@@ -511,8 +514,20 @@ in
     };
 
     systemd.services.coturn = lib.mkIf cfg.enableCoturn {
-      serviceConfig.StateDirectory = "coturn";
-      serviceConfig.Group = lib.mkForce "acme";
+      after = [
+        "network-online.target"
+        "sops-nix.service"
+      ];
+      wants = [
+        "network-online.target"
+        "sops-nix.service"
+      ];
+      serviceConfig = {
+        StateDirectory = "coturn";
+        Group = lib.mkForce "acme";
+        Restart = lib.mkForce "on-failure";
+        RestartSec = lib.mkForce "5s";
+      };
     };
 
     # ── 4. Nginx 边缘反向代理（复用 https://{fqdn}）──────────────
