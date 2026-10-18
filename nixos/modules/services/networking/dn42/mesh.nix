@@ -682,6 +682,7 @@ let
 
         for peer in $(jq -r 'keys[]' "$CACHE_FILE"); do
           PEER_IP4=$(jq -r --arg p "$peer" '.[$p].dn42_ip4 // empty' "$CACHE_FILE")
+          PEER_IP6=$(jq -r --arg p "$peer" '.[$p].dn42_ip6 // empty' "$CACHE_FILE")
           [ -z "$PEER_IP4" ] && continue
           echo "$PEER_IP4 ''${peer}.dn42" >> "$HOSTS_TMP"
 
@@ -713,7 +714,7 @@ let
               start_action="start"
               dpd_action="restart"
 
-              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action;$PEER_IP4;$peer")
+              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
               ACTIVE_IFACES+=("$iface")
               ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
               k_idx=$(( k_idx + 1 ))
@@ -747,7 +748,7 @@ let
               conn_name="dn42-''${peer}-''${my_name}"
               local_addrs="''${my_host}"
 
-              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$peer")
+              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
               ACTIVE_IFACES+=("$iface")
               ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
               k_idx=$(( k_idx + 1 ))
@@ -773,7 +774,7 @@ let
               dpd_action="clear"
             fi
 
-            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$peer")
+            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
             ACTIVE_IFACES+=("$iface")
             ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
           fi
@@ -799,7 +800,7 @@ let
 
         # 3c. 实例化所有隧道：XFRM 设备与 swanctl 配置
         for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
-          IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer <<< "$inst"
+          IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer_ip6 t_peer <<< "$inst"
 
           if ! ip link show "$t_iface" >/dev/null 2>&1; then
             # 彻底杜绝内核 EEXIST：若有残留旧网卡占用了该 if_id，先行清除
@@ -815,10 +816,10 @@ let
           ip link set "$t_iface" mtu 1360 multicast on up 2>/dev/null || true
           ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
 
-          ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
-          ip route del "''${t_peer_ip4}" dev "$t_iface" 2>/dev/null || true
+          ip -4 addr replace "''${SELF_IP4}/32" peer "''${t_peer_ip4}/32" dev "$t_iface" 2>/dev/null || ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
           ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
           [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+          [ -n "''${t_peer_ip6}" ] && ip -6 route replace "''${t_peer_ip6}/128" dev "$t_iface" 2>/dev/null || true
 
           peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
 
@@ -849,8 +850,8 @@ let
         children {
           ''${t_conn} {
             esp_proposals = aes256gcm128-x25519, chacha20poly1305-x25519, aes128gcm128-x25519
-            local_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10
-            remote_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10
+            local_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10, ff00::/8, 224.0.0.0/4
+            remote_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10, ff00::/8, 224.0.0.0/4
             if_id_in = ''${t_if_id}
             if_id_out = ''${t_if_id}
             set_mark_out = 0x1
