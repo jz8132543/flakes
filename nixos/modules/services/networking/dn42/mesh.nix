@@ -456,6 +456,17 @@ let
   # ── SD-WAN Controller 轻量级 HTTP 同步处理脚本 ──
   sdwanControllerScript = pkgs.writeShellScript "dn42-sdwan-controller-handler" ''
     set -euo pipefail
+    export PATH="${
+      lib.makeBinPath (
+        with pkgs;
+        [
+          bash
+          coreutils
+          jq
+          util-linux
+        ]
+      )
+    }"
     REGISTRY_DIR="/var/lib/dn42-sdwan"
     REGISTRY_FILE="$REGISTRY_DIR/registry.json"
     mkdir -p "$REGISTRY_DIR"
@@ -463,7 +474,7 @@ let
     if [ ! -s "$REGISTRY_FILE" ]; then
       cp "${bootstrapPeersFile}" "$REGISTRY_FILE"
     else
-      ${pkgs.jq}/bin/jq -s '
+      jq -s '
         (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
         reduce ($bootstrap | to_entries[]) as $item ($cache;
           if (.[$item.key] == null) or ((.[$item.key].updated_at // 0) == 0)
@@ -496,10 +507,10 @@ let
 
     if [ "$method" = "POST" ] && [ "$content_length" -gt 0 ]; then
       body=$(head -c "$content_length")
-      if echo "$body" | ${pkgs.jq}/bin/jq -e 'type == "object"' >/dev/null 2>&1; then
+      if echo "$body" | jq -e 'type == "object"' >/dev/null 2>&1; then
         (
           flock -x 200
-          ${pkgs.jq}/bin/jq -s '
+          jq -s '
             (.[0] // {}) as $orig | (.[1] // {}) as $new |
             reduce ($new | to_entries[]) as $item ($orig;
               if (.[$item.key] == null) or (($item.value.updated_at // 0) >= (.[$item.key].updated_at // 0))
@@ -877,6 +888,13 @@ let
         if [ "$CONF_CHANGED" -eq 1 ]; then
           swanctl --load-all --noprompt 2>/dev/null || true
           birdc configure 2>/dev/null || true
+          # 针对主动发起的隧道，重新触发一次握手确保新 Child SA TS 立即生效
+          for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
+            IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
+            if [ "$t_saction" = "start" ]; then
+              swanctl --initiate --child "$t_conn" 2>/dev/null || true
+            fi
+          done
         fi
   '';
 
@@ -1225,9 +1243,10 @@ in
               "bird.service"
             ];
             wantedBy = [ "multi-user.target" ];
+            restartTriggers = [ sdwanAgentScript ];
             serviceConfig = {
               Type = "oneshot";
-              RemainAfterExit = true;
+              RemainAfterExit = false;
               ExecStart = "${sdwanAgentScript}";
             };
           };
@@ -1252,6 +1271,7 @@ in
             after = [ "network-online.target" ];
             wants = [ "network-online.target" ];
             wantedBy = [ "multi-user.target" ];
+            restartTriggers = [ sdwanControllerScript ];
             serviceConfig = {
               Type = "simple";
               Restart = "always";
@@ -1330,7 +1350,7 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnBootSec = "5s";
-            OnUnitActiveSec = "45s";
+            OnUnitInactiveSec = "45s";
             AccuracySec = "5s";
           };
         };
@@ -1433,9 +1453,12 @@ in
         # 防火墙放行：
         # - UDP / TCP 集群所有隧道端口 (全动态集合 allClusterTunnelPorts)
         # - UDP 6696: Babel IGP 动态路由
+        # - TCP controllerPort: SD-WAN 注册中心主控端口 (仅在 Controller 节点开启)
         networking.firewall = {
           allowedUDPPorts = cfg.allClusterTunnelPorts ++ [ 6696 ];
-          allowedTCPPorts = cfg.allClusterTunnelPorts;
+          allowedTCPPorts =
+            cfg.allClusterTunnelPorts
+            ++ lib.optional (baseCfg.sdwan.enable && baseCfg.sdwan.isController) baseCfg.sdwan.controllerPort;
           extraReversePathFilterRules = ''
             udp sport { ${portsCsv} } accept
             udp dport { ${portsCsv} } accept
