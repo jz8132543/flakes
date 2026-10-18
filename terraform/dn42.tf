@@ -25,7 +25,7 @@ locals {
   # ── 1. 公网对等别名 (peer1, peer2, peer3 ... .dora.im) ───────────────────────
   dn42_peer_targets = {
     peer1 = "fra0"
-    peer2 = "hkg0"
+    peer2 = "sjc0"
     peer3 = "cu"
   }
 
@@ -56,24 +56,18 @@ locals {
       role          = "border"
       ibgp          = true
     }
-    "tyo0" = {
-      is_controller = true
-    }
+
     "sjc0" = {
       is_controller = true
+      role          = "border"
+      ibgp          = true
     }
 
-    # ── 边界路由与 iBGP 互联节点 ───────────────────────────────────────────────
-    "hkg0" = {
-      role = "border"
-      ibgp = true
-    }
-
-    # 针对 cu 节点的 1:1 端口映射特例与多线路端点 (联通 v4/v6 + 移动 v4/v6)
     "cu" = {
-      role       = "border"
-      ibgp       = true
-      nat_t_port = 50568
+      is_controller = true
+      role          = "border"
+      ibgp          = true
+      nat_t_port    = 50568
       endpoints = {
         "cu4" = "cu.dora.im:50568"
         "cu6" = "cuv6.dora.im:50568"
@@ -126,7 +120,7 @@ locals {
       extendedNextHop = true
     }
     g-load-hk1 = {
-      host            = "hkg0"
+      host            = "cu"
       asn             = 4242423914
       endpoint        = "hk1.g-load.eu:20087"
       listenPort      = 51820
@@ -138,10 +132,10 @@ locals {
       crypto          = "wireguard"
       extendedNextHop = true
     }
-    g-load-uk1 = {
-      host            = "cu"
+    g-load-us3 = {
+      host            = "sjc0"
       asn             = 4242423914
-      endpoint        = "uk1.g-load.eu:20031"
+      endpoint        = "us3.g-load.eu:20031"
       listenPort      = 51820
       publicKey       = "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
       linkLocal       = "fe80::ade0"

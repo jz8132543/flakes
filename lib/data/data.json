@@ -403,20 +403,20 @@
         "crypto": "wireguard",
         "endpoint": "hk1.g-load.eu:20087",
         "extendedNextHop": true,
-        "host": "hkg0",
+        "host": "cu",
         "latency": "10ms",
         "linkLocal": "fe80::ade0",
         "listenPort": 51820,
         "ourLinkLocal": "fe80::ade1",
         "publicKey": "sLbzTRr2gfLFb24NPzDOpy8j09Y6zI+a7NkeVMdVSR8="
       },
-      "g-load-uk1": {
+      "g-load-us3": {
         "asn": 4242423914,
         "bandwidth": "1000m",
         "crypto": "wireguard",
-        "endpoint": "uk1.g-load.eu:20031",
+        "endpoint": "us3.g-load.eu:20031",
         "extendedNextHop": true,
-        "host": "cu",
+        "host": "sjc0",
         "latency": "10ms",
         "linkLocal": "fe80::ade0",
         "listenPort": 51820,
@@ -462,7 +462,7 @@
         "ibgp": true,
         "id": 6,
         "ike_port": 500,
-        "is_controller": false,
+        "is_controller": true,
         "nat": true,
         "nat_t_port": 50568,
         "role": "border"
@@ -498,13 +498,13 @@
         "endpoints": {
           "default": "hkg0.dora.im:4500"
         },
-        "ibgp": true,
+        "ibgp": false,
         "id": 2,
         "ike_port": 500,
         "is_controller": false,
         "nat": false,
         "nat_t_port": 4500,
-        "role": "border"
+        "role": "internal"
       },
       "hkg5": {
         "enable": true,
@@ -548,13 +548,13 @@
         "endpoints": {
           "default": "sjc0.dora.im:4500"
         },
-        "ibgp": false,
+        "ibgp": true,
         "id": 16,
         "ike_port": 500,
         "is_controller": true,
         "nat": false,
         "nat_t_port": 4500,
-        "role": "internal"
+        "role": "border"
       },
       "surface": {
         "enable": true,
@@ -575,7 +575,7 @@
         "ibgp": false,
         "id": 5,
         "ike_port": 500,
-        "is_controller": true,
+        "is_controller": false,
         "nat": false,
         "nat_t_port": 4500,
         "role": "internal"
@@ -596,7 +596,7 @@
     },
     "peerAliases": {
       "peer1": "fra0",
-      "peer2": "hkg0",
+      "peer2": "sjc0",
       "peer3": "cu"
     },
     "peerPublicKeys": {
@@ -640,7 +640,7 @@
         "ibgp": true,
         "id": 6,
         "ike_port": 500,
-        "is_controller": false,
+        "is_controller": true,
         "nat": true,
         "nat_t_port": 50568,
         "role": "border"
@@ -676,13 +676,13 @@
         "endpoints": {
           "default": "hkg0.dora.im:4500"
         },
-        "ibgp": true,
+        "ibgp": false,
         "id": 2,
         "ike_port": 500,
         "is_controller": false,
         "nat": false,
         "nat_t_port": 4500,
-        "role": "border"
+        "role": "internal"
       },
       "hkg5": {
         "enable": true,
@@ -726,13 +726,13 @@
         "endpoints": {
           "default": "sjc0.dora.im:4500"
         },
-        "ibgp": false,
+        "ibgp": true,
         "id": 16,
         "ike_port": 500,
         "is_controller": true,
         "nat": false,
         "nat_t_port": 4500,
-        "role": "internal"
+        "role": "border"
       },
       "surface": {
         "enable": true,
@@ -753,7 +753,7 @@
         "ibgp": false,
         "id": 5,
         "ike_port": 500,
-        "is_controller": true,
+        "is_controller": false,
         "nat": false,
         "nat_t_port": 4500,
         "role": "internal"
