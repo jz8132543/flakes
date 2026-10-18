@@ -1,4 +1,5 @@
 {
+  inputs,
   nixosModules,
   lib,
   pkgs,
@@ -33,18 +34,18 @@
     mode = "sync";
   };
 
-  desktop.winapps = {
-    kvm = {
-      enable = true;
-      enableVirtIO = true;
-      enableCdrom = false;
-    };
-    docker = {
-      enable = true;
-      enableVirtIO = true;
-      enableCdrom = false;
-    };
-  };
+  # desktop.winapps = {
+  #   kvm = {
+  #     enable = true;
+  #     enableVirtIO = true;
+  #     enableCdrom = false;
+  #   };
+  #   docker = {
+  #     enable = true;
+  #     enableVirtIO = true;
+  #     enableCdrom = false;
+  #   };
+  # };
 
   users.users.tippy.extraGroups = [ "surface-control" ];
 
@@ -70,6 +71,7 @@
     surface-control
     usbutils
     v4l-utils
+    inputs.office365.packages.${pkgs.system}.default
     # nemo-with-extensions
     # nemo-fileroller
     # cinnamon.nemo

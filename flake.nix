@@ -170,6 +170,10 @@
       url = "github:winapps-org/winapps";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    office365 = {
+      url = "github:Tombert/office365_flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     tcp-brutal = {
       url = "github:HyNetworks/tcp-brutal";
       inputs.nixpkgs.follows = "nixpkgs";
