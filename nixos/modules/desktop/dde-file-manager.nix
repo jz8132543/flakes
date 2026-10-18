@@ -24,8 +24,7 @@ let
           --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils ]}:$out/bin
 
         # 修复 desktop 文件中的 Exec 绝对路径，使其指向 Nix 包装后的二进制
-        substituteInPlace $out/share/applications/dde-file-manager.desktop \
-          --replace-fail '/usr/bin/dde-file-manager' "$out/bin/dde-file-manager"
+        sed -i "s|Exec=.*dde-file-manager|Exec=$out/bin/dde-file-manager|g" $out/share/applications/dde-file-manager.desktop || true
 
         # 添加搜索关键字，支持在应用搜索中通过 dde、deepin、文件、深度 等关键词检索
         echo "Keywords=dde;deepin;file;files;manager;" >> $out/share/applications/dde-file-manager.desktop

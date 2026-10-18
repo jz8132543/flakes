@@ -287,6 +287,7 @@ in
     };
     serviceConfig = {
       Restart = lib.mkForce "on-failure";
+      RestartSec = "10s";
     };
   };
 

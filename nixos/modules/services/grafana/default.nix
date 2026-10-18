@@ -41,6 +41,7 @@ let
   dashboardsDir = pkgs.runCommand "grafana-dashboards" { } ''
         mkdir -p "$out"
         cp ${./grafana-dashboards/blackbox-exporter.json} "$out/blackbox-exporter.json"
+        cp ${./grafana-dashboards/dn42-topology.json} "$out/dn42-topology.json"
         cp ${./grafana-dashboards/infrastructure.json} "$out/infrastructure.json"
         cp ${./grafana-dashboards/node-exporter-full.json} "$out/node-exporter-full.json"
         cp ${./grafana-dashboards/postgresql.json} "$out/postgresql.json"
@@ -90,8 +91,10 @@ in
     };
 
     declarativePlugins = with pkgs.grafanaPlugins; [
+      prometheus
       grafana-piechart-panel
       grafana-clock-panel
+      volkovlabs-echarts-panel
     ];
 
     provision = {

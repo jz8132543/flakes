@@ -96,7 +96,8 @@ in
         {
           supportsDryActivation = false;
           text = ''
-            if [ -e /nix/var/nix/profiles/system ]; then
+            # 仅在正常运行的系统切换（switch）时执行清理，严禁在初始安装、disko 制作镜像或 chroot 环境中执行 GC
+            if [ -e /run/booted-system ] && [ -e /run/current-system ] && [ -z "$NIXOS_INSTALL_BOOTLOADER" ] && [ -e /nix/var/nix/profiles/system ]; then
               FREE_BYTES=$(${pkgs.coreutils}/bin/df -B1 --output=avail /nix/store 2>/dev/null | ${pkgs.coreutils}/bin/tail -n 1 | ${pkgs.coreutils}/bin/tr -d ' ')
               THRESHOLD_BYTES=${toString minFreeBytes}
 
