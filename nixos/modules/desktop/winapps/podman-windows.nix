@@ -8,6 +8,13 @@
 let
   cfg = config.desktop.winapps;
   user = cfg.userName;
+  userUid =
+    if config.users.users ? ${user} && config.users.users.${user}.uid != null then
+      toString config.users.users.${user}.uid
+    else if config.ids.uids ? ${user} then
+      toString config.ids.uids.${user}
+    else
+      "1000";
 in
 {
   config = lib.mkIf cfg.podman.enable {
@@ -25,6 +32,10 @@ in
       after = [
         "network.target"
         "local-fs.target"
+        "user-runtime-dir@${userUid}.service"
+      ];
+      wants = [
+        "user-runtime-dir@${userUid}.service"
       ];
       wantedBy = lib.mkIf cfg.podman.autoStart [ "multi-user.target" ];
 
@@ -33,7 +44,7 @@ in
         User = user;
         Group = "users";
         Environment = [
-          "XDG_RUNTIME_DIR=/run/user/${toString config.users.users.${user}.uid}"
+          "XDG_RUNTIME_DIR=/run/user/${userUid}"
         ];
         Restart = "always";
         RestartSec = "10s";

@@ -11,6 +11,7 @@ in
   users.mutableUsers = true;
   users.users.${name} = {
     isNormalUser = true;
+    uid = config.ids.uids.${name};
     shell = pkgs.fish;
     extraGroups = [
       "wheel"
