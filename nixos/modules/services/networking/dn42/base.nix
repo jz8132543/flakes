@@ -23,17 +23,20 @@ let
   hostIndex =
     if thisHostData ? host_indices && thisHostData.host_indices != [ ] then
       lib.head thisHostData.host_indices
-    else thisHostMesh.id or (99);
+    else
+      thisHostMesh.id or (99);
 
   nodeIpv4Raw =
     if thisHostData ? dn42_addresses_v4 && thisHostData.dn42_addresses_v4 != [ ] then
       lib.head thisHostData.dn42_addresses_v4
-    else thisHostMesh.dn42_ip4 or "172.20.232.${toString hostIndex}";
+    else
+      thisHostMesh.dn42_ip4 or "172.20.232.${toString hostIndex}";
 
   nodeIpv6Raw =
     if thisHostData ? dn42_addresses_v6 && thisHostData.dn42_addresses_v6 != [ ] then
       lib.head thisHostData.dn42_addresses_v6
-    else thisHostMesh.dn42_ip6 or "fd53:90fd:4bb6:${lib.toHexString hostIndex}::1";
+    else
+      thisHostMesh.dn42_ip6 or "fd53:90fd:4bb6:${lib.toHexString hostIndex}::1";
 
   # Build /etc/hosts mapping from all hosts in data.json: <host>.dn42 -> IP
   dn42HostList = lib.flatten (

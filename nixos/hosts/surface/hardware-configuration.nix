@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 {
@@ -95,25 +94,28 @@
     }
   ];
 
-  # 2. Udev 仅保留事件触发
-  services.udev.extraRules = ''
-    SUBSYSTEM=="power_supply", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start battery-guard.service"
-  '';
-
-  # 3. 极简守护服务
-  systemd.services.battery-guard = {
-    path = with pkgs; [
-      coreutils
-      gnugrep
-      systemd
-    ];
-    serviceConfig.Type = "oneshot";
-    script = ''
-      grep -q 1 /sys/class/power_supply/*/online 2>/dev/null && exit 0
-      BAT=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | sort -n | head -n 1)
-      [ "''${BAT:-100}" -le 5 ] && systemctl poweroff
-    '';
-  };
+  # # 2. Udev 仅保留事件触发
+  # services.udev.extraRules = ''
+  #   SUBSYSTEM=="power_supply", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start battery-guard.service"
+  # '';
+  #
+  # # 3. 极简守护服务
+  # systemd.services.battery-guard = {
+  #   path = with pkgs; [
+  #     coreutils
+  #     gnugrep
+  #     systemd
+  #   ];
+  #   serviceConfig.Type = "oneshot";
+  #   script = ''
+  #     grep -q 1 /sys/class/power_supply/*/online 2>/dev/null && exit 0
+  #     BAT=$(cat /sys/class/power_supply/BAT*/capacity 2>/dev/null | sort -n | head -n 1)
+  #     [ "''${BAT:-100}" -le 5 ] && systemctl poweroff
+  #   '';
+  # };
   utils.disk = "/dev/nvme0n1";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+
+  # 禁用 iio-sensor-proxy，防止环境光传感器引发屏幕亮度正反馈死循环
+  hardware.sensor.iio.enable = false;
 }
