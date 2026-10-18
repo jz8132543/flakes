@@ -694,7 +694,7 @@ let
           [ -z "$PEER_PORT" ] && PEER_PORT=4500
 
           # 收集针对该对端生成的所有物理隧道实例元组:
-          # "IFACE|IF_ID|CONN_NAME|LOCAL_ADDRS|REMOTE_ADDRS|REMOTE_PORT|START_ACTION|DPD_ACTION"
+          # "IFACE;IF_ID;CONN_NAME;LOCAL_ADDRS;REMOTE_ADDRS;REMOTE_PORT;START_ACTION;DPD_ACTION"
           TUNNEL_INSTANCES=()
 
           if [ "$PEER_EPS_COUNT" -gt 1 ]; then
@@ -711,11 +711,11 @@ let
               fi
               conn_name="dn42-''${peer}-''${ep_name}"
               local_addrs="%any"
-              remote_addrs="''${ep_host}, 0.0.0.0/0, ::/0"
-              start_action="trap|start"
+              remote_addrs="''${ep_host}"
+              start_action="start"
               dpd_action="restart"
 
-              TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$ep_port|$start_action|$dpd_action")
+              TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action")
               k_idx=$(( k_idx + 1 ))
             done
 
@@ -725,8 +725,8 @@ let
             peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
             if [ -n "$peer_raw" ]; then
               read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
-              remote_addrs="''${peer_host}, 0.0.0.0/0, ::/0"
-              start_action="trap|start"
+              remote_addrs="''${peer_host}"
+              start_action="start"
               dpd_action="restart"
             else
               remote_addrs="%any"
@@ -747,7 +747,7 @@ let
               conn_name="dn42-''${peer}-''${my_name}"
               local_addrs="''${my_host}"
 
-              TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$peer_p|$start_action|$dpd_action")
+              TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action")
               k_idx=$(( k_idx + 1 ))
             done
 
@@ -761,8 +761,8 @@ let
             peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
             if [ -n "$peer_raw" ]; then
               read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
-              remote_addrs="''${peer_host}, 0.0.0.0/0, ::/0"
-              start_action="trap|start"
+              remote_addrs="''${peer_host}"
+              start_action="start"
               dpd_action="restart"
             else
               remote_addrs="%any"
@@ -771,12 +771,12 @@ let
               dpd_action="clear"
             fi
 
-            TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$peer_p|$start_action|$dpd_action")
+            TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action")
           fi
 
           # 实例化所有隧道：XFRM 设备与 swanctl 配置
           for inst in "''${TUNNEL_INSTANCES[@]}"; do
-            IFS='|' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd <<< "$inst"
+            IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd <<< "$inst"
 
             if ! ip link show "$t_iface" >/dev/null 2>&1; then
               ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id"
@@ -819,8 +819,8 @@ let
         children {
           ''${t_conn} {
             esp_proposals = aes256gcm128-x25519, chacha20poly1305-x25519, aes128gcm128-x25519
-            local_ts = 0.0.0.0/0, ::/0
-            remote_ts = 0.0.0.0/0, ::/0
+            local_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10
+            remote_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10
             if_id_in = ''${t_if_id}
             if_id_out = ''${t_if_id}
             set_mark_out = 0x1
@@ -1347,6 +1347,8 @@ in
               retransmit_base = 1.2
               install_routes = no
               install_virtual_ip = no
+              routing_table = 0
+              routing_table_prio = 0
               cisco_unity = no
               send_vendor_id = no
               # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
