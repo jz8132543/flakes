@@ -1383,6 +1383,26 @@
         "type": "github"
       }
     },
+    "office365": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1792089719,
+        "narHash": "sha256-WLzfhgeQvWqzWg/tMKaXJHSndewVJMyZPNE4tRA7pMQ=",
+        "owner": "Tombert",
+        "repo": "office365_flake",
+        "rev": "ef0fd10f6194d3af7e7705a3b9b3a366fda9fc74",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Tombert",
+        "repo": "office365_flake",
+        "type": "github"
+      }
+    },
     "plasma-manager": {
       "inputs": {
         "home-manager": [
@@ -1499,6 +1519,7 @@
         "nixvim": "nixvim",
         "nur": "nur",
         "nvf": "nvf",
+        "office365": "office365",
         "plasma-manager": "plasma-manager",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",
         "preservation": "preservation",

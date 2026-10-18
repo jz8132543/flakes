@@ -1,5 +1,6 @@
 {
   config,
+  inputs,
   nixosModules,
   pkgs,
   ...
@@ -26,22 +27,23 @@
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
+    inputs.office365.packages.${pkgs.system}.default
   ];
   desktop.nvidia = {
     mode = "offload";
   };
-  desktop.winapps = {
-    kvm = {
-      enable = true;
-      enableVirtIO = true;
-      enableCdrom = false;
-    };
-    docker = {
-      enable = true;
-      enableVirtIO = true;
-      enableCdrom = false;
-    };
-  };
+  # desktop.winapps = {
+  #   kvm = {
+  #     enable = true;
+  #     enableVirtIO = true;
+  #     enableCdrom = false;
+  #   };
+  #   docker = {
+  #     enable = true;
+  #     enableVirtIO = true;
+  #     enableCdrom = false;
+  #   };
+  # };
 
   # services.create_ap = {
   #   enable = true;

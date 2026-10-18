@@ -1,15 +1,16 @@
-{ pkgs, ... }:
+{ ... }:
 {
-  environment.systemPackages = with pkgs; [
-    lutris
-    # heroic
-    # wineWowPackages.staging
-    # winetricks
-    # proton
-  ];
-  environment.global-persistence.user.directories = [
-    "Games"
-    ".local/share/lutris"
-    # ".config/heroic"
-  ];
+  # Disabled per plan: migrating to Bottles + GE-Proton
+  # environment.systemPackages = with pkgs; [
+  #   lutris
+  #   # heroic
+  #   # wineWowPackages.staging
+  #   # winetricks
+  #   # proton
+  # ];
+  # environment.global-persistence.user.directories = [
+  #   "Games"
+  #   ".local/share/lutris"
+  #   # ".config/heroic"
+  # ];
 }

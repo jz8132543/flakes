@@ -6,56 +6,65 @@
 let
   dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin;
 
-  # 修复 dde-file-manager 的 DBus 调用问题，并保留完整的 desktop 与 icon 资源
-  dde-file-manager-fixed =
-    pkgs.runCommandLocal "dde-file-manager-fixed"
-      {
-        inherit (dde-pkgs.dde-file-manager) name;
-        nativeBuildInputs = [ pkgs.makeWrapper ];
-      }
-      ''
-        mkdir -p $out
-        cp -a ${dde-pkgs.dde-file-manager}/* $out/
-        chmod -R u+w $out
-        substituteInPlace $out/bin/dde-file-manager \
-          --replace-fail 'org.freedesktop.FileManager1.Open' 'org.freedesktop.FileManager1.ShowFolders' \
-          --replace-fail 'array:string:"$dbus_args_str"' 'array:string:"$dbus_args_str" string:""'
-        wrapProgram $out/bin/dde-file-manager \
-          --prefix PATH : ${pkgs.lib.makeBinPath [ pkgs.coreutils ]}:$out/bin
+  # 原生包轻量包装：仅注入自身独立环境变量与优化桌面项，完全不重编、不修改原生二进制
+  dde-file-manager-wrapped = pkgs.symlinkJoin {
+    name = "dde-file-manager-wrapped";
+    paths = [ dde-pkgs.dde-file-manager ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+            # 仅给 dde-file-manager 独立注入 Deepin 原生主题环境变量，隔离系统其他 Qt 程序
+            wrapProgram $out/bin/dde-file-manager \
+              --set QT_QPA_PLATFORMTHEME "deepin" \
+              --set QT_STYLE_OVERRIDE "chameleon" \
+              --set QT_QPA_PLATFORM "wayland;xcb" \
+              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share"
 
-        # 修复 desktop 文件中的 Exec 绝对路径，使其指向 Nix 包装后的二进制
-        sed -i "s|Exec=.*dde-file-manager|Exec=$out/bin/dde-file-manager|g" $out/share/applications/dde-file-manager.desktop || true
+      <<<<<<< HEAD
+              # 修复 desktop 文件中的 Exec 绝对路径，使其指向 Nix 包装后的二进制
+              sed -i "s|Exec=.*dde-file-manager|Exec=$out/bin/dde-file-manager|g" $out/share/applications/dde-file-manager.desktop || true
+      =======
+            wrapProgram $out/bin/file-manager.sh \
+              --set QT_QPA_PLATFORMTHEME "deepin" \
+              --set QT_STYLE_OVERRIDE "chameleon" \
+              --set QT_QPA_PLATFORM "wayland;xcb" \
+              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share"
+      >>>>>>> refs/remotes/origin/main
 
-        # 添加搜索关键字，支持在应用搜索中通过 dde、deepin、文件、深度 等关键词检索
-        echo "Keywords=dde;deepin;file;files;manager;" >> $out/share/applications/dde-file-manager.desktop
-        echo "Keywords[zh_CN]=dde;deepin;文件;文件管理器;深度;" >> $out/share/applications/dde-file-manager.desktop
+            # 1. 修复并暴露 dde-computer.desktop（“计算机 / 此电脑”快捷方式）
+            rm $out/share/applications/dde-computer.desktop
+            cat ${dde-pkgs.dde-file-manager}/share/applications/dde-computer.desktop > $out/share/applications/dde-computer.desktop
+            # 移除 OnlyShowIn=Deepin;DDE，使其在 GNOME 等所有桌面的搜索与应用抽屉中可见
+            sed -i '/OnlyShowIn=/d' $out/share/applications/dde-computer.desktop
+            # 确保直接通过包装后的 dde-file-manager 打开 computer:/// 磁盘与设备视图
+            sed -i "s|^Exec=.*|Exec=$out/bin/dde-file-manager computer:///|" $out/share/applications/dde-computer.desktop
+            # 补全搜索关键词（支持：计算机、此电脑、我的电脑、电脑、computer、dde 等）
+            echo "Keywords=computer;dde;deepin;files;manager;计算机;电脑;我的电脑;此电脑;设备;" >> $out/share/applications/dde-computer.desktop
+            echo "Keywords[zh_CN]=computer;dde;deepin;files;manager;计算机;电脑;我的电脑;此电脑;设备;" >> $out/share/applications/dde-computer.desktop
 
-        # 拷贝 SVG 图标到标准 hicolor 路径，确保 GNOME Dock 和启动器可以正确渲染图标
-        mkdir -p $out/share/icons/hicolor/scalable/apps
-        cp $out/share/deepin-manual/manual-assets/application/dde-file-manager/file-manager/common/dde-file-manager.svg \
-          $out/share/icons/hicolor/scalable/apps/dde-file-manager.svg
-      '';
+            # 2. 修正 dde-file-manager.desktop（文件管理器）
+            rm $out/share/applications/dde-file-manager.desktop
+            cat ${dde-pkgs.dde-file-manager}/share/applications/dde-file-manager.desktop > $out/share/applications/dde-file-manager.desktop
+            sed -i "s|^Exec=.*dde-file-manager|Exec=$out/bin/dde-file-manager|" $out/share/applications/dde-file-manager.desktop
+            sed -i 's/^Name\[zh_CN\]=.*/Name[zh_CN]=深度文件管理器/' $out/share/applications/dde-file-manager.desktop
+            echo "Keywords=dde;deepin;file;files;manager;深度;文件管理器;" >> $out/share/applications/dde-file-manager.desktop
+            echo "Keywords[zh_CN]=dde;deepin;file;files;manager;深度;文件管理器;文件;" >> $out/share/applications/dde-file-manager.desktop
+    '';
+  };
 in
 {
-  # 安装修复后的 dde-file-manager 包
   environment.systemPackages = [
-    dde-file-manager-fixed
+    dde-file-manager-wrapped
+    dde-pkgs.deepin-icon-theme
+    dde-pkgs.deepin-desktop-theme
+    dde-pkgs.dtkcommon
   ];
 
-  # 启用 dde-file-manager 所需的 DBus 服务
+  # 链接 DSG 配置目录，供 DTK 识别 preference
+  environment.pathsToLink = [ "/share/dsg" ];
+
+  # 启用底层后台服务与文件系统挂载支持
   services.dbus.packages = [ dde-pkgs.dde-file-manager ];
-
-  # 启用必要的 systemd 服务（dde-file-manager 的后台服务）
   systemd.packages = [ dde-pkgs.dde-file-manager ];
-
-  # 确保 dde-file-manager daemon 在用户登录时自动启动
   systemd.user.services.dde-file-manager.wantedBy = [ "default.target" ];
-
-  # 确保 GVFS 启用（用于文件管理器的挂载和设备访问）
   services.gvfs.enable = true;
-
-  # 设置环境变量以避免 DBus 超时
-  environment.sessionVariables = {
-    # DBUS_SESSION_BUS_ADDRESS = "unix:path=$XDG_RUNTIME_DIR/bus";
-  };
 }
