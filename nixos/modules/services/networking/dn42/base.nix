@@ -183,12 +183,8 @@ in
 
       isController = mkOption {
         type = types.bool;
-        default = builtins.elem hostName [
-          "fra0"
-          "tyo0"
-          "sjc0"
-        ];
-        description = "是否作为 SD-WAN 注册中心主控节点 (默认 fra0, tyo0, sjc0 三台互备)";
+        default = thisHostMesh.is_controller or false;
+        description = "是否作为 SD-WAN 注册中心主控节点 (由 Terraform dn42_nodes / dn42_overrides 统一定义)";
       };
 
       controllerPort = mkOption {

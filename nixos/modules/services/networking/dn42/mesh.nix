@@ -54,7 +54,6 @@ let
 
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
-  thisHostMesh = dn42Data.mesh.${hostName} or { };
 
   meshNodeSubmodule = types.submodule (
     { name, config, ... }:
@@ -311,47 +310,17 @@ let
   selfNodeId = baseCfg.hostIndex;
   selfDn42Ip4 = lib.head (lib.splitString "/" baseCfg.nodeIpv4);
   selfDn42Ip6 = lib.head (lib.splitString "/" baseCfg.nodeIpv6);
-  selfEdgeNode = lib.findFirst (n: n.name == hostName) null (selfData.cdn.edgeNodes or [ ]);
-  selfPublicIpv4 =
-    if selfEdgeNode != null && selfEdgeNode ? ipv4 && selfEdgeNode.ipv4 != null then
-      selfEdgeNode.ipv4
-    else if hostName == "cu" then
-      "cu.dora.im"
-    else if hostName == "can0" then
-      "can0.dora.im"
-    else if
-      !(thisHostMesh.nat or (builtins.elem hostName [
-        "surface"
-        "arx8"
-        "isk"
-      ])
-      )
-    then
-      "${hostName}.dora.im"
-    else
-      "auto";
-  selfPublicIpv6 =
-    if selfEdgeNode != null && selfEdgeNode ? ipv6 && selfEdgeNode.ipv6 != null then
-      selfEdgeNode.ipv6
-    else if hostName == "cu" then
-      "cuv6.dora.im"
-    else if
-      !(thisHostMesh.nat or (builtins.elem hostName [
-        "surface"
-        "arx8"
-        "isk"
-      ])
-      )
-    then
-      "${hostName}.dora.im"
-    else
-      "auto";
 
-  controllerUrls = [
-    "http://fra0.dora.im:${toString baseCfg.sdwan.controllerPort}"
-    "http://tyo0.dora.im:${toString baseCfg.sdwan.controllerPort}"
-    "http://sjc0.dora.im:${toString baseCfg.sdwan.controllerPort}"
-  ];
+  controllerUrls =
+    let
+      controllers = lib.filterAttrs (_: node: node.is_controller or false) (dn42Data.mesh or { });
+    in
+    if controllers != { } then
+      lib.mapAttrsToList (
+        name: _: "http://${name}.dora.im:${toString baseCfg.sdwan.controllerPort}"
+      ) controllers
+    else
+      [ ];
 
   tokenFile =
     if cfg.ipsec.pskFile != null then
@@ -378,17 +347,28 @@ let
               "";
           edgeNode = lib.findFirst (n: n.name == name) null (selfData.cdn.edgeNodes or [ ]);
           meshNode = dn42Data.mesh.${name} or { };
-          isNat =
-            meshNode.nat or (builtins.elem name [
-              "surface"
-              "arx8"
-              "isk"
-            ]);
+          isNat = meshNode.nat or (meshNode.endpoints or { } == { });
+          natTPort = meshNode.nat_t_port or (meshNode.natTPort or 4500);
+          ikePort = meshNode.ike_port or (meshNode.ikePort or 500);
+
+          nodeEndpoints =
+            if meshNode ? endpoints && meshNode.endpoints != { } then
+              meshNode.endpoints
+            else if edgeNode != null then
+              lib.optionalAttrs (edgeNode ? ipv4 && edgeNode.ipv4 != null) {
+                v4 = "${edgeNode.ipv4}:${toString natTPort}";
+              }
+              // lib.optionalAttrs (edgeNode ? ipv6 && edgeNode.ipv6 != null) {
+                v6 = "[${edgeNode.ipv6}]:${toString natTPort}";
+              }
+            else if !isNat then
+              { default = "${name}.dora.im:${toString natTPort}"; }
+            else
+              { };
+
           pubIpv4 =
             if edgeNode != null && edgeNode ? ipv4 && edgeNode.ipv4 != null then
               edgeNode.ipv4
-            else if name == "cu" then
-              "cu.dora.im"
             else if !isNat then
               "${name}.dora.im"
             else
@@ -396,17 +376,16 @@ let
           pubIpv6 =
             if edgeNode != null && edgeNode ? ipv6 && edgeNode.ipv6 != null then
               edgeNode.ipv6
-            else if name == "cu" then
-              "cuv6.dora.im"
+            else if !isNat then
+              "${name}.dora.im"
             else
               "";
-          natTPort = meshNode.nat_t_port or (meshNode.natTPort or 4500);
-          ikePort = meshNode.ike_port or (meshNode.ikePort or 500);
         in
         {
           id = hIdx;
           dn42_ip4 = v4;
           dn42_ip6 = v6;
+          endpoints = nodeEndpoints;
           ipv4 = pubIpv4;
           ipv6 = pubIpv6;
           nat_t_port = natTPort;
@@ -518,19 +497,6 @@ let
     if [ "$method" = "POST" ] && [ "$content_length" -gt 0 ]; then
       body=$(head -c "$content_length")
       if echo "$body" | ${pkgs.jq}/bin/jq -e 'type == "object"' >/dev/null 2>&1; then
-        PEER_ADDR="''${SOCAT_PEERADDR:-127.0.0.1}"
-        PROCESSED_BODY=$(echo "$body" | ${pkgs.jq}/bin/jq --arg ip "$PEER_ADDR" '
-          to_entries | map(
-            .value as $val |
-            if $val.ipv4 == "auto" or $val.ipv4 == "" then
-              if ($ip | contains(".")) then .value.ipv4 = $ip else . end
-            else . end |
-            if $val.ipv6 == "auto" or $val.ipv6 == "" then
-              if ($ip | contains(":")) then .value.ipv6 = $ip else . end
-            else . end
-          ) | from_entries
-        ')
-
         (
           flock -x 200
           ${pkgs.jq}/bin/jq -s '
@@ -540,7 +506,7 @@ let
               then .[$item.key] = $item.value
               else . end
             )
-          ' "$REGISTRY_FILE" <(echo "$PROCESSED_BODY") > "$REGISTRY_FILE.tmp"
+          ' "$REGISTRY_FILE" <(echo "$body") > "$REGISTRY_FILE.tmp"
           mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
         ) 200>"$REGISTRY_DIR/registry.lock"
       fi
@@ -577,6 +543,21 @@ let
         SWAN_D="/run/swanctl/conf.d"
         mkdir -p "$STATE_DIR" "$SWAN_D"
 
+        # 辅助函数：从 host:port 字符串中分离 host 与 port (支持 IPv6 [addr]:port 语法)
+        extract_host_port() {
+          local raw="$1"
+          local def_port="$2"
+          if [[ "$raw" =~ ^\[(.*)\]:([0-9]+)$ ]]; then
+            echo "''${BASH_REMATCH[1]} ''${BASH_REMATCH[2]}"
+          elif [[ "$raw" =~ ^\[(.*)\]$ ]]; then
+            echo "''${BASH_REMATCH[1]} $def_port"
+          elif [[ "$raw" =~ ^([^:]+):([0-9]+)$ ]]; then
+            echo "''${BASH_REMATCH[1]} ''${BASH_REMATCH[2]}"
+          else
+            echo "$raw $def_port"
+          fi
+        }
+
         # 1. 若本地缓存不存在，用 bootstrapPeersFile 初始化；若存在，用 bootstrap 刷新 updated_at == 0 的静态配置
         if [ ! -s "$CACHE_FILE" ]; then
           cp "${bootstrapPeersFile}" "$CACHE_FILE"
@@ -598,20 +579,75 @@ let
         SELF_IKE_PORT="${toString baseCfg.ikePort}"
         CONTROLLERS=(${lib.concatStringsSep " " controllerUrls})
 
-        # 2. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
+        # 2a. 本地网卡自探测 (参考 Tailscale netmon / RFC1918 过滤规范)
+        DISCOVERED_IPS=$(ip -j addr show up 2>/dev/null | jq '
+          [ .[]? |
+            select(.ifname | test("^(lo|docker.*|podman.*|veth.*|br-.*|dn42.*|tailscale.*|meta.*|dummy.*|xfrm.*|wireguard.*|wg.*)$") | not) |
+            .ifname as $ifname |
+            .addr_info[]? |
+            select(.scope == "global") |
+            {
+              ifname: $ifname,
+              family: .family,
+              local: .local,
+              is_private: (
+                if .family == "inet" then
+                  (.local | (
+                    startswith("10.") or
+                    startswith("192.168.") or
+                    startswith("100.") or
+                    startswith("172.16.") or startswith("172.17.") or startswith("172.18.") or startswith("172.19.") or
+                    startswith("172.20.") or startswith("172.21.") or startswith("172.22.") or startswith("172.23.") or
+                    startswith("172.24.") or startswith("172.25.") or startswith("172.26.") or startswith("172.27.") or
+                    startswith("172.28.") or startswith("172.29.") or startswith("172.30.") or startswith("172.31.") or
+                    startswith("127.") or
+                    startswith("169.254.")
+                  ))
+                elif .family == "inet6" then
+                  (.local | (
+                    startswith("fe80:") or
+                    startswith("fd") or
+                    startswith("fc") or
+                    . == "::1"
+                  ))
+                else false end
+              )
+            }
+          ]
+        ' 2>/dev/null || echo "[]")
+
+        PUBLIC_V4=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet" and .is_private == false).local][0] // empty')
+        PUBLIC_V6=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet6" and .is_private == false).local][0] // empty')
+
+        # 2b. 提取或自适应扩充本机端点表
+        STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '.[$s].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
+        SELF_ENDPOINTS="$STATIC_ENDPOINTS"
+        if [ "$SELF_ENDPOINTS" = "{}" ] || [ -z "$SELF_ENDPOINTS" ]; then
+          NEW_EPS="{}"
+          if [ -n "$PUBLIC_V4" ]; then
+            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v4 "$PUBLIC_V4:$SELF_PORT" '. + { "auto_v4": $v4 }')
+          fi
+          if [ -n "$PUBLIC_V6" ]; then
+            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v6 "[$PUBLIC_V6]:$SELF_PORT" '. + { "auto_v6": $v6 }')
+          fi
+          if [ "$NEW_EPS" != "{}" ]; then
+            SELF_ENDPOINTS="$NEW_EPS"
+          fi
+        fi
+
+        # 2c. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
         NOW=$(date +%s)
         SELF_PAYLOAD=$(jq -n \
           --arg name "$SELF_NAME" \
           --argjson id "$SELF_ID" \
           --arg dn42_ip4 "$SELF_IP4" \
           --arg dn42_ip6 "$SELF_IP6" \
-          --arg ipv4 "${selfPublicIpv4}" \
-          --arg ipv6 "${selfPublicIpv6}" \
+          --argjson endpoints "$SELF_ENDPOINTS" \
           --argjson nat_t_port "$SELF_PORT" \
           --argjson ike_port "$SELF_IKE_PORT" \
           --arg pubkey "" \
           --argjson updated_at "$NOW" \
-          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, ipv4: $ipv4, ipv6: $ipv6, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, updated_at: $updated_at}}')
+          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, updated_at: $updated_at}}')
 
         TOKEN=$(cat "${tokenFile}")
 
@@ -633,10 +669,14 @@ let
           cp "$CACHE_FILE" "$STATE_DIR/registry.json" 2>/dev/null || true
         fi
 
-        # 3. 遍历 peers.json，热创建/维护 dn42x-<peer> 接口与 swanctl 配置文件
+        # 3. 遍历 peers.json，热创建/维护多线路虚拟网卡 dn42x-* 与 swanctl 配置文件
         CONF_CHANGED=0
         HOSTS_TMP="/run/dn42-hosts.tmp"
         : > "$HOSTS_TMP"
+        ACTIVE_CONF_FILES=()
+
+        MY_EPS=$(jq -c --arg s "$SELF_NAME" '.[$s].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
+        MY_EPS_COUNT=$(echo "$MY_EPS" | jq 'keys | length' 2>/dev/null || echo "0")
 
         for peer in $(jq -r 'keys[]' "$CACHE_FILE"); do
           PEER_IP4=$(jq -r --arg p "$peer" '.[$p].dn42_ip4 // empty' "$CACHE_FILE")
@@ -648,55 +688,123 @@ let
           PEER_ID=$(jq -r --arg p "$peer" '.[$p].id // empty' "$CACHE_FILE")
           [ -z "$PEER_ID" ] && continue
 
-          PEER_PUB_IP4=$(jq -r --arg p "$peer" '.[$p].ipv4 // empty' "$CACHE_FILE")
-          PEER_PUB_IP6=$(jq -r --arg p "$peer" '.[$p].ipv6 // empty' "$CACHE_FILE")
+          PEER_EPS=$(jq -c --arg p "$peer" '.[$p].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
+          PEER_EPS_COUNT=$(echo "$PEER_EPS" | jq 'keys | length' 2>/dev/null || echo "0")
           PEER_PORT=$(jq -r --arg p "$peer" '.[$p].nat_t_port // 4500' "$CACHE_FILE")
           [ -z "$PEER_PORT" ] && PEER_PORT=4500
 
-          IFACE="dn42x-''${peer}"
+          # 收集针对该对端生成的所有物理隧道实例元组:
+          # "IFACE|IF_ID|CONN_NAME|LOCAL_ADDRS|REMOTE_ADDRS|REMOTE_PORT|START_ACTION|DPD_ACTION"
+          TUNNEL_INSTANCES=()
 
-          # 3a. 确保 XFRM 接口存在、MTU=1360、关闭 GSO/TX offload 并配置好内网 IP 与 fe80:: Link-Local
-          if ! ip link show "$IFACE" >/dev/null 2>&1; then
-            ip link add "$IFACE" type xfrm dev lo if_id "$PEER_ID"
-          fi
-          ip link set "$IFACE" mtu 1360 multicast on up
-          ethtool -K "$IFACE" tx off gso off gro off 2>/dev/null || true
+          if [ "$PEER_EPS_COUNT" -gt 1 ]; then
+            # Case A: 对端定义了多条公网线路端点 (如 cu 的 4 端点)
+            k_idx=0
+            for ep_name in $(echo "$PEER_EPS" | jq -r 'keys[]'); do
+              ep_raw=$(echo "$PEER_EPS" | jq -r --arg k "$ep_name" '.[$k]')
+              read -r ep_host ep_port <<< "$(extract_host_port "$ep_raw" "$PEER_PORT")"
+              if_id=$(( 1000 * k_idx + PEER_ID ))
 
-          ip -4 addr replace "''${SELF_IP4}/32" dev "$IFACE" 2>/dev/null || true
-          ip route del "''${PEER_IP4}" dev "$IFACE" 2>/dev/null || true
-          ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$IFACE" 2>/dev/null || true
-          [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$IFACE" 2>/dev/null || true
+              iface="dn42x-''${peer}-''${ep_name}"
+              if [ ''${#iface} -gt 15 ]; then
+                iface="dn42x-''${peer:0:5}-''${ep_name:0:3}"
+              fi
+              conn_name="dn42-''${peer}-''${ep_name}"
+              local_addrs="%any"
+              remote_addrs="''${ep_host}, 0.0.0.0/0, ::/0"
+              start_action="trap|start"
+              dpd_action="restart"
 
-          # 3b. 生成该对端的 swanctl 独立连接配置
-          REMOTE_ADDRS=()
-          [ -n "$PEER_PUB_IP4" ] && [ "$PEER_PUB_IP4" != "auto" ] && REMOTE_ADDRS+=("$PEER_PUB_IP4")
-          [ -n "$PEER_PUB_IP6" ] && [ "$PEER_PUB_IP6" != "auto" ] && REMOTE_ADDRS+=("$PEER_PUB_IP6")
+              TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$ep_port|$start_action|$dpd_action")
+              k_idx=$(( k_idx + 1 ))
+            done
 
-          if [ ''${#REMOTE_ADDRS[@]} -eq 0 ]; then
-            REMOTE_ADDR_STR="%any"
-            CHILD_START_ACTION="none"
-            CHILD_DPD_ACTION="clear"
+          elif [ "$MY_EPS_COUNT" -gt 1 ] && [ "$PEER_EPS_COUNT" -le 1 ]; then
+            # Case B: 本机有多条线路端点 (如在 cu 上运行)，对端为单端点或 NAT 节点
+            k_idx=0
+            peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
+            if [ -n "$peer_raw" ]; then
+              read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
+              remote_addrs="''${peer_host}, 0.0.0.0/0, ::/0"
+              start_action="trap|start"
+              dpd_action="restart"
+            else
+              remote_addrs="%any"
+              peer_p="$PEER_PORT"
+              start_action="none"
+              dpd_action="clear"
+            fi
+
+            for my_name in $(echo "$MY_EPS" | jq -r 'keys[]'); do
+              my_raw=$(echo "$MY_EPS" | jq -r --arg k "$my_name" '.[$k]')
+              read -r my_host my_p <<< "$(extract_host_port "$my_raw" "$SELF_PORT")"
+              if_id=$(( 1000 * k_idx + PEER_ID ))
+
+              iface="dn42x-''${peer}-''${my_name}"
+              if [ ''${#iface} -gt 15 ]; then
+                iface="dn42x-''${peer:0:5}-''${my_name:0:3}"
+              fi
+              conn_name="dn42-''${peer}-''${my_name}"
+              local_addrs="''${my_host}"
+
+              TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$peer_p|$start_action|$dpd_action")
+              k_idx=$(( k_idx + 1 ))
+            done
+
           else
-            REMOTE_ADDRS+=("0.0.0.0/0" "::/0")
-            REMOTE_ADDR_STR=$(IFS=,; echo "''${REMOTE_ADDRS[*]}")
-            CHILD_START_ACTION="trap|start"
-            CHILD_DPD_ACTION="restart"
+            # Case C: 常规单端点或纯 NAT 节点 (如 fra0 <-> sjc0, surface <-> fra0)
+            if_id="$PEER_ID"
+            iface="dn42x-''${peer}"
+            conn_name="dn42-''${peer}"
+            local_addrs="%any"
+
+            peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
+            if [ -n "$peer_raw" ]; then
+              read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
+              remote_addrs="''${peer_host}, 0.0.0.0/0, ::/0"
+              start_action="trap|start"
+              dpd_action="restart"
+            else
+              remote_addrs="%any"
+              peer_p="$PEER_PORT"
+              start_action="none"
+              dpd_action="clear"
+            fi
+
+            TUNNEL_INSTANCES+=("$iface|$if_id|$conn_name|$local_addrs|$remote_addrs|$peer_p|$start_action|$dpd_action")
           fi
 
-          PEER_CONF="$SWAN_D/sdwan-''${peer}.conf"
-          NEW_CONTENT=$(cat <<EOF
+          # 实例化所有隧道：XFRM 设备与 swanctl 配置
+          for inst in "''${TUNNEL_INSTANCES[@]}"; do
+            IFS='|' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd <<< "$inst"
+
+            if ! ip link show "$t_iface" >/dev/null 2>&1; then
+              ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id"
+            fi
+            ip link set "$t_iface" mtu 1360 multicast on up
+            ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
+
+            ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
+            ip route del "''${PEER_IP4}" dev "$t_iface" 2>/dev/null || true
+            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
+            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+
+            peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
+            ACTIVE_CONF_FILES+=("$(basename "$peer_conf")")
+
+            new_content=$(cat <<EOF
     connections {
-      dn42-''${peer} {
+      ''${t_conn} {
         version = 2
-        mobike = yes
+        mobike = no
         fragmentation = yes
         encap = yes
         dpd_delay = 30s
         dpd_timeout = 120s
         local_port = ''${SELF_PORT}
-        remote_port = ''${PEER_PORT}
-        local_addrs = %any
-        remote_addrs = ''${REMOTE_ADDR_STR}
+        remote_port = ''${t_rport}
+        local_addrs = ''${t_laddrs}
+        remote_addrs = ''${t_raddrs}
 
         proposals = aes256gcm128-sha256-x25519, chacha20poly1305-sha256-x25519, aes128gcm128-sha256-x25519
 
@@ -709,16 +817,16 @@ let
           id = ''${peer}.dn42
         }
         children {
-          dn42-''${peer} {
+          ''${t_conn} {
             esp_proposals = aes256gcm128-x25519, chacha20poly1305-x25519, aes128gcm128-x25519
             local_ts = 0.0.0.0/0, ::/0
             remote_ts = 0.0.0.0/0, ::/0
-            if_id_in = ''${PEER_ID}
-            if_id_out = ''${PEER_ID}
+            if_id_in = ''${t_if_id}
+            if_id_out = ''${t_if_id}
             set_mark_out = 0x1
             mode = tunnel
-            start_action = ''${CHILD_START_ACTION}
-            dpd_action = ''${CHILD_DPD_ACTION}
+            start_action = ''${t_saction}
+            dpd_action = ''${t_dpd}
           }
         }
       }
@@ -726,8 +834,19 @@ let
     EOF
     )
 
-          if [ ! -f "$PEER_CONF" ] || [ "$NEW_CONTENT" != "$(cat "$PEER_CONF" 2>/dev/null || true)" ]; then
-            echo "$NEW_CONTENT" > "$PEER_CONF"
+            if [ ! -f "$peer_conf" ] || [ "$new_content" != "$(cat "$peer_conf" 2>/dev/null || true)" ]; then
+              echo "$new_content" > "$peer_conf"
+              CONF_CHANGED=1
+            fi
+          done
+        done
+
+        # 清理已废弃的旧 sdwan-*.conf 配置文件
+        for existing_conf in "$SWAN_D"/sdwan-*.conf; do
+          [ -e "$existing_conf" ] || continue
+          base_name=$(basename "$existing_conf")
+          if ! [[ " ''${ACTIVE_CONF_FILES[*]} " =~ " ''${base_name} " ]]; then
+            rm -f "$existing_conf"
             CONF_CHANGED=1
           fi
         done

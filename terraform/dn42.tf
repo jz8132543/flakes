@@ -50,17 +50,43 @@ locals {
     }
     ------------------------------------------------------------------------- */
 
-    # 针对 cu 节点的 1:1 端口映射特例（也可完全交由 nixos/hosts/cu/default.nix 处理）
+    # ── SD-WAN 控制节点 (三地互备主控) ─────────────────────────────────────────
+    "fra0" = {
+      is_controller = true
+      role          = "border"
+      ibgp          = true
+    }
+    "tyo0" = {
+      is_controller = true
+    }
+    "sjc0" = {
+      is_controller = true
+    }
+
+    # ── 边界路由与 iBGP 互联节点 ───────────────────────────────────────────────
+    "hkg0" = {
+      role = "border"
+      ibgp = true
+    }
+
+    # 针对 cu 节点的 1:1 端口映射特例与多线路端点 (联通 v4/v6 + 移动 v4/v6)
     "cu" = {
-      # ike_port   = 50560
+      role       = "border"
+      ibgp       = true
       nat_t_port = 50568
+      endpoints = {
+        "cu4" = "cu.dora.im:50568"
+        "cu6" = "cuv6.dora.im:50568"
+        "cm4" = "cm.dora.im:50568"
+        "cm6" = "cmv6.dora.im:50568"
+      }
     }
   }
 
   # 自动汇总所有主机名称（直接继承自 hosts.tf 中的主机集合，保持确定性排序）
   all_host_names = sort(keys(local.hosts))
 
-  # 为所有节点自动生成最终的 DN42 参数（合并默认值与 dn42_overrides）
+  # 为所有节点自动生成最终的 DN42 参数（合并默认值与 dn42_overrides，纯逻辑推导）
   dn42_nodes = {
     for idx, name in local.all_host_names : name => merge(
       {
@@ -69,9 +95,15 @@ locals {
         id            = try(local.hosts[name].id, try(local.hosts[name].host_indices[0], idx + 1))
         ike_port      = 500
         nat_t_port    = 4500
-        is_controller = contains(["fra0", "tyo0", "sjc0"], name)
-        role          = contains(["fra0", "hkg0", "cu"], name) ? "border" : "internal"
-        ibgp          = contains(["fra0", "hkg0", "cu"], name)
+        is_controller = false
+        role          = "internal"
+        ibgp          = false
+        nat           = length(try(local.hosts[name].records, {})) == 0
+        endpoints = try(local.dn42_overrides[name].endpoints, (
+          length(try(local.hosts[name].records, {})) > 0 ? {
+            "default" = "${name}.dora.im:${try(local.dn42_overrides[name].nat_t_port, 4500)}"
+          } : {}
+        ))
       },
       lookup(local.dn42_overrides, name, {})
     )

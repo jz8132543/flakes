@@ -24,7 +24,7 @@ variable "nat_t_port" {
 }
 variable "is_controller" {
   type    = bool
-  default = null
+  default = false
 }
 
 locals {
@@ -33,7 +33,7 @@ locals {
   dn42_addresses_v4     = [for i in var.host_indices : cidrhost(var.dn42_v4_cidr, i)]
   dn42_v6_prefixes      = [for i in var.host_indices : cidrsubnet(var.dn42_v6_cidr, 64 - local.dn42_v6_prefix_length, i)]
   dn42_addresses_v6     = [for p in local.dn42_v6_prefixes : cidrhost(p, 1)]
-  is_controller         = var.is_controller != null ? var.is_controller : contains(["fra0", "tyo0", "sjc0"], var.name)
+  is_controller         = var.is_controller
 }
 
 output "host_indices" {
