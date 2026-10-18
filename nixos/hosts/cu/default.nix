@@ -118,10 +118,6 @@
 
   networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   networking.firewall.allowedUDPPorts = lib.range 50560 50569;
-
-  deployment.targetHost = "cu.ts";
-  deployment.targetPort = 22;
-
   environment.networkTune = {
     enable = true;
     bandwidth = 1000; # Mbps 单向

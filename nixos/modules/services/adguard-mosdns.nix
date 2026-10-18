@@ -136,9 +136,9 @@ in
     # Adguard Home Configuration
     services.adguardhome = {
       enable = true;
-      port = cfg.webPort;
       mutableSettings = false;
       settings = {
+        http.address = "0.0.0.0:${toString cfg.webPort}";
         users = [
           {
             name = "i";

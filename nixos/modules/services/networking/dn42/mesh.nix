@@ -662,7 +662,8 @@ let
           ip link set "$IFACE" mtu 1360 multicast on up
           ethtool -K "$IFACE" tx off gso off gro off 2>/dev/null || true
 
-          ip -4 addr replace "''${SELF_IP4}/32" peer "''${PEER_IP4}/32" dev "$IFACE" 2>/dev/null || true
+          ip -4 addr replace "''${SELF_IP4}/32" dev "$IFACE" 2>/dev/null || true
+          ip route del "''${PEER_IP4}" dev "$IFACE" 2>/dev/null || true
           ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$IFACE" 2>/dev/null || true
           [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$IFACE" 2>/dev/null || true
 

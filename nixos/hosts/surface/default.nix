@@ -62,7 +62,6 @@
   # };
 
   # environment.isCN = true;
-
   environment.networkTune.cca = "bbr";
 
   environment.systemPackages = with pkgs; [

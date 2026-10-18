@@ -128,7 +128,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "rev"
+              "options": "Revision"
             },
             "properties": [
               {
@@ -188,12 +188,12 @@
         {
           "editorMode": "code",
           "exemplar": false,
-          "expr": "(nix_registry{name=\"self\",instance=\"$hosts\"} > 1)*1000",
+          "expr": "(nix_registry{name=\"self\",instance=~\"$hosts\"} > 1)*1000",
           "format": "table",
-          "instant": false,
+          "instant": true,
           "interval": "",
           "legendFormat": "Version",
-          "range": true,
+          "range": false,
           "refId": "Version"
         },
         {
@@ -202,15 +202,23 @@
           "expr": "max(nix_registry{name=\"self\"})*1000",
           "format": "time_series",
           "hide": false,
-          "instant": false,
+          "instant": true,
           "interval": "",
           "legendFormat": "Newest",
-          "range": true,
+          "range": false,
           "refId": "Newest"
         }
       ],
       "title": "Flake",
       "transformations": [
+        {
+          "id": "formatString",
+          "options": {
+            "outputFormat": "Substring",
+            "stringField": "rev",
+            "substringEnd": 8
+          }
+        },
         {
           "id": "configFromData",
           "options": {
@@ -249,14 +257,6 @@
               "rev": "Revision"
             }
           }
-        },
-        {
-          "id": "formatString",
-          "options": {
-            "outputFormat": "Substring",
-            "stringField": "rev",
-            "substringEnd": 8
-          }
         }
       ],
       "type": "stat"
@@ -293,7 +293,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "bytes"
         },
         "overrides": []
       },
@@ -309,7 +309,7 @@
         "minVizWidth": 75,
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["min"],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -320,15 +320,15 @@
       "pluginVersion": "12.1.0",
       "targets": [
         {
-          "expr": "avg by (instance, device) (node_filesystem_size_bytes{instance=\"$hosts\", fstype!~\"fuse.*|rclone\"} - node_filesystem_free_bytes{instance=\"$hosts\", fstype!~\"fuse.*|rclone\"} > 1000000000)",
-          "legendFormat": "device={{device}},type=used",
+          "expr": "max by (device) (node_filesystem_size_bytes{instance=~\"$hosts\", fstype!~\"fuse.*|rclone\", device!~\"tmpfs\"} - node_filesystem_free_bytes{instance=~\"$hosts\", fstype!~\"fuse.*|rclone\", device!~\"tmpfs\"} > 1000000000)",
+          "legendFormat": "{{device}}",
           "range": false,
           "instant": true,
           "refId": "Used Space"
         },
         {
-          "expr": "avg by (instance, device) (node_filesystem_size_bytes{instance=\"$hosts\", fstype!~\"fuse.*|rclone\"} > 1000000000)",
-          "legendFormat": "device={{device}},type=total",
+          "expr": "max by (device) (node_filesystem_size_bytes{instance=~\"$hosts\", fstype!~\"fuse.*|rclone\", device!~\"tmpfs\"} > 1000000000)",
+          "legendFormat": "{{device}}",
           "range": false,
           "instant": true,
           "refId": "Total Space"
@@ -337,65 +337,19 @@
       "title": "Storage",
       "transformations": [
         {
-          "id": "seriesToRows",
-          "options": {}
-        },
-        {
-          "id": "extractFields",
+          "id": "configFromData",
           "options": {
-            "delimiter": ",",
-            "keepTime": false,
-            "replace": false,
-            "source": "Metric"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Metric": true,
-              "Time": false
+            "applyTo": {
+              "id": "byFrameRefID",
+              "options": "Used Space"
             },
-            "includeByName": {},
-            "indexByName": {
-              "Metric": 1,
-              "Time": 0,
-              "Value": 4,
-              "device": 2,
-              "type": 3
-            },
-            "orderByMode": "manual",
-            "renameByName": {
-              "Time": ""
-            }
-          }
-        },
-        {
-          "id": "filterByValue",
-          "options": {
-            "filters": [
+            "configRefId": "Total Space",
+            "mappings": [
               {
-                "config": {
-                  "id": "equal",
-                  "options": {
-                    "value": "tmpfs"
-                  }
-                },
-                "fieldName": "device"
+                "fieldName": "Value",
+                "handlerKey": "max"
               }
-            ],
-            "match": "all",
-            "type": "exclude"
-          }
-        },
-        {
-          "id": "partitionByValues",
-          "options": {
-            "fields": ["device"],
-            "keepFields": false,
-            "naming": {
-              "asLabels": true
-            }
+            ]
           }
         }
       ],
@@ -441,7 +395,7 @@
               }
             ]
           },
-          "unit": "decbytes"
+          "unit": "bytes"
         },
         "overrides": []
       },
@@ -468,14 +422,14 @@
       "pluginVersion": "12.1.0",
       "targets": [
         {
-          "expr": "sum(node_memory_MemTotal_bytes{instance=\"$hosts\"} - node_memory_MemAvailable_bytes{instance=\"$hosts\"} or vector(0))",
+          "expr": "sum(node_memory_MemTotal_bytes{instance=~\"$hosts\"} - node_memory_MemAvailable_bytes{instance=~\"$hosts\"} or vector(0))",
           "instant": false,
           "legendFormat": "Used Memory",
           "range": true,
           "refId": "Used Memory"
         },
         {
-          "expr": "node_memory_MemTotal_bytes{instance=\"$hosts\"}",
+          "expr": "node_memory_MemTotal_bytes{instance=~\"$hosts\"}",
           "legendFormat": "Total Memory",
           "refId": "Total Memory"
         }
@@ -597,25 +551,25 @@
       "targets": [
         {
           "exemplar": false,
-          "expr": "node_load1{instance=\"$hosts\",job=\"hosts\"}",
+          "expr": "node_load1{instance=~\"$hosts\",job=\"node\"}",
           "instant": false,
-          "legendFormat": "load1",
+          "legendFormat": "load 1m",
           "range": true,
           "refId": "A"
         },
         {
           "exemplar": false,
-          "expr": "node_load5{instance=\"$hosts\",job=\"hosts\"}",
+          "expr": "node_load5{instance=~\"$hosts\",job=\"node\"}",
           "instant": false,
-          "legendFormat": "load5",
+          "legendFormat": "load 5m",
           "range": true,
           "refId": "B"
         },
         {
           "exemplar": false,
-          "expr": "node_load15{instance=\"$hosts\",job=\"hosts\"}",
+          "expr": "node_load15{instance=~\"$hosts\",job=\"node\"}",
           "instant": false,
-          "legendFormat": "load15",
+          "legendFormat": "load 15m",
           "range": true,
           "refId": "C"
         }
