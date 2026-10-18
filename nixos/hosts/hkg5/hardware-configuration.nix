@@ -40,9 +40,13 @@
       ];
       routes = [
         { Gateway = "216.23.94.1"; }
-        { Gateway = "2401:2660:2::1"; }
+        {
+          Gateway = "2401:2660:2::1";
+          GatewayOnLink = true;
+        }
       ];
     };
+    wait-online.anyInterface = true;
   };
 
   # Setup the disk for deployment (assume /dev/vda for qemu virtio_blk)

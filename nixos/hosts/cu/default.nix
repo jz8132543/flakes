@@ -26,7 +26,7 @@
   services.nextcloud-talk-edge = {
     # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）
     enable = true;
-    stunServer = "hkg5.dora.im";
+    stunServer = "stun.nextcloud.com";
   };
 
   boot.loader.grub.device = lib.mkForce "nodev";
@@ -112,12 +112,15 @@
     xz # 解压 .tar.xz 格式的系统镜像
   ];
   services.dn42 = {
-    ikePort = 50560;
-    natTPort = 50561; # 利用 cu 1:1 映射至公网的 5056x 端口
+    ikePort = 500;
+    natTPort = 50568; # 利用 cu 1:1 映射至公网的 50568 端口
   };
 
   networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   networking.firewall.allowedUDPPorts = lib.range 50560 50569;
+
+  deployment.targetHost = "cu.ts";
+  deployment.targetPort = 22;
 
   environment.networkTune = {
     enable = true;

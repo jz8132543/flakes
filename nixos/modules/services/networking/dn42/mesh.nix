@@ -400,8 +400,8 @@ let
               "cuv6.dora.im"
             else
               "";
-          natTPort = if name == "cu" then 50561 else (meshNode.natTPort or 4500);
-          ikePort = if name == "cu" then 50560 else (meshNode.ikePort or 500);
+          natTPort = meshNode.nat_t_port or (meshNode.natTPort or 4500);
+          ikePort = meshNode.ike_port or (meshNode.ikePort or 500);
         in
         {
           id = hIdx;
@@ -483,6 +483,14 @@ let
 
     if [ ! -s "$REGISTRY_FILE" ]; then
       cp "${bootstrapPeersFile}" "$REGISTRY_FILE"
+    else
+      ${pkgs.jq}/bin/jq -s '
+        (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
+        reduce ($bootstrap | to_entries[]) as $item ($cache;
+          if (.[$item.key] == null) or ((.[$item.key].updated_at // 0) == 0)
+          then .[$item.key] = $item.value else . end
+        )
+      ' "${bootstrapPeersFile}" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
     fi
 
     read -r request_line || exit 0
@@ -511,7 +519,7 @@ let
       body=$(head -c "$content_length")
       if echo "$body" | ${pkgs.jq}/bin/jq -e 'type == "object"' >/dev/null 2>&1; then
         PEER_ADDR="''${SOCAT_PEERADDR:-127.0.0.1}"
-        PROCESSED_BODY=$(echo "$body" | ${pkgs.jq} --arg ip "$PEER_ADDR" '
+        PROCESSED_BODY=$(echo "$body" | ${pkgs.jq}/bin/jq --arg ip "$PEER_ADDR" '
           to_entries | map(
             .value as $val |
             if $val.ipv4 == "auto" or $val.ipv4 == "" then
@@ -569,9 +577,17 @@ let
         SWAN_D="/run/swanctl/conf.d"
         mkdir -p "$STATE_DIR" "$SWAN_D"
 
-        # 1. 若本地缓存不存在，先用 Nix 编译期的 bootstrapPeersJson 初始化
+        # 1. 若本地缓存不存在，用 bootstrapPeersFile 初始化；若存在，用 bootstrap 刷新 updated_at == 0 的静态配置
         if [ ! -s "$CACHE_FILE" ]; then
           cp "${bootstrapPeersFile}" "$CACHE_FILE"
+        else
+          jq -s '
+            (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
+            reduce ($bootstrap | to_entries[]) as $item ($cache;
+              if (.[$item.key] == null) or ((.[$item.key].updated_at // 0) == 0)
+              then .[$item.key] = $item.value else . end
+            )
+          ' "${bootstrapPeersFile}" "$CACHE_FILE" > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
         fi
 
         SELF_NAME="${hostName}"
@@ -643,7 +659,7 @@ let
           if ! ip link show "$IFACE" >/dev/null 2>&1; then
             ip link add "$IFACE" type xfrm dev lo if_id "$PEER_ID"
           fi
-          ip link set "$IFACE" mtu 1360 up
+          ip link set "$IFACE" mtu 1360 multicast on up
           ethtool -K "$IFACE" tx off gso off gro off 2>/dev/null || true
 
           ip -4 addr replace "''${SELF_IP4}/32" peer "''${PEER_IP4}/32" dev "$IFACE" 2>/dev/null || true
@@ -660,6 +676,7 @@ let
             CHILD_START_ACTION="none"
             CHILD_DPD_ACTION="clear"
           else
+            REMOTE_ADDRS+=("0.0.0.0/0" "::/0")
             REMOTE_ADDR_STR=$(IFS=,; echo "''${REMOTE_ADDRS[*]}")
             CHILD_START_ACTION="trap|start"
             CHILD_DPD_ACTION="restart"
@@ -716,9 +733,10 @@ let
 
         mv "$HOSTS_TMP" /run/dn42-hosts
 
-        # 4. 仅在配置真正发生变化时增量热重载 strongSwan，不中断已有连接
+        # 4. 仅在配置真正发生变化时增量热重载 strongSwan 与 BIRD，不中断已有连接
         if [ "$CONF_CHANGED" -eq 1 ]; then
           swanctl --load-all --noprompt 2>/dev/null || true
+          birdc configure 2>/dev/null || true
         fi
   '';
 
