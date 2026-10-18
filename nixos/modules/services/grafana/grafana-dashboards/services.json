@@ -1,17 +1,336 @@
 {
-  "title": "Services",
+  "title": "Web Services & Public Endpoints SLA",
+  "description": "Production NOC monitoring for public web services, HTTP response latency, availability SLA, and SSL/TLS certificate lifecycles.",
   "editable": true,
-  "schemaVersion": 42,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["services", "sla", "blackbox", "noc", "production"],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "15s", "30s", "1m", "5m"]
+  },
+  "timezone": "browser",
+  "uid": "services-sla-noc",
+  "version": 1,
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus-default"
+        },
+        "definition": "label_values(probe_success{job=\"blackbox\"}, instance)",
+        "hide": 0,
+        "includeAll": true,
+        "allValue": ".*",
+        "label": "Service Target",
+        "multi": true,
+        "name": "target",
+        "options": [],
+        "query": {
+          "query": "label_values(probe_success{job=\"blackbox\"}, instance)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
   "panels": [
     {
-      "id": 1,
-      "title": "Service Status",
+      "id": 101,
+      "title": "\ud83c\udf1f \u603b\u4f53\u670d\u52a1\u53ef\u7528\u6027 (SLA Uptime)",
       "type": "stat",
       "gridPos": {
-        "h": 6,
-        "w": 24,
+        "h": 4,
+        "w": 6,
         "x": 0,
         "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EF4444",
+                "value": null
+              },
+              {
+                "color": "#F59E0B",
+                "value": 95
+              },
+              {
+                "color": "#10B981",
+                "value": 99
+              }
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["mean"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_success{job=\"blackbox\", instance=~\"$target\"}) * 100",
+          "legendFormat": "SLA",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "title": "\ud83d\udfe2 \u5728\u7ebf\u516c\u7f51\u7aef\u70b9 (Healthy Endpoints)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EF4444",
+                "value": null
+              },
+              {
+                "color": "#10B981",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "sum(probe_success{job=\"blackbox\", instance=~\"$target\"} == 1) or vector(0)",
+          "legendFormat": "Online Services",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 103,
+      "title": "\u26a1 \u5e73\u5747\u54cd\u5e94\u5ef6\u8fdf (Avg Global Latency)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#10B981",
+                "value": null
+              },
+              {
+                "color": "#F59E0B",
+                "value": 120
+              },
+              {
+                "color": "#EF4444",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_duration_seconds{job=\"blackbox\", instance=~\"$target\"} * 1000)",
+          "legendFormat": "Avg Latency",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 104,
+      "title": "\ud83d\udee1\ufe0f \u6700\u77ed SSL \u8bc1\u4e66\u6709\u6548\u671f (Nearest Cert Expiry)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#EF4444",
+                "value": null
+              },
+              {
+                "color": "#F59E0B",
+                "value": 15
+              },
+              {
+                "color": "#10B981",
+                "value": 30
+              }
+            ]
+          },
+          "unit": "d"
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "round(min((probe_ssl_earliest_cert_expiry{job=\"blackbox\", instance=~\"$target\"} - time()) / 86400))",
+          "legendFormat": "Days Left",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 4
+      },
+      "id": 200,
+      "title": "\ud83c\udf10 \u7ebf\u4e0a\u516c\u7f51\u670d\u52a1\u5b9e\u65f6\u53ef\u7528\u6027\u72b6\u6001\u4e0e SLA \u76d1\u63a7 (Live Service Health & Availability)",
+      "type": "row"
+    },
+    {
+      "id": 201,
+      "title": "\u5404\u516c\u7f51\u7aef\u70b9\u8fde\u7eed\u8fd0\u884c\u72b6\u6001\u65f6\u95f4\u7ebf (Service Health Timeline)",
+      "type": "state-timeline",
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
       },
       "fieldConfig": {
         "defaults": {
@@ -23,19 +342,12 @@
               "type": "value",
               "options": {
                 "0": {
-                  "text": "DOWN",
-                  "color": "red",
-                  "index": 0
-                }
-              }
-            },
-            {
-              "type": "value",
-              "options": {
+                  "color": "#EF4444",
+                  "text": "DOWN"
+                },
                 "1": {
-                  "text": "UP",
-                  "color": "green",
-                  "index": 1
+                  "color": "#10B981",
+                  "text": "UP"
                 }
               }
             }
@@ -44,52 +356,141 @@
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "red"
+                "color": "#EF4444",
+                "value": null
               },
               {
-                "value": 1,
-                "color": "green"
+                "color": "#10B981",
+                "value": 1
               }
             ]
           },
-          "unit": "none"
-        },
-        "overrides": []
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 0,
+            "showValue": "auto"
+          }
+        }
       },
       "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
+        "alignValue": "center",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
         },
-        "textMode": "value_and_name"
+        "mergeValues": true,
+        "rowHeight": 0.85,
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "refId": "A",
-          "expr": "probe_success{job=\"blackbox\"}",
-          "legendFormat": "{{ instance }}",
-          "instant": true,
           "datasource": {
+            "type": "prometheus",
             "uid": "prometheus-default"
-          }
+          },
+          "expr": "probe_success{job=\"blackbox\", instance=~\"$target\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
         }
       ]
     },
     {
-      "id": 2,
-      "title": "Response Time (ms)",
+      "id": 202,
+      "title": "\u5b9e\u65f6\u7aef\u5230\u7aef\u54cd\u5e94\u8017\u65f6\u5bf9\u6bd4 (Live Response Time Ranking)",
+      "type": "bargauge",
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#10B981",
+                "value": null
+              },
+              {
+                "color": "#3B82F6",
+                "value": 80
+              },
+              {
+                "color": "#F59E0B",
+                "value": 200
+              },
+              {
+                "color": "#EF4444",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "displayMode": "gradient",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "probe_duration_seconds{job=\"blackbox\", instance=~\"$target\"} * 1000",
+          "legendFormat": "{{instance}}",
+          "instant": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 300,
+      "title": "\u23f1\ufe0f \u54cd\u5e94\u8017\u65f6\u8d70\u52bf\u4e0e\u7f51\u7edc\u9636\u6bb5\u5206\u89e3 (HTTP Latency Trends & Phase Decomposition)",
+      "type": "row"
+    },
+    {
+      "id": 301,
+      "title": "\u5404\u7aef\u70b9 HTTP \u5b8c\u6574\u54cd\u5e94\u8017\u65f6\u8d70\u52bf (Response Latency Over Time)",
       "type": "timeseries",
       "gridPos": {
         "h": 8,
-        "w": 24,
+        "w": 14,
         "x": 0,
-        "y": 6
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
       },
       "fieldConfig": {
         "defaults": {
@@ -97,31 +498,21 @@
             "mode": "palette-classic"
           },
           "custom": {
-            "axisBorderShow": false,
-            "axisLabel": "",
-            "axisPlacement": "auto",
             "drawStyle": "line",
-            "fillOpacity": 10,
             "lineInterpolation": "smooth",
             "lineWidth": 2,
-            "pointSize": 5,
+            "fillOpacity": 10,
             "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            }
+            "spanNulls": false
           },
           "unit": "ms"
-        },
-        "overrides": []
+        }
       },
       "options": {
         "legend": {
           "calcs": ["mean", "max"],
           "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
+          "placement": "right"
         },
         "tooltip": {
           "mode": "multi",
@@ -130,83 +521,362 @@
       },
       "targets": [
         {
-          "refId": "A",
-          "expr": "probe_duration_seconds{job=\"blackbox\"} * 1000",
-          "legendFormat": "{{ instance }}",
           "datasource": {
+            "type": "prometheus",
             "uid": "prometheus-default"
-          }
+          },
+          "expr": "probe_duration_seconds{job=\"blackbox\", instance=~\"$target\"} * 1000",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
         }
       ]
     },
     {
-      "id": 3,
-      "title": "SSL Certificate Expiry",
-      "type": "stat",
+      "id": 302,
+      "title": "\u5168\u5c40\u7f51\u7edc\u63e1\u624b\u4e0e\u534f\u8bae\u9636\u6bb5\u8017\u65f6\u5206\u89e3 (Probe Phase Latencies)",
+      "type": "timeseries",
       "gridPos": {
-        "h": 4,
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 18,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "showPoints": "never"
+          },
+          "unit": "ms"
+        }
+      },
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_dns_lookup_time_seconds{job=\"blackbox\", instance=~\"$target\"} * 1000)",
+          "legendFormat": "DNS Lookup",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_duration_seconds{job=\"blackbox\", phase=\"connect\", instance=~\"$target\"} * 1000)",
+          "legendFormat": "TCP Connect",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_duration_seconds{job=\"blackbox\", phase=\"tls\", instance=~\"$target\"} * 1000)",
+          "legendFormat": "TLS Handshake",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "avg(probe_duration_seconds{job=\"blackbox\", phase=\"processing\", instance=~\"$target\"} * 1000)",
+          "legendFormat": "HTTP Processing",
+          "refId": "D"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
         "w": 24,
         "x": 0,
-        "y": 14
+        "y": 23
+      },
+      "id": 400,
+      "title": "\ud83d\udd12 SSL / TLS \u8bc1\u4e66\u5b89\u5168\u6027\u4e0e\u751f\u547d\u5468\u671f\u76d1\u63a7 (SSL Certificate Security & Expiry)",
+      "type": "row"
+    },
+    {
+      "id": 401,
+      "title": "\u5168\u670d\u52a1 SSL \u8bc1\u4e66\u6709\u6548\u671f\u4e0e HTTP \u72b6\u6001\u660e\u7ec6 (Certificate Lifecycle Inventory)",
+      "type": "table",
+      "gridPos": {
+        "h": 9,
+        "w": 15,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
       },
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Days Left"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#EF4444",
+                      "value": null
+                    },
+                    {
+                      "color": "#F59E0B",
+                      "value": 15
+                    },
+                    {
+                      "color": "#10B981",
+                      "value": 30
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "max",
+                "value": 90
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "unit",
+                "value": "d"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "HTTP Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#10B981",
+                      "value": 200
+                    },
+                    {
+                      "color": "#3B82F6",
+                      "value": 300
+                    },
+                    {
+                      "color": "#F59E0B",
+                      "value": 400
+                    },
+                    {
+                      "color": "#EF4444",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "footer": {
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Days Left",
+            "desc": false
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "round((probe_ssl_earliest_cert_expiry{job=\"blackbox\", instance=~\"$target\"} - time()) / 86400)",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "Days Left"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus-default"
+          },
+          "expr": "probe_http_status_code{job=\"blackbox\", instance=~\"$target\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "HTTP Status"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "instance"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true
+            },
+            "renameByName": {
+              "Value #Days Left": "Days Left",
+              "Value #HTTP Status": "HTTP Status",
+              "instance": "Endpoint URL"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 402,
+      "title": "SSL \u8bc1\u4e66\u5269\u4f59\u5929\u6570\u5012\u8ba1\u65f6\u8d8b\u52bf (Cert Days Countdown)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 9,
+        "w": 9,
+        "x": 15,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus-default"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "value": 0,
-                "color": "red"
+                "color": "#EF4444",
+                "value": null
               },
               {
-                "value": 7,
-                "color": "orange"
+                "color": "#F59E0B",
+                "value": 15
               },
               {
-                "value": 30,
-                "color": "green"
+                "color": "#10B981",
+                "value": 30
               }
             ]
           },
-          "unit": "d",
-          "decimals": 0
-        },
-        "overrides": []
+          "unit": "d"
+        }
       },
       "options": {
-        "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": ["last"],
-          "fields": "",
-          "values": false
+        "legend": {
+          "calcs": ["min"],
+          "displayMode": "table",
+          "placement": "bottom"
         },
-        "textMode": "value_and_name"
+        "tooltip": {
+          "mode": "multi",
+          "sort": "asc"
+        }
       },
       "targets": [
         {
-          "refId": "A",
-          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox\"} - time()) / 86400",
-          "legendFormat": "{{ instance }}",
-          "instant": true,
           "datasource": {
+            "type": "prometheus",
             "uid": "prometheus-default"
-          }
+          },
+          "expr": "(probe_ssl_earliest_cert_expiry{job=\"blackbox\", instance=~\"$target\"} - time()) / 86400",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
         }
       ]
     }
-  ],
-  "templating": {
-    "list": []
-  },
-  "time": {
-    "from": "now-1h",
-    "to": "now"
-  },
-  "refresh": "30s"
+  ]
 }

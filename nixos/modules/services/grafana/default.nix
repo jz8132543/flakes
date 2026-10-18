@@ -46,6 +46,7 @@ let
         cp ${./grafana-dashboards/node-exporter-full.json} "$out/node-exporter-full.json"
         cp ${./grafana-dashboards/postgresql.json} "$out/postgresql.json"
         cp ${./grafana-dashboards/services.json} "$out/services.json"
+        cp ${./grafana-dashboards/traefik.json} "$out/traefik.json"
         cat > "$out/hosts.json" <<'EOF'
     ${builtins.toJSON hostsDashboard}
     EOF
