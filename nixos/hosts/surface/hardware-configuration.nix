@@ -118,4 +118,7 @@
 
   # 禁用 iio-sensor-proxy，防止环境光传感器引发屏幕亮度正反馈死循环
   hardware.sensor.iio.enable = false;
+
+  # Surface Pro 屏幕适配 200% 高分屏缩放 (192 DPI)
+  home-manager.users.tippy.wayland.dpi = 192;
 }

@@ -58,6 +58,52 @@
       };
     };
 
+    podman = {
+      enable = lib.mkEnableOption "WinApps integration with Rootless Podman (dockurr/windows)";
+
+      autoStart = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to start the Podman Windows container at boot.";
+      };
+
+      version = lib.mkOption {
+        type = lib.types.str;
+        default = "tiny10";
+        description = "Windows version to deploy in dockurr/windows.";
+      };
+
+      language = lib.mkOption {
+        type = lib.types.str;
+        default = "Chinese";
+        description = "Windows display language.";
+      };
+
+      ramSize = lib.mkOption {
+        type = lib.types.str;
+        default = "4G";
+        description = "RAM allocated to the Windows VM.";
+      };
+
+      cpuCores = lib.mkOption {
+        type = lib.types.int;
+        default = 4;
+        description = "CPU cores allocated to the Windows VM.";
+      };
+
+      storagePath = lib.mkOption {
+        type = lib.types.str;
+        default = "/home/tippy/Storage/WinApps";
+        description = "Host directory where Windows virtual disk is stored.";
+      };
+
+      sharedPath = lib.mkOption {
+        type = lib.types.str;
+        default = "/home/tippy/Storage/BottlesShare";
+        description = "Shared host directory passed to the container.";
+      };
+    };
+
     userName = lib.mkOption {
       type = lib.types.str;
       default = "tippy";
@@ -70,5 +116,7 @@
     ./libvirt.nix
     ./vm-definition.nix
     ./docker-windows.nix
+    ./podman-windows.nix
+    ./oem.nix
   ];
 }

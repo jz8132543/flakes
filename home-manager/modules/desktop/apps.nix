@@ -11,62 +11,62 @@ let
   documentAssociations = {
     # Microsoft Word / WPS 文字 (默认优先使用 Microsoft Word)
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/msword" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word.document.macroEnabled.12" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/msword-template" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/x-msword" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/rtf" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.docx" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.doc" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.dot" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.dotx" = [
-      "ms365-word.desktop"
+      "winapps-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
@@ -159,67 +159,67 @@ let
 
     # Microsoft Excel / WPS 表格 (默认优先使用 Microsoft Excel)
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/msexcel" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/x-msexcel" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.sheet.macroEnabled.12" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.template.macroEnabled.12" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.sheet.binary.macroenabled.12" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "text/csv" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlsx" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xls" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlt" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xltx" = [
-      "ms365-excel.desktop"
+      "winapps-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
@@ -252,67 +252,67 @@ let
 
     # Microsoft PowerPoint / WPS 演示 (默认优先使用 Microsoft PowerPoint)
     "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.ms-powerpoint" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/mspowerpoint" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/powerpoint" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/x-mspowerpoint" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.mspowerpoint" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.template" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pptx" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.ppt" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pot" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.potx" = [
-      "ms365-powerpoint.desktop"
+      "winapps-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
@@ -715,35 +715,35 @@ in
     ];
   };
 
-  home.activation.extractMs365Icons = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-        OFFICE_DIR="$HOME/.local/share/ms365/prefix/drive_c/Program Files/Microsoft Office/root/Office16"
-        ICONS_DIR="$HOME/.local/share/icons/hicolor"
-        if [ -d "$OFFICE_DIR" ] && [ ! -f "$ICONS_DIR/256x256/apps/ms365-word.png" ]; then
-          tmp=$(${pkgs.coreutils}/bin/mktemp -d)
-          for app in word excel powerpoint onenote outlook access publisher; do
-            case "$app" in
-              word) exe="WINWORD" ;; excel) exe="EXCEL" ;; powerpoint) exe="POWERPNT" ;;
-              onenote) exe="ONENOTE" ;; outlook) exe="OUTLOOK" ;; access) exe="MSACCESS" ;; publisher) exe="MSPUB" ;;
-            esac
-            name="ms365-$app"
-            group=$(${pkgs.icoutils}/bin/wrestool -l -t 14 "$OFFICE_DIR/$exe.EXE" 2>/dev/null | ${pkgs.coreutils}/bin/head -1 | ${pkgs.gnused}/bin/sed -n "s/.*--name=\([^ ]*\).*/\1/p")
-            if [ -n "$group" ] && ${pkgs.icoutils}/bin/wrestool -x -t 14 -n "$group" -o "$tmp/$app.ico" "$OFFICE_DIR/$exe.EXE" 2>/dev/null; then
-              ${pkgs.python3}/bin/python3 - "$tmp/$app.ico" "$ICONS_DIR" "$name" << "PY"
-    import os, struct, sys
-    ico, icons_dir, name = sys.argv[1:]
-    data = open(ico, "rb").read()
-    for i in range(struct.unpack_from("<H", data, 4)[0]):
-        w, h, _, _, _, _, size, off = struct.unpack_from("<BBBBHHII", data, 6 + 16 * i)
-        w, img = w or 256, data[off:off + size]
-        if w in (16, 24, 32, 48, 64, 128, 256) and w == (h or 256) and img[:8] == b"\x89PNG\r\n\x1a\n":
-            path = os.path.join(icons_dir, f"{w}x{w}", "apps", f"{name}.png")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            open(path, "wb").write(img)
-    PY
-            fi
-          done
-          ${pkgs.coreutils}/bin/rm -rf "$tmp"
-          ${pkgs.gtk3}/bin/gtk-update-icon-cache -q -t "$ICONS_DIR" 2>/dev/null || true
-        fi
-  '';
+  # home.activation.extractMs365Icons = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  #       OFFICE_DIR="$HOME/.local/share/ms365/prefix/drive_c/Program Files/Microsoft Office/root/Office16"
+  #       ICONS_DIR="$HOME/.local/share/icons/hicolor"
+  #       if [ -d "$OFFICE_DIR" ] && [ ! -f "$ICONS_DIR/256x256/apps/ms365-word.png" ]; then
+  #         tmp=$(${pkgs.coreutils}/bin/mktemp -d)
+  #         for app in word excel powerpoint onenote outlook access publisher; do
+  #           case "$app" in
+  #             word) exe="WINWORD" ;; excel) exe="EXCEL" ;; powerpoint) exe="POWERPNT" ;;
+  #             onenote) exe="ONENOTE" ;; outlook) exe="OUTLOOK" ;; access) exe="MSACCESS" ;; publisher) exe="MSPUB" ;;
+  #           esac
+  #           name="ms365-$app"
+  #           group=$(${pkgs.icoutils}/bin/wrestool -l -t 14 "$OFFICE_DIR/$exe.EXE" 2>/dev/null | ${pkgs.coreutils}/bin/head -1 | ${pkgs.gnused}/bin/sed -n "s/.*--name=\([^ ]*\).*/\1/p")
+  #           if [ -n "$group" ] && ${pkgs.icoutils}/bin/wrestool -x -t 14 -n "$group" -o "$tmp/$app.ico" "$OFFICE_DIR/$exe.EXE" 2>/dev/null; then
+  #             ${pkgs.python3}/bin/python3 - "$tmp/$app.ico" "$ICONS_DIR" "$name" << "PY"
+  #   import os, struct, sys
+  #   ico, icons_dir, name = sys.argv[1:]
+  #   data = open(ico, "rb").read()
+  #   for i in range(struct.unpack_from("<H", data, 4)[0]):
+  #       w, h, _, _, _, _, size, off = struct.unpack_from("<BBBBHHII", data, 6 + 16 * i)
+  #       w, img = w or 256, data[off:off + size]
+  #       if w in (16, 24, 32, 48, 64, 128, 256) and w == (h or 256) and img[:8] == b"\x89PNG\r\n\x1a\n":
+  #           path = os.path.join(icons_dir, f"{w}x{w}", "apps", f"{name}.png")
+  #           os.makedirs(os.path.dirname(path), exist_ok=True)
+  #           open(path, "wb").write(img)
+  #   PY
+  #           fi
+  #         done
+  #         ${pkgs.coreutils}/bin/rm -rf "$tmp"
+  #         ${pkgs.gtk3}/bin/gtk-update-icon-cache -q -t "$ICONS_DIR" 2>/dev/null || true
+  #       fi
+  # '';
 }

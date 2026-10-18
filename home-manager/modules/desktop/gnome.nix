@@ -307,6 +307,7 @@ in
       "file://${config.home.homeDirectory}/.local/XDG/Music"
       "file://${config.home.homeDirectory}/.local/XDG/Pictures"
       "file://${config.home.homeDirectory}/.local/XDG/Videos"
+      "file://${config.home.homeDirectory}/Storage/BottlesShare Bottles 共享目录"
     ];
   };
   qt = {

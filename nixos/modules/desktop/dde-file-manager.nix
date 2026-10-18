@@ -22,13 +22,31 @@ let
     systemFixedFont=Noto Mono
   '';
 
+  deepin-dsg-conf = pkgs.writeTextDir "share/dsg/configs/org.kde.kwin/org.kde.kwin.compositing.json" ''
+    {
+        "magic": "dsg.config.meta",
+        "version": "1.0",
+        "contents": {
+            "user_type": {
+                "value": 4,
+                "serial": 0,
+                "flags": [],
+                "name": "user_type",
+                "description": "window effect type: 4 disables window-behind blur and forces opaque sidebar",
+                "permissions": "readwrite",
+                "visibility": "public"
+            }
+        }
+    }
+  '';
+
   # 原生包轻量包装：仅注入自身独立环境变量与优化桌面项，完全不重编、不修改原生二进制
   dde-file-manager-wrapped = pkgs.symlinkJoin {
     name = "dde-file-manager-wrapped";
     paths = [ dde-pkgs.dde-file-manager ];
     nativeBuildInputs = [ pkgs.makeWrapper ];
     postBuild = ''
-            # 包装 file-manager.sh 注入独立 Deepin 原生主题、DConfig 本地后端与环境变量
+            # 包装 file-manager.sh 注入独立 Deepin 原生主题、DConfig 本地后端、DSG 目录与环境变量
             wrapProgram $out/bin/file-manager.sh \
               --set QT_QPA_PLATFORMTHEME "deepin" \
               --set QT_STYLE_OVERRIDE "chameleon" \
@@ -37,12 +55,14 @@ let
               --set DSG_DCONFIG_BACKEND_TYPE "FileBackend" \
               --set XDG_CURRENT_DESKTOP "DDE" \
               --set D_QT_THEME_CONFIG_PATH "${deepin-qt-theme-conf}" \
-              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share:${pkgs.papirus-icon-theme}/share"
+              --set DSG_DATA_DIRS "${deepin-dsg-conf}/share/dsg:${dde-pkgs.dde-file-manager}/share/dsg:${dde-pkgs.dtkcommon}/share/dsg:/run/current-system/sw/share/dsg" \
+              --prefix XDG_DATA_DIRS : "${deepin-dsg-conf}/share:${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share:${pkgs.papirus-icon-theme}/share"
 
             # 包装 dde-file-manager-daemon 确保后台服务也使用 FileBackend 读取配置
             wrapProgram $out/bin/dde-file-manager-daemon \
               --set DSG_DCONFIG_BACKEND_TYPE "FileBackend" \
-              --prefix XDG_DATA_DIRS : "${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share"
+              --set DSG_DATA_DIRS "${deepin-dsg-conf}/share/dsg:${dde-pkgs.dde-file-manager}/share/dsg:${dde-pkgs.dtkcommon}/share/dsg:/run/current-system/sw/share/dsg" \
+              --prefix XDG_DATA_DIRS : "${deepin-dsg-conf}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share"
 
             # 让 bin/dde-file-manager 直接执行包装后的 file-manager.sh，跳过在非 DDE 环境下会被宿主接管或超时的 DBus 流程
             rm $out/bin/dde-file-manager
@@ -80,6 +100,7 @@ in
     dde-pkgs.deepin-desktop-theme
     dde-pkgs.dtkcommon
     pkgs.papirus-icon-theme
+    deepin-dsg-conf
   ];
 
   # 链接 DSG、Deepin 资源与主题目录，供 DTK 识别 preference 和主题资源

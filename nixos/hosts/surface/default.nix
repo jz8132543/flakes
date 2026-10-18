@@ -33,18 +33,17 @@
     mode = "sync";
   };
 
-  # desktop.winapps = {
-  #   kvm = {
-  #     enable = true;
-  #     enableVirtIO = true;
-  #     enableCdrom = false;
-  #   };
-  #   docker = {
-  #     enable = true;
-  #     enableVirtIO = true;
-  #     enableCdrom = false;
-  #   };
-  # };
+  desktop.winapps = {
+    podman = {
+      enable = true;
+      version = "tiny10";
+      language = "Chinese";
+      ramSize = "4G";
+      cpuCores = 4;
+      storagePath = "/home/tippy/Storage/WinApps";
+      sharedPath = "/home/tippy/Storage/BottlesShare";
+    };
+  };
 
   users.users.tippy.extraGroups = [ "surface-control" ];
 
@@ -70,7 +69,7 @@
     surface-control
     usbutils
     v4l-utils
-    ms365
+    # ms365
     # nemo-with-extensions
     # nemo-fileroller
     # cinnamon.nemo

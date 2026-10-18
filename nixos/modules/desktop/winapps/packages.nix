@@ -10,7 +10,7 @@ let
   cfg = config.desktop.winapps;
 in
 {
-  config = lib.mkIf (cfg.kvm.enable || cfg.docker.enable) {
+  config = lib.mkIf (cfg.kvm.enable || cfg.docker.enable || cfg.podman.enable) {
     environment.systemPackages =
       with pkgs;
       [
