@@ -1,6 +1,5 @@
 {
   config,
-  inputs,
   nixosModules,
   pkgs,
   ...
@@ -27,7 +26,7 @@
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
-    inputs.office365.packages.${pkgs.system}.default
+    ms365
   ];
   desktop.nvidia = {
     mode = "offload";

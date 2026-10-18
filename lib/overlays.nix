@@ -36,6 +36,37 @@
       '';
     };
 
+    ms365 =
+      if (inputs ? office365) && (prev.stdenv.hostPlatform.system == "x86_64-linux") then
+        let
+          orig = inputs.office365.packages.${prev.stdenv.hostPlatform.system}.default;
+        in
+        prev.symlinkJoin {
+          name = "${orig.name or "ms365"}-gnome-auto-dpi";
+          inherit (orig) meta;
+          paths = [ orig ];
+          nativeBuildInputs = [ prev.makeWrapper ];
+          postBuild = ''
+            for bin in $out/bin/ms365*; do
+              if [ -f "$bin" ] && [ -x "$bin" ]; then
+                wrapProgram "$bin" \
+                  --run '
+                    if [ -z "$MS365_DPI" ]; then
+                      scale=$(gdbus call --session --dest org.gnome.Mutter.DisplayConfig --object-path /org/gnome/Mutter/DisplayConfig --method org.gnome.Mutter.DisplayConfig.GetCurrentState 2>/dev/null | sed -E -n "s/.*\[\([0-9]+, [0-9]+, ([0-9.]+), uint32 [0-9]+, (true|false).*/\1/p")
+                      if [ -z "$scale" ]; then
+                        scale=$(gsettings get org.gnome.desktop.interface scaling-factor 2>/dev/null | awk "{print \$2}")
+                        [ "$scale" = "0" ] || [ -z "$scale" ] && scale=1.0
+                      fi
+                      export MS365_DPI=$(awk -v s="$scale" "BEGIN { dpi = int(96 * s + 0.5); if (dpi >= 192) dpi = 180; print dpi }")
+                    fi
+                  '
+              fi
+            done
+          '';
+        }
+      else
+        null;
+
     # perlPackages = prev.perlPackages.overrideScope (
     #   _pfinal: _pprev: {
     #     URIws = prev.emptyDirectory;

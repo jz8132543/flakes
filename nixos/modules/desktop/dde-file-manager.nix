@@ -6,29 +6,51 @@
 let
   dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin;
 
+  deepin-qt-theme-conf = pkgs.writeTextDir "deepin/qt-theme.ini" ''
+    [Theme]
+    IconThemeName=bloom
+    iconThemeName=bloom
+    FallbackIconThemeName=bloom
+    fallbackIconThemeName=bloom
+    StyleNames=chameleon
+    styleNames=chameleon
+    Font=Source Han Sans SC
+    FontSize=10.5
+    MonoFont=Noto Mono
+    systemFont=Source Han Sans SC
+    systemFontPointSize=10.5
+    systemFixedFont=Noto Mono
+  '';
+
   # 原生包轻量包装：仅注入自身独立环境变量与优化桌面项，完全不重编、不修改原生二进制
   dde-file-manager-wrapped = pkgs.symlinkJoin {
     name = "dde-file-manager-wrapped";
     paths = [ dde-pkgs.dde-file-manager ];
     nativeBuildInputs = [ pkgs.makeWrapper ];
     postBuild = ''
-            # 仅给 dde-file-manager 独立注入 Deepin 原生主题环境变量，隔离系统其他 Qt 程序
-            wrapProgram $out/bin/dde-file-manager \
-              --set QT_QPA_PLATFORMTHEME "deepin" \
-              --set QT_STYLE_OVERRIDE "chameleon" \
-              --set QT_QPA_PLATFORM "wayland;xcb" \
-              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share"
-
-      <<<<<<< HEAD
-              # 修复 desktop 文件中的 Exec 绝对路径，使其指向 Nix 包装后的二进制
-              sed -i "s|Exec=.*dde-file-manager|Exec=$out/bin/dde-file-manager|g" $out/share/applications/dde-file-manager.desktop || true
-      =======
+            # 包装 file-manager.sh 注入独立 Deepin 原生主题、DConfig 本地后端与环境变量
             wrapProgram $out/bin/file-manager.sh \
               --set QT_QPA_PLATFORMTHEME "deepin" \
               --set QT_STYLE_OVERRIDE "chameleon" \
               --set QT_QPA_PLATFORM "wayland;xcb" \
-              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share"
-      >>>>>>> refs/remotes/origin/main
+              --set QT_QPA_SYSTEM_ICON_THEME "bloom" \
+              --set DSG_DCONFIG_BACKEND_TYPE "FileBackend" \
+              --set XDG_CURRENT_DESKTOP "DDE" \
+              --set D_QT_THEME_CONFIG_PATH "${deepin-qt-theme-conf}" \
+              --prefix XDG_DATA_DIRS : "${dde-pkgs.deepin-icon-theme}/share:${dde-pkgs.deepin-desktop-theme}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share:${pkgs.papirus-icon-theme}/share"
+
+            # 包装 dde-file-manager-daemon 确保后台服务也使用 FileBackend 读取配置
+            wrapProgram $out/bin/dde-file-manager-daemon \
+              --set DSG_DCONFIG_BACKEND_TYPE "FileBackend" \
+              --prefix XDG_DATA_DIRS : "${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share"
+
+            # 让 bin/dde-file-manager 直接执行包装后的 file-manager.sh，跳过在非 DDE 环境下会被宿主接管或超时的 DBus 流程
+            rm $out/bin/dde-file-manager
+            cat << 'EOF' > $out/bin/dde-file-manager
+      #!/bin/sh
+      exec $(dirname "$0")/file-manager.sh "$@"
+      EOF
+            chmod +x $out/bin/dde-file-manager
 
             # 1. 修复并暴露 dde-computer.desktop（“计算机 / 此电脑”快捷方式）
             rm $out/share/applications/dde-computer.desktop
@@ -57,14 +79,16 @@ in
     dde-pkgs.deepin-icon-theme
     dde-pkgs.deepin-desktop-theme
     dde-pkgs.dtkcommon
+    pkgs.papirus-icon-theme
   ];
 
-  # 链接 DSG 配置目录，供 DTK 识别 preference
-  environment.pathsToLink = [ "/share/dsg" ];
+  # 链接 DSG、Deepin 资源与主题目录，供 DTK 识别 preference 和主题资源
+  environment.pathsToLink = [
+    "/share/dsg"
+    "/share/deepin"
+    "/share/deepin-themes"
+  ];
 
-  # 启用底层后台服务与文件系统挂载支持
-  services.dbus.packages = [ dde-pkgs.dde-file-manager ];
-  systemd.packages = [ dde-pkgs.dde-file-manager ];
-  systemd.user.services.dde-file-manager.wantedBy = [ "default.target" ];
+  # 基础文件管理挂载支持
   services.gvfs.enable = true;
 }

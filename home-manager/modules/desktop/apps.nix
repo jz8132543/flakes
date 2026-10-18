@@ -8,40 +8,70 @@ let
   writerTemplate = wpsTemplateRoot + "/Normal.dotm";
   sheetTemplate = wpsTemplateRoot + "/Normal.xltx";
   slidesTemplate = wpsTemplateRoot + "/Normal.pot";
-  wpsAssociations = {
-    # WPS Writer (Word)
-    "application/msword" = [
+  documentAssociations = {
+    # Microsoft Word / WPS 文字 (默认优先使用 Microsoft Word)
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
+    "application/msword" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word.document.macroEnabled.12" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/msword-template" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
-    "application/wps-office.doc" = [
+    "application/x-msword" = [
+      "ms365-word.desktop"
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/rtf" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.docx" = [
+      "ms365-word.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
+    "application/wps-office.doc" = [
+      "ms365-word.desktop"
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.dot" = [
+      "ms365-word.desktop"
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+    "application/wps-office.dotx" = [
+      "ms365-word.desktop"
+      "wps-office-wps.desktop"
+      "wps-writer.desktop"
+    ];
+
+    # 金山专有格式（.wps / .wpt 等二进制格式 Office 无法正常解析，保持关联给 WPS）
     "application/wps-office.wps" = [
       "wps-office-wps.desktop"
       "wps-writer.desktop"
@@ -50,11 +80,11 @@ let
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
-    "application/wps-office.dot" = [
+    "application/kswps" = [
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
-    "application/wps-office.dotx" = [
+    "application/wps-office.uot" = [
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
@@ -63,10 +93,6 @@ let
       "wps-writer.desktop"
     ];
     "application/wps-office.uott3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uot" = [
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
@@ -91,14 +117,6 @@ let
       "wps-writer.desktop"
     ];
     "application/wps-office.uopt3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/x-msword" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/rtf" = [
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
@@ -139,43 +157,74 @@ let
       "wps-writer.desktop"
     ];
 
-    # WPS Spreadsheet (Excel)
+    # Microsoft Excel / WPS 表格 (默认优先使用 Microsoft Excel)
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
+      "ms365-excel.desktop"
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
     "application/vnd.ms-excel" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/msexcel" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
+    "application/x-msexcel" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.sheet.macroEnabled.12" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
-    "application/wps-office.xls" = [
+    "application/vnd.ms-excel.template.macroEnabled.12" = [
+      "ms365-excel.desktop"
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/vnd.ms-excel.sheet.binary.macroenabled.12" = [
+      "ms365-excel.desktop"
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "text/csv" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlsx" = [
+      "ms365-excel.desktop"
+      "wps-office-et.desktop"
+      "wps-spreadsheet.desktop"
+    ];
+    "application/wps-office.xls" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlt" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xltx" = [
+      "ms365-excel.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
+
+    # 金山专有表格格式（.et 等）
     "application/wps-office.et" = [
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
@@ -192,10 +241,6 @@ let
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
-    "application/x-msexcel" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
     "x-scheme-handler/ksoet" = [
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
@@ -205,55 +250,74 @@ let
       "wps-spreadsheet.desktop"
     ];
 
-    # WPS Presentation (PowerPoint)
+    # Microsoft PowerPoint / WPS 演示 (默认优先使用 Microsoft PowerPoint)
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
+      "ms365-powerpoint.desktop"
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
     "application/vnd.ms-powerpoint" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/mspowerpoint" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/powerpoint" = [
+      "ms365-powerpoint.desktop"
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/x-mspowerpoint" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.mspowerpoint" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.template" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.ppt" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pptx" = [
+      "ms365-powerpoint.desktop"
+      "wps-office-wpp.desktop"
+      "wps-presentation.desktop"
+    ];
+    "application/wps-office.ppt" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pot" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.potx" = [
+      "ms365-powerpoint.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
+
+    # 金山专有演示格式（.dps 等）
     "application/wps-office.dps" = [
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
@@ -270,10 +334,6 @@ let
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
-    "application/x-mspowerpoint" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
     "x-scheme-handler/ksowpp" = [
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
@@ -283,7 +343,7 @@ let
       "wps-presentation.desktop"
     ];
 
-    # WPS PDF Internal MIME (DOES NOT affect real application/pdf, only satisfies WPS startup health checks)
+    # WPS PDF 内部 MIME
     "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ];
   };
 in
@@ -537,8 +597,8 @@ in
 
   xdg.mimeApps = {
     enable = true;
-    associations.added = wpsAssociations;
-    defaultApplications = wpsAssociations;
+    associations.added = documentAssociations;
+    defaultApplications = documentAssociations;
   };
 
   xdg.desktopEntries = {
@@ -654,4 +714,36 @@ in
       # ".config/monitors.xml" # Removed to allow GNOME to adaptively configure monitors based on EDID
     ];
   };
+
+  home.activation.extractMs365Icons = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        OFFICE_DIR="$HOME/.local/share/ms365/prefix/drive_c/Program Files/Microsoft Office/root/Office16"
+        ICONS_DIR="$HOME/.local/share/icons/hicolor"
+        if [ -d "$OFFICE_DIR" ] && [ ! -f "$ICONS_DIR/256x256/apps/ms365-word.png" ]; then
+          tmp=$(${pkgs.coreutils}/bin/mktemp -d)
+          for app in word excel powerpoint onenote outlook access publisher; do
+            case "$app" in
+              word) exe="WINWORD" ;; excel) exe="EXCEL" ;; powerpoint) exe="POWERPNT" ;;
+              onenote) exe="ONENOTE" ;; outlook) exe="OUTLOOK" ;; access) exe="MSACCESS" ;; publisher) exe="MSPUB" ;;
+            esac
+            name="ms365-$app"
+            group=$(${pkgs.icoutils}/bin/wrestool -l -t 14 "$OFFICE_DIR/$exe.EXE" 2>/dev/null | ${pkgs.coreutils}/bin/head -1 | ${pkgs.gnused}/bin/sed -n "s/.*--name=\([^ ]*\).*/\1/p")
+            if [ -n "$group" ] && ${pkgs.icoutils}/bin/wrestool -x -t 14 -n "$group" -o "$tmp/$app.ico" "$OFFICE_DIR/$exe.EXE" 2>/dev/null; then
+              ${pkgs.python3}/bin/python3 - "$tmp/$app.ico" "$ICONS_DIR" "$name" << "PY"
+    import os, struct, sys
+    ico, icons_dir, name = sys.argv[1:]
+    data = open(ico, "rb").read()
+    for i in range(struct.unpack_from("<H", data, 4)[0]):
+        w, h, _, _, _, _, size, off = struct.unpack_from("<BBBBHHII", data, 6 + 16 * i)
+        w, img = w or 256, data[off:off + size]
+        if w in (16, 24, 32, 48, 64, 128, 256) and w == (h or 256) and img[:8] == b"\x89PNG\r\n\x1a\n":
+            path = os.path.join(icons_dir, f"{w}x{w}", "apps", f"{name}.png")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            open(path, "wb").write(img)
+    PY
+            fi
+          done
+          ${pkgs.coreutils}/bin/rm -rf "$tmp"
+          ${pkgs.gtk3}/bin/gtk-update-icon-cache -q -t "$ICONS_DIR" 2>/dev/null || true
+        fi
+  '';
 }

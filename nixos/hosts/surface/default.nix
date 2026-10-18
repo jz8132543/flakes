@@ -1,5 +1,4 @@
 {
-  inputs,
   nixosModules,
   lib,
   pkgs,
@@ -71,7 +70,7 @@
     surface-control
     usbutils
     v4l-utils
-    inputs.office365.packages.${pkgs.system}.default
+    ms365
     # nemo-with-extensions
     # nemo-fileroller
     # cinnamon.nemo
