@@ -674,6 +674,8 @@ let
         HOSTS_TMP="/run/dn42-hosts.tmp"
         : > "$HOSTS_TMP"
         ACTIVE_CONF_FILES=()
+        ALL_TUNNEL_INSTANCES=()
+        ACTIVE_IFACES=()
 
         MY_EPS=$(jq -c --arg s "$SELF_NAME" '.[$s].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
         MY_EPS_COUNT=$(echo "$MY_EPS" | jq 'keys | length' 2>/dev/null || echo "0")
@@ -693,10 +695,6 @@ let
           PEER_PORT=$(jq -r --arg p "$peer" '.[$p].nat_t_port // 4500' "$CACHE_FILE")
           [ -z "$PEER_PORT" ] && PEER_PORT=4500
 
-          # 收集针对该对端生成的所有物理隧道实例元组:
-          # "IFACE;IF_ID;CONN_NAME;LOCAL_ADDRS;REMOTE_ADDRS;REMOTE_PORT;START_ACTION;DPD_ACTION"
-          TUNNEL_INSTANCES=()
-
           if [ "$PEER_EPS_COUNT" -gt 1 ]; then
             # Case A: 对端定义了多条公网线路端点 (如 cu 的 4 端点)
             k_idx=0
@@ -715,7 +713,9 @@ let
               start_action="start"
               dpd_action="restart"
 
-              TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action")
+              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action;$PEER_IP4;$peer")
+              ACTIVE_IFACES+=("$iface")
+              ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
               k_idx=$(( k_idx + 1 ))
             done
 
@@ -747,7 +747,9 @@ let
               conn_name="dn42-''${peer}-''${my_name}"
               local_addrs="''${my_host}"
 
-              TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action")
+              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$peer")
+              ACTIVE_IFACES+=("$iface")
+              ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
               k_idx=$(( k_idx + 1 ))
             done
 
@@ -771,28 +773,56 @@ let
               dpd_action="clear"
             fi
 
-            TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action")
+            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$peer")
+            ACTIVE_IFACES+=("$iface")
+            ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
           fi
+        done
 
-          # 实例化所有隧道：XFRM 设备与 swanctl 配置
-          for inst in "''${TUNNEL_INSTANCES[@]}"; do
-            IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd <<< "$inst"
+        # 3a. 清理已废弃的旧 dn42x-* 虚拟网卡（防止节点端点重命名/扩充时发生 if_id 冲突 EEXIST）
+        for existing_iface in $(ip -o link show type xfrm 2>/dev/null | awk -F': ' '{print $2}' | awk -F'@' '{print $1}'); do
+          [[ "$existing_iface" =~ ^dn42x- ]] || continue
+          if ! [[ " ''${ACTIVE_IFACES[*]} " =~ " ''${existing_iface} " ]]; then
+            ip link del "$existing_iface" 2>/dev/null || true
+          fi
+        done
 
-            if ! ip link show "$t_iface" >/dev/null 2>&1; then
-              ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id"
+        # 3b. 清理已废弃的旧 sdwan-*.conf 配置文件
+        for existing_conf in "$SWAN_D"/sdwan-*.conf; do
+          [ -e "$existing_conf" ] || continue
+          base_name=$(basename "$existing_conf")
+          if ! [[ " ''${ACTIVE_CONF_FILES[*]} " =~ " ''${base_name} " ]]; then
+            rm -f "$existing_conf"
+            CONF_CHANGED=1
+          fi
+        done
+
+        # 3c. 实例化所有隧道：XFRM 设备与 swanctl 配置
+        for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
+          IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer <<< "$inst"
+
+          if ! ip link show "$t_iface" >/dev/null 2>&1; then
+            # 彻底杜绝内核 EEXIST：若有残留旧网卡占用了该 if_id，先行清除
+            old_dev=$(ip -d link show type xfrm 2>/dev/null | awk -v id="if_id 0x$(printf '%x' "$t_if_id")" '
+              /^[0-9]+: dn42x-/ { iface=$2; sub(/:.*/,"",iface); sub(/@.*/,"",iface) }
+              $0 ~ id { print iface }
+            ' || true)
+            if [ -n "$old_dev" ] && [ "$old_dev" != "$t_iface" ]; then
+              ip link del "$old_dev" 2>/dev/null || true
             fi
-            ip link set "$t_iface" mtu 1360 multicast on up
-            ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
+            ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id" 2>/dev/null || true
+          fi
+          ip link set "$t_iface" mtu 1360 multicast on up 2>/dev/null || true
+          ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
 
-            ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
-            ip route del "''${PEER_IP4}" dev "$t_iface" 2>/dev/null || true
-            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
-            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+          ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
+          ip route del "''${t_peer_ip4}" dev "$t_iface" 2>/dev/null || true
+          ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
+          [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
 
-            peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
-            ACTIVE_CONF_FILES+=("$(basename "$peer_conf")")
+          peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
 
-            new_content=$(cat <<EOF
+          new_content=$(cat <<EOF
     connections {
       ''${t_conn} {
         version = 2
@@ -814,7 +844,7 @@ let
         }
         remote {
           auth = psk
-          id = ''${peer}.dn42
+          id = ''${t_peer}.dn42
         }
         children {
           ''${t_conn} {
@@ -834,19 +864,8 @@ let
     EOF
     )
 
-            if [ ! -f "$peer_conf" ] || [ "$new_content" != "$(cat "$peer_conf" 2>/dev/null || true)" ]; then
-              echo "$new_content" > "$peer_conf"
-              CONF_CHANGED=1
-            fi
-          done
-        done
-
-        # 清理已废弃的旧 sdwan-*.conf 配置文件
-        for existing_conf in "$SWAN_D"/sdwan-*.conf; do
-          [ -e "$existing_conf" ] || continue
-          base_name=$(basename "$existing_conf")
-          if ! [[ " ''${ACTIVE_CONF_FILES[*]} " =~ " ''${base_name} " ]]; then
-            rm -f "$existing_conf"
+          if [ ! -f "$peer_conf" ] || [ "$new_content" != "$(cat "$peer_conf" 2>/dev/null || true)" ]; then
+            echo "$new_content" > "$peer_conf"
             CONF_CHANGED=1
           fi
         done
