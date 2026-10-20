@@ -67,6 +67,18 @@
         description = "Whether to start the Podman Windows container at boot.";
       };
 
+      autoSuspend = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to automatically suspend (pause) the Windows VM after boot once it has finished starting to save CPU.";
+      };
+
+      autoSuspendDelay = lib.mkOption {
+        type = lib.types.int;
+        default = 20;
+        description = "Seconds to wait after Windows RDP port 3389 opens before suspending to let startup tasks finish.";
+      };
+
       version = lib.mkOption {
         type = lib.types.str;
         default = "tiny10";

@@ -21,5 +21,6 @@
     ".vscode"
     ".vscode-server"
     ".config/Code"
+    ".vscode-shared"
   ];
 }

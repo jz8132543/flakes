@@ -61,16 +61,6 @@ stdenv.mkDerivation {
           chmod -R u+w shared-data/
         fi
 
-        # Directly commit 顿号 (、) without candidate menu for both '\' and '/'
-        if [ -f shared-data/punctuation.yaml ]; then
-          sed -i "s|'\\\\' : \\[ 、, '\\\\', ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
-          sed -i "s|'/' : \\[ 、, '/', ／, ÷ \\]|'/' : { commit: '、' }|g" shared-data/punctuation.yaml
-          sed -i "s|'\\\\' : \\[ 、, ＼ \\]|'\\\\' : { commit: '、' }|g" shared-data/punctuation.yaml
-        fi
-        if [ -f shared-data/wanxiang_symbols.yaml ]; then
-          sed -i "s|'\\\\': \\[、, ＼\\]|'\\\\': { commit: '、' }|g" shared-data/wanxiang_symbols.yaml
-        fi
-
         # Remove emojis completely
         if [ -f shared-data/lua/data/emoji.txt ]; then
           : > shared-data/lua/data/emoji.txt

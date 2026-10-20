@@ -136,8 +136,33 @@ in
       };
     };
 
-    # 3. 注册协议关联
+    # 3. 注册协议与文档格式默认关联 (docx, xlsx, pptx 等默认由 WinApps Office 打开)
     xdg.mimeApps.defaultApplications = {
+      # Microsoft Word
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = "winapps-word.desktop";
+      "application/msword" = "winapps-word.desktop";
+      "application/vnd.ms-word.document.macroEnabled.12" = "winapps-word.desktop";
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = "winapps-word.desktop";
+      "application/vnd.ms-word" = "winapps-word.desktop";
+      "application/rtf" = "winapps-word.desktop";
+
+      # Microsoft Excel
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = "winapps-excel.desktop";
+      "application/vnd.ms-excel" = "winapps-excel.desktop";
+      "application/vnd.ms-excel.sheet.macroEnabled.12" = "winapps-excel.desktop";
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = "winapps-excel.desktop";
+      "application/vnd.ms-excel.sheet.binary.macroenabled.12" = "winapps-excel.desktop";
+
+      # Microsoft PowerPoint
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation" =
+        "winapps-powerpoint.desktop";
+      "application/vnd.ms-powerpoint" = "winapps-powerpoint.desktop";
+      "application/vnd.openxmlformats-officedocument.presentationml.template" =
+        "winapps-powerpoint.desktop";
+      "application/vnd.openxmlformats-officedocument.presentationml.slideshow" =
+        "winapps-powerpoint.desktop";
+
+      # Protocol Handlers
       "x-scheme-handler/ms-word" = "winapps-word.desktop";
       "x-scheme-handler/ms-excel" = "winapps-excel.desktop";
       "x-scheme-handler/ms-powerpoint" = "winapps-powerpoint.desktop";

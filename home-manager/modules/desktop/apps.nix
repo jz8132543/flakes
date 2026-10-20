@@ -390,6 +390,7 @@ in
     # kdePackages.k3b
     # vcdimager
     feishu
+    doubao-desktop
   ];
   programs = {
     # TODO
@@ -686,6 +687,8 @@ in
       ".config/opencode"
       ".local/share/opencode"
       ".opencode"
+      ".config/kilo"
+      ".local/share/kilo"
       ".codex"
       ".local/share/connections"
       ".config/connections"

@@ -56,7 +56,10 @@ in
           ${pkgs.podman}/bin/podman run --name WinApps \
             --rm \
             --device=/dev/kvm \
+            --device=/dev/net/tun \
+            --group-add keep-groups \
             --cap-add=NET_ADMIN \
+            --cap-add=NET_RAW \
             -p 127.0.0.1:8006:8006 \
             -p 127.0.0.1:3389:3389/tcp \
             -p 127.0.0.1:3389:3389/udp \
@@ -69,9 +72,58 @@ in
             -v "${cfg.podman.storagePath}:/storage" \
             -v "/etc/winapps/oem:/oem:ro" \
             -v "${cfg.podman.sharedPath}:/shared" \
-            docker.io/dockurr/windows:latest
+            docker.io/dockur/windows:latest
         '';
-        ExecStop = "${pkgs.podman}/bin/podman stop -t 30 WinApps";
+        ExecStop = "${pkgs.bash}/bin/bash -c '${pkgs.podman}/bin/podman unpause WinApps 2>/dev/null || true; ${pkgs.podman}/bin/podman stop -t 30 WinApps'";
+      };
+    };
+
+    # 开机启动后自动休眠 (Suspend/Pause)，使 Windows 在开机完成启动后暂停以彻底释放 CPU (0% 占用)
+    # 当用户后续点击 docx/xlsx 等文件时，WinApps 会以秒级速度直接 unpause 恢复运行
+    systemd.services.winapps-boot-suspend = lib.mkIf (cfg.podman.autoStart && cfg.podman.autoSuspend) {
+      description = "Suspend WinApps Windows container after boot to save CPU";
+      after = [ "winapps-windows.service" ];
+      wants = [ "winapps-windows.service" ];
+      wantedBy = [ "multi-user.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        User = user;
+        Group = "users";
+        Environment = [
+          "XDG_RUNTIME_DIR=/run/user/${userUid}"
+        ];
+        TimeoutStartSec = "1200s";
+        ExecStart = pkgs.writeShellScript "winapps-boot-suspend" ''
+          set -euo pipefail
+          echo "[winapps-boot-suspend] Waiting for WinApps container to start..."
+          until [ "$(${pkgs.podman}/bin/podman inspect --format='{{.State.Status}}' WinApps 2>/dev/null || true)" = "running" ]; do
+            sleep 3
+          done
+
+          echo "[winapps-boot-suspend] Waiting for Windows RDP service (port 3389) to be ready..."
+          until ${pkgs.netcat}/bin/nc -z 127.0.0.1 3389 2>/dev/null; do
+            STATUS=$(${pkgs.podman}/bin/podman inspect --format='{{.State.Status}}' WinApps 2>/dev/null || true)
+            if [ "$STATUS" != "running" ]; then
+              echo "[winapps-boot-suspend] Container is not running (status: $STATUS), aborting."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "[winapps-boot-suspend] RDP is ready. Waiting ${toString cfg.podman.autoSuspendDelay}s for background initialization..."
+          sleep ${toString cfg.podman.autoSuspendDelay}
+
+          # Check if an active FreeRDP session is already running
+          if ${pkgs.procps}/bin/pgrep -f "freerdp|wlfreerdp|xfreerdp" >/dev/null 2>&1; then
+            echo "[winapps-boot-suspend] Active FreeRDP session detected. Skipping suspend."
+            exit 0
+          fi
+
+          echo "[winapps-boot-suspend] Suspending WinApps container to save CPU..."
+          ${pkgs.podman}/bin/podman pause WinApps
+          echo "[winapps-boot-suspend] Successfully suspended WinApps container."
+        '';
       };
     };
   };

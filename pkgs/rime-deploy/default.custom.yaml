@@ -10,6 +10,13 @@ patch:
       Shift_R: commit_code
   style:
     horizontal: true
+  # 不使用逗号、句号翻页，避免逗号、句号在候选菜单出现时被作为翻页键拦截
+  "key_binder/bindings":
+    __patch:
+      - key_bindings:/emacs_editing
+      - key_bindings:/move_by_word_with_tab
+      - key_bindings:/paging_with_minus_equal
+      - key_bindings:/numbered_mode_switch
   # Rime internal per-app settings
   app_options:
     # Default to English (ASCII) for these apps
