@@ -54,5 +54,9 @@
 
     "service_cname_mappings": .service_cname_mappings.value,
     "cdn": .cdn_data.value,
-    "dn42": .dn42_data.value
+    "dn42": (.dn42_data.value // {
+        "schema": 1,
+        "build_time": 0,
+        "mesh": {}
+    })
 }

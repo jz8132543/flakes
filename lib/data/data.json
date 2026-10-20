@@ -383,6 +383,7 @@
   },
   "dn42": {
     "asn": 4242420115,
+    "build_time": 1792348459,
     "externalPeers": {
       "g-load-de2": {
         "asn": 4242423914,
@@ -428,8 +429,9 @@
     "ipv6": "fd53:90fd:4bb6::/48",
     "mesh": {
       "arx8": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 31,
         "ike_port": 500,
@@ -439,10 +441,16 @@
         "role": "internal"
       },
       "can0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "can0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "can0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 11,
         "ike_port": 500,
@@ -452,13 +460,34 @@
         "role": "internal"
       },
       "cu": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "cm4": "cm.dora.im:50568",
-          "cm6": "cmv6.dora.im:50568",
-          "cu4": "cu.dora.im:50568",
-          "cu6": "cuv6.dora.im:50568"
-        },
+        "endpoints": [
+          {
+            "addr": "cm.dora.im",
+            "family": "ipv4",
+            "name": "cm4",
+            "port": 50568
+          },
+          {
+            "addr": "cmv6.dora.im",
+            "family": "ipv6",
+            "name": "cm6",
+            "port": 50568
+          },
+          {
+            "addr": "cu.dora.im",
+            "family": "ipv4",
+            "name": "cu4",
+            "port": 50568
+          },
+          {
+            "addr": "cuv6.dora.im",
+            "family": "ipv6",
+            "name": "cu6",
+            "port": 50568
+          }
+        ],
         "ibgp": true,
         "id": 6,
         "ike_port": 500,
@@ -468,10 +497,16 @@
         "role": "border"
       },
       "fra0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "fra0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "fra0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": true,
         "id": 1,
         "ike_port": 500,
@@ -481,10 +516,16 @@
         "role": "border"
       },
       "fra1": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "fra1.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "fra1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 10,
         "ike_port": 500,
@@ -494,10 +535,16 @@
         "role": "internal"
       },
       "hkg0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "hkg0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "hkg0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 2,
         "ike_port": 500,
@@ -507,10 +554,16 @@
         "role": "internal"
       },
       "hkg5": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "hkg5.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "hkg5.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 7,
         "ike_port": 500,
@@ -520,8 +573,9 @@
         "role": "internal"
       },
       "isk": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 8,
         "ike_port": 500,
@@ -531,10 +585,16 @@
         "role": "internal"
       },
       "nue0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "nue0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "nue0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 3,
         "ike_port": 500,
@@ -544,10 +604,16 @@
         "role": "internal"
       },
       "sjc0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "sjc0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "sjc0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": true,
         "id": 16,
         "ike_port": 500,
@@ -557,8 +623,9 @@
         "role": "border"
       },
       "surface": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 30,
         "ike_port": 500,
@@ -568,10 +635,16 @@
         "role": "internal"
       },
       "tyo0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "tyo0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "tyo0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 5,
         "ike_port": 500,
@@ -581,10 +654,16 @@
         "role": "internal"
       },
       "tyo1": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "tyo1.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "tyo1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 4,
         "ike_port": 500,
@@ -604,10 +683,12 @@
       "peer2": "k4Um5FjJ1yS7aDDvs9v9jSpUePFL7YcATFr5q79y3yU=",
       "peer3": "PJ24FpCqARflKn0Cbhg/c9dG8TuViBcFrco5b2BLdw8="
     },
+    "schema": 2,
     "topology": {
       "arx8": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 31,
         "ike_port": 500,
@@ -617,10 +698,16 @@
         "role": "internal"
       },
       "can0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "can0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "can0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 11,
         "ike_port": 500,
@@ -630,13 +717,34 @@
         "role": "internal"
       },
       "cu": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "cm4": "cm.dora.im:50568",
-          "cm6": "cmv6.dora.im:50568",
-          "cu4": "cu.dora.im:50568",
-          "cu6": "cuv6.dora.im:50568"
-        },
+        "endpoints": [
+          {
+            "addr": "cm.dora.im",
+            "family": "ipv4",
+            "name": "cm4",
+            "port": 50568
+          },
+          {
+            "addr": "cmv6.dora.im",
+            "family": "ipv6",
+            "name": "cm6",
+            "port": 50568
+          },
+          {
+            "addr": "cu.dora.im",
+            "family": "ipv4",
+            "name": "cu4",
+            "port": 50568
+          },
+          {
+            "addr": "cuv6.dora.im",
+            "family": "ipv6",
+            "name": "cu6",
+            "port": 50568
+          }
+        ],
         "ibgp": true,
         "id": 6,
         "ike_port": 500,
@@ -646,10 +754,16 @@
         "role": "border"
       },
       "fra0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "fra0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "fra0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": true,
         "id": 1,
         "ike_port": 500,
@@ -659,10 +773,16 @@
         "role": "border"
       },
       "fra1": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "fra1.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "fra1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 10,
         "ike_port": 500,
@@ -672,10 +792,16 @@
         "role": "internal"
       },
       "hkg0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "hkg0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "hkg0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 2,
         "ike_port": 500,
@@ -685,10 +811,16 @@
         "role": "internal"
       },
       "hkg5": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "hkg5.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "hkg5.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 7,
         "ike_port": 500,
@@ -698,8 +830,9 @@
         "role": "internal"
       },
       "isk": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 8,
         "ike_port": 500,
@@ -709,10 +842,16 @@
         "role": "internal"
       },
       "nue0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "nue0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "nue0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 3,
         "ike_port": 500,
@@ -722,10 +861,16 @@
         "role": "internal"
       },
       "sjc0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "sjc0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "sjc0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": true,
         "id": 16,
         "ike_port": 500,
@@ -735,8 +880,9 @@
         "role": "border"
       },
       "surface": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {},
+        "endpoints": [],
         "ibgp": false,
         "id": 30,
         "ike_port": 500,
@@ -746,10 +892,16 @@
         "role": "internal"
       },
       "tyo0": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "tyo0.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "tyo0.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 5,
         "ike_port": 500,
@@ -759,10 +911,16 @@
         "role": "internal"
       },
       "tyo1": {
+        "build_time": 1792348459,
         "enable": true,
-        "endpoints": {
-          "default": "tyo1.dora.im:4500"
-        },
+        "endpoints": [
+          {
+            "addr": "tyo1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
         "ibgp": false,
         "id": 4,
         "ike_port": 500,

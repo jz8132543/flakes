@@ -21,6 +21,12 @@ variable "dn42_v6_cidr" {
   type    = string
 }
 
+variable "dn42_build_time" {
+  description = "Monotonic Flake/data build version used for SD-WAN conflict resolution"
+  type        = number
+  default     = 0
+}
+
 locals {
   # ── 1. 公网对等别名 (peer1, peer2, peer3 ... .dora.im) ───────────────────────
   dn42_peer_targets = {
@@ -104,6 +110,52 @@ locals {
     if try(lookup(local.dn42_overrides, name, {}).enable, true)
   }
 
+  # Normalize all endpoint sources to a stable, deterministic array of endpoint
+  # objects.  Legacy string/attr endpoint definitions stay readable, but only
+  # the normalized array is exported to consumers.
+  dn42_nodes_normalized = {
+    for name, node in local.dn42_nodes : name => merge(node, {
+      build_time = var.dn42_build_time
+      endpoints = [
+        for endpoint_name, endpoint_value in try(node.endpoints, {}) : {
+          name = endpoint_name
+          addr = (
+            can(regex("^\\[(.*)\\]:[0-9]+$", endpoint_value))
+            ? regex("^\\[(.*)\\]:[0-9]+$", endpoint_value)[0]
+            : regex("^([^:]+)(?::[0-9]+)?$", endpoint_value)[0]
+          )
+          port = (
+            can(regex("\\]:([0-9]+)$", endpoint_value))
+            ? tonumber(regex("\\]:([0-9]+)$", endpoint_value)[0])
+            : (
+              can(regex(":([0-9]+)$", endpoint_value))
+              ? tonumber(regex(":([0-9]+)$", endpoint_value)[0])
+              : try(node.nat_t_port, 4500)
+            )
+          )
+          # Literal IPv6 addresses always contain a colon.  Hostnames cannot be
+          # detected by syntax, so fall back to the endpoint naming convention
+          # used by this cluster (…v6 / …6 for IPv6, …v4 / …4 for IPv4).
+          family = (
+            strcontains(
+              (
+                can(regex("^\\[(.*)\\]:[0-9]+$", endpoint_value))
+                ? regex("^\\[(.*)\\]:[0-9]+$", endpoint_value)[0]
+                : regex("^([^:]+)(?::[0-9]+)?$", endpoint_value)[0]
+              ), ":"
+            )
+            ? "ipv6"
+            : (
+              can(regex("(v6|6)$", endpoint_name))
+              ? "ipv6"
+              : "ipv4"
+            )
+          )
+        }
+      ]
+    })
+  }
+
   # ── 3. 外部 eBGP 互联 Peers ────────────────────────────────────────────────
   dn42_external_peers = {
     g-load-de2 = {
@@ -148,6 +200,30 @@ locals {
   }
 }
 
+# ── if_id 编码约束断言 ───────────────────────────────────────────────────────
+# SD-WAN 子链路采用对称 if_id = min(A,B)*1000 + max(A,B)*10 + k，因此要求：
+#   1. 节点 ID 落在 1..99（千位/十位编码不冲突）
+#   2. 单节点端点数量 <= 9（个位 k 序号不冲突）
+#   3. 所有端点端口合法
+data "assert_test" "dn42_node_id_range" {
+  test  = length([for name, node in local.dn42_nodes : name if node.id < 1 || node.id >= 100]) == 0
+  throw = "dn42 node id must be within 1..99 (symmetric if_id encoding min*1000 + max*10 + k)"
+}
+
+data "assert_test" "dn42_endpoint_count" {
+  test  = length([for name, node in local.dn42_nodes_normalized : name if length(node.endpoints) > 9]) == 0
+  throw = "dn42 node must publish at most 9 endpoints (symmetric if_id encoding min*1000 + max*10 + k)"
+}
+
+data "assert_test" "dn42_endpoint_ports" {
+  test = length(flatten([
+    for name, node in local.dn42_nodes_normalized : [
+      for ep in node.endpoints : "${name}/${ep.name}" if ep.port < 1 || ep.port > 65535
+    ]
+  ])) == 0
+  throw = "dn42 endpoint ports must be within 1..65535"
+}
+
 # ── Cloudflare CNAME 记录自动发布 ───────────────────────────────────────────
 resource "cloudflare_dns_record" "dn42_peer_cnames" {
   for_each = local.dn42_peer_aliases
@@ -173,7 +249,7 @@ output "dn42_v6_cidr" {
 # 自动导出供 NixOS (lib/data/data.json) 与 SD-WAN 种子表使用的结构化输出
 output "dn42_topology" {
   description = "Auto-generated DN42 node metadata with zero manual boilerplate"
-  value       = local.dn42_nodes
+  value       = local.dn42_nodes_normalized
 }
 
 output "dn42_data" {
@@ -183,8 +259,10 @@ output "dn42_data" {
     asn            = var.dn42_asn
     ipv4           = var.dn42_v4_cidr
     ipv6           = var.dn42_v6_cidr
-    mesh           = local.dn42_nodes
-    topology       = local.dn42_nodes
+    schema         = 2
+    build_time     = var.dn42_build_time
+    mesh           = local.dn42_nodes_normalized
+    topology       = local.dn42_nodes_normalized
     externalPeers  = local.dn42_external_peers
     peerAliases    = local.dn42_peer_aliases
     peerPublicKeys = local.dn42_peer_public_keys

@@ -23,6 +23,7 @@ let
   cfg = config.services.dn42.mesh;
   baseCfg = config.services.dn42;
   hostName = config.networking.hostName or "unknown";
+  clusterDomain = config.networking.domain;
 
   stripPort =
     str:
@@ -51,6 +52,17 @@ let
       if p > 0 && p < 65536 then p else null
     else
       null;
+
+  endpointCount =
+    endpoints:
+    if endpoints == null then
+      0
+    else if lib.isList endpoints then
+      lib.length endpoints
+    else if lib.isAttrs endpoints then
+      lib.length (lib.attrNames endpoints)
+    else
+      0;
 
   selfData = config.lib.self.data or (lib.importJSON ../../../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
@@ -90,10 +102,22 @@ let
             else if edgeEndpoints != { } then
               edgeEndpoints
             else
-              nodeMeshCfg.endpoint or "${targetNode}.dora.im:${toString (nodeMeshCfg.listenPort or 51821)}";
+              nodeMeshCfg.endpoint
+                or "${targetNode}.${clusterDomain}:${toString (nodeMeshCfg.listenPort or 51821)}";
         in
         if rawEp == null then
           { }
+        else if lib.isList rawEp then
+          lib.listToAttrs (
+            lib.imap0 (index: ep: {
+              name = ep.name or "endpoint-${toString (index + 1)}";
+              value =
+                if (ep.family or "ipv4") == "ipv6" then
+                  "[${ep.addr}]:${toString (ep.port or (nodeMeshCfg.nat_t_port or 4500))}"
+                else
+                  "${ep.addr}:${toString (ep.port or (nodeMeshCfg.nat_t_port or 4500))}";
+            }) rawEp
+          )
         else if lib.isAttrs rawEp then
           lib.mapAttrs (_: stripPort) rawEp
         else if lib.isString rawEp && rawEp != "" then
@@ -253,7 +277,7 @@ let
         };
 
         endpoints = mkOption {
-          type = types.attrsOf types.str;
+          type = types.either (types.attrsOf types.str) (types.listOf types.attrs);
           default = normalizedEndpoints;
           description = "All available public IP/domain endpoints for multi-path/dual-stack tunnels";
         };
@@ -261,9 +285,9 @@ let
         multipath = mkOption {
           type = types.bool;
           default =
-            (cfg.thisNode.endpoint != null || (cfg.thisNode.endpoints or { }) != { })
+            (cfg.thisNode.endpoint != null || endpointCount cfg.thisNode.endpoints > 0)
             && (cfg.multipath.enable || (lib.elem name cfg.multipath.peers))
-            && (lib.length (lib.attrNames config.endpoints) > 1);
+            && endpointCount config.endpoints > 1;
           description = "Whether to establish concurrent tunnels for all endpoints of this peer";
         };
 
@@ -284,11 +308,6 @@ let
           description = "Whether this node is behind NAT (cannot accept inbound connections on IPv4, requiring passive responder on servers)";
         };
 
-        acceleration = mkOption {
-          type = types.bool;
-          default = nodeMeshCfg.acceleration or nodeMeshCfg.enableClient or false;
-          description = "Whether this node routes its outbound internet traffic via DN42 SDN table 200";
-        };
       };
     }
   );
@@ -300,9 +319,9 @@ let
   activePeers = filterAttrs (
     _: peer:
     (cfg.thisNode.endpoint != null)
-    || (cfg.thisNode.endpoints != { })
+    || endpointCount cfg.thisNode.endpoints > 0
     || (peer.endpoint != null)
-    || (peer.endpoints != { })
+    || endpointCount peer.endpoints > 0
   ) otherNodes;
 
   # 隧道实例集合：将每个 activePeer 展开为一个或多个物理隧道实例
@@ -317,10 +336,21 @@ let
     in
     if controllers != { } then
       lib.mapAttrsToList (
-        name: _: "http://${name}.dora.im:${toString baseCfg.sdwan.controllerPort}"
+        name: _: "http://${name}.${clusterDomain}:${toString baseCfg.sdwan.controllerPort}"
       ) controllers
     else
       [ ];
+
+  # Peer controller URLs (excluding self) for registry cross-synchronisation
+  peerControllerUrls =
+    let
+      controllers = lib.filterAttrs (name: node: name != hostName && (node.is_controller or false)) (
+        dn42Data.mesh or { }
+      );
+    in
+    lib.mapAttrsToList (
+      name: _: "http://${name}.${clusterDomain}:${toString baseCfg.sdwan.controllerPort}"
+    ) controllers;
 
   tokenFile =
     if cfg.ipsec.pskFile != null then
@@ -362,7 +392,7 @@ let
                 v6 = "[${edgeNode.ipv6}]:${toString natTPort}";
               }
             else if !isNat then
-              { default = "${name}.dora.im:${toString natTPort}"; }
+              { default = "${name}.${clusterDomain}:${toString natTPort}"; }
             else
               { };
 
@@ -370,14 +400,14 @@ let
             if edgeNode != null && edgeNode ? ipv4 && edgeNode.ipv4 != null then
               edgeNode.ipv4
             else if !isNat then
-              "${name}.dora.im"
+              "${name}.${clusterDomain}"
             else
               "";
           pubIpv6 =
             if edgeNode != null && edgeNode ? ipv6 && edgeNode.ipv6 != null then
               edgeNode.ipv6
             else if !isNat then
-              "${name}.dora.im"
+              "${name}.${clusterDomain}"
             else
               "";
         in
@@ -391,6 +421,7 @@ let
           nat_t_port = natTPort;
           ike_port = ikePort;
           pubkey = "";
+          build_time = dn42Data.build_time or 0;
           updated_at = 0;
         }
       ) (selfData.hosts or { })
@@ -454,6 +485,9 @@ let
   '';
 
   # ── SD-WAN Controller 轻量级 HTTP 同步处理脚本 ──
+  # 用法:
+  #   dn42-sdwan-controller-handler          通过 stdin/stdout 服务 HTTP (socat SYSTEM)
+  #   dn42-sdwan-controller-handler pull-peers 从其他主控拉取 registry 并按 build_time 合并
   sdwanControllerScript = pkgs.writeShellScript "dn42-sdwan-controller-handler" ''
     set -euo pipefail
     export PATH="${
@@ -463,11 +497,13 @@ let
           bash
           coreutils
           jq
+          curl
           util-linux
         ]
       )
     }"
-    REGISTRY_DIR="/var/lib/dn42-sdwan"
+    MODE="''${1:-serve}"
+    REGISTRY_DIR="''${DN42_SDWAN_STATE_DIR:-/var/lib/dn42-sdwan}"
     REGISTRY_FILE="$REGISTRY_DIR/registry.json"
     mkdir -p "$REGISTRY_DIR"
 
@@ -477,10 +513,33 @@ let
       jq -s '
         (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
         reduce ($bootstrap | to_entries[]) as $item ($cache;
-          if (.[$item.key] == null) or ((.[$item.key].updated_at // 0) == 0)
-          then .[$item.key] = $item.value else . end
+           if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
+           then .[$item.key] = $item.value else . end
         )
       ' "${bootstrapPeersFile}" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
+    fi
+
+    # ── pull-peers 模式：主控间周期互同步，按最大 build_time 合并 ──
+    if [ "$MODE" = "pull-peers" ]; then
+      TOKEN=$(cat "${tokenFile}")
+      for ctrl in ${lib.concatStringsSep " " peerControllerUrls}; do
+        REMOTE_JSON=$(curl -fsSL --max-time 8 -H "X-DN42-Auth: $TOKEN" "$ctrl/peers" 2>/dev/null || true)
+        if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
+          (
+            flock -x 200
+            jq -s '
+              (.[0] // {}) as $orig | (.[1] // {}) as $new |
+              reduce ($new | to_entries[]) as $item ($orig;
+                 if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
+                 then .[$item.key] = $item.value
+                 else . end
+              )
+            ' "$REGISTRY_FILE" <(echo "$REMOTE_JSON") > "$REGISTRY_FILE.tmp"
+            mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
+          ) 200>"$REGISTRY_DIR/registry.lock"
+        fi
+      done
+      exit 0
     fi
 
     read -r request_line || exit 0
@@ -513,7 +572,7 @@ let
           jq -s '
             (.[0] // {}) as $orig | (.[1] // {}) as $new |
             reduce ($new | to_entries[]) as $item ($orig;
-              if (.[$item.key] == null) or (($item.value.updated_at // 0) >= (.[$item.key].updated_at // 0))
+               if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
               then .[$item.key] = $item.value
               else . end
             )
@@ -549,9 +608,9 @@ let
           )
         }"
 
-        STATE_DIR="/var/lib/dn42-sdwan"
+        STATE_DIR="''${DN42_SDWAN_STATE_DIR:-/var/lib/dn42-sdwan}"
         CACHE_FILE="$STATE_DIR/peers.json"
-        SWAN_D="/run/swanctl/conf.d"
+        SWAN_D="''${DN42_SDWAN_CONF_DIR:-/run/swanctl/conf.d}"
         mkdir -p "$STATE_DIR" "$SWAN_D"
 
         # 辅助函数：从 host:port 字符串中分离 host 与 port (支持 IPv6 [addr]:port 语法)
@@ -569,14 +628,14 @@ let
           fi
         }
 
-        # 1. 若本地缓存不存在，用 bootstrapPeersFile 初始化；若存在，用 bootstrap 刷新 updated_at == 0 的静态配置
+        # 1. 若本地缓存不存在，用 bootstrapPeersFile 初始化；若存在，按 build_time 版本合并静态配置
         if [ ! -s "$CACHE_FILE" ]; then
           cp "${bootstrapPeersFile}" "$CACHE_FILE"
         else
           jq -s '
             (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
             reduce ($bootstrap | to_entries[]) as $item ($cache;
-              if (.[$item.key] == null) or ((.[$item.key].updated_at // 0) == 0)
+               if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
               then .[$item.key] = $item.value else . end
             )
           ' "${bootstrapPeersFile}" "$CACHE_FILE" > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
@@ -593,7 +652,7 @@ let
         # 2a. 本地网卡自探测 (参考 Tailscale netmon / RFC1918 过滤规范)
         DISCOVERED_IPS=$(ip -j addr show up 2>/dev/null | jq '
           [ .[]? |
-            select(.ifname | test("^(lo|docker.*|podman.*|veth.*|br-.*|dn42.*|tailscale.*|meta.*|dummy.*|xfrm.*|wireguard.*|wg.*)$") | not) |
+            select(.ifname | test("^(lo|dn42.*|dummy.*|xfrm.*|wireguard.*|wg.*)$") | not) |
             .ifname as $ifname |
             .addr_info[]? |
             select(.scope == "global") |
@@ -631,17 +690,17 @@ let
         PUBLIC_V6=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet6" and .is_private == false).local][0] // empty')
 
         # 2b. 提取或自适应扩充本机端点表
-        STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '.[$s].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
+        STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
         SELF_ENDPOINTS="$STATIC_ENDPOINTS"
-        if [ "$SELF_ENDPOINTS" = "{}" ] || [ -z "$SELF_ENDPOINTS" ]; then
-          NEW_EPS="{}"
+        if [ "$SELF_ENDPOINTS" = "[]" ] || [ -z "$SELF_ENDPOINTS" ]; then
+          NEW_EPS="[]"
           if [ -n "$PUBLIC_V4" ]; then
-            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v4 "$PUBLIC_V4:$SELF_PORT" '. + { "auto_v4": $v4 }')
+            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v4 "$PUBLIC_V4" --argjson port "$SELF_PORT" '. + [{name: "auto_v4", addr: $v4, port: $port, family: "ipv4"}]')
           fi
           if [ -n "$PUBLIC_V6" ]; then
-            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v6 "[$PUBLIC_V6]:$SELF_PORT" '. + { "auto_v6": $v6 }')
+            NEW_EPS=$(echo "$NEW_EPS" | jq --arg v6 "$PUBLIC_V6" --argjson port "$SELF_PORT" '. + [{name: "auto_v6", addr: $v6, port: $port, family: "ipv6"}]')
           fi
-          if [ "$NEW_EPS" != "{}" ]; then
+          if [ "$NEW_EPS" != "[]" ]; then
             SELF_ENDPOINTS="$NEW_EPS"
           fi
         fi
@@ -658,7 +717,8 @@ let
           --argjson ike_port "$SELF_IKE_PORT" \
           --arg pubkey "" \
           --argjson updated_at "$NOW" \
-          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, updated_at: $updated_at}}')
+          --argjson build_time "${toString (dn42Data.build_time or 0)}" \
+          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, build_time: $build_time, updated_at: $updated_at}}')
 
         TOKEN=$(cat "${tokenFile}")
 
@@ -668,7 +728,7 @@ let
             jq -s '
               (.[0] // {}) as $orig | (.[1] // {}) as $new |
               reduce ($new | to_entries[]) as $item ($orig;
-                if (.[$item.key] == null) or (($item.value.updated_at // 0) >= (.[$item.key].updated_at // 0))
+                if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
                 then .[$item.key] = $item.value else . end
               )
             ' "$CACHE_FILE" <(echo "$REMOTE_JSON") > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
@@ -681,115 +741,94 @@ let
         fi
 
         # 3. 遍历 peers.json，热创建/维护多线路虚拟网卡 dn42x-* 与 swanctl 配置文件
+        #    子链路 (self, peer, k) 采用对称 if_id = min(id)*1000 + max(id)*10 + k：
+        #      k <= peer_eps            -> initiator：主动连接对端第 k 个已发布端点
+        #      peer_eps < k <= my_eps   -> responder：接收对端连入本机第 k 个端点
+        #    两侧接口数均为 max(peer_eps, my_eps)，if_id 集合逐 k 对齐，Child SA 双端必落位。
         CONF_CHANGED=0
-        HOSTS_TMP="/run/dn42-hosts.tmp"
-        : > "$HOSTS_TMP"
+        EDGE_LABELS_TMP="$STATE_DIR/edge-labels.tmp"
+        : > "$EDGE_LABELS_TMP"
         ACTIVE_CONF_FILES=()
         ALL_TUNNEL_INSTANCES=()
         ACTIVE_IFACES=()
 
-        MY_EPS=$(jq -c --arg s "$SELF_NAME" '.[$s].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
-        MY_EPS_COUNT=$(echo "$MY_EPS" | jq 'keys | length' 2>/dev/null || echo "0")
+        # 本机已发布端点数量（对端将按该数量向本机各端点发起连接）
+        MY_EPS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
+        MY_EPS_COUNT=$(echo "$MY_EPS" | jq 'length' 2>/dev/null || echo "0")
+        case "$MY_EPS_COUNT" in ""|*[!0-9]*) MY_EPS_COUNT=0 ;; esac
 
         for peer in $(jq -r 'keys[]' "$CACHE_FILE"); do
           PEER_IP4=$(jq -r --arg p "$peer" '.[$p].dn42_ip4 // empty' "$CACHE_FILE")
           PEER_IP6=$(jq -r --arg p "$peer" '.[$p].dn42_ip6 // empty' "$CACHE_FILE")
           [ -z "$PEER_IP4" ] && continue
-          echo "$PEER_IP4 ''${peer}.dn42" >> "$HOSTS_TMP"
 
           [ "$peer" = "$SELF_NAME" ] && continue
 
           PEER_ID=$(jq -r --arg p "$peer" '.[$p].id // empty' "$CACHE_FILE")
           [ -z "$PEER_ID" ] && continue
 
-          PEER_EPS=$(jq -c --arg p "$peer" '.[$p].endpoints // {}' "$CACHE_FILE" 2>/dev/null || echo "{}")
-          PEER_EPS_COUNT=$(echo "$PEER_EPS" | jq 'keys | length' 2>/dev/null || echo "0")
+          PEER_EPS=$(jq -c --arg p "$peer" '(.[$p].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
+          PEER_EPS_COUNT=$(echo "$PEER_EPS" | jq 'length' 2>/dev/null || echo "0")
+          case "$PEER_EPS_COUNT" in ""|*[!0-9]*) PEER_EPS_COUNT=0 ;; esac
           PEER_PORT=$(jq -r --arg p "$peer" '.[$p].nat_t_port // 4500' "$CACHE_FILE")
           [ -z "$PEER_PORT" ] && PEER_PORT=4500
 
-          if [ "$PEER_EPS_COUNT" -gt 1 ]; then
-            # Case A: 对端定义了多条公网线路端点 (如 cu 的 4 端点)
-            k_idx=0
-            for ep_name in $(echo "$PEER_EPS" | jq -r 'keys[]'); do
-              ep_raw=$(echo "$PEER_EPS" | jq -r --arg k "$ep_name" '.[$k]')
-              read -r ep_host ep_port <<< "$(extract_host_port "$ep_raw" "$PEER_PORT")"
-              if_id=$(( 1000 * k_idx + PEER_ID ))
+          left_id=$SELF_ID; right_id=$PEER_ID
+          [ "$left_id" -gt "$right_id" ] && left_id=$PEER_ID && right_id=$SELF_ID
+          if_id_base=$(( left_id * 1000 + right_id * 10 ))
 
-              iface="dn42x-''${peer}-''${ep_name}"
-              if [ ''${#iface} -gt 15 ]; then
-                iface="dn42x-''${peer:0:5}-''${ep_name:0:3}"
-              fi
-              conn_name="dn42-''${peer}-''${ep_name}"
-              local_addrs="%any"
-              remote_addrs="''${ep_host}"
-              start_action="start"
-              dpd_action="restart"
-
-              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$ep_port;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
-              ACTIVE_IFACES+=("$iface")
-              ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
-              k_idx=$(( k_idx + 1 ))
-            done
-
-          elif [ "$MY_EPS_COUNT" -gt 1 ] && [ "$PEER_EPS_COUNT" -le 1 ]; then
-            # Case B: 本机有多条线路端点 (如在 cu 上运行)，对端为单端点或 NAT 节点
-            k_idx=0
-            peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
-            if [ -n "$peer_raw" ]; then
-              read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
-              remote_addrs="''${peer_host}"
-              start_action="start"
-              dpd_action="restart"
-            else
-              remote_addrs="%any"
-              peer_p="$PEER_PORT"
-              start_action="none"
-              dpd_action="clear"
+          # 3.1 initiator：对端每一个已发布端点 = 一条独立 XFRM/Babel 并发路径
+          k_idx=0
+          while IFS= read -r ep_json; do
+            [ -z "$ep_json" ] && continue
+            k_idx=$(( k_idx + 1 ))
+            ep_name=$(echo "$ep_json" | jq -r '.name')
+            ep_addr=$(echo "$ep_json" | jq -r '.addr // empty')
+            ep_port=$(echo "$ep_json" | jq -r --argjson fallback "$PEER_PORT" '.port // $fallback')
+            if [ -z "$ep_addr" ]; then
+              ep_raw=$(echo "$ep_json" | jq -r '.value // empty')
+              read -r ep_addr ep_port <<< "$(extract_host_port "$ep_raw" "$PEER_PORT")"
             fi
+            if_id=$(( if_id_base + k_idx ))
 
-            for my_name in $(echo "$MY_EPS" | jq -r 'keys[]'); do
-              my_raw=$(echo "$MY_EPS" | jq -r --arg k "$my_name" '.[$k]')
-              read -r my_host my_p <<< "$(extract_host_port "$my_raw" "$SELF_PORT")"
-              if_id=$(( 1000 * k_idx + PEER_ID ))
-
-              iface="dn42x-''${peer}-''${my_name}"
-              if [ ''${#iface} -gt 15 ]; then
-                iface="dn42x-''${peer:0:5}-''${my_name:0:3}"
-              fi
-              conn_name="dn42-''${peer}-''${my_name}"
-              local_addrs="''${my_host}"
-
-              ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
-              ACTIVE_IFACES+=("$iface")
-              ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
-              k_idx=$(( k_idx + 1 ))
-            done
-
-          else
-            # Case C: 常规单端点或纯 NAT 节点 (如 fra0 <-> sjc0, surface <-> fra0)
-            if_id="$PEER_ID"
-            iface="dn42x-''${peer}"
-            conn_name="dn42-''${peer}"
-            local_addrs="%any"
-
-            peer_raw=$(echo "$PEER_EPS" | jq -r 'to_entries[0].value // empty')
-            if [ -n "$peer_raw" ]; then
-              read -r peer_host peer_p <<< "$(extract_host_port "$peer_raw" "$PEER_PORT")"
-              remote_addrs="''${peer_host}"
-              start_action="start"
-              dpd_action="restart"
-            else
-              remote_addrs="%any"
-              peer_p="$PEER_PORT"
-              start_action="none"
-              dpd_action="clear"
+            iface="dn42x-''${peer}-''${ep_name}"
+            if [ ''${#iface} -gt 15 ]; then
+              iface="dn42x-''${peer:0:4}-''${ep_name:0:4}"
+              suffix=$(printf '%s' "''${peer}-''${ep_name}" | sha256sum | cut -c1-2)
+              iface="''${iface:0:12}''${suffix}"
             fi
+            conn_name="dn42-''${peer}-''${ep_name}"
 
-            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;$local_addrs;$remote_addrs;$peer_p;$start_action;$dpd_action;$PEER_IP4;$PEER_IP6;$peer")
+            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;%any;''${ep_addr};''${ep_port};start;restart;$PEER_IP4;$PEER_IP6;$peer;''${ep_name}")
             ACTIVE_IFACES+=("$iface")
             ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
-          fi
+            printf '%s\t%s\t%s\n' "$iface" "$peer" "$ep_name" >> "$EDGE_LABELS_TMP"
+          done < <(echo "$PEER_EPS" | jq -c '.[]')
+
+          # 3.2 responder：对端端点少于本机（含纯 NAT 对端）时，为本机第 k 个端点预留被动接口，
+          #     使对端以相同 if_id 发起的 Child SA 能在本机找到对应 XFRM 接口完成安装。
+          k="$PEER_EPS_COUNT"
+          while [ "$k" -lt "$MY_EPS_COUNT" ]; do
+            k=$(( k + 1 ))
+            if_id=$(( if_id_base + k ))
+            ep_label="r''${k}"
+            iface="dn42x-''${peer}-''${ep_label}"
+            if [ ''${#iface} -gt 15 ]; then
+              iface="dn42x-''${peer:0:4}-r''${k}"
+              suffix=$(printf '%s' "''${peer}-''${ep_label}" | sha256sum | cut -c1-2)
+              iface="''${iface:0:12}''${suffix}"
+            fi
+            conn_name="dn42-''${peer}-''${ep_label}"
+
+            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;%any;%any;$PEER_PORT;none;clear;$PEER_IP4;$PEER_IP6;$peer;''${ep_label}")
+            ACTIVE_IFACES+=("$iface")
+            ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
+            printf '%s\t%s\t%s\n' "$iface" "$peer" "$ep_label" >> "$EDGE_LABELS_TMP"
+          done
         done
+
+        mv -f "$EDGE_LABELS_TMP" "$STATE_DIR/edge-labels"
+        chmod 644 "$STATE_DIR/edge-labels" 2>/dev/null || true
 
         # 3a. 清理已废弃的旧 dn42x-* 虚拟网卡（防止节点端点重命名/扩充时发生 if_id 冲突 EEXIST）
         for existing_iface in $(ip -o link show type xfrm 2>/dev/null | awk -F': ' '{print $2}' | awk -F'@' '{print $1}'); do
@@ -811,7 +850,7 @@ let
 
         # 3c. 实例化所有隧道：XFRM 设备与 swanctl 配置
         for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
-          IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer_ip6 t_peer <<< "$inst"
+          IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer_ip6 t_peer t_ep <<< "$inst"
 
           if ! ip link show "$t_iface" >/dev/null 2>&1; then
             # 彻底杜绝内核 EEXIST：若有残留旧网卡占用了该 if_id，先行清除
@@ -838,7 +877,7 @@ let
     connections {
       ''${t_conn} {
         version = 2
-        mobike = no
+        mobike = yes
         fragmentation = yes
         encap = yes
         dpd_delay = 30s
@@ -865,7 +904,6 @@ let
             remote_ts = 172.20.0.0/14, 10.0.0.0/8, fd00::/8, fe80::/10, ff00::/8, 224.0.0.0/4
             if_id_in = ''${t_if_id}
             if_id_out = ''${t_if_id}
-            set_mark_out = 0x1
             mode = tunnel
             start_action = ''${t_saction}
             dpd_action = ''${t_dpd}
@@ -882,20 +920,24 @@ let
           fi
         done
 
-        mv "$HOSTS_TMP" /run/dn42-hosts
-
         # 4. 仅在配置真正发生变化时增量热重载 strongSwan 与 BIRD，不中断已有连接
         if [ "$CONF_CHANGED" -eq 1 ]; then
           swanctl --load-all --noprompt 2>/dev/null || true
           birdc configure 2>/dev/null || true
-          # 针对主动发起的隧道，重新触发一次握手确保新 Child SA TS 立即生效
-          for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
-            IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
-            if [ "$t_saction" = "start" ]; then
-              swanctl --initiate --child "$t_conn" 2>/dev/null || true
-            fi
-          done
         fi
+
+        # 4b. 链路自愈：为缺失的主动隧道补发握手。
+        #     - 仅对当前没有 IKE_SA 的连接发起，已建立的连接不触发 rekey 抖动
+        #     - 每次发起带超时上限，对端宕机不会阻塞 agent（否则 timer 失速、全网停摆）
+        #     - 覆盖对端宕机恢复、本端 charon 重试耗尽、NAT 客户端上线等场景
+        EXISTING_SAS=$(swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
+        for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
+          IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
+          [ "$t_saction" = "start" ] || continue
+          if ! printf '%s\n' "$EXISTING_SAS" | grep -qx "$t_conn"; then
+            timeout 8 swanctl --initiate --child "$t_conn" 2>/dev/null || true
+          fi
+        done
   '';
 
 in
@@ -992,7 +1034,7 @@ in
           default =
             let
               configuredInterfaces = builtins.filter (
-                i: !lib.hasPrefix "dn42" i && !lib.hasPrefix "tailscale" i && !lib.hasPrefix "virbr" i && i != "lo"
+                i: i != "lo" && !lib.hasPrefix "dn42" i && !lib.hasPrefix "xfrm" i
               ) (builtins.attrNames (config.networking.interfaces or { }));
             in
             if configuredInterfaces != [ ] then configuredInterfaces else [ "eth0" ];
@@ -1051,36 +1093,6 @@ in
         default = [ ];
         description = "List of peer names to enable concurrent multi-path tunnels for";
       };
-    };
-
-    allClusterTunnelPorts = mkOption {
-      type = types.listOf types.port;
-      internal = true;
-      readOnly = true;
-      default = lib.unique (
-        [
-          500
-          4500
-          cfg.ipsec.ikePort
-          cfg.ipsec.natTPort
-        ]
-        ++ (lib.concatMap (n: [
-          n.ikePort
-          n.natTPort
-        ]) (lib.attrValues cfg.nodes))
-        ++ (lib.concatMap (
-          n:
-          let
-            rawEp = n.endpoints or { };
-            rawList = if lib.isAttrs rawEp then lib.attrValues rawEp else [ ];
-            rawEpSingle = if n.endpoint != null && lib.isString n.endpoint then [ n.endpoint ] else [ ];
-          in
-          lib.filter (p: p != null && p != (n.listenPort or 51821) && p != 51820) (
-            map extractPort (rawList ++ rawEpSingle)
-          )
-        ) (lib.attrValues cfg.nodes))
-      );
-      description = "All IKE and NAT-T ports used across the DN42 mesh cluster";
     };
 
     listenPort = mkOption {
@@ -1219,7 +1231,7 @@ in
     # ── 2. IPsec / IKEv2 + XFRM 后端实现 ──────────────────────────────
     (mkIf (cfg.backend == "ipsec") (
       let
-        portsCsv = concatStringsSep ", " (map toString cfg.allClusterTunnelPorts);
+        portsCsv = concatStringsSep ", " (map toString baseCfg.allClusterTunnelPorts);
       in
       {
         boot.kernelModules = [
@@ -1248,6 +1260,8 @@ in
               Type = "oneshot";
               RemainAfterExit = false;
               ExecStart = "${sdwanAgentScript}";
+              # 兜底：单次同步异常挂起时强制结束，避免 timer 的 OnUnitInactiveSec 永不重武装
+              TimeoutStartSec = "180s";
             };
           };
 
@@ -1277,6 +1291,19 @@ in
               Restart = "always";
               RestartSec = "3s";
               ExecStart = "${pkgs.socat}/bin/socat -d -d TCP6-LISTEN:${toString baseCfg.sdwan.controllerPort},reuseaddr,fork,ipv6only=0 SYSTEM:\"${sdwanControllerScript}\"";
+            };
+          };
+
+          # 主控间周期互同步：从其他主控拉取 registry 并按最大 build_time 合并
+          "dn42-sdwan-controller-sync" = {
+            description = "DN42 SD-WAN Controller Registry Peer Sync";
+            after = [ "network-online.target" ];
+            wants = [ "network-online.target" ];
+            wantedBy = [ "multi-user.target" ];
+            restartTriggers = [ sdwanControllerScript ];
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${sdwanControllerScript} pull-peers";
             };
           };
         })
@@ -1336,7 +1363,7 @@ in
                 if [ -z "$IFACE" ]; then
                   IFACE=$(ip -6 route show default 2>/dev/null | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1)}' | head -n1 || true)
                 fi
-                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && [[ ! "$IFACE" =~ ^(dn42|xfrm|tailscale|mihomo|Meta|meta|tun|veth|docker|virbr|br-|podman) ]]; then
+                if [ -n "$IFACE" ] && [ "$IFACE" != "lo" ] && ip -o link show dev "$IFACE" 2>/dev/null | grep -q 'link/ether'; then
                   echo "Auto-binding Mimic on default route interface: $IFACE"
                   systemctl start "mimic@$IFACE.service" || true
                 fi
@@ -1350,10 +1377,23 @@ in
           wantedBy = [ "timers.target" ];
           timerConfig = {
             OnBootSec = "5s";
-            OnUnitInactiveSec = "45s";
+            OnUnitInactiveSec = "30s";
             AccuracySec = "5s";
           };
         };
+
+        # 主控间 registry 互同步定时器（仅主控节点启用）
+        systemd.timers.dn42-sdwan-controller-sync =
+          mkIf (baseCfg.sdwan.enable && baseCfg.sdwan.isController)
+            {
+              description = "DN42 Multi-Master SD-WAN Controller Registry Sync Timer";
+              wantedBy = [ "timers.target" ];
+              timerConfig = {
+                OnBootSec = "20s";
+                OnUnitInactiveSec = "60s";
+                AccuracySec = "5s";
+              };
+            };
 
         # 针对固定服务器节点（未启用 NetworkManager），开机自动启动物理出口网卡上的 mimic 服务实例
         systemd.targets.multi-user.wants = mkIf (
@@ -1393,13 +1433,8 @@ in
               send_vendor_id = no
               # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
               uniqueids = no
-              interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
-              # 借鉴 linyinfeng/dotfiles: 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
-              ignore_routing_tables = 2022
               plugins {
                 socket-default {
-                  # 设置 socket fwmark 为 0x1，使 IKE 与 NAT-T 流量原生匹配策略路由 lookup main，免于被代理 TUN 劫持
-                  fwmark = 0x1
                 }
               }
             }
@@ -1419,7 +1454,7 @@ in
           ++ optional (cfg.ipsec.pskFile != null) cfg.ipsec.pskFile;
         };
 
-        # MSS 钳制：防止内层经过 table 200 加速或 DN42 路由的 TCP 连接因外层多重封装 (XFRM + UDP) 超出 MTU 而卡顿白屏
+        # MSS clamping keeps TCP payloads within the XFRM/Mimic path MTU.
         networking.nftables.tables.dn42-mss-clamp = mkIf config.networking.nftables.enable {
           family = "inet";
           content = ''
@@ -1455,9 +1490,9 @@ in
         # - UDP 6696: Babel IGP 动态路由
         # - TCP controllerPort: SD-WAN 注册中心主控端口 (仅在 Controller 节点开启)
         networking.firewall = {
-          allowedUDPPorts = cfg.allClusterTunnelPorts ++ [ 6696 ];
+          allowedUDPPorts = baseCfg.allClusterTunnelPorts ++ [ 6696 ];
           allowedTCPPorts =
-            cfg.allClusterTunnelPorts
+            baseCfg.allClusterTunnelPorts
             ++ lib.optional (baseCfg.sdwan.enable && baseCfg.sdwan.isController) baseCfg.sdwan.controllerPort;
           extraReversePathFilterRules = ''
             udp sport { ${portsCsv} } accept
@@ -1498,15 +1533,12 @@ in
                 source = pkgs.writeText "90-mimic-roaming" ''
                   IFACE="$1"
                   ACTION="$2"
-                  case "$IFACE" in
-                    lo|dn42*|xfrm*|tailscale*|mihomo*|Meta*|meta*|tun*|veth*|docker*|virbr*|br-*|podman*)
-                      exit 0
-                      ;;
-                  esac
+                  [ "$IFACE" = lo ] && exit 0
+                  ip -o link show dev "$IFACE" 2>/dev/null | grep -q 'link/ether' || exit 0
                   case "$ACTION" in
                     up|dhcp4-change|dhcp6-change)
                       systemctl restart "mimic@$IFACE.service" || true
-                      systemctl restart strongswan-swanctl.service || true
+                      systemctl start dn42-sdwan-agent.service || true
                       ;;
                     down)
                       systemctl stop "mimic@$IFACE.service" || true

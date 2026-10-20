@@ -250,7 +250,7 @@ in
             exec "''${args[@]}"
           ''
         );
-        # 显式豁免 Fake-TCP 端口，防止 FakeHTTP 注入伪造 HTTP 报文篡改 Mimic 握手包
+        # Exclude DN42 transport ports from FakeHTTP's TCP payload rewriting.
         ExecStartPost =
           let
             dn42Cfg = config.services.dn42 or null;
@@ -263,7 +263,7 @@ in
                 (dn42Cfg.ikePort or 500)
                 (dn42Cfg.natTPort or 4500)
               ])
-              ++ (config.services.dn42.mesh.allClusterTunnelPorts or [ ])
+              ++ (config.services.dn42.allClusterTunnelPorts or [ ])
             );
           in
           pkgs.writeShellScript "fakehttp-bypass-dn42" ''

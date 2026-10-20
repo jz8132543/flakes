@@ -337,7 +337,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "sum(rate(node_network_receive_bytes_total{device=~\"dn42[xm]-.*\"}[1m]) + rate(node_network_transmit_bytes_total{device=~\"dn42[xm]-.*\"}[1m])) or vector(0)",
+          "expr": "sum(dn42_mesh_net_rx_bytes_per_sec + dn42_mesh_net_tx_bytes_per_sec) or vector(0)",
           "instant": false,
           "legendFormat": "DN42 Throughput",
           "range": true,
@@ -399,7 +399,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "sum(rate(node_network_receive_bytes_total{device=~\"eth.*|ens.*|enp.*|wlan.*|wlp.*\"}[1m]) + rate(node_network_transmit_bytes_total{device=~\"eth.*|ens.*|enp.*|wlan.*|wlp.*\"}[1m])) or vector(0)",
+          "expr": "sum(dn42_node_net_rx_bytes_per_sec + dn42_node_net_tx_bytes_per_sec) or vector(0) or vector(0)",
           "instant": false,
           "legendFormat": "WAN Throughput",
           "range": true,
@@ -789,7 +789,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "rate(node_network_transmit_bytes_total{device=~\"dn42[xm]-.*\"}[1m])",
+          "expr": "dn42_edge_tx_bytes_per_sec",
           "instant": false,
           "legendFormat": "TX {{instance}}:{{device}}",
           "range": true,
@@ -801,7 +801,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "-rate(node_network_receive_bytes_total{device=~\"dn42[xm]-.*\"}[1m])",
+          "expr": "-dn42_edge_rx_bytes_per_sec",
           "instant": false,
           "legendFormat": "RX {{instance}}:{{device}}",
           "range": true,

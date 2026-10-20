@@ -6,6 +6,15 @@
 }:
 let
   cfg = config.services.cluster-monitoring.client;
+  selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
+  dn42Node = selfData.dn42.mesh.${config.networking.hostName} or { };
+  dn42BuildTime = selfData.dn42.build_time or 0;
+  dn42NodeRole = dn42Node.role or "internal";
+  dn42NodeIsController = dn42Node.is_controller or false;
+  dn42NodeId =
+    dn42Node.id or (lib.head (
+      ((selfData.hosts.${config.networking.hostName} or { }).host_indices or [ ]) ++ [ 0 ]
+    ));
 
   # Build list of scrape targets dynamically
   nodeTarget = {
@@ -125,14 +134,39 @@ let
       )
     }"
 
-    OUT_DIR="/run/prometheus-node-exporter"
-    STATE_DIR="/run/dn42-prom-state"
+    OUT_DIR="''${DN42_PROM_OUT_DIR:-/run/prometheus-node-exporter}"
+    STATE_DIR="''${DN42_PROM_STATE_DIR:-/run/dn42-prom-state}"
+    SDWAN_STATE_DIR="''${DN42_SDWAN_STATE_DIR:-/var/lib/dn42-sdwan}"
     mkdir -p "$OUT_DIR" "$STATE_DIR"
     chmod 755 "$OUT_DIR" "$STATE_DIR" 2>/dev/null || true
     TMP_FILE="$OUT_DIR/dn42.prom.$$"
     FINAL_FILE="$OUT_DIR/dn42.prom"
 
     HOST="${config.networking.hostName}"
+
+    # ── 0. SD-WAN 接口 → (peer, endpoint) 映射表（由 dn42-sdwan-agent 写入） ──
+    # 优先使用 agent 的真实映射；文件缺失时回退到接口名解析。
+    declare -A IFACE_PEER IFACE_EP
+    EDGE_LABELS_FILE="$SDWAN_STATE_DIR/edge-labels"
+    if [ -f "$EDGE_LABELS_FILE" ]; then
+      while IFS=$'\t' read -r m_if m_peer m_ep; do
+        if [ -n "$m_if" ] && [ -n "$m_peer" ]; then
+          IFACE_PEER[$m_if]="$m_peer"
+          IFACE_EP[$m_if]="$m_ep"
+        fi
+      done < "$EDGE_LABELS_FILE"
+    fi
+
+    resolve_edge() {
+      local iface="$1" tgt
+      if [ -n "''${IFACE_PEER[$iface]:-}" ]; then
+        echo "''${IFACE_PEER[$iface]} ''${IFACE_EP[$iface]:-$iface}"
+        return 0
+      fi
+      tgt="''${iface#dn42?-}"
+      if [[ "$tgt" == *-* ]]; then tgt="''${tgt%-*}"; fi
+      echo "$tgt $tgt"
+    }
 
     # 1. Detect DN42 Loopback IP
     DN42_IP=$(ip -4 -o addr show dev dummy0 2>/dev/null | awk '{split($4,a,"/"); print a[1]; exit}' || true)
@@ -142,8 +176,11 @@ let
 
     # 2. CPU Model, Cores, Load & Usage % (state-tracked)
     CORES=$(nproc 2>/dev/null || echo 1)
-    CPU_MODEL=$(awk -F': ' '/^model name|^Model|^Hardware/ {print $2; exit}' /proc/cpuinfo 2>/dev/null | sed -e 's/"/\\"/g' -e 's/^[ \t]*//' || true)
+    CPU_MODEL=$(awk -F': ' '/^model name|^Model|^Hardware/ {print $2; exit}' /proc/cpuinfo 2>/dev/null | sed -e 's/^[ \t]*//' || true)
     [ -z "$CPU_MODEL" ] && CPU_MODEL="$(uname -m)"
+    # Prometheus label 值转义：反斜杠与双引号
+    CPU_MODEL="''${CPU_MODEL//\\/\\\\}"
+    CPU_MODEL="''${CPU_MODEL//\"/\\\"}"
     CPU_DESC="''${CPU_MODEL} (''${CORES}C)"
     LOAD1=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo "0.0")
 
@@ -204,11 +241,57 @@ let
       RX_BPS=0; TX_BPS=0
     fi
 
+    # 5b. Per-tunnel mesh interface bandwidth rate (Bytes/s, state-tracked)
+    # 为每条 dn42x-* 子链路单独记账，供拓扑图边标签展示实时吞吐。
+    MESH_RX_TOTAL=0; MESH_TX_TOTAL=0
+    : > "$STATE_DIR/iface-bytes.new"
+    declare -A PREV_IRX PREV_ITX
+    if [ -f "$STATE_DIR/iface-bytes" ]; then
+      while read -r p_if p_rx p_tx; do
+        [ -n "$p_if" ] && PREV_IRX[$p_if]="$p_rx" && PREV_ITX[$p_if]="$p_tx"
+      done < "$STATE_DIR/iface-bytes"
+    fi
+    PREV_IMS=0
+    [ -f "$STATE_DIR/iface-bytes.ts" ] && read -r PREV_IMS < "$STATE_DIR/iface-bytes.ts" || true
+    echo "$NOW_MS" > "$STATE_DIR/iface-bytes.ts"
+    EDGE_RATE_FILE="$STATE_DIR/edge-rates"
+    : > "$EDGE_RATE_FILE"
+    while read -r i_if i_rx i_tx; do
+      [ -z "$i_if" ] && continue
+      echo "$i_if $i_rx $i_tx" >> "$STATE_DIR/iface-bytes.new"
+      MESH_RX_TOTAL=$(( MESH_RX_TOTAL + i_rx ))
+      MESH_TX_TOTAL=$(( MESH_TX_TOTAL + i_tx ))
+      p_rx="''${PREV_IRX[$i_if]:-}"
+      p_tx="''${PREV_ITX[$i_if]:-}"
+      if [ -n "$p_rx" ] && [ -n "$p_tx" ] && [ "$NOW_MS" -gt "$PREV_IMS" ]; then
+        i_rx_bps=$(awk -v d="$(( i_rx - p_rx ))" -v dt="$(( NOW_MS - PREV_IMS ))" 'BEGIN { printf "%.0f", (d > 0 ? d * 1000.0 / dt : 0) }')
+        i_tx_bps=$(awk -v d="$(( i_tx - p_tx ))" -v dt="$(( NOW_MS - PREV_IMS ))" 'BEGIN { printf "%.0f", (d > 0 ? d * 1000.0 / dt : 0) }')
+        read -r e_peer e_ep <<< "$(resolve_edge "$i_if")"
+        printf '%s\t%s\t%s\t%s\t%s\n' "$i_if" "$e_peer" "$e_ep" "$i_rx_bps" "$i_tx_bps" >> "$EDGE_RATE_FILE"
+      fi
+    done < <(awk -F'[: ]+' '
+      $2 ~ /^dn42[xm]-/ && $3 ~ /^[0-9]+$/ { printf "%s %s %s\n", $2, $3, $11 }
+    ' /proc/net/dev 2>/dev/null || true)
+    mv -f "$STATE_DIR/iface-bytes.new" "$STATE_DIR/iface-bytes" 2>/dev/null || true
+
+    # Mesh 汇总速率（bytes/s）
+    PREV_MESH_MS=$NOW_MS; PREV_MESH_RX=0; PREV_MESH_TX=0
+    [ -f "$STATE_DIR/mesh-net" ] && read -r PREV_MESH_MS PREV_MESH_RX PREV_MESH_TX < "$STATE_DIR/mesh-net" || true
+    echo "$NOW_MS $MESH_RX_TOTAL $MESH_TX_TOTAL" > "$STATE_DIR/mesh-net" 2>/dev/null || true
+    if [ "$NOW_MS" -gt "$PREV_MESH_MS" ]; then
+      MESH_RX_BPS=$(awk -v d="$(( MESH_RX_TOTAL - PREV_MESH_RX ))" -v dt="$(( NOW_MS - PREV_MESH_MS ))" 'BEGIN { printf "%.0f", (d > 0 ? d * 1000.0 / dt : 0) }')
+      MESH_TX_BPS=$(awk -v d="$(( MESH_TX_TOTAL - PREV_MESH_TX ))" -v dt="$(( NOW_MS - PREV_MESH_MS ))" 'BEGIN { printf "%.0f", (d > 0 ? d * 1000.0 / dt : 0) }')
+    else
+      MESH_RX_BPS=0; MESH_TX_BPS=0
+    fi
+
     # Write out Prometheus metrics atomically
     {
       echo "# HELP dn42_node_info Node hardware metadata for topology graph"
       echo "# TYPE dn42_node_info gauge"
-      echo "dn42_node_info{id=\"$HOST\",title=\"$HOST\",subTitle=\"$DN42_IP\",dn42_ip=\"$DN42_IP\",cpu_model=\"$CPU_DESC\",mem_total_gib=\"''${MEM_TOTAL_GIB}\",disk_total_gib=\"''${DISK_TOTAL_GIB}\"} 1"
+      echo "dn42_node_info{id=\"$HOST\",title=\"$HOST\",subTitle=\"$DN42_IP\",dn42_ip=\"$DN42_IP\",node_id=\"${toString dn42NodeId}\",build_time=\"${toString dn42BuildTime}\",role=\"${dn42NodeRole}\",is_controller=\"${
+        if dn42NodeIsController then "true" else "false"
+      }\",cpu_model=\"$CPU_DESC\",mem_total_gib=\"''${MEM_TOTAL_GIB}\",disk_total_gib=\"''${DISK_TOTAL_GIB}\"} 1"
 
       echo "# HELP dn42_node_meta_info Legacy node hardware metadata for backwards compatibility"
       echo "# TYPE dn42_node_meta_info gauge"
@@ -259,13 +342,55 @@ let
       echo "# TYPE dn42_edge_metric gauge"
       echo "# HELP dn42_edge_routes Babel neighbor route count"
       echo "# TYPE dn42_edge_routes gauge"
+      echo "# HELP dn42_edge_rx_bytes_per_sec Mesh tunnel interface RX rate in bytes/sec"
+      echo "# TYPE dn42_edge_rx_bytes_per_sec gauge"
+      echo "# HELP dn42_edge_tx_bytes_per_sec Mesh tunnel interface TX rate in bytes/sec"
+      echo "# TYPE dn42_edge_tx_bytes_per_sec gauge"
+      echo "# HELP dn42_edge_speed_bytes_per_sec Mesh tunnel interface combined rate in bytes/sec"
+      echo "# TYPE dn42_edge_speed_bytes_per_sec gauge"
+      echo "# HELP dn42_mesh_net_rx_bytes_per_sec Aggregate mesh tunnels RX rate in bytes/sec"
+      echo "# TYPE dn42_mesh_net_rx_bytes_per_sec gauge"
+      echo "# HELP dn42_mesh_net_tx_bytes_per_sec Aggregate mesh tunnels TX rate in bytes/sec"
+      echo "# TYPE dn42_mesh_net_tx_bytes_per_sec gauge"
+
+      # Mesh 汇总吞吐（物理网卡之外的专网总网速）
+      echo "dn42_mesh_net_rx_bytes_per_sec{id=\"$HOST\"} $MESH_RX_BPS"
+      echo "dn42_mesh_net_tx_bytes_per_sec{id=\"$HOST\"} $MESH_TX_BPS"
+
+      # 每条隧道的实时吞吐（标签与 Babel 边指标一致：source/target/device）
+      if [ -s "$EDGE_RATE_FILE" ]; then
+        while IFS=$'\t' read -r r_if r_peer r_ep r_rx r_tx; do
+          [ -z "$r_if" ] && continue
+          r_lbl="id=\"$HOST->$r_peer\",source=\"$HOST\",target=\"$r_peer\",device=\"$r_if\",endpoint=\"$r_ep\""
+          echo "dn42_edge_rx_bytes_per_sec{$r_lbl} $r_rx"
+          echo "dn42_edge_tx_bytes_per_sec{$r_lbl} $r_tx"
+          echo "dn42_edge_speed_bytes_per_sec{$r_lbl} $(( r_rx + r_tx ))"
+        done < "$EDGE_RATE_FILE"
+      fi
 
       if command -v birdc >/dev/null 2>&1 && (birdc show status >/dev/null 2>&1 || [ -S /run/bird/bird.ctl ] || [ -S /run/bird.ctl ]); then
-        birdc show babel neighbors 2>/dev/null | awk -v src="$HOST" '
+        birdc show babel neighbors 2>/dev/null | awk -v src="$HOST" -v mapfile="$EDGE_LABELS_FILE" '
+          BEGIN {
+            if (mapfile != "") {
+              while ((getline ml < mapfile) > 0) {
+                nf = split(ml, mf, "\t");
+                if (nf >= 2 && mf[1] != "") { peer[mf[1]] = mf[2]; ep[mf[1]] = (nf >= 3 ? mf[3] : mf[1]); }
+              }
+              close(mapfile);
+            }
+          }
           $2 ~ /^dn42[xm]-/ {
             iface = $2;
+            # target 归一化为对端主机名（端点后缀移除），端点保留在 endpoint 标签
             tgt = iface;
             sub(/^dn42[xm]-/, "", tgt);
+            epid = tgt;
+            if (iface in peer) {
+              tgt = peer[iface];
+              epid = ep[iface];
+            } else if (tgt ~ /-/) {
+              sub(/-[^-]*$/, "", tgt);
+            }
             metric = ($3 ~ /^[0-9]+$/) ? $3 : 65535;
             routes = ($4 ~ /^[0-9]+$/) ? $4 : 0;
             hellos = $5;
@@ -287,7 +412,7 @@ let
             }
 
             edge_id = src "->" tgt;
-            lbl = sprintf("id=\"%s\",source=\"%s\",target=\"%s\",device=\"%s\"", edge_id, src, tgt, iface);
+            lbl = sprintf("id=\"%s\",source=\"%s\",target=\"%s\",device=\"%s\",endpoint=\"%s\"", edge_id, src, tgt, iface, epid);
             printf "dn42_edge_up{%s} 1\n", lbl;
             printf "dn42_edge_rtt_ms{%s} %s\n", lbl, rtt;
             printf "dn42_edge_loss_percent{%s} %.1f\n", lbl, loss;
@@ -378,6 +503,11 @@ in
             "systemd"
             "textfile"
             "cpu"
+            # 主机矩阵/历史趋势面板所需的默认采集器（与 dn42_node_* 文本指标互补）
+            "meminfo"
+            "loadavg"
+            "filesystem"
+            "netdev"
           ];
       extraFlags = [
         "--collector.textfile.directory=/run/prometheus-node-exporter"

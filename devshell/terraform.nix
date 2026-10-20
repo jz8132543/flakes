@@ -127,6 +127,12 @@ in
         # eval = "\${SECRETS_DIR:-$(realpath \"$PRJ_ROOT/secrets\")}";
       }
       {
+        name = "TF_VAR_dn42_build_time";
+        # Flake/data revision timestamp, used as the monotonic SD-WAN registry
+        # version so nodes can deterministically resolve conflicting peer data.
+        eval = "\${TF_VAR_dn42_build_time:-$(git -C \"$DOTFILES_DIR\" log -1 --format=%ct 2>/dev/null || echo 0)}";
+      }
+      {
         name = "TF_VAR_terraform_input_path";
         eval = "\${TF_VAR_terraform_input_path:-$(realpath \"$SECRETS_DIR/terraform-inputs.yaml\")}";
       }

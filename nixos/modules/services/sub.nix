@@ -258,7 +258,7 @@ let
     # 所有 Mihomo 出站 socket（包括 DIRECT 直连及节点健康检查）均携带 fwmark 1，
     # 结合 route_output 打标与 priority 8995 防回环绝缘墙，确保直连流量直接查 main 表，
     # 彻底越过 TUN 的 table 2022，根除本地 DIRECT 流量环路回流死锁。
-    routing-mark = 1;
+    # routing-mark = 1;
 
     # 注入内网 *.dn42 hosts 解析，确保所有订阅客户端秒级直达 DN42 Loopback IP
     hosts = dn42HostsMapping;
@@ -314,7 +314,7 @@ let
     ]
     # 放行 IPsec 协商与 Babel IGP (6696) 端口
     ++ (map (p: "DST-PORT,${toString p},DIRECT") (
-      config.services.dn42.mesh.allClusterTunnelPorts or [
+      config.services.dn42.allClusterTunnelPorts or [
         500
         4500
       ]

@@ -22,3 +22,6 @@ prepare-host-notice*
 
 /.nixd.json
 .worktrees/
+
+# AI
+.kilo/

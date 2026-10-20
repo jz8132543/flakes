@@ -29,6 +29,16 @@ lib.mkMerge [
       };
     };
     virtualisation.oci-containers.backend = "podman";
+    systemd.timers.podman-auto-update = {
+      description = "Daily Podman container image updates";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "*-*-* 04:15:00";
+        Persistent = true;
+        RandomizedDelaySec = "30m";
+        Unit = "podman-auto-update.service";
+      };
+    };
   }
   {
     # 1. 声明 secret
