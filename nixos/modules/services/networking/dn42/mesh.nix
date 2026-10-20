@@ -852,8 +852,11 @@ let
         for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
           IFS=';' read -r t_iface t_if_id t_conn t_laddrs t_raddrs t_rport t_saction t_dpd t_peer_ip4 t_peer_ip6 t_peer t_ep <<< "$inst"
 
-          if ! ip link show "$t_iface" >/dev/null 2>&1; then
-            # 彻底杜绝内核 EEXIST：若有残留旧网卡占用了该 if_id，先行清除
+          # 接口必须存在且 if_id 与当前计算值一致：
+          # 旧版本残留的同名接口（if_id 为旧公式）会被强制重建，否则 Child SA 无法绑定
+          cur_if_id=$(ip -d link show "$t_iface" 2>/dev/null | grep -oE 'if_id 0x[0-9a-f]+' | grep -oE '0x[0-9a-f]+' || true)
+          if [ -z "$cur_if_id" ] || [ "$(( cur_if_id ))" -ne "$t_if_id" ]; then
+            # 彻底杜绝内核 EEXIST：先清除占用目标 if_id 的残留旧网卡，再删除同名旧网卡
             old_dev=$(ip -d link show type xfrm 2>/dev/null | awk -v id="if_id 0x$(printf '%x' "$t_if_id")" '
               /^[0-9]+: dn42x-/ { iface=$2; sub(/:.*/,"",iface); sub(/@.*/,"",iface) }
               $0 ~ id { print iface }
@@ -861,6 +864,7 @@ let
             if [ -n "$old_dev" ] && [ "$old_dev" != "$t_iface" ]; then
               ip link del "$old_dev" 2>/dev/null || true
             fi
+            [ -n "$cur_if_id" ] && ip link del "$t_iface" 2>/dev/null || true
             ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id" 2>/dev/null || true
           fi
           ip link set "$t_iface" mtu 1360 multicast on up 2>/dev/null || true
