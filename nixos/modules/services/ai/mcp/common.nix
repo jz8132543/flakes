@@ -105,14 +105,16 @@ in
       };
 
       # ── sops template：含密文的环境文件 ──────────────────────────
-      # 约束：ContextForge 强制要求 JWT_SECRET_KEY / AUTH_ENCRYPTION_SECRET >= 32 字符，
-      # 且管理员密码 >= 12 字符并具备复杂度。此处组合 SOPS 主密码生成合规凭证。
+      # 约束：ContextForge 强制要求 JWT_SECRET_KEY / AUTH_ENCRYPTION_SECRET >= 32 字符。
+      # containers.nix 已配置 PASSWORD_POLICY_ENABLED=false 及 PASSWORD_MIN_LENGTH_PRIVILEGED=8，
+      # 可直接使用 SOPS 全局主密码。
       sops.templates."contextforge-secret.env".content = ''
         JWT_SECRET_KEY=${config.sops.placeholder."contextforge/secret_key"}
         AUTH_ENCRYPTION_SECRET=${config.sops.placeholder."contextforge/secret_key"}
-        PLATFORM_ADMIN_PASSWORD=${config.sops.placeholder."password"}Admin123!
-        DEFAULT_USER_PASSWORD=${config.sops.placeholder."password"}Admin123!
-        BASIC_AUTH_PASSWORD=${config.sops.placeholder."password"}Admin123!
+        PLATFORM_ADMIN_PASSWORD=${config.sops.placeholder."password"}
+        DEFAULT_USER_PASSWORD=${config.sops.placeholder."password"}
+        BASIC_AUTH_PASSWORD=${config.sops.placeholder."password"}
+        SSO_KEYCLOAK_CLIENT_SECRET=${config.sops.placeholder."password"}
         MCP_API_KEY=${config.sops.placeholder."contextforge/mcp_api_key"}
       '';
     })

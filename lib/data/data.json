@@ -369,6 +369,7 @@
     "services": {
       "alist": "fra0",
       "api": "fra0",
+      "bot": "fra0",
       "chat": "fra0",
       "cloud": "fra0",
       "code": "fra0",
@@ -376,13 +377,17 @@
       "jellyfin": "fra0",
       "m": "fra0",
       "mcp": "fra0",
+      "napcat": "fra0",
       "office": "fra0",
+      "persona": "fra0",
       "s": "fra0",
       "zone": "fra0"
     }
   },
   "dn42": {
     "asn": 4242420115,
+    "cnames": {},
+    "customRecords": [],
     "domain": "dora.dn42",
     "externalPeers": {
       "g-load-de2": {

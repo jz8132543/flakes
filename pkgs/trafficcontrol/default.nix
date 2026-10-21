@@ -36,6 +36,31 @@ buildGoModule rec {
     "-w"
   ];
 
+  outputs = [
+    "out"
+    "t3c"
+  ];
+
+  postInstall = ''
+    # Ensure t3c binary exists
+    if [ ! -f "$out/bin/t3c" ]; then
+      echo "Error: t3c binary not found in $out/bin" >&2
+      exit 1
+    fi
+
+    # Support traffic_control/install_dir/bin/t3c path expectation
+    mkdir -p "$out/traffic_control/install_dir/bin"
+    ln -sf "$out/bin/t3c" "$out/traffic_control/install_dir/bin/t3c"
+
+    # Export lightweight t3c output containing only edge t3c client binaries
+    mkdir -p "$t3c/bin"
+    cp -a "$out/bin"/t3c* "$t3c/bin/"
+  '';
+
+  passthru = {
+    inherit version;
+  };
+
   doCheck = false;
 
   meta = with lib; {

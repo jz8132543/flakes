@@ -115,6 +115,70 @@ let
         (map (ip: "${dn42NsHostname} IN A ${ip}") primaryNsV4s)
         ++ (map (ip: "${dn42NsHostname} IN AAAA ${ip}") primaryNsV6s)
       );
+
+      cnameRecords = concatMapStringsSep "\n" (
+        alias:
+        let
+          rawTarget = cfg.dn42.cnames.${alias};
+          target =
+            if hasSuffix "." rawTarget then
+              rawTarget
+            else if strings.hasInfix "." rawTarget then
+              "${rawTarget}."
+            else
+              "${rawTarget}.${dn42Domain}.";
+        in
+        "${alias} IN CNAME ${target}"
+      ) (attrNames cfg.dn42.cnames);
+
+      normalizedExtraRecords =
+        let
+          recs = cfg.dn42.extraRecords;
+        in
+        if isList recs then
+          recs
+        else if isAttrs recs then
+          concatLists (
+            mapAttrsToList (
+              name: val:
+              if isList val then
+                map (r: r // { inherit name; }) val
+              else if isAttrs val then
+                if val ? type && val ? value then
+                  [ (val // { inherit name; }) ]
+                else
+                  mapAttrsToList (k: v: {
+                    inherit name;
+                    type = toUpper k;
+                    value = v;
+                  }) val
+              else
+                [ ]
+            ) recs
+          )
+        else
+          [ ];
+
+      customRecordsList = concatMapStringsSep "\n" (
+        record:
+        let
+          ttlStr = if (record ? ttl && record.ttl != null) then "${toString record.ttl} " else "";
+          typeStr = toUpper (record.type or "A");
+          valStr =
+            if typeStr == "CNAME" && !(hasSuffix "." record.value) && !(strings.hasInfix "." record.value) then
+              "${record.value}.${dn42Domain}."
+            else
+              record.value;
+        in
+        "${record.name} ${ttlStr}IN ${typeStr} ${valStr}"
+      ) normalizedExtraRecords;
+
+      customAndAliasRecords = concatStringsSep "\n" (
+        filter (s: s != "") [
+          cnameRecords
+          customRecordsList
+        ]
+      );
     in
     pkgs.writeText "${dn42Domain}.zone" ''
       $ORIGIN ${dn42Domain}.
@@ -134,6 +198,9 @@ let
 
       ; Cluster Nodes
       ${clusterRecords}
+
+      ; Custom Records & Aliases
+      ${customAndAliasRecords}
     '';
 
   revZoneV4Name = "0/26.232.20.172.in-addr.arpa";
@@ -393,6 +460,37 @@ in
         type = types.int;
         default = 300;
         description = "TTL for DN42 authoritative DNS records.";
+      };
+
+      cnames = mkOption {
+        type = types.attrsOf types.str;
+        default = dn42Data.cnames or { };
+        description = "CNAME alias mappings for the DN42 authoritative zone (<alias> -> <target>).";
+        example = {
+          git = "fra0";
+          matrix = "fra0.dora.dn42.";
+        };
+      };
+
+      extraRecords = mkOption {
+        type = types.oneOf [
+          (types.listOf types.attrs)
+          (types.attrsOf types.anything)
+        ];
+        default = dn42Data.customRecords or (dn42Data.extraRecords or [ ]);
+        description = "Extra DNS resource records (A, AAAA, CNAME, TXT, etc.) for the DN42 authoritative zone.";
+        example = [
+          {
+            name = "vault";
+            type = "A";
+            value = "172.20.232.1";
+          }
+          {
+            name = "vault";
+            type = "AAAA";
+            value = "fd53:90fd:4bb6:1::1";
+          }
+        ];
       };
 
       listenAddresses = mkOption {

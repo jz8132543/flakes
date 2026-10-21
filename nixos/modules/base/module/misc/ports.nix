@@ -191,6 +191,15 @@
       # ── IBM ContextForge MCP 总线 ─────────────────────────────
       mcp-contextforge-api = 5002; # ContextForge API + Virtual MCP 端点
       mcp-contextforge-ui = 5003; # ContextForge Web 管理 UI
+
+      # ── AI 搜索与情感陪伴引擎 ────────────────────────────────
+      degoog-mcp = 5005; # Degoog FastMCP & OpenAPI 搜索桥接
+      persona-engine = 5006; # AI 情绪陪伴人设引擎 API
+
+      # ── QQ 机器人生态 (NapCat + AstrBot) ──────────────────────
+      napcat-ws = 6098; # NapCat OneBot v11 WebSocket
+      napcat-webui = 6099; # NapCat WebUI 后台扫码与管理
+      astrbot = 6185; # AstrBot 智能体核心调度中枢 Web 面板 (默认 6185)
     };
   };
 }
