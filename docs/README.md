@@ -22,3 +22,10 @@
   - **四、 关键配置与运维指南**
     - 4.1 节点扩展最佳实践（零接触新增节点）
     - 4.2 常用排障排错速查表
+
+- [WinApps 无缝 Windows 子系统与 Office 集成技术文档](./winapps-architecture.md)
+  - **一、 总体架构**（Linux 桌面、Home-Manager、NixOS 服务与 Podman 容器分层图）
+  - **二、 核心功能特性**（Tiny10 极简基底、0% CPU 闲置、HiDPI 缩放、打印机穿透、MAS 静默激活）
+  - **三、 文件结构与模块职责划分**（系统级 options、compose 生成器、OEM 激活流水线、桌面端配置）
+  - **四、 核心问题排查与技术解决方案记录**（DN42 路由溢出、Tiny10 下载中断、开机假就绪挂起、MIME WPS 回退、xrdp 冲突）
+  - **五、 日常运维与使用指南**（编译部署、状态检查、Office 自动化安装流程）

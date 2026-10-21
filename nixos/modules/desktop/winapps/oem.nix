@@ -67,6 +67,27 @@ in
             schtasks /create /tn "TimeSync" /tr "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File \"%windir%\TimeSync.ps1\"" /sc onlogon /rl HIGHEST /f >nul 2>&1
         )
 
+        :: 6. Install Office from a licensed Office Deployment Tool package in dockur's Data share.
+        :: The share is available as \\host.lan\Data; tsclient only exists during an RDP session.
+        set "OFFICE_SHARE=\\host.lan\Data"
+        if exist "Z:\setup.exe" set "OFFICE_SHARE=Z:"
+        if exist "%OFFICE_SHARE%\setup.exe" if exist "%OFFICE_SHARE%\configuration.xml" (
+            if not exist "%ProgramFiles%\Microsoft Office\root\Office16\WINWORD.EXE" (
+                echo [INFO] Installing Office using the supplied deployment configuration...
+                "%OFFICE_SHARE%\setup.exe" /configure "%OFFICE_SHARE%\configuration.xml"
+            )
+        ) else (
+            echo [WARN] Office not installed: provide licensed Office Deployment Tool setup.exe and configuration.xml in WinAppsShare.
+        )
+
+        :: Office Click-to-Run installs under root\Office16; WinApps' legacy app definitions
+        :: expect Office16 directly under Microsoft Office. Create the junction if needed.
+        if exist "%ProgramFiles%\Microsoft Office\root\Office16\WINWORD.EXE" (
+            if not exist "%ProgramFiles%\Microsoft Office\Office16\WINWORD.EXE" (
+                mklink /J "%ProgramFiles%\Microsoft Office\Office16" "%ProgramFiles%\Microsoft Office\root\Office16"
+            )
+        )
+
         echo [NixOS-WinApps] Provisioning completed successfully.
       '';
     };

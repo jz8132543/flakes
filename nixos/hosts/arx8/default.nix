@@ -31,18 +31,6 @@
   desktop.nvidia = {
     mode = "offload";
   };
-  # desktop.winapps = {
-  #   kvm = {
-  #     enable = true;
-  #     enableVirtIO = true;
-  #     enableCdrom = false;
-  #   };
-  #   docker = {
-  #     enable = true;
-  #     enableVirtIO = true;
-  #     enableCdrom = false;
-  #   };
-  # };
 
   # services.create_ap = {
   #   enable = true;

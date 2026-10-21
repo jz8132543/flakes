@@ -11,13 +11,14 @@ let
   system = pkgs.stdenv.hostPlatform.system;
   winappsBase = inputs.winapps.packages.${system}.winapps;
 
+  # 仅做增值封装，不修改 WinApps 官方脚本逻辑：
+  # 1. 将 WinApps 自带的 Office/Windows SVG 图标安装进 hicolor 主题
+  # 2. 把 podman-compose 与 slirp4netns 加入 wrapper 的 PATH（官方 AUTOPAUSE 的 pause/unpause 及网络隔离依赖它们）
   winappsPatched = winappsBase.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace bin/winapps \
-        --replace-fail 'podman-compose --file "$COMPOSE_PATH" pause' 'podman pause "$CONTAINER_NAME"' \
-        --replace-fail '$COMPOSE_COMMAND --file "$COMPOSE_PATH" unpause' 'if [ "$WAFLAVOR" = "podman" ]; then podman unpause "$CONTAINER_NAME"; else $COMPOSE_COMMAND --file "$COMPOSE_PATH" unpause; fi' \
-        --replace-fail '$COMPOSE_COMMAND --file "$COMPOSE_PATH" start' 'if [ "$WAFLAVOR" = "podman" ]; then podman start "$CONTAINER_NAME"; else $COMPOSE_COMMAND --file "$COMPOSE_PATH" start; fi'
-    '';
+    buildInputs = (old.buildInputs or [ ]) ++ [
+      pkgs.podman-compose
+      pkgs.slirp4netns
+    ];
     postInstall = (old.postInstall or "") + ''
       mkdir -p $out/share/icons/hicolor/scalable/apps
       for app in word excel powerpoint explorer; do
@@ -42,7 +43,11 @@ in
         virt-manager
         # FreeRDP is required by WinApps to connect to the VM seamlessly
         freerdp
-        # WinApps package from the community flake (patched for native podman pause/unpause)
+        # WinApps uses podman-compose to manage the container lifecycle (incl. AUTOPAUSE)
+        podman-compose
+        # User-mode networking for rootless Podman (resilient against complex host route tables like DN42/BGP)
+        slirp4netns
+        # WinApps package from the community flake
         winappsPatched
         inputs.winapps.packages.${system}.winapps-launcher
       ]

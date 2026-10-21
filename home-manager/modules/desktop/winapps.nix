@@ -3,6 +3,7 @@
   lib,
   pkgs,
   inputs,
+  osConfig ? { },
   ...
 }:
 
@@ -18,29 +19,10 @@ let
     else
       "100";
   desktopScale = toString (dpi * 100 / 96);
-  system = pkgs.stdenv.hostPlatform.system;
-  winappsBase = inputs.winapps.packages.${system}.winapps;
-  winappsPatched = winappsBase.overrideAttrs (old: {
-    postPatch = (old.postPatch or "") + ''
-      substituteInPlace bin/winapps \
-        --replace-fail 'podman-compose --file "$COMPOSE_PATH" pause' 'podman pause "$CONTAINER_NAME"' \
-        --replace-fail '$COMPOSE_COMMAND --file "$COMPOSE_PATH" unpause' 'if [ "$WAFLAVOR" = "podman" ]; then podman unpause "$CONTAINER_NAME"; else $COMPOSE_COMMAND --file "$COMPOSE_PATH" unpause; fi' \
-        --replace-fail '$COMPOSE_COMMAND --file "$COMPOSE_PATH" start' 'if [ "$WAFLAVOR" = "podman" ]; then podman start "$CONTAINER_NAME"; else $COMPOSE_COMMAND --file "$COMPOSE_PATH" start; fi'
-    '';
-    postInstall = (old.postInstall or "") + ''
-      mkdir -p $out/share/icons/hicolor/scalable/apps
-      for app in word excel powerpoint explorer; do
-        if [ -f "$out/src/apps/$app/icon.svg" ]; then
-          case "$app" in
-            word) cp "$out/src/apps/$app/icon.svg" $out/share/icons/hicolor/scalable/apps/ms-word.svg ;;
-            excel) cp "$out/src/apps/$app/icon.svg" $out/share/icons/hicolor/scalable/apps/ms-excel.svg ;;
-            powerpoint) cp "$out/src/apps/$app/icon.svg" $out/share/icons/hicolor/scalable/apps/ms-powerpoint.svg ;;
-            explorer) cp "$out/src/apps/$app/icon.svg" $out/share/icons/hicolor/scalable/apps/distributor-logo-windows.svg ;;
-          esac
-        fi
-      done
-    '';
-  });
+  # 与 NixOS 模块 desktop.winapps.podman 联动（winapps 客户端由 NixOS 模块安装）
+  podmanEnabled = lib.attrByPath [ "desktop" "winapps" "podman" "enable" ] false osConfig;
+  # 复用 NixOS 模块生成的 compose 文件（/etc/winapps/compose.yaml 指向同一 store 路径）
+  composeYaml = lib.attrByPath [ "environment" "etc" "winapps/compose.yaml" "source" ] null osConfig;
 in
 {
   options.programs.winapps = {
@@ -50,45 +32,55 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [
-      winappsPatched
-      pkgs.freerdp
-    ];
-    # 1. 声明式 winapps.conf
+    # 1. 声明式 winapps.conf（全部使用 WinApps 官方配置项）
     home.file.".config/winapps/winapps.conf".text = ''
       # ==============================================================================
       # WINAPPS CONFIGURATION (NixOS Managed)
       # ==============================================================================
       RDP_USER="Docker"
-      RDP_PASS="docker"
+      RDP_PASS="admin"
       RDP_DOMAIN=""
       RDP_IP="127.0.0.1"
+      RDP_PORT="3390"
       WAFLAVOR="podman"
 
       # 动态计算的高分屏缩放 (当前 DPI: ${toString dpi}, 比例: ${desktopScale}%)
       RDP_SCALE="${calculatedScale}"
 
-      # 驱动重定向：挂载全盘根目录 / 为 \\tsclient\root，家目录为 \\tsclient\home，共享文件夹为 \\tsclient\BottlesShare
-      RDP_FLAGS="/cert:tofu /sound /microphone +clipboard /drive:root,/ /drive:home,${config.home.homeDirectory} /drive:BottlesShare,${config.home.homeDirectory}/Storage/BottlesShare /scale-desktop:${desktopScale}"
+      # 可移动介质挂载路径（GNOME/udisks 默认使用 /run/media）
+      REMOVABLE_MEDIA="/run/media"
 
-      MULTIMON="false"
+      # 驱动重定向：挂载全盘根目录 / 为 \\tsclient\root，家目录为 \\tsclient\home，
+      # 共享文件夹为 \\tsclient\WinAppsShare，并启用打印机/剪贴板/声卡重定向
+      # - /network:lan: 本机回环低延迟模式
+      # FreeRDP 3 rejects the legacy /gfx-progressive and +glyph-cache flags.
+      # - /scale-desktop:${desktopScale} 与 RDP_SCALE="${calculatedScale}" 配合实现矢量级 HiDPI 缩放
+      RDP_FLAGS="/cert:tofu /network:lan /gdi:hw /gfx:RFX /sound /microphone +clipboard /printer /drive:root,/ /drive:home,${config.home.homeDirectory} /drive:WinAppsShare,${config.home.homeDirectory}/Storage/WinAppsShare /scale-desktop:${desktopScale}"
+
       DEBUG="true"
 
       # ==============================================================================
-      # [虚拟机电源管理策略：动态冻结 (Autopause) vs 持续常驻 (Always-On)]
+      # [官方闲置自动挂起 (AUTOPAUSE)]
       # ==============================================================================
-      # 【模式 A（默认）：闲置自动冻结】
-      # 当所有 Office/Windows 窗口关闭 300 秒后，自动将容器置入 pause 状态，CPU 占用彻底降为 0%
+      # 当所有 Office/Windows 窗口关闭 300 秒后，WinApps 会自动通过
+      # podman-compose pause 将容器置入 pause 状态，CPU 占用彻底降为 0%；
+      # 下次打开 docx/xlsx/pptx 等文件时会自动 unpause 秒级恢复。
       AUTOPAUSE="on"
       AUTOPAUSE_TIME="300"
-
-      # 【模式 B（备用）：持续常驻不暂停】
-      # 如果你需要虚拟机始终保持完整活跃（例如后台需要持续接收消息通知），
-      # 请注释掉上面的 AUTOPAUSE="on" 与 AUTOPAUSE_TIME，并取消下面这行的注释即可：
-      # AUTOPAUSE="off"
     '';
 
-    # 2. 声明式 Office 与 Windows 桌面入口
+    # 2. 与 NixOS 模块生成的开机启动服务共用同一个 compose 文件，
+    # 使 WinApps 官方的 pause/unpause/start 操作命中同一个容器
+    home.file.".config/winapps/compose.yaml" = lib.mkIf (podmanEnabled && composeYaml != null) {
+      source = composeYaml;
+    };
+
+    # WinApps resolves app metadata from ~/.local/share/winapps/apps.
+    home.file.".local/share/winapps/apps".source = "${
+      inputs.winapps.packages.${pkgs.stdenv.hostPlatform.system}.winapps
+    }/src/apps";
+
+    # 3. 声明式 Office 与 Windows 桌面入口
     xdg.desktopEntries = {
       winapps-word = {
         name = "Microsoft Word";
@@ -163,7 +155,7 @@ in
       };
     };
 
-    # 3. 注册协议与文档格式默认关联 (docx, xlsx, pptx 等默认由 WinApps Office 打开)
+    # 4. 注册协议与文档格式默认关联 (docx, xlsx, pptx 等默认由 WinApps Office 打开)
     xdg.mimeApps.defaultApplications = {
       # Microsoft Word
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = "winapps-word.desktop";
@@ -195,7 +187,7 @@ in
       "x-scheme-handler/ms-powerpoint" = "winapps-powerpoint.desktop";
     };
 
-    # 4. WinApps Launcher 开机自启
+    # 5. WinApps Launcher 开机自启
     systemd.user.services.winapps-launcher = {
       Unit = {
         Description = "WinApps Taskbar Launcher Widget";

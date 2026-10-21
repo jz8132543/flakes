@@ -59,7 +59,9 @@
     };
 
     podman = {
-      enable = lib.mkEnableOption "WinApps integration with Rootless Podman (dockurr/windows)";
+      enable = lib.mkEnableOption "WinApps integration with Rootless Podman (dockurr/windows)" // {
+        default = true;
+      };
 
       autoStart = lib.mkOption {
         type = lib.types.bool;
@@ -79,16 +81,46 @@
         description = "Seconds to wait after Windows RDP port 3389 opens before suspending to let startup tasks finish.";
       };
 
+      port = lib.mkOption {
+        type = lib.types.int;
+        default = 3390;
+        description = "Host RDP port mapped to Windows VM (defaults to 3390 to avoid conflict with xrdp).";
+      };
+
+      username = lib.mkOption {
+        type = lib.types.str;
+        default = "Docker";
+        description = "Windows username created by dockur/windows. Must match RDP_USER in winapps.conf.";
+      };
+
+      password = lib.mkOption {
+        type = lib.types.str;
+        default = "admin";
+        description = "Windows password created by dockur/windows. Must match RDP_PASS in winapps.conf.";
+      };
+
+      diskSize = lib.mkOption {
+        type = lib.types.str;
+        default = "64G";
+        description = "Size of the Windows virtual disk.";
+      };
+
+      ballooning = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Enable dynamic memory ballooning so dockur/windows can reclaim unused guest RAM under host memory pressure.";
+      };
+
       version = lib.mkOption {
         type = lib.types.str;
         default = "tiny10";
-        description = "Windows version to deploy in dockurr/windows.";
+        description = "Windows version to deploy in dockurr/windows (default 'tiny10' for minimal footprint and low resource overhead).";
       };
 
       language = lib.mkOption {
         type = lib.types.str;
-        default = "Chinese";
-        description = "Windows display language.";
+        default = "English";
+        description = "Windows display language. Note: Tiny10 only exists in English; setting to English avoids archive.org redirect failures.";
       };
 
       ramSize = lib.mkOption {
@@ -111,7 +143,7 @@
 
       sharedPath = lib.mkOption {
         type = lib.types.str;
-        default = "/home/tippy/Storage/BottlesShare";
+        default = "/home/tippy/Storage/WinAppsShare";
         description = "Shared host directory passed to the container.";
       };
     };

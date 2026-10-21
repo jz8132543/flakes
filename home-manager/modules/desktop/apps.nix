@@ -73,8 +73,8 @@ let
 
     # 金山专有格式（.wps / .wpt 等二进制格式 Office 无法正常解析，保持关联给 WPS）
     "application/wps-office.wps" = [
-      "wps-office-wps.desktop"
       "wps-writer.desktop"
+      "wps-office-wps.desktop"
     ];
     "application/wps-office.wpt" = [
       "wps-office-wps.desktop"
@@ -503,103 +503,23 @@ in
   };
 
   home.file = lib.mkMerge [
-    {
-      ".config/Kingsoft/Office.conf".source = pkgs.writeText "wps-office.conf" ''
-        [6.0]
-        FirstInstall=0
-        common\AcceptedEULA=true
-        common\newInstall=false
-        common\first_run=false
-        common\do_not_detect_file_association_while_startup=true
-        common\first_detect_file_association_while_startup=false
-        common\check_file_association=false
-        common\FileAssociationFixRemind=false
-        wpsoffice\Application%20Settings\CheckFileAssociation=false
-        wpsoffice\Application%20Settings\FileAssociationFixRemind=false
-        wpsoffice\Application%20Settings\WordFileAssociation=false
-        wpsoffice\Application%20Settings\ExcelFileAssociation=false
-        wpsoffice\Application%20Settings\PowerPntFileAssociation=false
-        wpsoffice\Application%20Settings\PictureFileAssociation=false
-        wpsoffice\Application%20Settings\RbFileAssociation=false
-        wpsoffice\Application%20Settings\UpdateRecoverCheckTag=false
-        wpsoffice\Application%20Settings\PromptUpdateStyle=0
-        wpsoffice\Application%20Settings\UpdateLinksAtOpen=0
-        wpsoffice\Application%20Settings\UpdateFieldsAtPrint=0
-        wpsoffice\Application%20Settings\UpdateLinksAtPrint=0
-        wpsoffice\Application%20Settings\UpdateFieldsWithTrackedChangesAtPrint=0
-
-        [kdcsdk]
-        NotFirstOpen=true
-
-        [General]
-        language=zh_CN
-        languages=zh_CN
-
-        [common]
-        first_run=false
-        do_not_detect_file_association_while_startup=true
-        first_detect_file_association_while_startup=false
-        check_file_association=false
-        FileAssociationFixRemind=false
-        WordFileAssociation=false
-        ExcelFileAssociation=false
-        PowerPntFileAssociation=false
-        PictureFileAssociation=false
-        RbFileAssociation=false
-        agreementshown=true
-        agree_privacy_policy=true
-        agreeEULA=true
-
-        [wpsoffice\Application%20Settings]
-        CheckFileAssociation=false
-        FileAssociationFixRemind=false
-        WordFileAssociation=false
-        ExcelFileAssociation=false
-        PowerPntFileAssociation=false
-        PictureFileAssociation=false
-        RbFileAssociation=false
-
-        [wps\Application%20Settings]
-        CheckFileAssociation=false
-        FileAssociationFixRemind=false
-        WordFileAssociation=false
-
-        [et\Application%20Settings]
-        EnableFormatCheck=0
-        AskToUpdateLinks=0
-        CheckFileAssociation=false
-        FileAssociationFixRemind=false
-        ExcelFileAssociation=false
-
-        [wpp\Application%20Settings]
-        CheckFileAssociation=false
-        FileAssociationFixRemind=false
-        PowerPntFileAssociation=false
-
-        [pdf\Application%20Settings]
-        CheckFileAssociation=false
-        FileAssociationFixRemind=false
-
-        [UnixUpdateInfo]
-        UserRejectUpdateVersion=${pkgs.wpsoffice-cn.version}
-      '';
-      ".config/Kingsoft/Office.conf".force = true;
-    }
     (lib.optionalAttrs (builtins.pathExists writerTemplate) {
-      ".local/share/Kingsoft/office6/templates/wps/en_US/Normal.dotm".source = writerTemplate;
+      ".local/share/Kingsoft/office6/templates/wps/zh_CN/Normal.dotm".source = writerTemplate;
     })
     (lib.optionalAttrs (builtins.pathExists sheetTemplate) {
-      ".local/share/Kingsoft/office6/templates/et/en_US/Normal.xltx".source = sheetTemplate;
+      ".local/share/Kingsoft/office6/templates/et/zh_CN/Normal.xltx".source = sheetTemplate;
     })
     (lib.optionalAttrs (builtins.pathExists slidesTemplate) {
-      ".local/share/Kingsoft/office6/templates/wpp/en_US/Normal.pot".source = slidesTemplate;
+      ".local/share/Kingsoft/office6/templates/wpp/zh_CN/Normal.pot".source = slidesTemplate;
     })
   ];
 
   xdg.mimeApps = {
     enable = true;
     associations.added = documentAssociations;
-    defaultApplications = documentAssociations;
+    defaultApplications = documentAssociations // {
+      "application/wps-office.wps" = [ "wps-office-wps.desktop" ];
+    };
   };
 
   xdg.desktopEntries = {
@@ -617,10 +537,15 @@ in
       startupNotify = true;
     };
     wps-writer = {
+      mimeType = [
+        "application/wps-office.wps"
+        "application/wps-office.wpt"
+        "application/kswps"
+      ];
       name = "WPS 文字";
       genericName = "WPS Writer";
       comment = "Open WPS Writer";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "wps"} ${writerTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wps"} %F";
       icon = "wps-office2023-wpsmain";
       terminal = false;
       categories = [
@@ -632,7 +557,7 @@ in
       name = "WPS 表格";
       genericName = "WPS Spreadsheets";
       comment = "Open WPS Spreadsheets";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "et"} ${sheetTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "et"} %F";
       icon = "wps-office2023-etmain";
       terminal = false;
       categories = [
@@ -644,7 +569,7 @@ in
       name = "WPS 演示";
       genericName = "WPS Presentation";
       comment = "Open WPS Presentation";
-      exec = "${lib.getExe' pkgs.wpsoffice-cn "wpp"} ${slidesTemplate}";
+      exec = "${lib.getExe' pkgs.wpsoffice-cn "wpp"} %F";
       icon = "wps-office2023-wppmain";
       terminal = false;
       categories = [
