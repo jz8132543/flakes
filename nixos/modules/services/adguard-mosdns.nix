@@ -150,6 +150,10 @@ in
           port = 5300; # Internal bind port to avoid conflict with dnsmasq
           # 核心上游配置
           upstream_dns = [
+            "[/dora.dn42/]172.20.232.1"
+            "[/dora.dn42/]172.20.0.53"
+            "[/dn42/]172.20.0.53"
+            "[/dn42/]172.23.0.53"
             "[/ts/]100.100.100.100" # Tailscale MagicDNS
             "127.0.0.1:5333" # Mosdns
           ];

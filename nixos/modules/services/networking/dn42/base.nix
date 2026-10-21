@@ -363,8 +363,10 @@ in
       "/${cfg.domain}/172.20.232.1"
       "/${cfg.domain}/172.20.0.53"
       "/${cfg.domain}/172.23.0.53"
-      "/${cfg.domain}/fd42:d42:d42:54::1"
-      "/${cfg.domain}/fd42:d42:d42:53::1"
+      "/dn42/172.20.0.53"
+      "/dn42/172.23.0.53"
+      "/dn42/fd42:d42:d42:54::1"
+      "/dn42/fd42:d42:d42:53::1"
     ];
 
     networking.interfaces.dn42 = {

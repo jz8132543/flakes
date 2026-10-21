@@ -3,6 +3,13 @@
   lib,
   ...
 }:
+let
+  dn42Domain =
+    if config.services ? dn42 && config.services.dn42 ? domain then
+      config.services.dn42.domain
+    else
+      "dora.dn42";
+in
 {
   services.resolved.enable = false;
 
@@ -31,6 +38,25 @@
         "8.8.8.8 -fallback"
         "223.5.5.5 -fallback"
         "119.29.29.29 -fallback"
+        # ── DN42 专网解析上游 ──
+        # dora.dn42: 优先自建 CoreDNS 权威 (172.20.232.1)，超时回退 Anycast
+        # *.dn42: 官方 Anycast 根与递归服务器 (172.20.0.53 / 172.23.0.53)
+        "172.20.232.1 -group dn42-auth -exclude-default-group"
+        "172.20.0.53 -group dn42 -exclude-default-group"
+        "172.23.0.53 -group dn42 -exclude-default-group"
+      ]
+      ++ lib.optionals config.services.tailscale.enable [
+        # ── Tailscale MagicDNS 上游 ──
+        "100.100.100.100 -group tailscale -exclude-default-group"
+      ];
+
+      nameserver = [
+        "/${dn42Domain}/dn42-auth"
+        "/${dn42Domain}/dn42"
+        "/dn42/dn42"
+      ]
+      ++ lib.optionals config.services.tailscale.enable [
+        "/ts/tailscale"
       ];
 
       # 允许正常解析 AAAA (IPv6) 记录，支持纯 IPv6 网站、教育网/校园网 IPv6 资源与专用节点。
@@ -48,7 +74,7 @@
   # ── 2. Dnsmasq 本地前端与智能分流 / 降级 ────────────────────────
   # 监听标准端口 127.0.0.1:53，统一纳管本地解析与环境感知降级：
   # 1. 优先（队列首部）：通过 127.0.0.1#5335 走 SmartDNS DoH 纯净加密解析；
-  # 2. 内部域名分流：*.dn42 走 Anycast，*.ts 走 Tailscale MagicDNS，*.et 走 EasyTier；
+  # 2. 内部域名分流：dora.dn42 走自建+Anycast，*.dn42 走 Anycast，*.ts 走 Tailscale MagicDNS，*.et 走 EasyTier；
   # 3. 降级 Fallback：当处于校园网/酒店 Wi-Fi 强制 Web 认证门户（Captive Portal）等未登录断网环境时，
   #    DoH 因外网中断超时，strict-order 会自动 fallback 至 NetworkManager 从 DHCP 动态获取的局域网/校园网 DNS，
   #    确保校园网自动跳转登录页面秒级唤醒，登录成功外网恢复后秒级切回 DoH。
@@ -66,6 +92,10 @@
       # 队列首部：本地 SmartDNS DoH
       server = [
         "127.0.0.1#5335"
+        "/${dn42Domain}/172.20.232.1"
+        "/${dn42Domain}/172.20.0.53"
+        "/dn42/172.20.0.53"
+        "/dn42/172.23.0.53"
       ]
       ++ lib.optionals config.services.tailscale.enable [
         "/ts/100.100.100.100@tailscale0"

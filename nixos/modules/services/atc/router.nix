@@ -265,6 +265,14 @@ let
           errors
           ${optionalString cfg.dns.log "log"}
       }
+
+      dn42:${toString cfg.dns.port} {
+          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
+          forward . 172.20.0.53 172.23.0.53 fd42:d42:d42:54::1 fd42:d42:d42:53::1
+          errors
+          cache 30
+          ${optionalString cfg.dns.log "log"}
+      }
     ''}
   '';
 in

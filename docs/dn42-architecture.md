@@ -254,11 +254,13 @@ $$\text{Metric} = \frac{256}{d_f \times d_r} + 512 \times \text{clamp}\left(\fra
                      addr.arpa.zone       ip6.arpa.zone
 ```
 
-1. **ATC CoreDNS 权威多 Zone 承载**：
+1. **ATC CoreDNS 权威多 Zone 承载与 Anycast 递归联动**：
    - 监听地址绑定至 `172.20.232.1:53` 与 `[fd53:90fd:4bb6:1::1]:53`；
    - 自动生成 `dora.dn42` 正向解析，包含集群所有主机的双栈 A / AAAA 记录；
-   - 自动生成 `0/26.232.20.172.in-addr.arpa`（IPv4 PTR）与 `6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa`（IPv6 PTR）。
-2. **DN42 官方 Registry 合规注册**：
+   - 自动生成 `0/26.232.20.172.in-addr.arpa`（IPv4 PTR）与 `6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa`（IPv6 PTR）；
+   - **DN42 全局根转发**：配置 `dn42:53` Server Block，仅针对非 `dora.dn42` 的其他所有 DN42 域名（如 `*.dn42`），自动 forward 至 DN42 官方 Anycast 根与递归服务器（`172.20.0.53`、`172.23.0.53`），实现完整的 DN42 内网递归解析。
+2. **DN42 官方 Registry 合规注册（PR #7554 已合并）**：
+   - 官方主仓库 `dn42/registry:master` 已成功合并我们的 PR #7554；
    - 在 `data/dns/dora.dn42` 中声明权威名称服务器：
      ```text
      domain:             dora.dn42
@@ -269,7 +271,18 @@ $$\text{Metric} = \frac{256}{d_f \times d_r} + 512 \times \text{clamp}\left(\fra
      nserver:            ns1.dora.dn42 fd53:90fd:4bb6:1::1
      source:             DN42
      ```
-   - 在 `data/inetnum/172.20.232.0_26` 和 `data/inet6num/fd53:90fd:4bb6::_48` 中声明反向委派：`nserver: ns1.dora.dn42`。
+   - 在 `data/inetnum/172.20.232.0_26` 和 `data/inet6num/fd53:90fd:4bb6::_48` 中声明反向委派：`nserver: ns1.dora.dn42`；
+   - 全球 Anycast DNS（`172.20.0.53` / `172.23.0.53`）已原生支持向我们的 CoreDNS 递归解析 `*.dora.dn42`。
+
+3. **全网多层级 DNS 解析统一协同矩阵**：
+   所有节点、客户端与应用层服务，对 DN42 与 Tailscale 的域名解析均遵循统一的分流拓扑：
+   | 解析层级 / 组件  | 运行节点 / 监听端口         | 内部域名 (`*.dora.dn42`)              | DN42 全局域 (`*.dn42`)                       | Tailscale 域 (`*.ts`)        |
+   | :--------------- | :-------------------------- | :------------------------------------ | :------------------------------------------- | :--------------------------- |
+   | **CoreDNS**      | `fra0` (53, DN42 IP)        | 本地权威 Zone 直解                    | 转发至 Anycast `172.20.0.53` / `172.23.0.53` | - (专网隔离)                 |
+   | **SmartDNS**     | 全集群节点 (127.0.0.1:5335) | `172.20.232.1` (权威) + `172.20.0.53` | Anycast `172.20.0.53` / `172.23.0.53`        | `100.100.100.100` (MagicDNS) |
+   | **Dnsmasq**      | 全集群节点 (127.0.0.1:53)   | `172.20.232.1` + `172.20.0.53`        | Anycast `172.20.0.53` / `172.23.0.53`        | `100.100.100.100@tailscale0` |
+   | **AdGuard Home** | 边缘服务节点 (0.0.0.0:5300) | `[/dora.dn42/]172.20.232.1` + Anycast | `[/dn42/]172.20.0.53` / `172.23.0.53`        | `[/ts/]100.100.100.100`      |
+   | **Mihomo (TUN)** | 移动端 / 客户端订阅         | `172.20.232.1:53` + `172.20.0.53`     | `172.20.0.53` + `172.23.0.53`                | `100.100.100.100:53`         |
 
 ---
 
@@ -277,30 +290,51 @@ $$\text{Metric} = \frac{256}{d_f \times d_r} + 512 \times \text{clamp}\left(\fra
 
 本系统同时运行了 **DN42 (XFRM+Babel)**、**Tailscale**、**EasyTier** 以及 **Mihomo (TUN)**。各组件在 Linux 内核网络栈中争夺默认路由、`iptables/nftables` 链和 DNS 端口。以下为遭遇的致命冲突与根治方案：
 
-### 3.1 冲突一：Mihomo TUN 路由自捕获死锁（Routing Loop）
+### 3.1 冲突一：Mihomo TUN 路由自捕获死锁与断网雪崩（Routing Loop）
 
 #### 1. 深度病因剖析
 
 Mihomo TUN 开启后，会在内核中创建虚拟网卡 `Meta`，并向策略路由表 `table 2022` 写入全局接管路由（`0.0.0.0/1`、`128.0.0.0/1` 和 `::/1`）。
 
-- **`auto-detect-interface: false` 下的死锁**：
-  Mihomo 自己的出站 Socket 是未绑定设备的。当它向公网节点（`fra0.dora.im`）发起建连时，出站 TCP 连接被内核判定命中了 `table 2022`，再次扔进了 `Meta` 网卡。**Mihomo 尝试用代理去代理“发往代理服务器自身的建连包”**，形成无限递归死锁，导致所有公网节点全部超时报废。
-- **为什么不能设为 `auto-detect-interface: true`？**
-  如果开启，Mihomo 会对所有出站 Socket 强行执行 `SO_BINDTODEVICE = wlp4s0`。发往 DN42 内网 SOCKS5 节点（`172.20.232.1:1080`）的流量被强行绑定在物理网卡上，直接绕过了内核路由表，被当作普通外网包扔给家用光猫/路由器丢弃。**公网虽然通了，但 DN42 必死**。
-- **为什么只有 DN42 节点此前能通？**
-  因为 `172.20.0.0/14` 早在 `route-exclude-address` 排除列表中，且此前写死了静态 hosts，恰好避开了 TUN 接管。
+- **为什么必须设为 `auto-detect-interface: false`？**
+  如果开启 `auto-detect-interface: true`，Mihomo 会自动嗅探系统默认网关（如 Wi-Fi 网卡 `wlp4s0`），并在所有出站代理 Socket 上强行执行 `setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, "wlp4s0")`。
+  一旦 Socket 被绑定到特定物理网卡，**该流量将彻底绕过内核路由表（FIB）**。本来应该发往 `172.20.232.1:1080`（DN42 SOCKS5 节点）的流量被强行甩给家用路由器丢弃，导致**所有 DN42 节点必死**。
+- **Netfilter 标记滞后性导致的自捕获死锁（Initial Route Lookup 陷阱）**：
+  在 Linux 网络栈中，本机进程发起 `connect()` 时，**内核初始选路（Initial Route Lookup）与源 IP 挑选发生在 Netfilter mangle 链之前**：
+  1. Mihomo（UID 998）发起的代理建连请求在未打标时（`mark == 0`）即执行初次选路；
+  2. 因未命中针对 mark 的规则，命中了优先级 9003 的 TUN 规则（`from 0.0.0.0 iif lo lookup 2022`）；
+  3. 内核直接选定 `dev Meta` 为出站设备，并将源 IP 固化为 TUN 接口地址 **`198.18.0.1`**；
+  4. 随后包进入 Netfilter 打上 `0x1`，但 `ip_route_me_harder` 无法为已被选定为 `198.18.0.1` 的 TCP SYN 包更改源 IP；
+  5. 目的地为节点公网 IP（如 `45.143.130.230:8555`）的包进入 TUN，被 Mihomo 误当作待代理的非 CN 流量，**再次触发外联，形成指数级自捕获死循环，数十秒内产生数万并发连接，CPU 瞬间 100%、内存暴涨至 2GB+**。
+- **断网 / Wi-Fi 漫游时的雪崩机制**：
+  当 Wi-Fi 断开或漫游切换热点瞬间，物理网卡的 `default` 路由暂时消失。Mihomo 尝试重连节点时在 `main` 表中查无路由，全量掉入 TUN 产生自环风暴；海量并发占死 CPU 与内核 Socket 缓冲区，导致 NetworkManager 无法配置网络（`Resource temporarily unavailable`），连通性检查（Captive Portal）超时导致 Wi-Fi 频发 `DEAUTH` 断开，陷入无法自愈的震荡。
 
-#### 2. 优雅彻底根治方案
+#### 2. 终极根治方案：内核 UID 级策略路由与断网熔断
 
-无需手动维护任何公网节点的动态 IP，遵循**分层路由隔离原则**：
+无需在订阅配置中手动维护任何公网节点的 IP 排除列表，在操作系统内核层（`nixos/modules/desktop/mihomo-routing.nix`）实现前置拦截：
 
-1. **保持 `auto-detect-interface: false`**，把内核路由选路权完整归还给 Linux FIB；
-2. **在 `tun.route-exclude-address` 中固定排除公共 DNS**：
-   仅需排除十几个永远不变的主流公共 DNS（`223.5.5.5/32`, `119.29.29.29/32`, `1.1.1.1/32`, `8.8.8.8/32` 等）；
-3. **消除 DNS 解析死锁**：
-   `proxy-server-nameserver` 发往 `223.5.5.5` 的解析请求直出物理网卡，不再被 TUN 捕获，彻底消除了 `dns resolve failed: couldn't find ip`；
-4. **通过 `mihomo-routing.nix` 结合内核策略路由放行出站**：
-   电脑端通过 `meta skuid 998` 打标直通 `main` 表，配合 `prefer-ipv4: true` 消除缺少 IPv6 默认网关时的内核 `unreachable` 熔断。
+1. **多端订阅（`sub.nix`）彻底解耦**：
+   - 保持 `auto-detect-interface = false;`（兼顾手机与 DN42 多路径选路）；
+   - 绝不往 `route-exclude-address` 注入动态节点公网 IP（新增节点零变更、零构建）；
+   - 移除 `proxy-server-nameserver`，交由 `nameserver-policy` 分流树处理，杜绝公网 DNS 抢答造成的 NXDOMAIN 负缓存死锁。
+2. **Priority 8980: UID 级前置路由拦截（Initial Route Lookup 阶段介入）**：
+   ```bash
+   ip -4 rule add uidrange 998-998 lookup main priority 8980
+   ip -6 rule add uidrange 998-998 lookup main priority 8980
+   ```
+   **物理机理**：Linux 内核在进程调用 `connect()` 的第 0 毫秒就知晓 `sock->sk_uid == 998`。
+   在选择出站网卡和源 IP 之前，该规则强制让 Mihomo 进程查 `main` 表：
+   - 连公网节点：自动匹配 Wi-Fi/物理网卡，源 IP 正确绑定为物理 IP；
+   - 连 DN42 节点：自动匹配 `dn42x-*` 隧道，源 IP 正确绑定为 `172.20.232.x`；
+   - `dev Meta` 与 `198.18.0.1` 绝无机会被选为出站设备！
+3. **Priority 8985: 断网硬熔断保护（彻底杜绝 CPU 100% 与网络锁死）**：
+   ```bash
+   ip -4 rule add uidrange 998-998 unreachable priority 8985
+   ip -6 rule add uidrange 998-998 unreachable priority 8985
+   ```
+   **物理机理**：当 Wi-Fi 断开、`main` 表没有默认网关时，Mihomo 的所有外部建连请求在命中 8980 失败后，**立即命中 8985 熔断规则**，内核在 0ms 瞬间返回 `ENETUNREACH`（Network is unreachable）报错。
+   出站连接立刻失败并等待，**绝不可能穿透掉入 priority 9003 (`table 2022` / TUN)**！
+   彻底消除了断网漫游时的自捕获死循环风暴，CPU 占用稳定为 0%，Wi-Fi 秒级完成漫游重连。
 
 ---
 
