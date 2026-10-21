@@ -2,13 +2,16 @@
   config,
   lib,
   pkgs,
+  self,
   ...
 }:
 let
   cfg = config.services.cluster-monitoring.client;
   selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
   dn42Node = selfData.dn42.mesh.${config.networking.hostName} or { };
-  dn42BuildTime = selfData.dn42.build_time or 0;
+  # Registry version mirrors the flake revision (git commit time), not the
+  # terraform build timestamp, so it only moves on real repo changes.
+  dn42BuildTime = self.lastModified or self.lastModifiedDate or 0;
   dn42NodeRole = dn42Node.role or "internal";
   dn42NodeIsController = dn42Node.is_controller or false;
   dn42NodeId =

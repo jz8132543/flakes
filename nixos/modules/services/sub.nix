@@ -10,7 +10,6 @@ let
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
 
   selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
-  allHostsData = selfData.hosts or { };
 
   # 从 server 字段提取主机名标识符（如 "fra0.dora.im" -> "fra0", "fra0" -> "fra0"）
   serverHost = server: lib.head (lib.splitString "." server);
@@ -32,7 +31,9 @@ let
 
   publicServer = server: if lib.hasInfix "." server then server else "${server}.${domain}";
 
-  dn42Server = server: "${serverHost server}.dn42";
+  inherit (cfg) dn42Domain;
+
+  dn42Server = server: "${serverHost server}.${dn42Domain}";
 
   # 判断节点是否自动裂变为 DN42 节点（例如中转节点 *-kxy 不自动生成 DN42）
   shouldGenDn42 = node: node.enableDn42 && !lib.hasInfix "kxy" node.name;
@@ -226,16 +227,6 @@ let
 
   # 当用户未自定义 AI 规则时，默认创建的非 HK AI/流媒体专用组（优先走 DN42 节点）
 
-  # 自动提取所有节点 *.dn42 映射字典，直接写入 Mihomo hosts 配置
-  dn42HostsMapping = lib.foldr (
-    name: acc:
-    let
-      hData = allHostsData.${name} or { };
-      v4s = hData.dn42_addresses_v4 or [ ];
-    in
-    if v4s != [ ] then acc // { "${name}.dn42" = lib.head v4s; } else acc
-  ) { } (builtins.attrNames allHostsData);
-
   mihomoConfig = {
     mixed-port = 7890;
     mode = "Rule";
@@ -259,9 +250,6 @@ let
     # 结合 route_output 打标与 priority 8995 防回环绝缘墙，确保直连流量直接查 main 表，
     # 彻底越过 TUN 的 table 2022，根除本地 DIRECT 流量环路回流死锁。
     # routing-mark = 1;
-
-    # 注入内网 *.dn42 hosts 解析，确保所有订阅客户端秒级直达 DN42 Loopback IP
-    hosts = dn42HostsMapping;
 
     # 包含公网节点及 DN42 SOCKS5 节点
     proxies = allProxies;
@@ -340,6 +328,7 @@ let
       "DOMAIN-SUFFIX,cloudflare.com,DIRECT"
       "DOMAIN-SUFFIX,nsupdate.info,DIRECT"
       "DOMAIN-SUFFIX,dora.im,DIRECT"
+      "DOMAIN-SUFFIX,kxy.ovh,DIRECT"
       "IP-CIDR,1.1.1.1/32,DIRECT,no-resolve"
       "IP-CIDR,1.0.0.1/32,DIRECT,no-resolve"
       "IP-CIDR,8.8.8.8/32,DIRECT,no-resolve"
@@ -384,7 +373,6 @@ let
 
     dns = {
       enable = true;
-      hosts = dn42HostsMapping;
       listen = "0.0.0.0:1053";
       ipv6 = true;
       prefer-ipv4 = true;
@@ -396,19 +384,30 @@ let
       ];
       proxy-server-nameserver = [
         "223.5.5.5"
+        "119.29.29.29"
         "1.12.12.12"
+        "180.76.76.76"
       ];
       nameserver = [
-        "127.0.0.1"
+        "223.5.5.5"
+        "119.29.29.29"
+        "1.12.12.12"
       ];
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
-        "+.dora.im,+.kxy.ovh" = [
+        "+.${domain},+.kxy.ovh" = [
           "223.5.5.5"
+          "119.29.29.29"
           "1.12.12.12"
+        ];
+        "+.${dn42Domain}" = [
+          "172.20.232.1:53"
+          "172.20.0.53"
+          "172.23.0.53"
         ];
         "geosite:cn,apple,private,steam,onedrive" = [
           "223.5.5.5"
+          "119.29.29.29"
           "1.12.12.12"
         ];
       };
@@ -433,13 +432,10 @@ let
       exclude-interface = [
         "tailscale0"
         "easytier0"
-      ]
-      ++ (lib.optionals (config ? services && config.services ? dn42 && config.services.dn42.enable) (
-        [ "dn42" ]
-        ++ (map (name: "dn42x-${lib.substring 0 9 name}") (
-          builtins.attrNames (config.services.dn42.mesh.nodes or { })
-        ))
-      ));
+        "dn42"
+        "dn42x-+"
+        "xfrm+"
+      ];
       route-exclude-address = [
         "100.64.0.0/10"
         "100.42.0.0/10"
@@ -450,7 +446,13 @@ let
         "172.31.0.0/16"
         "10.0.0.0/8"
         "fd00::/8"
-        # 豁免 DoH 纯净上游服务器 IP，避免本机 SmartDNS 发往 1.1.1.1:443 / 8.8.8.8:443 的查询被 TUN 捕获引发环路死锁
+        # 豁免公网与公共 DNS IP，避免 proxy-server-nameserver 发起的自解析查询被 TUN 捕获引发环路死锁
+        "223.5.5.5/32"
+        "223.6.6.6/32"
+        "119.29.29.29/32"
+        "1.12.12.12/32"
+        "180.76.76.76/32"
+        "114.114.114.114/32"
         "1.1.1.1/32"
         "1.0.0.1/32"
         "8.8.8.8/32"
@@ -465,7 +467,8 @@ let
         "http"
       ];
       skip-domain = [
-        "*.dora.im"
+        "*.${domain}"
+        "*.${dn42Domain}"
         "*.ts"
         "*.et"
       ];
@@ -541,6 +544,12 @@ in
       type = lib.types.port;
       default = 1080;
       description = "Default SOCKS5 port for DN42 internal nodes.";
+    };
+
+    dn42Domain = lib.mkOption {
+      type = lib.types.str;
+      default = config.services.dn42.domain or (selfData.dn42.domain or "dn42");
+      description = "Domain suffix used for DN42 internal nodes and hosts mapping (defaults to services.dn42.domain or 'dn42').";
     };
 
     nodes = lib.mkOption {

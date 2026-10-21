@@ -21,12 +21,6 @@ variable "dn42_v6_cidr" {
   type    = string
 }
 
-variable "dn42_build_time" {
-  description = "Monotonic Flake/data build version used for SD-WAN conflict resolution"
-  type        = number
-  default     = 0
-}
-
 locals {
   # ── 1. 公网对等别名 (peer1, peer2, peer3 ... .dora.im) ───────────────────────
   dn42_peer_targets = {
@@ -115,7 +109,6 @@ locals {
   # the normalized array is exported to consumers.
   dn42_nodes_normalized = {
     for name, node in local.dn42_nodes : name => merge(node, {
-      build_time = var.dn42_build_time
       endpoints = [
         for endpoint_name, endpoint_value in try(node.endpoints, {}) : {
           name = endpoint_name
@@ -256,11 +249,11 @@ output "dn42_data" {
   description = "Full DN42 dataset consumed by NixOS DN42 modules"
   sensitive   = false
   value = {
+    domain         = "dora.dn42"
     asn            = var.dn42_asn
     ipv4           = var.dn42_v4_cidr
     ipv6           = var.dn42_v6_cidr
     schema         = 2
-    build_time     = var.dn42_build_time
     mesh           = local.dn42_nodes_normalized
     topology       = local.dn42_nodes_normalized
     externalPeers  = local.dn42_external_peers

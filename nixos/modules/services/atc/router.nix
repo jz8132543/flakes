@@ -8,7 +8,10 @@ with lib;
 let
   cfg = config.services.atc.router;
   domain = config.networking.domain;
-  data = (importJSON ../../../../lib/data/data.json).cdn;
+  fullData = importJSON ../../../../lib/data/data.json;
+  data = fullData.cdn;
+  dn42Hosts = fullData.hosts or { };
+  dn42Data = fullData.dn42 or { };
   nsHosts = data.nsHosts or [ (data.nsHost or "fra0") ];
   primaryNsHost = head nsHosts;
 
@@ -82,6 +85,146 @@ let
 
   defaultZone = zoneFor "default" data.edgeNodes;
 
+  dn42Domain = cfg.dn42.domain;
+  dn42PrimaryNsHost = cfg.dn42.primaryNsHost;
+  dn42NsHostname = cfg.dn42.nsHostname;
+
+  dn42Zone =
+    let
+      clusterRecords = concatMapStringsSep "\n" (
+        name:
+        let
+          hData = dn42Hosts.${name} or { };
+          v4s = hData.dn42_addresses_v4 or [ ];
+          v6s = hData.dn42_addresses_v6 or [ ];
+          aRecs = concatMapStringsSep "\n" (ip: "${name} IN A ${ip}") v4s;
+          aaaaRecs = concatMapStringsSep "\n" (ip: "${name} IN AAAA ${ip}") v6s;
+        in
+        concatStringsSep "\n" (
+          filter (s: s != "") [
+            aRecs
+            aaaaRecs
+          ]
+        )
+      ) (attrNames dn42Hosts);
+
+      primaryNsData = dn42Hosts.${dn42PrimaryNsHost} or { };
+      primaryNsV4s = primaryNsData.dn42_addresses_v4 or [ "172.20.232.1" ];
+      primaryNsV6s = primaryNsData.dn42_addresses_v6 or [ "fd53:90fd:4bb6:1::1" ];
+      nsRecords = concatStringsSep "\n" (
+        (map (ip: "${dn42NsHostname} IN A ${ip}") primaryNsV4s)
+        ++ (map (ip: "${dn42NsHostname} IN AAAA ${ip}") primaryNsV6s)
+      );
+    in
+    pkgs.writeText "${dn42Domain}.zone" ''
+      $ORIGIN ${dn42Domain}.
+      $TTL ${toString cfg.dn42.ttl}
+      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
+          ${cfg.dns.soaSerial} ; Serial
+          7200                 ; Refresh
+          3600                 ; Retry
+          1209600              ; Expire
+          ${toString cfg.dn42.ttl} ; Minimum TTL
+      )
+
+      @ IN NS ${dn42NsHostname}.${dn42Domain}.
+
+      ; Authoritative Nameserver Glue Records
+      ${nsRecords}
+
+      ; Cluster Nodes
+      ${clusterRecords}
+    '';
+
+  revZoneV4Name = "0/26.232.20.172.in-addr.arpa";
+  revZoneV6Name = "6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa";
+
+  dn42RevZoneV4 =
+    let
+      v4PtrRecords = concatMapStringsSep "\n" (
+        name:
+        let
+          v4s = (dn42Hosts.${name} or { }).dn42_addresses_v4 or [ ];
+          ptrs = map (
+            ip:
+            let
+              lastOctet = last (splitString "." ip);
+            in
+            "${lastOctet} IN PTR ${name}.${dn42Domain}."
+          ) v4s;
+        in
+        concatStringsSep "\n" ptrs
+      ) (attrNames dn42Hosts);
+    in
+    pkgs.writeText "${revZoneV4Name}.zone" ''
+      $ORIGIN ${revZoneV4Name}.
+      $TTL ${toString cfg.dn42.ttl}
+      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
+          ${cfg.dns.soaSerial} ; Serial
+          7200                 ; Refresh
+          3600                 ; Retry
+          1209600              ; Expire
+          ${toString cfg.dn42.ttl} ; Minimum TTL
+      )
+
+      @ IN NS ${dn42NsHostname}.${dn42Domain}.
+
+      ${v4PtrRecords}
+    '';
+
+  dn42RevZoneV6 =
+    let
+      v6PtrRecords = concatMapStringsSep "\n" (
+        name:
+        let
+          v6s = (dn42Hosts.${name} or { }).dn42_addresses_v6 or [ ];
+          ptrs = filter (x: x != null) (
+            map (
+              ip:
+              let
+                m = builtins.match ".*:4bb6:([0-9a-fA-F]+)::1" ip;
+                hexId = if m != null then head m else null;
+                len = if hexId != null then stringLength hexId else 0;
+                padded =
+                  if len == 1 then
+                    "000" + hexId
+                  else if len == 2 then
+                    "00" + hexId
+                  else if len == 3 then
+                    "0" + hexId
+                  else
+                    hexId;
+                p0 = substring 0 1 padded;
+                p1 = substring 1 1 padded;
+                p2 = substring 2 1 padded;
+                p3 = substring 3 1 padded;
+              in
+              if hexId == null then
+                null
+              else
+                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.${p3}.${p2}.${p1}.${p0} IN PTR ${name}.${dn42Domain}."
+            ) v6s
+          );
+        in
+        concatStringsSep "\n" ptrs
+      ) (attrNames dn42Hosts);
+    in
+    pkgs.writeText "${revZoneV6Name}.zone" ''
+      $ORIGIN ${revZoneV6Name}.
+      $TTL ${toString cfg.dn42.ttl}
+      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
+          ${cfg.dns.soaSerial} ; Serial
+          7200                 ; Refresh
+          3600                 ; Retry
+          1209600              ; Expire
+          ${toString cfg.dn42.ttl} ; Minimum TTL
+      )
+
+      @ IN NS ${dn42NsHostname}.${dn42Domain}.
+
+      ${v6PtrRecords}
+    '';
+
   geoipBlock = optionalString cfg.geoip.enable ''
     geoip ${cfg.geoip.databaseFile} {
         edns-subnet
@@ -101,6 +244,28 @@ let
         ${optionalString cfg.dns.log "log"}
     }
 
+    ${optionalString cfg.dn42.enable ''
+      ${dn42Domain}:${toString cfg.dns.port} {
+          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
+          file ${dn42Zone} ${dn42Domain}
+          errors
+          ${optionalString cfg.dns.log "log"}
+      }
+
+      ${revZoneV4Name}:${toString cfg.dns.port} {
+          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
+          file ${dn42RevZoneV4} ${revZoneV4Name}
+          errors
+          ${optionalString cfg.dns.log "log"}
+      }
+
+      ${revZoneV6Name}:${toString cfg.dns.port} {
+          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
+          file ${dn42RevZoneV6} ${revZoneV6Name}
+          errors
+          ${optionalString cfg.dns.log "log"}
+      }
+    ''}
   '';
 in
 {
@@ -188,6 +353,54 @@ in
         type = types.str;
         default = "tcp:1.1.1.1:53";
         description = "Recursive DNS upstream for DoH. The public resolver can resolve both dora.im and its delegated cdn.dora.im child zone.";
+      };
+    };
+
+    dn42 = {
+      enable = mkOption {
+        type = types.bool;
+        default = config.services.dn42.enable or false;
+        description = "Serve authoritative DNS for DN42 domain (dora.dn42) on this node's DN42 address.";
+      };
+
+      domain = mkOption {
+        type = types.str;
+        default = config.services.dn42.domain or (dn42Data.domain or "dora.dn42");
+        description = "DN42 authoritative domain name.";
+      };
+
+      primaryNsHost = mkOption {
+        type = types.str;
+        default = "fra0";
+        description = "Primary nameserver host in DN42 cluster.";
+      };
+
+      nsHostname = mkOption {
+        type = types.str;
+        default = "ns1";
+        description = "Nameserver hostname within the DN42 zone (ns1 -> ns1.dora.dn42).";
+      };
+
+      ttl = mkOption {
+        type = types.int;
+        default = 300;
+        description = "TTL for DN42 authoritative DNS records.";
+      };
+
+      listenAddresses = mkOption {
+        type = types.listOf types.str;
+        default =
+          let
+            nodeIpv4 = lib.head (lib.splitString "/" (config.services.dn42.nodeIpv4 or "172.20.232.1/32"));
+            nodeIpv6 = lib.head (
+              lib.splitString "/" (config.services.dn42.nodeIpv6 or "fd53:90fd:4bb6:1::1/48")
+            );
+          in
+          filter (x: x != null && x != "") [
+            nodeIpv4
+            nodeIpv6
+          ];
+        description = "DN42 IP addresses on which CoreDNS listens for authoritative queries.";
       };
     };
   };

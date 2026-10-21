@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  self,
   ...
 }:
 let
@@ -24,6 +25,11 @@ let
   baseCfg = config.services.dn42;
   hostName = config.networking.hostName or "unknown";
   clusterDomain = config.networking.domain;
+
+  # SD-WAN registry version: the flake revision timestamp (self.lastModified).
+  # It only advances on git commits, never on plain `terraform apply` runs, so
+  # data.json diffs stay meaningful and conflict resolution stays monotonic.
+  flakeRevision = self.lastModified or self.lastModifiedDate or 0;
 
   stripPort =
     str:
@@ -421,7 +427,7 @@ let
           nat_t_port = natTPort;
           ike_port = ikePort;
           pubkey = "";
-          build_time = dn42Data.build_time or 0;
+          build_time = flakeRevision;
           updated_at = 0;
         }
       ) (selfData.hosts or { })
@@ -717,7 +723,7 @@ let
           --argjson ike_port "$SELF_IKE_PORT" \
           --arg pubkey "" \
           --argjson updated_at "$NOW" \
-          --argjson build_time "${toString (dn42Data.build_time or 0)}" \
+          --argjson build_time "${toString flakeRevision}" \
           '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, build_time: $build_time, updated_at: $updated_at}}')
 
         TOKEN=$(cat "${tokenFile}")
@@ -895,11 +901,11 @@ let
 
         local {
           auth = psk
-          id = ''${SELF_NAME}.dn42
+          id = ''${SELF_NAME}.${baseCfg.domain}
         }
         remote {
           auth = psk
-          id = ''${t_peer}.dn42
+          id = ''${t_peer}.${baseCfg.domain}
         }
         children {
           ''${t_conn} {

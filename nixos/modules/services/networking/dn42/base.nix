@@ -38,7 +38,8 @@ let
     else
       thisHostMesh.dn42_ip6 or "fd53:90fd:4bb6:${lib.toHexString hostIndex}::1";
 
-  # Build /etc/hosts mapping from all hosts in data.json: <host>.dn42 -> IP
+  # Build /etc/hosts mapping from all hosts in data.json: <host>.<domain> -> IP
+  dn42Domain = cfg.domain or (dn42Data.domain or "dn42");
   dn42HostList = lib.flatten (
     lib.mapAttrsToList (
       name: hData:
@@ -47,7 +48,7 @@ let
         v6s = hData.dn42_addresses_v6 or [ ];
       in
       lib.lists.map (ip: {
-        hostName = "${name}.dn42";
+        hostName = "${name}.${dn42Domain}";
         inherit ip;
       }) (v4s ++ v6s)
     ) (selfData.hosts or { })
@@ -128,6 +129,18 @@ in
       ];
       default = thisHostMesh.role or "internal";
       description = "Node role in DN42 topology ('border' or 'internal')";
+    };
+
+    domain = mkOption {
+      type = types.str;
+      default = dn42Data.domain or "dora.dn42";
+      description = "DN42 network domain / TLD suffix (default: dora.dn42)";
+    };
+
+    populateHosts = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Whether to inject all DN42 host records into /etc/hosts (disabled by default in favor of authoritative DNS).";
     };
 
     asn = mkOption {
@@ -345,12 +358,13 @@ in
       wants = [ "network-addresses-dn42.service" ];
     };
 
-    # ── 集成 dnsmasq：转发 *.dn42 查询至 DN42 Anycast DNS ─────────
+    # ── 集成 dnsmasq：转发 *.<domain> 查询至本集群权威 DNS 与 DN42 Anycast DNS ─────────
     services.dnsmasq.settings.server = [
-      "/dn42/172.20.0.53"
-      "/dn42/172.23.0.53"
-      "/dn42/fd42:d42:d42:54::1"
-      "/dn42/fd42:d42:d42:53::1"
+      "/${cfg.domain}/172.20.232.1"
+      "/${cfg.domain}/172.20.0.53"
+      "/${cfg.domain}/172.23.0.53"
+      "/${cfg.domain}/fd42:d42:d42:54::1"
+      "/${cfg.domain}/fd42:d42:d42:53::1"
     ];
 
     networking.interfaces.dn42 = {
@@ -368,10 +382,12 @@ in
       ];
     };
 
-    # ── 4. 全局 /etc/hosts 映射（支持 <host>.dn42 互访） ────────────
-    networking.hosts = lib.foldr (
-      entry: m: m // { ${entry.ip} = (m.${entry.ip} or [ ]) ++ [ entry.hostName ]; }
-    ) { } dn42HostList;
+    # ── 4. 全局 /etc/hosts 映射（默认关闭，完全依靠权威 DNS 动态解析） ────────────
+    networking.hosts = lib.mkIf cfg.populateHosts (
+      lib.foldr (
+        entry: m: m // { ${entry.ip} = (m.${entry.ip} or [ ]) ++ [ entry.hostName ]; }
+      ) { } dn42HostList
+    );
 
     # ── 5. 统一 WireGuard 密钥生成服务 ──────────────────────────────
     systemd.services.dn42-wireguard-keygen = {
