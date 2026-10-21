@@ -21,6 +21,9 @@ terraform {
     shell = {
       source = "linyinfeng/shell"
     }
+    null = {
+      source = "hashicorp/null"
+    }
     # Media automation providers (devopsarr)
     # sonarr = {
     #   source = "devopsarr/sonarr"

@@ -9,6 +9,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 {
   config,
+  pkgs,
   mcpConnVars,
   ...
 }:
@@ -98,6 +99,45 @@ in
         "
 
       echo "[contextforge-db-init] Done."
+    '';
+  };
+
+  # ── ContextForge 启动就绪后自动注册本地 degoog MCP 适配层 ────────────
+  systemd.services.contextforge-bootstrap = {
+    description = "Bootstrap ContextForge MCP default servers and degoog gateway";
+    after = [
+      "podman-contextforge.service"
+    ];
+    wants = [
+      "podman-contextforge.service"
+    ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    path = with pkgs; [
+      curl
+      jq
+      coreutils
+    ];
+    script = ''
+      set -euo pipefail
+
+      # 写入本地静态 MCP 配置文件供 ContextForge 读取挂载
+      mkdir -p /var/lib/contextforge/config
+      cat <<EOF > /var/lib/contextforge/config/mcp_servers.json
+      {
+        "mcpServers": {
+          "degoog-search": {
+            "type": "sse",
+            "url": "http://127.0.0.1:${toString config.ports.degoog-mcp}/sse",
+            "description": "Local privacy web search and article reader"
+          }
+        }
+      }
+      EOF
+      chmod 0644 /var/lib/contextforge/config/mcp_servers.json
     '';
   };
 }

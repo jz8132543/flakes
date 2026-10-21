@@ -133,6 +133,59 @@ in
             "publicClient": false,
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": false
+          },
+          {
+            "clientId": "dify",
+            "name": "Dify AI Platform",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."password"}",
+            "redirectUris": [
+              "https://chat.dora.im/console/api/oauth/authorize/github",
+              "https://chat.dora.im/*"
+            ],
+            "webOrigins": [
+              "https://chat.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true
+          },
+          {
+            "clientId": "mcp-gateway",
+            "name": "IBM ContextForge MCP Gateway",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."password"}",
+            "redirectUris": [
+              "https://mcp.dora.im/auth/sso/callback/keycloak",
+              "https://mcp.dora.im/*"
+            ],
+            "webOrigins": [
+              "https://mcp.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true
+          },
+          {
+            "clientId": "persona-engine",
+            "name": "AI Companion Persona Engine",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."password"}",
+            "redirectUris": [
+              "https://persona.dora.im/*"
+            ],
+            "webOrigins": [
+              "https://persona.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true
           }${
             lib.optionalString (config.services.new-api.oidc.enable or false) ''
               ,
@@ -144,7 +197,8 @@ in
                 "clientAuthenticatorType": "client-secret",
                 "secret": "${config.sops.placeholder."new-api/oidc_client_secret"}",
                 "redirectUris": [
-                  "https://${config.services.new-api.domain or "api.dora.im"}/oauth/oidc/callback"
+                  "https://${config.services.new-api.domain or "api.dora.im"}/oauth/oidc/callback",
+                  "https://${config.services.new-api.domain or "api.dora.im"}/*"
                 ],
                 "webOrigins": [
                   "https://${config.services.new-api.domain or "api.dora.im"}"
@@ -262,6 +316,28 @@ in
       sn: services
       mail: services@dora.im
       userPassword: $services_password
+      EOF
+            fi
+
+            if ! ldapsearch -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password" -b "uid=i,${ldapUsersDn}" -s base '(objectClass=inetOrgPerson)' dn >/dev/null 2>&1; then
+              cat <<EOF | ldapadd -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password"
+      dn: uid=i,${ldapUsersDn}
+      objectClass: top
+      objectClass: person
+      objectClass: organizationalPerson
+      objectClass: inetOrgPerson
+      uid: i
+      cn: i
+      sn: i
+      mail: i@dora.im
+      userPassword: $bind_password
+      EOF
+            else
+              cat <<EOF | ldapmodify -x -H ${lib.escapeShellArg bootstrapLdapUri} -D ${lib.escapeShellArg ldapBindDn} -w "$bind_password"
+      dn: uid=i,${ldapUsersDn}
+      changetype: modify
+      replace: userPassword
+      userPassword: $bind_password
       EOF
             fi
     '';

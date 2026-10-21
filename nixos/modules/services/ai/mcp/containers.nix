@@ -53,6 +53,14 @@ in
 
       # ── 管理员账户 (邮箱认证) ─────────────────────────────────────
       PLATFORM_ADMIN_EMAIL = "i@${config.networking.domain}";
+      BASIC_AUTH_USER = "i";
+
+      # ── Keycloak SSO 单点登录 ─────────────────────────────────────
+      SSO_ENABLED = "true";
+      SSO_KEYCLOAK_ENABLED = "true";
+      SSO_KEYCLOAK_BASE_URL = "https://sso.${config.networking.domain}";
+      SSO_KEYCLOAK_REALM = "users";
+      SSO_KEYCLOAK_CLIENT_ID = "mcp-gateway";
 
       # ── 跨网关路由域名白名单 ───────────────────────────────────────
       UAID_ALLOWED_DOMAINS = "[ \"${cfg.domain}\" ]";
@@ -94,6 +102,10 @@ in
       "contextforge-db-init.service"
       "sops-install-secrets.service"
       "network-online.target"
+      "keycloak.service"
+    ];
+    wants = [
+      "keycloak.service"
     ];
     requires = [
       "contextforge-db-init.service"

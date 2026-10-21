@@ -175,12 +175,16 @@ in
         "dify/secret_key" = { };
         # CPA/NewAPI 网关 API Key（用于 Dify 调用 LLM）
         "openai_api_key" = { };
+        # 管理员密码（用于初始化账号 i）
+        "password" = { };
       };
 
       # ── sops template：生成含密文的 env 文件（不进 Nix Store）────────
       sops.templates."dify-secret.env".content = ''
         SECRET_KEY=${config.sops.placeholder."dify/secret_key"}
         OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
+        GITHUB_CLIENT_ID=dify
+        GITHUB_CLIENT_SECRET=${config.sops.placeholder."password"}
       '';
     })
   ];

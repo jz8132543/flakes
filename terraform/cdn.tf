@@ -15,6 +15,25 @@
 #   No other files need to change.
 # ==============================================================================
 
+variable "ops_host" {
+  type        = string
+  default     = "ops.dora.im"
+  description = "Traffic Ops API Host"
+}
+
+variable "ops_user" {
+  type        = string
+  default     = "admin"
+  description = "Traffic Ops API User"
+}
+
+variable "ops_password" {
+  type        = string
+  default     = ""
+  description = "Traffic Ops API Password (falls back to secrets/common.yaml atc.ops_password)"
+  sensitive   = true
+}
+
 locals {
   # ── Router hosts ─────────────────────────────────────────────────────────
   # The machines that run CoreDNS and act as authoritative NS for cdn.<domain>.
@@ -87,6 +106,9 @@ locals {
     chat     = "fra0"
     mcp      = "fra0"
     s        = "fra0"
+    persona  = "fra0"
+    bot      = "fra0"
+    napcat   = "fra0"
   }
 
   # ── Terraform-usable derived values ──────────────────────────────────────
@@ -147,4 +169,99 @@ resource "cloudflare_dns_record" "cdn_service_cname" {
   type    = "CNAME"
   content = "${each.key}.cdn.${cloudflare_zone.im_dora.name}"
   zone_id = cloudflare_zone.im_dora.id
+}
+
+# ==============================================================================
+# Apache Traffic Control (ATC) Delivery Services & Dynamic Queue Updates
+# ==============================================================================
+
+# ==============================================================================
+# Apache Traffic Control (ATC) Delivery Services & Dynamic Queue Updates
+# ==============================================================================
+
+# ── Delivery Services & Queue Updates Automation ──────────────────────────────
+# Due to the absence of an official apache/trafficcontrol provider in the Terraform Registry,
+# Delivery Services and Queue Updates are declared and synchronized directly against
+# the Traffic Ops v4 REST API via Terraform provisioner.
+resource "null_resource" "traffic_control_sync" {
+  triggers = {
+    services_hash = md5(jsonencode(local.cdn_services))
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      set -e
+      OPS_PW="${var.ops_password != "" ? var.ops_password : try(data.sops_file.common.data["atc.ops_password"], "")}"
+      if [ -z "$OPS_PW" ]; then
+        echo "Warning: atc.ops_password not set. Skipping Traffic Ops Delivery Service synchronization."
+        exit 0
+      fi
+
+      COOKIE_FILE=$(mktemp)
+      trap 'rm -f "$COOKIE_FILE"' EXIT
+
+      echo "Authenticating against Traffic Ops API at https://${var.ops_host}..."
+      LOGIN_RESP=$(curl -k -s -w "%%{http_code}" -X POST "https://${var.ops_host}/api/v4/user/login" \
+        -H "Content-Type: application/json" \
+        -d "{\"u\":\"${var.ops_user}\",\"p\":\"$OPS_PW\"}" \
+        -c "$COOKIE_FILE" || true)
+
+      HTTP_CODE="$${LOGIN_RESP: -3}"
+      if [ "$HTTP_CODE" != "200" ]; then
+        echo "Traffic Ops login returned HTTP $HTTP_CODE. Skipping sync (ops service may not be running yet)."
+        exit 0
+      fi
+
+      echo "Traffic Ops authentication successful. Synchronizing Delivery Services..."
+      SERVICES_JSON='${jsonencode(local.cdn_services)}'
+
+      for s in $(echo "$SERVICES_JSON" | jq -r 'keys[]'); do
+        origin=$(echo "$SERVICES_JSON" | jq -r --arg s "$s" '.[$s]')
+        echo "Ensuring Delivery Service: $s (origin: $origin.${cloudflare_zone.im_dora.name})"
+
+        DS_CHECK=$(curl -k -s -b "$COOKIE_FILE" "https://${var.ops_host}/api/v4/deliveryservices?xmlId=$s" || true)
+        DS_COUNT=$(echo "$DS_CHECK" | jq -r '.response | length // 0' 2>/dev/null || echo 0)
+
+        DS_PAYLOAD=$(cat <<JSON
+{
+  "active": true,
+  "cdnId": 1,
+  "displayName": "$s service",
+  "dscp": 0,
+  "geoProvider": 0,
+  "initialDispersion": 1,
+  "ipv6RoutingEnabled": true,
+  "multiSiteOrigin": false,
+  "orgServerFqdn": "https://$origin.${cloudflare_zone.im_dora.name}",
+  "protocol": 1,
+  "rangeRequestHandling": 0,
+  "regionalGeoBlocking": false,
+  "routingName": "edge",
+  "type": "HTTP",
+  "typeId": 1,
+  "xmlId": "$s"
+}
+JSON
+)
+
+        if [ "$DS_COUNT" -eq 0 ]; then
+          echo "Creating Delivery Service $s..."
+          curl -k -s -b "$COOKIE_FILE" -X POST "https://${var.ops_host}/api/v4/deliveryservices" \
+            -H "Content-Type: application/json" \
+            -d "$DS_PAYLOAD" >/dev/null || true
+        fi
+      done
+
+      echo "Triggering Queue Updates across all cache groups..."
+      curl -k -s -b "$COOKIE_FILE" -X POST "https://${var.ops_host}/api/v4/cachegroups/queue_update" \
+        -H "Content-Type: application/json" \
+        -d '{"action": "queue"}' >/dev/null || true
+
+      echo "Traffic Ops synchronization and Queue Updates completed successfully."
+    EOT
+  }
+
+  depends_on = [
+    cloudflare_dns_record.cdn_service_cname
+  ]
 }

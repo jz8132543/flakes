@@ -8,6 +8,7 @@
     ++ nixosModules.services.atc.all
     ++ nixosModules.services.ai.dify.all # Dify AI 应用平台（含 db-init、容器、traefik、backup）
     ++ nixosModules.services.ai.mcp.all # IBM ContextForge MCP 总线
+    ++ nixosModules.services.ai.companion.all # AI 情绪陪伴人设引擎与记忆中间件
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -85,6 +86,15 @@
   services.ai.mcp = {
     enable = true;
     domain = "mcp.dora.im";
+  };
+  services.ai.companion = {
+    enable = true;
+    domain = "persona.dora.im";
+    qq = {
+      enable = true;
+      domain = "bot.dora.im";
+      napcatDomain = "napcat.dora.im";
+    };
   };
   services.new-api = {
     enable = true;

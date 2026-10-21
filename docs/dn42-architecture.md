@@ -256,7 +256,7 @@ $$\text{Metric} = \frac{256}{d_f \times d_r} + 512 \times \text{clamp}\left(\fra
 
 1. **ATC CoreDNS 权威多 Zone 承载与 Anycast 递归联动**：
    - 监听地址绑定至 `172.20.232.1:53` 与 `[fd53:90fd:4bb6:1::1]:53`；
-   - 自动生成 `dora.dn42` 正向解析，包含集群所有主机的双栈 A / AAAA 记录；
+   - 自动生成 `dora.dn42` 正向解析，包含集群所有主机的双栈 A / AAAA 记录，并支持在 `terraform/dn42.tf` 中声明自定义别名 (CNAME) 与独立 A / AAAA 解析；
    - 自动生成 `0/26.232.20.172.in-addr.arpa`（IPv4 PTR）与 `6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa`（IPv6 PTR）；
    - **DN42 全局根转发**：配置 `dn42:53` Server Block，仅针对非 `dora.dn42` 的其他所有 DN42 域名（如 `*.dn42`），自动 forward 至 DN42 官方 Anycast 根与递归服务器（`172.20.0.53`、`172.23.0.53`），实现完整的 DN42 内网递归解析。
 2. **DN42 官方 Registry 合规注册（PR #7554 已合并）**：

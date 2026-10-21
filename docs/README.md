@@ -4,6 +4,25 @@
 
 ## 目录索引
 
+- [Apache Traffic Control (ATC) 分布式 CDN 架构与动态同步运维实战指南](./cdn-architecture.md)
+  - **一、 宏观架构总览与分层解耦愿景**（五层架构全景图、各层职责边界）
+  - **二、 核心子系统深度剖析与实现细节**
+    - 2.1 基础设施交付编排 (`terraform/cdn.tf`)
+    - 2.2 中心控制面与元数据大脑 (`nixos/modules/services/atc/ops.nix`)
+    - 2.3 动态调度与智能解析面 (`nixos/modules/services/atc/router.nix`, CoreDNS, GeoIP2, DoH)
+    - 2.4 边缘数据面与可写动态解耦 (`nixos/modules/services/atc/edge.nix`, Apache Traffic Server)
+    - 2.5 轻量打包构建与专用产物导出 (`pkgs/trafficcontrol/default.nix`)
+    - 2.6 跨大洲国际链路单边内核调优 (`nixos/modules/services/atc/tuning.nix`)
+  - **三、 关键机制与工程挑战解决**
+    - 3.1 毫秒级微轮询与防惊群机制 (`syncds`)
+    - 3.2 零停机热重载与存量连接保护 (Hitless Reload)
+  - **四、 运维操作实战指南**
+    - 4.1 业务域名声明式接入流程
+    - 4.2 边缘节点扩容指南
+  - **五、 验证与排障速查表**
+    - 5.1 验证检查清单
+    - 5.2 常见排障排错速查表
+
 - [DN42 全互联 SD-WAN 架构与多网络组件隔离实战指南](./dn42-architecture.md)
   - **一、 宏观架构总览与分层解耦愿景**（七层架构全景图、各层职责边界）
   - **二、 核心子系统深度剖析与实现细节**

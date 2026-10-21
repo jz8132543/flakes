@@ -99,6 +99,7 @@ in
         "https://sub.${config.networking.domain}"
         "https://chat.${config.networking.domain}"
         "https://mcp.${config.networking.domain}"
+        "https://persona.${config.networking.domain}"
       ];
       description = "List of public HTTP(S) endpoints to monitor via blackbox_exporter.";
     };
@@ -125,6 +126,8 @@ in
         "office.${config.networking.domain}"
         "cdn.${config.networking.domain}"
         "zotero.${config.networking.domain}"
+        "bot.${config.networking.domain}"
+        "napcat.${config.networking.domain}"
       ];
       description = "List of public endpoints exempted from compile-time blackbox assertion.";
     };
