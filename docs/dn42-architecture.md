@@ -1,0 +1,398 @@
+# DN42 全互联 SD-WAN 架构与多网络组件隔离实战指南
+
+## 一、 宏观架构总览与分层解耦愿景
+
+本系统基于 **NixOS Flakes** 声明式系统架构，构建了一套兼具**零接触编排（Zero-Touch）**、**高可用多主控动态 SD-WAN**、**eBPF Fake-TCP 协议穿透**、**Babel ETX+RTT 联合动态选路**、**原生 CoreDNS 权威专网解析**、**Mihomo L7 双链路订阅分发**以及**跨层网络绝对隔离**的现代化网络基础设施。
+
+### 1.1 分层架构与核心职责边界
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 7. 可观测性层: Grafana Material ECharts / NodeGraph / Textfile Collector │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 6. L7 代理分流层: Mihomo (公网 VLESS / Reality + 内网 .dn42 SOCKS5 裂变) │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 5. 专网权威 DNS 层: ATC CoreDNS (dora.dn42 正向 + rDNS IPv4/IPv6 PTR)     │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 4. IGP 动态路由层: BIRD 2 (Babel: type wireless, ETX + RTT 联合寻优)     │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 3. 抗封锁与网络隔离层: eBPF Fake-TCP (Mimic) + nftables raw notrack + Policy │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 2. SD-WAN 动态控制面: 多主控 (fra0/sjc0/cu) + 多端点 XFRM 并发探路 Agent │
+├──────────────────────────────────────────────────────────────────────────┤
+│ 1. 基础设施编排层: Terraform (dn42.tf, hosts.tf) -> data.json 单一数据源  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+| 架构层级                | 核心组件与模块路径                                               | 核心职责与设计边界                                                                                                                                                  |
+| :---------------------- | :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1. 基础设施编排层**   | `terraform/dn42.tf`<br>`lib/data/data.json`                      | **新增节点零配置**：根据机器列表自动推导节点 ID、分配 `172.20.232.<id>` 与 `fd53:90fd:4bb6:<id>::1`；单覆盖字典声明；剥离变更易碎的临时时间戳。                     |
+| **2. SD-WAN 控制面**    | `dn42/mesh.nix`<br>`dn42-sdwan-agent`<br>`dn42-sdwan-controller` | **三主控互备 + 多端点全网并发探路**：纯 Bash+jq+socat 轻量实现，零 Python 依赖。支持单主机多公网线路（如 cu 的 4 条端点）全网自动展开为独立 XFRM 网卡。             |
+| **3. 协议穿透与隔离层** | `pkgs/mimic/`<br>`dn42/base.nix`<br>`overlay-isolation.nix`      | **Fake-TCP 穿透 + 内核协议栈隔离**：将 UDP 4500 包装为伪 TCP 突破运营商封锁；nftables raw notrack 杜绝 conntrack 丢包；Priority 80/81/90 策略路由保障底层隧道直通。 |
+| **4. 内部动态路由层**   | `dn42/mesh.nix` (BIRD 2)                                         | **ETX 丢包率 + RTT 往返时延联合寻优**：通配接口 `dn42x-*` 采用 `type wireless`，实时感知线路丢包与 Bufferbloat 拥塞，秒级无缝倒换。外部 eBGP 严格隔离。             |
+| **5. 专网权威 DNS 层**  | `atc/router.nix` (CoreDNS)                                       | **原生树状 DNS 权威解析**：复用 ATC CoreDNS 绑定 `172.20.232.1:53`，动态托管 `dora.dn42` 及反向解析 PTR Zone，彻底废弃 `/etc/hosts` 静态打桩。                      |
+| **6. L7 代理与分流层**  | `services/sub.nix`<br>`desktop/mihomo.nix`                       | **双链路节点裂变与免打标跨端通用**：自动裂变公网与 `.dora.dn42` 节点；修复 TUN 路由自捕获死锁；保障手机端（Box for KernelSU）免打标全局可用。                       |
+| **7. 实时监控层**       | `metrics/client.nix`<br>`hosts.json`                             | **Material Design 拓扑大屏**：纯 Bash textfile 采集器导出吞吐/延迟/丢包；ECharts 拓扑流光图在线变绿、离线变红，全数据驱动无硬编码。                                 |
+
+---
+
+## 二、 核心子系统深度剖析与实现细节
+
+### 2.1 零接触编排与数据管线 (`terraform/dn42.tf`)
+
+#### 1. 自动化默认值与单一覆盖字典模式
+
+传统 DN42 配置往往需要为每台机器编写数十行重复的端口、密钥、IP 配置。本架构在 `terraform/dn42.tf` 中实现了完全自动化的确定性推导：
+
+- **节点 ID 自动推导**：直接读取 `local.hosts[name].host_indices[0]`，自动映射出唯一节点 ID（1 ~ 99）。
+- **确定性内网 IP**：IPv4 固定为 `172.20.232.<id>`，IPv6 固定为 `fd53:90fd:4bb6:<id>::1`。
+- **单一覆盖字典 (`dn42_overrides`)**：绝大多数主机仅需出现在 `hosts.tf` 中，`dn42.tf` 无需添加任何资源块；仅当节点拥有多线路端点（如 `cu` 的 4 条线路）或充当主控时，才在 `dn42_overrides` 中按需声明。
+
+#### 2. 剥离 `build_time` 消除 Terraform 伪变更
+
+- **痛点**：此前在 Terraform 中通过 `TF_VAR_dn42_build_time = $(git log -1 --format=%ct)` 注入构建时间，导致即使基础设施无任何变动，每次执行 `terraform apply` 都会导致 `data.json` 全量变更，掩盖真实基础设施 diff。
+- **解法**：彻底从 `dn42.tf` 与 `devshell/terraform.nix` 移除 `build_time` 输出；节点版本号转由 Nix Flake 原生的 `self.lastModified`（Git 提交时间戳）驱动。此举实现了：**Terraform 只描述物理拓扑（静），Nix 编译期自动捕获版本号（动）**。
+
+#### 3. if_id 编码约束断言
+
+在 `terraform/dn42.tf` 中植入编译器级断言：
+
+```hcl
+data "assert_test" "dn42_node_id_range" {
+  test  = length([for name, node in local.dn42_nodes : name if node.id < 1 || node.id >= 100]) == 0
+  throw = "dn42 node id must be within 1..99 (symmetric if_id encoding min*1000 + max*10 + k)"
+}
+
+data "assert_test" "dn42_endpoint_count" {
+  test  = length([for name, node in local.dn42_nodes_normalized : name if length(node.endpoints) > 9]) == 0
+  throw = "dn42 node must publish at most 9 endpoints (symmetric if_id encoding min*1000 + max*10 + k)"
+}
+```
+
+---
+
+### 2.2 SD-WAN 动态控制面与自愈 Agent (`dn42/mesh.nix`)
+
+#### 1. 三主控高可用与轻量注册中心 (`dn42-sdwan-controller.service`)
+
+- **部署位置**：默认常驻在拥有稳定公网双栈 IP 的 `fra0`、`sjc0`、`cu` 节点上，监听 `TCP 54500`。
+- **极简零依赖实现**：使用系统原生 `socat` + `jq`，利用 `flock` 保证写安全，内存开销 < 5MB。
+- **主控互同步算法**：各主控定时通过 `--pull-peers` 相互抓取对方的 `/peers`，基于 `build_time`（`self.lastModified`）单调递增原则合并：
+  $$\text{Merged}[k] = \begin{cases} \text{Remote}[k], & \text{if } \text{Remote}[k].\text{build\_time} \ge \text{Local}[k].\text{build\_time} \\ \text{Local}[k], & \text{otherwise} \end{cases}$$
+- **抗灾韧性**：即使全部三台主控同时宕机，各节点本地均有 `/var/lib/dn42-sdwan/peers.json` 持久化缓存以及 Flake 编译期内嵌的 `bootstrapPeersJson`，存量隧道毫秒不中断。
+
+#### 2. 自愈 Agent (`dn42-sdwan-agent.service`)
+
+- **定时调度**：每 30 秒执行一次同步。
+- **自愈式握手补偿**：
+  为避免死机节点（如离线 VPS）阻塞 agent，导致系统级定时器停摆，设计了带超时的非阻塞握手探测：
+  ```bash
+  EXISTING_SAS=$(swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
+  for inst in "${ALL_TUNNEL_INSTANCES[@]}"; do
+    IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
+    [ "$t_saction" = "start" ] || continue
+    # 仅对尚未建立 IKE_SA 的连接补发握手，绝不干扰已建立的存量隧道（避免 rekey 抖动）
+    if ! printf '%s\n' "$EXISTING_SAS" | grep -qx "$t_conn"; then
+      timeout 8 swanctl --initiate --child "$t_conn" 2>/dev/null || true
+    fi
+  done
+  ```
+- **增量热重载**：仅在 `/run/swanctl/conf.d/` 生成的配置文件内容与既有配置发生哈希变化时，才触发 `swanctl --load-all`，实现配置无感刷新。
+
+---
+
+### 2.3 多端点全路径探路与无冲突对称 `if_id` 算法
+
+#### 1. 核心业务痛点
+
+`cu` 节点拥有 4 条独立公网线路：移动 IPv4 (`cm4`)、电信 IPv4 (`ct4`)、移动 IPv6 (`cm6`)、电信 IPv6 (`ct6`)。传统 SD-WAN 只允许配置单一 IP，导致其他节点只能二选一建链，无法感知其余线路的通断与时延。
+
+#### 2. 对称 `if_id` 数学算法
+
+Linux 内核的 XFRM 虚拟网卡（`xfrm_interface`）依赖 32 位整型 `if_id` 将加解密流量与网卡精确绑定。
+设本机节点 ID 为 $A$，对端节点 ID 为 $B$，目标子线路在对端端点数组中的 1-based 序号为 $k$（$k \in [1, 9]$）：
+
+$$\text{if\_id} = \min(A, B) \times 1000 + \max(A, B) \times 10 + k$$
+
+**数学性质**：
+
+1. **完全对称性**：$\min(A, B)$ 与 $\max(A, B)$ 保证了两端算出的基准数值完全相同，不受发起方与接收方身份影响。
+2. **多线路正交性**：$+ k$ 确保了同一对主机之间的多条物理链路拥有完全隔离的内核 XFRM 接口。
+3. **零冲突域**：在节点 ID $\le 99$ 且端点数 $\le 9$ 的约束下，任意两对主机或两条子线路的 `if_id` 绝不碰撞。
+
+#### 3. Initiator 与 Responder 接口对称展开算法
+
+为了保证两端的内核 XFRM 接口集合完全镜像闭合，Agent 统一执行单循环展开：
+设对端已发布端点数为 $N_{\text{peer}}$，本机发布端点数为 $N_{\text{self}}$，循环上限为 $K_{\max} = \max(N_{\text{peer}}, N_{\text{self}})$：
+
+- **当 $k \le N\_{\text{peer}}$ 时（发起端 Initiator）**：
+  创建网卡 `dn42x-<peer>-<ep_name>`，配置 `remote_addrs = ep.addr`，`start_action = start`，主动向对端第 $k$ 个公网端点并发建链。
+- **当 $N\_{\text{peer}} < k \le N\_{\text{self}}$ 时（被动端 Responder）**：
+  创建网卡 `dn42x-<peer>-r<k>`，配置 `remote_addrs = %any`，`start_action = none`，监听并接收入站的对应 `if_id` SA。
+
+#### 4. 接口版本残留与强制重建保护
+
+针对节点升级后旧接口占用错误 `if_id` 导致 Child SA 无法绑定的顽疾，在网卡创建前增加了深度探测：
+
+```bash
+cur_if_id=$(ip -d link show "$t_iface" 2>/dev/null | grep -oE 'if_id 0x[0-9a-f]+' | grep -oE '0x[0-9a-f]+' || true)
+if [ -z "$cur_if_id" ] || [ "$(( cur_if_id ))" -ne "$t_if_id" ]; then
+  # 杜绝 EEXIST：若有残留网卡占用了目标 if_id，先行强制清除
+  old_dev=$(ip -d link show type xfrm 2>/dev/null | awk -v id="if_id 0x$(printf '%x' "$t_if_id")" '
+    /^[0-9]+: dn42x-/ { iface=$2; sub(/:.*/,"",iface); sub(/@.*/,"",iface) }
+    $0 ~ id { print iface }
+  ' || true)
+  if [ -n "$old_dev" ] && [ "$old_dev" != "$t_iface" ]; then
+    ip link del "$old_dev" 2>/dev/null || true
+  fi
+  [ -n "$cur_if_id" ] && ip link del "$t_iface" 2>/dev/null || true
+  ip link add "$t_iface" type xfrm dev lo if_id "$t_if_id" 2>/dev/null || true
+fi
+```
+
+---
+
+### 2.4 内核协议栈隔离与 Mimic (Fake-TCP) 无补丁穿透
+
+#### 1. 突破运营商封锁的物理原理
+
+国内部分省份运营商（如某些城域网、校园网、移动 4G/5G）会对出入站 `UDP 4500` 和未知高端口 UDP 施加严格的丢包、QoS 限速甚至阻断。
+**Mimic** 通过 eBPF（XDP + TC）在物理网卡最底层拦截 IPsec ESP/NAT-T 报文，将其伪装成标准 TCP 三次握手及带 ACK 序列号的 Fake-TCP 流；对端在网卡驱动层将其还原回原始 UDP，使得流量在公网呈现为普通 TCP 连接。
+
+#### 2. 云主机驱动兼容与 ethtool 卸载清洗
+
+- **XDP SKB 模式**：云厂商 VPS 普遍使用 `virtio_net` 虚拟网卡，Native XDP 往往不支持尾部扩展（12 字节 Mimic 标记）。强制使用 `--xdp-mode skb` 保证 100% 宿主机兼容。
+- **硬件分段卸载彻底清洗**：
+  在网卡启动前通过 `ethtool` 强制关闭网卡硬件聚合与分段：
+  ```bash
+  ethtool -K "$IFACE" gro off rx-gro-hw off lro off gso off tso off tx off rx off
+  ```
+  **原因**：若开启 GRO，内核在 XDP 之前就会把多个 Fake-TCP 报文聚合成超大段，破坏 Mimic 的 12 字节包尾魔数；关闭后确保内核在进入网络栈前完成干净的单包还原。
+
+#### 3. netfilter 连接跟踪规避 (`raw notrack`)
+
+Fake-TCP 报文并没有真正经过 Linux 内核协议栈的 TCP 握手。如果不做干预，内核的 `nf_conntrack` 模块会将其判定为 `INVALID` 状态并丢弃。
+在 `nixos/modules/services/networking/dn42/base.nix` 中，通过 nftables 在优先级 `-300`（raw 阶段）对全集群所有隧道端口注入 `notrack`：
+
+```nftables
+table inet dn42-raw-notrack {
+  chain raw_prerouting {
+    type filter hook prerouting priority raw; policy accept;
+    udp sport { 500, 4500, 50568 } notrack
+    udp dport { 500, 4500, 50568 } notrack
+    tcp sport { 500, 4500, 50568 } notrack
+    tcp dport { 500, 4500, 50568 } notrack
+  }
+}
+```
+
+---
+
+### 2.5 内部动态路由层：BIRD 2 Babel 动态选路模型
+
+在 `mesh.nix` 中，通配所有 XFRM 网卡应用 Babel 配置：
+
+```text
+protocol babel dn42_babel {
+  interface "dn42x-*" {
+    type wireless;
+    rxcost 256;
+    hello interval 2 s;
+    update interval 8 s;
+    send timestamps yes;
+    rtt min 10 ms;
+    rtt max 300 ms;
+    rtt cost 512;
+    rtt decay 84;
+    extended next hop yes;
+  };
+}
+```
+
+#### 1. 为什么必须选 `type wireless`？
+
+- Babel 的默认 `type tunnel` 模式主要针对稳定隧道，采用粗粒度离散采样，只要丢包率低于 25%，其 Metric 几乎不会增加，无法感知中度丢包。
+- `type wireless` 开启了 **ETX (Expected Transmission Count)** 连续丢包率算法：
+  $$\text{Metric}_{\text{base}} = \frac{\text{rxcost}}{d_f \times d_r}$$
+  其中 $d_f$ 为前向交付率，$d_r$ 为反向交付率。哪怕链路产生 5% 的偶发丢包，Metric 也会平滑上升，使 BIRD 敏锐规避丢包严重的线路。
+
+#### 2. RFC 9079 时间戳测距与反向链路确认（IHU）
+
+- **两步确认机制**：
+  本机发送 Hello 附带时间戳 $t_1$；对端收到后必须在回送给本机的 **IHU (I Hear You)** 报文中原样回显 $t_1$ 并附带接收时刻 $t_2$。本机收到 IHU 时刻为 $t_3$，端到端 RTT 即为：
+  $$\text{RTT} = t_3 - t_1$$
+- **65535 根因揭秘**：若两端接口 `if_id` 不一致或单向被防火墙拦截，导致 IHU 报文无法送达，本机的 `txcost` 永远为 0，BIRD 状态机（`proto/babel/babel.c:600`）就会将 Metric 判定为不可达的顶格值 `BABEL_INFINITY (65535)`。
+
+#### 3. Bufferbloat 拥塞自愈与衰减模型
+
+综合 Metric 计算公式为：
+$$\text{Metric} = \frac{256}{d_f \times d_r} + 512 \times \text{clamp}\left(\frac{\text{RTT} - 10}{290}, 0, 1\right)$$
+
+- 低于 10ms：完美直连，无延迟惩罚（RTT Cost = 0）。
+- 10ms ~ 300ms：根据时延线性增加惩罚。当一条小水管满载产生排队延迟（Bufferbloat）导致 RTT 飙升至 200ms 时，其 Metric 将增加约 335，BIRD 立即自动将流量切往备用端口。
+- `rtt decay 84`：采用 EWMA 平滑指数衰减，防止偶发网络毛刺引起路由震荡（Route Flapping）。
+
+---
+
+### 2.6 专网权威 DNS 与反向解析体系 (`atc/router.nix`)
+
+彻底摒弃静态 `/etc/hosts` 注入，全面切换为标准树状 DNS 解析架构：
+
+```
+                    【客户端 / Mihomo】
+               查询 *.dora.dn42 / 反向 PTR
+                            │
+              nameserver-policy: 172.20.232.1:53
+                            ▼
+              【fra0: ATC CoreDNS 权威服务器】
+          (同时监听公网 IP 与 DN42: 172.20.232.1:53)
+                            │
+       ┌────────────────────┼────────────────────┐
+       ▼                    ▼                    ▼
+  [正向 Zone]         [IPv4 反向 Zone]     [IPv6 反向 Zone]
+  dora.dn42.zone     0/26.232.20.172.in-  6.b.b.4.d.f.0.9...
+                     addr.arpa.zone       ip6.arpa.zone
+```
+
+1. **ATC CoreDNS 权威多 Zone 承载**：
+   - 监听地址绑定至 `172.20.232.1:53` 与 `[fd53:90fd:4bb6:1::1]:53`；
+   - 自动生成 `dora.dn42` 正向解析，包含集群所有主机的双栈 A / AAAA 记录；
+   - 自动生成 `0/26.232.20.172.in-addr.arpa`（IPv4 PTR）与 `6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa`（IPv6 PTR）。
+2. **DN42 官方 Registry 合规注册**：
+   - 在 `data/dns/dora.dn42` 中声明权威名称服务器：
+     ```text
+     domain:             dora.dn42
+     admin-c:            TIPPY-DN42
+     tech-c:             TIPPY-DN42
+     mnt-by:             TIPPY-MNT
+     nserver:            ns1.dora.dn42 172.20.232.1
+     nserver:            ns1.dora.dn42 fd53:90fd:4bb6:1::1
+     source:             DN42
+     ```
+   - 在 `data/inetnum/172.20.232.0_26` 和 `data/inet6num/fd53:90fd:4bb6::_48` 中声明反向委派：`nserver: ns1.dora.dn42`。
+
+---
+
+## 三、 跨层多网络组件冲突与终极解决方案
+
+本系统同时运行了 **DN42 (XFRM+Babel)**、**Tailscale**、**EasyTier** 以及 **Mihomo (TUN)**。各组件在 Linux 内核网络栈中争夺默认路由、`iptables/nftables` 链和 DNS 端口。以下为遭遇的致命冲突与根治方案：
+
+### 3.1 冲突一：Mihomo TUN 路由自捕获死锁（Routing Loop）
+
+#### 1. 深度病因剖析
+
+Mihomo TUN 开启后，会在内核中创建虚拟网卡 `Meta`，并向策略路由表 `table 2022` 写入全局接管路由（`0.0.0.0/1`、`128.0.0.0/1` 和 `::/1`）。
+
+- **`auto-detect-interface: false` 下的死锁**：
+  Mihomo 自己的出站 Socket 是未绑定设备的。当它向公网节点（`fra0.dora.im`）发起建连时，出站 TCP 连接被内核判定命中了 `table 2022`，再次扔进了 `Meta` 网卡。**Mihomo 尝试用代理去代理“发往代理服务器自身的建连包”**，形成无限递归死锁，导致所有公网节点全部超时报废。
+- **为什么不能设为 `auto-detect-interface: true`？**
+  如果开启，Mihomo 会对所有出站 Socket 强行执行 `SO_BINDTODEVICE = wlp4s0`。发往 DN42 内网 SOCKS5 节点（`172.20.232.1:1080`）的流量被强行绑定在物理网卡上，直接绕过了内核路由表，被当作普通外网包扔给家用光猫/路由器丢弃。**公网虽然通了，但 DN42 必死**。
+- **为什么只有 DN42 节点此前能通？**
+  因为 `172.20.0.0/14` 早在 `route-exclude-address` 排除列表中，且此前写死了静态 hosts，恰好避开了 TUN 接管。
+
+#### 2. 优雅彻底根治方案
+
+无需手动维护任何公网节点的动态 IP，遵循**分层路由隔离原则**：
+
+1. **保持 `auto-detect-interface: false`**，把内核路由选路权完整归还给 Linux FIB；
+2. **在 `tun.route-exclude-address` 中固定排除公共 DNS**：
+   仅需排除十几个永远不变的主流公共 DNS（`223.5.5.5/32`, `119.29.29.29/32`, `1.1.1.1/32`, `8.8.8.8/32` 等）；
+3. **消除 DNS 解析死锁**：
+   `proxy-server-nameserver` 发往 `223.5.5.5` 的解析请求直出物理网卡，不再被 TUN 捕获，彻底消除了 `dns resolve failed: couldn't find ip`；
+4. **通过 `mihomo-routing.nix` 结合内核策略路由放行出站**：
+   电脑端通过 `meta skuid 998` 打标直通 `main` 表，配合 `prefer-ipv4: true` 消除缺少 IPv6 默认网关时的内核 `unreachable` 熔断。
+
+---
+
+### 3.2 冲突二：fwmark 0x1 与 Android (Box for KernelSU) 全局断网
+
+#### 1. 深度病因剖析
+
+- Linux 桌面系统只有一张主路由表与少量策略表，给进程打上 `fwmark 0x1` 导向 `table main` 是标准的防回环实践；
+- 但 Android 操作系统为了支持多用户隔离、双卡流量计费、热点与 Wi-Fi 切换，内部维护了 40 多张基于 UID 的策略路由规则。Box for KernelSU 本身在底层也依赖特定的 mark（如 `0xff`）防回环；
+- **如果在共享的 `mihomo.yaml` 订阅中强行塞入 `routing-mark: 1`**：手机上 Mihomo 发出的所有网络连接都会被打上全局 `0x01` 标记，彻底破坏 Android 底层基于 UID 的网络策略判定，导致手机连入 Wi-Fi 后被系统防火墙无差别 drop，产生**手机全局断网**。
+
+#### 2. 终极解法
+
+- **多端订阅配置文件（`sub.nix`）内部严禁出现 `routing-mark` 配置**；
+- 电脑端（NixOS）的防回环能力完全由系统级 `mihomo-routing.nix`（通过 nftables `skuid 998` 匹配守护进程）在操作系统层面独立承载；
+- 手机端交给 Box for KernelSU 自身的 VpnService / iptables 机制自闭环，一套订阅在手机与电脑间完美通用。
+
+---
+
+### 3.3 冲突三：本地 127.0.0.1:53 Fallback 循环死锁
+
+#### 1. 深度病因剖析
+
+在手机（Box for KernelSU）上的拓扑关系为：
+$$\text{App} \xrightarrow{\text{DNS}} \text{AdGuardHome (:53)} \xrightarrow{\text{上游}} \text{Mihomo (:1053)}$$
+如果订阅配置将 `fallback` 或 `nameserver` 填上了 `127.0.0.1:53`：
+
+1. 手机 App 发送查询给 AdGuardHome (`:53`)；
+2. AdGuardHome 过滤广告后交给上游 Mihomo (`:1053`)；
+3. Mihomo 解析境外域名触发 fallback，向 `127.0.0.1:53` 发包；
+4. AdGuardHome 收到后又当作新查询塞给 Mihomo (`:1053`)；
+5. **死锁达成**：UDP 报文在 53 与 1053 端口间以每秒数千次频率死循环，CPU 瞬间 100%、端口耗尽、手机彻底断网。
+
+#### 2. 终极解法：分层 Fallback 各司其职
+
+- **彻底从共享订阅中清除 `127.0.0.1`**；
+- **手机的容灾**：直接在 AdGuardHome 上游设置中，将备用（Fallback）上游填为公共 DNS（`223.5.5.5`）；Mihomo 异常时 AGH 自动回退，永不成环；
+- **电脑的容灾**：电脑系统的 `/etc/resolv.conf` 指向本地 Dnsmasq，Dnsmasq 内置了向 DHCP/局域网 DNS 的向下回退机制，根本无需 Mihomo 插手。
+
+---
+
+### 3.4 冲突四：底层网络策略路由 (Policy Routing) 与防火墙隔离
+
+为防止 ESP 底层报文、IKE 协商包以及 Mimic Fake-TCP 报文被上层 TUN 捕获，在 `dn42/base.nix` 中部署了独立于任何上层应用的 3 条底层策略路由：
+
+```
+Priority 80:  ip rule add ipproto esp lookup main            (v4 + v6)
+Priority 81:  for proto in udp tcp; do for port in <allClusterTunnelPorts>; do
+                ip rule add ipproto $proto sport $port lookup main
+                ip rule add ipproto $proto dport $port lookup main
+              done done                                      (v4 + v6)
+Priority 90:  ip rule add to 172.20.0.0/14 lookup main
+              ip rule add to 10.0.0.0/8 lookup main
+              ip rule add to 172.31.0.0/16 lookup main
+              ip rule add ipproto icmp lookup main          (PMTUD 差错报文)
+              ip -6 rule add to fd00::/8 lookup main
+              ip -6 rule add to fe80::/10 lookup main
+              ip -6 rule add ipproto ipv6-icmp lookup main   (Packet Too Big)
+```
+
+- **Priority 80**：保障 ESP 密文报文查 main 表直出主网卡。
+- **Priority 81**：针对全网所有隧道端口（500, 4500, 5056x），对 UDP 和 TCP 双协议双向豁免，确保底层 Mimic Fake-TCP 握手包绝不落入任何 TUN 网卡。
+- **Priority 90**：保障 DN42 内网流量与 PMTUD 差错报文走 BIRD 最优路径，防止被代理接管。
+- **Mesh 信任防火墙**：在 nftables 链注入放行规则，来自 `dn42` 与 `dn42x-*` 虚拟网卡的内网流量全局放行，使 `.dora.dn42` SOCKS5 代理、SSH、DNS 开箱即用，公网端口依然受到严密防护。
+
+---
+
+## 四、 关键配置与运维指南
+
+### 4.1 节点扩展最佳实践（零接触）
+
+未来若向集群中加入新节点 `tyo2`：
+
+1. 在 `terraform/hosts.tf` 中追加机器定义（主机名、公网解析记录、host_indices 等）；
+2. 执行 `terraform-pipe`（或 `terraform apply`）：
+   - 自动分配确定性 ID 与 DN42 内网 IPv4 / IPv6；
+   - 自动生成密钥与默认端口；
+   - `build_time` 绝不会产生任何无意义的全量 Diff；
+3. NixOS 执行部署：
+   - 全网 SD-WAN Agent 自动拉取新节点端点并建立 XFRM 隧道；
+   - BIRD Babel 自动测速并下发最优选路；
+   - ATC CoreDNS 自动生成 `tyo2.dora.dn42` 正反向解析记录；
+   - Mihomo 订阅自动裂变出公网 `tyo2` 与专网 `tyo2-DN42` 节点。
+
+### 4.2 常用排障排错速查表
+
+| 排查目标             | 命令                                                                                                      | 预期健康指标                                                  |
+| :------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------ |
+| **Babel 邻居与 RTT** | `sudo birdc show babel neighbors`                                                                         | Metric 为健康值（300 ~ 700），RTT > 0，Expires 稳定倒数       |
+| **Babel 路由表**     | `sudo birdc show route protocol dn42_babel`                                                               | 包含集群各节点 `/32` 与 `/128` 路由，下一跳指向最优 `dn42x-*` |
+| **IPsec SA 状态**    | `sudo swanctl --list-sas`                                                                                 | `ESTABLISHED`，报文计数器 `in` 与 `out` 双向稳定增长          |
+| **XFRM 接口状态**    | `ip -d link show type xfrm`                                                                               | `if_id` 符合公式，MTU 1360，状态为 UP                         |
+| **策略路由规则**     | `ip rule` / `ip -6 rule`                                                                                  | 包含 Priority 80, 81, 90 规则                                 |
+| **CoreDNS 权威解析** | `dig @172.20.232.1 dora.dn42 SOA +short`<br>`dig @172.20.232.1 tyo0.dora.dn42 +short`                     | 返回 `ns1.dora.dn42.` 与对应节点内网 IP                       |
+| **Mihomo 节点延迟**  | `curl -s http://127.0.0.1:9090/proxies/<name>/delay?timeout=5000&url=http://www.gstatic.com/generate_204` | 返回 `{"delay": <ms>}`，无超时或 DNS 失败                     |

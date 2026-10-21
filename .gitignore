@@ -1,6 +1,5 @@
 result*
 .agent
-docs
 .last_built_image
 .direnv
 .vscode
