@@ -115,74 +115,74 @@ patch:
   quick_symbol_text/trigger: "$^"
   paired_symbols/trigger: "$^"
 
-  # 所有标点符号直接上屏，并且为半角
+  # 常用中文标点全部为全角直接上屏，斜杠等半角标点直接上屏，不进入候选框
   punctuator/half_shape:
-    ",": { commit: "," }
-    ".": { commit: "." }
+    ",": { commit: "，" }
+    ".": { commit: "。" }
     "/": { commit: "/" }
-    ";": { commit: ";" }
-    ":": { commit: ":" }
-    "'": { commit: "'" }
-    '"': { commit: '"' }
-    "\\": { commit: "\\" }
+    ";": { commit: "；" }
+    ":": { commit: "：" }
+    "'": { pair: ["‘", "’"] }
+    '"': { pair: ["“", "”"] }
+    "\\": { commit: "、" }
     "|": { commit: "|" }
     "`": { commit: "`" }
     "~": { commit: "~" }
-    "!": { commit: "!" }
+    "!": { commit: "！" }
     "@": { commit: "@" }
     "#": { commit: "#" }
-    "$": { commit: "$" }
+    "$": { commit: "¥" }
     "%": { commit: "%" }
-    "^": { commit: "^" }
+    "^": { commit: "……" }
     "&": { commit: "&" }
     "*": { commit: "*" }
-    "(": { commit: "(" }
-    ")": { commit: ")" }
+    "(": { commit: "（" }
+    ")": { commit: "）" }
     "-": { commit: "-" }
-    "_": { commit: "_" }
+    "_": { commit: "——" }
     "+": { commit: "+" }
     "=": { commit: "=" }
-    "[": { commit: "[" }
-    "]": { commit: "]" }
-    "{": { commit: "{" }
-    "}": { commit: "}" }
-    "<": { commit: "<" }
-    ">": { commit: ">" }
-    "?": { commit: "?" }
+    "[": { commit: "【" }
+    "]": { commit: "】" }
+    "{": { commit: "「" }
+    "}": { commit: "」" }
+    "<": { commit: "《" }
+    ">": { commit: "》" }
+    "?": { commit: "？" }
 
   punctuator/full_shape:
-    ",": { commit: "," }
-    ".": { commit: "." }
+    ",": { commit: "，" }
+    ".": { commit: "。" }
     "/": { commit: "/" }
-    ";": { commit: ";" }
-    ":": { commit: ":" }
-    "'": { commit: "'" }
-    '"': { commit: '"' }
-    "\\": { commit: "\\" }
+    ";": { commit: "；" }
+    ":": { commit: "：" }
+    "'": { pair: ["‘", "’"] }
+    '"': { pair: ["“", "”"] }
+    "\\": { commit: "、" }
     "|": { commit: "|" }
     "`": { commit: "`" }
     "~": { commit: "~" }
-    "!": { commit: "!" }
+    "!": { commit: "！" }
     "@": { commit: "@" }
     "#": { commit: "#" }
-    "$": { commit: "$" }
+    "$": { commit: "¥" }
     "%": { commit: "%" }
-    "^": { commit: "^" }
+    "^": { commit: "……" }
     "&": { commit: "&" }
     "*": { commit: "*" }
-    "(": { commit: "(" }
-    ")": { commit: ")" }
+    "(": { commit: "（" }
+    ")": { commit: "）" }
     "-": { commit: "-" }
-    "_": { commit: "_" }
+    "_": { commit: "——" }
     "+": { commit: "+" }
     "=": { commit: "=" }
-    "[": { commit: "[" }
-    "]": { commit: "]" }
-    "{": { commit: "{" }
-    "}": { commit: "}" }
-    "<": { commit: "<" }
-    ">": { commit: ">" }
-    "?": { commit: "?" }
+    "[": { commit: "【" }
+    "]": { commit: "】" }
+    "{": { commit: "「" }
+    "}": { commit: "」" }
+    "<": { commit: "《" }
+    ">": { commit: "》" }
+    "?": { commit: "？" }
 
   key_binder/sequence: # Lua 配置：手动排序的快捷键 super_sequence.lua，不要用方向键，各种冲突，一定要避免冲突
     up: "Control+j" # 上移
