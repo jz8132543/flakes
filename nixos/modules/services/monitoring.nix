@@ -128,6 +128,7 @@ in
         "zotero.${config.networking.domain}"
         "bot.${config.networking.domain}"
         "napcat.${config.networking.domain}"
+        "ops.${config.networking.domain}"
       ];
       description = "List of public endpoints exempted from compile-time blackbox assertion.";
     };

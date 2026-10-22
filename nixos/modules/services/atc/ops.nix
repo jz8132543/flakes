@@ -8,10 +8,21 @@ with lib;
 let
   cfg = config.services.atc.ops;
   domain = config.networking.domain;
+  tlsDirectory = "/var/lib/traffic_ops/tls";
+  tlsCertificate = "${tlsDirectory}/traffic-ops.crt";
+  tlsKey = "${tlsDirectory}/traffic-ops.key";
+  # Reuse the existing SOPS-managed credential by default. This keeps the
+  # deployment self-contained; a separate secret can be introduced later.
+  cookieSecretPath = config.sops.secrets."atc/ops_password".path;
 
   cdnConfigFile = pkgs.writeText "cdn.conf" (
     builtins.toJSON {
+      # Filled from SOPS at service start. Do not put signing material in the
+      # Nix store, since this file is world-readable through the system closure.
+      secrets = [ ];
       traffic_ops_golang = {
+        cert = tlsCertificate;
+        key = tlsKey;
         port = toString cfg.port;
         listen = [ "${cfg.listenAddress}:${toString cfg.port}" ];
         proxy_keep_alive_time = 300;
@@ -27,7 +38,9 @@ let
         log_location_debug = "null";
         log_location_event = "stdout";
         db_query_timeout_seconds = 30;
-        traffic_vault_backend = "disabled";
+        # Empty disables Traffic Vault. Any non-empty value selects a backend
+        # and requires a matching traffic_vault_config object.
+        traffic_vault_backend = "";
       };
     }
   );
@@ -53,100 +66,307 @@ let
     else
       config.sops.secrets."atc/ops_password".path;
 
+  scryptTool = pkgs.python3.withPackages (ps: [ ps.cryptography ]);
+  scryptScript = pkgs.writeText "traffic-ops-scrypt.py" ''
+    import base64
+    import os
+    import sys
+    from cryptography.hazmat.primitives.kdf.scrypt import Scrypt
+
+    password = sys.stdin.buffer.read().rstrip(bytes((13, 10)))
+    salt = os.urandom(64)
+    key = Scrypt(salt=salt, length=64, n=16384, r=8, p=1).derive(password)
+    print("SCRYPT:16384:8:1:%s:%s" % (
+        base64.b64encode(salt).decode(),
+        base64.b64encode(key).decode(),
+    ))
+  '';
+
   initScript = pkgs.writeShellScript "traffic-ops-db-init" ''
-    set -euo pipefail
+        set -euo pipefail
 
-    echo "Waiting for PostgreSQL at ${cfg.dbHost}:${toString cfg.dbPort}..."
-    for i in $(seq 1 30); do
-      if ${pkgs.postgresql}/bin/pg_isready -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} >/dev/null 2>&1; then
-        echo "PostgreSQL is ready."
-        break
-      fi
-      sleep 2
-    done
+        echo "Waiting for PostgreSQL at ${cfg.dbHost}:${toString cfg.dbPort}..."
+        for i in $(seq 1 30); do
+          if ${pkgs.postgresql}/bin/pg_isready -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d postgres >/dev/null 2>&1; then
+            echo "PostgreSQL is ready."
+            break
+          fi
+          sleep 2
+        done
 
-    PASSWORD=""
-    if [ -f "${toString passwordFilePath}" ]; then
-      PASSWORD="$(cat "${toString passwordFilePath}" | tr -d '\r\n')"
-    fi
-    if [ -z "$PASSWORD" ]; then
-      PASSWORD="sync-password-placeholder"
-    fi
+        PASSWORD=""
+        if [ -f "${toString passwordFilePath}" ]; then
+          PASSWORD="$(cat "${toString passwordFilePath}" | tr -d '\r\n')"
+        fi
+        if [ -z "$PASSWORD" ]; then
+          PASSWORD="sync-password-placeholder"
+        fi
 
-    echo "Provisioning Traffic Ops schema seeds, profile templates, and sync credentials..."
-    ${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} <<EOF || true
-    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        echo "Provisioning Traffic Ops schema seeds, profile templates, and sync credentials..."
 
-    -- Ensure CDN
-    INSERT INTO cdn (name, domain_name) 
-    VALUES ('dora-cdn', '${domain}') 
-    ON CONFLICT (name) DO NOTHING;
-
-    -- Ensure Profile Type exists
-    INSERT INTO type (name, description, use_in_table)
-    VALUES ('ATS_PROFILE', 'Profile for Apache Traffic Server', 'profile')
-    ON CONFLICT (name) DO NOTHING;
-
-    -- Ensure Profile EDGE_ATS_GLOBAL
-    INSERT INTO profile (name, description, type, cdn)
-    SELECT 'EDGE_ATS_GLOBAL', 'Global Baseline Profile for Edge ATS Nodes', t.id, c.id
-    FROM type t, cdn c
-    WHERE t.name = 'ATS_PROFILE' AND c.name = 'dora-cdn'
-    ON CONFLICT (name) DO NOTHING;
-
-    -- Baseline records.config parameters for EDGE_ATS_GLOBAL
-    DO \$\$
-    DECLARE
-      pid INT;
-      param_id INT;
-      rec RECORD;
-    BEGIN
-      SELECT id INTO pid FROM profile WHERE name = 'EDGE_ATS_GLOBAL';
-      IF pid IS NOT NULL THEN
-        FOR rec IN SELECT * FROM (VALUES
-          ('proxy.config.http.cache.required_headers', 'records.config', '0'),
-          ('proxy.config.http.cache.cache_responses_to_cookies', 'records.config', '1'),
-          ('proxy.config.exec_thread.autoconfig.enabled', 'records.config', '1'),
-          ('proxy.config.log.logging_enabled', 'records.config', '3'),
-          ('proxy.config.ram_cache.size', 'records.config', '268435456'),
-          ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
-          ('proxy.config.net.connections_throttle', 'records.config', '10000'),
-          ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6')
-        ) AS t(pname, pfile, pval)
-        LOOP
-          INSERT INTO parameter (name, config_file, value)
-          VALUES (rec.pname, rec.pfile, rec.pval)
-          ON CONFLICT (name, config_file, value) DO UPDATE SET value = EXCLUDED.value
-          RETURNING id INTO param_id;
-
-          IF param_id IS NULL THEN
-            SELECT id INTO param_id FROM parameter WHERE name = rec.pname AND config_file = rec.pfile AND value = rec.pval;
+        # Ensure database and owner role exist. PostgreSQL local authentication is
+        # trusted on the center node, so this does not put a DB password in Nix.
+        if ! ${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '${cfg.dbName}'" | grep -q 1; then
+          ${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d postgres -v ON_ERROR_STOP=1 <<SQL
+        DO \$\$
+        BEGIN
+          IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${cfg.dbUser}') THEN
+            CREATE ROLE ${cfg.dbUser} LOGIN;
           END IF;
+        END
+        \$\$;
+        CREATE DATABASE ${cfg.dbName} OWNER ${cfg.dbUser};
+    SQL
+        fi
 
-          INSERT INTO profile_parameter (profile, parameter)
-          VALUES (pid, param_id)
-          ON CONFLICT DO NOTHING;
-        END LOOP;
-      END IF;
-    END \$\$;
+        # Initialize tables and seed data if not yet populated
+        HAS_TABLES=$(${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" | tr -d '[:space:]')
+        if [ -z "$HAS_TABLES" ]; then HAS_TABLES=0; fi
+        if [ "$HAS_TABLES" -le 1 ]; then
+          echo "Populating Traffic Ops base tables and seed data..."
+          ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} -f ${cfg.package}/share/traffic_ops/db/create_tables.sql
+          ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} -f ${cfg.package}/share/traffic_ops/db/seeds.sql
+        fi
 
-    -- Ensure Role read-only exists
-    INSERT INTO role (name, description, priv_level)
-    VALUES ('read-only', 'Read-Only User for t3c edge synchronization', 10)
-    ON CONFLICT (name) DO NOTHING;
+        # Apply the schema additions required by the Traffic Ops 8.0 binary.
+        # The upstream release migrations are not all idempotent, so do not replay
+        # every .up.sql file on each boot. These ALTERs are safe on every start.
+        ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d ${cfg.dbName} <<MIGRATIONS
+        ALTER TABLE public.cdn ADD COLUMN IF NOT EXISTS ttl_override BIGINT DEFAULT NULL;
+        ALTER TABLE public.deliveryservice ADD COLUMN IF NOT EXISTS regional BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE public.deliveryservice ADD COLUMN IF NOT EXISTS required_capabilities TEXT[];
+        ALTER TABLE public.server ADD COLUMN IF NOT EXISTS config_update_failed BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE public.server ADD COLUMN IF NOT EXISTS revalidate_update_failed BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE public.server_capability ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT ' ';
+    MIGRATIONS
 
-    -- Ensure t3c-sync User exists with bcrypt password
-    INSERT INTO tm_user (username, role, local_passwd, confirm_local_passwd, email, full_name)
-    SELECT '${cfg.syncUser}', r.id, crypt('$PASSWORD', gen_salt('bf', 10)), crypt('$PASSWORD', gen_salt('bf', 10)), '${cfg.syncUser}@${domain}', 'T3C Edge Synchronizer'
-    FROM role r
-    WHERE r.name = 'read-only' OR r.priv_level = 10
-    LIMIT 1
-    ON CONFLICT (username) DO UPDATE
-    SET local_passwd = crypt('$PASSWORD', gen_salt('bf', 10)),
-        confirm_local_passwd = crypt('$PASSWORD', gen_salt('bf', 10));
+        PASSWORD_HASH="$(${scryptTool}/bin/python ${scryptScript} < "${passwordFilePath}")"
+
+        ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -v password_hash="$PASSWORD_HASH" -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} <<EOF
+        CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+        -- Ensure CDN
+        INSERT INTO cdn (name, domain_name)
+        VALUES ('dora-cdn', '${domain}')
+        ON CONFLICT (name) DO NOTHING;
+
+        -- Ensure Profile Type exists
+        -- Ensure Profile EDGE_ATS_GLOBAL
+        INSERT INTO profile (name, description, type, cdn)
+        SELECT 'EDGE_ATS_GLOBAL', 'Global Baseline Profile for Edge ATS Nodes', 'ATS_PROFILE'::profile_type, c.id
+        FROM cdn c
+        WHERE c.name = 'dora-cdn'
+        ON CONFLICT (name) DO NOTHING;
+
+        INSERT INTO parameter (name, config_file, value) VALUES
+          ('peers.polling.interval', 'rascal-config.txt', '3000'),
+          ('health.polling.interval', 'rascal-config.txt', '20000'),
+          ('health.polling.url', 'rascal-config.txt', '/_astats'),
+          ('health.polling.format', 'rascal-config.txt', 'application/json'),
+          ('stat.polling.interval', 'rascal-config.txt', '60000')
+        ON CONFLICT (name, config_file, value) DO NOTHING;
+
+        INSERT INTO profile_parameter (profile, parameter)
+        SELECT p.id, pr.id FROM profile p CROSS JOIN parameter pr
+        WHERE p.name = 'RASCAL_GLOBAL' AND pr.config_file = 'rascal-config.txt'
+          AND NOT EXISTS (SELECT 1 FROM profile_parameter pp WHERE pp.profile = p.id AND pp.parameter = pr.id);
+
+        INSERT INTO profile (name, description, type, cdn)
+        SELECT 'RASCAL_GLOBAL', 'Traffic Monitor baseline profile', 'ATS_PROFILE'::profile_type, c.id
+        FROM cdn c WHERE c.name = 'dora-cdn'
+        ON CONFLICT (name) DO NOTHING;
+
+        -- Minimal topology required by Traffic Monitor/t3c discovery. Terraform
+        -- can later replace these records with the full production topology.
+        INSERT INTO division (name) VALUES ('Global') ON CONFLICT (name) DO NOTHING;
+        INSERT INTO region (name, division)
+        SELECT 'ALL', d.id FROM division d WHERE d.name = 'Global'
+        ON CONFLICT (name) DO NOTHING;
+        INSERT INTO phys_location (name, short_name, address, city, state, zip, region)
+        SELECT 'Global Edge', 'global-edge', 'N/A', 'N/A', 'N/A', 'N/A', r.id
+        FROM region r WHERE r.name = 'ALL'
+        ON CONFLICT (name) DO NOTHING;
+
+        INSERT INTO deliveryservice (
+          xml_id, active, dscp, type, profile, cdn_id, display_name, tenant_id,
+          routing_name, protocol, ipv6_routing_enabled
+        )
+        SELECT 'jellyfin', 'ACTIVE'::ds_active_state, 0, t.id, p.id, c.id, 'jellyfin service', tn.id,
+          'edge', 1, true
+        FROM type t, profile p, cdn c, tenant tn
+        WHERE t.name = 'HTTP' AND p.name = 'EDGE_ATS_GLOBAL' AND c.name = 'dora-cdn' AND tn.name = 'root'
+        ON CONFLICT (xml_id) DO NOTHING;
+
+        INSERT INTO origin (name, fqdn, protocol, is_primary, port, deliveryservice, tenant)
+        SELECT 'jellyfin-origin', 'fra0.${domain}', 'https'::origin_protocol, true, 443, ds.id, tn.id
+        FROM deliveryservice ds, tenant tn
+        WHERE ds.xml_id = 'jellyfin' AND tn.name = 'root'
+          AND NOT EXISTS (SELECT 1 FROM origin o WHERE o.name = 'jellyfin-origin');
+
+        INSERT INTO regex (pattern, type)
+        SELECT '.*\\.jellyfin\\.${domain}.*', t.id FROM type t
+        WHERE t.name = 'HOST_REGEXP'
+          AND NOT EXISTS (SELECT 1 FROM regex r WHERE r.pattern = '.*\\.jellyfin\\.${domain}.*');
+
+        INSERT INTO deliveryservice_regex (deliveryservice, regex, set_number)
+        SELECT ds.id, r.id, 0 FROM deliveryservice ds, regex r
+        WHERE ds.xml_id = 'jellyfin' AND r.pattern = '.*\\.jellyfin\\.${domain}.*'
+          AND NOT EXISTS (SELECT 1 FROM deliveryservice_regex dr WHERE dr.deliveryservice = ds.id AND dr.regex = r.id);
+
+        INSERT INTO cachegroup (name, short_name, type)
+        SELECT 'EDGE_DEFAULT', 'edge-default', t.id
+        FROM type t WHERE t.name = 'EDGE'
+        ON CONFLICT (name) DO NOTHING;
+
+        INSERT INTO coordinate (name, latitude, longitude)
+        VALUES ('global-edge-coordinate', 0.0, 0.0)
+        ON CONFLICT (name) DO NOTHING;
+        UPDATE cachegroup SET coordinate = (SELECT id FROM coordinate WHERE name = 'global-edge-coordinate')
+        WHERE name = 'EDGE_DEFAULT' AND coordinate IS NULL;
+
+        DO \$\$
+        DECLARE
+          cdn_id_value BIGINT;
+          profile_id_value BIGINT;
+          location_id_value BIGINT;
+          cachegroup_id_value BIGINT;
+          edge_type BIGINT;
+          online_status BIGINT;
+          host RECORD;
+          existing_id BIGINT;
+        BEGIN
+          SELECT id INTO cdn_id_value FROM cdn WHERE name = 'dora-cdn';
+          SELECT id INTO profile_id_value FROM profile WHERE name = 'EDGE_ATS_GLOBAL';
+          SELECT id INTO location_id_value FROM phys_location WHERE name = 'Global Edge';
+          SELECT id INTO cachegroup_id_value FROM cachegroup WHERE name = 'EDGE_DEFAULT';
+          SELECT id INTO edge_type FROM type WHERE name = 'EDGE';
+          SELECT id INTO online_status FROM status WHERE name = 'ONLINE';
+
+          FOR host IN SELECT * FROM (VALUES
+            ('fra0', '94.249.174.75'),
+            ('nue0', '185.216.178.70')
+          ) AS h(host_name, mgmt_ip)
+          LOOP
+            SELECT id INTO existing_id FROM server WHERE host_name = host.host_name;
+            IF existing_id IS NULL THEN
+              INSERT INTO server (
+                host_name, domain_name, tcp_port, phys_location, cachegroup,
+                type, status, profile, cdn_id, mgmt_ip_address, https_port
+              ) VALUES (
+                host.host_name, '${domain}', 80, location_id_value, cachegroup_id_value,
+                edge_type, online_status, profile_id_value, cdn_id_value,
+                host.mgmt_ip, 443
+              );
+            ELSE
+              UPDATE server SET
+                domain_name = '${domain}',
+                cachegroup = cachegroup_id_value,
+                type = edge_type,
+                status = online_status,
+                profile = profile_id_value,
+                cdn_id = cdn_id_value,
+                mgmt_ip_address = host.mgmt_ip,
+                https_port = 443
+              WHERE id = existing_id;
+            END IF;
+          END LOOP;
+
+          -- Register a local Traffic Monitor and the cache service interfaces
+          -- required by the monitoring snapshot generator.
+          INSERT INTO server (
+            host_name, domain_name, tcp_port, phys_location, cachegroup,
+            type, status, profile, cdn_id, mgmt_ip_address, https_port
+          )
+          SELECT 'fra0-monitor', '${domain}', 8087, location_id_value, cachegroup_id_value,
+            (SELECT id FROM type WHERE name = 'RASCAL'), online_status,
+            (SELECT id FROM profile WHERE name = 'RASCAL_GLOBAL'), cdn_id_value,
+            '127.0.0.1', 8087
+          WHERE NOT EXISTS (SELECT 1 FROM server WHERE host_name = 'fra0-monitor');
+
+          INSERT INTO server_profile (server, profile_name, priority)
+          SELECT s.id, 'RASCAL_GLOBAL', 1 FROM server s
+          WHERE s.host_name = 'fra0-monitor'
+            AND NOT EXISTS (SELECT 1 FROM server_profile sp WHERE sp.server = s.id AND sp.profile_name = 'RASCAL_GLOBAL');
+
+          INSERT INTO interface (name, monitor, mtu, server)
+          SELECT 'eth0', true, 1500, s.id FROM server s
+          WHERE s.host_name IN ('fra0', 'nue0', 'fra0-monitor')
+            AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
+
+          INSERT INTO ip_address (address, interface, server, service_address)
+          SELECT h.address::inet, 'eth0', s.id, true
+          FROM (VALUES ('94.249.174.75', 'fra0'), ('185.216.178.70', 'nue0')) AS h(address, host_name)
+          JOIN server s ON s.host_name = h.host_name
+          WHERE NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = h.address::inet AND ip.server = s.id);
+
+          INSERT INTO ip_address (address, interface, server, service_address)
+          SELECT '127.0.0.1'::inet, 'eth0', s.id, true
+          FROM server s WHERE s.host_name = 'fra0-monitor'
+            AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '127.0.0.1'::inet AND ip.server = s.id);
+
+          INSERT INTO deliveryservice_server (deliveryservice, server)
+          SELECT ds.id, s.id FROM deliveryservice ds, server s
+          WHERE ds.xml_id = 'jellyfin' AND s.host_name IN ('fra0', 'nue0')
+            AND NOT EXISTS (SELECT 1 FROM deliveryservice_server dss WHERE dss.deliveryservice = ds.id AND dss.server = s.id);
+        END \$\$;
+
+        -- Baseline records.config parameters for EDGE_ATS_GLOBAL
+        DO \$\$
+        DECLARE
+          pid INT;
+          param_id INT;
+          rec RECORD;
+        BEGIN
+          SELECT id INTO pid FROM profile WHERE name = 'EDGE_ATS_GLOBAL';
+          IF pid IS NOT NULL THEN
+            FOR rec IN SELECT * FROM (VALUES
+              ('proxy.config.http.cache.required_headers', 'records.config', '0'),
+              ('proxy.config.http.cache.cache_responses_to_cookies', 'records.config', '1'),
+              ('proxy.config.exec_thread.autoconfig.enabled', 'records.config', '1'),
+              ('proxy.config.log.logging_enabled', 'records.config', '3'),
+              ('proxy.config.ram_cache.size', 'records.config', '268435456'),
+              ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
+              ('proxy.config.net.connections_throttle', 'records.config', '10000'),
+              ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6')
+            ) AS t(pname, pfile, pval)
+            LOOP
+              INSERT INTO parameter (name, config_file, value)
+              VALUES (rec.pname, rec.pfile, rec.pval)
+              ON CONFLICT (name, config_file, value) DO UPDATE SET value = EXCLUDED.value
+              RETURNING id INTO param_id;
+
+              IF param_id IS NULL THEN
+                SELECT id INTO param_id FROM parameter WHERE name = rec.pname AND config_file = rec.pfile AND value = rec.pval;
+              END IF;
+
+              INSERT INTO profile_parameter (profile, parameter)
+              VALUES (pid, param_id)
+              ON CONFLICT DO NOTHING;
+            END LOOP;
+          END IF;
+        END \$\$;
+
+        -- Ensure Role read-only exists
+        INSERT INTO role (name, description, priv_level)
+        VALUES ('read-only', 'Read-Only User for t3c edge synchronization', 10)
+        ON CONFLICT (name) DO NOTHING;
+
+        -- Ensure t3c-sync User exists with Traffic Ops-compatible SCRYPT password
+        INSERT INTO tm_user (username, role, local_passwd, confirm_local_passwd, email, full_name, tenant_id)
+        SELECT '${cfg.syncUser}', r.id, :'password_hash', :'password_hash', '${cfg.syncUser}@${domain}', 'T3C Edge Synchronizer', t.id
+        FROM role r
+        CROSS JOIN tenant t
+        WHERE r.name = 'read-only' AND t.name = 'root'
+        LIMIT 1
+        ON CONFLICT (username) DO UPDATE
+        SET role = EXCLUDED.role,
+            local_passwd = EXCLUDED.local_passwd,
+            confirm_local_passwd = EXCLUDED.confirm_local_passwd,
+            tenant_id = EXCLUDED.tenant_id,
+            email = EXCLUDED.email;
 
     EOF
-    echo "Traffic Ops initialization completed successfully."
+        echo "Traffic Ops initialization completed successfully."
   '';
 in
 {
@@ -161,7 +381,7 @@ in
 
     port = mkOption {
       type = types.port;
-      default = 8088;
+      default = 8084;
       description = "Port to listen on (plain HTTP; Traefik terminates TLS externally).";
     };
 
@@ -219,9 +439,11 @@ in
     systemd.tmpfiles.rules = [
       "d /etc/traffic_ops 0750 trafficops trafficops -"
       "d /var/log/traffic_ops 0750 trafficops trafficops -"
+      "d /var/lib/traffic_ops 0750 trafficops trafficops -"
     ];
 
-    environment.etc."traffic_ops/cdn.conf".source = cdnConfigFile;
+    # The final cdn.conf is rendered in preStart with the SOPS secret injected.
+    environment.etc."traffic_ops/cdn.conf".enable = false;
     environment.etc."traffic_ops/database.conf".source = dbConfigFile;
 
     # 1. 自动确保数据库和用户存在（当使用本机 PostgreSQL 时）
@@ -251,10 +473,14 @@ in
       ++ optional (cfg.dbHost == "127.0.0.1" || cfg.dbHost == "localhost") "postgresql.service";
       wants = [ "network-online.target" ];
       before = [ "traffic-ops.service" ];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
-        User = "trafficops";
-        Group = "trafficops";
+        # Migrations alter tables created by the postgres owner. The script
+        # connects as PostgreSQL's local postgres role and must not run as the
+        # unprivileged daemon user.
+        User = "root";
+        Group = "root";
         ExecStart = "${initScript}";
       };
     };
@@ -267,10 +493,41 @@ in
         "traffic-ops-init.service"
       ];
       wants = [ "network-online.target" ];
+      requires = [ "traffic-ops-init.service" ];
       wantedBy = [ "multi-user.target" ];
+
+      preStart = ''
+        if [ ! -s ${cookieSecretPath} ]; then
+          echo "Traffic Ops signing secret is missing or empty" >&2
+          exit 1
+        fi
+
+        mkdir -p /var/lib/traffic_ops/app/conf
+        cp -f ${cfg.package}/share/traffic_ops/app/conf/invalid_passwords.txt \
+          /var/lib/traffic_ops/app/conf/invalid_passwords.txt
+        chown -R trafficops:trafficops /var/lib/traffic_ops
+
+        mkdir -p ${tlsDirectory}
+        if [ ! -s ${tlsCertificate} ] || [ ! -s ${tlsKey} ]; then
+          ${pkgs.openssl}/bin/openssl req -x509 -newkey rsa:2048 -nodes \
+            -keyout ${tlsKey} -out ${tlsCertificate} -days 3650 \
+            -subj "/CN=ops.${domain}" \
+            -addext "subjectAltName=DNS:ops.${domain},DNS:localhost,IP:127.0.0.1"
+        fi
+        chown -R trafficops:trafficops ${tlsDirectory}
+        chmod 0644 ${tlsCertificate}
+        chmod 0600 ${tlsKey}
+
+        ${pkgs.jq}/bin/jq --rawfile secret ${cookieSecretPath} \
+          '.secrets = [($secret | rtrimstr("\n") | rtrimstr("\r"))]' \
+          ${cdnConfigFile} > /etc/traffic_ops/cdn.conf
+        chown trafficops:trafficops /etc/traffic_ops/cdn.conf
+        chmod 0600 /etc/traffic_ops/cdn.conf
+      '';
 
       serviceConfig = {
         Type = "simple";
+        WorkingDirectory = "/var/lib/traffic_ops";
         User = "trafficops";
         Group = "trafficops";
         Restart = "always";
@@ -290,7 +547,7 @@ in
     # 5. 网络可达性：Traefik 统一配置 HTTPS 反代入口与防火墙端口放行
     services.traefik.proxies.traffic-ops = mkIf (config.services.traefik.enable or false) {
       rule = "Host(`ops.${domain}`)";
-      target = "http://127.0.0.1:${toString cfg.port}";
+      target = "https://127.0.0.1:${toString cfg.port}";
       entryPoints = [ "https" ];
     };
 

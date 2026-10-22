@@ -7,15 +7,24 @@
 with lib;
 let
   cfg = config.services.atc.monitor;
+  runtimeConfig = "/run/traffic-monitor/traffic_monitor.cfg";
 
   tmConfigFile = pkgs.writeText "traffic_monitor.cfg" (
     builtins.toJSON {
-      traffic_ops_url = cfg.trafficOpsUrl;
-      traffic_ops_user = cfg.trafficOpsUser;
+      httpListener = "${cfg.listenAddress}:${toString cfg.port}";
+      static_file_dir = "${cfg.package}/share/traffic_monitor/static";
+      crconfig_backup_file = "/var/lib/traffic_monitor/crconfig.backup";
+      tmconfig_backup_file = "/var/lib/traffic_monitor/tmconfig.backup";
+      crconfig_history_count = 100;
+      # Ops config uses the handler.OpsConfig field names (url, username,
+      # password), not the Traffic Monitor application config names.
+      url = cfg.trafficOpsUrl;
+      username = cfg.trafficOpsUser;
+      insecure = cfg.trafficOpsInsecure;
       # traffic_ops_pass: Traffic Monitor's own admin-UI password (NOT the PG password).
       # The PG database uses trust/peer auth; this field controls the TM web UI login.
       # Leave empty for now — evaluate whether the UI is exposed before hardening.
-      traffic_ops_pass = "";
+      password = "";
       traffic_ops_disk_retry_max = 5;
       traffic_ops_retry_interval_ms = 10000;
       serve_read_timeout_ms = 10000;
@@ -48,7 +57,7 @@ in
 
     port = mkOption {
       type = types.port;
-      default = 8080;
+      default = 8087;
       description = "Port to serve CrStates and TM health stats.";
     };
 
@@ -61,8 +70,14 @@ in
 
     trafficOpsUser = mkOption {
       type = types.str;
-      default = "traffic_monitor";
+      default = "t3c-sync";
       description = "Traffic Ops service account username for monitoring.";
+    };
+
+    trafficOpsInsecure = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Skip certificate verification when connecting to Traffic Ops.";
     };
 
     healthPollingIntervalMs = mkOption {
@@ -113,20 +128,40 @@ in
     systemd.tmpfiles.rules = [
       "d /etc/traffic_monitor 0750 trafficmonitor trafficmonitor -"
       "d /var/log/traffic_monitor 0750 trafficmonitor trafficmonitor -"
+      "d /var/lib/traffic_monitor 0750 trafficmonitor trafficmonitor -"
     ];
 
     environment.etc."traffic_monitor/traffic_monitor.cfg".source = tmConfigFile;
+    sops.secrets."atc/ops_password" = {
+      owner = "trafficops";
+      group = "trafficops";
+      mode = "0440";
+    };
 
     systemd.services.traffic-monitor = {
       description = "Apache Traffic Control Traffic Monitor";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+      preStart = ''
+        if [ ! -s ${config.sops.secrets."atc/ops_password".path} ]; then
+          echo "Traffic Monitor Traffic Ops password secret is missing or empty" >&2
+          exit 1
+        fi
+        ${pkgs.jq}/bin/jq --rawfile password ${config.sops.secrets."atc/ops_password".path} \
+          '.password = ($password | rtrimstr("\n") | rtrimstr("\r"))' \
+          ${tmConfigFile} > ${runtimeConfig}
+        chown trafficmonitor:trafficmonitor ${runtimeConfig}
+        chmod 0600 ${runtimeConfig}
+      '';
 
       serviceConfig = {
         Type = "simple";
         User = "trafficmonitor";
         Group = "trafficmonitor";
+        SupplementaryGroups = [ "trafficops" ];
+        RuntimeDirectory = "traffic-monitor";
+        RuntimeDirectoryMode = "0750";
         Restart = "always";
         RestartSec = "10s";
         StartLimitIntervalSec = 0;
@@ -135,11 +170,11 @@ in
 
         ExecStart = ''
           ${cfg.package}/bin/traffic_monitor \
-            -opsCfg /etc/traffic_monitor/traffic_monitor.cfg \
-            -config /etc/traffic_monitor/traffic_monitor.cfg \
-            -address ${cfg.listenAddress}:${toString cfg.port}
+            -opsCfg ${runtimeConfig} \
+            -config ${runtimeConfig}
         '';
       };
+      path = [ pkgs.nettools ];
     };
   };
 }

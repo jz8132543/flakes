@@ -2,6 +2,7 @@
   lib,
   buildGoModule,
   fetchFromGitHub,
+  nettools,
 }:
 buildGoModule rec {
   pname = "trafficcontrol";
@@ -14,8 +15,31 @@ buildGoModule rec {
     sha256 = "1xcfd9g6zd9yli73pxsy98qdnilxpiwp5ar6hakyavjykg6kcpl6";
   };
 
-  # Upstream release tarball contains complete vendor/ tree
-  vendorHash = null;
+  # Upstream source vendor/ tree is incomplete, fetch dependencies via Go modules
+  vendorHash = "sha256-dNz602E8BNUGy6gWNvzGUjkyG9MncHukBhDVhq8psNk=";
+  deleteVendor = true;
+
+  postPatch = ''
+    substituteInPlace traffic_monitor/config/staticappdata.go \
+      --replace-fail 'exec.Command("/bin/hostname", "-s")' \
+      'exec.Command("${nettools}/bin/hostname", "-s")'
+
+    substituteInPlace traffic_ops/traffic_ops_golang/dbhelpers/db_helpers.go \
+      --replace-fail 'AND ds.active = $2' \
+      "AND ds.active = (\$2)::ds_active_state"
+
+    substituteInPlace traffic_ops/traffic_ops_golang/monitoring/monitoring.go \
+      --replace-fail "WHERE ds.active = 'ACTIVE'" \
+      "WHERE ds.active = 'ACTIVE'::ds_active_state"
+
+    # t3c only reads CDN SSL key metadata. Upstream marks this GET endpoint
+    # Admin-only, which prevents the dedicated read-only edge sync account
+    # from generating normal cache configuration.
+    substituteInPlace traffic_ops/traffic_ops_golang/routing/routes.go \
+      --replace-fail 'Path: `cdns/name/{name}/sslkeys/?$`, Handler: cdn.GetSSLKeys, RequiredPrivLevel: auth.PrivLevelAdmin' \
+      'Path: `cdns/name/{name}/sslkeys/?$`, Handler: cdn.GetSSLKeys, RequiredPrivLevel: auth.PrivLevelReadOnly'
+
+  '';
 
   subPackages = [
     "cache-config/t3c"
@@ -55,6 +79,18 @@ buildGoModule rec {
     # Export lightweight t3c output containing only edge t3c client binaries
     mkdir -p "$t3c/bin"
     cp -a "$out/bin"/t3c* "$t3c/bin/"
+
+    # Install Traffic Ops database initialization schemas
+    mkdir -p "$out/share/traffic_ops/db"
+    cp -a traffic_ops/app/db/create_tables.sql traffic_ops/app/db/seeds.sql traffic_ops/app/db/patches.sql "$out/share/traffic_ops/db/"
+    mkdir -p "$out/share/traffic_ops/db/migrations"
+    cp -a traffic_ops/app/db/migrations/. "$out/share/traffic_ops/db/migrations/"
+
+    mkdir -p "$out/share/traffic_ops/app/conf"
+    cp -a traffic_ops/app/conf/invalid_passwords.txt "$out/share/traffic_ops/app/conf/"
+
+    mkdir -p "$out/share/traffic_monitor/static"
+    cp -a traffic_monitor/static/. "$out/share/traffic_monitor/static/"
   '';
 
   passthru = {

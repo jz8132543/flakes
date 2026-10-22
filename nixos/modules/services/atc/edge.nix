@@ -7,6 +7,9 @@
 with lib;
 let
   cfg = config.services.atc.edge;
+  cdnData = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
+  opsAddress =
+    (findFirst (node: node.name == "fra0") { ipv4 = "94.249.174.75"; } cdnData.edgeNodes).ipv4;
 in
 {
   options.services.atc.edge = {
@@ -31,16 +34,28 @@ in
   };
 
   config = mkIf cfg.enable {
+    # Traffic Ops is not part of the CDN data-plane DNS zone. Keep edge sync
+    # independent of an external ops.dora.im record being published.
+    networking.extraHosts = "${opsAddress} ops.${config.networking.domain}";
+
     # 1. Apache Traffic Server 数据面配置与可写路径解耦
     services.trafficserver = {
       enable = true;
       records = {
         "proxy.config.config_dir" = "/var/lib/trafficserver/etc";
+        "proxy.config.http.server_ports" = "8089 8089:ipv6";
       };
     };
 
     # 禁止使用 environment.etc."trafficserver/remap.config" 静态链接到 Nix Store
     environment.etc."trafficserver/remap.config".enable = false;
+
+    # 预先创建 /run/t3c.lock，赋予 trafficserver 用户锁文件操作权限
+    systemd.tmpfiles.rules = [
+      "f /run/t3c.lock 0664 trafficserver trafficserver -"
+      "d /var/lib/trafficcontrol-cache-config 0755 trafficserver trafficserver -"
+      "d /var/lib/trafficcontrol-cache-config/status 0755 trafficserver trafficserver -"
+    ];
 
     # 在 systemd.services.trafficserver.preStart 中完成基础结构初始化
     systemd.services.trafficserver.preStart = ''
@@ -65,6 +80,7 @@ in
       rm -f /etc/trafficserver/remap.config 2>/dev/null || true
       ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
 
+      touch /run/t3c.lock 2>/dev/null && chown trafficserver:trafficserver /run/t3c.lock 2>/dev/null || true
       chown -R trafficserver:trafficserver /var/lib/trafficserver
     '';
 
@@ -86,6 +102,8 @@ in
       path = with pkgs; [
         trafficcontrol
         trafficserver
+        systemd
+        curl
         iproute2
         gnugrep
         coreutils
@@ -94,23 +112,47 @@ in
       ];
       serviceConfig = {
         Type = "oneshot";
-        User = "trafficserver";
-        Group = "trafficserver";
+        # t3c syncds may update non-revalidate ATS files and upstream requires
+        # root for that operation. ATS itself continues running as its own user.
+        User = "root";
+        Group = "root";
         # 低配 VPS 资源隔离
         MemoryHigh = "64M";
         MemoryMax = "96M";
         CPUQuota = "20%";
-        ExecStart = ''
-          ${pkgs.trafficcontrol}/bin/t3c apply \
-            --traffic-ops-url=https://${cfg.opsHost} \
-            --traffic-ops-user=${cfg.opsUser} \
-            --traffic-ops-password-file=${config.sops.secrets."atc/ops_password".path} \
-            --cache-host-name=${config.networking.hostName} \
-            --run-mode=syncds \
-            --trafficserver-home=/var/lib/trafficserver \
-            --git=no
-        '';
       };
+      script = ''
+        if [ ! -f "${config.sops.secrets."atc/ops_password".path}" ]; then
+          echo "Traffic Ops password secret not found; skipping sync."
+          exit 0
+        fi
+
+        export TO_PASS="$(cat "${config.sops.secrets."atc/ops_password".path}" | tr -d '\r\n')"
+        if [ -z "$TO_PASS" ]; then
+          echo "Traffic Ops password is empty; skipping sync."
+          exit 0
+        fi
+
+        # Pre-check if Traffic Ops API is reachable to avoid noisy errors during startup
+        # Traffic Ops 8 exposes the health endpoint under the versioned v4
+        # API path; /api/v4/ping is not a valid route and would make every
+        # edge silently skip t3c synchronization.
+        if ! curl -k -s -f -m 5 "https://${cfg.opsHost}/api/4.0/ping" >/dev/null 2>&1; then
+          echo "Traffic Ops API at https://${cfg.opsHost} is not reachable yet; skipping sync."
+          exit 0
+        fi
+
+        touch /run/t3c.lock 2>/dev/null || true
+
+        exec ${pkgs.trafficcontrol}/bin/t3c apply \
+          --traffic-ops-url=https://${cfg.opsHost} \
+          --traffic-ops-user=${cfg.opsUser} \
+          --cache-host-name=${config.networking.hostName} \
+          --run-mode=syncds \
+          --trafficserver-home=/var/lib/trafficserver \
+          --skip-os-check=true \
+          --git=no
+      '';
     };
 
     systemd.timers.atc-t3c-sync = {
