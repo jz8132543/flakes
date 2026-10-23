@@ -14,6 +14,9 @@
       ".cache/nix"
       ".gemini"
       ".android"
+      ".config/kilo"
+      ".local/share/kilo"
+      ".local/state/kilo"
     ];
   };
   home.sessionVariables = { };

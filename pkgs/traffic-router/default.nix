@@ -1,52 +1,64 @@
 {
   lib,
   stdenv,
-  makeWrapper,
+  fetchFromGitHub,
+  maven,
   openjdk17_headless,
+  makeWrapper,
 }:
+
 let
   version = "8.0.2";
+  src = fetchFromGitHub {
+    owner = "apache";
+    repo = "trafficcontrol";
+    rev = "v${version}";
+    sha256 = "1xcfd9g6zd9yli73pxsy98qdnilxpiwp5ar6hakyavjykg6kcpl6";
+  };
 in
 stdenv.mkDerivation {
   pname = "traffic-router";
-  inherit version;
+  inherit version src;
 
-  dontUnpack = true;
+  nativeBuildInputs = [
+    maven
+    makeWrapper
+  ];
+  buildInputs = [ openjdk17_headless ];
 
-  nativeBuildInputs = [ makeWrapper ];
+  buildPhase = ''
+    cd traffic_router
+    echo "=== Now in: $(pwd) ==="
+    echo "=== Checking for build/pom.xml ==="
+    if [ -f ./build/pom.xml ]; then
+      echo "Found ./build/pom.xml, patching rpm-maven-plugin extension..."
+      sed -i 's/<extensions>true<\/extensions>/<!-- extensions removed for Nix build -->/' ./build/pom.xml || true
+      echo "Patched"
+    else
+      echo "No ./build/pom.xml found"
+    fi
+    echo "=== Removing build module from parent POM ==="
+    cd ..
+    sed -i '/<module>build<\/module>/d' pom.xml || true
+    echo "=== Running Maven ==="
+    cd traffic_router
+    mvn package -DskipTests -Dmaven.javadoc.skip=true
+  '';
 
   installPhase = ''
     mkdir -p $out/bin $out/share/traffic-router
 
-    cat << 'EOF' > $out/bin/traffic_router
-    #!/usr/bin/env bash
-    set -euo pipefail
-    CONF="/etc/traffic_router/traffic_router.properties"
-    DNS_PORT="53"
-    DNS_ADDR="0.0.0.0"
+    # Locate the built Traffic Router JAR
+    JAR_PATH="$(find traffic_router -type f -name 'traffic-router-*.jar' -path '*/target/*' | head -n 1 || true)"
+    if [ -z "$JAR_PATH" ]; then
+      echo "ERROR: traffic-router JAR not found after Maven build" >&2
+      exit 1
+    fi
 
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        -conf) CONF="$2"; shift 2 ;;
-        -dns-port) DNS_PORT="$2"; shift 2 ;;
-        -dns-addr) DNS_ADDR="$2"; shift 2 ;;
-        *) shift ;;
-      esac
-    done
+    cp "$JAR_PATH" $out/share/traffic-router/traffic-router.jar
 
-    echo "[traffic_router] Starting Apache Traffic Router runtime..."
-    echo "[traffic_router] Binding DNS $DNS_ADDR:$DNS_PORT (Config: $CONF)"
-
-    exec ${openjdk17_headless}/bin/java \
-      -Dtraffic_router.config="$CONF" \
-      -Ddns.port="$DNS_PORT" \
-      -Ddns.address="$DNS_ADDR" \
-      -Xms128m -Xmx512m \
-      -jar $out/share/traffic-router/traffic-router.jar "$@"
-    EOF
-
-    chmod +x $out/bin/traffic_router
-    touch $out/share/traffic-router/traffic-router.jar
+    makeWrapper ${openjdk17_headless}/bin/java $out/bin/traffic_router \
+      --add-flags "-Xms128m -Xmx512m -jar $out/share/traffic-router/traffic-router.jar"
   '';
 
   meta = with lib; {

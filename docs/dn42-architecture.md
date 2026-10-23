@@ -30,7 +30,7 @@
 | **2. SD-WAN 控制面**    | `dn42/mesh.nix`<br>`dn42-sdwan-agent`<br>`dn42-sdwan-controller` | **三主控互备 + 多端点全网并发探路**：纯 Bash+jq+socat 轻量实现，零 Python 依赖。支持单主机多公网线路（如 cu 的 4 条端点）全网自动展开为独立 XFRM 网卡。             |
 | **3. 协议穿透与隔离层** | `pkgs/mimic/`<br>`dn42/base.nix`<br>`overlay-isolation.nix`      | **Fake-TCP 穿透 + 内核协议栈隔离**：将 UDP 4500 包装为伪 TCP 突破运营商封锁；nftables raw notrack 杜绝 conntrack 丢包；Priority 80/81/90 策略路由保障底层隧道直通。 |
 | **4. 内部动态路由层**   | `dn42/mesh.nix` (BIRD 2)                                         | **ETX 丢包率 + RTT 往返时延联合寻优**：通配接口 `dn42x-*` 采用 `type wireless`，实时感知线路丢包与 Bufferbloat 拥塞，秒级无缝倒换。外部 eBGP 严格隔离。             |
-| **5. 专网权威 DNS 层**  | `atc/router.nix` (CoreDNS)                                       | **原生树状 DNS 权威解析**：复用 ATC CoreDNS 绑定 `172.20.232.1:53`，动态托管 `dora.dn42` 及反向解析 PTR Zone，彻底废弃 `/etc/hosts` 静态打桩。                      |
+| **5. 专网权威 DNS 层**  | `services/networking/dn42/base.nix` (dnsmasq)                    | **原生树状 DNS 权威解析**：由 DN42 模块内的 dnsmasq 托管 `dora.dn42` 及反向解析 PTR Zone，与 ATC CDN 的 Traffic Router 完全解耦，不共享代码与端口。                 |
 | **6. L7 代理与分流层**  | `services/sub.nix`<br>`desktop/mihomo.nix`                       | **双链路节点裂变与免打标跨端通用**：自动裂变公网与 `.dora.dn42` 节点；修复 TUN 路由自捕获死锁；保障手机端（Box for KernelSU）免打标全局可用。                       |
 | **7. 实时监控层**       | `metrics/client.nix`<br>`hosts.json`                             | **Material Design 拓扑大屏**：纯 Bash textfile 采集器导出吞吐/延迟/丢包；ECharts 拓扑流光图在线变绿、离线变红，全数据驱动无硬编码。                                 |
 

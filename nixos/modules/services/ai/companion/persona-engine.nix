@@ -292,15 +292,30 @@ let
                 triggered.append(content)
         return triggered
 
+    def sanitize_outbound_text(text: str) -> str:
+        # 1. 撕毁内心独白与草稿箱: （（...））以及 ((...))
+        text = re.sub(r"（（[\s\S]*?））", "", text)
+        text = re.sub(r"\(\([\s\S]*?\)\)", "", text)
+        # 2. 清理 <think>...</think> 与 [thinking] 标签
+        text = re.sub(r"<think>[\s\S]*?</think>", "", text)
+        text = re.sub(r"\[thinking\][\s\S]*?\[/thinking\]", "", text)
+        # 3. 拟人橡皮擦：擦除 AI 助手机械口癖
+        robot_patterns = [
+            r"作为一个?(?:AI|人工智能|语言模型)[，,]?",
+            r"我是(?:一个)?由.+?开发的(?:AI|人工智能助手)[，,]?",
+            r"很高兴为您服务[！!]?",
+            r"如果您有任何其他问题[，,]?请随时(?:告诉我|提问)[。!]?"
+        ]
+        for pat in robot_patterns:
+            text = re.sub(pat, "", text)
+        return text.strip()
+
     def strip_thinking_tags(text: str) -> str:
-        # 清理 <think>...</think> 思考链标签
-        cleaned = re.sub(r"<think>[\s\S]*?</think>", "", text)
-        cleaned = re.sub(r"\[thinking\][\s\S]*?\[/thinking\]", "", cleaned)
-        return cleaned.strip()
+        return sanitize_outbound_text(text)
 
     # ── 拟人化多气泡拆分与打字耗时算法 ──────────────────────────────────
     def split_into_bubbles(text: str, split_enabled: bool = True) -> List[Dict[str, Any]]:
-        text = strip_thinking_tags(text)
+        text = sanitize_outbound_text(text)
         if not split_enabled or len(text) < 50:
             delay = min(max(len(text) * 0.08, 0.8), 2.5)
             return [{"text": text, "delay_seconds": round(delay, 2)}]
@@ -493,6 +508,109 @@ let
             "raw_text": cleaned_reply,
             "bubbles": bubbles,
             "timestamp": int(datetime.datetime.now().timestamp())
+        }
+
+    # ── 主动关怀生成接口 (/v1/companion/proactive) ──────────────────────
+    @app.post("/v1/companion/proactive")
+    async def companion_proactive(request: Request):
+        body = await request.json()
+        proactive_type = body.get("type", "casual")  # morning, night, casual
+        user_name = body.get("user_name", DEFAULT_USER)
+        session_id = body.get("session_id", "proactive_default")
+
+        personas = load_all_personas()
+        active_name = get_setting("active_persona", list(personas.keys())[0] if personas else "OpenClaw")
+        card = personas.get(active_name, list(personas.values())[0])
+
+        prompts = {
+            "morning": f"现在是早上 7:30。请用你的专属性格向主人 {user_name} 说一句元气满满的早安，催他起床别赖床，语气亲昵自然，一两句话即可。",
+            "night": f"现在是深夜 23:30。请用你的专属性格关心地催主人 {user_name} 睡觉，嘴上稍微嫌弃他熬夜、心里舍不得，一两句话即可。",
+            "casual": f"主人 {user_name} 已经很久没有和你说话啦。请结合你对他的了解，挑一个日常生活、学习或近期话题主动找他搭话，像老朋友或伴侣一样随性。"
+        }
+        instruction = prompts.get(proactive_type, prompts["casual"])
+
+        sys_prompt = build_prompt_context(card, user_name, instruction)
+        token = get_upstream_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": DEFAULT_MODEL,
+            "messages": [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": f"[系统定时触发主动关怀] {instruction}"}
+            ],
+            "temperature": 0.88
+        }
+        try:
+            async with httpx.AsyncClient(timeout=45.0) as client:
+                resp = await client.post(f"{UPSTREAM_API_BASE}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                raw_reply = data["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error(f"Error generating proactive message: {e}")
+            raise HTTPException(status_code=502, detail=str(e))
+
+        cleaned_reply = sanitize_outbound_text(raw_reply)
+        bubbles = split_into_bubbles(cleaned_reply, split_enabled=True)
+        return {
+            "persona": active_name,
+            "type": proactive_type,
+            "raw_text": cleaned_reply,
+            "bubbles": bubbles
+        }
+
+    # ── 基础设施告警拟人化转化接口 (/api/v1/system-alert) ─────────────
+    @app.post("/api/v1/system-alert")
+    async def system_alert_webhook(request: Request):
+        try:
+            body = await request.json()
+        except Exception:
+            body = {"text": "未知告警事件"}
+
+        alert_text = json.dumps(body, ensure_ascii=False) if isinstance(body, dict) else str(body)
+
+        personas = load_all_personas()
+        active_name = get_setting("active_persona", list(personas.keys())[0] if personas else "OpenClaw")
+        card = personas.get(active_name, list(personas.values())[0])
+
+        prompt = (
+            f"监控系统刚刚触发了服务器集群告警事件：\n{alert_text}\n"
+            f"请用你专属的语气（关心主人、口齿清晰但保持角色人格特色，不要变成无聊的客服机器人）"
+            f"提炼核心故障信息（节点名称、服务状态），第一时间提醒主人！"
+        )
+        sys_prompt = build_prompt_context(card, DEFAULT_USER, prompt)
+        token = get_upstream_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": DEFAULT_MODEL,
+            "messages": [
+                {"role": "system", "content": sys_prompt},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.7
+        }
+        try:
+            async with httpx.AsyncClient(timeout=40.0) as client:
+                resp = await client.post(f"{UPSTREAM_API_BASE}/chat/completions", headers=headers, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                raw_reply = data["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error(f"Error translating alert: {e}")
+            raw_reply = f"主人主人，监控报警了！快去看看服务器：{alert_text[:200]}"
+
+        cleaned_reply = sanitize_outbound_text(raw_reply)
+        bubbles = split_into_bubbles(cleaned_reply, split_enabled=True)
+        return {
+            "persona": active_name,
+            "raw_text": cleaned_reply,
+            "bubbles": bubbles
         }
 
     # ── 标准 OpenAI 兼容接口 (/v1/chat/completions) ─────────────────────

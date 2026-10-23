@@ -16,14 +16,9 @@ let
       crconfig_backup_file = "/var/lib/traffic_monitor/crconfig.backup";
       tmconfig_backup_file = "/var/lib/traffic_monitor/tmconfig.backup";
       crconfig_history_count = 100;
-      # Ops config uses the handler.OpsConfig field names (url, username,
-      # password), not the Traffic Monitor application config names.
       url = cfg.trafficOpsUrl;
       username = cfg.trafficOpsUser;
       insecure = cfg.trafficOpsInsecure;
-      # traffic_ops_pass: Traffic Monitor's own admin-UI password (NOT the PG password).
-      # The PG database uses trust/peer auth; this field controls the TM web UI login.
-      # Leave empty for now — evaluate whether the UI is exposed before hardening.
       password = "";
       traffic_ops_disk_retry_max = 5;
       traffic_ops_retry_interval_ms = 10000;
@@ -37,6 +32,11 @@ let
       peer_polling_interval_ms = 20000;
       peer_timeout_ms = 8000;
       http_poll_no_keep_alive = false;
+      connection_time_warning_ms = cfg.connectionTimeWarningMs;
+      connection_time_timeout_ms = cfg.connectionTimeTimeoutMs;
+      health_penalty_enabled = cfg.healthPenaltyEnabled;
+      health_penalty_window = cfg.healthPenaltyWindow;
+      health_penalty_threshold = cfg.healthPenaltyThreshold;
       log_location_error = "stderr";
       log_location_warning = "stderr";
       log_location_info = "null";
@@ -63,8 +63,12 @@ in
 
     trafficOpsUrl = mkOption {
       type = types.str;
-      default = "https://ops.${config.networking.domain}";
-      defaultText = "https://ops.<networking.domain>";
+      default =
+        if (config.services.atc.ops.enable or false) then
+          "https://127.0.0.1:${toString config.services.atc.ops.port}"
+        else
+          "https://ops.${config.networking.domain}";
+      defaultText = "if ops.enable then local 127.0.0.1:port else https://ops.<networking.domain>";
       description = "Traffic Ops API URL. Must use HTTPS (Traefik terminates TLS).";
     };
 
@@ -76,7 +80,8 @@ in
 
     trafficOpsInsecure = mkOption {
       type = types.bool;
-      default = false;
+      default = config.services.atc.ops.enable or false;
+      defaultText = "true if ops.enable else false";
       description = "Skip certificate verification when connecting to Traffic Ops.";
     };
 
@@ -108,6 +113,36 @@ in
       type = types.int;
       default = 10000;
       description = "Cache statistics timeout in ms.";
+    };
+
+    connectionTimeWarningMs = mkOption {
+      type = types.int;
+      default = 1000;
+      description = "Connection time warning threshold in ms. Edges above this are marked degraded in crconfig.";
+    };
+
+    connectionTimeTimeoutMs = mkOption {
+      type = types.int;
+      default = 5000;
+      description = "Connection time timeout threshold in ms. Edges exceeding this are marked OFFLINE.";
+    };
+
+    healthPenaltyEnabled = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Enable health penalty for high-latency or unstable edge nodes.";
+    };
+
+    healthPenaltyWindow = mkOption {
+      type = types.int;
+      default = 60000;
+      description = "Rolling window in ms for health penalty calculation.";
+    };
+
+    healthPenaltyThreshold = mkOption {
+      type = types.int;
+      default = 3;
+      description = "Number of degraded health events within the window before deprioritizing the node.";
     };
 
     package = mkOption {

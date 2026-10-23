@@ -8,8 +8,7 @@ with lib;
 let
   cfg = config.services.atc.edge;
   cdnData = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
-  opsAddress =
-    (findFirst (node: node.name == "fra0") { ipv4 = "94.249.174.75"; } cdnData.edgeNodes).ipv4;
+  controlNodes = cdnData.controlNodes or [ ];
 in
 {
   options.services.atc.edge = {
@@ -21,7 +20,7 @@ in
 
     opsHost = mkOption {
       type = types.str;
-      default = "ops.${config.networking.domain}";
+      default = cdnData.controlHost or "ops.${config.networking.domain}";
       defaultText = "ops.<networking.domain>";
       description = "Traffic Ops API host/domain for configuration synchronization.";
     };
@@ -34,9 +33,11 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Traffic Ops is not part of the CDN data-plane DNS zone. Keep edge sync
-    # independent of an external ops.dora.im record being published.
-    networking.extraHosts = "${opsAddress} ops.${config.networking.domain}";
+    # ── 控制平面 IP 解析兜底映射 ──────────────────────────────────────────
+    # 将所有控制节点直接写入 extraHosts，确保在公网 DNS 或隧道解析未就绪时也能可靠直连
+    networking.extraHosts = concatMapStringsSep "\n" (
+      c: "${c.ipv4} ${cfg.opsHost} ${c.name}-ops.${config.networking.domain}"
+    ) controlNodes;
 
     # 1. Apache Traffic Server 数据面配置与可写路径解耦
     services.trafficserver = {
@@ -47,41 +48,60 @@ in
       };
     };
 
+    # ATS 用户与兼容别名（t3c 默认尝试探测 ats 用户名）
+    users.users.ats = {
+      isSystemUser = true;
+      group = "trafficserver";
+    };
+
     # 禁止使用 environment.etc."trafficserver/remap.config" 静态链接到 Nix Store
     environment.etc."trafficserver/remap.config".enable = false;
 
-    # 预先创建 /run/t3c.lock，赋予 trafficserver 用户锁文件操作权限
+    # 预先创建 /run/t3c.lock 与插件目录软链
     systemd.tmpfiles.rules = [
       "f /run/t3c.lock 0664 trafficserver trafficserver -"
       "d /var/lib/trafficcontrol-cache-config 0755 trafficserver trafficserver -"
       "d /var/lib/trafficcontrol-cache-config/status 0755 trafficserver trafficserver -"
+      "f /var/lib/trafficcontrol-cache-config/status/ONLINE 0644 trafficserver trafficserver -"
+      "d /var/lib/trafficserver/etc/dscp 0755 trafficserver trafficserver -"
+      "L+ /var/lib/trafficserver/libexec - - - - ${pkgs.trafficserver}/libexec"
+      "L+ /var/lib/trafficserver/bin - - - - ${pkgs.trafficserver}/bin"
     ];
 
     # 在 systemd.services.trafficserver.preStart 中完成基础结构初始化
     systemd.services.trafficserver.preStart = ''
-      mkdir -p /var/lib/trafficserver/etc
-      if [ ! -e /var/lib/trafficserver/etc/trafficserver ]; then
-        ln -sf . /var/lib/trafficserver/etc/trafficserver
-      fi
+            mkdir -p /var/lib/trafficserver/etc/dscp
+            ln -sfn ${pkgs.trafficserver}/libexec /var/lib/trafficserver/libexec
+            ln -sfn ${pkgs.trafficserver}/bin /var/lib/trafficserver/bin
+            ln -sfn /var/lib/trafficserver/etc/dscp /etc/trafficserver/dscp 2>/dev/null || true
+            if [ ! -e /var/lib/trafficserver/etc/trafficserver ]; then
+              ln -sf . /var/lib/trafficserver/etc/trafficserver
+            fi
 
-      # 仅在初次启动且不存在时初始基础配置，后续交由 t3c 全权接管
-      if [ ! -f /var/lib/trafficserver/etc/remap.config ]; then
-        touch /var/lib/trafficserver/etc/remap.config
-      fi
+            # 仅在初次启动且不存在时初始基础配置，后续交由 t3c 全权接管
+            if [ ! -f /var/lib/trafficserver/etc/remap.config ]; then
+              touch /var/lib/trafficserver/etc/remap.config
+            fi
+            if [ ! -f /var/lib/trafficserver/etc/dscp/set_dscp_0.config ]; then
+              cat <<'EOF' > /var/lib/trafficserver/etc/dscp/set_dscp_0.config
+      cond %{REMAP_PSEUDO_HOOK}
+      set-conn-dscp 0 [L]
+      EOF
+            fi
 
-      # 如果 /var/lib/trafficserver/etc 下尚无配置文件，先从默认配置模板种子一份
-      for f in records.config storage.config cache.config ip_allow.yaml plugin.config; do
-        if [ -f /etc/trafficserver/$f ] && [ ! -f /var/lib/trafficserver/etc/$f ]; then
-          cp /etc/trafficserver/$f /var/lib/trafficserver/etc/$f
-        fi
-      done
+            # 如果 /var/lib/trafficserver/etc 下尚无配置文件，先从默认配置模板种子一份
+            for f in records.config storage.config cache.config ip_allow.yaml plugin.config; do
+              if [ -f /etc/trafficserver/$f ] && [ ! -f /var/lib/trafficserver/etc/$f ]; then
+                cp /etc/trafficserver/$f /var/lib/trafficserver/etc/$f
+              fi
+            done
 
-      # 保证 /etc/trafficserver/remap.config 软链接至可写的运行时配置
-      rm -f /etc/trafficserver/remap.config 2>/dev/null || true
-      ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
+            # 保证 /etc/trafficserver/remap.config 软链接至可写的运行时配置
+            rm -f /etc/trafficserver/remap.config 2>/dev/null || true
+            ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
 
-      touch /run/t3c.lock 2>/dev/null && chown trafficserver:trafficserver /run/t3c.lock 2>/dev/null || true
-      chown -R trafficserver:trafficserver /var/lib/trafficserver
+            touch /run/t3c.lock 2>/dev/null && chown trafficserver:trafficserver /run/t3c.lock 2>/dev/null || true
+            chown -R trafficserver:trafficserver /var/lib/trafficserver
     '';
 
     # 2. 凭据权限配置
@@ -100,15 +120,21 @@ in
       ];
       wants = [ "network-online.target" ];
       path = with pkgs; [
-        trafficcontrol
+        trafficcontrol.t3c
         trafficserver
         systemd
         curl
+        jq
         iproute2
         gnugrep
         coreutils
         diffutils
         procps
+        (pkgs.writeShellScriptBin "service" ''
+          SERVICE="$1"
+          ACTION="$2"
+          exec ${pkgs.systemd}/bin/systemctl "$ACTION" "$SERVICE"
+        '')
       ];
       serviceConfig = {
         Type = "oneshot";
@@ -116,42 +142,85 @@ in
         # root for that operation. ATS itself continues running as its own user.
         User = "root";
         Group = "root";
-        # 低配 VPS 资源隔离
-        MemoryHigh = "64M";
-        MemoryMax = "96M";
-        CPUQuota = "20%";
+        # 按照用户要求：全量释放 VPS 计算性能，暂不实施 cgroup 资源配额限制
       };
       script = ''
-        if [ ! -f "${config.sops.secrets."atc/ops_password".path}" ]; then
-          echo "Traffic Ops password secret not found; skipping sync."
+        if [ ! -s "${config.sops.secrets."atc/ops_password".path}" ]; then
+          echo "Traffic Ops password secret not found or empty; skipping sync."
           exit 0
         fi
 
-        export TO_PASS="$(cat "${config.sops.secrets."atc/ops_password".path}" | tr -d '\r\n')"
-        if [ -z "$TO_PASS" ]; then
-          echo "Traffic Ops password is empty; skipping sync."
+        # ── 多控制节点探活、版本指纹提取与仲裁选优 ───────────────────────────
+        # 候选控制节点列表：优先域名，其次各控制节点 FQDN
+        CANDIDATE_CONTROLLERS=(
+          "${cfg.opsHost}"
+          ${concatMapStringsSep " " (
+            c: ''"${c.name}-ops.${config.networking.domain}" "${c.name}.${config.networking.domain}"''
+          ) controlNodes}
+        )
+
+        BEST_CONTROLLER="${cfg.opsHost}"
+        BEST_EPOCH=0
+        BEST_FINGERPRINT=""
+
+        for ctrl in "''${CANDIDATE_CONTROLLERS[@]}"; do
+          [ -z "$ctrl" ] && continue
+          # 快速查询控制节点公布的版本指纹 (超时 3 秒)
+          VER_JSON=$(curl -k -fsS -m 3 "https://$ctrl/version.json" 2>/dev/null || curl -k -fsS -m 3 "https://$ctrl/api/version.json" 2>/dev/null || true)
+          if [ -n "$VER_JSON" ]; then
+            EPOCH=$(echo "$VER_JSON" | jq -r '.epoch // 0' 2>/dev/null || echo 0)
+            FP=$(echo "$VER_JSON" | jq -r '.fingerprint // "unknown"' 2>/dev/null || echo "unknown")
+            echo "Probed control node $ctrl: epoch=$EPOCH, fingerprint=$FP"
+            if [ "$EPOCH" -gt "$BEST_EPOCH" ]; then
+              BEST_EPOCH="$EPOCH"
+              BEST_CONTROLLER="$ctrl"
+              BEST_FINGERPRINT="$FP"
+            fi
+          fi
+        done
+
+        # 若未成功探测到版本元数据，执行基础连通性回退
+        if [ -z "$BEST_CONTROLLER" ]; then
+          if curl -k -s -f -m 5 "https://${cfg.opsHost}/api/4.0/ping" >/dev/null 2>&1; then
+            BEST_CONTROLLER="${cfg.opsHost}"
+          else
+            echo "All Traffic Ops control endpoints are unreachable; skipping sync."
+            exit 0
+          fi
+        fi
+
+        # ── 单调版本防倒退保护 (Anti-Rollback) ──────────────────────────────
+        # 边缘节点记录已成功应用的最新版本 epoch。若选举出的控制节点版本落后于
+        # 当前已生效的配置，则拒绝同步，防止边缘因控制节点临时网络抖动发生配置倒退。
+        LAST_EPOCH_FILE="/var/lib/trafficcontrol-cache-config/applied_epoch"
+        LAST_EPOCH=0
+        if [ -f "$LAST_EPOCH_FILE" ]; then
+          LAST_EPOCH=$(cat "$LAST_EPOCH_FILE" | tr -d '[:space:]' || echo 0)
+        fi
+
+        if [ "$BEST_EPOCH" -gt 0 ] && [ "$LAST_EPOCH" -gt 0 ] && [ "$BEST_EPOCH" -lt "$LAST_EPOCH" ]; then
+          echo "WARNING: Selected controller $BEST_CONTROLLER (epoch $BEST_EPOCH) is OLDER than local applied epoch $LAST_EPOCH. Skipping sync to prevent rollback!"
           exit 0
         fi
 
-        # Pre-check if Traffic Ops API is reachable to avoid noisy errors during startup
-        # Traffic Ops 8 exposes the health endpoint under the versioned v4
-        # API path; /api/v4/ping is not a valid route and would make every
-        # edge silently skip t3c synchronization.
-        if ! curl -k -s -f -m 5 "https://${cfg.opsHost}/api/4.0/ping" >/dev/null 2>&1; then
-          echo "Traffic Ops API at https://${cfg.opsHost} is not reachable yet; skipping sync."
-          exit 0
-        fi
-
+        echo "Synchronizing configuration from active controller: $BEST_CONTROLLER (version: $BEST_FINGERPRINT, epoch: $BEST_EPOCH)..."
         touch /run/t3c.lock 2>/dev/null || true
 
-        exec ${pkgs.trafficcontrol}/bin/t3c apply \
-          --traffic-ops-url=https://${cfg.opsHost} \
-          --traffic-ops-user=${cfg.opsUser} \
-          --cache-host-name=${config.networking.hostName} \
+        ${pkgs.trafficcontrol.t3c}/bin/t3c apply \
+          --traffic-ops-url="https://$BEST_CONTROLLER" \
+          --traffic-ops-user="${cfg.opsUser}" \
+          --traffic-ops-password-file="${config.sops.secrets."atc/ops_password".path}" \
+          --cache-host-name="${config.networking.hostName}" \
           --run-mode=syncds \
           --trafficserver-home=/var/lib/trafficserver \
+          --traffic-ops-insecure=true \
+          --no-confirm-service-action \
           --skip-os-check=true \
           --git=no
+
+        if [ "$BEST_EPOCH" -gt 0 ]; then
+          echo "$BEST_EPOCH" > "$LAST_EPOCH_FILE"
+        fi
       '';
     };
 
@@ -162,6 +231,50 @@ in
         OnBootSec = "30s";
         OnUnitActiveSec = "30s";
         RandomizedDelaySec = "5s";
+      };
+    };
+
+    # 4. 边缘节点接入层：由 Traefik 统筹外部 TLS 终结并转发至本机 ATS 高速缓存
+    # 80 端口仅做 HTTP→HTTPS 重定向，不反代任何业务流量；
+    # 443 端口终结 TLS 后转发至 ATS，所有回源规则由 t3c 动态下发。
+    services.traefik = {
+      enable = mkDefault true;
+      dynamicConfigOptions = {
+        http = {
+          middlewares = {
+            atc-edge-https-redirect = {
+              redirectScheme = {
+                scheme = "https";
+                permanent = true;
+              };
+            };
+          };
+          routers = {
+            atc-edge-http = {
+              rule = concatMapStringsSep " || " (
+                s: "Host(`${s}.${config.networking.domain}`) || Host(`${s}.cdn.${config.networking.domain}`)"
+              ) (attrNames (cdnData.services or { }));
+              entryPoints = [ "http" ];
+              middlewares = [ "atc-edge-https-redirect" ];
+              priority = 100;
+            };
+          };
+          services = {
+            atc-edge = {
+              loadBalancer = {
+                servers = [ { url = "http://127.0.0.1:8089"; } ];
+              };
+            };
+          };
+        };
+      };
+      proxies.atc-edge = {
+        rule = concatMapStringsSep " || " (
+          s: "Host(`${s}.${config.networking.domain}`) || Host(`${s}.cdn.${config.networking.domain}`)"
+        ) (attrNames (cdnData.services or { }));
+        target = "http://127.0.0.1:8089";
+        entryPoints = [ "https" ];
+        priority = 100;
       };
     };
 

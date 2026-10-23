@@ -35,41 +35,49 @@ variable "ops_password" {
 }
 
 locals {
-  # ── Router hosts ─────────────────────────────────────────────────────────
-  # The machines that run CoreDNS and act as authoritative NS for cdn.<domain>.
-  # Must be names present in cdn_edge_nodes below.
-  # The initial deployment uses fra0 as the authoritative NS. Additional
-  # NS hosts can be appended to the list as needed.
-  cdn_ns_hosts = ["fra0"]
+  # ── 控制平面节点列表 (Control Plane Nodes) ──────────────────────────────────
+  # 运行 Traffic Ops API、Traffic Monitor 以及智能权威 DNS (CoreDNS / Traffic Router)
+  # 目前为 ["fra0"]，代码架构预留支持扩展多个控制节点以实现多中心高可用容灾
+  cdn_control_nodes = ["fra0"]
+
+  # ── 智能调度 DNS 权威服务器 (Authoritative NS Hosts) ─────────────────────────
+  cdn_ns_hosts = local.cdn_control_nodes
   cdn_ns_host  = local.cdn_ns_hosts[0]
 
-  # ── Edge nodes ───────────────────────────────────────────────────────────
-  # Fields:
-  #   name   – short hostname (matches networking.hostName on that machine)
-  #   region – edge-node location tag (AP / HK / EU / US)
-  #   weight – relative weight for round-robin DNS (higher = more traffic)
+  # ── 边缘加速节点列表 (Edge Cache Nodes) ────────────────────────────────────
+  # 运行 Apache Traffic Server (ATS) 高速缓存代理与 t3c 动态热同步 Agent
+  # 用户明确指定：fra1, tyo0, hkg0, hkg5 (tyo1 不跑边缘节点，不带有任何配置)
   #
-  # IP addresses are taken from local.hosts in hosts.tf and exported in
-  # cdn_data. They are not duplicated here, so CDN data cannot go stale.
+  # Fields:
+  #   name   – 主机短名 (与系统 networking.hostName 一致)
+  #   region – 节点地域标签 (EU / AP / HK / US 等)
+  #   weight – DNS 轮询解析相对权重系数
   cdn_edge_nodes = [
     {
-      # fra0 hosts the authoritative DNS/control plane. Keep it in the
-      # inventory for the NS record, but exclude it from weighted edge answers.
-      name   = "fra0"
-      region = "EU"
-      weight = 0
-    },
-    {
-      name   = "nue0"
+      name   = "fra1"
       region = "EU"
       weight = 10
     },
+    {
+      name   = "tyo0"
+      region = "AP"
+      weight = 5
+    },
+    {
+      name   = "hkg0"
+      region = "HK"
+      weight = 8
+    },
+    {
+      name   = "hkg5"
+      region = "HK"
+      weight = 8
+    },
   ]
 
-  # ── Services ─────────────────────────────────────────────────────────────
-  # service-label → upstream-origin-hostname mapping.
-  # The label is used as the subdomain: <label>.dora.im
-  # The origin is the hostname of the compute node that actually runs the app.
+  # ── 加速业务映射 (Accelerated Services) ──────────────────────────────────────
+  # 子域名映射 -> 真实后端源站主机名 (全部通过源站集群回源)
+  # 业务域名生命周期统一由此处声明管理，边缘节点自动热同步
   cdn_services = {
     jellyfin = "fra0"
     zone     = "fra0"
@@ -77,8 +85,6 @@ locals {
     office   = "fra0"
     code     = "fra0"
     cloud    = "fra0"
-    api      = "fra0"
-    cpa      = "fra0"
     m        = "fra0"
     chat     = "fra0"
     mcp      = "fra0"
@@ -88,15 +94,21 @@ locals {
     napcat   = "fra0"
   }
 
-  # ── Terraform-usable derived values ──────────────────────────────────────
-  # Map from edge node name to its properties (for for_each in resources).
+  cdn_control_nodes_with_addresses = [
+    for name in local.cdn_control_nodes : {
+      name = name
+      ipv4 = try(local.hosts[name].records.a.value, null)
+      ipv6 = try(local.hosts[name].records.aaaa.value, null)
+    }
+  ]
+
+  # ── Terraform 派生值导出 ──────────────────────────────────────────────────
   cdn_edge_nodes_with_addresses = [
     for n in local.cdn_edge_nodes : merge(n, {
       ipv4 = try(local.hosts[n.name].records.a.value, null)
       ipv6 = try(local.hosts[n.name].records.aaaa.value, null)
     })
   ]
-
 }
 
 # Output the full dataset consumed by lib/data/template.yq. The generated
@@ -105,10 +117,15 @@ output "cdn_data" {
   description = "Full CDN dataset consumed by NixOS ATC modules"
   sensitive   = false
   value = {
-    nsHost    = local.cdn_ns_host
-    nsHosts   = local.cdn_ns_hosts
-    edgeNodes = local.cdn_edge_nodes_with_addresses
-    services  = local.cdn_services
+    controlDomain    = "ops.${cloudflare_zone.im_dora.name}"
+    controlHost      = "ops.${cloudflare_zone.im_dora.name}"
+    controlNodes     = local.cdn_control_nodes_with_addresses
+    controlNodeNames = local.cdn_control_nodes
+    nsHost           = local.cdn_ns_host
+    nsHosts          = local.cdn_ns_hosts
+    edgeNodes        = local.cdn_edge_nodes_with_addresses
+    edgeNodeNames    = [for n in local.cdn_edge_nodes : n.name]
+    services         = local.cdn_services
   }
 }
 
@@ -117,27 +134,28 @@ output "cdn_data" {
 # ==============================================================================
 
 # ── NS delegation for cdn.<domain> ───────────────────────────────────────────
-# cdn.dora.im is delegated directly to fra0.dora.im for now. This is a normal
-# child-zone delegation: the NS and its A/AAAA record live in the parent
-# dora.im zone, while CoreDNS serves the child zone authoritatively.
+# cdn.dora.im is delegated to the authoritative control plane nameservers.
+# Multiple control nodes are automatically registered as multiple NS records.
 resource "cloudflare_dns_record" "cdn_ns" {
+  for_each = toset(local.cdn_ns_hosts)
+
   name    = "cdn.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 3600
   type    = "NS"
-  content = "${local.cdn_ns_host}.${cloudflare_zone.im_dora.name}"
+  content = "${each.key}.${cloudflare_zone.im_dora.name}"
   zone_id = cloudflare_zone.im_dora.id
 }
 
 # Traffic Ops is the control-plane endpoint used by every edge t3c agent.
-# Keep it outside the CDN edge pool and point it directly at the fra0 control
-# host so edge synchronization never depends on an ATS cache route.
+# It resolves to the primary active control plane node so edge synchronization
+# never depends on an ATS cache route or circular DNS lookups.
 resource "cloudflare_dns_record" "traffic_ops" {
   name    = "ops.${cloudflare_zone.im_dora.name}"
   proxied = false
   ttl     = 300
   type    = "CNAME"
-  content = "fra0.${cloudflare_zone.im_dora.name}"
+  content = "${local.cdn_control_nodes[0]}.${cloudflare_zone.im_dora.name}"
   zone_id = cloudflare_zone.im_dora.id
 }
 

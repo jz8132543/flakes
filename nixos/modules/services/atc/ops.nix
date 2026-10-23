@@ -2,6 +2,7 @@
   config,
   lib,
   pkgs,
+  self ? null,
   ...
 }:
 with lib;
@@ -11,6 +12,27 @@ let
   tlsDirectory = "/var/lib/traffic_ops/tls";
   tlsCertificate = "${tlsDirectory}/traffic-ops.crt";
   tlsKey = "${tlsDirectory}/traffic-ops.key";
+
+  cdnData = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
+  controlNodes = cdnData.controlNodes or [ ];
+  edgeNodes = cdnData.edgeNodes or [ ];
+  servicesMap = cdnData.services or { };
+
+  # ── 版本指纹元数据 (用于多控制节点版本仲裁与防倒退比对) ───────────────────
+  versionInfo = {
+    host = config.networking.hostName;
+    epoch = self.lastModified or (0);
+    lastModifiedDate = self.lastModifiedDate or "19700101000000";
+    gitRev = self.rev or (self.dirtyRev or "dirty");
+    shortRev = if self ? rev then builtins.substring 0 8 self.rev else "dirty";
+    nixosVersion = config.system.nixos.version;
+    label = config.system.nixos.label;
+    fingerprint = "${toString (self.lastModified or 0)}-${
+      if self ? rev then builtins.substring 0 8 self.rev else "dirty"
+    }-${config.system.nixos.label}";
+  };
+  versionJson = pkgs.writeText "atc-version.json" (builtins.toJSON versionInfo);
+
   # Reuse the existing SOPS-managed credential by default. This keeps the
   # deployment self-contained; a separate secret can be introduced later.
   cookieSecretPath = config.sops.secrets."atc/ops_password".path;
@@ -176,8 +198,7 @@ let
         FROM cdn c WHERE c.name = 'dora-cdn'
         ON CONFLICT (name) DO NOTHING;
 
-        -- Minimal topology required by Traffic Monitor/t3c discovery. Terraform
-        -- can later replace these records with the full production topology.
+        -- Minimal topology required by Traffic Monitor/t3c discovery.
         INSERT INTO division (name) VALUES ('Global') ON CONFLICT (name) DO NOTHING;
         INSERT INTO region (name, division)
         SELECT 'ALL', d.id FROM division d WHERE d.name = 'Global'
@@ -186,32 +207,6 @@ let
         SELECT 'Global Edge', 'global-edge', 'N/A', 'N/A', 'N/A', 'N/A', r.id
         FROM region r WHERE r.name = 'ALL'
         ON CONFLICT (name) DO NOTHING;
-
-        INSERT INTO deliveryservice (
-          xml_id, active, dscp, type, profile, cdn_id, display_name, tenant_id,
-          routing_name, protocol, ipv6_routing_enabled
-        )
-        SELECT 'jellyfin', 'ACTIVE'::ds_active_state, 0, t.id, p.id, c.id, 'jellyfin service', tn.id,
-          'edge', 1, true
-        FROM type t, profile p, cdn c, tenant tn
-        WHERE t.name = 'HTTP' AND p.name = 'EDGE_ATS_GLOBAL' AND c.name = 'dora-cdn' AND tn.name = 'root'
-        ON CONFLICT (xml_id) DO NOTHING;
-
-        INSERT INTO origin (name, fqdn, protocol, is_primary, port, deliveryservice, tenant)
-        SELECT 'jellyfin-origin', 'fra0.${domain}', 'https'::origin_protocol, true, 443, ds.id, tn.id
-        FROM deliveryservice ds, tenant tn
-        WHERE ds.xml_id = 'jellyfin' AND tn.name = 'root'
-          AND NOT EXISTS (SELECT 1 FROM origin o WHERE o.name = 'jellyfin-origin');
-
-        INSERT INTO regex (pattern, type)
-        SELECT '.*\\.jellyfin\\.${domain}.*', t.id FROM type t
-        WHERE t.name = 'HOST_REGEXP'
-          AND NOT EXISTS (SELECT 1 FROM regex r WHERE r.pattern = '.*\\.jellyfin\\.${domain}.*');
-
-        INSERT INTO deliveryservice_regex (deliveryservice, regex, set_number)
-        SELECT ds.id, r.id, 0 FROM deliveryservice ds, regex r
-        WHERE ds.xml_id = 'jellyfin' AND r.pattern = '.*\\.jellyfin\\.${domain}.*'
-          AND NOT EXISTS (SELECT 1 FROM deliveryservice_regex dr WHERE dr.deliveryservice = ds.id AND dr.regex = r.id);
 
         INSERT INTO cachegroup (name, short_name, type)
         SELECT 'EDGE_DEFAULT', 'edge-default', t.id
@@ -223,6 +218,51 @@ let
         ON CONFLICT (name) DO NOTHING;
         UPDATE cachegroup SET coordinate = (SELECT id FROM coordinate WHERE name = 'global-edge-coordinate')
         WHERE name = 'EDGE_DEFAULT' AND coordinate IS NULL;
+
+        -- ── 声明式注册所有加速业务 (Delivery Services, Origins, Regexes) ──
+        ${concatMapStringsSep "\n" (
+          svcName:
+          let
+            originHost = servicesMap.${svcName};
+          in
+          ''
+            INSERT INTO deliveryservice (
+              xml_id, active, dscp, type, profile, cdn_id, display_name, tenant_id,
+              routing_name, protocol, ipv6_routing_enabled
+            )
+            SELECT '${svcName}', 'ACTIVE'::ds_active_state, 0, t.id, p.id, c.id, '${svcName} service', tn.id,
+              'edge', 2, true
+            FROM type t, profile p, cdn c, tenant tn
+            WHERE t.name = 'HTTP' AND p.name = 'EDGE_ATS_GLOBAL' AND c.name = 'dora-cdn' AND tn.name = 'root'
+            ON CONFLICT (xml_id) DO UPDATE SET active = 'ACTIVE'::ds_active_state, protocol = 2;
+
+            INSERT INTO origin (name, fqdn, protocol, is_primary, port, deliveryservice, tenant)
+            SELECT '${svcName}-origin', '${originHost}.${domain}', 'https'::origin_protocol, true, 443, ds.id, tn.id
+            FROM deliveryservice ds, tenant tn
+            WHERE ds.xml_id = '${svcName}' AND tn.name = 'root'
+            ON CONFLICT (name) DO UPDATE SET fqdn = EXCLUDED.fqdn;
+
+            INSERT INTO regex (pattern, type)
+            SELECT '${svcName}.${domain}', t.id FROM type t
+            WHERE t.name = 'HOST_REGEXP'
+              AND NOT EXISTS (SELECT 1 FROM regex r WHERE r.pattern = '${svcName}.${domain}');
+
+            INSERT INTO regex (pattern, type)
+            SELECT '${svcName}.cdn.${domain}', t.id FROM type t
+            WHERE t.name = 'HOST_REGEXP'
+              AND NOT EXISTS (SELECT 1 FROM regex r WHERE r.pattern = '${svcName}.cdn.${domain}');
+
+            INSERT INTO deliveryservice_regex (deliveryservice, regex, set_number)
+            SELECT ds.id, r.id, 0 FROM deliveryservice ds, regex r
+            WHERE ds.xml_id = '${svcName}' AND r.pattern = '${svcName}.${domain}'
+              AND NOT EXISTS (SELECT 1 FROM deliveryservice_regex dr WHERE dr.deliveryservice = ds.id AND dr.regex = r.id);
+
+            INSERT INTO deliveryservice_regex (deliveryservice, regex, set_number)
+            SELECT ds.id, r.id, 1 FROM deliveryservice ds, regex r
+            WHERE ds.xml_id = '${svcName}' AND r.pattern = '${svcName}.cdn.${domain}'
+              AND NOT EXISTS (SELECT 1 FROM deliveryservice_regex dr WHERE dr.deliveryservice = ds.id AND dr.regex = r.id);
+          ''
+        ) (attrNames servicesMap)}
 
         DO \$\$
         DECLARE
@@ -242,9 +282,9 @@ let
           SELECT id INTO edge_type FROM type WHERE name = 'EDGE';
           SELECT id INTO online_status FROM status WHERE name = 'ONLINE';
 
+          -- ── 动态注册声明的所有边缘节点 (cdn.edgeNodes) ─────────────────
           FOR host IN SELECT * FROM (VALUES
-            ('fra0', '94.249.174.75'),
-            ('nue0', '185.216.178.70')
+            ${concatMapStringsSep ",\n            " (n: "('${n.name}', '${n.ipv4}')") edgeNodes}
           ) AS h(host_name, mgmt_ip)
           LOOP
             SELECT id INTO existing_id FROM server WHERE host_name = host.host_name;
@@ -266,48 +306,75 @@ let
                 profile = profile_id_value,
                 cdn_id = cdn_id_value,
                 mgmt_ip_address = host.mgmt_ip,
-                https_port = 443
+                https_port = 443,
+                config_update_time = now()
               WHERE id = existing_id;
             END IF;
+
+            INSERT INTO server_profile (server, profile_name, priority)
+            SELECT s.id, 'EDGE_ATS_GLOBAL', 1 FROM server s
+            WHERE s.host_name = host.host_name
+              AND NOT EXISTS (SELECT 1 FROM server_profile sp WHERE sp.server = s.id AND sp.profile_name = 'EDGE_ATS_GLOBAL');
           END LOOP;
 
-          -- Register a local Traffic Monitor and the cache service interfaces
-          -- required by the monitoring snapshot generator.
-          INSERT INTO server (
-            host_name, domain_name, tcp_port, phys_location, cachegroup,
-            type, status, profile, cdn_id, mgmt_ip_address, https_port
-          )
-          SELECT 'fra0-monitor', '${domain}', 8087, location_id_value, cachegroup_id_value,
-            (SELECT id FROM type WHERE name = 'RASCAL'), online_status,
-            (SELECT id FROM profile WHERE name = 'RASCAL_GLOBAL'), cdn_id_value,
-            '127.0.0.1', 8087
-          WHERE NOT EXISTS (SELECT 1 FROM server WHERE host_name = 'fra0-monitor');
+          -- ── 动态注册控制节点的 Traffic Monitor 实例 ────────────────────
+          ${concatMapStringsSep "\n" (ctrl: ''
+            INSERT INTO server (
+              host_name, domain_name, tcp_port, phys_location, cachegroup,
+              type, status, profile, cdn_id, mgmt_ip_address, https_port
+            )
+            SELECT '${ctrl.name}-monitor', '${domain}', 8087, location_id_value, cachegroup_id_value,
+              (SELECT id FROM type WHERE name = 'RASCAL'), online_status,
+              (SELECT id FROM profile WHERE name = 'RASCAL_GLOBAL'), cdn_id_value,
+              '127.0.0.1', 8087
+            WHERE NOT EXISTS (SELECT 1 FROM server WHERE host_name = '${ctrl.name}-monitor');
 
-          INSERT INTO server_profile (server, profile_name, priority)
-          SELECT s.id, 'RASCAL_GLOBAL', 1 FROM server s
-          WHERE s.host_name = 'fra0-monitor'
-            AND NOT EXISTS (SELECT 1 FROM server_profile sp WHERE sp.server = s.id AND sp.profile_name = 'RASCAL_GLOBAL');
+            INSERT INTO server_profile (server, profile_name, priority)
+            SELECT s.id, 'RASCAL_GLOBAL', 1 FROM server s
+            WHERE s.host_name = '${ctrl.name}-monitor'
+              AND NOT EXISTS (SELECT 1 FROM server_profile sp WHERE sp.server = s.id AND sp.profile_name = 'RASCAL_GLOBAL');
 
-          INSERT INTO interface (name, monitor, mtu, server)
-          SELECT 'eth0', true, 1500, s.id FROM server s
-          WHERE s.host_name IN ('fra0', 'nue0', 'fra0-monitor')
-            AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
+            INSERT INTO interface (name, monitor, mtu, server)
+            SELECT 'eth0', true, 1500, s.id FROM server s
+            WHERE s.host_name = '${ctrl.name}-monitor'
+              AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
 
-          INSERT INTO ip_address (address, interface, server, service_address)
-          SELECT h.address::inet, 'eth0', s.id, true
-          FROM (VALUES ('94.249.174.75', 'fra0'), ('185.216.178.70', 'nue0')) AS h(address, host_name)
-          JOIN server s ON s.host_name = h.host_name
-          WHERE NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = h.address::inet AND ip.server = s.id);
+            INSERT INTO ip_address (address, interface, server, service_address)
+            SELECT '127.0.0.1'::inet, 'eth0', s.id, true
+            FROM server s WHERE s.host_name = '${ctrl.name}-monitor'
+              AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '127.0.0.1'::inet AND ip.server = s.id);
+          '') controlNodes}
 
-          INSERT INTO ip_address (address, interface, server, service_address)
-          SELECT '127.0.0.1'::inet, 'eth0', s.id, true
-          FROM server s WHERE s.host_name = 'fra0-monitor'
-            AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '127.0.0.1'::inet AND ip.server = s.id);
+          -- ── 为所有边缘节点注册网卡与 IP ───────────────────────────────
+          ${concatMapStringsSep "\n" (node: ''
+            INSERT INTO interface (name, monitor, mtu, server)
+            SELECT 'eth0', true, 1500, s.id FROM server s
+            WHERE s.host_name = '${node.name}'
+              AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
 
-          INSERT INTO deliveryservice_server (deliveryservice, server)
-          SELECT ds.id, s.id FROM deliveryservice ds, server s
-          WHERE ds.xml_id = 'jellyfin' AND s.host_name IN ('fra0', 'nue0')
-            AND NOT EXISTS (SELECT 1 FROM deliveryservice_server dss WHERE dss.deliveryservice = ds.id AND dss.server = s.id);
+            INSERT INTO ip_address (address, interface, server, service_address)
+            SELECT '${node.ipv4}'::inet, 'eth0', s.id, true
+            FROM server s WHERE s.host_name = '${node.name}'
+              AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '${node.ipv4}'::inet AND ip.server = s.id);
+
+            ${optionalString ((node.ipv6 or null) != null) ''
+              INSERT INTO ip_address (address, interface, server, service_address)
+              SELECT '${node.ipv6}'::inet, 'eth0', s.id, false
+              FROM server s WHERE s.host_name = '${node.name}'
+                AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '${node.ipv6}'::inet AND ip.server = s.id);
+            ''}
+          '') edgeNodes}
+
+          -- ── 绑定所有 Delivery Services 到所有边缘缓存节点 ────────────
+          ${concatMapStringsSep "\n" (
+            svcName:
+            concatMapStringsSep "\n" (node: ''
+              INSERT INTO deliveryservice_server (deliveryservice, server)
+              SELECT ds.id, s.id FROM deliveryservice ds, server s
+              WHERE ds.xml_id = '${svcName}' AND s.host_name = '${node.name}'
+                AND NOT EXISTS (SELECT 1 FROM deliveryservice_server dss WHERE dss.deliveryservice = ds.id AND dss.server = s.id);
+            '') edgeNodes
+          ) (attrNames servicesMap)}
         END \$\$;
 
         -- Baseline records.config parameters for EDGE_ATS_GLOBAL
@@ -327,7 +394,8 @@ let
               ('proxy.config.ram_cache.size', 'records.config', '268435456'),
               ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
               ('proxy.config.net.connections_throttle', 'records.config', '10000'),
-              ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6')
+              ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6'),
+              ('location', 'set_dscp_0.config', '/var/lib/trafficserver/etc/dscp')
             ) AS t(pname, pfile, pval)
             LOOP
               INSERT INTO parameter (name, config_file, value)
@@ -364,6 +432,14 @@ let
             confirm_local_passwd = EXCLUDED.confirm_local_passwd,
             tenant_id = EXCLUDED.tenant_id,
             email = EXCLUDED.email;
+
+        -- Record control-plane version fingerprint for edge discovery and anti-rollback
+        INSERT INTO parameter (name, config_file, value) VALUES
+          ('cdn.version.epoch', 'global', '${toString versionInfo.epoch}'),
+          ('cdn.version.git_rev', 'global', '${versionInfo.gitRev}'),
+          ('cdn.version.nixos_version', 'global', '${versionInfo.nixosVersion}'),
+          ('cdn.version.fingerprint', 'global', '${versionInfo.fingerprint}')
+        ON CONFLICT (name, config_file, value) DO UPDATE SET value = EXCLUDED.value;
 
     EOF
         echo "Traffic Ops initialization completed successfully."
@@ -544,7 +620,34 @@ in
       };
     };
 
-    # 5. 网络可达性：Traefik 统一配置 HTTPS 反代入口与防火墙端口放行
+    # 5. 控制平面版本服务 (提供 /version.json 与 /api/version.json 供边缘节点比对选优)
+    systemd.services.traffic-ops-version = {
+      description = "Traffic Ops Version Metadata Service";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "simple";
+        DynamicUser = true;
+        ExecStart = "${pkgs.python3}/bin/python3 -m http.server 8092 --bind 127.0.0.1 --directory ${
+          pkgs.runCommand "atc-version-dir" { } ''
+            mkdir -p $out/api
+            cp ${versionJson} $out/version.json
+            cp ${versionJson} $out/api/version.json
+          ''
+        }";
+        Restart = "always";
+      };
+    };
+
+    # 6. 网络可达性：Traefik 统一配置 HTTPS 反代入口与防火墙端口放行
+    services.traefik.proxies.traffic-ops-version = mkIf (config.services.traefik.enable or false) {
+      rule = "Host(`ops.${domain}`) && (Path(`/version.json`) || Path(`/api/version.json`))";
+      target = "http://127.0.0.1:8092";
+      entryPoints = [ "https" ];
+      priority = 2000;
+    };
+
     services.traefik.proxies.traffic-ops = mkIf (config.services.traefik.enable or false) {
       rule = "Host(`ops.${domain}`)";
       target = "https://127.0.0.1:${toString cfg.port}";

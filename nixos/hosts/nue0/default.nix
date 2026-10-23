@@ -32,9 +32,8 @@
       nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
-      nixosModules.services.new-api
-      nixosModules.services.cpa
-      # nixosModules.services.litellm.default
+      nixosModules.services.ai.gateway.new-api
+      nixosModules.services.ai.gateway.cpa
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
@@ -66,8 +65,6 @@
       nixosModules.services.homepage
       nixosModules.services.homepage-machine
       nixosModules.services.adguard-mosdns
-      nixosModules.services.atc.router
-      nixosModules.services.atc.edge
     ];
 
   services.kaogong.enable = false;

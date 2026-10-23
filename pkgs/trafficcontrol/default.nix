@@ -37,18 +37,44 @@ buildGoModule rec {
     # from generating normal cache configuration.
     substituteInPlace traffic_ops/traffic_ops_golang/routing/routes.go \
       --replace-fail 'Path: `cdns/name/{name}/sslkeys/?$`, Handler: cdn.GetSSLKeys, RequiredPrivLevel: auth.PrivLevelAdmin' \
-      'Path: `cdns/name/{name}/sslkeys/?$`, Handler: cdn.GetSSLKeys, RequiredPrivLevel: auth.PrivLevelReadOnly'
+      'Path: `cdns/name/{name}/sslkeys/?$`, Handler: cdn.GetSSLKeys, RequiredPrivLevel: auth.PrivLevelReadOnly' \
+      --replace-fail 'Path: `servers/{id-or-name}/update$`, Handler: server.UpdateHandlerV4, RequiredPrivLevel: auth.PrivLevelOperations, RequiredPermissions: []string{"SERVER:UPDATE", "SERVER:READ"}' \
+      'Path: `servers/{id-or-name}/update$`, Handler: server.UpdateHandlerV4, RequiredPrivLevel: auth.PrivLevelReadOnly, RequiredPermissions: []string{"SERVER:READ"}'
 
+    # When Traffic Vault is not configured, return an empty array instead of 500
+    # so edge t3c sync can generate CDN cache configurations smoothly without error.
+    substituteInPlace traffic_ops/traffic_ops_golang/cdn/sslkeys.go \
+      --replace-fail 'api.HandleErr(w, r, inf.Tx.Tx, http.StatusInternalServerError, nil, errors.New("getting CDN SSL keys from Traffic Vault: Traffic Vault is not configured"))' \
+      'api.WriteResp(w, r, []interface{}{})'
+
+    # Support NixOS systemd and dynamic paths instead of hardcoded FHS paths
+    substituteInPlace cache-config/t3c-apply/util/util.go \
+      --replace-fail '"/usr/sbin/service"' '"service"'
+
+    substituteInPlace cache-config/t3c-apply/t3c-apply.go \
+      --replace-fail '"/usr/bin/touch"' '"touch"'
+
+    substituteInPlace cache-config/t3c-check-refs/config/config.go \
+      --replace-fail 'defaultATSPluginDir = "/opt/trafficserver/libexec/trafficserver"' 'defaultATSPluginDir = "/var/lib/trafficserver/libexec"' \
+      --replace-fail 'defaultATSConfigDir = "/opt/trafficserver/etc/trafficserver"' 'defaultATSConfigDir = "/var/lib/trafficserver/etc"'
+
+    # Treat packages as installed on NixOS (bypassing non-existent rpm -q checks)
+    substituteInPlace cache-config/t3c-apply/torequest/torequest.go \
+      --replace-fail 'func (r *TrafficOpsReq) IsPackageInstalled(name string) bool {' \
+                     'func (r *TrafficOpsReq) IsPackageInstalled(name string) bool { return true; '
   '';
 
   subPackages = [
     "cache-config/t3c"
     "cache-config/t3c-apply"
+    "cache-config/t3c-check"
+    "cache-config/t3c-check-refs"
     "cache-config/t3c-check-reload"
     "cache-config/t3c-diff"
     "cache-config/t3c-generate"
     "cache-config/t3c-preprocess"
     "cache-config/t3c-request"
+    "cache-config/t3c-tail"
     "cache-config/t3c-update"
     "traffic_ops/traffic_ops_golang"
     "traffic_monitor"

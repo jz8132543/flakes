@@ -5,10 +5,7 @@
     ++ nixosModules.services.media.all
     ++ nixosModules.matrix.all
     ++ nixosModules.services.networking.dn42.all
-    ++ nixosModules.services.atc.all
-    ++ nixosModules.services.ai.dify.all # Dify AI 应用平台（含 db-init、容器、traefik、backup）
-    ++ nixosModules.services.ai.mcp.all # IBM ContextForge MCP 总线
-    ++ nixosModules.services.ai.companion.all # AI 情绪陪伴人设引擎与记忆中间件
+    ++ nixosModules.services.ai.all # AI 全栈体系：gateway (new-api, cpa), dify, mcp, companion
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
@@ -37,8 +34,6 @@
       nixosModules.services.moviepilot
       nixosModules.services.homepage
       nixosModules.services.home-assistant
-      nixosModules.services.new-api
-      nixosModules.services.cpa
       nixosModules.services.memos
       # nixosModules.services.plex # Replaced by Jellyfin/Infuse stack
       # nixosModules.services.authentik
@@ -72,19 +67,6 @@
 
   services.moviepilot.enable = true;
   # services.ai.litellm.enable = true;
-
-  # ── Apache Traffic Control (ATC) CDN 中心控制面与调度 ──────────
-  services.atc = {
-    edge.enable = false; # fra0 是中心管控与源站机，非边缘节点，禁止运行本地边缘代理与自回环
-    ops.enable = true; # 启用 Traffic Ops (Golang API) 中心
-    monitor = {
-      enable = true; # 启用 Traffic Monitor
-      trafficOpsUrl = "https://127.0.0.1:8084";
-      trafficOpsInsecure = true; # 本地自签名 TLS，仅供中心节点到本机 API 使用
-    };
-    router.enable = true; # 启用 CoreDNS 权威 DNS 智能解析
-    tuning.enable = true; # 启用 BBR/内核传输加速优化
-  };
 
   # ── Dify AI 应用平台（接管 chat.dora.im）────────────────────────
   services.ai.dify = {

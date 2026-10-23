@@ -109,6 +109,9 @@ locals {
     zotero      = { on = "fra0", proxy = false }
     cache       = { on = "fra0", proxy = false }
     dns         = { on = "fra0", proxy = false }
+    code        = { on = "fra0", proxy = false }
+    api         = { on = "fra0", proxy = false }
+    cpa         = { on = "fra0", proxy = false }
   }, local.media_service_cname_mappings)
 }
 output "service_cname_mappings" {

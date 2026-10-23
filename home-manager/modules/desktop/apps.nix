@@ -612,8 +612,6 @@ in
       ".config/opencode"
       ".local/share/opencode"
       ".opencode"
-      ".config/kilo"
-      ".local/share/kilo"
       ".codex"
       ".local/share/connections"
       ".config/connections"

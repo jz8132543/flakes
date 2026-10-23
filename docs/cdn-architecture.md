@@ -1,20 +1,28 @@
 # Apache Traffic Control (ATC) 分布式 CDN 架构与动态同步运维实战指南
 
-## 一、 宏观架构总览与分层解耦愿景
+## 一、 宏观架构总览与全自动自适应解耦愿景
 
 本系统基于 **Apache Traffic Control (ATC)** 与 **NixOS Flakes** 现代化声明式基础设施体系，构建了一套覆盖全球多地域的高性能分布式内容分发网络（CDN）。
 
-架构核心目标在于实现**控制面、调度面、数据面、源站面与交付面的完全正交解耦**，彻底根除传统 CDN 边缘节点依赖静态重部署、Nix Store 只读路径冲突、长连接中断抖动等顽疾。
+架构核心目标在于实现**控制面、调度面、数据面、源站面与交付面的完全正交解耦**。系统贯彻**单一事实来源（Single Source of Truth）**与**零主机入侵（Zero Host-Intrusion）**原则：
+
+1. **单一配置入口**：所有控制平面节点、边缘加速节点、权威 DNS 调度节点以及加速业务映射，**全部收敛于 `terraform/cdn.tf` 声明**。任何机器更迭、扩缩容或增减服务，**无需修改任何 NixOS 主机或模块内部业务代码**。
+2. **角色自适应分发（Role Auto-Derivation）**：全局 ATC 模块基于 `lib/data/data.json` 自动计算当前主机的角色（控制平面 vs 边缘加速缓存 vs 非 CDN 普通计算节点），各主机 `default.nix` 保持 100% 干净与可复用。
+3. **控制面优雅寻址与多控制节点容灾（Multi-Control Plane HA）**：边缘节点不写死单一控制节点的主机名，统一通过通用的控制域（如 `ops.dora.im`）与多候选节点池寻址，预留多控制中心高可用扩展空间。
+4. **基于 Git Commit Hash 与 Flake 时间戳的版本仲裁与防倒退（Anti-Rollback）**：针对多控制节点可能存在配置不一致或网络脑裂问题，控制节点对外暴露精确版本指纹（含 Flake `lastModified` 秒级时间戳、Git Commit Hash 与 Nixpkgs 提交版本号，即便在未 Commit 的 Dirty 状态也能精准比对）；边缘节点动态选举最新存活的控制节点，并执行单调防倒退保护。
+5. **动态规则下发与完全无限制的极致性能释放**：边缘节点本地不硬编码任何回源规则，全量规则由控制平面动态推送与平滑热更；同时**彻底剔除任何 cgroup 资源与性能配额限制**，全速跑满硬件线速性能。
+
+---
 
 ### 1.1 系统架构全景图
 
 ```
                          [ 互联网终端用户 Client ]
                                     |
-          1. DNS / DoH 智能解析请求   |  2. Anycast / GeoIP2 最优边缘节点 IP
+          1. DNS / DoH 智能解析请求   |  2. GeoIP2 / Anycast 最优边缘节点 IP
                                     v
           +---------------------------------------------------+
-          |         Traffic Router (CoreDNS + DoH)            | <-----+
+           |         Traffic Router (DNS & HTTP Steering)            | <-----+
           |        (智能调度面 / 区域优选 / 加权轮询调度)        |       |
           +---------------------------------------------------+       |
                                     |                                 | 3. 健康拓扑上报
@@ -29,288 +37,332 @@
 +-------------------------------------------------------------------------------+
 |                           分布式边缘缓存集群 (Edge Tier)                        |
 |                                                                               |
-|    [ 亚太边缘 (tyo0/tyo1) ]      [ 港澳边缘 (hkg0/hkg5) ]    [ 欧美边缘 (fra1/sjc0) ] |
-|    +--------------------+       +--------------------+    +--------------------+  |
-|    | ATS 缓存代理进程    |       | ATS 缓存代理进程    |    | ATS 缓存代理进程    |  |
-|    | /var/lib/..可写配置|       | /var/lib/..可写配置|    | /var/lib/..可写配置|  |
-|    +--------------------+       +--------------------+    +--------------------+  |
-|              ^                            ^                          ^            |
-|              | 5. 定时微轮询               | 5. 定时微轮询             | 5. 定时微  |
-|              |    (t3c syncds)            |    (t3c syncds)          |    轮询    |
-+--------------|----------------------------|--------------------------|------------+
-               |                            |                          |
-               +----------------------------+--------------------------+
-                                            | 4. 配置差异同步 (当 upd_pending = true)
-                                            v
-                      +-------------------------------------------+
-                      |         Traffic Ops (Golang API)          | <--- [ PostgreSQL ]
-                      |  (中心控制面: 拓扑状态 / Profile / 凭据)  |
-                      +-------------------------------------------+
-                                            ^
-                                            | 统一声明式管控 & Queue Updates 触发
-                                            |
-                              +----------------------------+
-                              |   Terraform 统一交付编排    |
-                              | (terraform/cdn.tf 声明业务) |
-                              +----------------------------+
-                                            |
-                                            v 回源请求 (Cache Miss / TCP Passthrough)
-                      +-------------------------------------------+
-                      |           业务源站集群 (Origin Tier)       |
-                      |   (Jellyfin, Alist, Cloud, API on fra0)   |
-                      +-------------------------------------------+
+|  [ 欧美边缘: fra1 ]    [ 东亚边缘: tyo0 ]    [ 港澳边缘: hkg0 ]    [ 港澳边缘: hkg5 ]  |
+|  +----------------+    +----------------+    +----------------+    +----------------+ |
+|  | ATS 缓存代理   |    | ATS 缓存代理   |    | ATS 缓存代理   |    | ATS 缓存代理   | |
+|  | 全速性能释放   |    | 全速性能释放   |    | 全速性能释放   |    | 全速性能释放   | |
+|  | /var/lib/可写  |    | /var/lib/可写  |    | /var/lib/可写  |    | /var/lib/可写  | |
+|  +----------------+    +----------------+    +----------------+    +----------------+ |
+|          ^                     ^                     ^                     ^          |
+|          |                     |                     |                     |          |
++----------|---------------------|---------------------|---------------------|----------+
+           | 5. 动态探活选优与增量同步 (t3c syncds / Anti-Rollback Version Election)   |
+           +---------------------+---------------------+---------------------+
+                                 |
+                                 v
+          +---------------------------------------------------------+
+          |            控制平面高可用集群 (Control Plane HA)          |
+          |                                                         |
+          |  [ 控制主节点: fra0 ]        [ 备用控制节点: 预留扩容 ]     |
+          |  +--------------------+      +--------------------+     |
+          |  | Traffic Ops API    |      | Traffic Ops API    |     |
+          |  | Version Metadata   |      | Version Metadata   |     |
+          |  | PostgreSQL         | <--> | PostgreSQL 复制    |     |
+          |  +--------------------+      +--------------------+     |
+          +---------------------------------------------------------+
+                                 ^
+                                 | 统一声明式编排 & Queue Updates 触发
+                                 |
+                   +----------------------------+
+                   |   Terraform 统一交付编排    |
+                   | (terraform/cdn.tf 声明业务) |
+                   +----------------------------+
+                                 |
+                                 v 回源请求 (Cache Miss / TLS Passthrough)
+                   +---------------------------------------+
+                   |         业务源站集群 (Origin Tier)     |
+                   | (Jellyfin, Alist, Cloud, Code on fra0)|
+                   +---------------------------------------+
 ```
+
+---
 
 ### 1.2 五层架构分工与职责边界
 
-| 架构层级                             | 核心组件与模块路径                                                                  | 核心职责与设计边界                                                                                                                                                                 |
-| :----------------------------------- | :---------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1. 交付管理层 (Delivery Plane)**   | `terraform/cdn.tf`<br>`terraform/providers.tf`                                      | **业务输入单一来源**：集中声明加速业务服务映射；自动编排 DNS CNAME；通过 Traffic Ops API 自动同步 Delivery Services 并触发 `Queue Updates` 推动边缘同步。                          |
-| **2. 控制管理层 (Control Plane)**    | `nixos/modules/services/atc/ops.nix`<br>`pkgs/trafficcontrol`                       | **元数据与准入中枢**：运行 `traffic_ops_golang`；存储服务器拓扑、Delivery Services 策略；管理基线 Profile 模板（`EDGE_ATS_GLOBAL`）；为边缘同步 Agent 签发只读凭据（`t3c-sync`）。 |
-| **3. 智能调度层 (Routing Plane)**    | `nixos/modules/services/atc/router.nix`<br>`nixos/modules/services/atc/monitor.nix` | **流量牵引与可用性感知**：Traffic Monitor 持续嗅探边缘健康；CoreDNS 搭载 MaxMind GeoIP2 库与加权轮询算法，实现客户端就近解析与异常节点秒级摘除；提供 DoH (RFC 8484) 前端。         |
-| **4. 边缘数据层 (Data Plane)**       | `nixos/modules/services/atc/edge.nix`<br>Apache Traffic Server (ATS)                | **高速分级缓存与反向代理**：执行 L7 请求路由、静态文件多级缓存（RAM/Disk）与回源连接复用；彻底解耦 Nix Store，配置全可写化并支持进程不中断热重载。                                 |
-| **5. 传输加速层 (Transport Tuning)** | `nixos/modules/services/atc/tuning.nix`                                             | **跨大洲高 BDP 链路单边加速**：启用内核 FQ + BBR 拥塞控制；增大 TCP 读写滑动窗口至 64MB；启用 RACK 与 TLP 快速重传；提供网络接口 MSS 钳制，消除 Bufferbloat 与丢包断流。           |
+| 架构层级                             | 核心组件与模块路径                                                                                | 核心职责与设计边界                                                                                                                                                                                                                                                                                        |
+| :----------------------------------- | :------------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. 交付管理层 (Delivery Plane)**   | `terraform/cdn.tf`<br>`lib/data/data.json`                                                        | **全局唯一的配置入口**：集中声明控制节点列表（`cdn_control_nodes`）、边缘节点列表（`cdn_edge_nodes`）与业务加速映射（`cdn_services`）。自动编排 Cloudflare DNS，触发 Traffic Ops 变更队列。                                                                                                               |
+| **2. 控制管理层 (Control Plane)**    | `nixos/modules/services/atc/ops.nix`<br>`pkgs/trafficcontrol`                                     | **元数据、凭据与版本中枢**：运行 `traffic_ops_golang`；存储服务器拓扑、Delivery Services 映射与基线 Profile；提供 HTTP `/version.json` 端点供边缘节点进行版本仲裁；管理只读同步凭据 `t3c-sync`。                                                                                                          |
+| **3. 智能调度层 (Routing Plane)**    | `nixos/modules/services/atc/router.nix`<br>`nixos/modules/services/atc/monitor.nix`               | **流量牵引与可用性感知**：Traffic Monitor 持续嗅探边缘健康；Traffic Router 搭载 MaxMind GeoIP2 库与 ATC 动态拓扑，实现客户端就近解析与异常节点秒级摘除；**DNS Steering（53 端口）与 HTTP Steering（80 端口）互补共存，非二选一**，默认仅启用 DNS 模式，HTTP 模式按需开启。                                |
+| **4. 边缘数据层 (Data Plane)**       | `nixos/modules/services/atc/edge.nix`<br>`pkgs/trafficcontrol.t3c`<br>Apache Traffic Server (ATS) | **全速分级缓存与热重载代理**：执行 L7 请求路由、静态文件多级缓存（RAM/Disk）与回源连接复用；彻底解耦 Nix Store，配置全可写化并支持进程不中断热重载；**全量释放 VPS 计算性能，无任何 cgroup 限制**。边缘节点仅拉取轻量级 `trafficcontrol.t3c` 输出，避免中心端 Web 静态资源与 Perl/Go 依赖进入边缘依赖树。 |
+| **5. 传输加速层 (Transport Tuning)** | `nixos/modules/services/atc/tuning.nix`                                                           | **跨大洲高 BDP 链路单边加速**：启用内核 FQ + BBR 拥塞控制；增大 TCP 读写滑动窗口至 64MB；启用 RACK 与 TLP 快速重传；提供网络接口 MSS 钳制，消除 Bufferbloat 与丢包断流。                                                                                                                                  |
 
 ---
 
-## 二、 核心子系统深度剖析与实现细节
+## 二、 核心机制设计：单一入口、多控制面与版本仲裁
 
-### 2.1 基础设施交付编排 (`terraform/cdn.tf`)
+### 2.1 零逻辑硬编码：所有机器配置收敛于 `terraform/cdn.tf`
 
-本系统彻底抛弃了在各节点配置文件中分散维护反向代理的模式，将全网 CDN 服务的生命周期收敛于 `terraform/cdn.tf`：
-
-#### 1. 业务单一输入源 (`cdn_services`)
-
-在 `cdn.tf` 中维护业务 subdomain 到源站主机名的映射关系，其余 DNS 解析、Delivery Service 注册与同步逻辑均自动推导：
+为确保系统可复用，未来增删节点或更换控制节点机器时，**严禁修改任何 Nix 代码逻辑**。所有配置全部收敛在 `terraform/cdn.tf` 的 `locals` 块中：
 
 ```hcl
 locals {
+  # ── 控制平面节点列表 (Control Plane Nodes) ──────────────────────────────────
+  # 运行 Traffic Ops API、Traffic Monitor 以及智能权威 DNS (Traffic Router)
+  # 目前为 ["fra0"]，代码架构预留支持扩展多个控制节点以实现多中心高可用容灾
+  cdn_control_nodes = ["fra0"]
+
+  # ── 智能调度 DNS 权威服务器 (Authoritative NS Hosts) ─────────────────────────
+  cdn_ns_hosts = local.cdn_control_nodes
+  cdn_ns_host  = local.cdn_ns_hosts[0]
+
+  # ── 边缘加速节点列表 (Edge Cache Nodes) ────────────────────────────────────
+  # 运行 Apache Traffic Server (ATS) 高速缓存代理与 t3c 动态热同步 Agent
+  # 当前指定节点：fra1, tyo0, hkg0, hkg5 (tyo1 因运营商硬件严格限制性能已排除)
+  cdn_edge_nodes = [
+    {
+      name   = "fra1"
+      region = "EU"
+      weight = 10
+    },
+    {
+      name   = "tyo0"
+      region = "AP"
+      weight = 5
+    },
+    {
+      name   = "hkg0"
+      region = "HK"
+      weight = 8
+    },
+    {
+      name   = "hkg5"
+      region = "HK"
+      weight = 8
+    },
+  ]
+
+  # ── 加速业务映射 (Accelerated Services) ──────────────────────────────────────
+  # 子域名映射 -> 真实后端源站主机名 (全部通过源站集群回源)
   cdn_services = {
     jellyfin = "fra0"
+    zone     = "fra0"
     alist    = "fra0"
-    # ...
+    office   = "fra0"
+    code     = "fra0"
+    cloud    = "fra0"
+    m        = "fra0"
+    chat     = "fra0"
+    mcp      = "fra0"
+    s        = "fra0"
+    persona  = "fra0"
+    bot      = "fra0"
+    napcat   = "fra0"
   }
 }
 ```
 
-#### 2. Cloudflare CNAME 自动编排
+#### 自动化管线流转机制
 
-每个加速服务自动生成 DNS CNAME 记录，将用户流量无缝牵引至 CDN 权威调度域：
-
-```hcl
-resource "cloudflare_dns_record" "cdn_service_cname" {
-  for_each = local.cdn_services
-
-  name    = "${each.key}.${cloudflare_zone.im_dora.name}"
-  proxied = false
-  ttl     = 1
-  type    = "CNAME"
-  content = "${each.key}.cdn.${cloudflare_zone.im_dora.name}"
-  zone_id = cloudflare_zone.im_dora.id
-}
-```
-
-#### 3. Delivery Services 同步与自动化下发触发器 (`traffic_control_sync`)
-
-由于公共 Terraform Registry 官方未收录 `apache/trafficcontrol` 独立 Provider，本架构直接通过原生 REST API 编排器实现 Delivery Services 自动注册、更新与 Queue Updates 触发闭环：
-
-```hcl
-resource "null_resource" "traffic_control_sync" {
-  triggers = {
-    services_hash = md5(jsonencode(local.cdn_services))
-  }
-
-  provisioner "local-exec" {
-    command = <<EOT
-      # 1. 登录 Traffic Ops API
-      # 2. 遍历 local.cdn_services 注册/更新 Delivery Services
-      # 3. 触发 POST /api/v4/cachegroups/queue_update (action: queue)
-      # 4. 全球边缘节点自动捕获并在 30s 内完成热重载
-    EOT
-  }
-
-  depends_on = [
-    cloudflare_dns_record.cdn_service_cname
-  ]
-}
-```
+1. Terraform 导出包含控制节点、边缘节点 IP 与服务列表的 `cdn_data` 输出；
+2. 提取脚本自动更新 `lib/data/data.json`；
+3. NixOS 全局模块 `nixos/modules/services/atc/roles.nix` 自动将当前机器的 `networking.hostName` 与 `controlNodeNames` / `edgeNodeNames` 进行匹配：
+   - 匹配为控制节点：自动开启 `ops`, `monitor`, `router`, `tuning`，自动关闭 `edge`；
+   - 匹配为边缘节点：自动开启 `edge`, `tuning`，自动关闭控制面组件；
+   - 既不是控制节点也不是边缘节点（例如 `tyo1`, `arx8`）：自动全面禁用 `services.atc.*`。
+4. **交付结果**：未来即便更换机器（如新增 `ams0`、将 `fra0` 迁移到 `fra2`），只需在 `cdn.tf` 中修改名称与 IP，全部节点自适应应用，无任何手工调整。
 
 ---
 
-### 2.2 中心控制面与元数据大脑 (`nixos/modules/services/atc/ops.nix`)
+### 2.2 优雅控制面寻址：解耦特定主机名，预留多控制节点空间
+
+传统架构将边缘节点的同步目标写死为 `fra0.dora.im`，一旦控制节点更迭或迁移，全部边缘节点将集体失联。
+
+本架构采用**高可用控制域与多候选节点动态选举**方案：
+
+1. **虚拟控制域名（Virtual Control Domain）**：统一使用 `ops.${domain}`（如 `ops.dora.im`）作为通用控制面入口，由 Cloudflare CNAME 指向当前活跃的控制节点（`fra0.dora.im`）。
+2. **多节点直连回退（Direct IP / Node Fallback）**：边缘节点在启动时，根据 `lib/data/data.json` 自动将所有控制节点的真实 IP 写入本地 `/etc/hosts`：
+   ```
+   94.249.174.75 ops.dora.im fra0-ops.dora.im
+   ```
+   即使公网 DNS 发生解析抖动或递归服务器故障，边缘节点依然能通过内置 IP 链路直连控制集群。
+3. **多控制中心高可用（Multi-Controller HA）**：
+   在 `cdn.tf` 的 `cdn_control_nodes` 中增加新控制节点（如 `["fra0", "fra2"]`）后：
+   - 边缘节点的 t3c 同步脚本会自动将其加入候选探测队列；
+   - Traffic Router 需配合外部负载均衡（Cloudflare NS 轮询 / BGP Anycast / HAProxy）实现多活，避免单点故障。
+
+#### 控制节点迁移流程（零边缘节点改动）
+
+当需要将控制节点从 `fra0` 迁移到 `fra2` 时：
+
+1. 在 `terraform/cdn.tf` 中修改 `cdn_control_nodes = ["fra2"]`；
+2. 修改 Cloudflare CNAME：`ops.dora.im → fra2.dora.im`；
+3. 在 `fra2` 上部署完整的 ATC 控制平面（ops + monitor + router）；
+4. **边缘节点零改动，自动探测到新控制节点并开始同步**。
+
+---
+
+### 2.3 基于 Git Commit Hash 与 Flake 时间戳的版本仲裁与防倒退机制
+
+当集群存在多个控制节点，或者控制节点处于构建更新过渡期时，控制节点之间可能产生版本差异。边缘节点若盲目连接，会导致配置在新旧版本之间反复“拉扯”震荡。
+
+#### 1. 控制端精确版本指纹导出 (`/version.json`)
+
+控制节点伴生运行独立的轻量元数据微服务（端口 8083，由 Traefik 挂载于 `https://ops.dora.im/version.json`），对外输出结构化版本信息：
+
+```json
+{
+  "host": "fra0",
+  "epoch": 1792742523,
+  "gitRev": "fe13242281a67641c0102cdb1087f0ebe586c7df",
+  "shortRev": "fe132422",
+  "nixosVersion": "26.11.20261015.fe13242",
+  "label": "26.11.20261015.fe13242",
+  "fingerprint": "1792742523-fe132422-26.11.20261015.fe13242"
+}
+```
+
+- **单调递增时间戳（`epoch`）**：采用 Flake 的 `self.lastModified`。**即便仓库处于未 Commit 的 Dirty 状态，只要代码或配置文件被修改，Flake 的 `lastModified` 就会单调增加**，完美解决了无 Git Commit 时的版本识别难题。
+- **Git 提交哈希（`gitRev` / `shortRev`）**：当仓库完成 Commit 后，精确输出 Git 提交散列值。
+- **Nixpkgs 官方基准版本号（`nixosVersion`）**：携带形如 `26.11.20261015.fe13242` 的上游提交标识。
+
+#### 2. 边缘端动态选举与防倒退算法 (Anti-Rollback Election)
+
+边缘节点在每轮 30 秒同步周期中，执行以下步骤：
+
+1. **多节点探活与元数据收集**：并发探测所有候选控制节点的 `/version.json`，提取各自的 `epoch` 与指纹。
+2. **最新版本仲裁（Highest-Epoch Election）**：选出存活且 `epoch` 最大的控制节点作为本轮唯一同步源。
+3. **单调防倒退校验（Anti-Rollback Check）**：
+   - 边缘节点在本地持久化记录已成功应用的版本：`/var/lib/trafficcontrol-cache-config/applied_epoch`；
+   - 若当前选举出的控制节点 `epoch` 小于本地已记录的 `applied_epoch`，说明当前控制节点配置发生倒退（例如网络分区导致连接到了尚未同步完成的旧备机），边缘节点**立即中止同步并告警，坚决保持现有新配置不被降级回滚**；
+4. **安全应用与状态更新**：仅当控制节点 `epoch >= applied_epoch` 时，才调用 `t3c apply` 下发并更新记录。
+
+---
+
+### 2.4 边缘性能全量释放：零 cgroup 性能扼杀
+
+由于 CDN 边缘节点核心职责是承载高并发网络 IO、大容量静态资源缓存与吞吐转发，对系统吞吐量和内存带宽极其敏感。
+
+根据架构要求，系统**彻底剔除任何对边缘性能的人为限制**：
+
+1. **移除 cgroup 限制**：移除 `atc-t3c-sync` 与 `trafficserver` 的 `MemoryHigh`, `MemoryMax`, `CPUQuota` 等限额，允许同步进程在解析超大规模规则集时突发使用全部 CPU 与内存，避免因 OOM 杀死同步导致配置停滞。
+2. **内核 TCP 栈深层性能释放 (`tuning.nix`)**：
+   - 全面启用 **FQ + BBR** 拥塞控制算法；
+   - `net.core.rmem_max` 与 `wmem_max` 提升至 **64 MiB**，撑满跨大洲高时延高带宽（High-BDP）链路；
+   - 启用 RACK (RFC 8985) 与 Tail Loss Probe (TLP)，在突发网络丢包时将重传延迟降至毫秒级；
+   - 连接队列 `somaxconn` 提升至 32768，`tcp_max_syn_backlog` 提升至 8192，防止突发流量洪峰造成 SYN 丢包。
+
+---
+
+## 三、 核心子系统实现细节
+
+### 3.1 中心控制面与元数据大脑 (`nixos/modules/services/atc/ops.nix`)
 
 Traffic Ops 作为 CDN 的控制中枢，负责承载全网拓扑数据、凭据鉴权以及配置文件的渲染模板。
 
-#### 1. API 监听与全网络拓扑接入
+#### 1. 自动数据库初始化与全量业务注入 (`traffic-ops-init.service`)
 
-- `listenAddress = "0.0.0.0"`：开放全网卡绑定，确保来自公网、内部隧道、Tailscale 及 EasyTier 的各边缘节点请求均可直达。
-- `port = 8088`：本地由 Traefik 统筹反代，提供公网 HTTPS 安全加密端点 (`https://ops.${domain}`)，同时防火墙放行该端口。
+在服务启动前，自动执行幂等初始化脚本：
 
-#### 2. 自愈式数据库初始化与 Profile 模板自动注入 (`traffic-ops-init.service`)
+- 严格应用上游数据库迁移表结构，修正 ATC 8.0.2 中 Delivery Service `active` 状态的 enum 兼容性；
+- 采用 Traffic Ops 原生 SCRYPT 算法生成只读用户 `t3c-sync` 的安全凭据；
+- **声明式自动注册**：根据 `cdn.tf` 导出的业务清单，自动向数据库灌入所有 Delivery Services、HOST_REGEXP 正则匹配表、源站 Origin 实体，以及将 Delivery Services 绑定到所有声明的边缘缓存节点。
 
-在 `traffic-ops.service` 启动前，前置执行针对 PostgreSQL 的幂等初始化流程：
+#### 2. 安全凭据隔离与运行时配置注入
 
-- 启用 `pgcrypto` 密码学扩展。
-- 注入基准 CDN 实体 `dora-cdn`。
-- 注入基线 Profile 模板 `EDGE_ATS_GLOBAL`，并绑定通用的 `records.config` 参数：
-  - `proxy.config.http.cache.required_headers`: `0`（允许宽松缓存策略）
-  - `proxy.config.http.cache.cache_responses_to_cookies`: `1`（Cookie 自适应缓存）
-  - `proxy.config.exec_thread.autoconfig.enabled`: `1`（自动根据 CPU 核数调节线程）
-  - `proxy.config.ram_cache.size`: `268435456`（256MB 内存缓存区）
-  - `proxy.config.cache.ram_cache.algorithm`: `1`（CLFUS 算法）
-  - `proxy.config.net.connections_throttle`: `10000`（高并发连接上限）
-  - `proxy.config.http.server_ports`: `80 80:ipv6 443:ssl 443:ssl:ipv6`
-- 自动创建并同步只读凭据用户 `t3c-sync`，密码直接从 SOPS 密钥树读取并使用 bcrypt 进行数据库级安全哈希。
+- 禁止将签名密钥和数据库密码写入任何人可读的 `/nix/store`。
+- `traffic-ops.service` 在 `preStart` 阶段从 SOPS 密钥树读取密码，使用 `jq` 动态生成仅进程所属用户（`trafficops:trafficops`，权限 `0600`）可读的 `/etc/traffic_ops/cdn.conf`。
+- 本地生成自签名 TLS 证书供后端监听，由 Traefik 在公网统一挂载 Let's Encrypt 证书并终结外部 TLS。
 
 ---
 
-### 2.3 动态调度与智能解析面 (`nixos/modules/services/atc/router.nix`)
-
-Traffic Router 由定制的高性能 CoreDNS 及前端 DNS-over-HTTPS (DoH) 服务构成，担任全球智能交通指挥官。
-
-#### 1. GeoIP2 客户端就近解析与 EDNS-Subnet
-
-- 内置集成 MaxMind GeoLite2-City 数据库。
-- 启用 `edns-subnet` 插件：当客户端使用递归 DNS（如 1.1.1.1 / 8.8.8.8）发起查询时，Traffic Router 直接提取客户端真实所属 IP 段，精准计算地理就近边缘节点。
-
-#### 2. 加权健康轮询机制 (Weighted Round-Robin)
-
-- 边缘节点支持权重字段（如 `tyo0=3`, `fra1=10`, `sjc0=10`）。
-- 由于标准 DNS Zone 无原生权重语义，`router.nix` 根据权重系数在 Zone 内存中按比例展开记录条目，确保高带宽、大内存节点承载相应比例的请求流量。
-
-#### 3. 安全 DoH 接入与 Traefik 统一挂载
-
-- 本地启动 `dns-over-https` 进程，监听 `127.0.0.1:5305`。
-- 由 Traefik 在外网入口挂载 `https://cdn.${domain}/dns-query`，对外暴露标准 HTTPS 协议的加密防篡改 DNS 服务。
-
----
-
-### 2.4 边缘数据面与可写动态解耦 (`nixos/modules/services/atc/edge.nix`)
-
-边缘节点由 Apache Traffic Server (ATS) 与 `atc-t3c-sync` 动态同步定时单元组成。
+### 3.2 边缘数据面与动态同步 (`nixos/modules/services/atc/edge.nix`)
 
 #### 1. Nix Store 只读与动态更新的彻底解耦
 
-传统 NixOS 中 `/etc/trafficserver/remap.config` 会被强制软链接至 `/nix/store` 的只读挂载点，导致任何外部更新工具在写盘时报错崩溃。本架构通过以下三个步骤彻底解决冲突：
+- 在 NixOS 模块中显式注销只读软链：
+  ```nix
+  environment.etc."trafficserver/remap.config".enable = false;
+  ```
+- 将 ATS 配置基座定位在可写路径 `/var/lib/trafficserver/etc`。
+- 在 `systemd.services.trafficserver.preStart` 中完成目录自愈与种子文件释放：初次启动若无 `remap.config` 则创建空文件，软链接 `/etc/trafficserver/remap.config -> /var/lib/trafficserver/etc/remap.config`，并将整树所有权委托给 `trafficserver:trafficserver` 用户。
 
-1. **显式注销只读链接**：
-   ```nix
-   environment.etc."trafficserver/remap.config".enable = false;
-   ```
-2. **重定向 ATS 配置主目录**：
-   在 ATS 的 `records.config` 中声明：
-   ```nix
-   services.trafficserver.records."proxy.config.config_dir" = "/var/lib/trafficserver/etc";
-   ```
-3. **PreStart 运行时接管与权限下放**：
-   ```bash
-   mkdir -p /var/lib/trafficserver/etc
-   if [ ! -f /var/lib/trafficserver/etc/remap.config ]; then
-     touch /var/lib/trafficserver/etc/remap.config
-   fi
-   # 建立符号链接，兼容直接读取 /etc/trafficserver 的遗留组件
-   ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
-   chown -R trafficserver:trafficserver /var/lib/trafficserver
-   ```
+#### 2. 轻量级 t3c 边缘依赖 (`pkgs/trafficcontrol`)
 
-#### 2. `atc-t3c-sync` 定时服务与 cgroup 配额保护
+- `pkgs/trafficcontrol` 声明多输出包：
+  - `$out`：完整包，包含 `traffic_ops_golang`、`traffic_monitor`、数据库 schema 与静态资源，供控制节点使用；
+  - `$t3c`：仅包含 `t3c`、`t3c-apply`、`t3c-check` 等边缘同步客户端二进制，供边缘节点使用。
+- 边缘节点通过 `trafficcontrol.t3c` 输出引用，系统 `PATH` 仅注入必要的 t3c 工具链，边缘节点 Nix 闭包完全不包含中心端 Web 服务与 Perl 运行时依赖。
 
-为保证边缘在微型 VPS 上的极端稳定性，为同步进程附加严格的 cgroup 资源配额：
+#### 3. 安全凭据传递
 
-```nix
-systemd.services.atc-t3c-sync = {
-  description = "Apache Traffic Control Edge Dynamic Config Sync";
-  after = [ "network-online.target" "trafficserver.service" ];
-  serviceConfig = {
-    Type = "oneshot";
-    User = "trafficserver";
-    Group = "trafficserver";
-    MemoryHigh = "64M";
-    MemoryMax = "96M";
-    CPUQuota = "20%";
-    ExecStart = ''
-      ${pkgs.trafficcontrol}/bin/t3c apply \
-        --traffic-ops-url=https://${cfg.opsHost} \
-        --traffic-ops-user=${cfg.opsUser} \
-        --traffic-ops-password-file=${config.sops.secrets."atc/ops_password".path} \
-        --cache-host-name=${config.networking.hostName} \
-        --run-mode=syncds \
-        --trafficserver-home=/var/lib/trafficserver \
-        --git=no
-    '';
-  };
-};
+- `atc-t3c-sync` 服务通过 `--traffic-ops-password-file` 直接将 SOPS 解密后的密码文件路径传递给 `t3c apply`，避免密码出现在进程环境变量或 `systemd` journal 中。
+- 密码文件权限严格限制为 `trafficserver:trafficserver` `0400`，确保只有同步服务进程可读。
 
-systemd.timers.atc-t3c-sync = {
-  wantedBy = [ "timers.target" ];
-  timerConfig = {
-    OnBootSec = "30s";
-    OnUnitActiveSec = "30s";
-    RandomizedDelaySec = "5s";
-  };
-};
-```
+#### 4. 平滑热重载 (Hitless Dynamic Reload)
+
+当控制平面更新规则并触发 Queue Updates 后：
+
+1. `t3c apply --run-mode=syncds` 捕获差异；
+2. 原子写入 `/var/lib/trafficserver/etc/remap.config`；
+3. 执行 `traffic_ctl config reload` 通知 ATS 内部重载；
+4. **ATS 主进程 PID 保持不变，存量 TCP 长连接与传输会话零中断，新请求瞬时走新路由规则**。
+
+#### 5. 边缘节点接入层：Traefik TLS 终结与端口分配
+
+边缘节点 Traefik 负责外部 TLS 终结，配置**一次部署，终生不动**：
+
+| 端口    | 行为                                            | 目标                    |
+| :------ | :---------------------------------------------- | :---------------------- |
+| **80**  | HTTP → HTTPS **302 重定向**，不反代任何业务流量 | 强制客户端使用 HTTPS    |
+| **443** | TLS 终结后转发至 ATS                            | `http://127.0.0.1:8089` |
+
+关键设计：
+
+- **80 端口不写任何源站逻辑**，纯重定向，边缘节点无需知道源站地址；
+- **443 端口只做 TLS 终结和转发**，回源规则由 t3c 动态下发到 ATS；
+- 所有业务域名通过 `Host(`${s}.${config.networking.domain}`)` 规则匹配；
+- 边缘节点一次部署后，**终生不需要重新更新任何配置**，所有规则从控制节点自动获取。
 
 ---
 
-### 2.5 轻量打包构建与专用产物导出 (`pkgs/trafficcontrol/default.nix`)
+### 3.3 智能调度与权威 DNS 面 (`nixos/modules/services/atc/router.nix`)
 
-- **问题背景**：Apache Traffic Control 源码仓库庞大，包含了中心端 Web 静态资源、数据库迁移工具、Perl 遗留模块与诸多编译依赖。若直接将全量包引入边缘，会导致边缘系统的闭包体积激增数百兆。
-- **构建优化**：
-  - 构建 target 锁定单一 Go 编译管线：
-    `cache-config/t3c*`、`traffic_ops/traffic_ops_golang`、`traffic_monitor`。
-  - 通过 `outputs = [ "out" "t3c" ];` 导出多输出派生：
-    - `$out`：包含中心服务端完整产物（Traffic Ops, Traffic Monitor, t3c）。
-    - `$t3c`：仅包含静态编译的 `bin/t3c` 及 `t3c-*` 子命令执行链，闭包体积极致精简，确保边缘节点零臃肿。
-  - 自动创建 `traffic_control/install_dir/bin/t3c` 软链以满足上游路径标准。
+Traffic Router 是 ATC 原生的智能调度组件，**同时运行 DNS Steering（53 端口）和 HTTP Steering（80 端口），两者互补共存，不是二选一**。客户端根据自身的访问行为自动选择路径，控制平面不做强制切换。
 
----
+#### DNS Steering（默认启用，零额外 RTT）
 
-### 2.6 跨大洲国际链路单边内核调优 (`nixos/modules/services/atc/tuning.nix`)
+- Traffic Router 监听 **53 端口**，作为 `cdn.dora.im` 的权威 DNS 服务器。
+- 通过 Traffic Ops API 动态获取 CDN 拓扑（Delivery Services、边缘节点、Cache Group）。
+- 集成 MaxMind GeoIP2 库，根据客户端 IP / EDNS-Subnet 返回最佳就近边缘节点（`fra1`, `tyo0`, `hkg0`, `hkg5`）。
+- 通过 Traffic Monitor 的 `crconfig.backup` 实时感知边缘节点健康状态，自动将离线节点从 DNS 响应中摘除。
+- 支持动态 TTL：健康节点 TTL 高（60s），不健康节点 TTL 低（10s），加速客户端感知节点状态变化。
+- 支持健康惩罚：连接时延过高的节点权重自动降低，减少被调度到的概率。
 
-针对跨国高 RTT（往返时延）、高丢包恶劣链路，开启内核级单边加速策略：
+**客户端行为**：浏览器输入 `https://cloud.dora.im/` → 自动查 DNS → 拿到边缘 IP → 直连边缘 443。**不经过控制节点的 80/443 端口**，零额外 RTT。
 
-1. **拥塞控制算法：FQ + BBR**
-   彻底放弃对丢包极其敏感的传统 Cubic/Reno 算法，全面采用基于带宽瓶颈与 RTT 探测的 BBR，在 10%~20% 随机丢包的国际公网环境中保持吞吐稳定。
-2. **套接字读写缓存拓展（高达 64 MiB）**
-   根据带宽时延积公式 $\text{BDP} = \text{Bandwidth} \times \text{RTT}$，对于 1 Gbps 带宽、200ms 跨洲链路，理论所需窗口为 25MB。系统将 `net.ipv4.tcp_rmem` 和 `net.ipv4.tcp_wmem` 上限提升至 64MB。
-3. **抗 Bufferbloat 拥塞保护**
-   通过设置 `net.ipv4.tcp_notsent_lowat = 131072` (128KB)，限制排队在网络设备驱动中的未发送数据，将局部拥塞时延压减到毫秒级。
-4. **快速丢包感知与重传**
-   启用 SACK、DSACK、RACK (RFC 8985) 及 TLP (Tail Loss Probe)，在连接尾部丢包时避免漫长的 RTO 超时等待。
-5. **TCP MSS Clamping (分段最大传输单元钳制)**
-   在经过特定隧道等开销协议的接口上，自动施加 iptables mangle 规则，防止因 PMTU 黑洞引发的握手悬挂与 TLS 卡死。
+#### HTTP Steering（默认启用，一次 RTT）
 
----
+- Traffic Router 监听 **80 端口**，处理 `http://cdn.dora.im/` 的访问请求。
+- 对访问 `http://cdn.dora.im/` 的客户端返回 **302 重定向**到最佳边缘节点的 HTTPS 地址。
+- 适用于需要最新健康状态的场景（API、非缓存内容、手动 HTTP 访问）。
+- **默认开启**，与控制节点 Traefik 的 80 端口**不冲突**：Traffic Router 监听 53/80，Traefik 监听 80/443，两者通过不同端口或配置区分。
 
-## 三、 关键机制与工程挑战解决
+**客户端行为**：访问 `http://cdn.dora.im/` → 一次 RTT 到控制节点 80 → Traffic Router 返回 302 到边缘 443 → 客户端直连边缘。
 
-### 3.1 毫秒级微轮询与防惊群机制 (`syncds`)
+#### 为什么同时开 DNS + HTTP？
 
-边缘节点每 30 秒运行一次 `t3c apply --run-mode=syncds`，如何确保不会打满中心 Traffic Ops API？
+| 场景             | 客户端行为                              | 走的模式              | 跳数       |
+| :--------------- | :-------------------------------------- | :-------------------- | :--------- |
+| 浏览器正常访问   | `https://cloud.dora.im/` → 先查 DNS     | DNS Steering          | 0 额外 RTT |
+| HTTP 访问/API    | `http://cdn.dora.im/` → 访问 Control:80 | HTTP Steering         | 1 次 RTT   |
+| 需要最新健康状态 | 客户端主动走 HTTP                       | HTTP Steering         | 1 次 RTT   |
+| DNS 缓存未过期   | 客户端使用旧 IP                         | 浏览器/OS 重试其他 IP | 自动容错   |
 
-1. **轻量状态判定先行**：
-   - `t3c` 启动后第一步仅向 Traffic Ops 发送一个快速请求：
-     `GET /api/v4/servers/{hostname}/update_status`
-   - Traffic Ops 内部直接读取内存/数据库中该服务器的 `upd_pending` 标志位。
-   - 当 `upd_pending == false` 时，`t3c` 立即打印 `Update not pending, exiting` 并终止。
-   - 整体耗时 $< 200\text{ms}$，消耗内存 $< 20\text{MB}$，零磁盘写操作。
-2. **随机化防抖 (Jitter)**：
-   - 定时器配置了 `RandomizedDelaySec = "5s"`，将各边缘节点的唤醒时间均匀打散在时间轴上，消除周期性请求毛刺。
+**行业标准做法（Cloudflare/Fastly/AT C 参考架构）**：
 
-### 3.2 零停机热重载与存量连接保护 (Hitless Reload)
+- DNS 用于正常 HTTPS 访问，零中间跳转，性能最优
+- HTTP 用于需要最新路由状态的场景，单次跳转保证 freshness
 
-传统的反向代理配置更新往往需要重启 systemd 服务，这会导致存量客户端长连接（如 WebSocket、长视频流播放）全部瞬间中断。
+#### 控制节点端口分配
 
-本架构采用 **ATS 原生内部热载流水线**：
+| 组件           | 机器             | 端口   | 职责                                             |
+| :------------- | :--------------- | :----- | :----------------------------------------------- |
+| Traffic Router | 控制节点（fra0） | 53     | DNS authoritative + 健康感知选路                 |
+| Traffic Router | 控制节点（fra0） | 80     | HTTP 302 重定向到最佳边缘                        |
+| Traefik        | 控制节点（fra0） | 80/443 | TLS 终结 + 反代 `ops.dora.im` → Traffic Ops:8084 |
 
-1. `t3c` 在检测到 `upd_pending == true` 后，将新生成的 remap 规则原子写入 `/var/lib/trafficserver/etc/remap.config`。
-2. 触发命令：`${pkgs.trafficserver}/bin/traffic_ctl config reload`。
-3. ATS 主进程（`traffic_manager`）收到通知，解析新配置文件并在内存中原子替换路由规则树：
-   - **ATS 主进程 PID 绝对不发生改变**。
-   - **已建立的 TCP 链接与传输中的 HTTP 会话不受任何干扰**。
-   - **新进请求立即匹配最新生成的路由规则**。
-4. 确认重载完毕后，`t3c` 反向调用 API 将本节点的 `upd_pending` 重置为 `false`，完成闭环。
+**关键设计**：Traffic Router 的 80 端口处理 `cdn.dora.im` 的 HTTP 请求，Traefik 的 80/443 处理 `ops.dora.im` 的 HTTPS 请求，两者通过 Host 规则区分，**不冲突**。
 
 ---
 
@@ -325,96 +377,148 @@ systemd.timers.atc-t3c-sync = {
    cdn_services = {
      jellyfin = "fra0"
      alist    = "fra0"
+     code     = "fra0"
      newapp   = "fra0"   # 新增服务：映射为 newapp.dora.im -> 源站 fra0.dora.im
    }
    ```
-2. 执行自动化部署管线：
+2. 执行部署：
    ```bash
    nix develop --command terraform apply
    ```
-3. **管线后台自动化全流程**：
-   - Terraform 自动为 `newapp.dora.im` 创建指向 `newapp.cdn.dora.im` 的 Cloudflare CNAME 记录。
-   - Terraform 向 Traffic Ops 创建对应的 Delivery Service 实体。
-   - `null_resource.queue_updates` 自动触发 API，将全网边缘节点置为 `upd_pending = true`。
-   - 30 秒内，全球边缘节点的 `atc-t3c-sync` 自动同步最新 `remap.config` 并平滑热重载。
-   - 接入完成，全网零重部署生效。
+3. **自动化全流程**：
+   - Terraform 自动为 `newapp.dora.im` 创建指向 `newapp.cdn.dora.im` 的 Cloudflare CNAME 记录；
+   - API 编排器自动在 Traffic Ops 中创建对应 Delivery Service 并下发更新队列；
+   - 30 秒内，全球边缘节点的 `atc-t3c-sync` 自动同步最新 `remap.config` 并平滑热重载，全网零重部署生效。
 
-### 4.2 边缘节点扩容指南
+---
 
-当需要向集群增加新的边缘加速节点（例如新增边缘节点 `ams0`）时：
+### 4.2 边缘节点扩缩容指南
 
-1. **主机名收录**：在 `terraform/cdn.tf` 的 `local.cdn_edge_nodes` 列表中注册节点名与权重：
+若需要增加新的边缘加速节点（例如新增 `sjc0`）或淘汰节点：
+
+1. **唯一修改点**：打开 `terraform/cdn.tf`，在 `local.cdn_edge_nodes` 列表中注册或删除节点：
    ```hcl
-   {
-     name   = "ams0"
-     region = "EU"
-     weight = 5
-   }
+   cdn_edge_nodes = [
+     {
+       name   = "fra1"
+       region = "EU"
+       weight = 10
+     },
+     {
+       name   = "sjc0"  # 新增节点
+       region = "US"
+       weight = 10
+     },
+   ]
    ```
-2. **主机配置引入模块**：在 `nixos/hosts/ams0/default.nix` 中引入模块：
-   ```nix
-   imports = [
-     nixosModules.services.atc.edge
-   ];
-   ```
-3. **部署生效**：通过 Colmena 部署目标节点：
+2. **无需修改主机代码**：无需打开 `nixos/hosts/sjc0/default.nix` 写任何 `imports = [...]`，全局 `roles.nix` 会在下一次部署时自动识别并开启 `services.atc.edge`。
+3. **部署目标机器**：
    ```bash
-   colmena apply --on ams0
+   colmena apply --on sjc0
    ```
-   节点启动后，ATS 与 `atc-t3c-sync` 自动就绪，从中心拉取最新全局路由表提供服务。
+   节点启动后自动探活控制面并拉取最新全局路由表。
+
+#### 4. 验证 Traffic Router 动态故障摘除
+
+在控制节点（`fra0`）执行：
+
+```bash
+# 检查 Traffic Router 是否运行
+systemctl status traffic-router.service
+
+# 查看 Traffic Monitor 中的边缘节点健康状态
+cat /var/lib/traffic_monitor/crconfig.backup | jq '.cdn.caches[] | {host_name, status, health}'
+
+# 查看 Traffic Router 日志
+journalctl -u traffic-router.service -n 50 --no-pager
+```
+
+预期输出：
+
+- Traffic Router 成功连接 Traffic Ops 并获取 CDN 拓扑
+- `crconfig.backup` 中在线节点 `health` 为 `ONLINE`，离线节点为 `OFFLINE`
+- Traffic Router 自动将离线节点从 DNS 路由表中摘除
+- 当边缘节点离线后，20~30 秒内 DNS 响应不再包含该节点 IP
+
+```bash
+# 客户端验证 DNS 解析
+dig +short cloud.cdn.dora.im
+# 应仅返回在线边缘节点的 IP
+```
 
 ---
 
 ## 五、 验证与排障速查表 (Verification & Troubleshooting)
 
-### 5.1 验证检查清单
+### 5.1 端到端实测验证（真实生产环境测试结果）
 
-#### 1. 边缘节点可写目录权限校验
+测试客户端：`arx8`
+实测边缘节点：`hkg5` (IP: `216.23.94.148`)
+控制平面与源站：`fra0`
 
-在任意边缘节点执行：
+#### 1. 验证控制平面版本端点
 
 ```bash
-ls -la /var/lib/trafficserver/etc/
+curl -sk https://ops.dora.im/version.json | jq .
 ```
 
-- **预期输出**：文件属主与属组必须为 `trafficserver:trafficserver`；`remap.config` 是普通文件或非 `/nix/store` 软链。
+预期输出：包含 `epoch`, `gitRev`, `fingerprint` 与 `nixosVersion` 的有效 JSON。
 
-#### 2. 微轮询低开销状态验证
+#### 2. 验证边缘节点同步状态与配置热更新
 
-在未下发变更的稳态下手动触发一次同步并观察日志：
+在边缘节点（如 `hkg5`）执行：
 
 ```bash
-systemctl start atc-t3c-sync.service
+systemctl status atc-t3c-sync.timer
 journalctl -u atc-t3c-sync.service -n 20 --no-pager
 ```
 
-- **预期输出**：必须打印类似 `Update not pending, exiting`，总执行耗时 $< 1\text{s}$。
+输出显示：
 
-#### 3. 动态配置无感下发端到端校验
+```
+Synchronizing configuration from active controller: ops.dora.im (version: ..., epoch: ...)
+Traffic Ops requires an update and it was applied successfully. Clearing update state in Traffic Ops.
+```
 
-- 在 `terraform/cdn.tf` 增加一条测试规则后执行 `terraform apply`。
-- 边缘节点观察日志：
-  ```bash
-  journalctl -u trafficserver.service -f
-  ```
-- **预期输出**：日志中必须打印 `remap.config finished loading`。
-- 检查主进程 PID：
-  ```bash
-  systemctl status trafficserver.service | grep "Main PID"
-  ```
-  配置更新前后 **Main PID 保持一致**，无服务停机。
+#### 3. 验证业务通过边缘节点高速缓存与反代回源
+
+从客户端（`arx8`）执行各域名探测：
+
+```bash
+for d in alist cloud jellyfin code; do
+  curl -4skI --resolve "$d.dora.im:443:216.23.94.148" "https://$d.dora.im/"
+done
+```
+
+实测全部返回 **`HTTP/2 200 OK`**，并且携带 **`server: ATS/9.2.11`** 响应头：
+
+```http
+HTTP/2 200
+age: 0
+server: ATS/9.2.11
+content-type: text/html; charset=utf-8
+strict-transport-security: max-age=63072000; includeSubDomains
+```
+
+该测试结果证实：
+
+- 客户端（`arx8`）请求成功抵达边缘节点（`hkg5`）；
+- 边缘节点 Traefik 顺利终结外部 TLS 握手并转发至本机 ATS（端口 `8089`）；
+- ATS 根据 `t3c` 动态下发的 `remap.config` 命中规则；
+- ATS 建立 HTTPS 隧道回源源站（`fra0`）；
+- 响应完整返回客户端，整个 CDN L7 缓存回源闭环 100% 成功。
 
 ---
 
 ### 5.2 常见排障排错速查表
 
-| 故障现象                                                    | 潜在根因                                                         | 排查与修复步骤                                                                                                                                                                  |
-| :---------------------------------------------------------- | :--------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `t3c apply` 报 `Read-only file system`                      | `remap.config` 仍指向 `/nix/store` 路径                          | 检查 `edge.nix` 中 `environment.etc."trafficserver/remap.config".enable = false;` 是否生效；检查 preStart 是否正确创建可写目录。                                                |
-| `atc-t3c-sync` 报 `401 Unauthorized`                        | `t3c-sync` 用户凭据不匹配或未在 Traffic Ops 初始化               | 1. 检查 `secrets/common.yaml` 中的 `atc.ops_password`；<br>2. 在中心节点检查 `traffic-ops-init.service` 日志，确认 SQL 种子是否成功灌入 PostgreSQL 的 `tm_user` 表。            |
-| `atc-t3c-sync` 一直显示 `Traffic Ops API ... not reachable` | 边缘无法解析/访问 `ops.dora.im`，或健康检查路径错误              | 确认 `ops.dora.im` 是指向中心 `fra0` 的非 CDN CNAME；健康检查使用 `/api/4.0/ping`，不要使用不存在的 `/api/v4/ping`。                                                            |
-| CDN 域名返回 `401 Unauthorized` 而非 404                    | 源站 Traefik 的 Basic Auth 正常拦截，说明 CDN 已成功回源         | 保留 `WWW-Authenticate: Basic`；使用 code 服务的 Basic Auth 凭据登录。TLS 终止在 ATS 后，ATS 通过 HTTPS 回源，不绕过源站认证。                                                  |
-| CDN 域名返回 404                                            | 请求命中了未运行 ATS 的源站/控制节点，或 Delivery Service 未同步 | 只把运行 `trafficserver` 的节点放入 `cdn_edge_nodes`；确认 Traffic Ops 有对应 DS、HOST_REGEXP、origin 和 edge server 绑定。                                                     |
-| 边缘节点报 `Update failed: Connection refused to opsHost`   | 网络策略限制或 Traffic Ops 未监听全接口                          | 1. 检查中心节点 `traffic-ops.service` 是否正常存活；<br>2. 检查 `ops.nix` 的 `listenAddress` 是否为 `0.0.0.0`；<br>3. 检查中心节点 Traefik HTTPS 端点可达性或防火墙 8088 端口。 |
-| 新域名解析未能调度到特定边缘节点                            | CoreDNS Zone 文件未更新或权重为 0                                | 1. 检查 `terraform/cdn.tf` 中该节点的 `weight` 是否 $>0$；<br>2. 在 Router 节点执行 `systemctl status traffic-router.service`，验证 CoreDNS 重新加载状态。                      |
-| 跨大洲高延迟链路单连接吞吐低下                              | 系统默认 TCP 读写缓存过小                                        | 在边缘和源站节点确认 `services.atc.tuning.enable = true;` 已启用；通过 `sysctl net.ipv4.tcp_rmem` 确认第三项达到 `67108864` (64MB)。                                            |
+| 故障现象                                                                | 潜在根因                                                      | 排查与修复步骤                                                                                                                                                                                  |
+| :---------------------------------------------------------------------- | :------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `t3c apply` 报 `Read-only file system`                                  | `remap.config` 仍指向 `/nix/store` 路径                       | 检查 `edge.nix` 中 `environment.etc."trafficserver/remap.config".enable = false;` 是否生效；检查 preStart 是否正确创建可写目录。                                                                |
+| `atc-t3c-sync` 报 `401 Unauthorized`                                    | `t3c-sync` 用户凭据不匹配或未在 Traffic Ops 初始化            | 1. 检查 `secrets/common.yaml` 中的 `atc.ops_password`；<br>2. 在中心节点检查 `traffic-ops-init.service` 日志，确认 SQL 种子是否成功灌入 PostgreSQL 的 `tm_user` 表。                            |
+| `atc-t3c-sync` 报 `403 Forbidden` (`sslkeys` 或 `server update`)        | Upstream 默认路由权限要求过高（Admin / Operations）           | 检查 `pkgs/trafficcontrol/default.nix`，确保已对 `sslkeys` 与 `servers/{id}/update` 授予 ReadOnly 级别放行。                                                                                    |
+| `remap.config failed to load: unable to open dscp/set_dscp_0.config`    | ATS 插件配置目录未关联                                        | 检查 `/var/lib/trafficserver/etc/dscp/set_dscp_0.config` 是否存在，以及 `/etc/trafficserver/dscp` 软链接是否就绪。                                                                              |
+| `atc-t3c-sync` 提示 `All Traffic Ops control endpoints are unreachable` | 控制节点公网 DNS 未发布或端口未放行                           | 检查 `edge.nix` 的 `networking.extraHosts` 是否已注入控制节点 IP；检查控制节点 Traefik HTTPS 代理与 8084 端口。                                                                                 |
+| 边缘节点提示 `Skipping sync to prevent rollback`                        | 探测到的控制节点 `epoch` 小于本地记录                         | 说明连接到的控制节点版本落后于历史记录；检查是否有未更新的旧控制节点在响应，或检查当前控制节点的系统构建时间戳。                                                                                |
+| CDN 域名返回 404                                                        | 请求命中了未运行 ATS 的非边缘节点，或 Delivery Service 未同步 | 确认 `cdn.tf` 的 `cdn_edge_nodes` 仅包含当前运行 ATS 的节点；检查 Traffic Ops 中是否有对应的 Delivery Service 记录。                                                                            |
+| DNS 仍返回离线节点 IP                                                   | Traffic Router 未更新或 Traffic Monitor 未探测                | 1. 检查 `traffic-monitor.service` 是否运行；<br>2. 检查 `crconfig.backup` 中节点健康状态；<br>3. 检查 `traffic-router.service` 日志；<br>4. 确认 Traffic Router 已连接 Traffic Ops 并获取拓扑。 |

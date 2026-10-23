@@ -195,6 +195,7 @@
       # ── AI 搜索与情感陪伴引擎 ────────────────────────────────
       degoog-mcp = 5005; # Degoog FastMCP & OpenAPI 搜索桥接
       persona-engine = 5006; # AI 情绪陪伴人设引擎 API
+      lifeos-mcp = 5007; # Life-OS 个人数字基建 MCP 聚合工具箱
 
       # ── QQ 机器人生态 (NapCat + AstrBot) ──────────────────────
       napcat-ws = 6098; # NapCat OneBot v11 WebSocket

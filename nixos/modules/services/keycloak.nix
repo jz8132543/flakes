@@ -186,6 +186,23 @@ in
             "publicClient": false,
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": true
+          },
+          {
+            "clientId": "astrbot",
+            "name": "AstrBot QQ Bot WebUI",
+            "enabled": true,
+            "protocol": "openid-connect",
+            "clientAuthenticatorType": "client-secret",
+            "secret": "${config.sops.placeholder."password"}",
+            "redirectUris": [
+              "https://bot.dora.im/*"
+            ],
+            "webOrigins": [
+              "https://bot.dora.im"
+            ],
+            "publicClient": false,
+            "standardFlowEnabled": true,
+            "directAccessGrantsEnabled": true
           }${
             lib.optionalString (config.services.new-api.oidc.enable or false) ''
               ,

@@ -11,7 +11,6 @@
       nixosModules.optimize.brutal
       # ../../modules/optimize/disk-reliability.nix
       nixosModules.services.traefik
-      nixosModules.services.atc.edge
       # nixosModules.services.derp
       (import nixosModules.services.xray {
         needProxy = true;

@@ -97,6 +97,52 @@ in
         description = "Container image for AstrBot agent core runtime.";
       };
     };
+
+    # ── 微信官方 iLink 机器人 ─────────────────────────────────────────
+    wechat = {
+      enable = lib.mkEnableOption "WeChat official iLink token long-polling bridge (@tencent-weixin protocol)";
+
+      dataDir = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/ai-companion/wechat";
+        description = "Data directory for WeChat iLink tokens and context caches.";
+      };
+
+      botToken = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "Initial iLink Bot Token (can also be loaded dynamically from ilink_auth.json).";
+      };
+
+      adminUserId = lib.mkOption {
+        type = lib.types.str;
+        default = "";
+        description = "WeChat user ID of admin/owner for proactive companion greetings.";
+      };
+    };
+
+    # ── Matrix E2EE 加密保底通道 ──────────────────────────────────────
+    matrix = {
+      enable = lib.mkEnableOption "Matrix E2EE end-to-end encrypted companion channel";
+
+      dataDir = lib.mkOption {
+        type = lib.types.str;
+        default = "/var/lib/ai-companion/matrix";
+        description = "State directory for Matrix bot crypto keys and sync tokens.";
+      };
+
+      homeserver = lib.mkOption {
+        type = lib.types.str;
+        default = "http://127.0.0.1:${toString config.ports.matrix}";
+        description = "Internal Matrix homeserver URL.";
+      };
+
+      userId = lib.mkOption {
+        type = lib.types.str;
+        default = "@companion:${config.networking.domain}";
+        description = "Matrix User ID for companion bot.";
+      };
+    };
   };
 
   config = lib.mkMerge [
@@ -106,13 +152,11 @@ in
         "d ${cfg.dataDir}                  0755 root root - -"
         "d ${cfg.dataDir}/personas         0755 root root - -"
         "d ${cfg.dataDir}/memory           0755 root root - -"
+        "d ${cfg.wechat.dataDir}           0755 root root - -"
+        "d ${cfg.matrix.dataDir}           0755 root root - -"
       ];
 
       environment.global-persistence.directories = [
-        cfg.dataDir
-      ];
-
-      services.restic.backups.borgbase.paths = [
         cfg.dataDir
       ];
 
@@ -135,25 +179,6 @@ in
       environment.global-persistence.directories = [
         cfg.qq.dataDir
       ];
-
-      # ── 5GB 极简灾备：排除大量 QQ 接收的缓存多媒体图片与视频 ─────────
-      services.restic.backups.borgbase = {
-        paths = lib.mkAfter [
-          "${cfg.qq.dataDir}/napcat/config"
-          "${cfg.qq.dataDir}/astrbot/data"
-        ];
-        exclude = lib.mkAfter [
-          "**/napcat/data/**/ChatMsg/**"
-          "**/napcat/data/**/Audio/**"
-          "**/napcat/data/**/Video/**"
-          "**/napcat/data/**/Pic/**"
-          "**/napcat/data/**/OriPic/**"
-          "${cfg.qq.dataDir}/**/logs/**"
-          "${cfg.qq.dataDir}/**/temp/**"
-          "${cfg.qq.dataDir}/**/cache/**"
-          "${cfg.qq.dataDir}/**/__pycache__/**"
-        ];
-      };
 
       # Traefik 反向代理：AstrBot 管理后台与 NapCat 扫码控制面板
       services.traefik.proxies = {

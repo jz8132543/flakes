@@ -104,15 +104,6 @@
       "endpoints_v6": [],
       "host_indices": [8]
     },
-    "nue0": {
-      "dn42_addresses_v4": ["172.20.232.3"],
-      "dn42_addresses_v6": ["fd53:90fd:4bb6:3::1"],
-      "dn42_v6_prefixes": ["fd53:90fd:4bb6:3::/64"],
-      "endpoints": [],
-      "endpoints_v4": [],
-      "endpoints_v6": [],
-      "host_indices": [3]
-    },
     "sjc0": {
       "dn42_addresses_v4": ["172.20.232.16"],
       "dn42_addresses_v6": ["fd53:90fd:4bb6:10::1"],
@@ -155,6 +146,10 @@
       "on": "fra0",
       "proxy": false
     },
+    "api": {
+      "on": "fra0",
+      "proxy": false
+    },
     "atuin": {
       "on": "fra0",
       "proxy": false
@@ -175,6 +170,10 @@
       "on": "fra0",
       "proxy": false
     },
+    "code": {
+      "on": "fra0",
+      "proxy": false
+    },
     "cookie": {
       "on": "fra0",
       "proxy": false
@@ -184,6 +183,10 @@
       "proxy": false
     },
     "couchdb": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "cpa": {
       "on": "fra0",
       "proxy": false
     },
@@ -313,32 +316,55 @@
     }
   },
   "cdn": {
-    "edgeNodes": [
+    "controlDomain": "ops.dora.im",
+    "controlHost": "ops.dora.im",
+    "controlNodeNames": ["fra0"],
+    "controlNodes": [
       {
         "ipv4": "94.249.174.75",
         "ipv6": "2a0e:6a80:3:b60::",
-        "name": "fra0",
-        "region": "EU",
-        "weight": 0
-      },
+        "name": "fra0"
+      }
+    ],
+    "edgeNodeNames": ["fra1", "tyo0", "hkg0", "hkg5"],
+    "edgeNodes": [
       {
-        "ipv4": "185.216.178.70",
-        "ipv6": "2a03:4000:4f:92d::",
-        "name": "nue0",
+        "ipv4": "213.145.82.205",
+        "ipv6": "2a12:6e40:eff7:36::a",
+        "name": "fra1",
         "region": "EU",
         "weight": 10
+      },
+      {
+        "ipv4": "45.66.130.158",
+        "ipv6": null,
+        "name": "tyo0",
+        "region": "AP",
+        "weight": 5
+      },
+      {
+        "ipv4": "103.231.56.56",
+        "ipv6": null,
+        "name": "hkg0",
+        "region": "HK",
+        "weight": 8
+      },
+      {
+        "ipv4": "216.23.94.148",
+        "ipv6": "2401:2660:2:93::a",
+        "name": "hkg5",
+        "region": "HK",
+        "weight": 8
       }
     ],
     "nsHost": "fra0",
     "nsHosts": ["fra0"],
     "services": {
       "alist": "fra0",
-      "api": "fra0",
       "bot": "fra0",
       "chat": "fra0",
       "cloud": "fra0",
       "code": "fra0",
-      "cpa": "fra0",
       "jellyfin": "fra0",
       "m": "fra0",
       "mcp": "fra0",
@@ -543,24 +569,6 @@
         "ike_port": 500,
         "is_controller": false,
         "nat": true,
-        "nat_t_port": 4500,
-        "role": "internal"
-      },
-      "nue0": {
-        "enable": true,
-        "endpoints": [
-          {
-            "addr": "nue0.dora.im",
-            "family": "ipv4",
-            "name": "default",
-            "port": 4500
-          }
-        ],
-        "ibgp": false,
-        "id": 3,
-        "ike_port": 500,
-        "is_controller": false,
-        "nat": false,
         "nat_t_port": 4500,
         "role": "internal"
       },
@@ -787,24 +795,6 @@
         "ike_port": 500,
         "is_controller": false,
         "nat": true,
-        "nat_t_port": 4500,
-        "role": "internal"
-      },
-      "nue0": {
-        "enable": true,
-        "endpoints": [
-          {
-            "addr": "nue0.dora.im",
-            "family": "ipv4",
-            "name": "default",
-            "port": 4500
-          }
-        ],
-        "ibgp": false,
-        "id": 3,
-        "ike_port": 500,
-        "is_controller": false,
-        "nat": false,
         "nat_t_port": 4500,
         "role": "internal"
       },

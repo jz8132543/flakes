@@ -12,8 +12,9 @@
     systemd.services.tailscale-setup.enable = lib.mkForce false;
     # services.easytierMesh.enable = lib.mkForce false;
     services.nginx.enable = lib.mkForce false;
-    # security.acme.certs = lib.mkForce { };
-    security.acme.certs.main = lib.mkForce { };
+    # 确保没有证书续期服务因空域名跑起来报错
+    systemd.services.acme-order-renew-main.enable = lib.mkForce false;
+    systemd.timers.acme-renew-main.enable = lib.mkForce false;
     # security.acme.acceptTerms = lib.mkForce false;
 
     # --- 极限资源削减策略 (向 Alpine 看齐) ---

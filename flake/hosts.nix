@@ -43,6 +43,7 @@ let
   commonNixosModules =
     nixosModules.base.all
     ++ commonModulePrelude
+    ++ nixosModules.services.atc.all
     # ++ lixModules
     ++ [
       inputs.colmena.nixosModules.deploymentOptions
@@ -51,7 +52,8 @@ let
   commonColmenaModules =
     nixosModules.base.all
     # ++ lixModules
-    ++ commonModulePrelude;
+    ++ commonModulePrelude
+    ++ nixosModules.services.atc.all;
 
   commonHmModules =
     hmModules.base.all

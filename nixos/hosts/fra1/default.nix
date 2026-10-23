@@ -14,7 +14,6 @@
       nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
       nixosModules.services.traefik
-      nixosModules.services.atc.edge
       # nixosModules.services.derp
       (import nixosModules.services.xray { })
     ];

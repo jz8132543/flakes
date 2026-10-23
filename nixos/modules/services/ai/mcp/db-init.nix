@@ -133,6 +133,11 @@ in
             "type": "sse",
             "url": "http://127.0.0.1:${toString config.ports.degoog-mcp}/sse",
             "description": "Local privacy web search and article reader"
+          },
+          "lifeos-tools": {
+            "type": "sse",
+            "url": "http://127.0.0.1:${toString config.ports.lifeos-mcp}/sse",
+            "description": "Personal Life-OS infrastructure tools (Memos, Home Assistant, Jellyfin, Kaogong, Infra)"
           }
         }
       }

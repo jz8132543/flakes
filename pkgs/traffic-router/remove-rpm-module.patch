@@ -1,0 +1,7 @@
+--- a/pom.xml
++++ b/pom.xml
+@@ -XX,XX +XX,XX @@
+-    <module>build</module>
++    <!-- Removed: build module requires rpm-maven-plugin which is not available in Nix sandbox -->
++
+ </modules>

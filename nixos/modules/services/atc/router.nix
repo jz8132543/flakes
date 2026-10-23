@@ -8,339 +8,89 @@ with lib;
 let
   cfg = config.services.atc.router;
   domain = config.networking.domain;
-  fullData = importJSON ../../../../lib/data/data.json;
-  data = fullData.cdn;
-  dn42Hosts = fullData.hosts or { };
-  dn42Data = fullData.dn42 or { };
-  nsHosts = data.nsHosts or [ (data.nsHost or "fra0") ];
-  primaryNsHost = head nsHosts;
+  data = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
+  nsHosts =
+    data.nsHosts or (
+      if data ? nsHost then [ data.nsHost ] else (data.controlNodeNames or [ config.networking.hostName ])
+    );
 
-  # Pinned GeoLite2-City snapshot. The database is replaceable through the
-  # option below; updating this hash is an intentional rebuild-time update.
+  controlNode = findFirst (
+    c: (if builtins.isAttrs c then c.name else c) == config.networking.hostName
+  ) null (data.controlNodes or [ ]);
+  controlIpv4 =
+    if controlNode != null && builtins.isAttrs controlNode then (controlNode.ipv4 or null) else null;
+  controlIpv6 =
+    if controlNode != null && builtins.isAttrs controlNode then (controlNode.ipv6 or null) else null;
+
+  selfNode = findFirst (n: n.name == config.networking.hostName) null data.edgeNodes;
+  selfIpv4 =
+    if controlIpv4 != null then
+      controlIpv4
+    else
+      (if selfNode != null then (selfNode.ipv4 or "127.0.0.1") else "127.0.0.1");
+  selfIpv6 =
+    if controlIpv6 != null then
+      controlIpv6
+    else
+      (if selfNode != null then (selfNode.ipv6 or null) else null);
+
   defaultGeoIpDatabase = pkgs.fetchurl {
     url = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb";
     hash = "sha256-/+2ydRyuFv3YhoFKbISAYzyRXsE2wVgspcn8WGH3gao=";
   };
 
-  selfNode = findFirst (n: n.name == config.networking.hostName) null data.edgeNodes;
-  selfIpv4 = if selfNode != null then (selfNode.ipv4 or "127.0.0.1") else "127.0.0.1";
-  selfIpv6 = if selfNode != null then (selfNode.ipv6 or null) else null;
+  trafficRouterConfigTemplate = pkgs.writeText "traffic_router.properties" ''
+    # DNS Listener (always enabled)
+    dns.port=${toString cfg.dns.port}
+    dns.address=${concatStringsSep "," cfg.dns.listenAddresses}
 
-  # Higher weight means more DNS answers from that node. The file plugin has
-  # no weighted-record primitive, so represent weight with repeated RRs.
-  weightedNodes =
-    nodes:
-    concatMap (n: genList (_: n) (n.weight or 1)) (
-      filter (n: (n.ipv4 or null) != null && (n.weight or 1) > 0) nodes
-    );
-  addressRecords =
-    name: nodes:
-    concatMapStringsSep "\n" (
-      n:
-      "${name} IN A ${n.ipv4}" + optionalString ((n.ipv6 or null) != null) "\n${name} IN AAAA ${n.ipv6}"
-    ) (weightedNodes nodes);
+    # HTTP Listener (HTTP steering - reduces redirect hops)
+    http.port=${toString cfg.http.port}
+    http.address=${concatStringsSep "," cfg.http.listenAddresses}
 
-  serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
+    # Traffic Ops
+    traffic_ops.url=${cfg.trafficOpsUrl}
+    traffic_ops.username=${cfg.trafficOpsUser}
+    traffic_ops.insecure=${if cfg.trafficOpsInsecure then "true" else "false"}
 
-  defaultSoaSerial =
-    let
-      serialFile = pkgs.runCommand "atc-cdn-soa-serial" { } ''
-        date -u +%Y%m%d%H > "$out"
-      '';
-    in
-    removeSuffix "\n" (builtins.readFile serialFile);
+    # Traffic Monitor (Health + Connection Time)
+    traffic_monitor.enabled=true
+    traffic_monitor.url=${cfg.trafficMonitorUrl}
+    traffic_monitor.crconfig.file=/var/lib/traffic_monitor/crconfig.backup
+    traffic_monitor.polling.interval=20000
+    traffic_monitor.connection.timeout=5000
+    traffic_monitor.connection.warning=1000
 
-  zoneFor =
-    suffix: nodes:
-    pkgs.writeText "cdn-${suffix}.${domain}.zone" ''
-      $ORIGIN cdn.${domain}.
-      $TTL ${toString cfg.dns.ttl}
-      @ IN SOA ${primaryNsHost}.${domain}. admin.${domain}. (
-          ${cfg.dns.soaSerial} ; UTC YYYYMMDDHH
-          7200
-          3600
-          1209600
-          ${toString cfg.dns.ttl}
-      )
+    # DNS Steering (GeoIP + Health-aware)
+    dns.steering.enabled=true
+    dns.steering.algorithm=LOAD_BALANCED
+    dns.steering.ttl=${toString cfg.dns.ttl}
 
-      ${concatMapStringsSep "\n" (h: "@ IN NS ${h}.${domain}.") nsHosts}
-      ; DoH is served at the zone apex by the NS host(s).
-      ${concatMapStringsSep "\n" (
-        h:
-        let
-          n = findFirst (node: node.name == h) null data.edgeNodes;
-        in
-        if n != null then
-          "@ IN A ${n.ipv4}" + optionalString ((n.ipv6 or null) != null) "\n@ IN AAAA ${n.ipv6}"
-        else
-          ""
-      ) nsHosts}
+    # HTTP Steering (302 Redirect to best edge - single hop, no intermediate redirect)
+    http.steering.enabled=true
+    http.steering.algorithm=LOAD_BALANCED
+    http.steering.max.redirects=3
 
-      ; Service labels and origin labels are edge-pool aliases.
-      ${concatMapStringsSep "\n" (label: addressRecords label nodes) serviceLabels}
+    # GeoIP
+    geolocation.database=${cfg.geoip.databaseFile}
+    geolocation.enabled=${if cfg.geoip.enable then "true" else "false"}
 
-      ; Unmapped names fall back to this view's edge pool.
-      ${addressRecords "*" nodes}
-    '';
+    # Health Penalty (nodes with high connection time get lower weight)
+    traffic_router.health.penalty.enabled=true
+    traffic_router.health.penalty.threshold=300
+    traffic_router.health.penalty.factor=0.5
 
-  defaultZone = zoneFor "default" data.edgeNodes;
+    # Dynamic TTL: healthy nodes get higher TTL, degraded nodes get lower TTL
+    dns.steering.dynamic.ttl.enabled=true
+    dns.steering.dynamic.ttl.min=10
+    dns.steering.dynamic.ttl.max=60
 
-  dn42Domain = cfg.dn42.domain;
-  dn42PrimaryNsHost = cfg.dn42.primaryNsHost;
-  dn42NsHostname = cfg.dn42.nsHostname;
-
-  dn42Zone =
-    let
-      clusterRecords = concatMapStringsSep "\n" (
-        name:
-        let
-          hData = dn42Hosts.${name} or { };
-          v4s = hData.dn42_addresses_v4 or [ ];
-          v6s = hData.dn42_addresses_v6 or [ ];
-          aRecs = concatMapStringsSep "\n" (ip: "${name} IN A ${ip}") v4s;
-          aaaaRecs = concatMapStringsSep "\n" (ip: "${name} IN AAAA ${ip}") v6s;
-        in
-        concatStringsSep "\n" (
-          filter (s: s != "") [
-            aRecs
-            aaaaRecs
-          ]
-        )
-      ) (attrNames dn42Hosts);
-
-      primaryNsData = dn42Hosts.${dn42PrimaryNsHost} or { };
-      primaryNsV4s = primaryNsData.dn42_addresses_v4 or [ "172.20.232.1" ];
-      primaryNsV6s = primaryNsData.dn42_addresses_v6 or [ "fd53:90fd:4bb6:1::1" ];
-      nsRecords = concatStringsSep "\n" (
-        (map (ip: "${dn42NsHostname} IN A ${ip}") primaryNsV4s)
-        ++ (map (ip: "${dn42NsHostname} IN AAAA ${ip}") primaryNsV6s)
-      );
-
-      cnameRecords = concatMapStringsSep "\n" (
-        alias:
-        let
-          rawTarget = cfg.dn42.cnames.${alias};
-          target =
-            if hasSuffix "." rawTarget then
-              rawTarget
-            else if strings.hasInfix "." rawTarget then
-              "${rawTarget}."
-            else
-              "${rawTarget}.${dn42Domain}.";
-        in
-        "${alias} IN CNAME ${target}"
-      ) (attrNames cfg.dn42.cnames);
-
-      normalizedExtraRecords =
-        let
-          recs = cfg.dn42.extraRecords;
-        in
-        if isList recs then
-          recs
-        else if isAttrs recs then
-          concatLists (
-            mapAttrsToList (
-              name: val:
-              if isList val then
-                map (r: r // { inherit name; }) val
-              else if isAttrs val then
-                if val ? type && val ? value then
-                  [ (val // { inherit name; }) ]
-                else
-                  mapAttrsToList (k: v: {
-                    inherit name;
-                    type = toUpper k;
-                    value = v;
-                  }) val
-              else
-                [ ]
-            ) recs
-          )
-        else
-          [ ];
-
-      customRecordsList = concatMapStringsSep "\n" (
-        record:
-        let
-          ttlStr = if (record ? ttl && record.ttl != null) then "${toString record.ttl} " else "";
-          typeStr = toUpper (record.type or "A");
-          valStr =
-            if typeStr == "CNAME" && !(hasSuffix "." record.value) && !(strings.hasInfix "." record.value) then
-              "${record.value}.${dn42Domain}."
-            else
-              record.value;
-        in
-        "${record.name} ${ttlStr}IN ${typeStr} ${valStr}"
-      ) normalizedExtraRecords;
-
-      customAndAliasRecords = concatStringsSep "\n" (
-        filter (s: s != "") [
-          cnameRecords
-          customRecordsList
-        ]
-      );
-    in
-    pkgs.writeText "${dn42Domain}.zone" ''
-      $ORIGIN ${dn42Domain}.
-      $TTL ${toString cfg.dn42.ttl}
-      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
-          ${cfg.dns.soaSerial} ; Serial
-          7200                 ; Refresh
-          3600                 ; Retry
-          1209600              ; Expire
-          ${toString cfg.dn42.ttl} ; Minimum TTL
-      )
-
-      @ IN NS ${dn42NsHostname}.${dn42Domain}.
-
-      ; Authoritative Nameserver Glue Records
-      ${nsRecords}
-
-      ; Cluster Nodes
-      ${clusterRecords}
-
-      ; Custom Records & Aliases
-      ${customAndAliasRecords}
-    '';
-
-  revZoneV4Name = "0/26.232.20.172.in-addr.arpa";
-  revZoneV6Name = "6.b.b.4.d.f.0.9.3.5.d.f.ip6.arpa";
-
-  dn42RevZoneV4 =
-    let
-      v4PtrRecords = concatMapStringsSep "\n" (
-        name:
-        let
-          v4s = (dn42Hosts.${name} or { }).dn42_addresses_v4 or [ ];
-          ptrs = map (
-            ip:
-            let
-              lastOctet = last (splitString "." ip);
-            in
-            "${lastOctet} IN PTR ${name}.${dn42Domain}."
-          ) v4s;
-        in
-        concatStringsSep "\n" ptrs
-      ) (attrNames dn42Hosts);
-    in
-    pkgs.writeText "${revZoneV4Name}.zone" ''
-      $ORIGIN ${revZoneV4Name}.
-      $TTL ${toString cfg.dn42.ttl}
-      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
-          ${cfg.dns.soaSerial} ; Serial
-          7200                 ; Refresh
-          3600                 ; Retry
-          1209600              ; Expire
-          ${toString cfg.dn42.ttl} ; Minimum TTL
-      )
-
-      @ IN NS ${dn42NsHostname}.${dn42Domain}.
-
-      ${v4PtrRecords}
-    '';
-
-  dn42RevZoneV6 =
-    let
-      v6PtrRecords = concatMapStringsSep "\n" (
-        name:
-        let
-          v6s = (dn42Hosts.${name} or { }).dn42_addresses_v6 or [ ];
-          ptrs = filter (x: x != null) (
-            map (
-              ip:
-              let
-                m = builtins.match ".*:4bb6:([0-9a-fA-F]+)::1" ip;
-                hexId = if m != null then head m else null;
-                len = if hexId != null then stringLength hexId else 0;
-                padded =
-                  if len == 1 then
-                    "000" + hexId
-                  else if len == 2 then
-                    "00" + hexId
-                  else if len == 3 then
-                    "0" + hexId
-                  else
-                    hexId;
-                p0 = substring 0 1 padded;
-                p1 = substring 1 1 padded;
-                p2 = substring 2 1 padded;
-                p3 = substring 3 1 padded;
-              in
-              if hexId == null then
-                null
-              else
-                "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.${p3}.${p2}.${p1}.${p0} IN PTR ${name}.${dn42Domain}."
-            ) v6s
-          );
-        in
-        concatStringsSep "\n" ptrs
-      ) (attrNames dn42Hosts);
-    in
-    pkgs.writeText "${revZoneV6Name}.zone" ''
-      $ORIGIN ${revZoneV6Name}.
-      $TTL ${toString cfg.dn42.ttl}
-      @ IN SOA ${dn42NsHostname}.${dn42Domain}. admin.${domain}. (
-          ${cfg.dns.soaSerial} ; Serial
-          7200                 ; Refresh
-          3600                 ; Retry
-          1209600              ; Expire
-          ${toString cfg.dn42.ttl} ; Minimum TTL
-      )
-
-      @ IN NS ${dn42NsHostname}.${dn42Domain}.
-
-      ${v6PtrRecords}
-    '';
-
-  geoipBlock = optionalString cfg.geoip.enable ''
-    geoip ${cfg.geoip.databaseFile} {
-        edns-subnet
-    }
-    metadata
-  '';
-
-  corefile = pkgs.writeText "Corefile" ''
-    cdn.${domain}:${toString cfg.dns.port} {
-        bind ${concatStringsSep " " cfg.dns.listenAddresses}
-        ${geoipBlock}
-        # GeoIP2 metadata is loaded for future policy selection. The current
-        # answer is the weighted all-edge pool, which is reliable for every
-        # client and resolver.
-        file ${defaultZone} cdn.${domain}
-        errors
-        ${optionalString cfg.dns.log "log"}
-    }
-
-    ${optionalString cfg.dn42.enable ''
-      ${dn42Domain}:${toString cfg.dns.port} {
-          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
-          file ${dn42Zone} ${dn42Domain}
-          errors
-          ${optionalString cfg.dns.log "log"}
-      }
-
-      ${revZoneV4Name}:${toString cfg.dns.port} {
-          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
-          file ${dn42RevZoneV4} ${revZoneV4Name}
-          errors
-          ${optionalString cfg.dns.log "log"}
-      }
-
-      ${revZoneV6Name}:${toString cfg.dns.port} {
-          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
-          file ${dn42RevZoneV6} ${revZoneV6Name}
-          errors
-          ${optionalString cfg.dns.log "log"}
-      }
-
-      dn42:${toString cfg.dns.port} {
-          bind ${concatStringsSep " " cfg.dn42.listenAddresses}
-          forward . 172.20.0.53 172.23.0.53 fd42:d42:d42:54::1 fd42:d42:d42:53::1
-          errors
-          cache 30
-          ${optionalString cfg.dns.log "log"}
-      }
-    ''}
+    # Logging
+    log.location.error=stderr
+    log.location.warning=stderr
+    log.location.info=stdout
+    log.location.debug=null
+    log.location.event=stdout
   '';
 in
 {
@@ -348,13 +98,14 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Run authoritative CoreDNS for cdn.<networking.domain>.";
+      description = "Run Apache Traffic Control Traffic Router for CDN DNS/HTTP steering.";
     };
 
     package = mkOption {
-      type = types.package;
-      default = pkgs.coredns;
-      description = "CoreDNS package used by the authoritative CDN DNS service.";
+      type = types.nullOr types.package;
+      default = null;
+      defaultText = "null";
+      description = "Traffic Router package providing DNS and HTTP steering. Set to pkgs.traffic-router to enable.";
     };
 
     dns = {
@@ -362,7 +113,7 @@ in
         type = types.listOf types.str;
         default = (optional (selfIpv4 != "127.0.0.1") selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
         defaultText = "Current host's public addresses from terraform/cdn.tf";
-        description = "Addresses on which authoritative DNS listens.";
+        description = "Addresses on which Traffic Router DNS listens.";
       };
 
       port = mkOption {
@@ -374,28 +125,66 @@ in
       ttl = mkOption {
         type = types.int;
         default = 60;
-        description = "DNS response TTL in seconds.";
+        description = "DNS response TTL in seconds (informational; Traffic Router manages TTL internally).";
       };
 
       log = mkOption {
         type = types.bool;
         default = false;
-        description = "Enable CoreDNS query logging; disabled by default.";
+        description = "Enable Traffic Router DNS query logging; disabled by default.";
+      };
+    };
+
+    http = {
+      listenAddresses = mkOption {
+        type = types.listOf types.str;
+        default = [ "0.0.0.0" ];
+        defaultText = "0.0.0.0";
+        description = "Addresses on which Traffic Router HTTP steering listens. Enable HTTP steering to reduce redirect hops for CDN domains.";
       };
 
-      soaSerial = mkOption {
-        type = types.str;
-        default = defaultSoaSerial;
-        defaultText = "Derived at build time as UTC YYYYMMDDHH";
-        description = "SOA serial number for the CDN zone.";
+      port = mkOption {
+        type = types.port;
+        default = 80;
+        description = "HTTP steering port. Traffic Router listens here for HTTP requests and returns 302 to the best edge node, avoiding extra redirect through Control Traefik.";
       };
+    };
+
+    trafficOpsUrl = mkOption {
+      type = types.str;
+      default =
+        if (config.services.atc.ops.enable or false) then
+          "https://127.0.0.1:${toString config.services.atc.ops.port}"
+        else
+          "https://ops.${config.networking.domain}";
+      defaultText = "if ops.enable then local 127.0.0.1:port else https://ops.<networking.domain>";
+      description = "Traffic Ops API URL for Traffic Router configuration.";
+    };
+
+    trafficOpsUser = mkOption {
+      type = types.str;
+      default = "t3c-sync";
+      description = "Traffic Ops username for Traffic Router.";
+    };
+
+    trafficOpsInsecure = mkOption {
+      type = types.bool;
+      default = config.services.atc.ops.enable or false;
+      defaultText = "true if ops.enable else false";
+      description = "Skip certificate verification when connecting to Traffic Ops.";
+    };
+
+    trafficMonitorUrl = mkOption {
+      type = types.str;
+      default = "http://127.0.0.1:8087";
+      description = "Traffic Monitor URL for health information.";
     };
 
     geoip = {
       enable = mkOption {
         type = types.bool;
         default = true;
-        description = "Load the GeoIP2 database and attach client metadata to DNS requests.";
+        description = "Load the GeoIP2 database for GeoDNS steering.";
       };
 
       databaseFile = mkOption {
@@ -404,122 +193,22 @@ in
         description = "MaxMind GeoLite2 City/GeoIP2 database path.";
       };
     };
-
-    doh = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Enable DoH at https://cdn.<domain>/dns-query.";
-      };
-
-      port = mkOption {
-        type = types.port;
-        default = 5305;
-        description = "Internal HTTP port for DoH, bound to loopback.";
-      };
-
-      package = mkOption {
-        type = types.package;
-        default = pkgs.dns-over-https;
-        description = "DoH HTTP server package. It forwards DNS queries to the local authoritative CoreDNS listener.";
-      };
-
-      upstream = mkOption {
-        type = types.str;
-        default = "tcp:1.1.1.1:53";
-        description = "Recursive DNS upstream for DoH. The public resolver can resolve both dora.im and its delegated cdn.dora.im child zone.";
-      };
-    };
-
-    dn42 = {
-      enable = mkOption {
-        type = types.bool;
-        default = config.services.dn42.enable or false;
-        description = "Serve authoritative DNS for DN42 domain (dora.dn42) on this node's DN42 address.";
-      };
-
-      domain = mkOption {
-        type = types.str;
-        default = config.services.dn42.domain or (dn42Data.domain or "dora.dn42");
-        description = "DN42 authoritative domain name.";
-      };
-
-      primaryNsHost = mkOption {
-        type = types.str;
-        default = "fra0";
-        description = "Primary nameserver host in DN42 cluster.";
-      };
-
-      nsHostname = mkOption {
-        type = types.str;
-        default = "ns1";
-        description = "Nameserver hostname within the DN42 zone (ns1 -> ns1.dora.dn42).";
-      };
-
-      ttl = mkOption {
-        type = types.int;
-        default = 300;
-        description = "TTL for DN42 authoritative DNS records.";
-      };
-
-      cnames = mkOption {
-        type = types.attrsOf types.str;
-        default = dn42Data.cnames or { };
-        description = "CNAME alias mappings for the DN42 authoritative zone (<alias> -> <target>).";
-        example = {
-          git = "fra0";
-          matrix = "fra0.dora.dn42.";
-        };
-      };
-
-      extraRecords = mkOption {
-        type = types.oneOf [
-          (types.listOf types.attrs)
-          (types.attrsOf types.anything)
-        ];
-        default = dn42Data.customRecords or (dn42Data.extraRecords or [ ]);
-        description = "Extra DNS resource records (A, AAAA, CNAME, TXT, etc.) for the DN42 authoritative zone.";
-        example = [
-          {
-            name = "vault";
-            type = "A";
-            value = "172.20.232.1";
-          }
-          {
-            name = "vault";
-            type = "AAAA";
-            value = "fd53:90fd:4bb6:1::1";
-          }
-        ];
-      };
-
-      listenAddresses = mkOption {
-        type = types.listOf types.str;
-        default =
-          let
-            nodeIpv4 = lib.head (lib.splitString "/" (config.services.dn42.nodeIpv4 or "172.20.232.1/32"));
-            nodeIpv6 = lib.head (
-              lib.splitString "/" (config.services.dn42.nodeIpv6 or "fd53:90fd:4bb6:1::1/48")
-            );
-          in
-          filter (x: x != null && x != "") [
-            nodeIpv4
-            nodeIpv6
-          ];
-        description = "DN42 IP addresses on which CoreDNS listens for authoritative queries.";
-      };
-    };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && (cfg.package != null)) {
     assertions = [
       {
-        assertion = selfNode != null;
-        message = "services.atc.router: networking.hostName must be present in terraform/cdn.tf cdn_edge_nodes.";
+        assertion = controlNode != null || selfNode != null;
+        message = "services.atc.router: networking.hostName must be present in controlNodes or cdn_edge_nodes.";
       }
       {
-        assertion = all (h: any (n: n.name == h) data.edgeNodes) nsHosts;
-        message = "services.atc.router: all cdn.nsHosts entries must be present in terraform/cdn.tf cdn_edge_nodes.";
+        assertion = all (
+          h:
+          any (n: (if builtins.isAttrs n then n.name else n) == h) (
+            (data.controlNodes or [ ]) ++ (data.edgeNodes or [ ])
+          )
+        ) nsHosts;
+        message = "services.atc.router: all cdn.nsHosts entries must be present in controlNodes or cdn_edge_nodes.";
       }
       {
         assertion = all (n: (n.ipv4 or null) != null) data.edgeNodes;
@@ -530,40 +219,56 @@ in
     networking.firewall.allowedUDPPorts = [ cfg.dns.port ];
     networking.firewall.allowedTCPPorts = [ cfg.dns.port ];
 
+    systemd.tmpfiles.rules = [
+      "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
+      "d /var/lib/traffic_router 0750 trafficrouter trafficrouter -"
+      "d /var/lib/traffic_monitor 0750 trafficmonitor trafficmonitor -"
+    ];
+
+    environment.etc."traffic_router/traffic_router.properties".source = trafficRouterConfigTemplate;
+    # Reuse the same sops secret definition as monitor.nix/ops.nix so that
+    # trafficrouter (added to the trafficops group below) can read the password.
+    sops.secrets."atc/ops_password" = {
+      owner = "trafficops";
+      group = "trafficops";
+      mode = "0440";
+    };
+
     users.users.trafficrouter = {
       isSystemUser = true;
       group = "trafficrouter";
       description = "Apache Traffic Router daemon user";
+      extraGroups = [ "trafficops" ];
     };
     users.groups.trafficrouter = { };
 
-    systemd.tmpfiles.rules = [
-      "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
-      "d /var/lib/traffic_router 0750 trafficrouter trafficrouter -"
-    ];
-
-    environment.etc."traffic_router/Corefile".source = corefile;
-
-    environment.etc."traffic_router/doh-server.conf".text = ''
-      listen = [ "127.0.0.1:${toString cfg.doh.port}" ]
-      local_addr = ""
-      cert = ""
-      key = ""
-      path = "/dns-query"
-      upstream = [ "${cfg.doh.upstream}" ]
-      timeout = 5
-      tries = 2
-      verbose = false
-      log_guessed_client_ip = false
-      ecs_allow_non_global_ip = false
-      ecs_use_precise_ip = false
-    '';
-
     systemd.services.traffic-router = {
-      description = "Apache Traffic Control Traffic Router (CoreDNS DNS Steering & DoH)";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      description = "Apache Traffic Control Traffic Router (DNS & HTTP steering)";
+      after = [
+        "network-online.target"
+        "traffic-monitor.service"
+      ];
+      wants = [
+        "network-online.target"
+        "traffic-monitor.service"
+      ];
       wantedBy = [ "multi-user.target" ];
+      preStart = ''
+        PASSWORD=""
+        if [ -s "${config.sops.secrets."atc/ops_password".path}" ]; then
+          PASSWORD="$(cat "${config.sops.secrets."atc/ops_password".path}" | tr -d '\r\n')"
+        fi
+        if [ -z "$PASSWORD" ]; then
+          echo "Traffic Router Traffic Ops password is missing or empty" >&2
+          exit 1
+        fi
+
+        mkdir -p /var/lib/traffic_router
+        cp -f ${trafficRouterConfigTemplate} /etc/traffic_router/traffic_router.properties
+        sed -i "s|traffic_ops.password=.*|traffic_ops.password=$PASSWORD|" /etc/traffic_router/traffic_router.properties
+        chown trafficrouter:trafficrouter /etc/traffic_router/traffic_router.properties
+        chmod 0600 /etc/traffic_router/traffic_router.properties
+      '';
       serviceConfig = {
         Type = "simple";
         User = "trafficrouter";
@@ -574,43 +279,23 @@ in
         RestartSec = "5s";
         StartLimitIntervalSec = "60s";
         StartLimitBurst = 5;
-        MemoryMax = "256M";
+        MemoryMax = "512M";
         LimitNOFILE = 65536;
-        ExecStart = "${cfg.package}/bin/coredns -conf /etc/traffic_router/Corefile";
+        ExecStart = "${cfg.package}/bin/traffic_router -conf /etc/traffic_router/traffic_router.properties";
       };
-      restartTriggers = [ corefile ];
+      restartTriggers = [ trafficRouterConfigTemplate ];
     };
 
-    systemd.services.traffic-router-doh = {
-      description = "DNS-over-HTTPS frontend for the ATC authoritative DNS server";
-      after = [
-        "network-online.target"
-        "traffic-router.service"
-      ];
-      wants = [
-        "network-online.target"
-        "traffic-router.service"
-      ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "simple";
-        User = "trafficrouter";
-        Group = "trafficrouter";
-        Restart = "on-failure";
-        RestartSec = "5s";
-        MemoryMax = "128M";
-        LimitNOFILE = 16384;
-        ExecStart = "${cfg.doh.package}/bin/doh-server -conf /etc/traffic_router/doh-server.conf";
-      };
-      restartTriggers = [ config.environment.etc."traffic_router/doh-server.conf".source ];
-    };
-
-    services.traefik.proxies.traffic-router-doh =
-      mkIf (cfg.doh.enable && (config.services.traefik.enable or false))
+    services.traefik.proxies.traffic-router =
+      mkIf (config.services.traefik.enable or false && cfg.http.listenAddresses != [ ])
         {
-          rule = "Host(`cdn.${domain}`) && PathPrefix(`/dns-query`)";
-          target = "http://127.0.0.1:${toString cfg.doh.port}";
-          entryPoints = [ "https" ];
+          rule = "Host(`cdn.${domain}`)";
+          target = "http://127.0.0.1:${toString cfg.http.port}";
+          entryPoints = [
+            "http"
+            "https"
+          ];
+          priority = 50;
         };
   };
 }
