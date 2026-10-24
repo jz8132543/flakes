@@ -13,6 +13,7 @@ let
     data.nsHosts or (
       if data ? nsHost then [ data.nsHost ] else (data.controlNodeNames or [ config.networking.hostName ])
     );
+  primaryNsHost = head nsHosts;
 
   controlNode = findFirst (
     c: (if builtins.isAttrs c then c.name else c) == config.networking.hostName
@@ -39,58 +40,144 @@ let
     hash = "sha256-/+2ydRyuFv3YhoFKbISAYzyRXsE2wVgspcn8WGH3gao=";
   };
 
-  trafficRouterConfigTemplate = pkgs.writeText "traffic_router.properties" ''
-    # DNS Listener (always enabled)
-    dns.port=${toString cfg.dns.port}
-    dns.address=${concatStringsSep "," cfg.dns.listenAddresses}
+  serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
 
-    # HTTP Listener (HTTP steering - reduces redirect hops)
-    http.port=${toString cfg.http.port}
-    http.address=${concatStringsSep "," cfg.http.listenAddresses}
+  dynamicZonePath = "/var/lib/traffic_router/cdn.${domain}.zone";
 
-    # Traffic Ops
-    traffic_ops.url=${cfg.trafficOpsUrl}
-    traffic_ops.username=${cfg.trafficOpsUser}
-    traffic_ops.insecure=${if cfg.trafficOpsInsecure then "true" else "false"}
+  # ── CoreDNS 配置文件 ─────────────────────────────────────────────────────────
+  corefile = pkgs.writeText "Corefile" ''
+    cdn.${domain}:${toString cfg.dns.port} {
+        bind ${concatStringsSep " " cfg.dns.listenAddresses}
+        file ${dynamicZonePath} cdn.${domain} {
+            reload 5s
+        }
+        errors
+        ${optionalString cfg.dns.log "log"}
+    }
+  '';
 
-    # Traffic Monitor (Health + Connection Time)
-    traffic_monitor.enabled=true
-    traffic_monitor.url=${cfg.trafficMonitorUrl}
-    traffic_monitor.crconfig.file=/var/lib/traffic_monitor/crconfig.backup
-    traffic_monitor.polling.interval=20000
-    traffic_monitor.connection.timeout=5000
-    traffic_monitor.connection.warning=1000
+  # ── 默认兜底 Zone 文件 ────────────────────────────────────────────────────────
+  defaultZone = pkgs.writeText "cdn.${domain}.zone.default" ''
+    $ORIGIN cdn.${domain}.
+    $TTL ${toString cfg.dns.ttl}
+    @ IN SOA ${primaryNsHost}.${domain}. admin.${domain}. (
+        2026102401 ; Serial
+        7200
+        3600
+        1209600
+        ${toString cfg.dns.ttl}
+    )
 
-    # DNS Steering (GeoIP + Health-aware)
-    dns.steering.enabled=true
-    dns.steering.algorithm=LOAD_BALANCED
-    dns.steering.ttl=${toString cfg.dns.ttl}
+    ${concatMapStringsSep "\n" (h: "@ IN NS ${h}.${domain}.") nsHosts}
 
-    # HTTP Steering (302 Redirect to best edge - single hop, no intermediate redirect)
-    http.steering.enabled=true
-    http.steering.algorithm=LOAD_BALANCED
-    http.steering.max.redirects=3
+    ; Edge nodes (Static Fallback Pool)
+    ${concatMapStringsSep "\n" (node: ''
+      @ IN A ${node.ipv4}
+      ${node.name} IN A ${node.ipv4}
+      ${optionalString ((node.ipv6 or null) != null) ''
+        @ IN AAAA ${node.ipv6}
+        ${node.name} IN AAAA ${node.ipv6}
+      ''}
+    '') data.edgeNodes}
 
-    # GeoIP
-    geolocation.database=${cfg.geoip.databaseFile}
-    geolocation.enabled=${if cfg.geoip.enable then "true" else "false"}
+    ; Service labels alias to zone apex
+    ${concatMapStringsSep "\n" (label: "${label} IN CNAME @") serviceLabels}
+    * IN CNAME @
+  '';
 
-    # Health Penalty (nodes with high connection time get lower weight)
-    traffic_router.health.penalty.enabled=true
-    traffic_router.health.penalty.threshold=300
-    traffic_router.health.penalty.factor=0.5
+  # ── 动态健康选路与故障摘除脚本 ──────────────────────────────────────────────
+  updateDnsScript = pkgs.writeShellScript "atc-dynamic-dns" ''
+    set -euo pipefail
 
-    # Dynamic TTL: healthy nodes get higher TTL, degraded nodes get lower TTL
-    dns.steering.dynamic.ttl.enabled=true
-    dns.steering.dynamic.ttl.min=10
-    dns.steering.dynamic.ttl.max=60
+    ZONE_FILE="${dynamicZonePath}"
+    TMP_FILE="''${ZONE_FILE}.tmp"
+    CRCONFIG="/var/lib/traffic_monitor/crconfig.backup"
+    EDGE_NODES_JSON='${builtins.toJSON data.edgeNodes}'
+    SERVICE_LABELS='${builtins.toJSON serviceLabels}'
+    TTL="${toString cfg.dns.ttl}"
+    DOMAIN="${domain}"
+    PRIMARY_NS="${primaryNsHost}.${domain}."
+    NS_HOSTS="${concatMapStringsSep " " (h: "${h}.${domain}.") nsHosts}"
 
-    # Logging
-    log.location.error=stderr
-    log.location.warning=stderr
-    log.location.info=stdout
-    log.location.debug=null
-    log.location.event=stdout
+    mkdir -p "$(dirname "$ZONE_FILE")"
+
+    # 1. 从 Traffic Monitor crconfig 获取在线边缘节点
+    ONLINE_NODES=()
+    if [ -s "$CRCONFIG" ]; then
+      while IFS= read -r host; do
+        if [ -n "$host" ] && [ "$host" != "null" ]; then
+          ONLINE_NODES+=("$host")
+        fi
+      done < <(${pkgs.jq}/bin/jq -r '
+        .contentServers // {} |
+        to_entries[] |
+        select(.value.status == "REPORTED" or .value.status == "ONLINE") |
+        select((.value.routingDisabled // 0) == 0) |
+        .key
+      ' "$CRCONFIG" 2>/dev/null || true)
+    fi
+
+    # 2. 如果 TM 未完成首轮探测或无节点上报，使用全部配置节点兜底，绝不丢弃 DNS 响应
+    if [ ''${#ONLINE_NODES[@]} -eq 0 ]; then
+      while IFS= read -r host; do
+        if [ -n "$host" ] && [ "$host" != "null" ]; then
+          ONLINE_NODES+=("$host")
+        fi
+      done < <(echo "$EDGE_NODES_JSON" | ${pkgs.jq}/bin/jq -r '.[].name')
+    fi
+
+    # 3. 构造最新 DNS Zone 记录
+    SERIAL=$(date -u +%Y%m%d%H)
+    {
+      echo "\$ORIGIN cdn.''${DOMAIN}."
+      echo "\$TTL ''${TTL}"
+      echo "@ IN SOA ''${PRIMARY_NS} admin.''${DOMAIN}. ("
+      echo "    ''${SERIAL} ; Serial"
+      echo "    7200"
+      echo "    3600"
+      echo "    1209600"
+      echo "    ''${TTL}"
+      echo ")"
+      echo ""
+      for ns in $NS_HOSTS; do
+        echo "@ IN NS ''${ns}"
+      done
+      echo ""
+      echo "; Healthy Active Edge Nodes (Managed by Traffic Monitor)"
+      for node in "''${ONLINE_NODES[@]}"; do
+        NODE_DATA=$(echo "$EDGE_NODES_JSON" | ${pkgs.jq}/bin/jq -c --arg n "$node" '.[] | select(.name == $n)')
+        if [ -n "$NODE_DATA" ]; then
+          V4=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.ipv4 // empty')
+          V6=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.ipv6 // empty')
+          WEIGHT=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.weight // 1')
+
+          # 性能加权展开 (高权重节点响应频次更高)
+          for ((i=0; i<WEIGHT; i++)); do
+            if [ -n "$V4" ]; then
+              echo "@ IN A ''${V4}"
+              echo "''${node} IN A ''${V4}"
+            fi
+            if [ -n "$V6" ]; then
+              echo "@ IN AAAA ''${V6}"
+              echo "''${node} IN AAAA ''${V6}"
+            fi
+          done
+        fi
+      done
+
+      echo ""
+      echo "; CDN Service Endpoints Aliases"
+      while IFS= read -r label; do
+        if [ -n "$label" ]; then
+          echo "''${label} IN CNAME @"
+        fi
+      done < <(echo "$SERVICE_LABELS" | ${pkgs.jq}/bin/jq -r '.[]')
+      echo "* IN CNAME @"
+    } > "$TMP_FILE"
+
+    # 原子写入，保证 CoreDNS reload 期间读到的文件完整有效
+    mv -f "$TMP_FILE" "$ZONE_FILE"
+    chmod 0644 "$ZONE_FILE"
   '';
 in
 {
@@ -98,14 +185,13 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Run Apache Traffic Control Traffic Router for CDN DNS/HTTP steering.";
+      description = "Run Apache Traffic Control Traffic Router (CoreDNS DNS Steering Engine).";
     };
 
     package = mkOption {
-      type = types.nullOr types.package;
-      default = null;
-      defaultText = "null";
-      description = "Traffic Router package providing DNS and HTTP steering. Set to pkgs.traffic-router to enable.";
+      type = types.package;
+      default = pkgs.coredns;
+      description = "CoreDNS package providing high-performance DNS steering.";
     };
 
     dns = {
@@ -113,7 +199,7 @@ in
         type = types.listOf types.str;
         default = (optional (selfIpv4 != "127.0.0.1") selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
         defaultText = "Current host's public addresses from terraform/cdn.tf";
-        description = "Addresses on which Traffic Router DNS listens.";
+        description = "Public IP addresses on which Traffic Router DNS listens.";
       };
 
       port = mkOption {
@@ -124,78 +210,33 @@ in
 
       ttl = mkOption {
         type = types.int;
-        default = 60;
-        description = "DNS response TTL in seconds (informational; Traffic Router manages TTL internally).";
+        default = 30;
+        description = "DNS response TTL in seconds for fast failover.";
       };
 
       log = mkOption {
         type = types.bool;
         default = false;
-        description = "Enable Traffic Router DNS query logging; disabled by default.";
+        description = "Enable CoreDNS query logging.";
       };
-    };
-
-    http = {
-      listenAddresses = mkOption {
-        type = types.listOf types.str;
-        default = [ "0.0.0.0" ];
-        defaultText = "0.0.0.0";
-        description = "Addresses on which Traffic Router HTTP steering listens. Enable HTTP steering to reduce redirect hops for CDN domains.";
-      };
-
-      port = mkOption {
-        type = types.port;
-        default = 80;
-        description = "HTTP steering port. Traffic Router listens here for HTTP requests and returns 302 to the best edge node, avoiding extra redirect through Control Traefik.";
-      };
-    };
-
-    trafficOpsUrl = mkOption {
-      type = types.str;
-      default =
-        if (config.services.atc.ops.enable or false) then
-          "https://127.0.0.1:${toString config.services.atc.ops.port}"
-        else
-          "https://ops.${config.networking.domain}";
-      defaultText = "if ops.enable then local 127.0.0.1:port else https://ops.<networking.domain>";
-      description = "Traffic Ops API URL for Traffic Router configuration.";
-    };
-
-    trafficOpsUser = mkOption {
-      type = types.str;
-      default = "t3c-sync";
-      description = "Traffic Ops username for Traffic Router.";
-    };
-
-    trafficOpsInsecure = mkOption {
-      type = types.bool;
-      default = config.services.atc.ops.enable or false;
-      defaultText = "true if ops.enable else false";
-      description = "Skip certificate verification when connecting to Traffic Ops.";
-    };
-
-    trafficMonitorUrl = mkOption {
-      type = types.str;
-      default = "http://127.0.0.1:8087";
-      description = "Traffic Monitor URL for health information.";
     };
 
     geoip = {
       enable = mkOption {
         type = types.bool;
         default = true;
-        description = "Load the GeoIP2 database for GeoDNS steering.";
+        description = "Load MaxMind GeoIP2 database.";
       };
 
       databaseFile = mkOption {
         type = types.path;
         default = defaultGeoIpDatabase;
-        description = "MaxMind GeoLite2 City/GeoIP2 database path.";
+        description = "Path to GeoLite2 City database.";
       };
     };
   };
 
-  config = mkIf (cfg.enable && (cfg.package != null)) {
+  config = mkIf cfg.enable {
     assertions = [
       {
         assertion = controlNode != null || selfNode != null;
@@ -210,29 +251,10 @@ in
         ) nsHosts;
         message = "services.atc.router: all cdn.nsHosts entries must be present in controlNodes or cdn_edge_nodes.";
       }
-      {
-        assertion = all (n: (n.ipv4 or null) != null) data.edgeNodes;
-        message = "services.atc.router: every cdn_edge_nodes entry must resolve to an A record in terraform/hosts.tf.";
-      }
     ];
 
     networking.firewall.allowedUDPPorts = [ cfg.dns.port ];
     networking.firewall.allowedTCPPorts = [ cfg.dns.port ];
-
-    systemd.tmpfiles.rules = [
-      "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
-      "d /var/lib/traffic_router 0750 trafficrouter trafficrouter -"
-      "d /var/lib/traffic_monitor 0750 trafficmonitor trafficmonitor -"
-    ];
-
-    environment.etc."traffic_router/traffic_router.properties".source = trafficRouterConfigTemplate;
-    # Reuse the same sops secret definition as monitor.nix/ops.nix so that
-    # trafficrouter (added to the trafficops group below) can read the password.
-    sops.secrets."atc/ops_password" = {
-      owner = "trafficops";
-      group = "trafficops";
-      mode = "0440";
-    };
 
     users.users.trafficrouter = {
       isSystemUser = true;
@@ -242,32 +264,25 @@ in
     };
     users.groups.trafficrouter = { };
 
+    systemd.tmpfiles.rules = [
+      "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
+      "d /var/lib/traffic_router 0755 trafficrouter trafficrouter -"
+    ];
+
+    environment.etc."traffic_router/Corefile".source = corefile;
+
+    # ── Traffic Router 服务 (CoreDNS 智能调度引擎) ───────────────────────────
     systemd.services.traffic-router = {
-      description = "Apache Traffic Control Traffic Router (DNS & HTTP steering)";
-      after = [
-        "network-online.target"
-        "traffic-monitor.service"
-      ];
-      wants = [
-        "network-online.target"
-        "traffic-monitor.service"
-      ];
+      description = "Apache Traffic Control Traffic Router (CoreDNS Steering Engine)";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
       preStart = ''
-        PASSWORD=""
-        if [ -s "${config.sops.secrets."atc/ops_password".path}" ]; then
-          PASSWORD="$(cat "${config.sops.secrets."atc/ops_password".path}" | tr -d '\r\n')"
-        fi
-        if [ -z "$PASSWORD" ]; then
-          echo "Traffic Router Traffic Ops password is missing or empty" >&2
-          exit 1
-        fi
-
         mkdir -p /var/lib/traffic_router
-        cp -f ${trafficRouterConfigTemplate} /etc/traffic_router/traffic_router.properties
-        sed -i "s|traffic_ops.password=.*|traffic_ops.password=$PASSWORD|" /etc/traffic_router/traffic_router.properties
-        chown trafficrouter:trafficrouter /etc/traffic_router/traffic_router.properties
-        chmod 0600 /etc/traffic_router/traffic_router.properties
+        if [ ! -f "${dynamicZonePath}" ]; then
+          cp -f "${defaultZone}" "${dynamicZonePath}"
+          chmod 0644 "${dynamicZonePath}"
+        fi
       '';
       serviceConfig = {
         Type = "simple";
@@ -279,23 +294,41 @@ in
         RestartSec = "5s";
         StartLimitIntervalSec = "60s";
         StartLimitBurst = 5;
-        MemoryMax = "512M";
+        MemoryMax = "128M";
         LimitNOFILE = 65536;
-        ExecStart = "${cfg.package}/bin/traffic_router -conf /etc/traffic_router/traffic_router.properties";
+        ExecStart = "${cfg.package}/bin/coredns -conf /etc/traffic_router/Corefile";
+        ExecReload = "${pkgs.coreutils}/bin/kill -SIGUSR1 $MAINPID";
       };
-      restartTriggers = [ trafficRouterConfigTemplate ];
+      restartTriggers = [ corefile ];
     };
 
-    services.traefik.proxies.traffic-router =
-      mkIf (config.services.traefik.enable or false && cfg.http.listenAddresses != [ ])
-        {
-          rule = "Host(`cdn.${domain}`)";
-          target = "http://127.0.0.1:${toString cfg.http.port}";
-          entryPoints = [
-            "http"
-            "https"
-          ];
-          priority = 50;
-        };
+    # ── 动态健康选路定时同步服务 ─────────────────────────────────────────────
+    # 定期读取 Traffic Monitor 的健康检查产物 /var/lib/traffic_monitor/crconfig.backup，
+    # 自动摘除异常/离线节点，CoreDNS 5 秒内热重载生效。
+    systemd.services.atc-dynamic-dns = {
+      description = "ATC Dynamic DNS Health & Steering Sync";
+      after = [
+        "network-online.target"
+        "traffic-router.service"
+      ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        User = "trafficrouter";
+        Group = "trafficrouter";
+        ExecStart = "${updateDnsScript}";
+      };
+    };
+
+    systemd.timers.atc-dynamic-dns = {
+      description = "Periodic timer for ATC dynamic DNS health sync";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "5s";
+        OnUnitActiveSec = "10s";
+        RandomizedDelaySec = "2s";
+      };
+    };
   };
 }

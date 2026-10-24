@@ -96,6 +96,11 @@ in
               fi
             done
 
+            # 确保加载 stats_over_http 插件，供 Traffic Monitor 健康嗅探 /_astats
+            if ! grep -q "stats_over_http.so" /var/lib/trafficserver/etc/plugin.config 2>/dev/null; then
+              echo "stats_over_http.so /_astats" >> /var/lib/trafficserver/etc/plugin.config
+            fi
+
             # 保证 /etc/trafficserver/remap.config 软链接至可写的运行时配置
             rm -f /etc/trafficserver/remap.config 2>/dev/null || true
             ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
@@ -250,6 +255,15 @@ in
             };
           };
           routers = {
+            atc-edge-astats = {
+              rule = "PathPrefix(`/_astats`)";
+              service = "atc-edge";
+              entryPoints = [
+                "http"
+                "https"
+              ];
+              priority = 1000;
+            };
             atc-edge-http = {
               rule = concatMapStringsSep " || " (
                 s: "Host(`${s}.${config.networking.domain}`) || Host(`${s}.cdn.${config.networking.domain}`)"

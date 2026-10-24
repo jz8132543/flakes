@@ -130,13 +130,13 @@ let
         # trusted on the center node, so this does not put a DB password in Nix.
         if ! ${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d postgres -Atc "SELECT 1 FROM pg_database WHERE datname = '${cfg.dbName}'" | grep -q 1; then
           ${pkgs.postgresql}/bin/psql -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U postgres -d postgres -v ON_ERROR_STOP=1 <<SQL
-        DO \$\$
+        DO ''$''$
         BEGIN
           IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${cfg.dbUser}') THEN
             CREATE ROLE ${cfg.dbUser} LOGIN;
           END IF;
         END
-        \$\$;
+        ''$''$;
         CREATE DATABASE ${cfg.dbName} OWNER ${cfg.dbUser};
     SQL
         fi
@@ -164,7 +164,7 @@ let
 
         PASSWORD_HASH="$(${scryptTool}/bin/python ${scryptScript} < "${passwordFilePath}")"
 
-        ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -v password_hash="$PASSWORD_HASH" -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} <<EOF
+        ${pkgs.postgresql}/bin/psql -v ON_ERROR_STOP=1 -v password_hash="$PASSWORD_HASH" -h ${cfg.dbHost} -p ${toString cfg.dbPort} -U ${cfg.dbUser} -d ${cfg.dbName} <<'EOF'
         CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
         -- Ensure CDN
@@ -180,23 +180,31 @@ let
         WHERE c.name = 'dora-cdn'
         ON CONFLICT (name) DO NOTHING;
 
+        -- Ensure Profile RASCAL_GLOBAL exists before assigning parameters
+        INSERT INTO profile (name, description, type, cdn)
+        SELECT 'RASCAL_GLOBAL', 'Traffic Monitor baseline profile', 'ATS_PROFILE'::profile_type, c.id
+        FROM cdn c WHERE c.name = 'dora-cdn'
+        ON CONFLICT (name) DO NOTHING;
+
         INSERT INTO parameter (name, config_file, value) VALUES
           ('peers.polling.interval', 'rascal-config.txt', '3000'),
           ('health.polling.interval', 'rascal-config.txt', '20000'),
-          ('health.polling.url', 'rascal-config.txt', '/_astats'),
-          ('health.polling.format', 'rascal-config.txt', 'application/json'),
-          ('stat.polling.interval', 'rascal-config.txt', '60000')
+          ('stat.polling.interval', 'rascal-config.txt', '60000'),
+          ('health.polling.url', 'rascal.properties', 'http://''${hostname}/_astats'),
+          ('health.polling.format', 'rascal.properties', 'astats'),
+          ('health.polling.type', 'rascal.properties', 'HTTP'),
+          ('health.connection.timeout', 'rascal.properties', '5000')
         ON CONFLICT (name, config_file, value) DO NOTHING;
 
         INSERT INTO profile_parameter (profile, parameter)
         SELECT p.id, pr.id FROM profile p CROSS JOIN parameter pr
         WHERE p.name = 'RASCAL_GLOBAL' AND pr.config_file = 'rascal-config.txt'
-          AND NOT EXISTS (SELECT 1 FROM profile_parameter pp WHERE pp.profile = p.id AND pp.parameter = pr.id);
+        ON CONFLICT DO NOTHING;
 
-        INSERT INTO profile (name, description, type, cdn)
-        SELECT 'RASCAL_GLOBAL', 'Traffic Monitor baseline profile', 'ATS_PROFILE'::profile_type, c.id
-        FROM cdn c WHERE c.name = 'dora-cdn'
-        ON CONFLICT (name) DO NOTHING;
+        INSERT INTO profile_parameter (profile, parameter)
+        SELECT p.id, pr.id FROM profile p CROSS JOIN parameter pr
+        WHERE p.name = 'EDGE_ATS_GLOBAL' AND pr.config_file = 'rascal.properties'
+        ON CONFLICT DO NOTHING;
 
         -- Minimal topology required by Traffic Monitor/t3c discovery.
         INSERT INTO division (name) VALUES ('Global') ON CONFLICT (name) DO NOTHING;
@@ -264,7 +272,7 @@ let
           ''
         ) (attrNames servicesMap)}
 
-        DO \$\$
+        DO ''$''$
         DECLARE
           cdn_id_value BIGINT;
           profile_id_value BIGINT;
@@ -272,6 +280,7 @@ let
           cachegroup_id_value BIGINT;
           edge_type BIGINT;
           online_status BIGINT;
+          reported_status BIGINT;
           host RECORD;
           existing_id BIGINT;
         BEGIN
@@ -281,6 +290,7 @@ let
           SELECT id INTO cachegroup_id_value FROM cachegroup WHERE name = 'EDGE_DEFAULT';
           SELECT id INTO edge_type FROM type WHERE name = 'EDGE';
           SELECT id INTO online_status FROM status WHERE name = 'ONLINE';
+          SELECT id INTO reported_status FROM status WHERE name = 'REPORTED';
 
           -- ── 动态注册声明的所有边缘节点 (cdn.edgeNodes) ─────────────────
           FOR host IN SELECT * FROM (VALUES
@@ -294,7 +304,7 @@ let
                 type, status, profile, cdn_id, mgmt_ip_address, https_port
               ) VALUES (
                 host.host_name, '${domain}', 80, location_id_value, cachegroup_id_value,
-                edge_type, online_status, profile_id_value, cdn_id_value,
+                edge_type, reported_status, profile_id_value, cdn_id_value,
                 host.mgmt_ip, 443
               );
             ELSE
@@ -302,7 +312,7 @@ let
                 domain_name = '${domain}',
                 cachegroup = cachegroup_id_value,
                 type = edge_type,
-                status = online_status,
+                status = reported_status,
                 profile = profile_id_value,
                 cdn_id = cdn_id_value,
                 mgmt_ip_address = host.mgmt_ip,
@@ -323,25 +333,25 @@ let
               host_name, domain_name, tcp_port, phys_location, cachegroup,
               type, status, profile, cdn_id, mgmt_ip_address, https_port
             )
-            SELECT '${ctrl.name}-monitor', '${domain}', 8087, location_id_value, cachegroup_id_value,
+            SELECT '${ctrl.name}', '${domain}', 8087, location_id_value, cachegroup_id_value,
               (SELECT id FROM type WHERE name = 'RASCAL'), online_status,
               (SELECT id FROM profile WHERE name = 'RASCAL_GLOBAL'), cdn_id_value,
               '127.0.0.1', 8087
-            WHERE NOT EXISTS (SELECT 1 FROM server WHERE host_name = '${ctrl.name}-monitor');
+            WHERE NOT EXISTS (SELECT 1 FROM server WHERE host_name = '${ctrl.name}' AND type = (SELECT id FROM type WHERE name = 'RASCAL'));
 
             INSERT INTO server_profile (server, profile_name, priority)
             SELECT s.id, 'RASCAL_GLOBAL', 1 FROM server s
-            WHERE s.host_name = '${ctrl.name}-monitor'
+            WHERE s.host_name = '${ctrl.name}' AND s.type = (SELECT id FROM type WHERE name = 'RASCAL')
               AND NOT EXISTS (SELECT 1 FROM server_profile sp WHERE sp.server = s.id AND sp.profile_name = 'RASCAL_GLOBAL');
 
             INSERT INTO interface (name, monitor, mtu, server)
             SELECT 'eth0', true, 1500, s.id FROM server s
-            WHERE s.host_name = '${ctrl.name}-monitor'
+            WHERE s.host_name = '${ctrl.name}' AND s.type = (SELECT id FROM type WHERE name = 'RASCAL')
               AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
 
             INSERT INTO ip_address (address, interface, server, service_address)
             SELECT '127.0.0.1'::inet, 'eth0', s.id, true
-            FROM server s WHERE s.host_name = '${ctrl.name}-monitor'
+            FROM server s WHERE s.host_name = '${ctrl.name}' AND s.type = (SELECT id FROM type WHERE name = 'RASCAL')
               AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '127.0.0.1'::inet AND ip.server = s.id);
           '') controlNodes}
 
@@ -375,10 +385,10 @@ let
                 AND NOT EXISTS (SELECT 1 FROM deliveryservice_server dss WHERE dss.deliveryservice = ds.id AND dss.server = s.id);
             '') edgeNodes
           ) (attrNames servicesMap)}
-        END \$\$;
+        END ''$''$;
 
         -- Baseline records.config parameters for EDGE_ATS_GLOBAL
-        DO \$\$
+        DO ''$''$
         DECLARE
           pid INT;
           param_id INT;
@@ -412,19 +422,19 @@ let
               ON CONFLICT DO NOTHING;
             END LOOP;
           END IF;
-        END \$\$;
+        END ''$''$;
 
         -- Ensure Role read-only exists
         INSERT INTO role (name, description, priv_level)
         VALUES ('read-only', 'Read-Only User for t3c edge synchronization', 10)
         ON CONFLICT (name) DO NOTHING;
 
-        -- Ensure t3c-sync User exists with Traffic Ops-compatible SCRYPT password
+        -- Ensure t3c-sync User exists with operations role (required for snapshots & sync)
         INSERT INTO tm_user (username, role, local_passwd, confirm_local_passwd, email, full_name, tenant_id)
         SELECT '${cfg.syncUser}', r.id, :'password_hash', :'password_hash', '${cfg.syncUser}@${domain}', 'T3C Edge Synchronizer', t.id
         FROM role r
         CROSS JOIN tenant t
-        WHERE r.name = 'read-only' AND t.name = 'root'
+        WHERE r.name = 'operations' AND t.name = 'root'
         LIMIT 1
         ON CONFLICT (username) DO UPDATE
         SET role = EXCLUDED.role,
@@ -442,6 +452,17 @@ let
         ON CONFLICT (name, config_file, value) DO UPDATE SET value = EXCLUDED.value;
 
     EOF
+
+        echo "Triggering initial Traffic Ops CRConfig Snapshot for dora-cdn..."
+        PASS="$(cat ${passwordFilePath} | tr -d '\r\n')"
+        COOKIE_JAR="$(mktemp)"
+        curl -k -s -c "$COOKIE_JAR" -H "Content-Type: application/json" \
+          -d "{\"u\":\"${cfg.syncUser}\",\"p\":\"$PASS\"}" \
+          https://127.0.0.1:${toString cfg.port}/api/5.0/user/login > /dev/null || true
+        curl -k -s -X PUT -b "$COOKIE_JAR" \
+          "https://127.0.0.1:${toString cfg.port}/api/5.0/snapshot?cdn=dora-cdn" > /dev/null || true
+        rm -f "$COOKIE_JAR"
+
         echo "Traffic Ops initialization completed successfully."
   '';
 in
