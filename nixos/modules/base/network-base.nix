@@ -16,28 +16,28 @@ in
   # ── 1. SmartDNS 本地 DoH 客户端 ──────────────────────────────
   # 作为全系统的高性能安全 DNS 递归客户端，专门处理上游 DoH (DNS over HTTPS)
   # 监听本地 127.0.0.1:5335，不向局域网暴露。
-  # 优先向上游纯净 DoH 服务器发起 TLS 加密查询，杜绝明文 UDP 53 嗅探与任何 DNS 污染。
+  # 国内外机器通用：全并发向上游发起测速查询，哪个最快采用哪个。
+  # 国外机器 1.1.1.1/8.8.8.8 秒级直出纯净结果；国内机器 223.5.5.5/doh.pub 秒级响应彻底避免超时卡死。
   services.smartdns = {
     enable = true;
     bindPort = 5335;
     settings = {
       bind = "127.0.0.1:5335";
 
-      # 上游主用 DoH 服务器（优先请求 Cloudflare 与 Google 纯净 DoH 接口）
-      # 出站走 DN42 骨干网出国直达境外节点，彻底避免国内物理链路审查
+      # 上游主用 DoH 服务器（全量并发竞速，不设 -fallback，谁快用谁）
       server-https = [
         "https://1.1.1.1/dns-query"
         "https://8.8.8.8/dns-query"
-        "https://223.5.5.5/dns-query -fallback"
-        "https://doh.pub/dns-query -fallback"
+        "https://223.5.5.5/dns-query"
+        "https://doh.pub/dns-query"
       ];
 
-      # 备用 / Fallback 上游服务器（当主用 DoH 失败或无结果时回退）
+      # 普通上游服务器（全量并发竞速，专网分组独立隔离）
       server = [
-        "1.1.1.1 -fallback"
-        "8.8.8.8 -fallback"
-        "223.5.5.5 -fallback"
-        "119.29.29.29 -fallback"
+        "1.1.1.1"
+        "8.8.8.8"
+        "223.5.5.5"
+        "119.29.29.29"
         # ── DN42 专网解析上游 ──
         # dora.dn42: 优先自建 CoreDNS 权威 (172.20.232.1)，超时回退 Anycast
         # *.dn42: 官方 Anycast 根与递归服务器 (172.20.0.53 / 172.23.0.53)
@@ -73,11 +73,10 @@ in
 
   # ── 2. Dnsmasq 本地前端与智能分流 / 降级 ────────────────────────
   # 监听标准端口 127.0.0.1:53，统一纳管本地解析与环境感知降级：
-  # 1. 优先（队列首部）：通过 127.0.0.1#5335 走 SmartDNS DoH 纯净加密解析；
+  # 1. 优先（队列首部）：通过 127.0.0.1#5335 走 SmartDNS 并发纯净/极速解析；
   # 2. 内部域名分流：dora.dn42 走自建+Anycast，*.dn42 走 Anycast，*.ts 走 Tailscale MagicDNS，*.et 走 EasyTier；
   # 3. 降级 Fallback：当处于校园网/酒店 Wi-Fi 强制 Web 认证门户（Captive Portal）等未登录断网环境时，
-  #    DoH 因外网中断超时，strict-order 会自动 fallback 至 NetworkManager 从 DHCP 动态获取的局域网/校园网 DNS，
-  #    确保校园网自动跳转登录页面秒级唤醒，登录成功外网恢复后秒级切回 DoH。
+  #    自动 fallback 至 NetworkManager 从 DHCP 动态获取的局域网/校园网 DNS。
   services.dnsmasq = {
     enable = true;
     alwaysKeepRunning = true;
@@ -87,7 +86,7 @@ in
       listen-address = "127.0.0.1";
       cache-size = 10000;
       no-negcache = true;
-      strict-order = true; # 严格按顺序查询：首选 127.0.0.1#5335 (DoH)，超时故障时自动回退后续服务器
+      strict-order = false; # 并发/自适应最优响应，不再机械等待单一节点超时阻断网络
 
       # 队列首部：本地 SmartDNS DoH
       server = [

@@ -1,7 +1,77 @@
-{ lib, ... }:
+{ config, lib, ... }:
 
 {
-  options.desktop.winapps = {
+  options.programs.winapps = {
+    enable = lib.mkEnableOption "WinApps using the upstream Nix package and Windows container" // {
+      default = true;
+    };
+
+    autopause = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Use upstream WinApps idle pause and launch-triggered resume.";
+      };
+      timeout = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 300;
+        description = "Idle seconds before pausing Windows. Pausing retains guest RAM.";
+      };
+    };
+
+    discovery = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = "Enable application discovery helper service. Manual scanning via 'winapps-scan' or the desktop entry is recommended over periodic timers.";
+      };
+      interval = lib.mkOption {
+        type = lib.types.str;
+        default = "10min";
+        description = "Interval between application discovery attempts; paused containers are not awakened.";
+      };
+    };
+
+    office = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Install Office with Microsoft's Office Deployment Tool during first guest provisioning.";
+      };
+      productId = lib.mkOption {
+        type = lib.types.str;
+        default = "O365ProPlusRetail";
+        description = "Licensed Office Deployment Tool product ID. Microsoft 365 requires a licensed account sign-in.";
+      };
+      channel = lib.mkOption {
+        type = lib.types.str;
+        default = "Current";
+        description = "Office Deployment Tool update channel for the selected product.";
+      };
+      language = lib.mkOption {
+        type = lib.types.str;
+        default = "zh-cn";
+        description = "Office language ID.";
+      };
+      configurationFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.path;
+        default = null;
+        description = "Optional Office Deployment Tool XML instead of the generated configuration. Do not put product keys in Nix files.";
+      };
+    };
+
+    activation = {
+      windowsProductKeyFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Runtime host file containing a licensed Windows product key; mounted read-only, never copied into the Nix store.";
+      };
+      officeProductKeyFile = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Runtime host file containing a licensed Office key compatible with the deployed product. Subscription Office uses account sign-in instead.";
+      };
+    };
     kvm = {
       enable = lib.mkEnableOption "WinApps integration with KVM (Physical Windows Boot)";
 
@@ -60,7 +130,7 @@
 
     podman = {
       enable = lib.mkEnableOption "WinApps integration with Rootless Podman (dockurr/windows)" // {
-        default = true;
+        default = config.programs.winapps.enable;
       };
 
       autoStart = lib.mkOption {
@@ -72,17 +142,17 @@
       autoSuspend = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = "Whether to automatically suspend (pause) the Windows VM after boot once it has finished starting to save CPU.";
+        description = "Pause after boot only after guest provisioning and Office installation report success. Normal idle pause/resume is handled upstream.";
       };
 
       autoSuspendDelay = lib.mkOption {
         type = lib.types.int;
-        default = 20;
-        description = "Seconds to wait after Windows RDP port 3389 opens before suspending to let startup tasks finish.";
+        default = 60;
+        description = "Minimum initialization time before the boot pause, after provisioning succeeds.";
       };
 
       port = lib.mkOption {
-        type = lib.types.int;
+        type = lib.types.port;
         default = 3390;
         description = "Host RDP port mapped to Windows VM (defaults to 3390 to avoid conflict with xrdp).";
       };
@@ -97,6 +167,12 @@
         type = lib.types.str;
         default = "admin";
         description = "Windows password created by dockur/windows. Must match RDP_PASS in winapps.conf.";
+      };
+
+      image = lib.mkOption {
+        type = lib.types.str;
+        default = "docker.io/dockurr/windows:latest";
+        description = "Windows container image. Defaults to dockur/windows:latest.";
       };
 
       diskSize = lib.mkOption {
@@ -120,7 +196,7 @@
       language = lib.mkOption {
         type = lib.types.str;
         default = "English";
-        description = "Windows display language. Note: Tiny10 only exists in English; setting to English avoids archive.org redirect failures.";
+        description = "Windows display language for first installation.";
       };
 
       ramSize = lib.mkOption {
@@ -137,13 +213,13 @@
 
       storagePath = lib.mkOption {
         type = lib.types.str;
-        default = "/home/tippy/Storage/WinApps";
+        default = "${config.users.users.${config.programs.winapps.userName}.home}/Storage/WinApps";
         description = "Host directory where Windows virtual disk is stored.";
       };
 
       sharedPath = lib.mkOption {
         type = lib.types.str;
-        default = "/home/tippy/Storage/WinAppsShare";
+        default = "${config.users.users.${config.programs.winapps.userName}.home}/Storage/WinAppsShare";
         description = "Shared host directory passed to the container.";
       };
     };
@@ -156,11 +232,6 @@
   };
 
   imports = [
-    ./packages.nix
-    ./libvirt.nix
-    ./vm-definition.nix
-    ./docker-windows.nix
-    ./podman-windows.nix
-    ./oem.nix
+    (lib.mkAliasOptionModule [ "desktop" "winapps" ] [ "programs" "winapps" ])
   ];
 }

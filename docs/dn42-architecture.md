@@ -398,7 +398,67 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 - **Priority 80**：保障 ESP 密文报文查 main 表直出主网卡。
 - **Priority 81**：针对全网所有隧道端口（500, 4500, 5056x），对 UDP 和 TCP 双协议双向豁免，确保底层 Mimic Fake-TCP 握手包绝不落入任何 TUN 网卡。
 - **Priority 90**：保障 DN42 内网流量与 PMTUD 差错报文走 BIRD 最优路径，防止被代理接管。
+- **职责单点权威化与严禁误删 8980**：
+  - 此前 `overlay-isolation.nix` 曾误包含 `while ip -4 rule del priority 8980 ...` 清理旧 table 200 的逻辑。但这直接导致了致命的级联瘫痪：删掉 `8980`（`uid 998 lookup main`）后，仅留下 `8985`（`uid 998 unreachable`），导致 Mihomo (UID 998) 自身发出的所有直连和代理请求被内核当场处死，TUN 捕获流量后全机彻底断网！
+  - 现已彻底规范：`overlay-isolation.nix` 严禁碰触 `Priority 8980`；同时 `Priority 80/81/90` 全权由 `dn42/base.nix` 单点维护（其拥有完整的集群端口表），`overlay-isolation.nix` 仅专注于 `Priority 8990`（Overlay 标记流量直通 main 表）；所有规则写入均附加 `2>/dev/null || true`，保证绝对幂等安全。
 - **Mesh 信任防火墙**：在 nftables 链注入放行规则，来自 `dn42` 与 `dn42x-*` 虚拟网卡的内网流量全局放行，使 `.dora.dn42` SOCKS5 代理、SSH、DNS 开箱即用，公网端口依然受到严密防护。
+
+---
+
+### 3.5 冲突五：开机时序与守护进程挂起死锁（NetworkManager-wait-online 与虚拟网卡干扰）
+
+#### 1. 深度病因剖析
+
+在桌面/笔记本（如 ARX8）环境中，大量基础服务依赖 `network-online.target`（包括 `mihomo.service`、`strongswan-swanctl.service`、`traefik.service`、`tcp-brutal-china-rules.service` 等）。
+开机时出现“概率性连不上外网”，其关键根因在于：
+
+1. **NetworkManager 默认纳管了虚拟网卡**：NetworkManager 默认会去监控 `dn42`（dummy 网卡）以及动态创建的 `xfrm*`、`Meta`、`tailscale0` 等。这些网卡在开机瞬间尚未完成密钥协商或未分配常规 DHCP IP，导致 NetworkManager 将其视为“未稳定接口”；
+2. **`nm-online -s` 的设计缺陷**：`NetworkManager-wait-online.service` 默认执行 `nm-online -s -q`（等待全网卡启动稳定）。由于虚拟网卡状态未达标，该命令会**硬等 60 秒直至超时失败**；
+3. **级联雪崩**：在开机整整 60 秒内，`network-online.target` 无法到达，导致 `mihomo.service` 迟迟无法启动。用户登录桌面发起网络请求时，既无代理也无 TUN；若直接强行关闭 `NetworkManager-wait-online.enable = false`，又会导致 `strongswan`、`mihomo` 在 Wi-Fi 尚未连通、尚未获取物理 IP 前盲目抢跑，引发启动崩溃。
+
+#### 2. 终极根治方案：黑名单排除虚拟接口 + 物理网卡快速连通探测
+
+在 `nixos/modules/desktop/network-manager.nix` 中：
+
+1. **黑名单彻底排除虚拟网卡**：
+   ```nix
+   networking.networkmanager.unmanaged = [
+     "interface-name:dn42*"
+     "interface-name:xfrm*"
+     "interface-name:Meta"
+     "interface-name:tailscale*"
+     "interface-name:easytier*"
+   ];
+   ```
+   - **为什么不影响 strongswan 与 IPsec SA？**
+     `unmanaged` 是 NetworkManager 专属指令，意思是“NetworkManager 不要给这些网卡发 DHCP，不要尝试重命名或修改其 MTU”。这些网卡是由内核与 `strongswan`、`bird`、`mihomo` 自行创建并管理的，禁止 NetworkManager 插手介入不仅毫无负面影响，反而是生产环境防止 IP 被冲掉的标准保护措施。
+2. **恢复原生 wait-online 快速通过**：
+   一旦虚拟网卡通过 `unmanaged` 排除，NetworkManager 不再无意义死等虚拟接口，原生的 `nm-online -s -q` 在物理接口连接后瞬间（0.02 秒）成功返回，无需缩短超时或暴力关闭，`network-online.target` 安全准时到达。
+
+---
+
+### 3.6 冲突六：全系统 DNS 并发竞速与防污染架构（国内外通用）
+
+#### 1. 深度病因剖析
+
+在公共基础网络模块（`network-base.nix`）中：
+
+- **此前配置**：SmartDNS 将 `1.1.1.1` 和 `8.8.8.8` 设为主用 DoH，而将国内服务器（`223.5.5.5`）打上了 `-fallback`；同时 Dnsmasq 配置了 `strict-order = true`；
+- **致命痛点**：
+  1. 在国内机器上，发往 `1.1.1.1` 的 DoH 直连 100% 超时阻断。由于 `-fallback` 的存在，SmartDNS 必须等主用服务器超时 3~5 秒后才回退到国内 DNS，Dnsmasq 串行排队超时，导致浏览器经常直接报错 `DNS_PROBE_FINISHED_NO_INTERNET`；
+  2. 超时后国内 DNS 返回了受 GFW 污染的假 IP，被 Dnsmasq 和系统长期缓存。
+
+#### 2. 终极根治方案：“国内外全并发竞速 + 代理端 Sniffer 远端解析”
+
+1. **SmartDNS 移除 `-fallback`，国内外全量并发**：
+   - 在 `network-base.nix` 中移除国内服务器的 `-fallback` 标记，Dnsmasq 移除 `strict-order`；
+   - **国外服务器**（fra0/tyo0 等）：直连 1.1.1.1/8.8.8.8 仅需 1~5ms 秒回，自动获选最快无污染 IP；
+   - **国内服务器/笔记本**：阿里/腾讯 DNS 仅需 10ms 秒回，彻底消除 DNS 阶段的几秒级超时与卡顿。
+2. **Mihomo 接管国外请求并强制使用远端无污染解析（“不听本地 Dnsmasq”）**：
+   - **关掉 Mihomo 时**：本地 Dnsmasq 正常处理所有境内外解析，直连不断网；
+   - **开启 Mihomo 时**：即使 Dnsmasq 返回了被 GFW 污染的假 IP，浏览器向该 IP 发起 TCP 连接瞬间，Mihomo TUN 内核网卡捕获数据包，通过 **Sniffer（嗅探器）** 在握手阶段提取出真实域名（如 `google.com`）；
+   - Mihomo 直接剥离、丢弃本地受污染的假 IP，在 VLESS / Reality 协议层直接携带原始域名发送给海外境外节点（如 `fra0`）；
+   - 由境外节点在海外当地使用纯净 DNS 完成权威解析并连接，彻底解决 DNS 污染与死锁。
 
 ---
 
@@ -421,12 +481,15 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 
 ### 4.2 常用排障排错速查表
 
-| 排查目标             | 命令                                                                                                      | 预期健康指标                                                  |
-| :------------------- | :-------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------ |
-| **Babel 邻居与 RTT** | `sudo birdc show babel neighbors`                                                                         | Metric 为健康值（300 ~ 700），RTT > 0，Expires 稳定倒数       |
-| **Babel 路由表**     | `sudo birdc show route protocol dn42_babel`                                                               | 包含集群各节点 `/32` 与 `/128` 路由，下一跳指向最优 `dn42x-*` |
-| **IPsec SA 状态**    | `sudo swanctl --list-sas`                                                                                 | `ESTABLISHED`，报文计数器 `in` 与 `out` 双向稳定增长          |
-| **XFRM 接口状态**    | `ip -d link show type xfrm`                                                                               | `if_id` 符合公式，MTU 1360，状态为 UP                         |
-| **策略路由规则**     | `ip rule` / `ip -6 rule`                                                                                  | 包含 Priority 80, 81, 90 规则                                 |
-| **CoreDNS 权威解析** | `dig @172.20.232.1 dora.dn42 SOA +short`<br>`dig @172.20.232.1 tyo0.dora.dn42 +short`                     | 返回 `ns1.dora.dn42.` 与对应节点内网 IP                       |
-| **Mihomo 节点延迟**  | `curl -s http://127.0.0.1:9090/proxies/<name>/delay?timeout=5000&url=http://www.gstatic.com/generate_204` | 返回 `{"delay": <ms>}`，无超时或 DNS 失败                     |
+| 排查目标              | 命令                                                                                                      | 预期健康指标                                                           |
+| :-------------------- | :-------------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| **Babel 邻居与 RTT**  | `sudo birdc show babel neighbors`                                                                         | Metric 为健康值（300 ~ 700），RTT > 0，Expires 稳定倒数                |
+| **Babel 路由表**      | `sudo birdc show route protocol dn42_babel`                                                               | 包含集群各节点 `/32` 与 `/128` 路由，下一跳指向最优 `dn42x-*`          |
+| **IPsec SA 状态**     | `sudo swanctl --list-sas`                                                                                 | `ESTABLISHED`，报文计数器 `in` 与 `out` 双向稳定增长                   |
+| **XFRM 接口状态**     | `ip -d link show type xfrm`                                                                               | `if_id` 符合公式，MTU 1360，状态为 UP                                  |
+| **策略路由规则**      | `ip rule` / `ip -6 rule`                                                                                  | 包含 Priority 80, 81, 90 及 8980, 8985, 8990                           |
+| **Mihomo 防熔断规则** | `ip rule \| grep 898`                                                                                     | 必须同时存在 `8980: lookup main` 与 `8985: unreachable`，严禁遗漏 8980 |
+| **开机网络在线状态**  | `systemctl status NetworkManager-wait-online`                                                             | `active (exited)` 且耗时 < 1 秒，无超时卡死                            |
+| **SmartDNS 本地响应** | `dig @127.0.0.1 -p 5335 www.baidu.com`                                                                    | Query time < 30ms，并发竞速秒回                                        |
+| **CoreDNS 权威解析**  | `dig @172.20.232.1 dora.dn42 SOA +short`<br>`dig @172.20.232.1 tyo0.dora.dn42 +short`                     | 返回 `ns1.dora.dn42.` 与对应节点内网 IP                                |
+| **Mihomo 节点延迟**   | `curl -s http://127.0.0.1:9090/proxies/<name>/delay?timeout=5000&url=http://www.gstatic.com/generate_204` | 返回 `{"delay": <ms>}`，无超时或 DNS 失败                              |

@@ -502,27 +502,27 @@ in
         done
 
         # Priority 80: 豁免 ESP 协议，强制查 main 表
-        ip rule add ipproto esp lookup main priority 80
-        ip -6 rule add ipproto esp lookup main priority 80
+        ip rule add ipproto esp lookup main priority 80 2>/dev/null || true
+        ip -6 rule add ipproto esp lookup main priority 80 2>/dev/null || true
 
         # Priority 81: 豁免全部集群隧道端口，udp/tcp 双协议双向（含 Mimic Fake-TCP）
         for proto in udp tcp; do
           for port in ${lib.concatStringsSep " " (map toString cfg.allClusterTunnelPorts)}; do
-            ip rule add ipproto $proto sport $port lookup main priority 81
-            ip rule add ipproto $proto dport $port lookup main priority 81
-            ip -6 rule add ipproto $proto sport $port lookup main priority 81
-            ip -6 rule add ipproto $proto dport $port lookup main priority 81
+            ip rule add ipproto $proto sport $port lookup main priority 81 2>/dev/null || true
+            ip rule add ipproto $proto dport $port lookup main priority 81 2>/dev/null || true
+            ip -6 rule add ipproto $proto sport $port lookup main priority 81 2>/dev/null || true
+            ip -6 rule add ipproto $proto dport $port lookup main priority 81 2>/dev/null || true
           done
         done
 
         # Priority 90: DN42 内部网段与 PMTUD 差错报文强制查 main 表（走 Babel IGP 最优路径）
-        ip rule add to 172.20.0.0/14 lookup main priority 90
-        ip rule add to 172.31.0.0/16 lookup main priority 90
-        ip rule add to 10.0.0.0/8 lookup main priority 90
-        ip rule add ipproto icmp lookup main priority 90
-        ip -6 rule add to fd00::/8 lookup main priority 90
-        ip -6 rule add to fe80::/10 lookup main priority 90
-        ip -6 rule add ipproto ipv6-icmp lookup main priority 90
+        ip rule add to 172.20.0.0/14 lookup main priority 90 2>/dev/null || true
+        ip rule add to 172.31.0.0/16 lookup main priority 90 2>/dev/null || true
+        ip rule add to 10.0.0.0/8 lookup main priority 90 2>/dev/null || true
+        ip rule add ipproto icmp lookup main priority 90 2>/dev/null || true
+        ip -6 rule add to fd00::/8 lookup main priority 90 2>/dev/null || true
+        ip -6 rule add to fe80::/10 lookup main priority 90 2>/dev/null || true
+        ip -6 rule add ipproto ipv6-icmp lookup main priority 90 2>/dev/null || true
       '';
     };
   };

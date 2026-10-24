@@ -33,11 +33,12 @@
     - 2.5 内部动态路由层：BIRD 2 Babel 动态选路与 ETX+RTT 算法
     - 2.6 专网权威 DNS 与反向解析体系 (`atc/router.nix`, CoreDNS, 官方 Registry 规范)
   - **三、 跨层多网络组件冲突与终极解决方案**
-    - 3.1 冲突背景：DN42, Tailscale, EasyTier, Mihomo TUN 的重叠战场
-    - 3.2 冲突一：Mihomo TUN 路由自捕获死锁（Routing Loop 根治方案）
-    - 3.3 冲突二：fwmark 0x1 与 Android (Box for KernelSU) 全局断网
-    - 3.4 冲突三：本地 127.0.0.1:53 Fallback 循环死锁
-    - 3.5 冲突四：底层网络策略路由 (Policy Routing) 与防火墙隔离
+    - 3.1 冲突一：Mihomo TUN 路由自捕获死锁与断网雪崩（Routing Loop 根治方案）
+    - 3.2 冲突二：fwmark 0x1 与 Android (Box for KernelSU) 全局断网
+    - 3.3 冲突三：本地 127.0.0.1:53 Fallback 循环死锁
+    - 3.4 冲突四：底层网络策略路由 (Policy Routing) 与防火墙隔离（单点权威化与严禁误删 8980）
+    - 3.5 冲突五：开机时序与守护进程挂起死锁（NetworkManager-wait-online 与虚拟网卡干扰）
+    - 3.6 冲突六：全系统 DNS 并发竞速与防污染架构（国内外通用）
   - **四、 关键配置与运维指南**
     - 4.1 节点扩展最佳实践（零接触新增节点）
     - 4.2 常用排障排错速查表

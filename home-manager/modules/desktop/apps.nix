@@ -11,62 +11,62 @@ let
   documentAssociations = {
     # Microsoft Word / WPS 文字 (默认优先使用 Microsoft Word)
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/msword" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word.document.macroEnabled.12" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/vnd.ms-word" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/msword-template" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/x-msword" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/rtf" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.docx" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.doc" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.dot" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
     "application/wps-office.dotx" = [
-      "winapps-word.desktop"
+      "word-o365.desktop"
       "wps-office-wps.desktop"
       "wps-writer.desktop"
     ];
@@ -159,67 +159,67 @@ let
 
     # Microsoft Excel / WPS 表格 (默认优先使用 Microsoft Excel)
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/msexcel" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/x-msexcel" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.sheet.macroEnabled.12" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.template.macroEnabled.12" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/vnd.ms-excel.sheet.binary.macroenabled.12" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "text/csv" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlsx" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xls" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xlt" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
     "application/wps-office.xltx" = [
-      "winapps-excel.desktop"
+      "excel-o365.desktop"
       "wps-office-et.desktop"
       "wps-spreadsheet.desktop"
     ];
@@ -252,67 +252,67 @@ let
 
     # Microsoft PowerPoint / WPS 演示 (默认优先使用 Microsoft PowerPoint)
     "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.ms-powerpoint" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/mspowerpoint" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/powerpoint" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/x-mspowerpoint" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.mspowerpoint" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/vnd.openxmlformats-officedocument.presentationml.template" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pptx" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.ppt" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.pot" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];
     "application/wps-office.potx" = [
-      "winapps-powerpoint.desktop"
+      "powerpoint-o365.desktop"
       "wps-office-wpp.desktop"
       "wps-presentation.desktop"
     ];

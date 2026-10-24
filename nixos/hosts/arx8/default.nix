@@ -26,7 +26,6 @@
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
-    ms365
   ];
   desktop.nvidia = {
     mode = "offload";

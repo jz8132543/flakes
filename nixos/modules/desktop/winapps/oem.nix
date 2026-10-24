@@ -6,7 +6,21 @@
 }:
 
 let
-  cfg = config.desktop.winapps;
+  cfg = config.programs.winapps;
+  generatedOfficeConfiguration = ''
+    <Configuration>
+      <Add OfficeClientEdition="64" Channel="${cfg.office.channel}">
+        <Product ID="${cfg.office.productId}">
+          <Language ID="${cfg.office.language}" />
+        </Product>
+      </Add>
+      <Property Name="SharedComputerLicensing" Value="0" />
+      <Property Name="AUTOACTIVATE" Value="1" />
+      <Updates Enabled="TRUE" Channel="${cfg.office.channel}" />
+      <RemoveMSI />
+      <Display Level="None" AcceptEULA="TRUE" />
+    </Configuration>
+  '';
 in
 {
   config = lib.mkIf (cfg.podman.enable || cfg.docker.enable) {
@@ -15,80 +29,138 @@ in
       "winapps/oem/Container.reg".source = "${inputs.winapps}/oem/Container.reg";
       "winapps/oem/NetProfileCleanup.ps1".source = "${inputs.winapps}/oem/NetProfileCleanup.ps1";
       "winapps/oem/TimeSync.ps1".source = "${inputs.winapps}/oem/TimeSync.ps1";
-      "winapps/oem/install.bat".text = ''
-        @echo off
-        echo ====================================================
-        echo [NixOS-WinApps] Initializing Unattended Environment
-        echo ====================================================
 
-        :: 1. 导入 WinApps 官方注册表配置 (RDPApps.reg 与 Container.reg)
-        if exist "%~dp0RDPApps.reg" (
-            echo [INFO] Importing RDPApps.reg...
-            reg import "%~dp0RDPApps.reg" >nul 2>&1
-        )
-        if exist "%~dp0Container.reg" (
-            echo [INFO] Importing Container.reg...
-            reg import "%~dp0Container.reg" >nul 2>&1
-        )
+      "winapps/oem/office-configuration.xml" =
+        if cfg.office.configurationFile != null then
+          { source = cfg.office.configurationFile; }
+        else
+          { text = generatedOfficeConfiguration; };
 
-        :: 2. 启用远程桌面防火墙规则
-        echo [INFO] Configuring Remote Desktop firewall rules...
-        netsh advfirewall firewall set rule group="remote desktop" new enable=Yes >nul 2>&1
-        powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Get-Command Enable-NetFirewallRule -ErrorAction SilentlyContinue) { Enable-NetFirewallRule -DisplayGroup 'Remote Desktop' }" >nul 2>&1
+      "winapps/oem/NixOSProvision.ps1".text = ''
+        $ErrorActionPreference = 'Stop'
+        # Windows PowerShell 5.1 defaults to TLS 1.0, which Microsoft's CDN rejects.
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $stateRoot = Join-Path $env:ProgramData 'WinApps'
+        $logPath = Join-Path $stateRoot 'provision.log'
+        $markerPath = '\\host.lan\Data\.winapps-provisioned'
+        New-Item -ItemType Directory -Force -Path $stateRoot | Out-Null
 
-        :: 3. 彻底禁用自动更新与遥测
-        echo [INFO] Disabling Windows update and telemetry services...
-        sc stop wuauserv >nul 2>&1
-        sc config wuauserv start= disabled >nul 2>&1
-        sc stop bits >nul 2>&1
-        sc config bits start= disabled >nul 2>&1
-        sc stop DiagTrack >nul 2>&1
-        sc config DiagTrack start= disabled >nul 2>&1
+        function Write-ProvisionLog {
+            param([string]$Message)
+            $line = "$(Get-Date -Format o) $Message"
+            Add-Content -LiteralPath $logPath -Value $line
+            Write-Host $line
+        }
 
-        :: 4. 解决 tsclient 受保护视图与黄色只读警告栏
-        :: 将 tsclient 域名添加到本地 Intranet (Zone 1)
-        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\tsclient" /f >nul 2>&1
-        reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\tsclient" /v file /t REG_DWORD /d 1 /f >nul 2>&1
-        reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\tsclient" /f >nul 2>&1
-        reg add "HKLM\Software\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\tsclient" /v file /t REG_DWORD /d 1 /f >nul 2>&1
+        function Read-ProductKey {
+            param([string]$Path)
+            $shared = Join-Path '\\host.lan\Data' (Split-Path -Leaf $Path)
+            if (-not (Test-Path -LiteralPath $Path) -and (Test-Path -LiteralPath $shared)) {
+                Copy-Item -LiteralPath $shared -Destination $Path -Force
+            }
+            if (-not (Test-Path -LiteralPath $Path)) { return $null }
+            $key = (Get-Content -LiteralPath $Path -Raw).Trim().ToUpperInvariant()
+            if ($key -notmatch '^[A-Z0-9]{5}(-[A-Z0-9]{5}){4}$') {
+                throw "Invalid product key format in $Path"
+            }
+            return $key
+        }
 
-        :: 允许 Office 从网络位置信任文档 (Office 2016 / 2019 / 2021 / 365)
-        reg add "HKCU\Software\Microsoft\Office\16.0\Word\Security\Trusted Locations" /v AllowNetworkLocations /t REG_DWORD /d 1 /f >nul 2>&1
-        reg add "HKCU\Software\Microsoft\Office\16.0\Excel\Security\Trusted Locations" /v AllowNetworkLocations /t REG_DWORD /d 1 /f >nul 2>&1
-        reg add "HKCU\Software\Microsoft\Office\16.0\PowerPoint\Security\Trusted Locations" /v AllowNetworkLocations /t REG_DWORD /d 1 /f >nul 2>&1
+        function Invoke-LicenseCommand {
+            param([string]$Script, [string[]]$Arguments, [string]$Label)
+            Write-ProvisionLog "Running $Label"
+            $output = & cscript.exe //NoLogo $Script @Arguments 2>&1 | Out-String
+            Add-Content -LiteralPath $logPath -Value $output
+            Write-ProvisionLog "$Label exited with code $LASTEXITCODE"
+            return $LASTEXITCODE
+        }
 
-        :: 5. 复制并注册网络清理与时间同步任务
-        if exist "%~dp0NetProfileCleanup.ps1" (
-            copy /Y "%~dp0NetProfileCleanup.ps1" "%windir%\" >nul
-            schtasks /create /tn "WinApps_NetworkProfileCleanup" /tr "powershell.exe -ExecutionPolicy Bypass -File \"%windir%\NetProfileCleanup.ps1\"" /sc onstart /ru "SYSTEM" /rl HIGHEST /f >nul 2>&1
-        )
-        if exist "%~dp0TimeSync.ps1" (
-            copy /Y "%~dp0TimeSync.ps1" "%windir%\" >nul
-            schtasks /create /tn "TimeSync" /tr "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File \"%windir%\TimeSync.ps1\"" /sc onlogon /rl HIGHEST /f >nul 2>&1
-        )
-
-        :: 6. Install Office from a licensed Office Deployment Tool package in dockur's Data share.
-        :: The share is available as \\host.lan\Data; tsclient only exists during an RDP session.
-        set "OFFICE_SHARE=\\host.lan\Data"
-        if exist "Z:\setup.exe" set "OFFICE_SHARE=Z:"
-        if exist "%OFFICE_SHARE%\setup.exe" if exist "%OFFICE_SHARE%\configuration.xml" (
-            if not exist "%ProgramFiles%\Microsoft Office\root\Office16\WINWORD.EXE" (
-                echo [INFO] Installing Office using the supplied deployment configuration...
-                "%OFFICE_SHARE%\setup.exe" /configure "%OFFICE_SHARE%\configuration.xml"
+        try {
+            $wordPaths = @(
+                "$env:ProgramFiles\Microsoft Office\root\Office16\WINWORD.EXE",
+                "$env:ProgramFiles\Microsoft Office\Office16\WINWORD.EXE"
             )
-        ) else (
-            echo [WARN] Office not installed: provide licensed Office Deployment Tool setup.exe and configuration.xml in WinAppsShare.
-        )
+            $word = $wordPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 
-        :: Office Click-to-Run installs under root\Office16; WinApps' legacy app definitions
-        :: expect Office16 directly under Microsoft Office. Create the junction if needed.
-        if exist "%ProgramFiles%\Microsoft Office\root\Office16\WINWORD.EXE" (
-            if not exist "%ProgramFiles%\Microsoft Office\Office16\WINWORD.EXE" (
-                mklink /J "%ProgramFiles%\Microsoft Office\Office16" "%ProgramFiles%\Microsoft Office\root\Office16"
+            if (${if cfg.office.enable then "$true" else "$false"} -and -not $word) {
+                $odt = Join-Path $stateRoot 'OfficeSetup.exe'
+                $officeConfiguration = Join-Path $stateRoot 'office-configuration.xml'
+                if (-not (Test-Path -LiteralPath $officeConfiguration)) {
+                    # The installer normally stages the configuration locally; fall
+                    # back to dockur's Data share when the script runs from there.
+                    $sharedConfiguration = '\\host.lan\Data\office-configuration.xml'
+                    if (Test-Path -LiteralPath $sharedConfiguration) {
+                        Copy-Item -LiteralPath $sharedConfiguration -Destination $officeConfiguration -Force
+                    } else {
+                        throw "Office configuration is missing: $officeConfiguration"
+                    }
+                }
+                Write-ProvisionLog 'Downloading Microsoft Office Deployment Tool'
+                Invoke-WebRequest -UseBasicParsing -Uri 'https://officecdn.microsoft.com/pr/wsus/setup.exe' -OutFile $odt
+                Write-ProvisionLog 'Installing Office'
+                $process = Start-Process -FilePath $odt -ArgumentList @('/configure', $officeConfiguration) -Wait -PassThru
+                if ($process.ExitCode -ne 0) { throw "Office Deployment Tool exited with code $($process.ExitCode)" }
+                $word = $wordPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+                if (-not $word) { throw 'Office installation finished without WINWORD.EXE' }
+            }
+            Write-ProvisionLog "Office executable: $word"
+
+            $windowsKeyPath = Join-Path $stateRoot 'windows-product-key'
+            $windowsKey = Read-ProductKey $windowsKeyPath
+            $slmgr = Join-Path $env:SystemRoot 'System32\slmgr.vbs'
+            if ($windowsKey) {
+                Invoke-LicenseCommand $slmgr @('/ipk', $windowsKey) 'Windows product-key installation' | Out-Null
+            }
+            Invoke-LicenseCommand $slmgr @('/ato') 'Windows activation' | Out-Null
+
+            $ospp = @(
+                "$env:ProgramFiles\Microsoft Office\Office16\OSPP.VBS",
+                "$env:ProgramFiles\Microsoft Office\root\Office16\OSPP.VBS",
+                "''${env:ProgramFiles(x86)}\Microsoft Office\Office16\OSPP.VBS",
+                "''${env:ProgramFiles(x86)}\Microsoft Office\root\Office16\OSPP.VBS"
+            ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+            if ($ospp) {
+                $officeKey = Read-ProductKey (Join-Path $stateRoot 'office-product-key')
+                if ($officeKey) {
+                    Invoke-LicenseCommand $ospp @("/inpkey:$officeKey") 'Office product-key installation' | Out-Null
+                }
+                Invoke-LicenseCommand $ospp @('/act') 'Office activation' | Out-Null
+            } else {
+                Write-ProvisionLog 'OSPP.VBS is unavailable; subscription Office must be activated by signing in with a licensed account.'
+            }
+
+            $status = @(
+                "completed=$(Get-Date -Format o)",
+                "office=$([bool]$word)",
+                "windows-key-configured=$([bool]$windowsKey)",
+                "office-license-tool=$([bool]$ospp)"
             )
-        )
+            # Write both the host-visible share marker and a local copy so the
+            # boot-suspend check works even if the Samba share is unavailable.
+            Set-Content -LiteralPath $markerPath -Value $status -Encoding ASCII -ErrorAction SilentlyContinue
+            Set-Content -LiteralPath (Join-Path $stateRoot 'provisioned') -Value $status -Encoding ASCII
+            Remove-Item -Force -ErrorAction SilentlyContinue $windowsKeyPath, (Join-Path $stateRoot 'office-product-key')
+            schtasks.exe /Delete /TN 'WinApps_NixOSProvision' /F 2>&1 | Add-Content -LiteralPath $logPath
+            Write-ProvisionLog 'Provisioning completed'
+            exit 0
+        } catch {
+            Write-ProvisionLog "Provisioning failed: $($_.Exception.Message)"
+            exit 1
+        }
+      '';
 
-        echo [NixOS-WinApps] Provisioning completed successfully.
+      "winapps/oem/install.bat".text = builtins.readFile "${inputs.winapps}/oem/install.bat" + ''
+
+        :: NixOS extension: install Office, then activate Windows and Office using
+        :: their own Microsoft licensing tools. This task retries after failures.
+        set "WINAPPS_STATE=%ProgramData%\WinApps"
+        if not exist "%WINAPPS_STATE%" mkdir "%WINAPPS_STATE%"
+        copy /Y "%~dp0NixOSProvision.ps1" "%WINAPPS_STATE%\NixOSProvision.ps1" >nul
+        copy /Y "%~dp0office-configuration.xml" "%WINAPPS_STATE%\office-configuration.xml" >nul
+        if exist "%~dp0windows-product-key" copy /Y "%~dp0windows-product-key" "%WINAPPS_STATE%\windows-product-key" >nul
+        if exist "%~dp0office-product-key" copy /Y "%~dp0office-product-key" "%WINAPPS_STATE%\office-product-key" >nul
+        schtasks /create /tn "WinApps_NixOSProvision" /tr "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"%WINAPPS_STATE%\NixOSProvision.ps1\"" /sc onstart /ru SYSTEM /rl HIGHEST /f >nul 2>&1
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%WINAPPS_STATE%\NixOSProvision.ps1"
       '';
     };
   };

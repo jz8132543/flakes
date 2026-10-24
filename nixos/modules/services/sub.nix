@@ -329,10 +329,6 @@ let
       "DOMAIN-SUFFIX,nsupdate.info,DIRECT"
       "DOMAIN-SUFFIX,dora.im,DIRECT"
       "DOMAIN-SUFFIX,kxy.ovh,DIRECT"
-      "IP-CIDR,1.1.1.1/32,DIRECT,no-resolve"
-      "IP-CIDR,1.0.0.1/32,DIRECT,no-resolve"
-      "IP-CIDR,8.8.8.8/32,DIRECT,no-resolve"
-      "IP-CIDR,8.8.4.4/32,DIRECT,no-resolve"
 
       # 拦截广告
       "GEOSITE,category-ads-all,REJECT"
@@ -448,17 +444,13 @@ let
         "172.31.0.0/16"
         "10.0.0.0/8"
         "fd00::/8"
-        # 豁免公网与公共 DNS IP，避免 proxy-server-nameserver 发起的自解析查询被 TUN 捕获引发环路死锁
+        # 豁免国内公共 DNS IP，避免自解析查询被 TUN 捕获，保障直连极速解析
         "223.5.5.5/32"
         "223.6.6.6/32"
         "119.29.29.29/32"
         "1.12.12.12/32"
         "180.76.76.76/32"
         "114.114.114.114/32"
-        "1.1.1.1/32"
-        "1.0.0.1/32"
-        "8.8.8.8/32"
-        "8.8.4.4/32"
       ];
     };
 
