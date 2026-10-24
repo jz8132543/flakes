@@ -101,6 +101,11 @@ in
               echo "stats_over_http.so /_astats" >> /var/lib/trafficserver/etc/plugin.config
             fi
 
+            # 保证回源时保留客户端原始 Host 标头，避免替换为源站机器名导致回源命中 DERP
+            if ! grep -q "pristine_host_hdr" /var/lib/trafficserver/etc/records.config 2>/dev/null; then
+              echo "CONFIG proxy.config.url_remap.pristine_host_hdr INT 1" >> /var/lib/trafficserver/etc/records.config
+            fi
+
             # 保证 /etc/trafficserver/remap.config 软链接至可写的运行时配置
             rm -f /etc/trafficserver/remap.config 2>/dev/null || true
             ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
@@ -211,10 +216,10 @@ in
         echo "Synchronizing configuration from active controller: $BEST_CONTROLLER (version: $BEST_FINGERPRINT, epoch: $BEST_EPOCH)..."
         touch /run/t3c.lock 2>/dev/null || true
 
+        export TO_PASS="$(tr -d '\r\n' < "${config.sops.secrets."atc/ops_password".path}")"
         ${pkgs.trafficcontrol.t3c}/bin/t3c apply \
           --traffic-ops-url="https://$BEST_CONTROLLER" \
           --traffic-ops-user="${cfg.opsUser}" \
-          --traffic-ops-password-file="${config.sops.secrets."atc/ops_password".path}" \
           --cache-host-name="${config.networking.hostName}" \
           --run-mode=syncds \
           --trafficserver-home=/var/lib/trafficserver \

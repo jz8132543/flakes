@@ -314,6 +314,27 @@ Traffic Ops 作为 CDN 的控制中枢，负责承载全网拓扑数据、凭据
 - 所有业务域名通过 `Host(`${s}.${config.networking.domain}`)` 规则匹配；
 - 边缘节点一次部署后，**终生不需要重新更新任何配置**，所有规则从控制节点自动获取。
 
+#### 6. 回源 Host 标头保持与虚拟主机路由隔离 (Pristine Host Header & Header Rewrite)
+
+当多个业务（Nextcloud、Alist、Jellyfin、Tailscale DERP 等）集中托管在源站集群（`fra0`）时，源站入口由 Traefik 根据 HTTP `Host` 头部进行虚拟主机分流（如 `Host(`cloud.dora.im`)` 分流至 Nextcloud，`Host(`fra0.dora.im`)` 分流至 DERP）。
+
+若回源配置不当，ATS 默认行为会将 HTTP `Host` 改写为源站机器名 `fra0.dora.im`，导致所有业务请求在源站被 Traefik 误判并送入 DERP 服务（用户看到 `<h1>DERP</h1>` 页面）。
+
+本架构采用双重声明式防御彻底杜绝该问题：
+
+1. **全局 Pristine Host Header**：在 Traffic Ops 的 `EDGE_ATS_GLOBAL` Profile 注入核心参数：
+   ```text
+   CONFIG proxy.config.url_remap.pristine_host_hdr INT 1
+   ```
+   ATS 在收到客户端请求后，回源阶段全局保留客户端原始请求的 `Host` 头部（如 `cloud.dora.im`），不改写为目标源站机器名。
+2. **Delivery Service 级精确 Header Rewrite 插件注入**：
+   在 `ops.nix` 声明式生成 Delivery Service 时，自动为每个业务写入 `edge_header_rewrite`：
+   ```text
+   cond %{SEND_REQUEST_HDR_HOOK}
+   set-header Host "${svcName}.${domain}"
+   ```
+   `t3c` 同步时会自动在边缘节点生成 `/var/lib/trafficserver/etc/hdr_rw_${xml_id}.config`，并在 `remap.config` 中自动挂载 `@plugin=header_rewrite.so @pparam=hdr_rw_${xml_id}.config`，确保向源站发送的 Host 标头与目标业务绝对一致。
+
 ---
 
 ### 3.3 智能调度与权威 DNS 面 (`nixos/modules/services/atc/router.nix`)
@@ -378,6 +399,18 @@ Traffic Ops 作为 CDN 的控制中枢，负责承载全网拓扑数据、凭据
 | **边缘节点 (fra1..hkg5)** | Traefik                    | **80**           | `0.0.0.0`                 | 内部转发 `/_astats` 给 ATS；普通业务纯 302 到 HTTPS |
 | **边缘节点 (fra1..hkg5)** | Traefik                    | **443**          | `0.0.0.0`                 | 终结各业务域名 TLS，反代至本机 ATS:8089             |
 | **边缘节点 (fra1..hkg5)** | ATS                        | **8089**         | `127.0.0.1`               | 高速缓存引擎，按 t3c 动态下发的 remap 规则回源      |
+
+#### 4. 为什么 CoreDNS 显式绑定特定公网 IP 而非 0.0.0.0？
+
+在 `router.nix` 中，CoreDNS 监听地址由 `data.controlNodes` 自动解析出宿主机公网 IPv4（`94.249.174.75`）与 IPv6，严禁绑定 `0.0.0.0`：
+
+1. **宿主机物理端口防冲突**：控制节点宿主机已运行多个内部专用 DNS 服务：
+   - `127.0.0.1:53`：`dnsmasq`（本机系统与递归解析）；
+   - `10.88.0.1:53`：`aardvark-dns`（Podman 容器内部服务发现）；
+   - `172.20.232.1:53`：DN42 专网权威 DNS。
+     若绑定 `0.0.0.0:53`，内核会直接抛出 `bind: address already in use` 导致服务崩溃。
+2. **严格的网络安全与平面隔离**：
+   CoreDNS 专职作为面向全球互联网的公网权威解析器，显式绑定公网 IP 使公网 DNS、容器内网 DNS、宿主本地 DNS、DN42 专网 DNS 拥有各自完全独立的网络命名空间，互不抢占、互不污染。
 
 ---
 
@@ -527,13 +560,16 @@ strict-transport-security: max-age=63072000; includeSubDomains
 
 ### 5.2 常见排障排错速查表
 
-| 故障现象                                                                | 潜在根因                                                      | 排查与修复步骤                                                                                                                                                                                  |
-| :---------------------------------------------------------------------- | :------------------------------------------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `t3c apply` 报 `Read-only file system`                                  | `remap.config` 仍指向 `/nix/store` 路径                       | 检查 `edge.nix` 中 `environment.etc."trafficserver/remap.config".enable = false;` 是否生效；检查 preStart 是否正确创建可写目录。                                                                |
-| `atc-t3c-sync` 报 `401 Unauthorized`                                    | `t3c-sync` 用户凭据不匹配或未在 Traffic Ops 初始化            | 1. 检查 `secrets/common.yaml` 中的 `atc.ops_password`；<br>2. 在中心节点检查 `traffic-ops-init.service` 日志，确认 SQL 种子是否成功灌入 PostgreSQL 的 `tm_user` 表。                            |
-| `atc-t3c-sync` 报 `403 Forbidden` (`sslkeys` 或 `server update`)        | Upstream 默认路由权限要求过高（Admin / Operations）           | 检查 `pkgs/trafficcontrol/default.nix`，确保已对 `sslkeys` 与 `servers/{id}/update` 授予 ReadOnly 级别放行。                                                                                    |
-| `remap.config failed to load: unable to open dscp/set_dscp_0.config`    | ATS 插件配置目录未关联                                        | 检查 `/var/lib/trafficserver/etc/dscp/set_dscp_0.config` 是否存在，以及 `/etc/trafficserver/dscp` 软链接是否就绪。                                                                              |
-| `atc-t3c-sync` 提示 `All Traffic Ops control endpoints are unreachable` | 控制节点公网 DNS 未发布或端口未放行                           | 检查 `edge.nix` 的 `networking.extraHosts` 是否已注入控制节点 IP；检查控制节点 Traefik HTTPS 代理与 8084 端口。                                                                                 |
-| 边缘节点提示 `Skipping sync to prevent rollback`                        | 探测到的控制节点 `epoch` 小于本地记录                         | 说明连接到的控制节点版本落后于历史记录；检查是否有未更新的旧控制节点在响应，或检查当前控制节点的系统构建时间戳。                                                                                |
-| CDN 域名返回 404                                                        | 请求命中了未运行 ATS 的非边缘节点，或 Delivery Service 未同步 | 确认 `cdn.tf` 的 `cdn_edge_nodes` 仅包含当前运行 ATS 的节点；检查 Traffic Ops 中是否有对应的 Delivery Service 记录。                                                                            |
-| DNS 仍返回离线节点 IP                                                   | Traffic Router 未更新或 Traffic Monitor 未探测                | 1. 检查 `traffic-monitor.service` 是否运行；<br>2. 检查 `crconfig.backup` 中节点健康状态；<br>3. 检查 `traffic-router.service` 日志；<br>4. 确认 Traffic Router 已连接 Traffic Ops 并获取拓扑。 |
+| 故障现象                                                                                        | 潜在根因                                                                                             | 排查与修复步骤                                                                                                                                                                                                                                                                                                                                                   |
+| :---------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `t3c apply` 报 `Read-only file system`                                                          | `remap.config` 仍指向 `/nix/store` 路径                                                              | 检查 `edge.nix` 中 `environment.etc."trafficserver/remap.config".enable = false;` 是否生效；检查 preStart 是否正确创建可写目录。                                                                                                                                                                                                                                 |
+| `atc-t3c-sync` 报 `401 Unauthorized`                                                            | `t3c-sync` 用户凭据不匹配或未在 Traffic Ops 初始化                                                   | 1. 检查 `secrets/common.yaml` 中的 `atc.ops_password`；<br>2. 在中心节点检查 `traffic-ops-init.service` 日志，确认 SQL 种子是否成功灌入 PostgreSQL 的 `tm_user` 表。                                                                                                                                                                                             |
+| `atc-t3c-sync` 报 `403 Forbidden` (`sslkeys` 或 `server update`)                                | Upstream 默认路由权限要求过高（Admin / Operations）                                                  | 检查 `pkgs/trafficcontrol/default.nix`，确保已对 `sslkeys` 与 `servers/{id}/update` 授予 ReadOnly 级别放行。                                                                                                                                                                                                                                                     |
+| `remap.config failed to load: unable to open dscp/set_dscp_0.config`                            | ATS 插件配置目录未关联                                                                               | 检查 `/var/lib/trafficserver/etc/dscp/set_dscp_0.config` 是否存在，以及 `/etc/trafficserver/dscp` 软链接是否就绪。                                                                                                                                                                                                                                               |
+| `atc-t3c-sync` 提示 `All Traffic Ops control endpoints are unreachable`                         | 控制节点公网 DNS 未发布或端口未放行                                                                  | 检查 `edge.nix` 的 `networking.extraHosts` 是否已注入控制节点 IP；检查控制节点 Traefik HTTPS 代理与 8084 端口。                                                                                                                                                                                                                                                  |
+| 边缘节点提示 `Skipping sync to prevent rollback`                                                | 探测到的控制节点 `epoch` 小于本地记录                                                                | 说明连接到的控制节点版本落后于历史记录；检查是否有未更新的旧控制节点在响应，或检查当前控制节点的系统构建时间戳。                                                                                                                                                                                                                                                 |
+| CDN 域名返回 404                                                                                | 请求命中了未运行 ATS 的非边缘节点，或 Delivery Service 未同步                                        | 确认 `cdn.tf` 的 `cdn_edge_nodes` 仅包含当前运行 ATS 的节点；检查 Traffic Ops 中是否有对应的 Delivery Service 记录。                                                                                                                                                                                                                                             |
+| DNS 仍返回离线节点 IP                                                                           | CoreDNS 未更新或 Traffic Monitor 未探测                                                              | 1. 检查 `traffic-monitor.service` 与 `atc-dynamic-dns.timer` 是否运行；<br>2. 检查 `crconfig.backup` 中节点健康状态；<br>3. 检查 `/var/lib/traffic_router/cdn.dora.im.zone` 生成内容。                                                                                                                                                                           |
+| 访问业务域名（如 `cloud.dora.im`）返回 DERP 页面 (`<h1>DERP</h1>`)                              | ATS 回源时默认将 Host 头改写为目标源站机器名 `fra0.dora.im`，源站 Traefik 根据主机名路由至 DERP 服务 | 1. 检查 Traffic Ops 中 Delivery Service 是否配置了 `edge_header_rewrite`，确保生成 `hdr_rw_${xml_id}.config` 并在回源时保留客户端原始 Host 标头；<br>2. 检查边缘 `records.config` 中是否包含 `CONFIG proxy.config.url_remap.pristine_host_hdr INT 1`；<br>3. 在边缘测试直连 `curl -k -Iv -H 'Host: cloud.dora.im' https://fra0.dora.im/` 验证源站 Traefik 路由。 |
+| Traffic Monitor 报 `invalid CRConfig: CRConfig.Stats.CDN missing` 或 `No REPORTED caches exist` | Traffic Ops 未执行 CRConfig Snapshot 快照，或边缘节点状态为 `ONLINE` 而非 `REPORTED`                 | 1. 在控制节点检查 `traffic-ops-init.service` 是否自动执行了 `PUT /api/5.0/snapshot?cdn=dora-cdn`；<br>2. 检查 `EDGE_ATS_GLOBAL` Profile 是否挂载了 `health.polling.url` (`rascal.properties`) 参数；<br>3. 检查边缘节点在数据库中的 status 是否为 `REPORTED`（ID=3）。                                                                                           |
+| `t3c apply` 报 `unknown option: --traffic-ops-password-file`                                    | t3c 原生命令不支持该参数，仅支持环境变量 `TO_PASS` 或 `-P` 标志                                      | 检查 `edge.nix`，确保密码通过 `export TO_PASS="$(tr -d '\r\n' < /run/secrets/atc/ops_password)"` 注入。                                                                                                                                                                                                                                                          |

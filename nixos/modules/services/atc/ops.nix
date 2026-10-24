@@ -236,13 +236,14 @@ let
           ''
             INSERT INTO deliveryservice (
               xml_id, active, dscp, type, profile, cdn_id, display_name, tenant_id,
-              routing_name, protocol, ipv6_routing_enabled
+              routing_name, protocol, ipv6_routing_enabled, edge_header_rewrite
             )
             SELECT '${svcName}', 'ACTIVE'::ds_active_state, 0, t.id, p.id, c.id, '${svcName} service', tn.id,
-              'edge', 2, true
+              'edge', 2, true, 'cond %{SEND_REQUEST_HDR_HOOK}' || chr(10) || 'set-header Host "${svcName}.${domain}"'
             FROM type t, profile p, cdn c, tenant tn
             WHERE t.name = 'HTTP' AND p.name = 'EDGE_ATS_GLOBAL' AND c.name = 'dora-cdn' AND tn.name = 'root'
-            ON CONFLICT (xml_id) DO UPDATE SET active = 'ACTIVE'::ds_active_state, protocol = 2;
+            ON CONFLICT (xml_id) DO UPDATE SET active = 'ACTIVE'::ds_active_state, protocol = 2,
+              edge_header_rewrite = EXCLUDED.edge_header_rewrite;
 
             INSERT INTO origin (name, fqdn, protocol, is_primary, port, deliveryservice, tenant)
             SELECT '${svcName}-origin', '${originHost}.${domain}', 'https'::origin_protocol, true, 443, ds.id, tn.id
@@ -405,6 +406,7 @@ let
               ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
               ('proxy.config.net.connections_throttle', 'records.config', '10000'),
               ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6'),
+              ('proxy.config.url_remap.pristine_host_hdr', 'records.config', '1'),
               ('location', 'set_dscp_0.config', '/var/lib/trafficserver/etc/dscp')
             ) AS t(pname, pfile, pval)
             LOOP
