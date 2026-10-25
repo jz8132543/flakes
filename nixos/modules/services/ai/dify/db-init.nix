@@ -109,13 +109,26 @@ in
           --set=ON_ERROR_STOP=1 \
           -c "CREATE DATABASE ${difyPgDb} OWNER ${difyPgUser};"
 
+      echo "[dify-db-init] Creating database 'dify_plugin' if not exists..."
+      ${psql} \
+        -h ${pgHost} -p ${toString pgPort} \
+        -U postgres \
+        --set=ON_ERROR_STOP=1 \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='dify_plugin'" \
+        | grep -q 1 || \
+        ${psql} \
+          -h ${pgHost} -p ${toString pgPort} \
+          -U postgres \
+          --set=ON_ERROR_STOP=1 \
+          -c "CREATE DATABASE dify_plugin OWNER ${difyPgUser};"
+
       echo "[dify-db-init] Granting privileges to '${difyPgUser}'..."
       ${psql} \
         -h ${pgHost} -p ${toString pgPort} \
         -U postgres \
         -d ${difyPgDb} \
         --set=ON_ERROR_STOP=1 \
-        -c "GRANT ALL PRIVILEGES ON DATABASE ${difyPgDb} TO ${difyPgUser};"
+        -c "GRANT ALL PRIVILEGES ON DATABASE ${difyPgDb} TO ${difyPgUser}; GRANT ALL PRIVILEGES ON DATABASE dify_plugin TO ${difyPgUser};"
 
       echo "[dify-db-init] Enabling PostgreSQL extensions in '${difyPgDb}'..."
       ${psql} \

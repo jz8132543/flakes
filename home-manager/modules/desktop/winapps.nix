@@ -44,11 +44,11 @@ in
       # 可移动介质挂载路径（GNOME/udisks 默认使用 /run/media）
       REMOVABLE_MEDIA="/run/media"
 
-      # 驱动重定向：挂载全盘根目录 / 为 \tsclient\root，家目录为 \tsclient\home，
+      # 驱动重定向：挂载家目录为 \tsclient\home，
       # 共享文件夹为 \tsclient\WinAppsShare，并启用打印机/剪贴板/声卡重定向
       # - /network:lan: 本机回环低延迟模式
       # FreeRDP 3 rejects the legacy /gfx-progressive and +glyph-cache flags.
-      RDP_FLAGS="/cert:tofu /network:lan /sound /microphone +clipboard /printer /drive:WinAppsShare,${
+      RDP_FLAGS="/cert:tofu /network:lan /sound /microphone +clipboard /printer /drive:home,${config.home.homeDirectory} /drive:WinAppsShare,${
         sysCfg.podman.sharedPath or "${config.home.homeDirectory}/Storage/WinAppsShare"
       } /auto-reconnect-max-retries:1"
 

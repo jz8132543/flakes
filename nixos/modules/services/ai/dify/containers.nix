@@ -76,9 +76,8 @@ let
     STORAGE_TYPE = "local";
     STORAGE_LOCAL_PATH = "/app/api/storage";
 
-    # ── 代码沙箱 ─────────────────────────────────────────────────────
+    # ── 代码沙箱（API Key 由 sops-nix dify-secret.env 注入）───────
     CODE_EXECUTION_ENDPOINT = "http://${toString "127.0.0.1"}:${toString sandboxPort}";
-    CODE_EXECUTION_API_KEY = "dify-sandbox-secret"; # 内网 token，非关键密钥
     CODE_MAX_NUMBER = "9223372036854775807";
     CODE_MIN_NUMBER = "-9223372036854775808";
 
@@ -108,9 +107,8 @@ let
     # 若 rerankApiBase 非空则注入；否则 Dify 内部会使用默认配置
     RERANK_API_URL = lib.optionalString (cfg.rerankApiBase != "") cfg.rerankApiBase;
 
-    # ── ContextForge MCP 总线（同宿主机 loopback）────────────────────
-    # Dify Workflow Plugin 通过此地址调用 Virtual MCP 端点
-    MCP_GATEWAY_URL = "http://127.0.0.1:${toString config.ports.mcp-contextforge-api}";
+    # ── Dify 内部插件守护程序（Plugin Daemon）────────────────────────
+    PLUGIN_DAEMON_URL = "http://127.0.0.1:${toString config.ports.dify-plugin-daemon}";
 
     # ── 登录与认证（支持用户 i 密码登录 + Keycloak OIDC 单点登录）─────
     ENABLE_SOCIAL_OAUTH_LOGIN = "true";
@@ -486,8 +484,10 @@ in
       environment = {
         PORT = toString webPort;
         HOSTNAME = "0.0.0.0";
-        CONSOLE_API_URL = "";
-        APP_API_URL = "";
+        CONSOLE_API_URL = "https://${cfg.domain}";
+        APP_API_URL = "https://${cfg.domain}";
+        CONSOLE_WEB_URL = "https://${cfg.domain}";
+        SERVER_CONSOLE_API_URL = "http://127.0.0.1:${toString apiPort}";
         # SSE 流式传输：禁用 Next.js 响应缓冲
         NEXT_TELEMETRY_DISABLED = "1";
       };
@@ -503,7 +503,6 @@ in
         "--security-opt=seccomp=unconfined" # sandbox 内部自行管理 seccomp
       ];
       environment = {
-        API_KEY = "dify-sandbox-secret";
         GIN_MODE = "release";
         WORKER_TIMEOUT = "15";
         ENABLE_NETWORK = "true";
@@ -511,16 +510,62 @@ in
         HTTPS_PROXY = "";
         SANDBOX_PORT = toString sandboxPort;
       };
+      environmentFiles = [
+        config.sops.templates."dify-sandbox-secret.env".path
+      ];
+    };
+
+    dify-plugin-daemon = {
+      image = cfg.image.pluginDaemon;
+      autoStart = true;
+      extraOptions = [
+        "--network=host"
+      ];
+      environment = {
+        SERVER_PORT = toString config.ports.dify-plugin-daemon;
+        SERVER_HOST = "0.0.0.0";
+        SERVER_KEY = "plugin-api-key";
+        DB_HOST = pgHost;
+        DB_PORT = toString pgPort;
+        DB_USERNAME = difyPgUser;
+        DB_PASSWORD = "dify";
+        DB_DATABASE = "dify_plugin";
+        DB_DEFAULT_DATABASE = "postgres";
+        REDIS_HOST = redisHost;
+        REDIS_PORT = toString redisPort;
+        REDIS_DB = "0";
+        DIFY_INNER_API_URL = "http://127.0.0.1:${toString apiPort}";
+        DIFY_INNER_API_KEY = "inner-api-key";
+        PLUGIN_REMOTE_INSTALLING_HOST = "0.0.0.0";
+        PLUGIN_REMOTE_INSTALLING_PORT = toString config.ports.dify-plugin-debug;
+        PLUGIN_STORAGE_TYPE = "local";
+        PLUGIN_STORAGE_LOCAL_ROOT = "/app/storage";
+        PLUGIN_WORKING_PATH = "/app/storage/cwd";
+        PLUGIN_INSTALLED_PATH = "plugin";
+        PLUGIN_PACKAGE_CACHE_PATH = "plugin_packages";
+        PLUGIN_MEDIA_CACHE_PATH = "assets";
+      };
+      volumes = [
+        "${cfg.dataDir}/plugin_daemon:/app/storage"
+      ];
     };
   };
 
   # ── Systemd 依赖拓扑注入 ─────────────────────────────────────────────
   systemd.services = {
-    podman-dify-api = mkContainerDeps [ "podman-dify-sandbox.service" ];
+    podman-dify-api = mkContainerDeps [
+      "podman-dify-sandbox.service"
+      "podman-dify-plugin-daemon.service"
+    ];
     podman-dify-worker = mkContainerDeps [ "podman-dify-api.service" ];
     podman-dify-web = mkContainerDeps [ "podman-dify-api.service" ];
+    podman-dify-plugin-daemon = mkContainerDeps [ ];
     podman-dify-sandbox = {
-      after = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+        "sops-install-secrets.service"
+      ];
+      wants = [ "sops-install-secrets.service" ];
       wantedBy = [ "multi-user.target" ];
     };
   };

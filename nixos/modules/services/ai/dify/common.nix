@@ -79,6 +79,11 @@ in
         default = "docker.io/langgenius/dify-sandbox:latest";
         description = "Dify Sandbox (code executor) container image.";
       };
+      pluginDaemon = lib.mkOption {
+        type = lib.types.str;
+        default = "docker.io/langgenius/dify-plugin-daemon:0.6.12-local";
+        description = "Dify Plugin Daemon container image.";
+      };
     };
 
     # ── 可选：对接外部 Rerank 模型（BGE-reranker 等）────────────────────
@@ -185,6 +190,11 @@ in
         OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
         GITHUB_CLIENT_ID=dify
         GITHUB_CLIENT_SECRET=${config.sops.placeholder."password"}
+        CODE_EXECUTION_API_KEY=${config.sops.placeholder."dify/secret_key"}
+      '';
+
+      sops.templates."dify-sandbox-secret.env".content = ''
+        API_KEY=${config.sops.placeholder."dify/secret_key"}
       '';
     })
   ];

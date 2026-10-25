@@ -224,6 +224,20 @@ flakes/
 
 ---
 
+### 6. 快速连击导致 Windows Local Session Manager 并发登录冲突（蓝屏错误提示 another session for your user id blocked）
+
+- **故障现象**：在 Linux 文件管理器中双击文档时，偶尔弹出一个 Windows 经典蓝底错误弹窗，提示：`another session for your user id blocked notifying local session manager for 0 minutes, so we are unable to login you in`。
+- **根因分析**：
+  1. 在 Linux 图形环境下（Nautilus / GNOME），双击文档容易在 0~1 秒内连续派生两个相同参数的 `winapps` 进程；或者用户在虚拟机唤醒的 1~2 秒延时期间进行了二次连击；
+  2. 两个独立的 FreeRDP 实例在同一个毫秒级时间窗口内向 Windows 远程桌面端口 3390 发送凭据登录请求；
+  3. Windows 10/11 单用户版受单会话并发限制，其内部的 Local Session Manager (LSM) 在处理第一个会话的登录时锁定了会话表，并发连入的第二个连接瞬间触发竞争，Windows 抛出该错误。
+- **解决方案**：
+  在 `nixos/modules/desktop/winapps/packages.nix` 中对 `bin/winapps` 注入双层防护：
+  1. **相同参数调用去重**：3 秒内针对相同文档的调用直接静默退出（`DUPLICATE INVOCATION WITHIN 3s DETECTED. EXITING`），彻底杜绝双击事件多重触发；
+  2. **RDP 登录串行化锁 (flock)**：在拉起 FreeRDP 时获取 `${XDG_RUNTIME_DIR}/winapps-rdp-launch.lock`，并预留 2 秒握手窗口后再释放锁，确保即使连续打开多个不同文档，其在 Windows LSM 中的建立也是串行平滑的，完全消除并发碰撞。
+
+---
+
 ## 五、 日常运维与使用速查表
 
 ```bash
