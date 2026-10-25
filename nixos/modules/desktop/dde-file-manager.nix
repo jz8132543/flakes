@@ -1,10 +1,24 @@
 {
   pkgs,
   inputs,
+  lib,
+  config,
   ...
 }:
 let
-  dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin;
+  cfg = config.programs.dde-file-manager;
+  dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin.overrideScope (
+    _final: prev: {
+      dtkwidget = prev.dtkwidget.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          # Qt 6.12 does not export the private QFont shared-pointer destructor.
+          substituteInPlace src/widgets/dstyleoption.cpp \
+            --replace-fail 'const auto fontD = D_PRIVATE_MEMBER(font, QFont_d_tag{});' \
+              'const auto &fontD = D_PRIVATE_MEMBER(font, QFont_d_tag{});'
+        '';
+      });
+    }
+  );
 
   deepin-qt-theme-conf = pkgs.writeTextDir "deepin/qt-theme.ini" ''
     [Theme]
@@ -94,22 +108,28 @@ let
   };
 in
 {
-  environment.systemPackages = [
-    dde-file-manager-wrapped
-    dde-pkgs.deepin-icon-theme
-    dde-pkgs.deepin-desktop-theme
-    dde-pkgs.dtkcommon
-    pkgs.papirus-icon-theme
-    deepin-dsg-conf
-  ];
+  options.programs.dde-file-manager.enable = lib.mkEnableOption "DDE File Manager" // {
+    default = true;
+  };
 
-  # 链接 DSG、Deepin 资源与主题目录，供 DTK 识别 preference 和主题资源
-  environment.pathsToLink = [
-    "/share/dsg"
-    "/share/deepin"
-    "/share/deepin-themes"
-  ];
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [
+      dde-file-manager-wrapped
+      dde-pkgs.deepin-icon-theme
+      dde-pkgs.deepin-desktop-theme
+      dde-pkgs.dtkcommon
+      pkgs.papirus-icon-theme
+      deepin-dsg-conf
+    ];
 
-  # 基础文件管理挂载支持
-  services.gvfs.enable = true;
+    # 链接 DSG、Deepin 资源与主题目录，供 DTK 识别 preference 和主题资源
+    environment.pathsToLink = [
+      "/share/dsg"
+      "/share/deepin"
+      "/share/deepin-themes"
+    ];
+
+    # 基础文件管理挂载支持
+    services.gvfs.enable = true;
+  };
 }

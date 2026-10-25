@@ -44,8 +44,19 @@ let
   '';
 
   tcpBrutalKmod =
-    inputs.tcp-brutal.outputs.lib.${pkgs.system}.mkTcpBrutal
-      config.boot.kernelPackages.kernel;
+    (inputs.tcp-brutal.outputs.lib.${pkgs.stdenv.hostPlatform.system}.mkTcpBrutal
+      config.boot.kernelPackages.kernel
+    ).overrideAttrs
+      (old: {
+        postInstall = (old.postInstall or "") + ''
+          find "$out/lib/modules" -type f -name "*.ko*" | while IFS= read -r f; do
+            dir="$(dirname "$f")"
+            name="$(basename "$f")"
+            stem="''${name%%.ko*}"
+            touch "$dir/$stem.ko.cer"
+          done
+        '';
+      });
 
   applyScript = pkgs.writeShellScriptBin "tcp-brutal-apply-rules" ''
     set -euo pipefail
@@ -225,9 +236,7 @@ let
   '';
 in
 {
-  imports = [
-    inputs.tcp-brutal.nixosModules.default
-  ];
+  options.boot.tcp-brutal.enable = lib.mkEnableOption "tcp-brutal kernel module";
 
   options.optimize.brutal = {
     enable = lib.mkOption {
@@ -284,6 +293,11 @@ in
   config = lib.mkIf cfg.enable {
     # 自动开启 tcp-brutal 内核模块和 brutalctl
     boot.tcp-brutal.enable = lib.mkDefault true;
+    boot.extraModulePackages = [ tcpBrutalKmod ];
+    boot.kernelModules = [ "brutal" ];
+    environment.systemPackages = [
+      inputs.tcp-brutal.packages.${pkgs.stdenv.hostPlatform.system}.brutalctl
+    ];
 
     # 系统级服务：网络在线后秒级批量下发规则与路由
     systemd.services.tcp-brutal-china-rules = {

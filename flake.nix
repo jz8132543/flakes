@@ -166,8 +166,8 @@
       url = "github:dnaq/booklore-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    winapps = {
-      url = "github:winapps-org/winapps";
+    winpodx = {
+      url = "github:kernalix7/winpodx";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     office365 = {

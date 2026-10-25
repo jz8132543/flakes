@@ -29,7 +29,18 @@ in
         "sd_mod"
       ];
     };
-    extraModulePackages = [ config.boot.kernelPackages.lenovo-legion-module ];
+    extraModulePackages = [
+      (config.boot.kernelPackages.lenovo-legion-module.overrideAttrs (old: {
+        postInstall = (old.postInstall or "") + ''
+          find "$out/lib/modules" -type f -name "*.ko*" | while IFS= read -r f; do
+            dir="$(dirname "$f")"
+            name="$(basename "$f")"
+            stem="''${name%%.ko*}"
+            touch "$dir/$stem.ko.cer"
+          done
+        '';
+      }))
+    ];
     kernelModules = [
       "kvm-amd"
       "lenovo-legion-module"

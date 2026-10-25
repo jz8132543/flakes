@@ -1,6 +1,6 @@
 { inputs, pkgs, ... }:
 let
-  aaglPkg = inputs.aagl.packages.${pkgs.system}.anime-game-launcher;
+  aaglPkg = inputs.aagl.packages.${pkgs.stdenv.hostPlatform.system}.anime-game-launcher;
 in
 {
   imports = [ inputs.aagl.nixosModules.default ];

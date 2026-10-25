@@ -151,7 +151,7 @@
       matrix-synapse = prev.matrix-synapse.override {
         inherit (final) matrix-synapse-unwrapped;
       };
-      qdrant = inputs.nixos-2605.legacyPackages.${final.system}.qdrant;
+      qdrant = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.qdrant;
     }
   )
   (import "${self}/pkgs").overlay

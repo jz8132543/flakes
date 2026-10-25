@@ -1,5 +1,4 @@
-{ config, ... }:
-{
+{ config, ... }: {
   programs.firefox = {
     enable = true;
     policies = {
@@ -74,6 +73,10 @@
       };
     };
   };
+  home.sessionVariables = {
+    # __NV_WAYLAND_PROTOCOL_VERSIONS = "wp_commit_timing_manager_v1=0";
+  };
+
   home.global-persistence = {
     directories = [
       ".mozilla"

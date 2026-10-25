@@ -18,7 +18,7 @@ in
         "openssl-1.1.1w"
         "nix-2.24.5"
         "olm-3.2.16"
-        "minio-2025-10-15T17-29-55Z"
+        "minio-client-2025-08-13T08-35-41Z"
         "electron-39.8.10"
       ];
       allowUnfreePackages = [

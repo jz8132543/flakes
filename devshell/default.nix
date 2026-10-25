@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   imports = [
     ./terraform.nix
     ./boot-sd.nix
@@ -107,7 +106,7 @@
       # backblaze-b2
 
       ruby
-      minio-client
+      # minio-client
     ];
   };
 }

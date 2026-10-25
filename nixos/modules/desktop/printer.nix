@@ -1,4 +1,4 @@
-{ pkgs, ... }: {
+{ pkgs, lib, ... }: {
   services.ipp-usb.enable = true;
   programs.system-config-printer.enable = true;
   services.printing = {
@@ -24,6 +24,15 @@
     nssmdns4 = true;
     nssmdns6 = true;
     openFirewall = true;
+    publish = {
+      enable = lib.mkForce null;
+      userServices = lib.mkForce null;
+    };
+    settings.publish = {
+      "disable-publishing" = false;
+      disable-user-service-publishing = false;
+      publish-addresses = true;
+    };
   };
 
   # hardware.printers.ensurePrinters = [
