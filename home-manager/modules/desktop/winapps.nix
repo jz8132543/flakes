@@ -16,11 +16,60 @@ let
     sysCfg.package or inputs.winapps.packages.${pkgs.stdenv.hostPlatform.system}.winapps;
   # 复用 NixOS 模块生成的 compose 文件（/etc/winapps/compose.yaml 指向同一 store 路径）
   composeYaml = lib.attrByPath [ "environment" "etc" "winapps/compose.yaml" "source" ] null osConfig;
+
+  winappsDiscoverScript = pkgs.writeShellScript "winapps-discover" ''
+    set -eu
+    export PATH=${
+      lib.makeBinPath [
+        pkgs.podman
+        pkgs.podman-compose
+        pkgs.slirp4netns
+        pkgs.procps
+        pkgs.util-linux
+        pkgs.coreutils
+      ]
+    }:/run/wrappers/bin:$PATH
+
+    state="$(podman inspect --format '{{.State.Status}}' WinApps 2>/dev/null || true)"
+    case "$state" in
+      running) ;;
+      paused)
+        # Only the 'winapps' client resumes a paused container, so the
+        # installer has to do it before it can query applications.
+        podman-compose --file "$HOME/.config/winapps/compose.yaml" unpause >/dev/null
+        # A resumed guest needs time before its RDP stack answers; a
+        # plain TCP check is not enough because rootlessport accepts early.
+        rdp_port="${toString (sysCfg.podman.port or 3390)}"
+        for _ in $(seq 60); do
+          if timeout 2 bash -c 'exec 3<>/dev/tcp/127.0.0.1/'"$rdp_port"' && echo -ne "\x03\x00\x00\x13\x0e\xe0\x00\x00\x00\x00\x00\x01\x00\x08\x00\x03\x00\x00\x00" >&3 && head -c 1 <&3' >/dev/null 2>&1; then
+            break
+          fi
+          sleep 5
+        done
+        ;;
+      *) exit 0 ;;
+    esac
+
+    pgrep -u "$UID" -f '(^|/)(xfreerdp|sdl-freerdp|wlfreerdp)( |$)' >/dev/null && exit 0
+
+    exec 9>"$XDG_RUNTIME_DIR/winapps-discovery.lock"
+    flock -n 9 || exit 0
+
+    # --add-apps runs both the officially supported and the generic
+    # detected-application flows, so user-installed apps are picked up too.
+    ${winappsPackage}/bin/winapps-setup --user --add-apps
+    ${pkgs.desktop-file-utils}/bin/update-desktop-database "$HOME/.local/share/applications"
+  '';
 in
 {
   options.programs.winapps = {
     enable = lib.mkEnableOption "WinApps Desktop Client and Autopause configuration" // {
       default = sysCfg.enable or true;
+    };
+    windowsScale = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = sysCfg.windows.scale or 150;
+      description = "DPI scale percentage for full Windows desktop session (winapps windows). Default is 150.";
     };
   };
 
@@ -41,6 +90,12 @@ in
       # Use 100% scale to avoid XWayland X_PutImage BadMatch crashes with FreeRDP 3
       RDP_SCALE="100"
 
+      # 专门针对 Windows 完整桌面会话 (winapps windows) 的参数：
+      # 上游 winapps 在运行 windows 时会自动追加 RDP_FLAGS_WINDOWS。
+      # RemoteApp 保持 100% 缩放以避免 XWayland BadMatch 崩溃；
+      # 完整桌面通过 /scale-desktop 启用 Windows 服务端高 DPI 缩放，彻底解决 2.5K/4K 屏幕上字小看不清的问题。
+      RDP_FLAGS_WINDOWS="/scale-desktop:${toString cfg.windowsScale} /scale-device:140"
+
       # 可移动介质挂载路径（GNOME/udisks 默认使用 /run/media）
       REMOVABLE_MEDIA="/run/media"
 
@@ -48,9 +103,10 @@ in
       # 共享文件夹为 \tsclient\WinAppsShare，并启用打印机/剪贴板/声卡重定向
       # - /network:lan: 本机回环低延迟模式
       # FreeRDP 3 rejects the legacy /gfx-progressive and +glyph-cache flags.
+      # 禁用自动重连并设置最大重试为 0，防止断开时在桌面上反复闪烁弹窗抢占焦点
       RDP_FLAGS="/cert:tofu /network:lan /sound /microphone +clipboard /printer /drive:home,${config.home.homeDirectory} /drive:WinAppsShare,${
         sysCfg.podman.sharedPath or "${config.home.homeDirectory}/Storage/WinAppsShare"
-      } /auto-reconnect-max-retries:1"
+      } /auto-reconnect-max-retries:0 -auto-reconnect"
 
       DEBUG="true"
 
@@ -218,7 +274,7 @@ in
     # This is a short periodic job, not an RDP polling daemon. Never wake a
     # paused VM or disconnect someone using Windows just to scan applications.
     systemd.user.services.winapps-discover =
-      lib.mkIf (podmanEnabled && (sysCfg.discovery.enable or false))
+      lib.mkIf (podmanEnabled && (sysCfg.discovery.enable or true))
         {
           Unit = {
             Description = "Discover Windows applications using the official WinApps installer";
@@ -229,59 +285,22 @@ in
             Type = "oneshot";
             TimeoutStartSec = "8min";
             Environment = [ "WINAPPS_AUTO_DISCOVERY=1" ];
-            ExecStart = pkgs.writeShellScript "winapps-discover" ''
-              set -eu
-              export PATH=${
-                lib.makeBinPath [
-                  pkgs.podman
-                  pkgs.podman-compose
-                  pkgs.slirp4netns
-                  pkgs.procps
-                  pkgs.util-linux
-                  pkgs.coreutils
-                ]
-              }:/run/wrappers/bin:$PATH
-
-              state="$(podman inspect --format '{{.State.Status}}' WinApps 2>/dev/null || true)"
-              case "$state" in
-                running) ;;
-                paused)
-                  # Only the 'winapps' client resumes a paused container, so the
-                  # installer has to do it before it can query applications.
-                  podman-compose --file "$HOME/.config/winapps/compose.yaml" unpause >/dev/null
-                  # A resumed guest needs time before its RDP stack answers; a
-                  # plain TCP check is not enough because rootlessport accepts early.
-                  rdp_port="${toString (sysCfg.podman.port or 3390)}"
-                  for _ in $(seq 60); do
-                    if timeout 2 bash -c 'exec 3<>/dev/tcp/127.0.0.1/'"$rdp_port"' && echo -ne "\x03\x00\x00\x13\x0e\xe0\x00\x00\x00\x00\x00\x01\x00\x08\x00\x03\x00\x00\x00" >&3 && head -c 1 <&3' >/dev/null 2>&1; then
-                      break
-                    fi
-                    sleep 5
-                  done
-                  ;;
-                *) exit 0 ;;
-              esac
-
-              pgrep -u "$UID" -f '(^|/)(xfreerdp|sdl-freerdp|wlfreerdp)( |$)' >/dev/null && exit 0
-
-              exec 9>"$XDG_RUNTIME_DIR/winapps-discovery.lock"
-              flock -n 9 || exit 0
-
-              # --add-apps runs both the officially supported and the generic
-              # detected-application flows, so user-installed apps are picked up too.
-              ${winappsPackage}/bin/winapps-setup --user --add-apps
-              ${pkgs.desktop-file-utils}/bin/update-desktop-database "$HOME/.local/share/applications"
-            '';
+            ExecStart = "${winappsDiscoverScript}";
           };
         };
 
     # Manual command to trigger application discovery on demand.
     home.packages = lib.mkIf podmanEnabled [
       (pkgs.writeShellScriptBin "winapps-scan" ''
-        echo "Starting WinApps application discovery..."
-        systemctl --user start winapps-discover.service
-        echo "Discovery service triggered. Viewing logs (press Ctrl+C to exit log view):"
-        journalctl --user -u winapps-discover.service -f
+        if systemctl --user list-unit-files winapps-discover.service 2>/dev/null | grep -q winapps-discover; then
+          echo "Starting WinApps application discovery service..."
+          systemctl --user start winapps-discover.service
+          echo "Discovery service triggered. Viewing logs (press Ctrl+C to exit log view):"
+          journalctl --user -u winapps-discover.service -f
+        else
+          echo "Starting WinApps application discovery directly..."
+          exec ${winappsDiscoverScript}
+        fi
       '')
     ];
 

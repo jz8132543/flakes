@@ -390,7 +390,6 @@ in
     # kdePackages.k3b
     # vcdimager
     feishu
-    doubao-desktop
   ];
   programs = {
     # TODO

@@ -1,5 +1,8 @@
-{ config, lib, ... }:
-
+{
+  config,
+  lib,
+  ...
+}:
 {
   options.programs.winapps = {
     enable = lib.mkEnableOption "WinApps using the upstream Nix package and Windows container" // {
@@ -22,7 +25,7 @@
     discovery = {
       enable = lib.mkOption {
         type = lib.types.bool;
-        default = false;
+        default = true;
         description = "Enable application discovery helper service. Manual scanning via 'winapps-scan' or the desktop entry is recommended over periodic timers.";
       };
       interval = lib.mkOption {
@@ -70,6 +73,14 @@
         type = lib.types.nullOr lib.types.str;
         default = null;
         description = "Runtime host file containing a licensed Office key compatible with the deployed product. Subscription Office uses account sign-in instead.";
+      };
+    };
+
+    windows = {
+      scale = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 150;
+        description = "Desktop scaling percentage for full Windows session (winapps windows). E.g. 125, 150, 175, 200.";
       };
     };
     kvm = {
@@ -196,7 +207,18 @@
       language = lib.mkOption {
         type = lib.types.str;
         default = "English";
-        description = "Windows display language for first installation.";
+        description = ''
+          Windows display language used when the guest is installed for the first time.
+
+          WARNING: dockur/windows derives the installation ISO filename from this
+          value (e.g. LANGUAGE=Chinese resolves to 'tiny10_zh.iso' instead of
+          'tiny10.iso'). Changing it after the guest already exists makes the
+          resolved ISO path differ from the one recorded in 'windows.base', which
+          dockur treats as a VERSION change: it moves the whole existing
+          installation into 'backups/' and starts a fresh install. Only change
+          this value for a brand new installation; to switch the display language
+          of an existing guest, install the language pack from inside Windows.
+        '';
       };
 
       ramSize = lib.mkOption {

@@ -335,6 +335,17 @@ Mihomo TUN 开启后，会在内核中创建虚拟网卡 `Meta`，并向策略�
    **物理机理**：当 Wi-Fi 断开、`main` 表没有默认网关时，Mihomo 的所有外部建连请求在命中 8980 失败后，**立即命中 8985 熔断规则**，内核在 0ms 瞬间返回 `ENETUNREACH`（Network is unreachable）报错。
    出站连接立刻失败并等待，**绝不可能穿透掉入 priority 9003 (`table 2022` / TUN)**！
    彻底消除了断网漫游时的自捕获死循环风暴，CPU 占用稳定为 0%，Wi-Fi 秒级完成漫游重连。
+4. **Priority 8996 / 8998: 本机出站 TUN 接管与 SSH/组播恒定旁路**：
+   - **病因（代理全绿却打不开 Google）**：Mihomo `auto-route` 在 `stack: system` 下只生成 `not from all iif lo` / `from 0.0.0.0 iif lo` 规则，同时它会追加一条 DNS 保护规则 `9002: not from all dport 53 lookup main suppress_prefixlength 0`。该规则把所有**非 DNS** 的本机出站全部旁路进 `main` 表，于是 `Meta` 网卡与 `oifname "Meta" ... redirect to :32337` 的计数器恒为 0——浏览器流量根本不进 TUN，只能直连被污染的 DNS 结果（如 `www.google.com -> 104.244.42.197` / `2001::1`）并超时。表象极具迷惑性：`curl --proxy 127.0.0.1:7890` 与 WebUI 全部正常，唯独不走代理的应用打不开境外站点。
+   - **Priority 8996**：SSH 端口与组播地址直连 `main` 表。SSH 旁路由原先依赖 nftables `route_output` 打标（受 route hook 与 nat redirect 先后时序影响）升级为 **FIB 级恒定生效**；组播（`224.0.0.0/4`、`ff00::/8`）则避免 mDNS / SSDP 发现报文被丢进 TUN、源地址被篡改成 `198.18.0.1`。
+     ```bash
+     ip -4 rule add to 224.0.0.0/4 lookup main priority 8996
+     ip -6 rule add to ff00::/8 lookup main priority 8996
+     ip -4 rule add ipproto tcp dport 22 lookup main priority 8996
+     ```
+   - **Priority 8998**：`not fwmark 0x1/0x1 lookup 2022`，把其余未打标的本机出站**在初始选路阶段就交还给 TUN**。其优先级高于 9002，因此能穿透那条 DNS 保护规则；而 8980/8985/8990/8995 与 DN42 的 80/81/90 均位于更前优先级，防回环、断网熔断、专网直通语义完全不变。
+   - **为什么不会误伤专网与本地流量**：`table 2022` 对 `172.20.0.0/14`、`10.0.0.0/8`、`100.64.0.0/10`、`fd00::/8` 及国内公共 DNS 地址本就没有路由，查询失败后内核按优先级**续降**到 `main` 表；IPv4 广播、环回与 IPv6 链路本地组播由 `local` 表（priority 0）先行接管；ICMP/PMTUD 由 priority 90 放行；容器流量位于独立 netns，不受主机策略路由影响。
+   - **宕机不雪崩**：Mihomo 停止时 `Meta` 随之消失、`table 2022` 清空，未打标流量自动续降 `main` 表直连（实测百度 200、DNS 解析正常），重启后境外访问立即恢复，完全符合"关掉 Mihomo 时直连不断网"的设计预期。
 
 ---
 
@@ -462,6 +473,27 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 
 ---
 
+### 3.7 冲突七：Meta 网卡 198.18.0.1 污染 SD-WAN 端点与 if_id 镜像死锁
+
+#### 1. 深度病因剖析
+
+在开启 Mihomo TUN 后，内核中新增了 `Meta` 网卡，其分配有 RFC 2544 基准测试保留段 IP `198.18.0.1/30`（scope global）。由于该段不属于 RFC 1918 常规私网（`10.`、`172.16-31.`、`192.168.`），引发了灾难性的级联死锁：
+
+1. **虚假公网 IP 注册**：`dn42-sdwan-agent` 在自探测本机公网 IP 时，未排除 `Meta` 与 `198.18.*` 段，误将 `198.18.0.1` 当作物理公网 IPv4 发布至三主控 SD-WAN 注册中心；
+2. **对端强校验拒连 (`AUTH_FAILED`)**：全网节点同步注册表后，将连接配置的 `remote_addrs` 锁死为 `198.18.0.1`。当 ARX8 从真实 NAT 出站发起 IKE 握手时，对端强校验发现源地址不匹配，无差别返回 `AUTH_FAILED`，全网隧道集体中断；
+3. **多端点展开算法失衡引发 if_id 错位**：ARX8 因多出一个虚假的 `auto_v4` 端点（端点数从 1 变为 2），触发了 `mesh.nix` 为对端预留 responder 被动接口（`dn42x-*-r2`）的逻辑。该逻辑在循环末尾用 `ip -6 route replace` 将对端 IPv6 路由强行指向了**尚未建链、没有 SA 的 r2 网卡**，导致 ping 对端时内核当场返回 `Destination unreachable: Address unreachable`；同时导致两端生成的 `if_id` 一个为 1311、一个为 1312，产生单向通、反向丢的严重错位；
+4. **Strongswan 自身选路污染**：Strongswan 在未设置 `ignore_routing_tables = 2022` 时，自身出站查询会被 table 2022 误导，把 `from 198.18.0.1` 写入 IKE 报文头；
+5. **Babel RTT 阈值过窄**：跨国链路（如国内至法兰克福）日常 RTT 为 320-340ms，原默认 `rttMax = 300` 导致 Babel 将正常延迟判定为不可用（Metric 65535），拒绝下发内网路由。
+
+#### 2. 终极根治方案：四重隔离与端点净化
+
+1. **网卡与 IP 探测彻底绝缘**：在 `mesh.nix` 的 `DISCOVERED_IPS` 过滤链中，将 `meta.*`、`Meta.*`、`tailscale.*`、`docker.*`、`podman.*` 以及 `198.18.*`、`198.19.*`、`100.*` 彻底排除，确保纯 NAT 客户端绝不上报虚假 IPv4 端点；
+2. **主路由保护**：`mesh.nix` 限制仅在 `t_saction = "start"`（主动发起端）时才接管 peer IPv4 与对端 IPv6 路由，被动端（responder / `r2`）仅配置本端地址，严禁越权覆盖；
+3. **Strongswan 协议栈绝缘**：在 `charon.conf` 恢复 `interfaces_ignore = Meta, ...`、`ignore_routing_tables = 2022` 与 `plugins.socket-default.fwmark = 0x1`，从内核与 socket 层面杜绝 charon 接触代理路由表；
+4. **Babel RTT 上限放宽**：将 `rttMax` 默认值放宽至 `500ms`，完全容纳跨大洲长肥管道的物理延迟，恢复内网路由的正常收敛。
+
+---
+
 ## 四、 关键配置与运维指南
 
 ### 4.1 节点扩展最佳实践（零接触）
@@ -487,8 +519,9 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 | **Babel 路由表**      | `sudo birdc show route protocol dn42_babel`                                                               | 包含集群各节点 `/32` 与 `/128` 路由，下一跳指向最优 `dn42x-*`          |
 | **IPsec SA 状态**     | `sudo swanctl --list-sas`                                                                                 | `ESTABLISHED`，报文计数器 `in` 与 `out` 双向稳定增长                   |
 | **XFRM 接口状态**     | `ip -d link show type xfrm`                                                                               | `if_id` 符合公式，MTU 1360，状态为 UP                                  |
-| **策略路由规则**      | `ip rule` / `ip -6 rule`                                                                                  | 包含 Priority 80, 81, 90 及 8980, 8985, 8990                           |
+| **策略路由规则**      | `ip rule` / `ip -6 rule`                                                                                  | 包含 Priority 80, 81, 90 及 8980, 8985, 8990, 8996, 8998               |
 | **Mihomo 防熔断规则** | `ip rule \| grep 898`                                                                                     | 必须同时存在 `8980: lookup main` 与 `8985: unreachable`，严禁遗漏 8980 |
+| **Mihomo TUN 接管**   | `ip route get <境外IP> dport 443`<br>`sudo nft -a list chain inet mihomo output`                          | 应返回 `dev Meta table 2022`；redirect 计数器持续增长                  |
 | **开机网络在线状态**  | `systemctl status NetworkManager-wait-online`                                                             | `active (exited)` 且耗时 < 1 秒，无超时卡死                            |
 | **SmartDNS 本地响应** | `dig @127.0.0.1 -p 5335 www.baidu.com`                                                                    | Query time < 30ms，并发竞速秒回                                        |
 | **CoreDNS 权威解析**  | `dig @172.20.232.1 dora.dn42 SOA +short`<br>`dig @172.20.232.1 tyo0.dora.dn42 +short`                     | 返回 `ns1.dora.dn42.` 与对应节点内网 IP                                |

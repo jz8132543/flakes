@@ -434,6 +434,11 @@ let
     )
   );
 
+  selfMeshNode = dn42Data.mesh.${hostName} or { };
+  selfIsNat =
+    selfMeshNode.nat
+      or ((selfMeshNode.endpoints or { }) == { } && (selfMeshNode.endpoints or [ ]) == [ ]);
+
   # ── Mimic Fake-TCP 启动包装脚本 ($O(1) 本机真实 IP 动态自闭环) ──
   mimicStartScript = pkgs.writeShellScript "mimic-start-wrapper" ''
     set -euo pipefail
@@ -653,12 +658,13 @@ let
         SELF_IP6="${selfDn42Ip6}"
         SELF_PORT="${toString baseCfg.natTPort}"
         SELF_IKE_PORT="${toString baseCfg.ikePort}"
+        IS_NAT="${if selfIsNat then "true" else "false"}"
         CONTROLLERS=(${lib.concatStringsSep " " controllerUrls})
 
         # 2a. 本地网卡自探测 (参考 Tailscale netmon / RFC1918 过滤规范)
         DISCOVERED_IPS=$(ip -j addr show up 2>/dev/null | jq '
           [ .[]? |
-            select(.ifname | test("^(lo|dn42.*|dummy.*|xfrm.*|wireguard.*|wg.*)$") | not) |
+            select(.ifname | test("^(lo|docker.*|podman.*|veth.*|br-.*|dn42.*|tailscale.*|meta.*|Meta.*|dummy.*|xfrm.*|wireguard.*|wg.*)$") | not) |
             .ifname as $ifname |
             .addr_info[]? |
             select(.scope == "global") |
@@ -677,7 +683,8 @@ let
                     startswith("172.24.") or startswith("172.25.") or startswith("172.26.") or startswith("172.27.") or
                     startswith("172.28.") or startswith("172.29.") or startswith("172.30.") or startswith("172.31.") or
                     startswith("127.") or
-                    startswith("169.254.")
+                    startswith("169.254.") or
+                    startswith("198.18.") or startswith("198.19.")
                   ))
                 elif .family == "inet6" then
                   (.local | (
@@ -695,10 +702,10 @@ let
         PUBLIC_V4=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet" and .is_private == false).local][0] // empty')
         PUBLIC_V6=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet6" and .is_private == false).local][0] // empty')
 
-        # 2b. 提取或自适应扩充本机端点表
+        # 2b. 提取或自适应扩充本机端点表（纯 NAT 节点绝不发布端点，保持 endpoints=[] 纯客户端模式）
         STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
         SELF_ENDPOINTS="$STATIC_ENDPOINTS"
-        if [ "$SELF_ENDPOINTS" = "[]" ] || [ -z "$SELF_ENDPOINTS" ]; then
+        if [ "$IS_NAT" != "true" ] && { [ "$SELF_ENDPOINTS" = "[]" ] || [ -z "$SELF_ENDPOINTS" ]; }; then
           NEW_EPS="[]"
           if [ -n "$PUBLIC_V4" ]; then
             NEW_EPS=$(echo "$NEW_EPS" | jq --arg v4 "$PUBLIC_V4" --argjson port "$SELF_PORT" '. + [{name: "auto_v4", addr: $v4, port: $port, family: "ipv4"}]')
@@ -805,7 +812,7 @@ let
             fi
             conn_name="dn42-''${peer}-''${ep_name}"
 
-            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;%any;''${ep_addr};''${ep_port};start;restart;$PEER_IP4;$PEER_IP6;$peer;''${ep_name}")
+            ALL_TUNNEL_INSTANCES+=("$iface;$if_id;$conn_name;%any;''${ep_addr}, %any;''${ep_port};start;restart;$PEER_IP4;$PEER_IP6;$peer;''${ep_name}")
             ACTIVE_IFACES+=("$iface")
             ACTIVE_CONF_FILES+=("sdwan-''${conn_name}.conf")
             printf '%s\t%s\t%s\n' "$iface" "$peer" "$ep_name" >> "$EDGE_LABELS_TMP"
@@ -876,10 +883,17 @@ let
           ip link set "$t_iface" mtu 1360 multicast on up 2>/dev/null || true
           ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
 
-          ip -4 addr replace "''${SELF_IP4}/32" peer "''${t_peer_ip4}/32" dev "$t_iface" 2>/dev/null || ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
-          ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
-          [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
-          [ -n "''${t_peer_ip6}" ] && ip -6 route replace "''${t_peer_ip6}/128" dev "$t_iface" 2>/dev/null || true
+          if [ "$t_saction" = "start" ]; then
+            ip -4 addr replace "''${SELF_IP4}/32" peer "''${t_peer_ip4}/32" dev "$t_iface" 2>/dev/null || ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
+            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
+            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+            [ -n "''${t_peer_ip6}" ] && ip -6 route replace "''${t_peer_ip6}/128" dev "$t_iface" 2>/dev/null || true
+          else
+            # 被动端 (responder) 仅配置本端 IP 与 link-local，不覆盖对端主路由
+            ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
+            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
+            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+          fi
 
           peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
 
@@ -1189,7 +1203,7 @@ in
 
       rttMax = mkOption {
         type = types.int;
-        default = 300;
+        default = 500;
         description = "Babel RTT max (ms)";
       };
 
@@ -1443,8 +1457,12 @@ in
               send_vendor_id = no
               # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
               uniqueids = no
+              interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
+              # 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
+              ignore_routing_tables = 2022
               plugins {
                 socket-default {
+                  fwmark = 0x1
                 }
               }
             }

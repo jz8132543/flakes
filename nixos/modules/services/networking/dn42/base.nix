@@ -139,8 +139,8 @@ in
 
     populateHosts = mkOption {
       type = types.bool;
-      default = false;
-      description = "Whether to inject all DN42 host records into /etc/hosts (disabled by default in favor of authoritative DNS).";
+      default = true;
+      description = "Whether to inject all DN42 host records into /etc/hosts (default true to guarantee deterministic cluster name resolution).";
     };
 
     asn = mkOption {

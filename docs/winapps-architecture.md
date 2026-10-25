@@ -150,6 +150,7 @@ flakes/
 │   └── winapps.nix                     # 用户桌面集成：声明式 winapps.conf、应用元数据存储、winapps-scan
 └── nixos/modules/desktop/winapps/
     ├── options.nix                     # programs.winapps 原生 Options 声明与全局默认值（取代旧 default.nix）
+    ├── shortcuts.nix                   # 声明式 Windows 应用快捷方式模块（自动生成 Desktop Entry 与 CLI 包装）
     ├── podman-windows.nix              # 容器生命周期：compose 生成、systemd 单发开机挂起服务
     ├── oem.nix                         # 微软官方 ODT 静默部署、Office16 目录联接与合法授权维护
     ├── packages.nix                    # WinApps 源码补丁封装：注入豆包/HKCU 识别、补全系统 PATH
@@ -193,14 +194,19 @@ flakes/
 
 ---
 
-### 3. FreeRDP 3 废弃参数与非标 DPI 导致的 BadMatch 渲染崩溃
+### 3. FreeRDP 3 废弃参数、非标 DPI 与高分屏缩放解耦
 
-- **故障现象**：调用 Office 应用时 FreeRDP 闪退，日志中抛出大量 `X_PutImage: BadMatch (invalid parameter attributes)` 和 `Broken pipe`。
+- **故障现象**：
+  1. 调用 Office 应用时 FreeRDP 闪退，日志中抛出大量 `X_PutImage: BadMatch (invalid parameter attributes)` 和 `Broken pipe`；
+  2. 运行 `winapps windows` 启动完整 Windows 桌面时，高分屏（2.5K/4K）未按比例缩放，界面与字体微小如针尖。
 - **根因分析**：
   1. FreeRDP 3 废弃了老版本的 `/gfx-progressive` 和 `+glyph-cache` 参数；
-  2. 原配置计算出的 `RDP_SCALE="140"` 与 `/scale-desktop:150` 属于非标准分数缩放比，在 XWayland 下引起像素位图尺寸不匹配，导致 X11 协议报错并切断连接。
-- **解决方案**：
-  在 `winapps.nix` 中净化参数，将 `RDP_SCALE` 固定为标准的 `100`，去除冗余的 `/scale-desktop` 标志，FreeRDP 渲染恢复稳定。
+  2. 原配置计算出的 `RDP_SCALE="140"` 与 `/scale-desktop:150` 混在全局通用标志中；在 XWayland 下，RemoteApp 单独无缝窗口因非标准分数缩放引起像素位图尺寸不匹配，触发 X11 协议报错并切断连接；
+  3. 后续为了解决崩溃而将全局 `RDP_SCALE` 锁死为 100 并移除了 `/scale-desktop`，导致 `winapps windows` 完整桌面会话也彻底失去了 DPI 放大，在高分屏下字小无法看清。
+- **解决方案（桌面与单应用缩放解耦）**：
+  1. WinApps 上游脚本原生区分了单应用（RemoteApp 使用 `RDP_FLAGS_NON_WINDOWS`）与完整桌面（使用 `RDP_FLAGS_WINDOWS`）；
+  2. 全局/RemoteApp 维持 `RDP_SCALE="100"`，确保 Office、豆包等单应用窗口在 XWayland 下绝无 `BadMatch` 闪退；
+  3. 在 `RDP_FLAGS_WINDOWS` 中专设 `/scale-desktop:150`（支持通过 `programs.winapps.windows.scale` 灵活配置，默认 150%）与 `/scale-device:140`，通知 Windows 服务端以高 DPI 渲染桌面，使任务栏与窗口字体完美放大，清晰锐利。
 
 ---
 
