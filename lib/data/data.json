@@ -326,28 +326,14 @@
         "name": "fra0"
       }
     ],
-    "edgeNodeNames": ["fra1", "tyo0", "hkg0", "hkg5"],
+    "edgeNodeNames": ["tyo0", "hkg5"],
     "edgeNodes": [
-      {
-        "ipv4": "213.145.82.205",
-        "ipv6": "2a12:6e40:eff7:36::a",
-        "name": "fra1",
-        "region": "EU",
-        "weight": 10
-      },
       {
         "ipv4": "45.66.130.158",
         "ipv6": null,
         "name": "tyo0",
         "region": "AP",
         "weight": 5
-      },
-      {
-        "ipv4": "103.231.56.56",
-        "ipv6": null,
-        "name": "hkg0",
-        "region": "HK",
-        "weight": 8
       },
       {
         "ipv4": "216.23.94.148",
@@ -370,7 +356,6 @@
       "mcp": "fra0",
       "napcat": "fra0",
       "office": "fra0",
-      "persona": "fra0",
       "s": "fra0",
       "zone": "fra0"
     }

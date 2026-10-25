@@ -49,3 +49,20 @@
   - **三、 文件结构与模块职责划分**（系统级 options、compose 生成器、OEM 激活流水线、桌面端配置）
   - **四、 核心问题排查与技术解决方案记录**（DN42 路由溢出、Tiny10 下载中断、开机假就绪挂起、MIME WPS 回退、xrdp 冲突）
   - **五、 日常运维与使用指南**（编译部署、状态检查、Office 自动化安装流程）
+
+- [Android (KernelSU) 端 Box 与 AdGuardHome 协同架构与防回环迁移实战指南](./android-box-agh-architecture.md)
+  - **一、 宏观架构总览与分层协同愿景**（DNS/数据双平面流向拓扑、分层职责边界、零脚本修改设计原则）
+  - **二、 核心冲突机理深度剖析与根治方案**
+    - 2.1 冲突一：本地 127.0.0.1:53 端口争夺与循环死锁 (DNS Loop)
+    - 2.2 冲突二：ColorOS / Android netd IPv6 DNS 解析报错断网 (`block_ipv6_dns=false`)
+    - 2.3 冲突三：ColorOS `fw_OUTPUT` 防火墙链阻断 Google 等境外流量 (TUN vs TPROXY)
+    - 2.4 冲突四：多网卡与虚拟网卡（Tailscale / EasyTier / DN42）流量互捕死锁与排除
+  - **三、 全量配置差异对比速查（原版 Zip vs 生产环境）**
+    - 3.1 `AdGuardHomeForRoot_arm64.zip` 全量差异对比 (`settings.conf`, `AdGuardHome.yaml`)
+    - 3.2 `box_1.2.9.3b9fa58.zip` 全量差异对比 (`settings.ini`, `ap.list.cfg`, `gid.list.cfg`, `package.list.cfg`, `mihomo/config.yaml`)
+    - 3.3 二进制依赖与权限补全规范 (`boxbpf` 0755, `mihomo` 内核)
+  - **四、 完整配置文件落地实录**（声明式还原代码块）
+  - **五、 新机 5 分钟迁移与灾备恢复实战指南**
+    - 5.1 前置准备与极速安装流水线
+    - 5.2 生产验证清单（DNS 解析、防回环、断网自愈、TUN 接管、专网共存）
+    - 5.3 常见故障快速排错速查表

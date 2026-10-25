@@ -279,9 +279,9 @@ let
           "ALL"
           "NO-DN42"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
-        ++ (map (g: g.name) userGroupDefs)
-        ++ allRegionGroupNames;
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42";
+        # ++ (map (g: g.name) userGroupDefs)
+        # ++ allRegionGroupNames;
       }
     ]
     ++ userGroupDefs
@@ -375,20 +375,21 @@ let
 
       enhanced-mode = "redir-host";
       default-nameserver = [
-        "223.5.5.5"
-        "1.12.12.12"
+        "https://1.12.12.12/dns-query"
+        "https://223.5.5.5/dns-query"
+        "https://119.29.29.29/dns-query"
       ];
       nameserver = [
-        "223.5.5.5"
-        "119.29.29.29"
-        "1.12.12.12"
+        "https://1.1.1.1/dns-query#PROXY"
+        "https://8.8.8.8/dns-query#PROXY"
       ];
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
         "+.${domain},+.kxy.ovh" = [
-          "223.5.5.5"
-          "119.29.29.29"
-          "1.12.12.12"
+          "https://1.1.1.1/dns-query#PROXY"
+          "https://1.12.12.12/dns-query"
+          "https://223.5.5.5/dns-query"
+          "https://119.29.29.29/dns-query"
         ];
         "+.${dn42Domain}" = [
           "172.20.232.1:53"
@@ -404,9 +405,9 @@ let
           "100.100.100.100:53"
         ];
         "geosite:cn,apple,private,steam,onedrive" = [
-          "223.5.5.5"
-          "119.29.29.29"
-          "1.12.12.12"
+          "https://1.12.12.12/dns-query"
+          "https://223.5.5.5/dns-query"
+          "https://119.29.29.29/dns-query"
         ];
       };
     };

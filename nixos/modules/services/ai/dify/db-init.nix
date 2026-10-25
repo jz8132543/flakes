@@ -326,14 +326,79 @@ in
                       %s, %s, %s, 'degoog', %s, 'openapi',
                       %s, '{"content":"🔍","background":"#2563EB"}', '{}',
                       'Local privacy search and article reader',
-                      "", NOW(), NOW()
+                      %s, NOW(), NOW()
                   );
-              """, (str(uuid.uuid4()), account_id, tenant_id, json.dumps(degoog_openapi), tools_str))
+              """, (str(uuid.uuid4()), account_id, tenant_id, json.dumps(degoog_openapi), tools_str, ""))
+              conn.commit()
+
+      # 6. Injects ContextForge Virtual Gateway tools into Dify if table exists
+      cur.execute("SELECT to_regclass('public.tool_api_providers');")
+      if cur.fetchone()[0]:
+          cur.execute("SELECT count(*) FROM tool_api_providers WHERE name = 'contextforge';")
+          if cur.fetchone()[0] == 0:
+              cf_openapi = {
+                  "openapi": "3.0.0",
+                  "info": {
+                      "title": "IBM ContextForge LifeOS MCP Hub",
+                      "version": "1.0.0",
+                      "description": "Unified toolchain for personal media, knowledge, smart home, and infrastructure"
+                  },
+                  "servers": [{"url": "http://127.0.0.1:${toString config.ports.lifeos-mcp}"}],
+                  "paths": {
+                      "/tools/media_search": {
+                          "get": {
+                              "operationId": "media_search",
+                              "summary": "Search movies and TV shows in MoviePilot",
+                              "parameters": [
+                                  {"name": "keyword", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Film or series title"}
+                              ],
+                              "responses": {"200": {"description": "Available media search results"}}
+                          }
+                      },
+                      "/tools/moviepilot_subscribe": {
+                          "post": {
+                              "operationId": "moviepilot_subscribe",
+                              "summary": "Subscribe movie or anime for auto download",
+                              "parameters": [
+                                  {"name": "name", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Name to subscribe"}
+                              ],
+                              "responses": {"200": {"description": "Subscription status"}}
+                          }
+                      },
+                      "/tools/memos_create_note": {
+                          "post": {
+                              "operationId": "memos_create_note",
+                              "summary": "Save a note into personal Memos",
+                              "parameters": [
+                                  {"name": "content", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Note content"}
+                              ],
+                              "responses": {"200": {"description": "Record result"}}
+                          }
+                      }
+                  }
+              }
+              cf_tools_str = json.dumps([
+                  {"name": "media_search", "label": "Search Media", "description": "Search movies and anime in MoviePilot"},
+                  {"name": "moviepilot_subscribe", "label": "Subscribe Media", "description": "Auto download movie/anime"},
+                  {"name": "memos_create_note", "label": "Create Memo", "description": "Save note into Memos"}
+              ])
+              cur.execute("""
+                  INSERT INTO tool_api_providers (
+                      id, user_id, tenant_id, name, schema, schema_type_str,
+                      tools_str, icon, credentials_str, description,
+                      custom_disclaimer, created_at, updated_at
+                  ) VALUES (
+                      %s, %s, %s, 'contextforge', %s, 'openapi',
+                      %s, '{"content":"⚡","background":"#0F62FE"}', '{}',
+                      'ContextForge Unified LifeOS & Media Gateway',
+                      %s, NOW(), NOW()
+                  );
+              """, (str(uuid.uuid4()), account_id, tenant_id, json.dumps(cf_openapi), cf_tools_str, ""))
               conn.commit()
 
       cur.close()
       conn.close()
-      print("[dify-bootstrap] Admin 'i', workspace, setup bypass, and degoog tool initialized successfully.")
+      print("[dify-bootstrap] Admin 'i', workspace, setup bypass, and contextforge tools initialized successfully.")
       PYEOF
     '';
   };

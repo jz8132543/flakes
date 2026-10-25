@@ -96,7 +96,38 @@ in
     ];
   };
 
+  # ── Browserless 无头 Chrome 渲染服务 (带 Token 鉴权，仅本地回环) ──
+  virtualisation.oci-containers.containers.browserless = {
+    image = "docker.io/browserless/chrome:latest";
+    autoStart = true;
+    extraOptions = [
+      "--network=host"
+    ];
+    environment = {
+      PORT = toString config.ports.browserless;
+      HOST = "127.0.0.1";
+      CONCURRENT = "5";
+      KEEP_ALIVE = "true";
+      WORKSPACE_DELETE_EXPIRED = "true";
+      DEFAULT_BLOCK_ADS = "true";
+      DEFAULT_STEALTH = "true";
+      DEFAULT_IGNORE_HTTPS_ERRORS = "true";
+    };
+    environmentFiles = [
+      config.sops.templates."browserless-secret.env".path
+    ];
+  };
+
   # ── Systemd 启动拓扑 ───────────────────────────────────────────────
+  systemd.services.podman-browserless = {
+    after = [
+      "sops-install-secrets.service"
+      "network-online.target"
+    ];
+    wants = [ "network-online.target" ];
+    wantedBy = [ "multi-user.target" ];
+  };
+
   systemd.services.podman-contextforge = {
     after = [
       "contextforge-db-init.service"

@@ -198,6 +198,10 @@
       degoog-mcp = 5005; # Degoog FastMCP & OpenAPI 搜索桥接
       persona-engine = 5006; # AI 情绪陪伴人设引擎 API
       lifeos-mcp = 5007; # Life-OS 个人数字基建 MCP 聚合工具箱
+      mem0 = 5009; # Mem0 长期记忆微服务 (回环)
+
+      # ── 浏览器无头渲染 ───────────────────────────────────────
+      browserless = 3007; # Browserless 无头 Chromium 渲染服务 (回环)
 
       # ── QQ 机器人生态 (NapCat + AstrBot) ──────────────────────
       napcat-ws = 6098; # NapCat OneBot v11 WebSocket

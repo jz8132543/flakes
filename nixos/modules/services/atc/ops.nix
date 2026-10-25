@@ -405,7 +405,8 @@ let
               ('proxy.config.ram_cache.size', 'records.config', '268435456'),
               ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
               ('proxy.config.net.connections_throttle', 'records.config', '10000'),
-              ('proxy.config.http.server_ports', 'records.config', '80 80:ipv6 443:ssl 443:ssl:ipv6'),
+              ('proxy.config.admin.user_id', 'records.config', 'trafficserver'),
+              ('proxy.config.http.server_ports', 'records.config', '8089'),
               ('proxy.config.url_remap.pristine_host_hdr', 'records.config', '1'),
               ('location', 'set_dscp_0.config', '/var/lib/trafficserver/etc/dscp')
             ) AS t(pname, pfile, pval)

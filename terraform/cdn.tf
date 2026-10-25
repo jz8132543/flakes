@@ -63,11 +63,11 @@ locals {
       region = "AP"
       weight = 5
     },
-    {
-      name   = "hkg0"
-      region = "HK"
-      weight = 8
-    },
+    # {
+    #   name   = "hkg0"
+    #   region = "HK"
+    #   weight = 8
+    # },
     {
       name   = "hkg5"
       region = "HK"
@@ -89,7 +89,6 @@ locals {
     chat     = "fra0"
     mcp      = "fra0"
     s        = "fra0"
-    persona  = "fra0"
     bot      = "fra0"
     napcat   = "fra0"
   }

@@ -309,9 +309,9 @@ in
             " >/dev/null 2>&1 || true
           fi
 
-          # 4. 签发供本机全栈内部 AI 服务 (Dify / MCP / Persona Engine 等) 免配置调用的固定内部 Token
-          INTERNAL_TOKEN_RAW="sk-ai-internal-$(printf '%s' "$PASS" | sha256sum | cut -c1-32)"
-          CLEAN_INTERNAL_KEY="''${INTERNAL_TOKEN_RAW#sk-}"
+          # 4. 签发供本机全栈内部 AI 服务 (Dify / MCP / Persona Engine 等) 免配置调用的固定内部 Token (48位纯十六进制，符合 New-API 校验)
+          CLEAN_INTERNAL_KEY="$(printf 'new-api-internal-token:%s' "$PASS" | sha256sum | awk '{print $1}' | cut -c1-48)"
+          INTERNAL_TOKEN_RAW="sk-$CLEAN_INTERNAL_KEY"
 
           mkdir -p /var/lib/new-api
           echo -n "$INTERNAL_TOKEN_RAW" > ${cfg.internalTokenFile}
