@@ -183,8 +183,6 @@ in
       sops.templates."dify-secret.env".content = ''
         SECRET_KEY=${config.sops.placeholder."dify/secret_key"}
         OPENAI_API_KEY=${config.sops.placeholder."openai_api_key"}
-        GITHUB_CLIENT_ID=dify
-        GITHUB_CLIENT_SECRET=${config.sops.placeholder."password"}
       '';
     })
   ];

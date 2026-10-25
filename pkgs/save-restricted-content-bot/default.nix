@@ -7,7 +7,7 @@
   ...
 }:
 let
-  version = "93129e163377f0ce292471c6f202f8eaf40106d1-p2";
+  version = "93129e163377f0ce292471c6f202f8eaf40106d1-p3";
   src = fetchFromGitHub {
     owner = "VJBots";
     repo = "VJ-Save-Restricted-Content";
@@ -54,9 +54,42 @@ pkgs.stdenv.mkDerivation {
 
     content = content[:match.start()] + replacement + content[match.end():]
 
+    # Use in-memory SQLite session for dynamic user client to avoid disk lock contention
+    content = content.replace(
+        'acc = Client("saverestricted", session_string=user_data, api_hash=api_hash, api_id=api_id)',
+        'acc = Client(":memory:", session_string=user_data, api_hash=api_hash, api_id=api_id)'
+    )
+
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
-    print("Successfully patched TechVJ/start.py for query parameters and format handling")
+    print("Successfully patched TechVJ/start.py for query parameters, format handling, and in-memory session")
+
+    # Patch bot.py:
+    # 1. Wrap TechVJUser.start() in try-except to prevent fatal crashes on invalid/expired/duplicated STRING_SESSION
+    # 2. Use in-memory session rather than persistent SQLite disk file
+    # 3. Gracefully fall back to LOGIN_SYSTEM=True bot mode if STRING_SESSION initialization fails
+    bot_path = os.path.join(os.environ["out"], "bot.py")
+    with open(bot_path, "r", encoding="utf-8") as f:
+        bot_code = f.read()
+
+    bot_pattern = r'if STRING_SESSION is not None and LOGIN_SYSTEM == False:\s+TechVJUser = Client\("TechVJ", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION\)\s+TechVJUser\.start\(\)\s+else:\s+TechVJUser = None'
+    bot_replacement = """if STRING_SESSION and not LOGIN_SYSTEM:
+        try:
+            TechVJUser = Client(":memory:", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
+            TechVJUser.start()
+        except Exception as e:
+            print(f"[TechVJUser] Warning: Failed to start session: {e}")
+            print("[TechVJUser] Gracefully falling back to LOGIN_SYSTEM=True bot mode.")
+            TechVJUser = None
+            LOGIN_SYSTEM = True
+    else:
+        TechVJUser = None"""
+
+    bot_code, count = re.subn(bot_pattern, bot_replacement, bot_code)
+    assert count == 1, f"Failed to patch bot.py (matched {count} times)"
+    with open(bot_path, "w", encoding="utf-8") as f:
+        f.write(bot_code)
+    print("Successfully patched bot.py for graceful session error handling and in-memory storage")
 
     cfg_path = os.path.join(os.environ["out"], "config.py")
     with open(cfg_path, "r", encoding="utf-8") as f:

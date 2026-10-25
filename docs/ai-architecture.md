@@ -24,15 +24,15 @@ nixos/modules/services/ai/
 │   ├── common.nix              # ContextForge 基础选项与持久化
 │   ├── containers.nix          # ContextForge 容器拓扑与 Keycloak SSO 挂载
 │   ├── db-init.nix             # 自动向 ContextForge 注册虚拟网关
-│   ├── degoog-bridge.nix       # 隐私搜索与深度正文提取 FastMCP
-│   ├── lifeos-bridge.nix       # 个人生活基建 MCP 工具箱 (Memos, 考公, 影音, 智能家居, 监控)
+│   ├── degoog-bridge.nix       # 隐私搜索与深度正文提取 FastMCP (5005 端口)
+│   ├── lifeos-bridge.nix       # 个人生活基建 MCP 工具箱 (Memos, 考公, 影音, 智能家居, 监控) (5007 端口)
 │   ├── traefik-proxy.nix       # ContextForge Traefik 反向代理
 │   └── backup.nix              # MCP 备份配置
 ├── dify/
 │   ├── common.nix / containers.nix / db-init.nix / traefik-proxy.nix / backup.nix
 └── companion/
     ├── common.nix              # 伴侣通用选项、端口、持久化与反向代理
-    ├── persona-engine.nix      # 人设编译器、记忆中枢、出站清洗、主动关怀与告警 Webhook
+    ├── persona-engine.nix      # 人设编译器、记忆中枢、出站清洗、主动关怀与告警 Webhook (5006 端口)
     ├── qq-astrbot.nix          # AstrBot + NapCat (OneBot v11) 与平滑自愈工具 heal-napcat-ws
     ├── wechat-ilink.nix        # 微信官方 iLink 长轮询与 24h 窗口智能保活
     ├── matrix-bot.nix          # Matrix 端到端加密 E2EE 伴侣通道
@@ -52,7 +52,7 @@ nixos/modules/services/ai/
 
 ---
 
-### 1.2 系统架构全景图
+### 1.2 系统架构全景拓扑图
 
 ```
                            [ 用户交互终端 (Client Interaction) ]
@@ -62,23 +62,25 @@ nixos/modules/services/ai/
           v (OneBot v11 WS)         v (HTTP Long-Poll)        v (Matrix E2EE)
     [ QQ 客户端 / 群聊 ]       [ 微信个人号 (免风控) ]      [ Matrix 加密房间 ]
           |                         |                         |
-          v                         v                         v
+          v (TCP 6098)              v (HTTPS)                 v (TCP 3090)
 +-------------------+     +-------------------+     +-------------------+
 |     NapCatQQ      |     |  wechat-ilink     |     |   matrix-bot      |
 |  (无头 NTQQ 协议)  |     | (24h窗口智能保活) |     |  (永不失联保底)   |
 +-------------------+     +-------------------+     +-------------------+
           |                         |                         |
-          v                         |                         |
+          v (WS 反向/正向 6098)      |                         |
 +-------------------+               |                         |
 |      AstrBot      |               |                         |
 | (表情转译/多模态)  |               |                         |
+|   (WebUI 6185)    |               |                         |
 +-------------------+               |                         |
           |                         |                         |
           +-------------------------+-------------------------+
-                                    | 统一 HTTP/JSON 对话载荷 (Session Scope)
+                                    |
+                                    | 统一 HTTP/JSON 对话载荷 (POST /v1/companion/chat)
                                     v
 +-------------------------------------------------------------------------------+
-|                 AI 拟人情感编译器与记忆中枢 (Persona Engine)                   |
+|                 AI 拟人情感编译器与记忆中枢 (Persona Engine :5006)             |
 |                                                                               |
 |  • 人设编译器：SillyTavern 卡 (PNG V2/V3 / JSON)、世界书、大肥鱼 Markdown、SOUL.md |
 |  • 动态宏展开：{{char}}, {{user}}, {{time}}, {{date}}, {{weekday}}              |
@@ -88,13 +90,13 @@ nixos/modules/services/ai/
 |  • 会话记忆存储：/var/lib/ai-companion/memory/companion.db (SQLite/状态机)   |
 +-------------------------------------------------------------------------------+
          |                                                       |
-         | 调用多模态推理与文本生成                               | 统一工具链挂载
+         | 调用模型生成 (POST /v1/chat/completions)               | 统一工具链挂载
          v                                                       v
 +------------------------------------+   +--------------------------------------+
-|       统一模型网关 (New-API)       |   |      IBM ContextForge MCP 总线        |
+|       统一模型网关 (New-API :3280) |   |    IBM ContextForge MCP 总线 (:5002)  |
 |                                    |   |                                      |
-|  • companion-pro: step-5-preview,  |   |  • degoog-mcp: 隐私搜索与网页正文提取 |
-|    glm-5.3 (高智商细腻陪伴)        |   |  • lifeos-mcp: 个人生活基建聚合工具:  |
+|  • companion-pro: step-5-preview,  |   |  • degoog-mcp (:5005): 隐私网页搜索  |
+|    glm-5.3 (高智商细腻陪伴)        |   |  • lifeos-mcp (:5007): 生活基建工具:  |
 |  • companion-flash: deepseek-v4.1  |   |    - memos_note: 随手记读写          |
 |  • companion-audio: stepaudio-2.5  |   |    - kaogong_status: 考公刷题督学    |
 |    (听写 ASR + 情绪语音条 TTS)     |   |    - movie_subscribe: 追剧点播       |
@@ -107,112 +109,190 @@ nixos/modules/services/ai/
                                     |
                                     v
 +-------------------------------------------------------------------------------+
-|                    Dify 知识库与复杂工作流引擎 (Dify CE)                       |
+|                    Dify 知识库与复杂工作流引擎 (Dify CE :5001)                 |
 |                                                                               |
 |  • 社区版双模登录：账号 i 密码直登 + Keycloak OIDC 免密 SSO (GitHub OAuth 桥接) |
 |  • 自动免配置向导：dify_setups 表自动标记完成，无需网页 /install 引导          |
 |  • 自动注入 Degoog Search 联网搜索工具 (OpenAPI 3.0 Schema)                   |
-|  • 向量存储：原生 Qdrant 实例 (/var/lib/private/qdrant)                       |
+|  • 向量存储：原生 Qdrant 实例 (:6333, /var/lib/private/qdrant)                |
 +-------------------------------------------------------------------------------+
 ```
 
 ---
 
-## 二、 核心服务层详细分解与架构设计
+## 二、 全栈组件清单、端口与默认凭据总览
 
-### 2.1 模型网关与路由底座 (`nixos/modules/services/ai/gateway/`)
+系统中所有支持登录的组件已全部统一对齐为**用户名：`i`**，**密码/Token：SOPS `password`**：
 
-网关层确立 **New-API** 为全机唯一 OpenAI 兼容上游（Single Source of Truth），下接商业渠道与 CPA（CLI-Proxy-API）逆向代理：
-
-1. **确定性密钥派生与免配置内部 Token**：
-   - 过去各服务部署后需在 UI 手动复制粘贴 Token，违背 NixOS 声明式原则。
-   - `new-api.nix` 在容器首次完成建表后，通过 `new-api-bootstrap.service` 自动向 `tokens` 表幂等插入一条无限额度的内部专用令牌：
-     $$\text{Token} = \text{sk-ai-internal-} + \text{SHA256}(\text{SOPS password})[0:32]$$
-   - 令牌同步落盘至 `/var/lib/new-api/internal-token`（权限 `0644`），供同机下游服务（Dify、Persona Engine、AstrBot）免配置直连调用。
-2. **多模态与模型路由矩阵**：
-   - 渠道自动绑定 `companion-pro`（指向高情商情感模型 `step-5-preview` / `glm-5.3`）、`companion-flash`（高频轻量总结）、`companion-audio`（`stepaudio-2.5-asr` 与 `stepaudio-2.5-tts`）及 `companion-vision`（`qwen3-vl`）。
-   - 预留 `local-rp-model` 模型别名，在 `arx8` 本地 GPU 节点上线时，可通过内网优先直通本地无审查模型。
-
----
-
-### 2.2 搜索与 Life-OS MCP 工具总线 (`nixos/modules/services/ai/mcp/`)
-
-采用 **IBM ContextForge (ContextForge AI Gateway)** 作为集中注册中心，通过标准化 MCP 协议挂载两套 FastMCP 守护进程：
-
-1. **`degoog-bridge.nix`（隐私搜索与深度网页提取）**：
-   - 监听本地端口 `5005`，封装本地 `degoog.nix`（去谷歌化隐私聚合搜索引擎）。
-   - 暴露 `search_web(query, limit)` 与 `fetch_webpage(url)` 两个核心工具。
-   - 实现标准 MCP SSE 协议（`/sse` 与 `/messages`），并自动生成 OpenAPI 3.0 规范注入 Dify。
-2. **`lifeos-bridge.nix`（数字生活基建聚合）**：
-   - 监听本地端口 `5007`，以只读或受信操作直连本地运行的服务：
-     - **Memos 随手记**：`memos_create_note`（随口让 AI 记录备忘）、`memos_list_recent`（闲聊时感知近期随手记动态）。
-     - **考公督学**：`kaogong_daily_status`（获取刷题统计与错题本抽查）。
-     - **影音自动化**：`moviepilot_subscribe`（自动检索与磁力订阅）、`jellyfin_recent_media`（查询最近入库大片）。
-     - **智能家居**：`hass_get_state`（读取 Home Assistant 传感器如人体存在、光照、晚间灯光）。
-     - **集群运维监控**：`infra_cluster_health`（读取 VictoriaMetrics 监控指标，汇总二十余个节点与 DN42 BGP 状态）。
-3. **`db-init.nix` 自动注册**：
-   - ContextForge 启动时自动读取 `/var/lib/contextforge/config/mcp_servers.json`，将 `degoog-search` 与 `lifeos-tools` 同时作为虚拟 MCP 工具池暴露给 AI 智能体。
+| 组件名称           | 核心作用                                | 宿主机/内部端口               | 对外公网域名                | 默认用户名 / 标识       | 默认密码 / 访问令牌            | 认证方式                   |
+| ------------------ | --------------------------------------- | ----------------------------- | --------------------------- | ----------------------- | ------------------------------ | -------------------------- |
+| **AstrBot**        | QQ 机器人调度中枢、插件/多模态管理      | `6185`                        | `bot.dora.im`               | **`i`**                 | **SOPS `password`**            | PBKDF2-SHA256 哈希登录     |
+| **NapCatQQ**       | 无头 NTQQ 协议端 (OneBot v11)           | `6099` (WebUI)<br>`6098` (WS) | `napcat.dora.im`            | -                       | **SOPS `password`**            | WebUI Token (SHA256 校验)  |
+| **New-API**        | 统一模型路由、配额与密钥网关            | `3280`                        | `api.dora.im`               | **`i`**                 | **SOPS `password`**            | Bcrypt 哈希 / Keycloak SSO |
+| **Dify (API/Web)** | 知识库 RAG、工作流编排与应用生成        | `5001` (API)<br>`3000` (Web)  | `chat.dora.im`              | **`i`** (`i@dora.im`)   | **SOPS `password`**            | PBKDF2 哈希 / Keycloak SSO |
+| **ContextForge**   | IBM 开源 MCP 聚合虚拟网关               | `5002` (API)<br>`5003` (UI)   | `mcp.dora.im`               | **`i`** (`i@dora.im`)   | **SOPS `password`** + 复合规则 | Basic Auth / Keycloak SSO  |
+| **CPA**            | CLI-Proxy-API 逆向与商业 API 代理       | `8317`                        | `cpa.dora.im`               | -                       | **SOPS `password`**            | Management Secret Key      |
+| **Persona Engine** | 人设编译器、记忆中枢与出站清洗          | `5006`                        | 无 (纯内网回环，不暴露公网) | **`i`** (`defaultUser`) | 免密 / 内网受信调用            | RESTful API                |
+| **Degoog MCP**     | 隐私搜索与网页正文提取桥接服务          | `5005`                        | 本地回环                    | -                       | -                              | FastMCP SSE / OpenAPI      |
+| **Life-OS MCP**    | 个人生活基建 (Memos/考公/影音/监控)     | `5007`                        | 本地回环                    | -                       | -                              | FastMCP SSE                |
+| **Keycloak**       | 集中身份认证与 OIDC 单点登录            | `3260`                        | `sso.dora.im`               | **`i`** (`i@dora.im`)   | **SOPS `password`**            | LDAP / PostgreSQL 统一凭据 |
+| **PostgreSQL**     | 基础数据库 (Dify, New-API, Keycloak 等) | `5432`                        | 本地回环                    | `postgres`              | 系统凭据 / Peer 认证           | 本地 Socket / Peer         |
+| **Redis**          | 缓存与 Celery 异步任务队列              | `6379`                        | 本地回环                    | -                       | -                              | 本地回环免密               |
+| **Qdrant**         | Dify 知识库向量存储引擎                 | `6333`                        | 本地回环                    | -                       | -                              | 本地 HTTP API              |
 
 ---
 
-### 2.3 Dify AI 平台零配置与双模登录 (`nixos/modules/services/ai/dify/`)
+## 三、 组件间协同交互与数据流向深度解析
 
-1. **管理员账户与免向导启动**：
-   - `dify-db-init.nix` 在 API 容器迁移建表后触发 `dify-bootstrap.service`，使用 Python 对 `sops` 主密码执行 Dify 专用的 `PBKDF2-HMAC-SHA256` 盐哈希运算，Upsert 管理员账号 `i@dora.im` 并绑定租户。
-   - 向 `dify_setups` 表插入当前版本初始化记录，用户打开浏览器直接呈现登录界面，彻底跳过网页首次 `/install` 引导。
-2. **Keycloak OIDC SSO 破局**：
-   - Dify 社区版官方在前端隐藏了通用 OIDC 按钮。
-   - 方案通过只读挂载定制的 `/app/api/libs/oauth.py`，将原生启用的 GitHub OAuth 认证流透明重定向至 Keycloak 的 `/protocol/openid-connect/auth`、`token` 和 `userinfo` 端点，实现**管理员 `i` 密码登录与 Keycloak SSO 一键单点登录共存**。
-3. **工具开箱即用注入**：
-   - 启动时自动将 `degoog-bridge` 的 OpenAPI 结构写入 PostgreSQL 的 `tool_api_providers` 表，所有新建的 Chatflow 与 Agent 工作流均原生拥有联网搜索能力。
+整套系统通过清晰定义的协议在不同层级之间流转，主要涵盖以下五大核心数据流：
 
----
+### 3.1 核心流程 1：QQ 用户消息全链路流转
 
-### 2.4 拟人情感中枢与全渠道 IM (`nixos/modules/services/ai/companion/`)
-
-#### 1. 人设编译器与情感中枢 (`persona-engine.nix`)
-
-监听本地端口 `5006`，作为整套系统的“认知与情感中枢”：
-
-- **多格式人设热加载**：
-  - 支持解析 SillyTavern 角色卡 V2/V3（自动解包 PNG `tEXt`/`iTXt` 的 Base64 `chara`/`ccv3` 元数据或 `.json` 结构）。
-  - 自动进行动态宏替换（`{{char}}`, `{{user}}`, `{{time}}`, `{{date}}`, `{{weekday}}`）。
-  - 具备世界书（World Info）关键词与正则递归扫描能力，命中时动态注入上下文。
-  - 兼容大肥鱼 Markdown 人格模板与 `SOUL.md`。
-- **拟真交互管道（Humanizer Pipeline）**：
-  - **草稿箱撕毁**：严格正则清洗 `（（[\s\S]*?））`、`\(\([\s\S]*?\)\)` 以及 `<think>[\s\S]*?</think>`，将模型的心理活动和规划过程剥离，仅保留最终回复。
-  - **三道拟人橡皮擦**：自动擦除“作为一个人工智能模型”、“很高兴为您服务”等 AI 客服口癖。
-  - **多气泡延迟发送（Bubble Splitting）**：将长回复按语义和标点切分为 2~4 个短句，并计算拟真打字耗时（`len * 0.08s`，介于 `0.8s ~ 2.8s` 之间），指导客户端分段发送。
-- **主动关怀与系统告警**：
-  - `/v1/companion/proactive`：生成早安问候、夜间催睡或日常随性搭话。
-  - `/api/v1/system-alert`：接收 Prometheus / Alertmanager 报警信息，让伴侣以符合人设口吻（亲昵、焦急、关切）将节点故障转述给主人。
-
-#### 2. QQ 接入层 (`qq-astrbot.nix` · 基于 `dafeiyu-astrbot` 架构)
-
-- **NapCatQQ**（无头 NTQQ，端口 `6098` WS / `6099` WebUI）负责 OneBot v11 协议通信。
-- **AstrBot**（端口 `6185`）作为智能体中枢，通过内网直连 New-API 与本地模型。
-- 配备 `heal-napcat-ws` 命令行工具，当检测到 QQ 连接断开时，通过 WebUI API 平滑重启 WebSocket 链路，无需重启容器，更**无需重新扫码**。
-
-#### 3. 微信官方 iLink 接入层 (`wechat-ilink.nix`)
-
-- 基于腾讯官方开放的 `ilinkai.weixin.qq.com` HTTP 长轮询协议。
-- 凭证与游标落盘于 `/var/lib/ai-companion/wechat/ilink_auth.json`。
-- **24 小时 context_token 智能保活机制**：
-  - 每次用户交互自动缓存 `context_token` 并设置 24 小时有效倒计时。
-  - 当距上次互动满 22 小时且处于日间时段时，主动触发一条自然日常话题，引导主人回复以刷新 24 小时窗口。
-  - 若窗口超时失效，主动问候自动转交 QQ（NapCat 私聊）或 Matrix 发送。
-
-#### 4. Matrix 端到端加密接入层 (`matrix-bot.nix`)
-
-- 连接本地 Matrix 服务器（端口 `3090` / `m.dora.im`），提供端到端加密、零风控的私密伴侣通道。
+```
+[用户在 QQ 发送消息]
+       │ (包含纯文字 / [Face:123] 表情 / 语音条 / 短视频)
+       ▼
+ [NapCatQQ (无头 NTQQ) :6098]
+       │ 转化为 OneBot v11 JSON 事件流
+       ▼ (WebSocket ws://127.0.0.1:6098)
+ [AstrBot 核心调度中枢 :6185]
+       │ 1. 入站翻译：将 [Face] 表情空消息补偿为 "[旺柴]" 文本占位
+       │ 2. 身份打标：静默注入 [昵称(QQ号)] 与 [主人] 身份标签
+       │ 3. 媒体抽取：语音转为 MP3，视频通过 ffmpeg 抽 16 帧拼图 + 60s 音频切片
+       ▼ (HTTP POST http://127.0.0.1:5006/v1/companion/chat)
+ [Persona Engine 情感中枢 :5006]
+       │ 1. 会话记忆检索：从 /var/lib/ai-companion/memory/companion.db 读取该用户最近 10 轮历史
+       │ 2. 宏变量替换：将 {{char}} 替换为角色名、{{user}} 替换为 "i"、展开当前日期时间与星期
+       │ 3. 世界书扫描：按关键词与正则扫描，命中时注入背景设定 (Lore)
+       │ 4. 组装 System Prompt 与完整上下文
+       ▼ (HTTP POST http://127.0.0.1:3280/v1/chat/completions)
+ [New-API 统一模型网关 :3280]
+       │ 携带 Bearer sk-ai-internal-... 内部固定 Token
+       │ 路由匹配：按 companion-pro 路由至 Step-5 / GLM-5.3，或按 local-rp-model 路由至 arx8
+       ▼ (HTTP POST 上游商业 API 或 CPA :8317)
+ [大语言模型完成推理]
+       │ 返回原始回复文本 (可能包含内心独白与 AI 客服口癖)
+       ▼
+ [Persona Engine 拟真出站整形]
+       │ 1. 草稿箱撕毁：正则剔除 （（内心独白草稿）） 与 <think> 思考链
+       │ 2. 拟人橡皮擦：擦除 "作为一个AI助手" 等机械口吻
+       │ 3. 拟人化多气泡拆分：切分为 2~4 个短句气泡，计算打字耗时 (len * 0.08s)
+       │ 4. 写入 SQLite 持久化会话历史
+       ▼ (HTTP JSON 回包: {"bubbles": [{"text": "...", "delay_seconds": 1.2}, ...]})
+ [AstrBot 出站处理]
+       │ 1. 表情还原：将 "[旺柴]" 还原为 QQ 原生 Face Segment
+       │ 2. 语音合成：若处于语音模式，调用 stepaudio-2.5-tts（先行过滤表情符号）生成语音条
+       ▼ (WebSocket 发送消息调用)
+ [NapCatQQ 推送消息]
+       │ 模拟真人打字延迟依次逐条发出
+       ▼
+[QQ 客户端收到拟人多气泡短消息]
+```
 
 ---
 
-## 三、 部署过程中的真实问题排查与代码实现剖析
+### 3.2 核心流程 2：微信官方 iLink 长轮询与 24h 窗口智能保活
+
+```
+[用户在微信向机器人发消息]
+       │
+       ▼
+ [腾讯官方 iLink 云端网关 (ilinkai.weixin.qq.com)]
+       │ HTTP 长轮询抓取 (get_updates)
+       ▼
+ [wechat-ilink 守护进程]
+       │ 1. 提取消息正文与 context_token
+       │ 2. 刷新保活时间戳：(user_id, context_token, expires_at = now + 24h)
+       │    记录在 /var/lib/ai-companion/wechat/ilink_auth.json
+       ▼ (HTTP POST http://127.0.0.1:5006/v1/companion/chat)
+ [Persona Engine 情感中枢]
+       │ (同流程 1，完成记忆加载、宏替换、大模型推理与出站气泡拆分)
+       ▼
+ [wechat-ilink 发送回包]
+       │ 携带上一步缓存的 context_token，调用 send_message 接口分气泡发送
+       ▼
+ [用户微信收到回复]
+
+【主动关怀与 22.5h 续期定时器】
+  wechat-ilink 后台调度器每 5 分钟轮询一次：
+  ├─ [距上次互动达到 22 小时] ──> 触发自然日常话题（结合 Memos 动态）发送给微信，
+  │                               吸引主人回复以刷新 24h 窗口；
+  ├─ [23:30 深夜] ─────────────> 结合 Home Assistant 传感器，若发现书房灯亮着，
+  │                               主动发送傲娇催睡消息；
+  └─ [超时超过 24 小时] ─────────> context_token 失效，主动问候自动无缝降级路由至 QQ 发送。
+```
+
+---
+
+### 3.3 核心流程 3：Life-OS 个人数字基建工具调用流
+
+```
+[AI 智能体 / Dify 工作流需要使用工具]
+       │
+       ▼
+ [IBM ContextForge MCP 总线 :5002]
+       │
+       ├──> [degoog-mcp :5005] ─────────> 本地 Degoog 聚合搜索引擎 (执行联网搜索与网页正文提取)
+       │
+       └──> [lifeos-mcp :5007]
+              │
+              ├──> memos_create_note ────> Memos 数据库/API (随口保存灵感备忘)
+              ├──> kaogong_daily_status ─> 考公数据库 (获取行测/申论每日刷题指标与错题)
+              ├──> moviepilot_subscribe ─> MoviePilot 服务 (聊天直接点播电影/番剧)
+              ├──> jellyfin_recent ──────> Jellyfin 媒体库 (查询最近入库的影视)
+              ├──> hass_get_state ───────> Home Assistant (读取环境光照、人体存在传感器)
+              └──> infra_cluster_health ─> VictoriaMetrics (读取 DN42 BGP 与服务器探活指标)
+```
+
+---
+
+### 3.4 核心流程 4：统一单点登录 (SSO) 与鉴权流
+
+```
+[用户浏览器访问 Dify / New-API / ContextForge]
+       │ 点击 "Keycloak 登录"
+       ▼
+ [Traefik 反向代理 :443]
+       │ 路由至 Keycloak OIDC 端点 (https://sso.dora.im)
+       ▼
+ [Keycloak :3260]
+       │ 验证凭据：用户名 "i"，密码来自 SOPS password
+       │ 对接 OpenLDAP 用户库 (uid=i,ou=people,dc=dora.im)
+       ▼
+ [签发 JWT ID Token 与 Access Token]
+       │ 重定向回调至对应服务 (Redirect URI)
+       ▼
+[用户完成单点免密登录，自动赋予 Admin 权限]
+```
+
+---
+
+### 3.5 核心流程 5：基础设施告警拟人化转述流
+
+```
+[服务器发生异常：如某一节点 BGP 会话中断或磁盘高水位]
+       │
+       ▼
+ [Prometheus / Alertmanager / VictoriaMetrics]
+       │ 触发 Webhook
+       ▼
+ [Persona Engine :5006 (/api/v1/system-alert)]
+       │ 1. 提取告警核心内容 (节点名、故障严重程度、错误日志)
+       │ 2. 组装专属提示词："请用你的性格语气，第一时间将以下故障汇报给主人，不要变成无聊客服！"
+       │ 3. 调用 New-API 生成生动关切的通知文本
+       ▼
+ [分发通道]
+       ├──> 微信 (wechat-ilink)：若在 24h 窗口内，直接私聊推送
+       └──> QQ (AstrBot/NapCat)：向主人 QQ 私聊推送或窗口戳一戳提醒
+```
+
+---
+
+## 四、 部署过程中的真实故障排错与代码实现剖析
 
 在实际部署与服务编排中，遇到了多项由上游协议断层、数据库 Schema 演进和网络时序引发的问题。以下为具体排错原因与针对性解决方案：
 
-### 1. Dify v1.17+ 数据库 Schema 不兼容导致 `dify-bootstrap` 启动崩溃
+### 4.1 Dify v1.17+ 数据库 Schema 不兼容导致 `dify-bootstrap` 启动崩溃
 
 - **故障现象**：`systemctl status dify-bootstrap.service` 报错：
   ```text
@@ -242,7 +322,7 @@ nixos/modules/services/ai/
 
 ---
 
-### 2. Dify Celery Worker 循环崩溃 (`ImportError: cannot import name 'decode_oauth_state'`)
+### 4.2 Dify Celery Worker 循环崩溃 (`ImportError: cannot import name 'decode_oauth_state'`)
 
 - **故障现象**：`podman-dify-worker.service` 启动后立即退出，退出码为 2：
   ```text
@@ -256,7 +336,7 @@ nixos/modules/services/ai/
 
 ---
 
-### 3. AstrBot 监听端口冲突与 Traefik 代理 502
+### 4.3 AstrBot 监听端口冲突与 Traefik 代理 502
 
 - **故障现象**：访问 `https://bot.dora.im` 出现 HTTP 502 Bad Gateway，且本地 `curl http://127.0.0.1:6180` 报错拒绝连接。
 - **原因分析**：AstrBot 4.29+ 容器官方默认将 WebUI 仪表盘硬编码监听在 **6185** 端口，而我们在 `ports.nix` 中原登记为 6180。容器启动日志明确打印：
@@ -268,7 +348,7 @@ nixos/modules/services/ai/
 
 ---
 
-### 4. 看门狗导致 NapCat 首次扫码死锁
+### 4.4 看门狗导致 NapCat 二维码频繁被打断重刷
 
 - **故障现象**：NapCat 容器每隔几分钟自动重启，控制台二维码刚出来就被打断重刷，无法完成手机扫码授权。
 - **原因分析**：原看门狗定时器每 5 分钟检查本地端口 6098（OneBot WS）是否处于 Listening 状态。但在首次部署尚未扫码登录时，NTQQ 不会拉起 WebSocket 服务端，导致看门狗误判服务死锁并强制重启 NapCat，从而形成了“未扫码 -> 杀容器 -> 生成新二维码 -> 再次杀容器”的恶性死循环。
@@ -277,7 +357,7 @@ nixos/modules/services/ai/
 
 ---
 
-### 5. ContextForge 启动瞬间 Keycloak 502 探测失败
+### 4.5 ContextForge 启动瞬间 Keycloak 502 探测失败
 
 - **故障现象**：ContextForge 启动日志中报错：
   ```text
@@ -289,7 +369,7 @@ nixos/modules/services/ai/
 
 ---
 
-## 四、 5GB Restic 严苛备份与持久化防爆设计
+## 五、 5GB Restic 严苛备份与持久化防爆设计
 
 针对云服务器 5GB 远程冷备存储配额，在 `nixos/modules/services/ai/companion/backup.nix` 中设计了精细的排除策略：
 
@@ -330,71 +410,327 @@ services.restic.backups.borgbase = {
 
 ---
 
-## 五、 部署、使用与操作维护手册
+## 六、 整套系统配置与操作维护手册（用户必读）
 
-### 5.1 域名解析与 Terraform 编排
+当你需要完整拉起或重新配置这套 AI 陪伴与基建系统时，请按以下顺序执行：
 
-所有对外暴露的 AI 域名均已统一定义在 `terraform/cdn.tf` 中，解析到 `fra0` 节点：
+### 6.1 第一步：检查密钥与 SOPS 主密码
 
-- `api.dora.im` → New-API 网关
-- `cpa.dora.im` → CLI-Proxy-API 逆向与商业 API
-- `chat.dora.im` → Dify AI 应用与工作流平台
-- `mcp.dora.im` → IBM ContextForge MCP 总线
-- `persona.dora.im` → AI 伴侣人设编译器与记忆中枢
-- `bot.dora.im` → AstrBot QQ 机器人管理后台
-- `napcat.dora.im` → NapCat NTQQ 协议后台与扫码登录
-
-推送 DNS 记录（由管理员执行）：
+确认你的 `secrets/common.yaml` 已包含全局主密码 `password`（所有组件均会自动以该密码作为统一凭据）：
 
 ```bash
-cd terraform && terraform apply
+# 验证密钥可解密
+sops -d secrets/common.yaml | grep -E '^password:'
 ```
 
 ---
 
-### 5.2 主机部署与启动验证
+### 6.2 第二步：推送 DNS 域名解析 (Terraform)
 
-在主仓库根目录构建并部署系统：
+所有 AI 相关域名已在 `terraform/cdn.tf` 中统一定义：
 
 ```bash
-# 本地切换并应用
+cd terraform
+terraform apply
+```
+
+_这会在 Cloudflare 上自动创建 `api`、`chat`、`mcp`、`persona`、`bot`、`napcat` 等三级域名 CNAME 解析，指向你的边缘网络并回源至 `fra0`。_
+
+---
+
+### 6.3 第三步：部署应用到主机 (NixOS)
+
+在仓库根目录执行构建与切换：
+
+```bash
+# 针对 fra0 节点应用
 sudo nixos-rebuild switch --flake .#fra0
 
-# 检查服务健康状态
+# 检查所有服务单元是否全部正常
 systemctl --failed
-# 应返回: 0 loaded units listed.
+# 正常应输出: 0 loaded units listed.
 ```
 
 ---
 
-### 5.3 QQ 机器人登录操作（NapCat 扫码）
+### 6.4 第四步：登录 NapCat 接入 QQ 机器人（免输复杂 Token）
 
-1. 浏览器打开 `https://napcat.dora.im/webui/`（或通过 SSH 隧道访问 `http://127.0.0.1:6099/webui/`）。
-2. 输入 WebUI Token：`91615548e98b` 进入控制台。
+1. 浏览器打开 `https://napcat.dora.im/webui/`。
+2. **输入 WebUI Token**：直接输入你的 **SOPS `password`** 即可进入控制台。
 3. 界面显示 NTQQ 登录二维码，使用手机 QQ 扫描并确认授权。
-4. 凭证将自动持久化保存在 `/var/lib/dafeiyu/napcat/data/` 中，后续重启无需再次扫码。
+4. 凭证将自动持久化保存在 `/var/lib/dafeiyu/napcat/data/` 中，后续重启系统或升级容器均可免扫码自动登录。
 
 ---
 
-### 5.4 AstrBot 控制台配置
+### 6.5 第五步：登录并配置 AstrBot 核心调度中枢
 
-1. 访问 `https://bot.dora.im`（初始账密：`astrbot` / `PrQ79mV3Q9EkAHtrNs7h1II7`）。
-2. 在「服务商配置」中添加 OpenAI 兼容接口：
-   - Base URL: `http://127.0.0.1:3280/v1`（本机 New-API 端口）
-   - API Key: 从 `/var/lib/new-api/internal-token` 获取固定令牌
-   - Model: `companion-pro` 或 `gemini-3-flash`
-3. 在「平台设置」中确认连接到 NapCat WebSocket：`ws://127.0.0.1:6098`。
+1. 浏览器打开 `https://bot.dora.im`。
+2. **登录认证**：
+   - 用户名：**`i`**
+   - 密码：**SOPS `password`**
+3. **配置大模型提供商（二选一）：**
+   - **方案 A（深度拟人中枢：对接 Persona Engine，最推荐）**：
+     - **Base URL**：`http://127.0.0.1:5006/v1`（指向 Persona Engine）
+     - **API Key**：可随意填写任意字符串（例如 `internal-token`，Persona Engine 收到请求后会自动替换为本地有效内部令牌发给 New-API）
+     - **模型名称**：填写你期望底层执行的模型，如 `companion-pro`、`gemini-3-flash` 或 `step-5-preview`
+     - **注意**：在此模式下，**AstrBot 自身完全无需导入任何角色**，Prompt 保持默认即可！Persona Engine 会在每次请求时自动读取激活的角色卡与世界书动态注入。
+   - **方案 B（极简直连：直通 New-API 网关）**：
+     - **Base URL**：`http://127.0.0.1:3280/v1`（直通 New-API）
+     - **API Key**：读取 `/var/lib/new-api/internal-token` 文件中的固定内部令牌
+     - **模型名称**：填写 `companion-pro` 或 `gemini-3-flash`
+     - **注意**：在此模式下，由 AstrBot 面板的「人设管理」负责维护提示词。
+4. **配置协议平台连接（对接同机 NapCat）**：
+   - 进入「配置」→「平台设置」：
+     - 确保 OneBot v11 正向 WebSocket 地址填为 `ws://127.0.0.1:6098`，点击测试连接显示“已连接”。
 
 ---
 
-### 5.5 人设导入与日常维护
+### 6.6 第六步：人设导入与个性化角色切换指南
 
-- **酒馆卡热导入**：
-  - 将网上下好的 SillyTavern `.png` 角色卡或 `.json` 角色卡直接放入 `/var/lib/ai-companion/personas/`，引擎即刻热加载。
-  - 或直接在私聊中给机器人发送一张角色卡 PNG 原图，Persona Engine 自动解析隐写块并实时切换。
-- **WebSocket 自愈**：
-  - 若因网络波动导致 QQ 机器人掉线，无需重启容器，直接在终端执行：
+Persona Engine 提供了三种极其便捷的人设管理与切换方式：
+
+- **方式 A：在 QQ 中直接聊天切换（最推荐，零门槛）**：
+  - 我们已在 AstrBot 插件中内置了 `astrbot_plugin_persona` 插件，在 QQ 私聊或群聊中直接发指令：
+    - **查看所有可用人设**：发送 `/persona` 或 `/persona list`，机器人会列出所有已导入的人设以及当前正在生效的人设（带 ⭐ 标记）；
+    - **即刻切换人设**：发送 `/persona <人设名称>`（例如 `/persona 大肥鱼`），机器人会立刻回显确认，下一句回复就会无缝切换为该人格！
+- **方式 B：本地 WebUI 图形控制台（可视化卡片与拖拽上传）**：
+  - Persona Engine 内置了现代化的单页控制台，通过 SSH 端口转发访问：
     ```bash
-    heal-napcat-ws
+    # 在本地终端执行端口转发
+    ssh -L 5006:localhost:5006 root@fra0
     ```
-    即可无损刷新重连。
+  - 浏览器打开 `http://localhost:5006/` 即可看到：
+    - **角色卡片网格**：直观展示每个人设的名称、简介与开场白，带“生效中”徽章；
+    - **一键切换**：点击卡片底部的“切换为此人设”按钮，即刻热切换；
+    - **拖拽上传区**：将从网上下载的酒馆 `.png` 角色卡或 `.json` 文件直接拖入页面，自动解析元数据并存盘激活！
+- **方式 C：直接往服务器文件夹丢文件（底层热加载）**：
+  - 将网上下好的 SillyTavern 角色卡 `.png` 原图、`.json` 或 Markdown 人格（如 `大肥鱼-人格.md`）直接放入：
+    ```bash
+    /var/lib/ai-companion/personas/
+    ```
+  - Persona Engine 会自动监控目录并热加载，下次对话时自动可用。
+
+---
+
+### 6.7 第七步：日常运维命令速查
+
+- **NapCat QQ 连接平滑自愈（网络波动掉线时使用）**：
+  ```bash
+  heal-napcat-ws
+  ```
+  _通过 WebUI API 平滑重启 WebSocket 客户端链路，无需重启容器、不退登 QQ、无需扫码。_
+- **查看各容器运行日志**：
+  ```bash
+  sudo podman logs -f napcat      # 查看 NTQQ 协议日志
+  sudo podman logs -f astrbot     # 查看 AstrBot 调度与对话日志
+  sudo podman logs -f dify-api    # 查看 Dify 知识库处理日志
+  sudo podman logs -f new-api     # 查看模型路由与 Token 消耗日志
+  ```
+- **查看情感中枢与 MCP 日志**：
+  ```bash
+  journalctl -u ai-persona-engine.service -f
+  journalctl -u degoog-mcp-bridge.service -f
+  journalctl -u lifeos-mcp-bridge.service -f
+  ```
+
+---
+
+## 七、 深度技术答疑与核心架构设计辨析
+
+### 7.1 数据存储分布、统一数据库可行性与服务器极简迁移
+
+#### 1. 各组件数据与配置到底存放在哪里？
+
+- **已完全运行在统一 PostgreSQL 里的服务**：
+  - **New-API**：数据库 `new_api`（存储渠道 Channels、访问令牌 Tokens、系统设置 Options、用户 Users）。
+  - **Dify**：数据库 `dify`（存储租户 Tenants、用户 Accounts、应用 Apps、工作流 Workflows、知识库元数据 Datasets、工具绑定等）。
+  - **Keycloak**：数据库 `keycloak`（存储 OIDC Clients、用户凭据、Realm 配置）。
+  - **Memos**：数据库 `memos`（存储全部个人笔记与标签）。
+- **基于本地文件存储的服务及其原因**：
+  - **AstrBot**：配置文件 `/var/lib/dafeiyu/astrbot/data/cmd_config.json`，数据与对话历史存放在 SQLite `/var/lib/dafeiyu/astrbot/data/data_v4.db`。
+    - _为什么不能存入 Postgres？_ 这是 AstrBot 上游开源项目的硬编码架构，内部采用 Python `peewee` ORM 强绑定了 SQLite 文件与 JSON，上游并未实现 PostgreSQL 适配器。
+  - **NapCatQQ**：配置文件 `/var/lib/dafeiyu/napcat/config/`，登录凭证与 QQ 缓存存放在 `/var/lib/dafeiyu/napcat/data/`。
+    - _为什么不能存入 Postgres？_ NapCat 底层运行的是真实的腾讯官方 Linux NTQQ 桌面客户端（基于 Electron / C++），腾讯客户端的设备秘钥（`device.json`）、Token 与本地消息缓存由 NTQQ 闭源核心硬编码存储在本地 LevelDB / SQLite 文件中，外部无法将其剥离至远程关系型数据库。
+  - **CPA (CLI-Proxy-API)**：`/var/lib/cpa/config.yaml`（纯 YAML 配置文件）。
+
+#### 2. “不存统一数据库，迁移服务器会不会每次都要手动配置很麻烦？”
+
+**完全不会！因为 NixOS 声明式自动化已经替代了手动配置过程：**
+
+- 传统运维之所以希望把配置全丢进数据库，是因为担心在新机器上重新部署时，需要进 WebUI 手动点几十个按钮（添加渠道、绑定 Token、新建用户、改密码、配反代）。
+- 但在我们的架构中，**配置本身即代码（Configuration as Code）**：
+  - New-API 的管理员 `i`、内部 Token、渠道模型矩阵由 `new-api-bootstrap.service` 自动写入；
+  - CPA 配置文件由 `cpa-init-config.service` 自动从 SOPS 渲染；
+  - NapCat 的 `webui.json` Token 与 AstrBot 的 `cmd_config.json` 账号密码由 `dafeiyu-setup-dirs` 自动生成；
+  - Dify 的免安装向导与管理员 `i` 由 `dify-bootstrap.service` 自动播种。
+- **终极极简迁移服务器指南（零手动配置）**：
+  当你需要迁移到新服务器时，只需要两步：
+  1. **迁数据库**：`pg_dumpall` 并在新机器 `psql` 导入（迁移 New-API 渠道、Dify 工作流与知识库）；
+  2. **迁 QQ 登录态**：拷贝 `/var/lib/dafeiyu/napcat/data`（仅几百 KB 的设备秘钥，为了免去重新扫码）；
+  3. 新机器拉取 Flakes 仓库，执行 `sudo nixos-rebuild switch` —— **整套系统的所有端口、配置、密钥、反代与后台账密全自动就绪，无需在网页上手动填任何一项参数！**
+
+---
+
+### 7.2 NapCat 是 QQ 官方的吗？会封号吗？避坑与防护建议
+
+#### 1. NapCat 是官方的吗？
+
+- **不是**。NapCatQQ 是一个由开源社区维护的开源项目。
+- **但它运行的是官方二进制**：与老一代完全逆向 QQ 协议的机器人（如过去的 Go-CQHTTP、Mirai、ShamRock 等基于 Android/iPad 协议 Hook 的方案）不同，NapCat 容器内部运行的是**腾讯官方发布的真实 Linux NTQQ 客户端**，通过对 NTQQ 本地 IPC 进行轻量包装，将 QQ 消息转发为标准 OneBot v11 接口。
+- **技术优势**：因为底层运行的是真正的 NTQQ，其握手协议包、加密算法（ECDH）、设备心跳特征与官方桌面 QQ **95% 以上一致**，是目前全网存活率最高、协议层最稳固的 QQ 个人号机器人方案。
+
+#### 2. 会封号吗？
+
+**任何非官方自动化行为都存在一定程度的风控与冻结风险。** 腾讯的风控主要由**行为特征**与**环境特征**触发，而非协议逆向特征。以下情况极易触发风控：
+
+1. **异地登录（重点警惕）**：当前主机 `fra0` 位于德国法兰克福！如果使用一个平时在中国大陆手机登录的 QQ 小号，突然在境外 IP（德国）登录，极易触发异地登录保护或冻结。
+2. **新号挂机**：刚注册不到一个月的新号权重极低，挂机器人很容易被要求人脸核验。
+3. **高频刷屏与违规内容**：在大型公开群聊中高频发消息、发送外部可疑链接或敏感违规词汇。
+
+#### 3. 生产环境避坑与防护建议
+
+- **账号选择**：务必使用专用的“老号”（常用生活小号、实名过、有半年以上正常聊天记录），严禁使用生活/工作核心主号。
+- **网络出口优化**：
+  - 若可能，建议通过本仓库的 Tailscale / EasyTier / DN42 隧道，将 NapCat 容器的网络流量通过国内节点（如 `can0`、`xiy0`）或家宽路由出站，保持登录 IP 为国内常用地区；
+  - 或将 QQ 机器人部署在亚太/国内节点，而核心大模型仍由 `fra0` 的 New-API 驱动。
+- **频率限制**：在 AstrBot 中严格保持消息防抖与流控（默认配置 `time: 60, count: 30`），避免在群聊中连续高频触发。
+
+---
+
+### 7.3 Persona Engine 到底是干什么的？纯内网运行与安全辨析
+
+#### 1. Persona Engine 的作用
+
+它是整套系统的**“拟人认知中枢与出站修剪器”**：
+
+- **全网主流人设卡解码**：专门负责解析 SillyTavern（酒馆）角色卡 V2/V3 中的 PNG 隐写 Base64 数据，提取性格、场景与对话示例；
+- **世界书动态扫描（World Info）**：当对话中出现特定关键词时，动态触发长篇设定注入；
+- **拟真去 AI 味**：物理撕毁模型生成的 `（（内心独白草稿箱））` 与 `<think>` 思考链标签，擦除“作为一个人工智能模型”等机械口癖；
+- **多气泡延迟发送**：将原本一次性吐出的 500 字长文切分为 2~4 条短句，并计算拟真打字耗时依次返回；
+- **跨端共享记忆**：统一为 QQ、微信（iLink）和 Matrix 提供同一套会话记忆。
+
+#### 2. 为什么之前外网能访问？纯内网运行的安全性
+
+- **外网暴露隐患**：此前由于在 Traefik 中配置了 `Host(persona.dora.im)` 反向代理，导致该端点暴露在公网，且其 API 为内网设计、**没有设置强密码认证**，存在未授权调用的安全隐患。
+- **现已实施的整改**：
+  - 彻底移除了 Traefik 反向代理规则，删除了 `cdn.tf` 与 `monitoring.nix` 中的解析；
+  - **Persona Engine 现已严格绑定在宿主机本地回环 `127.0.0.1:5006`**；
+  - 仅允许同机运行的 AstrBot、微信守护进程 `wechat-ilink` 和 `matrix-bot` 在本地内网调用，外网无法探测或直连，彻底杜绝未授权访问。
+
+---
+
+### 7.4 AstrBot vs Persona Engine：两者人设功能重合吗？
+
+- **AstrBot 自带人设**：AstrBot 原生支持配置单段 System Prompt（系统提示词）或导入单块 Markdown 人格文件，适合简单的人格设定。
+- **两者的关键差异**：
+  - **SillyTavern 生态兼容**：AstrBot 原生不支持直接读取网上下到的 `.png` 角色卡隐写图片，也不支持酒馆标准的世界书动态关键词触发深度；而 Persona Engine 原生支持酒馆 V2/V3 PNG、JSON 及世界书。
+  - **跨渠道共享**：AstrBot 仅服务于 QQ 平台；若后续接入微信官方 iLink 和 Matrix，只有通过 Persona Engine 才能让这几个平台共享完全相同的人设状态机与记忆池。
+- **架构选择建议**：
+  - **精简模式（直接直连）**：若你只使用 QQ 机器人，且人设只需在 AstrBot 后台填一段 Prompt 或放一个 Markdown 文件，可以在 AstrBot 后台直接将模型提供商填为 `http://127.0.0.1:3280/v1`（直通 New-API），完全跳过 Persona Engine，链路更短、延迟更低；
+  - **高级模式（走 Persona Engine）**：若你需要使用网上下载的复杂 SillyTavern PNG 角色卡、世界书或同时使用微信，可将提供商指向 `http://127.0.0.1:5006/v1`。
+
+---
+
+### 7.5 AstrBot vs NapCat：为什么两个都要？功能重叠了吗？
+
+两者没有任何功能重叠，是典型的**“外设硬件/协议端”**与**“大脑/智能体中枢”**的分工：
+
+```
+[NapCat] (硬件适配器 / 协议转换器)
+  ├── 职责：运行真正官方 Linux NTQQ，保持网络长链接与心跳，收发 QQ 消息二进制包。
+  ├── 产出：将 QQ 消息转换成通用的 OneBot v11 JSON 格式，通过 WebSocket 转发。
+  └── 属性：它完全没有 AI 能力，不知道什么是大模型，只管通信收发。
+
+[AstrBot] (智能体框架 / 大脑与调度中枢)
+  ├── 职责：Python 编写的智能体中枢，负责多模态清洗、调用 LLM、调度插件、维护上下文。
+  ├── 输入：从 NapCat 接收 OneBot v11 格式的 JSON 消息。
+  └── 输出：调用大模型后，将生成的文字回复通过 WebSocket 指令通知 NapCat 发送出去。
+```
+
+**为什么不能只用 AstrBot？** 因为腾讯从未公开过 QQ 的免密通信协议，AstrBot 作为 Python 软件不包含 NTQQ 的底层协议栈，必须借助 NapCat 运行官方 NTQQ 核心来完成协议通信。
+
+---
+
+### 7.6 Dify Celery Worker 崩溃原因与官方镜像澄清
+
+- **我们使用的是官方原版镜像吗？**
+  - **是的，100% 官方镜像**（`docker.io/langgenius/dify-api:0.15.3`），没有做任何二次打包或私有构建。
+- **为什么之前要挂载 `oauth.py`？**
+  - Dify 官方在商业策略上故意将“通用 OIDC / SAML SSO”锁死在企业版（Enterprise Edition）；社区开源版（Community Edition）后台只开放了 GitHub OAuth 与 Google OAuth。
+  - 在上一阶段方案中，为了实现“在 Dify 社区版登录页一键通过 Keycloak 单点登录”，我们利用社区版原生的 GitHub OAuth 入口，通过 Volume 挂载覆盖了其内部的 `oauth.py`，将 GitHub 请求透明映射到了 Keycloak OIDC 端点。
+  - **崩溃原因**：最初的简版 `oauth.py` 遗漏了 Celery Worker 异步任务所需的几个 TypedDict 类型声明，导致 Worker 在加载环境时抛出 `ImportError`。
+  - **当前状态**：补齐了完整的类型定义后，Dify API 与 Worker 现已稳定运行。
+- **极简替代方案**：
+  - 如果你不需要在 Dify 页面上点击“通过 GitHub/Keycloak 登录”的按钮，而只需要使用密码登录，完全可以在 `containers.nix` 中删掉 `oauth.py` 挂载行。
+  - 我们的 `dify-bootstrap` 服务已经自动在数据库中播种了超级管理员账号 **`i@dora.im`**，密码就是你的 **SOPS `password`**，打开登录页直接输入账密登录，同样免配置且纯净度达到 100%。
+
+---
+
+### 7.7 Docker 镜像版本策略：为什么全栈统一使用 `:latest`？固定版本 vs 最新版辨析
+
+本系统的所有容器化 AI 组件（New-API、CPA、ContextForge、Dify 全家桶、NapCat、AstrBot）目前**已全部统一配置为 `:latest` 最新版本**：
+
+| 组件服务         | 镜像声明                                             | 标签策略  | 为什么使用 `:latest`                                                                                   |
+| ---------------- | ---------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------ |
+| **NapCatQQ**     | `docker.io/mlikiowa/napcat-docker:latest`            | `:latest` | **腾讯 NTQQ 协议对抗刚需**：旧版本客户端极易被腾讯服务器强制风控或提示版本过低禁止登录，必须紧跟最新版 |
+| **AstrBot**      | `docker.io/soulter/astrbot:latest`                   | `:latest` | 快速获取新模型适配、协议自愈与插件生态修复                                                             |
+| **New-API**      | `docker.io/calciumion/new-api:latest`                | `:latest` | 紧跟各大模型商（Claude 3.7 / Step-5 / Qwen2.5 / DeepSeek）的最新 API 协议与渠道兼容                    |
+| **CPA**          | `docker.io/eceasy/cli-proxy-api:latest`              | `:latest` | 紧跟逆向代理上游认证与凭据算法更新                                                                     |
+| **Dify 全栈**    | `docker.io/langgenius/dify-{api,web,sandbox}:latest` | `:latest` | 享受工作流编排与 RAG 引擎的最新特性                                                                    |
+| **ContextForge** | `ghcr.io/ibm/mcp-context-forge:latest`               | `:latest` | 保持对 MCP 规范最新提案的兼容                                                                          |
+
+#### 深度辨析：为什么很多运维/配置模板倾向于“固定版本”？
+
+1. **NixOS 声明式与可复现性（Reproducibility）哲学**：
+   Nix 的核心设计理念是“无论何时构建，产物 100% 确定相同”。使用固定 Tag（如 `v4.18.37`）或哈希，可以保证相同的 Git Commit 在半年后重新 build 出完全一样的行为；而 `:latest` 是个动态指针，不同时间拉取到的内容会发生变化。
+2. **防范上游“破坏性改动”（Breaking Changes）**：
+   部分快速演进的开源软件在次版本升级中可能会调整数据库字段（如 Dify 1.17 变动表结构）或弃用配置项。固定版本可以让系统“在已知验证过的安全集里平稳运行”，升级动作转由人工测试后主动推进。
+
+#### 为什么在此 AI / QQ 机器人场景下，使用 `:latest` 更有优势？
+
+1. **逆向与非官方协议对抗的时效性**：
+   QQ 协议生态（NapCat）具有特殊的生命周期。腾讯会定期失效旧版本 NTQQ 的鉴权算法。如果固定在一个月前的旧版本，很可能某天早晨突然遭遇大规模登录失效。保持 `:latest` 意味着每次容器拉取都能拿到社区针对最新封控策略的修补代码。
+2. **免去手动改 Nix 代码升级的繁琐**：
+   无需每次发布新版都手动去编辑 Nix 文件修改版本号字符串。
+3. **日常一键升级操作**：
+   若想将所有 AI 容器升级到当天的最新构建，只需在终端执行：
+   ```bash
+   sudo podman pull docker.io/mlikiowa/napcat-docker:latest && sudo systemctl restart podman-napcat.service
+   sudo podman pull docker.io/soulter/astrbot:latest && sudo systemctl restart podman-astrbot.service
+   ```
+
+---
+
+## 八、 AstrBot `/var/lib/dafeiyu/astrbot/data/` 目录全景、持久化与灾备字典
+
+为了确保在启用 Impermanence 内存根系统与 5GB Restic 严格限制时心中有数，以下为 AstrBot 数据目录下全部 18 项文件与子目录的完整功能解析与备份策略：
+
+| 目录 / 文件名         | 类型 | 存储内容与功能说明                                                           | 是否建议 Persist (Impermanence) | 是否建议 Restic 远程备份 | 体积与排除考量                                         |
+| --------------------- | ---- | ---------------------------------------------------------------------------- | ------------------------------- | ------------------------ | ------------------------------------------------------ |
+| **`cmd_config.json`** | 文件 | **核心全局配置文件**（平台连接、LLM 提供商、Dashboard 账密、流控、安全设置） | **必须持久化**                  | **必须备份**             | ~8 KB，体积极小，整套机器人的核心配置资产              |
+| **`data_v4.db`**      | 文件 | **SQLite 核心业务数据库**（用户会话上下文、插件状态、使用统计、全局偏好）    | **必须持久化**                  | **必须备份**             | ~300 KB，聊天记忆与状态核心，压缩后极小                |
+| **`data_v4.db-shm`**  | 文件 | SQLite 共享内存临时文件                                                      | 运行时随 DB 挂载                | **排除**                 | 临时锁文件，进程停止后无价值                           |
+| **`data_v4.db-wal`**  | 文件 | SQLite 预写日志文件 (Write-Ahead Logging)                                    | 运行时随 DB 挂载                | **排除**                 | 临时事务缓存，定期自动 checkpoint 回 DB                |
+| **`plugins/`**        | 目录 | **本地安装的第三方插件代码目录**（如 `astrbot_plugin_face_convert`）         | **建议持久化**                  | **建议备份**             | 数十 KB 至数 MB，存放定制开发的 Python 插件            |
+| **`personas/`**       | 目录 | **本地人设库**（存放自定义的 `.md` 角色人设提示词模板）                      | **建议持久化**                  | **建议备份**             | 数十 KB，纯文本提示词资产                              |
+| **`knowledge/`**      | 目录 | 知识库原始文档存放目录（`.txt` / `.md` / `.pdf` 原文）                       | **建议持久化**                  | **建议备份**             | 视个人知识库而定，纯文本通常极小                       |
+| **`knowledge_base/`** | 目录 | 知识库向量索引缓存（Chroma / FAISS 向量数据库）                              | **建议持久化**                  | **可选备份**             | ~几 MB，若知识库很大可排除（可由原文重新向量化）       |
+| **`config/`**         | 目录 | 部分复杂插件独立生成的配置子文件                                             | **建议持久化**                  | **建议备份**             | 数 KB，插件个性化设置                                  |
+| **`skills/`**         | 目录 | 智能体动态 Skill 声明与代码                                                  | **建议持久化**                  | **建议备份**             | 数十 KB                                                |
+| **`skills.json`**     | 文件 | Skill 启用清单与元数据配置                                                   | **建议持久化**                  | **建议备份**             | ~1 KB                                                  |
+| **`t2i_templates/`**  | 目录 | 文生图 / 画图插件的提示词渲染模板                                            | **建议持久化**                  | **可选备份**             | 数十 KB                                                |
+| **`mcp_server.json`** | 文件 | AstrBot 连接外部 MCP 工具的端点配置文件                                      | **建议持久化**                  | **建议备份**             | < 1 KB                                                 |
+| **`plugins.json`**    | 文件 | AstrBot 官方插件市场索引缓存列表                                             | 自动生成                        | **强制排除备份**         | **~2.8 MB**，每次打开插件市场自动拉取，浪费备份空间    |
+| **`attachments/`**    | 目录 | 群聊或私聊中下载/生成的图片、语音条、多媒体附件                              | 运行时生成                      | **强制排除备份**         | **极易膨胀至数 GB**，纯展示缓存，撑爆 5GB 空间的主因！ |
+| **`temp/`**           | 目录 | 视频抽帧、音频 FFmpeg 切片与语音识别临时临时文件                             | 运行时生成                      | **强制排除备份**         | 纯临时中间态文件，用完即弃                             |
+| **`site-packages/`**  | 目录 | 容器内动态通过 pip 安装的插件依赖库（wheel 包解压内容）                      | 建议持久化                      | **强制排除备份**         | **数十至数百 MB**，代码包可随时通过 pip 重新拉取       |
+| **`webchat/`**        | 目录 | 内置网页聊天界面的静态资源与临时会话文件                                     | 运行时生成                      | **强制排除备份**         | 静态缓存，无需备份                                     |
+
+#### 5GB 灾备最小集总结：
+
+若要在极限情况下进行冷备恢复，你**真正需要备份的 AstrBot 数据只有 3 样东西**：
+
+1. `astrbot/data/cmd_config.json`（配置）
+2. `astrbot/data/data_v4.db`（记忆与数据库）
+3. `astrbot/data/personas/` 与 `plugins/`（自定义人设与自研插件）
+   这三项的总大小加在一起**通常小于 1 MB**，即使远程存储空间只有 100MB 也能轻松做上百次历史版本快照！

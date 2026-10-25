@@ -48,7 +48,7 @@ let
     import httpx
     from fastapi import FastAPI, File, Form, HTTPException, Query, Request, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import HTMLResponse, JSONResponse
     from PIL import Image
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -377,12 +377,95 @@ let
 
         return "\n\n=== PERSONA CONTEXT ===\n" + "\n\n".join(parts) + "\n=======================\n"
 
-    # ── REST API 路由 ───────────────────────────────────────────────────
-    @app.get("/")
-    async def root():
+    # ── REST API 路由与 WebUI 控制面板 ─────────────────────────────────
+    DASHBOARD_HTML = """<!DOCTYPE html>
+    <html lang="zh-CN">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>AI Persona Engine 管理控制台</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 2rem 1rem; }
+        .container { max-width: 900px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 1rem; margin-bottom: 2rem; }
+        h1 { font-size: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .badge { background: #065f46; color: #34d399; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; }
+        .upload-box { border: 2px dashed #475569; border-radius: 0.75rem; padding: 1.5rem; text-align: center; margin-bottom: 2rem; background: #1e293b; cursor: pointer; transition: 0.2s; }
+        .upload-box:hover { border-color: #38bdf8; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.25rem; }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; }
+        .card.active { border-color: #10b981; box-shadow: 0 0 12px rgba(16, 185, 129, 0.2); }
+        .card-title { font-size: 1.15rem; font-weight: bold; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+        .card-desc { font-size: 0.85rem; color: #94a3b8; line-height: 1.4; margin-bottom: 1rem; flex-grow: 1; }
+        .btn { background: #2563eb; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: 600; cursor: pointer; width: 100%; transition: 0.15s; }
+        .btn:hover { background: #1d4ed8; }
+        .btn.active-btn { background: #059669; cursor: default; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <header>
+          <h1>🎭 AI Persona Engine 控制台</h1>
+          <span class="badge" id="active-badge">加载中...</span>
+        </header>
+        <div class="upload-box" onclick="document.getElementById('file-input').click()">
+          <p>📁 点击或拖拽上传酒馆角色卡 (<strong>.png 隐写卡</strong> 或 <strong>.json 角色卡</strong>)</p>
+          <input type="file" id="file-input" style="display:none" accept=".png,.json" onchange="uploadCard(this.files[0])">
+        </div>
+        <div class="grid" id="cards-grid"></div>
+      </div>
+      <script>
+        async function loadPersonas() {
+          const res = await fetch("/v1/personas");
+          const data = await res.json();
+          document.getElementById("active-badge").innerText = "当前激活: " + data.active;
+          const grid = document.getElementById("cards-grid");
+          grid.innerHTML = "";
+          data.personas.forEach(function(p) {
+            var div = document.createElement("div");
+            div.className = "card" + (p.is_active ? " active" : "");
+            var actBadge = p.is_active ? "<span style=\"color:#10b981;font-size:0.8rem\">● 生效中</span>" : "";
+            var btnText = p.is_active ? "当前使用中" : "切换为此人设";
+            var btnClass = p.is_active ? "btn active-btn" : "btn";
+            var desc = p.description || "暂无描述";
+            div.innerHTML = "<div><div class=\"card-title\"><span>" + p.name + "</span>" + actBadge + "</div><div class=\"card-desc\">" + desc + "</div></div><button class=\"" + btnClass + "\" data-name=\"" + p.name + "\" onclick=\"selectPersona(this.dataset.name)\">" + btnText + "</button>";
+            grid.appendChild(div);
+          });
+        }
+        async function selectPersona(name) {
+          await fetch("/v1/personas/select?name=" + encodeURIComponent(name), { method: "POST" });
+          loadPersonas();
+        }
+        async function uploadCard(file) {
+          if (!file) return;
+          var fd = new FormData();
+          fd.append("file", file);
+          var res = await fetch("/v1/personas/import", { method: "POST", body: fd });
+          if (res.ok) {
+            alert("导入成功并已激活！");
+            loadPersonas();
+          } else {
+            alert("导入失败，请检查文件格式是否为合规的酒馆角色卡。");
+          }
+        }
+        loadPersonas();
+      </script>
+    </body>
+    </html>"""
+
+    @app.get("/", response_class=HTMLResponse)
+    async def root(request: Request):
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            return HTMLResponse(content=DASHBOARD_HTML)
         personas = load_all_personas()
         active = get_setting("active_persona", list(personas.keys())[0] if personas else "None")
-        return {"service": "ai-persona-engine", "status": "ok", "active_persona": active}
+        return JSONResponse({"service": "ai-persona-engine", "status": "ok", "active_persona": active, "ui": "Open in browser for dashboard"})
+
+    @app.get("/ui", response_class=HTMLResponse)
+    async def ui_endpoint():
+        return HTMLResponse(content=DASHBOARD_HTML)
 
     @app.get("/health")
     async def health():
@@ -644,7 +727,13 @@ let
             async with httpx.AsyncClient(timeout=90.0) as client:
                 resp = await client.post(f"{UPSTREAM_API_BASE}/chat/completions", headers=headers, json=body)
                 resp.raise_for_status()
-                return JSONResponse(resp.json())
+                data = resp.json()
+                if isinstance(data, dict) and "choices" in data:
+                    for choice in data.get("choices", []):
+                        msg = choice.get("message", {})
+                        if "content" in msg and isinstance(msg["content"], str):
+                            msg["content"] = sanitize_outbound_text(msg["content"])
+                return JSONResponse(data)
         except Exception as e:
             logger.error(f"Error proxying OpenAI completion: {e}")
             raise HTTPException(status_code=502, detail=str(e))

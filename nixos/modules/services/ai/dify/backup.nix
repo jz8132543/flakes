@@ -18,17 +18,89 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
   cfg = config.services.ai.dify;
+  qdrantPort = config.ports.dify-qdrant;
+  qdrantBackupDir = "/var/backup/qdrant";
 in
 {
-  # ── 将 Dify 数据纳入全局 Restic borgbase 备份 ─────────────────────
+  # ── 创建 Qdrant 备份目录 ───────────────────────────────────────────
+  systemd.tmpfiles.rules = [
+    "d ${qdrantBackupDir} 0750 root root - -"
+  ];
+
+  # ── Qdrant 全量零停机热快照服务 (调用 /snapshots API) ─────────────
+  systemd.services.qdrant-backup = {
+    description = "Qdrant Vector Database Automated Snapshot Backup";
+    after = [ "qdrant.service" ];
+    requires = [ "qdrant.service" ];
+    path = with pkgs; [
+      curl
+      jq
+      coreutils
+      findutils
+    ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      User = "root";
+    };
+
+    script = ''
+      set -euo pipefail
+
+      DATE=$(date +%Y%m%d_%H%M%S)
+      echo "[qdrant-backup] Starting full snapshot at $DATE..."
+
+      # 检查 Qdrant 服务是否正常
+      if ! curl -sf "http://127.0.0.1:${toString qdrantPort}/healthz" >/dev/null; then
+        echo "[qdrant-backup] Qdrant is not responding, skipping snapshot." >&2
+        exit 1
+      fi
+
+      # 调用 Qdrant 全量存储快照 API
+      SNAPSHOT_INFO=$(curl -sf -X POST "http://127.0.0.1:${toString qdrantPort}/snapshots")
+      SNAPSHOT_NAME=$(echo "$SNAPSHOT_INFO" | jq -r '.result.name')
+
+      if [ -n "$SNAPSHOT_NAME" ] && [ "$SNAPSHOT_NAME" != "null" ]; then
+        echo "[qdrant-backup] Generated snapshot: $SNAPSHOT_NAME, downloading..."
+        curl -sf "http://127.0.0.1:${toString qdrantPort}/snapshots/$SNAPSHOT_NAME" \
+          -o "${qdrantBackupDir}/qdrant_all_$DATE.snapshot"
+
+        # 删除 Qdrant 内部临时快照以释放 storage 内部冗余空间
+        curl -sf -X DELETE "http://127.0.0.1:${toString qdrantPort}/snapshots/$SNAPSHOT_NAME" || true
+        echo "[qdrant-backup] Successfully saved to ${qdrantBackupDir}/qdrant_all_$DATE.snapshot"
+      else
+        echo "[qdrant-backup] Snapshot API response did not contain a valid snapshot name: $SNAPSHOT_INFO" >&2
+        exit 1
+      fi
+
+      # 轮转策略：自动删除 7 天前的历史快照
+      find "${qdrantBackupDir}" -name "qdrant_all_*.snapshot" -type f -mtime +7 -delete
+      echo "[qdrant-backup] Qdrant snapshot backup completed."
+    '';
+  };
+
+  # ── Qdrant 定时快照 Timer (与 postgresqlBackup 协同) ───────────────
+  systemd.timers.qdrant-backup = {
+    description = "Daily Qdrant backup timer";
+    wantedBy = [ "timers.target" ];
+    timerConfig = {
+      OnCalendar = "01:25:00";
+      Persistent = true;
+    };
+  };
+
+  # ── 将 Dify 私钥与 Qdrant 快照纳入全局 Restic borgbase 备份 ─────────
   services.restic.backups.borgbase = {
     paths = lib.mkAfter [
-      # 仅备份租户私钥（用于解密大模型 API Key 凭据），排除庞大的上传附件与向量库
+      # 仅备份租户私钥（用于解密大模型 API Key 凭据）
       "${cfg.dataDir}/storage/privkeys"
+      # Qdrant 结构化快照存档目录
+      qdrantBackupDir
     ];
 
     exclude = lib.mkAfter [
@@ -54,20 +126,17 @@ in
       "/root/.cache/torch"
       "${cfg.dataDir}/**/*.cache"
 
-      # ── Qdrant 的 WAL（仅备份 storage，WAL 是临时的）────────────
-      "/var/lib/private/qdrant/storage/wal"
-      "/var/lib/qdrant/storage/wal"
+      # ── 排除 Qdrant 原生运行目录（已由 qdrant-backup 逻辑快照替代）──
+      "/var/lib/private/qdrant"
+      "/var/lib/qdrant"
     ];
   };
 
-  # ── 确保备份在 Qdrant 静止状态下运行（避免备份中途数据不一致）────
-  # Restic 备份前先 SIGSTOP Qdrant，备份后 SIGCONT（最小停机窗口）
-  # 注：Qdrant 支持在线快照 API，此处采用简单的信号暂停策略
-  # 如需零停机，可改用 `qdrant-snapshot.service` 调用 /snapshots API
+  # ── 确保备份在 PG 转储与 Qdrant 快照均完成后运行 ──────────────────
   systemd.services."restic-backups-borgbase" = {
-    # 等待 PG 全量 dump 完成后再启动
     after = lib.mkAfter [
       "postgresqlBackup.service"
+      "qdrant-backup.service"
     ];
   };
 }

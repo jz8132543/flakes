@@ -117,6 +117,14 @@ in
         SSO_KEYCLOAK_CLIENT_SECRET=${config.sops.placeholder."password"}
         MCP_API_KEY=${config.sops.placeholder."contextforge/mcp_api_key"}
       '';
+
+      sops.templates."browserless-secret.env".content = ''
+        TOKEN=${config.sops.placeholder."password"}
+      '';
+
+      sops.templates."mem0-secret.env".content = ''
+        MEM0_API_KEY=${config.sops.placeholder."password"}
+      '';
     })
   ];
 }

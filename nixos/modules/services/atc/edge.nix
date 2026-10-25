@@ -36,7 +36,8 @@ in
     # ── 控制平面 IP 解析兜底映射 ──────────────────────────────────────────
     # 将所有控制节点直接写入 extraHosts，确保在公网 DNS 或隧道解析未就绪时也能可靠直连
     networking.extraHosts = concatMapStringsSep "\n" (
-      c: "${c.ipv4} ${cfg.opsHost} ${c.name}-ops.${config.networking.domain}"
+      c:
+      "${c.ipv4} ${cfg.opsHost} ${c.name}-ops.${config.networking.domain} ${c.name}.${config.networking.domain}"
     ) controlNodes;
 
     # 1. Apache Traffic Server 数据面配置与可写路径解耦
@@ -44,7 +45,8 @@ in
       enable = true;
       records = {
         "proxy.config.config_dir" = "/var/lib/trafficserver/etc";
-        "proxy.config.http.server_ports" = "8089 8089:ipv6";
+        "proxy.config.admin.user_id" = "trafficserver";
+        "proxy.config.http.server_ports" = "8089";
       };
     };
 
@@ -57,15 +59,21 @@ in
     # 禁止使用 environment.etc."trafficserver/remap.config" 静态链接到 Nix Store
     environment.etc."trafficserver/remap.config".enable = false;
 
-    # 预先创建 /run/t3c.lock 与插件目录软链
+    # 预先创建 /run/t3c.lock 与插件目录软链及 service 兼容包装器
     systemd.tmpfiles.rules = [
       "f /run/t3c.lock 0664 trafficserver trafficserver -"
+      "d /run/trafficserver 0755 trafficserver trafficserver -"
       "d /var/lib/trafficcontrol-cache-config 0755 trafficserver trafficserver -"
       "d /var/lib/trafficcontrol-cache-config/status 0755 trafficserver trafficserver -"
       "f /var/lib/trafficcontrol-cache-config/status/ONLINE 0644 trafficserver trafficserver -"
       "d /var/lib/trafficserver/etc/dscp 0755 trafficserver trafficserver -"
       "L+ /var/lib/trafficserver/libexec - - - - ${pkgs.trafficserver}/libexec"
       "L+ /var/lib/trafficserver/bin - - - - ${pkgs.trafficserver}/bin"
+      "L+ /usr/sbin/service - - - - ${pkgs.writeShellScript "service" ''
+        SERVICE="''${1%.service}"
+        ACTION="$2"
+        exec ${pkgs.systemd}/bin/systemctl "$ACTION" "$SERVICE.service"
+      ''}"
     ];
 
     # 在 systemd.services.trafficserver.preStart 中完成基础结构初始化
@@ -106,9 +114,17 @@ in
               echo "CONFIG proxy.config.url_remap.pristine_host_hdr INT 1" >> /var/lib/trafficserver/etc/records.config
             fi
 
-            # 保证 /etc/trafficserver/remap.config 软链接至可写的运行时配置
-            rm -f /etc/trafficserver/remap.config 2>/dev/null || true
-            ln -sf /var/lib/trafficserver/etc/remap.config /etc/trafficserver/remap.config || true
+            # 清理陈旧锁文件并全量软链动态配置至 /etc/trafficserver/
+            mkdir -p /run/trafficserver
+            chown -R trafficserver:trafficserver /run/trafficserver
+            chmod 0755 /run/trafficserver
+            rm -f /run/trafficserver/*.lock /run/trafficserver/*.sock
+
+            for f in /var/lib/trafficserver/etc/*; do
+              base=$(basename "$f")
+              rm -f "/etc/trafficserver/$base" 2>/dev/null || true
+              ln -sf "$f" "/etc/trafficserver/$base" 2>/dev/null || true
+            done
 
             touch /run/t3c.lock 2>/dev/null && chown trafficserver:trafficserver /run/t3c.lock 2>/dev/null || true
             chown -R trafficserver:trafficserver /var/lib/trafficserver
@@ -231,6 +247,14 @@ in
         if [ "$BEST_EPOCH" -gt 0 ]; then
           echo "$BEST_EPOCH" > "$LAST_EPOCH_FILE"
         fi
+
+        # 同步完成后全量更新 /etc/trafficserver 软链，并通知 ATS 重载
+        for f in /var/lib/trafficserver/etc/*; do
+          base=$(basename "$f")
+          rm -f "/etc/trafficserver/$base" 2>/dev/null || true
+          ln -sf "$f" "/etc/trafficserver/$base" 2>/dev/null || true
+        done
+        ${pkgs.trafficserver}/bin/traffic_ctl config reload 2>/dev/null || true
       '';
     };
 

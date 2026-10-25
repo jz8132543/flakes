@@ -47,7 +47,7 @@ in
 
     defaultUser = lib.mkOption {
       type = lib.types.str;
-      default = "Tippy";
+      default = "i";
       description = "Default username for macro expansion in persona cards.";
     };
 
@@ -87,13 +87,13 @@ in
 
       napcatImage = lib.mkOption {
         type = lib.types.str;
-        default = "docker.io/mlikiowa/napcat-docker:v4.18.37";
+        default = "docker.io/mlikiowa/napcat-docker:latest";
         description = "Container image for NapCat (OneBot v11 NTQQ protocol).";
       };
 
       astrbotImage = lib.mkOption {
         type = lib.types.str;
-        default = "docker.io/soulter/astrbot:v4.29.0";
+        default = "docker.io/soulter/astrbot:latest";
         description = "Container image for AstrBot agent core runtime.";
       };
     };
@@ -160,11 +160,7 @@ in
         cfg.dataDir
       ];
 
-      # Traefik 反向代理
-      services.traefik.proxies.ai-persona = {
-        rule = "Host(`${cfg.domain}`)";
-        target = "http://127.0.0.1:${toString cfg.port}";
-      };
+      # Traefik 反向代理仅在明确需要外部暴露时配置，默认 persona-engine 纯内网回环 (127.0.0.1:5006) 运行，不暴露公网
     })
 
     (lib.mkIf (cfg.enable && cfg.qq.enable) {

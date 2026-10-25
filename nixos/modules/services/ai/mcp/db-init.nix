@@ -98,6 +98,15 @@ in
           CREATE EXTENSION IF NOT EXISTS pg_trgm;
         "
 
+      echo "[contextforge-db-init] Ensuring mem0 database exists..."
+      ${psql} -h ${pgHost} -p ${toString pgPort} -U postgres \
+        --set=ON_ERROR_STOP=1 \
+        -tAc "SELECT 1 FROM pg_database WHERE datname='mem0'" \
+        | grep -q 1 || \
+      ${psql} -h ${pgHost} -p ${toString pgPort} -U postgres \
+        --set=ON_ERROR_STOP=1 \
+        -c "CREATE DATABASE mem0 OWNER postgres;"
+
       echo "[contextforge-db-init] Done."
     '';
   };
@@ -137,7 +146,12 @@ in
           "lifeos-tools": {
             "type": "sse",
             "url": "http://127.0.0.1:${toString config.ports.lifeos-mcp}/sse",
-            "description": "Personal Life-OS infrastructure tools (Memos, Home Assistant, Jellyfin, Kaogong, Infra)"
+            "description": "Personal Life-OS infrastructure tools (Memos, Media, QBittorrent, Home Assistant, Infra)"
+          },
+          "browserless": {
+            "type": "sse",
+            "url": "http://127.0.0.1:${toString config.ports.browserless}",
+            "description": "Local Headless Chromium browser rendering engine"
           }
         }
       }

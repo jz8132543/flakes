@@ -99,7 +99,6 @@ in
         "https://sub.${config.networking.domain}"
         "https://chat.${config.networking.domain}"
         "https://mcp.${config.networking.domain}"
-        "https://persona.${config.networking.domain}"
       ];
       description = "List of public HTTP(S) endpoints to monitor via blackbox_exporter.";
     };
