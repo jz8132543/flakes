@@ -8,10 +8,10 @@
   dbus,
   gdk-pixbuf,
   glib,
+  glib-networking,
   gtk3,
   libsoup_3,
   makeDesktopItem,
-  makeWrapper,
   webkitgtk_4_1,
   wrapGAppsHook3,
   ...
@@ -33,7 +33,6 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     autoPatchelfHook
     copyDesktopItems
-    makeWrapper
     wrapGAppsHook3
   ];
 
@@ -42,6 +41,7 @@ stdenv.mkDerivation (finalAttrs: {
     dbus
     gdk-pixbuf
     glib
+    glib-networking
     gtk3
     libsoup_3
     webkitgtk_4_1
@@ -60,7 +60,7 @@ stdenv.mkDerivation (finalAttrs: {
       categories = [
         "Network"
         "Chat"
-        "ArtificialIntelligence"
+        "Utility"
       ];
       keywords = [
         "doubao"
@@ -78,10 +78,7 @@ stdenv.mkDerivation (finalAttrs: {
     runHook preInstall
 
     install -Dm755 doubao-desktop.bin $out/bin/doubao-desktop.bin
-
-    makeWrapper $out/bin/doubao-desktop.bin $out/bin/doubao-desktop \
-      # --set WEBKIT_DISABLE_DMABUF_RENDERER 1 \
-      # --set WEBKIT_DISABLE_COMPOSITING_MODE 1
+    install -Dm755 doubao-desktop $out/bin/doubao-desktop
 
     for size in 48 64 128 256; do
       install -Dm644 ''${size}x''${size}/doubao-desktop.png \
