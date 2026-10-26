@@ -90,7 +90,7 @@ in
     config = {
       dbtype = "pgsql";
       dbhost = PG;
-      adminuser = "i";
+      # adminuser = "i";
       adminpassFile = config.sops.secrets."password".path;
     };
 

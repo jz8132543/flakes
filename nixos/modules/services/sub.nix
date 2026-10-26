@@ -36,7 +36,7 @@ let
   dn42Server = server: "${serverHost server}.${dn42Domain}";
 
   # 判断节点是否自动裂变为 DN42 节点（例如中转节点 *-kxy 不自动生成 DN42）
-  shouldGenDn42 = node: node.enableDn42 && !lib.hasInfix "kxy" node.name;
+  shouldGenDn42 = node: node.enableDn42 && !lib.hasInfix "kxy" node.name && dn42Domain != "";
 
   # 公网直连节点（VLESS Reality 或 Shadowsocks）
   mkPublicNode =
@@ -214,16 +214,14 @@ let
     tolerance = 20;
     proxies = dn42NodeNames;
   }
-  ++ [
-    {
-      name = "NO-DN42";
-      type = "url-test";
-      url = cfg.healthCheckUrl;
-      interval = 300;
-      tolerance = 20;
-      proxies = publicNodeNames;
-    }
-  ];
+  ++ lib.optional (dn42NodeNames != [ ]) {
+    name = "NO-DN42";
+    type = "url-test";
+    url = cfg.healthCheckUrl;
+    interval = 300;
+    tolerance = 20;
+    proxies = publicNodeNames;
+  };
 
   # 当用户未自定义 AI 规则时，默认创建的非 HK AI/流媒体专用组（优先走 DN42 节点）
 
@@ -262,9 +260,9 @@ let
         proxies = [
           "PROXY"
           "ALL"
-          "NO-DN42"
         ]
         ++ lib.optional (dn42NodeNames != [ ]) "DN42"
+        ++ lib.optional (dn42NodeNames != [ ]) "NO-DN42"
         ++ (map (g: g.name) userGroupDefs)
         ++ allRegionGroupNames
         ++ [ "DIRECT" ];
@@ -277,9 +275,9 @@ let
         proxies = [
           "DIRECT"
           "ALL"
-          "NO-DN42"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42";
+        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
+        ++ lib.optional (dn42NodeNames != [ ]) "NO-DN42";
         # ++ (map (g: g.name) userGroupDefs)
         # ++ allRegionGroupNames;
       }
@@ -385,16 +383,11 @@ let
       ];
       nameserver-policy = {
         # "+.et" = "udp://100.100.100.101#EasyTier-Socks";
-        "+.${domain},+.kxy.ovh" = [
+        "+.${domain}" = [
           "https://1.1.1.1/dns-query#PROXY"
           "https://1.12.12.12/dns-query"
           "https://223.5.5.5/dns-query"
           "https://119.29.29.29/dns-query"
-        ];
-        "+.${dn42Domain}" = [
-          "172.20.232.1:53"
-          "172.20.0.53"
-          "172.23.0.53"
         ];
         "+.dn42" = [
           "172.20.0.53"
@@ -463,7 +456,7 @@ let
       ];
       skip-domain = [
         "*.${domain}"
-        "*.${dn42Domain}"
+        "*.dn42"
         "*.ts"
         "*.et"
       ];

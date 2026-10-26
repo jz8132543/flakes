@@ -56,8 +56,8 @@ in
       config = {
         dbtype = "pgsql";
         dbhost = config.services.nextcloud-cluster.core.databaseHost;
-        adminuser = "i";
-        adminpassFile = config.sops.secrets."password".path;
+        # adminuser = "i";
+        # adminpassFile = config.sops.secrets."password".path;
       };
 
       settings = {
