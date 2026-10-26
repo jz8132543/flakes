@@ -15,7 +15,13 @@ if [[ $mode == status ]]; then
 fi
 mkdir -p "$dir" "$WINPODX_STORAGE/shared"
 exec 9>"$dir/deployment.run.lock"
-flock 9
+if [[ $mode == init ]]; then
+  # A running deployment has already initialized its state. Never block a
+  # system rebuild behind the long-lived deployment lock.
+  flock -n 9 || exit 0
+else
+  flock 9
+fi
 
 if [[ ! -f $dir/winpodx.toml ]]; then
   tmp=$(mktemp "$dir/config.XXXXXX")
@@ -66,14 +72,16 @@ export WINPODX_NO_TRAY_SPAWN=1
 export WINPODX_DECLARATIVE_SHORTCUTS=1
 # Starting an existing paused container must not replace it.
 if [[ $(podman inspect --format '{{.State.Status}}' winpodx-windows 2>/dev/null || true) == paused ]]; then podman unpause winpodx-windows; fi
-"$WINPODX_CLI" pod start
-"$WINPODX_CLI" pod wait-ready
+# The native backend owns the startup scope for CLI, GUI and tray callers.
+# Long-lived native children must not inherit the deployment locks.
+"$WINPODX_CLI" pod start 8>&- 9>&-
+"$WINPODX_CLI" pod wait-ready 8>&- 9>&-
 printf '%s\n' 'Waiting for the persistent Windows Office/activation task...'
 until [[ -f $status ]] && jq -e --arg generation "$generation" '.generation == $generation and .complete == true' "$status" >/dev/null; do
   sleep 30
 done
-"$WINPODX_CLI" provision --require-agent --verbose
-result=$("$WINPODX_CLI" host-open refresh --json)
+"$WINPODX_CLI" provision --require-agent --verbose 8>&- 9>&-
+result=$("$WINPODX_CLI" host-open refresh --json 8>&- 9>&-)
 jq -e '.sync_error == null' <<<"$result" >/dev/null
 flock 8
 tmp=$(mktemp "$dir/done.XXXXXX")
@@ -81,4 +89,5 @@ printf '%s\n' "$generation" >"$tmp"
 mv "$tmp" "$dir/deployment.done"
 rm -f "$dir/deployment.pending"
 flock -u 8
+systemctl --user --no-block start winpodx-tray.service
 jq . "$status"

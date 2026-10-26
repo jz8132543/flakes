@@ -21,6 +21,7 @@ in
       pkgs.freerdp
       pkgs.libnotify
       pkgs.podman-compose
+      pkgs.slirp4netns
       pkgs.wmctrl
     ];
 

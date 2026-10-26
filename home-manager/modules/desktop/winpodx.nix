@@ -22,7 +22,7 @@ let
       freerdp_source = "native";
       multimon = "span";
       media_drive_enabled = true;
-      extra_flags = "/auto-reconnect-max-retries:0 -auto-reconnect";
+      extra_flags = "-auto-reconnect";
     };
     pod = {
       inherit (cfg)
@@ -87,6 +87,7 @@ let
       lib.makeBinPath [
         pkgs.podman
         pkgs.podman-compose
+        pkgs.slirp4netns
         pkgs.freerdp
         pkgs.iproute2
         pkgs.coreutils
@@ -141,9 +142,10 @@ in
     systemd.user.services.winpodx-deploy = lib.mkIf cfg.initialDeployment.enable {
       Unit.Description = "Resumable first deployment of WinPodX, Office and activation";
       Service = {
-        Type = "oneshot";
+        Type = "exec";
         ExecStart = "${deploy}/bin/winpodx-deploy";
-        TimeoutStartSec = "8h";
+        TimeoutStartSec = "1min";
+        RuntimeMaxSec = "8h";
         Restart = "on-failure";
         RestartSec = "5min";
         UMask = "0077";
@@ -160,6 +162,7 @@ in
         PartOf = [ "graphical-session.target" ];
       };
       Service = {
+        ExecCondition = "${pkgs.coreutils}/bin/test ! -e ${lib.escapeShellArg "${config.xdg.configHome}/winpodx/deployment.pending"}";
         ExecStart = "${package}/bin/winpodx tray";
         Restart = "on-failure";
         RestartSec = 5;
@@ -170,7 +173,7 @@ in
               pkgs.wmctrl
               pkgs.xdg-utils
             ]
-          }:/run/current-system/sw/bin"
+          }:/run/wrappers/bin:/run/current-system/sw/bin"
         ];
       };
       Install.WantedBy = [ "graphical-session.target" ];

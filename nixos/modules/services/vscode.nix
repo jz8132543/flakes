@@ -209,10 +209,17 @@ in
       jq
       bashInteractive
     ];
+    # Restart=always 只有同时关闭 systemd 的启动频率限制才会真正无限重启：
+    # 默认 10 秒内 5 次失败后 systemd 会放弃并把服务标记为 failed。
+    unitConfig = {
+      StartLimitIntervalSec = 0;
+      StartLimitBurst = 0;
+    };
     serviceConfig = {
       User = user;
       ExecStart = vscodeWebStart;
-      Restart = "on-failure";
+      Restart = "always";
+      RestartSec = 0;
       WorkingDirectory = workspace;
     };
     environment = {

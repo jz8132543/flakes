@@ -76,6 +76,27 @@ in
         postPatch =
           (old.postPatch or "")
           + ''
+            # GNOME renders DBusMenu remotely. Clearing an unchanged submenu
+            # replaces its action IDs and makes the shell collapse it.
+            substituteInPlace src/winpodx/desktop/tray.py \
+              --replace-fail '    _enable_native_menu_scrolling(apps_menu)' \
+              $'    if getattr(apps_menu, "_winpodx_snapshot", None) == available_apps:\n        return True\n    _enable_native_menu_scrolling(apps_menu)' \
+              --replace-fail $'    apps_menu.addAction(desktop_action)\n    return True' \
+              $'    apps_menu.addAction(desktop_action)\n    apps_menu._winpodx_snapshot = available_apps\n    return True' \
+              --replace-fail 'apps_menu.aboutToShow.connect(_rebuild_apps_menu)' \
+              'menu.aboutToShow.connect(_rebuild_apps_menu)' \
+              --replace-fail $'    def _rebuild_sessions_menu() -> None:\n        sessions_menu.clear()' \
+              '    def _rebuild_sessions_menu() -> None:' \
+              --replace-fail '        # Parent each QAction to the submenu' \
+              $'        snapshot = tuple(s.app_name for s in active)\n        if getattr(sessions_menu, "_winpodx_snapshot", None) == snapshot:\n            return\n        sessions_menu.clear()\n        sessions_menu._winpodx_snapshot = snapshot\n        # Parent each QAction to the submenu' \
+              --replace-fail 'sessions_menu.aboutToShow.connect(_rebuild_sessions_menu)' \
+              'menu.aboutToShow.connect(_rebuild_sessions_menu)' \
+              --replace-fail $'    def _rebuild_devices_menu() -> None:\n        devices_menu.clear()' \
+              '    def _rebuild_devices_menu() -> None:' \
+              --replace-fail '        # Parent QActions to the submenu' \
+              $'        snapshot = (usb, assigned)\n        if getattr(devices_menu, "_winpodx_snapshot", None) == snapshot:\n            return\n        devices_menu.clear()\n        devices_menu._winpodx_snapshot = snapshot\n        # Parent QActions to the submenu' \
+              --replace-fail 'devices_menu.aboutToShow.connect(_rebuild_devices_menu)' \
+              'menu.aboutToShow.connect(_rebuild_devices_menu)'
             substituteInPlace src/winpodx/cli/app.py \
               --replace-fail 'def _register_desktop_entries(discovered) -> None:' \
               $'def _register_desktop_entries(discovered) -> None:\n    import os\n    if os.environ.get("WINPODX_DECLARATIVE_SHORTCUTS") == "1":\n        return'
@@ -103,7 +124,20 @@ in
               --replace-fail '    def start(self) -> None:' \
               $'    def start(self) -> None:\n        from winpodx.desktop.tray_spawn import _install_in_progress\n        flags = ["--no-recreate"] if _install_in_progress() else []' \
               --replace-fail '[*self._compose_cmd(), "up", "-d"],' \
-              '[*self._compose_cmd(), "up", "-d", *flags],'
+              '["systemd-run", "--user", "--scope", "--quiet", "--collect", *self._compose_cmd(), "up", "-d", *flags],'
+            substituteInPlace src/winpodx/utils/deps.py \
+              --replace-fail '    hint = f"{cmd} CLI found but its daemon is unreachable"' \
+              $'    if cmd == "podman" and ("newuidmap" in low or "newgidmap" in low):\n        return (False, "Podman user-namespace setup failed; check that /run/wrappers/bin precedes raw newuidmap/newgidmap in PATH")\n    hint = f"{cmd} CLI found but its daemon is unreachable"'
+            # Avoid pasta copying thousands of DN42 routes. DNS goes through
+            # slirp's host-loopback mapping to the existing host resolver.
+            substituteInPlace src/winpodx/core/pod/compose.py \
+              --replace-fail '        template += _COMPOSE_PODMAN_EXTRAS' \
+              $'        template += _COMPOSE_PODMAN_EXTRAS + "    network_mode: slirp4netns:allow_host_loopback=true,enable_ipv6=false\\n    dns: [10.0.2.2]\\n    dns_opt: [no-aaaa]\\n"'
+            # Native pod start does not run setup_cmd's token preparation.
+            # Stage it before the first OEM boot, using the upstream helper.
+            substituteInPlace src/winpodx/core/pod/compose.py \
+              --replace-fail $'    return str(user_oem)\n\n\ndef _render_storage_blocks' \
+              $'    from winpodx.utils.agent_token import stage_token_to_oem\n    stage_token_to_oem(user_oem)\n    return str(user_oem)\n\n\ndef _render_storage_blocks'
           ''
           + lib.optionalString cfg.initialDeployment.enable ''
             cp ${./office.ps1} config/oem/nixos-office.ps1
@@ -119,11 +153,13 @@ in
           "--prefix"
           "PATH"
           ":"
-          "${lib.makeBinPath [
-            guard
-            pkgs.util-linux
-            pkgs.coreutils
-          ]}"
+          "${guard}/bin:/run/wrappers/bin:${
+            lib.makeBinPath [
+              pkgs.util-linux
+              pkgs.coreutils
+              pkgs.slirp4netns
+            ]
+          }"
           "--set-default"
           "WINPODX_DECLARATIVE_SHORTCUTS"
           "1"

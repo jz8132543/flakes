@@ -12,9 +12,10 @@ WinPodX 输入由 `flake.lock` 固定。配置入口是 `programs.winpodx`，应
 
 ## 首次部署
 
-`winpodx-deploy.service` 是 systemd 用户 oneshot 服务，登录时自动执行；也可以运行 `winpodx-deploy` 重试。
+`winpodx-deploy.service` 是 systemd 用户 `Type=exec` 服务，登录时后台执行；运行上限八小时，失败五分钟后重试。它不让系统切换等待整个安装流程；`init` 遇到正在运行的部署锁时直接退出，不阻塞 Home Manager 激活。
 
 1. shell 在首次启动前写入持久化 `~/.config/winpodx/deployment.pending`，调用 WinPodX 原生命令，由其管理容器拉取和底座 ISO 下载、Windows 安装。
+   原生 OEM 目录准备同时调用上游令牌函数，将相同认证令牌私有地保存到主机和 OEM；不能只复制静态脚本而省略此步骤。
 2. 保留完整的 WinPodX OEM 初始化，在其最终服务重启前增加一个小钩子，复制 Office 文件并注册 SYSTEM 计划任务。
 3. Windows 计划任务在启动后运行，每十分钟重试未完成步骤，且同一时间只允许一个实例。宿主退出或关机不删除部署标记、虚拟磁盘或任务。
 4. 计划任务使用 ODT 安装中文版 Office，验证 Microsoft 安装器签名、安装返回值和程序文件；只有安装完整结束后才提交独立的 `office.installed` 检查点。后续激活失败不再重新安装 Office。
@@ -28,6 +29,9 @@ Tiny10 的上游社区安装介质通常只有英文版本。`language = "Chines
 ## 生命周期与桌面
 
 - `winpodx-tray.service` 使用原生 idle pause、reverse-open 和 Office 窗口回收。保护不只依赖服务启动顺序：包内暂停入口和 Podman 子进程受持久化标记与共享锁保护，手动打开 GUI/托盘也不能在部署期间暂停、停止或替换容器，磁盘清理入口亦会拒绝操作。原生空闲监控在标记释放后继续运行，没有新增空闲守护进程。
+- Podman 后端的 Compose 使用专用 `slirp4netns` 网络，DNS 经 `10.0.2.2` 回到宿主解析器，并配置 `no-aaaa`。这避免默认 `pasta` 复制大量 DN42 路由失败，不修改宿主路由或全局容器网络默认值。
+- 容器启动在独立 systemd scope 内执行，子进程关闭部署锁文件描述符。调度服务结束或重启不会误杀容器的端口转发进程，也不会让辅助进程一直占用部署锁。
+- 托盘服务在部署标记存在时不自动启动；部署成功后由调度启动。手动启动的 GUI/托盘仍服从相同保护。
 - 保护范围是本项目安装的 WinPodX；直接运行 Podman 管理命令、宿主关机和 OOM 不属于该保护。旧的未修补进程必须先停止。
 - `autoStart = false` 禁止每次登录主动启动 Windows；应用启动仍由上游负责按需恢复。空闲行为设为 `pause`，具体唤醒时间取决于宿主与客户机状态，不能保证毫秒级恢复。
 - 上游 RemoteApp 命令内置 CJK IME 支持位修复。多会话由上游 rdprrap 注入和状态检查管理，`maxSessions` 是目标上限，不是所有软件一定可并发的保证。

@@ -91,7 +91,8 @@ in
   };
 
   services.open-webui = {
-    enable = true;
+    # TODO: fix
+    enable = false;
     port = 8081;
     environmentFile = config.sops.templates."open-webui.env".path;
     environment = {

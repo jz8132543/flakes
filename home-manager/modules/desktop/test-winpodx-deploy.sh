@@ -23,14 +23,21 @@ esac
 STUB
 cat >"$WINPODX_CLI" <<'STUB'
 #!/usr/bin/env bash
+[[ ! -e /proc/$$/fd/8 && ! -e /proc/$$/fd/9 ]] || exit 91
 printf '%s\n' "$*" >> "$XDG_CONFIG_HOME/calls"
 if [[ $* == 'pod start' && ${TEST_GUEST_COMPLETE:-0} == 1 ]]; then
   printf '{"generation":"test-generation","complete":true}\n' > "$WINPODX_STORAGE/shared/winpodx-deployment.json"
 fi
 if [[ $* == 'host-open refresh --json' ]]; then printf '{"sync_error":null}\n'; fi
 STUB
-chmod +x "$root/podman" "$WINPODX_CLI"
+cat >"$root/bin/systemd-run" <<'STUB'
+#!/usr/bin/env bash
+while [[ ${1:-} == --* ]]; do shift; done
+exec "$@"
+STUB
+chmod +x "$root/podman" "$WINPODX_CLI" "$root/bin/systemd-run"
 ln -s "$root/podman" "$root/bin/podman"
+ln -s "$root/podman" "$root/bin/systemctl"
 export PATH=$root/bin:$PATH
 deploy=$here/winpodx-deploy.sh
 bash "$deploy" init
@@ -41,6 +48,10 @@ printf '# changed by WinPodX\n' >>"$XDG_CONFIG_HOME/winpodx/winpodx.toml"
 before=$(sha256sum "$XDG_CONFIG_HOME/winpodx/winpodx.toml")
 bash "$deploy" init
 [[ $before == "$(sha256sum "$XDG_CONFIG_HOME/winpodx/winpodx.toml")" ]]
+exec 7>"$XDG_CONFIG_HOME/winpodx/deployment.run.lock"
+flock 7
+timeout 1 bash "$deploy" init
+flock -u 7
 for command in pause stop restart rm; do
   set +e
   bash "$guard" "$command" winpodx-windows >/dev/null 2>&1

@@ -7,6 +7,16 @@
 }:
 let
   cfg = config.services.new-api;
+
+  # 关闭熔断时把各项阈值一并归零：New-API 的 exceedsThreshold() 对 <= 0 的阈值直接放行，
+  # 因此即便某个版本忽略 monitor_enabled，也不会再因负载返回 503。
+  perfEnabled = if cfg.performanceMonitor.enabled then "true" else "false";
+  perfCpu =
+    if cfg.performanceMonitor.enabled then toString cfg.performanceMonitor.cpuThreshold else "0";
+  perfMemory =
+    if cfg.performanceMonitor.enabled then toString cfg.performanceMonitor.memoryThreshold else "0";
+  perfDisk =
+    if cfg.performanceMonitor.enabled then toString cfg.performanceMonitor.diskThreshold else "0";
 in
 {
   imports = [
@@ -86,6 +96,40 @@ in
       type = lib.types.str;
       default = "/var/lib/new-api/internal-token";
       description = "Path to the file containing the deterministic internal API token for downstream AI services.";
+    };
+
+    # New-API 的 middleware/performance.go 会在宿主 CPU/内存/磁盘使用率连续多次超过阈值时，
+    # 直接以 HTTP 503 "system memory overloaded (current: X%, threshold: Y%)" 拒绝 relay 请求。
+    # Kilo Code 收到 503 后只会按指数退避重试数次便放弃整个会话，
+    # 因此这里默认关闭该熔断，让网关不再因宿主负载波动而拒绝请求。
+    performanceMonitor = {
+      enabled = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+        description = ''
+          Enable New-API's system overload guard. Disabled by default so the
+          gateway never answers relay requests with HTTP 503
+          "system memory/cpu/disk overloaded" when the host is busy.
+        '';
+      };
+
+      cpuThreshold = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        default = 95;
+        description = "CPU usage percentage above which requests are rejected. 0 disables the check.";
+      };
+
+      memoryThreshold = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        default = 95;
+        description = "Memory usage percentage above which requests are rejected. 0 disables the check.";
+      };
+
+      diskThreshold = lib.mkOption {
+        type = lib.types.ints.unsigned;
+        default = 95;
+        description = "Disk usage percentage above which requests are rejected. 0 disables the check.";
+      };
     };
   };
 
@@ -358,6 +402,32 @@ in
             upsert_opt "PasswordLoginEnabled" "true"
             upsert_opt "PasswordRegisterEnabled" "false"
             upsert_opt "EmailVerificationEnabled" "false"
+
+            # 幂等落地系统过载熔断配置（默认关闭）。
+            # 选项键格式来自 New-API setting/config：`<配置组>.<json tag>`，
+            # 该组在 setting/performance_setting/config.go 注册为 performance_setting。
+            PERF_CHANGED=0
+            perf_upsert() {
+              local opt_key="$1"
+              local opt_val="$2"
+              local cur_val
+              cur_val="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT value FROM options WHERE key = '$opt_key';" 2>/dev/null || true)"
+              if [ "$cur_val" != "$opt_val" ]; then
+                upsert_opt "$opt_key" "$opt_val"
+                PERF_CHANGED=1
+              fi
+            }
+            perf_upsert "performance_setting.monitor_enabled" "${perfEnabled}"
+            perf_upsert "performance_setting.monitor_cpu_threshold" "${perfCpu}"
+            perf_upsert "performance_setting.monitor_memory_threshold" "${perfMemory}"
+            perf_upsert "performance_setting.monitor_disk_threshold" "${perfDisk}"
+
+            # 配置仅在容器启动时从 options 表加载，因此仅在取值发生变化时重启一次，
+            # 保证首次部署立即生效，而后续激活不会反复重启网关。
+            if [ "$PERF_CHANGED" = "1" ]; then
+              echo "performance monitor settings changed, restarting new-api"
+              systemctl restart podman-new-api.service || true
+            fi
 
             ${lib.optionalString cfg.oidc.enable ''
               OIDC_SEC="$(cat ${

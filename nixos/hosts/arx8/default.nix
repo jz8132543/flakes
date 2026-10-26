@@ -23,6 +23,8 @@
   optimize.brutal.target = "!cn";
 
   programs.winpodx.activation.method = "mas";
+  # XWayland exposes twice GNOME's logical size on this HiDPI display.
+  programs.winpodx.dpi = 200;
 
   # 保持与当前运行环境一致的稳定 7.2 内核，避免 7.3 上游未签名外部模块 cer 报错
   boot.kernelPackages = pkgs.linuxPackages_7_2;
