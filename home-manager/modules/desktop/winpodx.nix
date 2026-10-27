@@ -197,7 +197,8 @@ in
         categories = [ "Utility" ];
       };
     };
-    xdg.mimeApps.defaultApplications = lib.foldlAttrs (
+    # Keep Windows applications in "Open with" without overriding native defaults.
+    xdg.mimeApps.associations.added = lib.foldlAttrs (
       result: id: app:
       result // lib.genAttrs app.mimeType (_: [ "winpodx-${id}.desktop" ])
     ) { } shortcuts;

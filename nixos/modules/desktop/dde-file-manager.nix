@@ -76,7 +76,20 @@ let
             wrapProgram $out/bin/dde-file-manager-daemon \
               --set DSG_DCONFIG_BACKEND_TYPE "FileBackend" \
               --set DSG_DATA_DIRS "${deepin-dsg-conf}/share/dsg:${dde-pkgs.dde-file-manager}/share/dsg:${dde-pkgs.dtkcommon}/share/dsg:/run/current-system/sw/share/dsg" \
-              --prefix XDG_DATA_DIRS : "${deepin-dsg-conf}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share"
+              --prefix XDG_DATA_DIRS : "${deepin-dsg-conf}/share:${dde-pkgs.dtkcommon}/share:${dde-pkgs.dde-file-manager}/share" \
+              --prefix PATH : "${
+                lib.makeBinPath [
+                  pkgs.xorriso
+                  pkgs.dvdplusrwtools
+                ]
+              }"
+
+            # 修正 systemd user service，确保拉起包装后的 daemon
+            if [ -f $out/share/systemd/user/dde-file-manager.service ]; then
+              rm $out/share/systemd/user/dde-file-manager.service
+              cat ${dde-pkgs.dde-file-manager}/share/systemd/user/dde-file-manager.service > $out/share/systemd/user/dde-file-manager.service
+              sed -i "s|^ExecStart=.*|ExecStart=$out/bin/dde-file-manager-daemon|" $out/share/systemd/user/dde-file-manager.service
+            fi
 
             # 让 bin/dde-file-manager 直接执行包装后的 file-manager.sh，跳过在非 DDE 环境下会被宿主接管或超时的 DBus 流程
             rm $out/bin/dde-file-manager
@@ -120,7 +133,15 @@ in
       dde-pkgs.dtkcommon
       pkgs.papirus-icon-theme
       deepin-dsg-conf
+      pkgs.xorriso
+      pkgs.dvdplusrwtools
     ];
+
+    # 阻止桌面环境（如 GNOME）在光盘插入时自动挂载，防止锁定 /dev/sr* 独占 hardware 锁导致 dde 刻录引擎报 EBUSY
+    # 普通 U 盘、移动硬盘等非光盘设备不受此规则影响
+    services.udev.extraRules = ''
+      KERNEL=="sr[0-9]*", ENV{UDISKS_AUTO}="0"
+    '';
 
     # 链接 DSG、Deepin 资源与主题目录，供 DTK 识别 preference 和主题资源
     environment.pathsToLink = [

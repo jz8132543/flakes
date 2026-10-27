@@ -8,344 +8,100 @@ let
   writerTemplate = wpsTemplateRoot + "/Normal.dotm";
   sheetTemplate = wpsTemplateRoot + "/Normal.xltx";
   slidesTemplate = wpsTemplateRoot + "/Normal.pot";
-  documentAssociations = {
-    # Microsoft Word / WPS 文字 (默认优先使用 Microsoft Word)
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
+  # Default handlers and desktop MimeType fields share one source of truth.
+  documentMimeTypes = {
+    wps-writer = [
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.template"
+      "application/msword"
+      "application/vnd.ms-word"
+      "application/msword-template"
+      "application/x-msword"
+      "application/vnd.ms-word.document.macroEnabled.12"
+      "application/vnd.ms-word.template.macroEnabled.12"
+      "application/rtf"
+      "text/rtf"
+      "application/vnd.oasis.opendocument.text"
+      "application/vnd.oasis.opendocument.text-template"
+      "application/wps-office.docx"
+      "application/wps-office.doc"
+      "application/wps-office.dot"
+      "application/wps-office.dotx"
+      "application/wps-office.wps"
+      "application/wps-office.wpt"
+      "application/kswps"
+      "application/wps-office.uot"
+      "application/wps-office.uot3"
+      "application/wps-office.uott3"
+      "application/wps-office.msg"
+      "application/wps-office.eml"
+      "application/wps-office.wpso"
+      "application/wps-office.wpss"
+      "x-scheme-handler/ksoqing"
+      "x-scheme-handler/ksowps"
+      "x-scheme-handler/ksowebstartupwps"
+      "x-scheme-handler/ksodoccenter"
+      "x-scheme-handler/ksowpscloudsvr"
+    ];
+    wps-spreadsheet = [
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.template"
+      "application/vnd.ms-excel"
+      "application/msexcel"
+      "application/x-msexcel"
+      "application/vnd.ms-excel.sheet.macroEnabled.12"
+      "application/vnd.ms-excel.template.macroEnabled.12"
+      "application/vnd.ms-excel.sheet.binary.macroenabled.12"
+      "application/vnd.oasis.opendocument.spreadsheet"
+      "application/vnd.oasis.opendocument.spreadsheet-template"
+      "text/csv"
+      "application/wps-office.xlsx"
+      "application/wps-office.xls"
+      "application/wps-office.xlt"
+      "application/wps-office.xltx"
+      "application/wps-office.et"
+      "application/wps-office.ett"
+      "application/wps-office.ets"
+      "application/wps-office.eto"
+      "application/wps-office.uos"
+      "application/wps-office.uos3"
+      "application/wps-office.uost3"
+      "x-scheme-handler/ksoet"
+      "x-scheme-handler/ksowebstartupet"
+    ];
+    wps-presentation = [
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+      "application/vnd.openxmlformats-officedocument.presentationml.slideshow"
+      "application/vnd.openxmlformats-officedocument.presentationml.template"
+      "application/vnd.ms-powerpoint"
+      "application/mspowerpoint"
+      "application/powerpoint"
+      "application/x-mspowerpoint"
+      "application/vnd.mspowerpoint"
+      "application/vnd.ms-powerpoint.presentation.macroEnabled.12"
+      "application/vnd.ms-powerpoint.slideshow.macroEnabled.12"
+      "application/vnd.ms-powerpoint.template.macroEnabled.12"
+      "application/vnd.oasis.opendocument.presentation"
+      "application/vnd.oasis.opendocument.presentation-template"
+      "application/wps-office.pptx"
+      "application/wps-office.ppt"
+      "application/wps-office.pot"
+      "application/wps-office.potx"
+      "application/wps-office.dps"
+      "application/wps-office.dpt"
+      "application/wps-office.dpss"
+      "application/wps-office.dpso"
+      "application/wps-office.uop"
+      "application/wps-office.uop3"
+      "application/wps-office.uopt3"
+      "x-scheme-handler/ksowpp"
+      "x-scheme-handler/ksowebstartupwpp"
     ];
-    "application/msword" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/vnd.ms-word.document.macroEnabled.12" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.template" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/vnd.ms-word" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/msword-template" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/x-msword" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/rtf" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.docx" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.doc" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.dot" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.dotx" = [
-      "word-o365.desktop"
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-
-    # 金山专有格式（.wps / .wpt 等二进制格式 Office 无法正常解析，保持关联给 WPS）
-    "application/wps-office.wps" = [
-      "wps-writer.desktop"
-      "wps-office-wps.desktop"
-    ];
-    "application/wps-office.wpt" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/kswps" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uot" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uot3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uott3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uos" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uos3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uost3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uop" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uop3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.uopt3" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.msg" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.eml" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.wpso" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "application/wps-office.wpss" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "x-scheme-handler/ksoqing" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "x-scheme-handler/ksowps" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "x-scheme-handler/ksowebstartupwps" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "x-scheme-handler/ksodoccenter" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-    "x-scheme-handler/ksowpscloudsvr" = [
-      "wps-office-wps.desktop"
-      "wps-writer.desktop"
-    ];
-
-    # Microsoft Excel / WPS 表格 (默认优先使用 Microsoft Excel)
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/vnd.ms-excel" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/msexcel" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/x-msexcel" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/vnd.ms-excel.sheet.macroEnabled.12" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.template" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/vnd.ms-excel.template.macroEnabled.12" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/vnd.ms-excel.sheet.binary.macroenabled.12" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "text/csv" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.xlsx" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.xls" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.xlt" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.xltx" = [
-      "excel-o365.desktop"
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-
-    # 金山专有表格格式（.et 等）
-    "application/wps-office.et" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.ett" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.ets" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "application/wps-office.eto" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "x-scheme-handler/ksoet" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-    "x-scheme-handler/ksowebstartupet" = [
-      "wps-office-et.desktop"
-      "wps-spreadsheet.desktop"
-    ];
-
-    # Microsoft PowerPoint / WPS 演示 (默认优先使用 Microsoft PowerPoint)
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.ms-powerpoint" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/mspowerpoint" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/powerpoint" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/x-mspowerpoint" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.mspowerpoint" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.openxmlformats-officedocument.presentationml.slideshow" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.ms-powerpoint.presentation.macroEnabled.12" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/vnd.openxmlformats-officedocument.presentationml.template" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.pptx" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.ppt" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.pot" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.potx" = [
-      "powerpoint-o365.desktop"
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-
-    # 金山专有演示格式（.dps 等）
-    "application/wps-office.dps" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.dpt" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.dpss" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "application/wps-office.dpso" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "x-scheme-handler/ksowpp" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-    "x-scheme-handler/ksowebstartupwpp" = [
-      "wps-office-wpp.desktop"
-      "wps-presentation.desktop"
-    ];
-
-    # WPS PDF 内部 MIME
-    "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ];
   };
+  documentAssociations = lib.foldlAttrs (
+    result: name: mimeTypes:
+    result // lib.genAttrs mimeTypes (_: [ "${name}.desktop" ])
+  ) { "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ]; } documentMimeTypes;
 in
 {
   imports = [
@@ -516,9 +272,7 @@ in
   xdg.mimeApps = {
     enable = true;
     associations.added = documentAssociations;
-    defaultApplications = documentAssociations // {
-      "application/wps-office.wps" = [ "wps-office-wps.desktop" ];
-    };
+    defaultApplications = documentAssociations;
   };
 
   xdg.desktopEntries = {
@@ -536,11 +290,7 @@ in
       startupNotify = true;
     };
     wps-writer = {
-      mimeType = [
-        "application/wps-office.wps"
-        "application/wps-office.wpt"
-        "application/kswps"
-      ];
+      mimeType = documentMimeTypes.wps-writer;
       name = "WPS 文字";
       genericName = "WPS Writer";
       comment = "Open WPS Writer";
@@ -553,6 +303,7 @@ in
       ];
     };
     wps-spreadsheet = {
+      mimeType = documentMimeTypes.wps-spreadsheet;
       name = "WPS 表格";
       genericName = "WPS Spreadsheets";
       comment = "Open WPS Spreadsheets";
@@ -565,6 +316,7 @@ in
       ];
     };
     wps-presentation = {
+      mimeType = documentMimeTypes.wps-presentation;
       name = "WPS 演示";
       genericName = "WPS Presentation";
       comment = "Open WPS Presentation";

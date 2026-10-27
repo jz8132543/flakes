@@ -44,20 +44,31 @@ in
       "efpglpohdfnodejoimcladancmgeibao"
       # Zotero Connector - 一键抓取文献与PDF附件
       "ekhagklcjbdpajgpjgmbionohlpdbjgc"
+      # Auto Tab Discard - 智能休眠标签页节省内存
+      "jhnleheckmknfcgijgkadoemagpecfol"
     ];
-    # https://wiki.archlinux.org/title/Chromium#Native_Wayland_support
-    # commandLineArgs = [
-    #   "--ozone-platform-hint=auto"
-    #   "--ozone-platform=wayland"
-    #   # make it use GTK_IM_MODULE if it runs with Gtk4, so fcitx5 can work with it.
-    #   # (only supported by chromium/chrome at this time, not electron)
-    #   "--gtk-version=4"
-    #   # make it use text-input-v1, which works for kwin 5.27 and weston
-    #   # "--enable-wayland-ime"
-    #
-    #   # enable hardware acceleration - vulkan api
-    #   # "--enable-features=Vulkan"
-    # ];
+    commandLineArgs = [
+      # 1. 原生 Wayland 与手势导航
+      "--ozone-platform-hint=auto"
+      "--ozone-platform=wayland"
+
+      # 2. 中文输入法适配 (Fcitx5 光标跟随)
+      "--gtk-version=4"
+
+      # 3. GPU 硬解与图形加速
+      "--enable-gpu-rasterization"
+      "--enable-zero-copy"
+
+      # 4. 进程与内存优化（同域名合并进程节省内存）
+      "--process-per-site"
+
+      # 5. 网络抗丢包与长连接防断（禁用 QUIC 避免 UDP 443 丢包导致的大模型流式输出中断）
+      "--disable-quic"
+      "--enable-tcp-fastopen"
+
+      # 6. 特性开关集合（合并避免多条 --enable-features 相互覆盖）
+      "--enable-features=TouchpadOverscrollHistoryNavigation,VaapiVideoDecodeLinuxGL,VaapiVideoEncoderLinuxGL,VaapiIgnoreDriverChecks,ParallelDownloading"
+    ];
   };
   # programs.chromium = {
   #   enable = true;

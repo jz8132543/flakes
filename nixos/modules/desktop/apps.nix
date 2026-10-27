@@ -49,6 +49,8 @@
       "mpkodccbngfoacfalldjimigihfbocjn"
       # Linkwarden - Bookmark Manager
       "efpglpohdfnodejoimcladancmgeibao"
+      # Auto Tab Discard - 智能休眠标签页
+      "jhnleheckmknfcgijgkadoemagpecfol"
     ];
     extraOpts = {
       "3rdparty" = {

@@ -66,6 +66,15 @@ in
     programs.winpodx.package = lib.mkDefault (
       base.overridePythonAttrs (old: {
         doCheck = false;
+        # buildPythonApplication does not run stdenv's installCheckPhase.
+        postFixup = (old.postFixup or "") + ''
+          (
+            export QT_QPA_PLATFORM=offscreen
+            export PYTHONDONTWRITEBYTECODE=1
+            export PYTHONPATH="$out/${pkgs.python3.sitePackages}:$PYTHONPATH"
+            timeout 60 ${pkgs.python3.interpreter} ${./test-refresh.py} -v
+          )
+        '';
         dependencies =
           old.dependencies
           ++ (with pkgs.python3Packages; [
@@ -76,6 +85,28 @@ in
         postPatch =
           (old.postPatch or "")
           + ''
+            # PySide6 does not register these ordinary-mixin slots on the real
+            # window. Explicit QObject slots keep refresh UI work on its thread.
+            substituteInPlace src/winpodx/gui/main_window.py \
+              --replace-fail 'from PySide6.QtCore import Qt, QThread, QTimer, Signal' \
+              'from PySide6.QtCore import Qt, QThread, QTimer, Signal, Slot' \
+              --replace-fail '    def _refresh_dashboard(self) -> None:' \
+              $'    @Slot(int)\n    def _on_refresh_succeeded(self, count: int) -> None:\n        super()._on_refresh_succeeded(count)\n\n    @Slot(str, str)\n    def _on_refresh_failed(self, kind: str, detail: str) -> None:\n        super()._on_refresh_failed(kind, detail)\n\n    @Slot()\n    def _cleanup_refresh_worker(self) -> None:\n        super()._cleanup_refresh_worker()\n\n    def _refresh_dashboard(self) -> None:'
+            substituteInPlace src/winpodx/gui/_main_window_apps.py \
+              --replace-fail 'from PySide6.QtCore import QThread, QTimer, Slot' \
+              'from PySide6.QtCore import Qt, QThread, QTimer, Slot' \
+              --replace-fail 'worker.succeeded.connect(self._on_refresh_succeeded)' \
+              'worker.succeeded.connect(self._on_refresh_succeeded, Qt.ConnectionType.QueuedConnection)' \
+              --replace-fail 'worker.failed.connect(self._on_refresh_failed)' \
+              'worker.failed.connect(self._on_refresh_failed, Qt.ConnectionType.QueuedConnection)' \
+              --replace-fail 'thread.finished.connect(self._cleanup_refresh_worker)' \
+              'thread.finished.connect(self._cleanup_refresh_worker, Qt.ConnectionType.QueuedConnection)' \
+              --replace-fail 'worker.finished.connect(thread.quit)' \
+              'worker.finished.connect(thread.quit, Qt.ConnectionType.DirectConnection)'
+            # GUI refresh must obey the same declarative-shortcut policy as CLI.
+            substituteInPlace src/winpodx/gui/workers.py \
+              --replace-fail 'def sync_desktop_entries(discovered) -> None:' \
+              $'def sync_desktop_entries(discovered) -> None:\n    import os\n    if os.environ.get("WINPODX_DECLARATIVE_SHORTCUTS") == "1":\n        return'
             # GNOME renders DBusMenu remotely. Clearing an unchanged submenu
             # replaces its action IDs and makes the shell collapse it.
             substituteInPlace src/winpodx/desktop/tray.py \
