@@ -236,7 +236,6 @@ let
     unified-delay = true;
     tcp-concurrent = true;
     find-process-mode = "always";
-    global-client-fingerprint = "random";
     external-controller = "0.0.0.0:9090";
     external-ui = "./dashboard";
     redir-port = 9797;
@@ -524,7 +523,7 @@ in
 
     healthCheckUrl = lib.mkOption {
       type = lib.types.str;
-      default = "http://www.gstatic.com/generate_204";
+      default = "https://www.gstatic.com/generate_204";
       description = "URL used by URL-test and load-balance groups.";
     };
 

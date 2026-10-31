@@ -586,8 +586,8 @@ in
 
     systemd.services.prometheus-vmagent = {
       description = "Push node metrics to VictoriaMetrics with Basic Auth";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
+      after = [ "NetworkManager-wait-online.service" ];
+      wants = [ "NetworkManager-wait-online.service" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         ExecStart = lib.concatStringsSep " " [

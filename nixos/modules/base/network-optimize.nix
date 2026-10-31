@@ -642,8 +642,8 @@ in
       # 必须在 set-initcwnd 之前完成，否则两个服务会并发探测接口产生竞争。
       systemd.services.enable-nic-offloads = {
         description = "Gracefully enable all possible NIC offload features (tso/gso/gro/lro/sg/rx/tx)";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
+        after = [ "NetworkManager-wait-online.service" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
 
         restartTriggers = [
@@ -687,8 +687,8 @@ in
       # ── 服务一补充：RPS/XPS 多核分流（提高 CPU 使用率与并行包处理）────
       systemd.services.tune-rps-xps = {
         description = "Aggressive RPS/XPS fan-out for multi-core packet processing";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
+        after = [ "NetworkManager-wait-online.service" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
         serviceConfig = {
           Type = "oneshot";
@@ -742,11 +742,11 @@ in
         description = "Set TCP initcwnd/initrwnd and dynamic MSS on default routes";
         # 关键：强依赖 enable-nic-offloads，确保顺序执行，消除竞争
         after = [
-          "network-online.target"
+          "NetworkManager-wait-online.service"
           "enable-nic-offloads.service"
         ];
         requires = [ "enable-nic-offloads.service" ];
-        wants = [ "network-online.target" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
 
         restartTriggers = [
@@ -811,11 +811,11 @@ in
       systemd.services.set-fq-pacing = lib.mkIf (fqMaxrateEffective > 0) {
         description = "Apply FQ pacing rate limit to smooth out burst and avoid token bucket drops";
         after = [
-          "network-online.target"
+          "NetworkManager-wait-online.service"
           "enable-nic-offloads.service"
         ];
         requires = [ "enable-nic-offloads.service" ];
-        wants = [ "network-online.target" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
 
         restartTriggers = [
@@ -849,10 +849,10 @@ in
       systemd.services.network-qos-controller = lib.mkIf cfg.qosProbe.enable {
         description = "QoS closed-loop controller (GREEN/YELLOW/RED)";
         after = [
-          "network-online.target"
+          "NetworkManager-wait-online.service"
           "set-initcwnd.service"
         ];
-        wants = [ "network-online.target" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
 
         restartTriggers = [
@@ -1179,10 +1179,10 @@ in
       systemd.services.clear-dscp = {
         description = "Clear DSCP/TOS on all egress packets to evade ISP QoS classification";
         after = [
-          "network-online.target"
+          "NetworkManager-wait-online.service"
           "nftables.service"
         ];
-        wants = [ "network-online.target" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
 
         restartTriggers = [

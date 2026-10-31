@@ -117,7 +117,7 @@ let
   ];
   overlayTransportUdpPorts = tailscaleTransportUdpPorts ++ easytierTransportUdpPorts;
   overlayIsolationAfterUnits = [
-    "network-online.target"
+    "NetworkManager-wait-online.service"
     "nftables.service"
     "easytier.service"
   ]
@@ -327,8 +327,8 @@ in
       systemd.services.easytier = {
         aliases = [ "easytier-mesh.service" ];
         description = "EasyTier Daemon";
-        after = [ "network-online.target" ];
-        wants = [ "network-online.target" ];
+        after = [ "NetworkManager-wait-online.service" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
         path = with pkgs; [
           config.services.easytier.package
@@ -464,7 +464,7 @@ in
       systemd.services.easytier-underlay-isolation = {
         description = "Pin EasyTier and Tailscale transport to real uplinks";
         after = overlayIsolationAfterUnits;
-        wants = [ "network-online.target" ];
+        wants = [ "NetworkManager-wait-online.service" ];
         wantedBy = [ "multi-user.target" ];
         path = [
           pkgs.coreutils

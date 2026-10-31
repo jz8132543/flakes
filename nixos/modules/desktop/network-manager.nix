@@ -21,6 +21,8 @@
       "interface-name:Meta"
       "interface-name:tailscale*"
       "interface-name:easytier*"
+      "interface-name:p2p-dev-*"
+      "interface-name:enp5s0"
     ];
   };
 

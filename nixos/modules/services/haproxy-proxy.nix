@@ -254,12 +254,11 @@ let
         ''}
 
         if [ "$unresolved" -ne 0 ]; then
-          echo "At least one mapping could not be resolved." >&2
+          echo "Warning: $unresolved mapping(s) failed to resolve. Keeping them in config; haproxy will retry on connect." >&2
           if [ "$force" -eq 1 ]; then
+            echo "ERROR: force mode requires all mappings to resolve." >&2
             exit 1
           fi
-          rm -f "$HAPROXY_TMP" "$NFT_TMP"
-          exit 0
         fi
 
         # Validate haproxy config before touching the live files.
@@ -606,6 +605,7 @@ in
         gawk
         iproute2
         systemd
+        nettools
       ];
 
       serviceConfig = {
@@ -634,6 +634,7 @@ in
         gawk
         iproute2
         systemd
+        nettools
       ];
 
       serviceConfig = {
