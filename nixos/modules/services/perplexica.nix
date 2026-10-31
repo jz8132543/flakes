@@ -10,7 +10,7 @@
   virtualisation.oci-containers.containers = {
     perplexica-backend = {
       hostname = "perplexica-backend";
-      image = "hajowieland/perplexica-backend";
+      image = "docker.io/hajowieland/perplexica-backend:latest";
       autoStart = true;
       volumes = [
         "${config.sops.templates.perplexica.path}:/home/perplexica/config.toml"
@@ -19,7 +19,7 @@
     };
     perplexica-frontend = {
       hostname = "perplexica-backend";
-      image = "hajowieland/perplexica-frontend";
+      image = "docker.io/hajowieland/perplexica-frontend:latest";
       autoStart = true;
       environment = {
         NEXT_PUBLIC_API_URL = "https://perplexica-backend.${config.networking.domain}/api";

@@ -33,7 +33,7 @@ in
     '';
     settings = {
       max_connections = 300;
-      shared_preload_libraries = "";
+      shared_preload_libraries = "pg_search";
       password_encryption = "scram-sha-256";
       hot_standby = "on";
       wal_level = "logical";
@@ -80,6 +80,13 @@ in
   };
 
   systemd.services.postgresql.wants = [ "prometheus-postgres-exporter.service" ];
+
+  systemd.services.postgresql.serviceConfig = {
+    SystemCallFilter = lib.mkForce [
+      "@system-service"
+      "~@privileged"
+    ];
+  };
 
   # Overlay 虚拟静态 IP 方案：
   # 强制告诉内核：加载 dummy 模块时，必须给我生成 1 张网卡 (dummy0)

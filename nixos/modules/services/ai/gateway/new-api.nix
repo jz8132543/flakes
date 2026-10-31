@@ -8,8 +8,7 @@
 let
   cfg = config.services.new-api;
 
-  # 关闭熔断时把各项阈值一并归零：New-API 的 exceedsThreshold() 对 <= 0 的阈值直接放行，
-  # 因此即便某个版本忽略 monitor_enabled，也不会再因负载返回 503。
+  # Zero thresholds also disable each resource check when the monitor is off.
   perfEnabled = if cfg.performanceMonitor.enabled then "true" else "false";
   perfCpu =
     if cfg.performanceMonitor.enabled then toString cfg.performanceMonitor.cpuThreshold else "0";
@@ -98,10 +97,8 @@ in
       description = "Path to the file containing the deterministic internal API token for downstream AI services.";
     };
 
-    # New-API 的 middleware/performance.go 会在宿主 CPU/内存/磁盘使用率连续多次超过阈值时，
-    # 直接以 HTTP 503 "system memory overloaded (current: X%, threshold: Y%)" 拒绝 relay 请求。
-    # Kilo Code 收到 503 后只会按指数退避重试数次便放弃整个会话，
-    # 因此这里默认关闭该熔断，让网关不再因宿主负载波动而拒绝请求。
+    # Disable the host-load guard by default so CPU, memory or disk usage does
+    # not cause New-API to reject relay requests with HTTP 503.
     performanceMonitor = {
       enabled = lib.mkOption {
         type = lib.types.bool;
@@ -210,6 +207,11 @@ in
         "podman-new-api.service"
         "postgresql.service"
       ];
+      path = [
+        pkgs.util-linux
+        pkgs.gawk
+        config.services.postgresql.package
+      ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -226,7 +228,7 @@ in
         done
 
         # 检查 users 表是否已由 new-api 容器完成初始化
-        TABLE_EXISTS="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT to_regclass('public.users');" 2>/dev/null || true)"
+        TABLE_EXISTS="$(runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -d ${cfg.database.name} -t -A -c "SELECT to_regclass('public.users');")"
         if [ "$TABLE_EXISTS" = "users" ]; then
           runuser -u postgres -- psql -d ${cfg.database.name} -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;" >/dev/null 2>&1 || true
 
@@ -388,46 +390,27 @@ in
           fi
 
           # 5. 向 options 表幂等注入 OIDC 与免配置选项
-          OPTIONS_TABLE="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT to_regclass('public.options');" 2>/dev/null || true)"
+          OPTIONS_TABLE="$(runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -d ${cfg.database.name} -t -A -c "SELECT to_regclass('public.options');")"
           if [ "$OPTIONS_TABLE" = "options" ]; then
             upsert_opt() {
               local opt_key="$1"
               local opt_val="$2"
-              runuser -u postgres -- psql -d ${cfg.database.name} -c "
+              runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -d ${cfg.database.name} -c "
                 INSERT INTO options (key, value) VALUES ('$opt_key', '$opt_val')
                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-              " >/dev/null 2>&1 || true
+              " >/dev/null
             }
 
             upsert_opt "PasswordLoginEnabled" "true"
             upsert_opt "PasswordRegisterEnabled" "false"
             upsert_opt "EmailVerificationEnabled" "false"
 
-            # 幂等落地系统过载熔断配置（默认关闭）。
-            # 选项键格式来自 New-API setting/config：`<配置组>.<json tag>`，
-            # 该组在 setting/performance_setting/config.go 注册为 performance_setting。
-            PERF_CHANGED=0
-            perf_upsert() {
-              local opt_key="$1"
-              local opt_val="$2"
-              local cur_val
-              cur_val="$(runuser -u postgres -- psql -d ${cfg.database.name} -t -A -c "SELECT value FROM options WHERE key = '$opt_key';" 2>/dev/null || true)"
-              if [ "$cur_val" != "$opt_val" ]; then
-                upsert_opt "$opt_key" "$opt_val"
-                PERF_CHANGED=1
-              fi
-            }
-            perf_upsert "performance_setting.monitor_enabled" "${perfEnabled}"
-            perf_upsert "performance_setting.monitor_cpu_threshold" "${perfCpu}"
-            perf_upsert "performance_setting.monitor_memory_threshold" "${perfMemory}"
-            perf_upsert "performance_setting.monitor_disk_threshold" "${perfDisk}"
-
-            # 配置仅在容器启动时从 options 表加载，因此仅在取值发生变化时重启一次，
-            # 保证首次部署立即生效，而后续激活不会反复重启网关。
-            if [ "$PERF_CHANGED" = "1" ]; then
-              echo "performance monitor settings changed, restarting new-api"
-              systemctl restart podman-new-api.service || true
-            fi
+            # New-API hot-loads options at SYNC_FREQUENCY (60s by default).
+            # Restarting its service here would also stop this dependent unit.
+            upsert_opt "performance_setting.monitor_enabled" "${perfEnabled}"
+            upsert_opt "performance_setting.monitor_cpu_threshold" "${perfCpu}"
+            upsert_opt "performance_setting.monitor_memory_threshold" "${perfMemory}"
+            upsert_opt "performance_setting.monitor_disk_threshold" "${perfDisk}"
 
             ${lib.optionalString cfg.oidc.enable ''
               OIDC_SEC="$(cat ${

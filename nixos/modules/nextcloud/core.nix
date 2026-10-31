@@ -251,6 +251,9 @@ in
         "traefik.service"
         "nginx.service"
       ];
+      wants = [
+        "nginx.service"
+      ];
       requires = [
         "nextcloud-setup.service"
       ];
@@ -259,6 +262,7 @@ in
         StartLimitBurst = lib.mkForce 10;
       };
       serviceConfig = {
+        ExecStartPre = "${pkgs.coreutils}/bin/sleep 10";
         Restart = lib.mkForce "on-failure";
         RestartSec = lib.mkForce "10s";
       };

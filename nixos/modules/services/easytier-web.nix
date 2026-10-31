@@ -36,7 +36,7 @@ in
     ];
 
     virtualisation.oci-containers.containers.easytier-web = {
-      image = "easytier/easytier:latest";
+      image = "docker.io/easytier/easytier:latest";
       entrypoint = "easytier-web-embed";
       ports = [
         "0.0.0.0:${toString cfg.port}:11211"

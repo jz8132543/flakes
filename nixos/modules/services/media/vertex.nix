@@ -11,7 +11,7 @@
     };
 
     virtualisation.oci-containers.containers.vertex = {
-      image = "docker://lswl/vertex:latest";
+      image = "docker.io/lswl/vertex:latest";
       volumes = [
         "/data/.state/vertex:/vertex"
         "/data/downloads/torrents:/data/downloads/torrents"

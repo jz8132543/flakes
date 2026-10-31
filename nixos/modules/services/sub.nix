@@ -272,7 +272,7 @@ let
         name = "PROXY";
         type = "select";
         proxies = [
-          "DIRECT"
+          # "DIRECT"
           "ALL"
         ]
         ++ lib.optional (dn42NodeNames != [ ]) "DN42"

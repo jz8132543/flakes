@@ -12,6 +12,14 @@ let
   cfg = config.services.save-restricted-content-bot;
   botSrc = pkgs.save-restricted-content-bot;
   imageTag = "localhost/save-restricted-content-bot:${botSrc.version}";
+  buildBotImage = pkgs.writeShellScript "build-save-restricted-content-bot-image" ''
+    exec ${pkgs.podman}/bin/podman build \
+      --pull=always \
+      --layers \
+      --tag ${lib.escapeShellArg imageTag} \
+      --file ${botSrc}/Dockerfile \
+      ${botSrc}
+  '';
 in
 {
   imports = [ nixosModules.services.podman ];
@@ -73,10 +81,7 @@ in
         ExecStart = pkgs.writeShellScript "build-bot-image" ''
           if ! ${pkgs.podman}/bin/podman image exists ${imageTag}; then
             echo "Building image ${imageTag} from ${botSrc}..."
-            ${pkgs.podman}/bin/podman build \
-              --tag ${imageTag} \
-              --file ${botSrc}/Dockerfile \
-              ${botSrc}
+            ${buildBotImage}
           else
             echo "Image ${imageTag} already exists, skipping build."
           fi
@@ -84,15 +89,32 @@ in
       };
     };
 
+    # Refresh the base image before auto-update checks this locally built tag.
+    systemd.services.podman-refresh-save-restricted-content-bot = {
+      description = "Refresh Save Restricted Content Bot container image";
+      wants = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+        "podman-build-save-restricted-content-bot.service"
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+        TimeoutStartSec = "30min";
+        ExecStart = buildBotImage;
+      };
+    };
+
+    systemd.services.podman-auto-update = {
+      wants = [ "podman-refresh-save-restricted-content-bot.service" ];
+      after = [ "podman-refresh-save-restricted-content-bot.service" ];
+    };
+
     # ── 运行容器 ─────────────────────────────────────────────────────────────
     virtualisation.oci-containers.containers.save-restricted-content-bot = {
       image = imageTag;
+      pull = "never";
       # 使用 host 网络，容器内可直连 127.0.0.1:27017 的 MongoDB
-      # --pull=never 严禁 podman 尝试从外部 registry (localhost) 拉取本地构建的镜像
-      extraOptions = [
-        "--network=host"
-        "--pull=never"
-      ];
+      extraOptions = [ "--network=host" ];
       # 从 sops template 注入环境变量
       environmentFiles = [
         config.sops.templates."save-restricted-content-bot".path
@@ -105,10 +127,7 @@ in
       preStart = ''
         if ! ${pkgs.podman}/bin/podman image exists ${imageTag}; then
           echo "Image ${imageTag} not found locally, building from ${botSrc}..."
-          ${pkgs.podman}/bin/podman build \
-            --tag ${imageTag} \
-            --file ${botSrc}/Dockerfile \
-            ${botSrc}
+          ${buildBotImage}
         fi
       '';
       after = [

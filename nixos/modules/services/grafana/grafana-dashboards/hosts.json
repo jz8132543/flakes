@@ -479,7 +479,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "max by (id) (label_replace(dn42_node_cpu_percent or dn42_node_cpu_usage_percent, \"id\", \"$1\", \"instance\", \"(.*)\"))\nor\nround(max by (id) (label_replace(100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100), \"id\", \"$1\", \"instance\", \"(.*)\")), 0.1)",
+          "expr": "max by (id) (label_replace(dn42_node_cpu_percent or dn42_node_cpu_usage_percent, \"id\", \"$1\", \"instance\", \"(.*)\"))\nor\nround(max by (id) (label_replace(100 * sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|irq|softirq\"}[1m])) / sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|idle|iowait|irq|softirq|steal\"}[1m])), \"id\", \"$1\", \"instance\", \"(.*)\")), 0.1)",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1086,7 +1086,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "max by (id) (\n  label_replace(dn42_node_cpu_usage_percent, \"id\", \"$1\", \"instance\", \"(.*)\")\n)\nor\nround(max by (id) (\n  label_replace(\n    100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100),\n    \"id\", \"$1\", \"instance\", \"(.*)\"\n  )\n), 0.1)",
+          "expr": "max by (id) (\n  label_replace(dn42_node_cpu_usage_percent, \"id\", \"$1\", \"instance\", \"(.*)\")\n)\nor\nround(max by (id) (\n  label_replace(\n    100 * sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|irq|softirq\"}[1m])) / sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|idle|iowait|irq|softirq|steal\"}[1m])),\n    \"id\", \"$1\", \"instance\", \"(.*)\"\n  )\n), 0.1)",
           "format": "table",
           "instant": true,
           "legendFormat": "",
@@ -1601,7 +1601,7 @@
             "uid": "prometheus-default"
           },
           "editorMode": "code",
-          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\",instance=~\"$hosts\"}[1m])) * 100)",
+          "expr": "100 * sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|irq|softirq\",instance=~\"$hosts\"}[1m])) / sum by (instance) (rate(node_cpu_seconds_total{mode=~\"user|nice|system|idle|iowait|irq|softirq|steal\",instance=~\"$hosts\"}[1m]))",
           "instant": false,
           "legendFormat": "CPU % ({{instance}})",
           "range": true,

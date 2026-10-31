@@ -9,6 +9,62 @@ let
   cfg = config.services.atc.edge;
   cdnData = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
   controlNodes = cdnData.controlNodes or [ ];
+  baselineRecords = import ../../../../lib/data/atc-records.nix;
+  prepareRecords = pkgs.writeShellScript "atc-prepare-records" ''
+    set -euo pipefail
+    records=/var/lib/trafficserver/etc/records.config
+    templates=/var/lib/trafficserver/etc/body_factory
+    if [ ! -d "$templates" ]; then
+      ln -sfnT ${pkgs.trafficserver}/etc/trafficserver/body_factory "$templates"
+    fi
+
+    # Repair the deployed untyped records and retain unrelated t3c settings.
+    tmp=$(mktemp "$records.XXXXXX")
+    trap 'rm -f "$tmp"' EXIT
+    ${pkgs.gawk}/bin/awk '
+      BEGIN {
+        ${concatMapStringsSep "\n" (name: ''
+          types["${name}"] = "${if isInt baselineRecords.${name} then "INT" else "STRING"}"
+          defaults["${name}"] = "CONFIG ${name} ${
+            if isInt baselineRecords.${name} then "INT" else "STRING"
+          } ${toString baselineRecords.${name}}"
+        '') (attrNames baselineRecords)}
+        aliases["proxy.config.exec_thread.autoconfig.enabled"] = "proxy.config.exec_thread.autoconfig"
+        aliases["proxy.config.ram_cache.size"] = "proxy.config.cache.ram_cache.size"
+        fixed["proxy.config.admin.user_id"] = 1
+        fixed["proxy.config.body_factory.template_sets_dir"] = 1
+        fixed["proxy.config.http.server_ports"] = 1
+        fixed["proxy.config.cache.ram_cache.size"] = 1
+        fixed["proxy.config.net.listen_backlog"] = 1
+      }
+      {
+        typed = ($1 == "CONFIG" || $1 == "LOCAL")
+        name = typed ? $2 : $1
+        if (name == "proxy.config.config_dir") next
+        if (name in aliases) name = aliases[name]
+        if (name in defaults) {
+          if (typed) {
+            $2 = name
+            records[name] = $0
+          } else {
+            sub(/^[[:space:]]*[^[:space:]]+[[:space:]]+/, "")
+            records[name] = "CONFIG " name " " types[name] " " $0
+          }
+          next
+        }
+        print
+      }
+      END {
+        PROCINFO["sorted_in"] = "@ind_str_asc"
+        for (name in defaults) {
+          print (name in fixed || !(name in records)) ? defaults[name] : records[name]
+        }
+      }
+    ' "$records" > "$tmp"
+    chmod 0644 "$tmp"
+    chown trafficserver:trafficserver "$tmp"
+    mv -f "$tmp" "$records"
+  '';
 in
 {
   options.services.atc.edge = {
@@ -44,8 +100,6 @@ in
     services.trafficserver = {
       enable = true;
       records = {
-        "proxy.config.config_dir" = "/var/lib/trafficserver/etc";
-        "proxy.config.admin.user_id" = "trafficserver";
         "proxy.config.http.server_ports" = "8089";
       };
     };
@@ -109,10 +163,7 @@ in
               echo "stats_over_http.so /_astats" >> /var/lib/trafficserver/etc/plugin.config
             fi
 
-            # 保证回源时保留客户端原始 Host 标头，避免替换为源站机器名导致回源命中 DERP
-            if ! grep -q "pristine_host_hdr" /var/lib/trafficserver/etc/records.config 2>/dev/null; then
-              echo "CONFIG proxy.config.url_remap.pristine_host_hdr INT 1" >> /var/lib/trafficserver/etc/records.config
-            fi
+            ${prepareRecords}
 
             # 清理陈旧锁文件并全量软链动态配置至 /etc/trafficserver/
             mkdir -p /run/trafficserver
@@ -129,6 +180,15 @@ in
             touch /run/t3c.lock 2>/dev/null && chown trafficserver:trafficserver /run/t3c.lock 2>/dev/null || true
             chown -R trafficserver:trafficserver /var/lib/trafficserver
     '';
+    systemd.services.trafficserver = {
+      startLimitIntervalSec = 600;
+      startLimitBurst = 3;
+      serviceConfig = {
+        RestartSec = "30s";
+        # The upstream unit only kills the manager, leaving worker sockets alive.
+        KillMode = "control-group";
+      };
+    };
 
     # 2. 凭据权限配置
     sops.secrets."atc/ops_password" = {
@@ -171,6 +231,16 @@ in
         # 按照用户要求：全量释放 VPS 计算性能，暂不实施 cgroup 资源配额限制
       };
       script = ''
+        # The manager can survive a fatal worker exit while retaining its accept queue.
+        # Check before contacting controllers so recovery also works when Ops is down.
+        if systemctl is-active --quiet trafficserver.service; then
+          status=$(timeout 10s traffic_ctl server status 2>/dev/null || true)
+          if [ "$status" = "Proxy -- off" ]; then
+            echo "ATS worker is off; restarting the manager to release pending connections."
+            systemctl restart trafficserver.service
+          fi
+        fi
+
         if [ ! -s "${config.sops.secrets."atc/ops_password".path}" ]; then
           echo "Traffic Ops password secret not found or empty; skipping sync."
           exit 0
@@ -244,17 +314,18 @@ in
           --skip-os-check=true \
           --git=no
 
-        if [ "$BEST_EPOCH" -gt 0 ]; then
-          echo "$BEST_EPOCH" > "$LAST_EPOCH_FILE"
-        fi
-
         # 同步完成后全量更新 /etc/trafficserver 软链，并通知 ATS 重载
+        ${prepareRecords}
         for f in /var/lib/trafficserver/etc/*; do
           base=$(basename "$f")
           rm -f "/etc/trafficserver/$base" 2>/dev/null || true
           ln -sf "$f" "/etc/trafficserver/$base" 2>/dev/null || true
         done
-        ${pkgs.trafficserver}/bin/traffic_ctl config reload 2>/dev/null || true
+        timeout 15s ${pkgs.trafficserver}/bin/traffic_ctl config reload
+
+        if [ "$BEST_EPOCH" -gt 0 ]; then
+          echo "$BEST_EPOCH" > "$LAST_EPOCH_FILE"
+        fi
       '';
     };
 
@@ -305,7 +376,11 @@ in
           services = {
             atc-edge = {
               loadBalancer = {
-                servers = [ { url = "http://127.0.0.1:8089"; } ];
+                healthCheck = {
+                  path = "/_astats";
+                  interval = "30s";
+                  timeout = "5s";
+                };
               };
             };
           };

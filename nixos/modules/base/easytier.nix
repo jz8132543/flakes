@@ -662,7 +662,7 @@ in
 
       # Full Web Console (UI + API) on bootstrap node
       virtualisation.oci-containers.containers.easytier-web-embed = mkIf (cfg.role == "bootstrap") {
-        image = "easytier/easytier:latest";
+        image = "docker.io/easytier/easytier:latest";
         entrypoint = "easytier-web-embed";
         cmd = [
           "--api-server-port"

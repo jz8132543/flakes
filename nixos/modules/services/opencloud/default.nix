@@ -16,7 +16,7 @@ in
   virtualisation.oci-containers.containers = {
     opencloud = {
       autoStart = true;
-      image = "opencloudeu/opencloud";
+      image = "docker.io/opencloudeu/opencloud:latest";
       ports = [ "${toString config.ports.opencloud}:9200" ];
       volumes = [
         "/etc/localtime:/etc/localtime:ro"
@@ -77,7 +77,7 @@ in
 
     opencloud-tika = {
       autoStart = true;
-      image = "apache/tika";
+      image = "docker.io/apache/tika:latest";
       extraOptions = [ "--network=opencloud-bridge" ];
     };
   };

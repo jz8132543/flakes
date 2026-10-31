@@ -147,7 +147,6 @@ with lib;
         multi_accept on;
       '';
       appendConfig = ''
-        worker_processes auto;
         worker_rlimit_nofile 65535;
       '';
       commonHttpConfig = ''
@@ -227,8 +226,9 @@ with lib;
           };
         };
         ping = {
-          entryPoint = "https";
-          manualRouting = true;
+          # The systemd watchdog probes localhost without a public Host header.
+          entryPoint = "metrics";
+          manualRouting = false;
         };
         metrics = {
           prometheus = {
@@ -444,9 +444,14 @@ with lib;
       };
     };
     systemd.services.traefik = {
-      startLimitIntervalSec = lib.mkForce 0;
+      startLimitIntervalSec = lib.mkForce 600;
+      startLimitBurst = lib.mkForce 3;
       serviceConfig = {
-        WatchdogSec = lib.mkForce "30s";
+        # Start watchdog accounting only after Traefik sends READY=1.
+        Type = lib.mkForce "notify";
+        TimeoutStartSec = "5min";
+        WatchdogSec = lib.mkForce "2min";
+        RestartSec = "30s";
         EnvironmentFile = [
           config.sops.templates."traefik-env".path
         ];

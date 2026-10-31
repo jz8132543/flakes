@@ -187,16 +187,19 @@ let
     CPU_DESC="''${CPU_MODEL} (''${CORES}C)"
     LOAD1=$(awk '{print $1}' /proc/loadavg 2>/dev/null || echo "0.0")
 
-    read -r CPU_TOTAL CPU_IDLE < <(awk '/^cpu / {print $2+$3+$4+$5+$6+$7+$8, $5+$6}' /proc/stat 2>/dev/null || echo "0 0")
-    PREV_CPU_TOTAL=0; PREV_CPU_IDLE=0
-    [ -f "$STATE_DIR/cpu" ] && read -r PREV_CPU_TOTAL PREV_CPU_IDLE < "$STATE_DIR/cpu" || true
-    echo "$CPU_TOTAL $CPU_IDLE" > "$STATE_DIR/cpu" 2>/dev/null || true
+    # guest and guest_nice are already included in user and nice.
+    read -r CPU_TOTAL CPU_BUSY CPU_STEAL < <(awk '/^cpu / {printf "%.0f %.0f %.0f\n", $2+$3+$4+$5+$6+$7+$8+$9, $2+$3+$4+$7+$8, $9}' /proc/stat 2>/dev/null || echo "0 0 0")
+    # Versioned state avoids mixing the old steal-less total with wall time.
+    PREV_CPU_TOTAL=$CPU_TOTAL; PREV_CPU_BUSY=$CPU_BUSY; PREV_CPU_STEAL=$CPU_STEAL
+    [ -f "$STATE_DIR/cpu-v2" ] && read -r PREV_CPU_TOTAL PREV_CPU_BUSY PREV_CPU_STEAL < "$STATE_DIR/cpu-v2" || true
+    echo "$CPU_TOTAL $CPU_BUSY $CPU_STEAL" > "$STATE_DIR/cpu-v2" 2>/dev/null || true
     DIFF_TOTAL=$(( CPU_TOTAL - PREV_CPU_TOTAL ))
-    DIFF_IDLE=$(( CPU_IDLE - PREV_CPU_IDLE ))
-    if [ "$DIFF_TOTAL" -gt 0 ]; then
-      CPU_PCT=$(awk -v dt="$DIFF_TOTAL" -v di="$DIFF_IDLE" 'BEGIN { pct = (1.0 - (di / dt)) * 100.0; if (pct < 0) pct = 0; if (pct > 100) pct = 100; printf "%.1f", pct }')
+    DIFF_BUSY=$(( CPU_BUSY - PREV_CPU_BUSY ))
+    DIFF_STEAL=$(( CPU_STEAL - PREV_CPU_STEAL ))
+    if (( DIFF_TOTAL > 0 && DIFF_BUSY >= 0 && DIFF_STEAL >= 0 && DIFF_BUSY + DIFF_STEAL <= DIFF_TOTAL )); then
+      read -r CPU_PCT CPU_STEAL_PCT < <(awk -v dt="$DIFF_TOTAL" -v db="$DIFF_BUSY" -v ds="$DIFF_STEAL" 'BEGIN { printf "%.1f %.1f\n", db / dt * 100.0, ds / dt * 100.0 }')
     else
-      CPU_PCT="0.0"
+      CPU_PCT="0.0"; CPU_STEAL_PCT="0.0"
     fi
 
     # 3. Memory Total, Used (GiB) & %
@@ -300,10 +303,14 @@ let
       echo "# TYPE dn42_node_meta_info gauge"
       echo "dn42_node_meta_info{id=\"$HOST\",host=\"$HOST\",title=\"$HOST\",subTitle=\"$DN42_IP\",dn42_ip=\"$DN42_IP\",cpu_model=\"$CPU_DESC\",mem_total_gib=\"''${MEM_TOTAL_GIB} GiB\",disk_total_gib=\"''${DISK_TOTAL_GIB} GiB\"} 1"
 
-      echo "# HELP dn42_node_cpu_percent Node CPU usage percentage"
+      echo "# HELP dn42_node_cpu_percent Node CPU busy percentage of wall time (excluding idle, iowait and steal)"
       echo "# TYPE dn42_node_cpu_percent gauge"
       echo "dn42_node_cpu_percent{id=\"$HOST\"} $CPU_PCT"
       echo "dn42_node_cpu_usage_percent{id=\"$HOST\",host=\"$HOST\"} $CPU_PCT"
+
+      echo "# HELP dn42_node_cpu_steal_percent Node CPU steal percentage of wall time"
+      echo "# TYPE dn42_node_cpu_steal_percent gauge"
+      echo "dn42_node_cpu_steal_percent{id=\"$HOST\"} $CPU_STEAL_PCT"
 
       echo "# HELP dn42_node_load1 Node 1-minute load average"
       echo "# TYPE dn42_node_load1 gauge"

@@ -29,7 +29,7 @@
     ];
 
     virtualisation.oci-containers.containers.iyuu = {
-      image = "docker://iyuucn/iyuuplus:latest";
+      image = "docker.io/iyuucn/iyuuplus:latest";
       volumes = [
         "/data/.state/iyuu:/iyuu"
         "/data/downloads/torrents:/data/downloads/torrents"

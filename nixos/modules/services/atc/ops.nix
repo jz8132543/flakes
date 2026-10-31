@@ -17,6 +17,7 @@ let
   controlNodes = cdnData.controlNodes or [ ];
   edgeNodes = cdnData.edgeNodes or [ ];
   servicesMap = cdnData.services or { };
+  baselineRecords = import ../../../../lib/data/atc-records.nix;
 
   # ── 版本指纹元数据 (用于多控制节点版本仲裁与防倒退比对) ───────────────────
   versionInfo = {
@@ -317,8 +318,7 @@ let
                 profile = profile_id_value,
                 cdn_id = cdn_id_value,
                 mgmt_ip_address = host.mgmt_ip,
-                https_port = 443,
-                config_update_time = now()
+                https_port = 443
               WHERE id = existing_id;
             END IF;
 
@@ -397,17 +397,27 @@ let
         BEGIN
           SELECT id INTO pid FROM profile WHERE name = 'EDGE_ATS_GLOBAL';
           IF pid IS NOT NULL THEN
+            -- Replace this profile's old links, not shared parameter rows.
+            -- ATC writes parameter names and values verbatim to records.config.
+            DELETE FROM profile_parameter pp USING parameter p
+            WHERE pp.profile = pid AND pp.parameter = p.id
+              AND p.config_file = 'records.config'
+              AND regexp_replace(p.name, '^CONFIG ', ''') IN (
+                ${concatMapStringsSep ", " (name: "'${name}'") (attrNames baselineRecords)},
+                'proxy.config.config_dir',
+                'proxy.config.exec_thread.autoconfig.enabled',
+                'proxy.config.ram_cache.size'
+              );
+
             FOR rec IN SELECT * FROM (VALUES
-              ('proxy.config.http.cache.required_headers', 'records.config', '0'),
-              ('proxy.config.http.cache.cache_responses_to_cookies', 'records.config', '1'),
-              ('proxy.config.exec_thread.autoconfig.enabled', 'records.config', '1'),
-              ('proxy.config.log.logging_enabled', 'records.config', '3'),
-              ('proxy.config.ram_cache.size', 'records.config', '268435456'),
-              ('proxy.config.cache.ram_cache.algorithm', 'records.config', '1'),
-              ('proxy.config.net.connections_throttle', 'records.config', '10000'),
-              ('proxy.config.admin.user_id', 'records.config', 'trafficserver'),
-              ('proxy.config.http.server_ports', 'records.config', '8089'),
-              ('proxy.config.url_remap.pristine_host_hdr', 'records.config', '1'),
+              ${
+                concatMapStringsSep ",\n              " (
+                  name:
+                  "('CONFIG ${name}', 'records.config', '${
+                    if isInt baselineRecords.${name} then "INT" else "STRING"
+                  } ${toString baselineRecords.${name}}')"
+                ) (attrNames baselineRecords)
+              },
               ('location', 'set_dscp_0.config', '/var/lib/trafficserver/etc/dscp')
             ) AS t(pname, pfile, pval)
             LOOP
@@ -424,6 +434,9 @@ let
               VALUES (pid, param_id)
               ON CONFLICT DO NOTHING;
             END LOOP;
+
+            -- Publish the update only after the repaired profile is complete.
+            UPDATE server SET config_update_time = now() WHERE profile = pid;
           END IF;
         END ''$''$;
 
