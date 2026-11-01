@@ -15,6 +15,15 @@ let
     )
   );
 
+  transport = config.programs.ssh.transport;
+  udpRange = "${toString transport.udpPortRange.from}-${toString transport.udpPortRange.to}";
+  sshUdpDirectRules = lib.optionalString transport.effectiveEnabled ''
+    ip -4 rule add ipproto udp sport ${udpRange} lookup main priority 8996
+    ip -6 rule add ipproto udp sport ${udpRange} lookup main priority 8996
+    ip -4 rule add ipproto udp dport ${udpRange} lookup main priority 8996
+    ip -6 rule add ipproto udp dport ${udpRange} lookup main priority 8996
+  '';
+
   dn42Cfg = config.services.dn42 or null;
   dn42Enabled = dn42Cfg != null && (dn42Cfg.enable or false);
   dn42Ports = lib.optionals dn42Enabled [
@@ -54,6 +63,11 @@ in
             tcp dport { ${
               lib.concatMapStringsSep ", " toString sshPorts
             } } counter meta mark set meta mark | 0x1
+          ''}
+
+          ${lib.optionalString transport.effectiveEnabled ''
+            udp sport ${udpRange} counter meta mark set meta mark | 0x1
+            udp dport ${udpRange} counter meta mark set meta mark | 0x1
           ''}
 
           # 放行 DN42 IKE 与 NAT-T (Mimic Fake-TCP) 端口，打标 0x1 查 main 表绕过 TUN
@@ -115,6 +129,8 @@ in
         ${multicastDirectRules}
 
         ${sshDirectRules}
+
+        ${sshUdpDirectRules}
 
         # 6. Priority 8998: 其余未打标的本机出站流量送入 Mihomo TUN 表 2022。
         #    病因：Mihomo auto-route 只生成 `not from all iif lo` / `from 0.0.0.0 iif lo` 规则，

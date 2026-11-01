@@ -18,7 +18,7 @@ find_ssh_pid() {
 
   cmdline=$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n 1)
   exe=${cmdline##*/}
-  if [ "$exe" = "ssh" ]; then
+  if [ "$exe" = "ssh" ] || [ "$exe" = "tssh" ]; then
     printf '%s\n' "$pid"
     return 0
   fi
@@ -54,29 +54,57 @@ is_ssh_flag_with_value() {
 }
 
 extract_ssh_target() {
-  local i arg skip_next=0 destination=""
+  local i arg flag value j destination=""
   SSH_CONFIG_ARGS=()
 
   for ((i = 1; i < ${#SSH_ARGS[@]}; i++)); do
     arg="${SSH_ARGS[$i]}"
-
-    if [ "$skip_next" -eq 1 ]; then
-      SSH_CONFIG_ARGS+=("$arg")
-      skip_next=0
-      continue
-    fi
-
     case "$arg" in
     --)
+      destination="${SSH_ARGS[$((i + 1))]:-}"
+      [ -n "$destination" ] && SSH_CONFIG_ARGS+=("$destination")
       break
       ;;
+    --auto-transport | --reliable-io | --tcp | --udp | --kcp | --quic | --debug | --attach | --reconnect | --relay | --client)
+      ;;
+    --dns | --tsshd-path | --tsshd-port)
+      ((i += 1))
+      ;;
+    --dns=* | --tsshd-path=* | --tsshd-port=*)
+      ;;
+    --*)
+      return 1
+      ;;
     -*)
-      SSH_CONFIG_ARGS+=("$arg")
-      if is_ssh_flag_with_value "$arg"; then
-        skip_next=1
-      elif [ "${#arg}" -gt 2 ] && is_ssh_flag_with_value "${arg:0:2}"; then
-        :
-      fi
+      for ((j = 1; j < ${#arg}; j++)); do
+        flag="-${arg:j:1}"
+        if is_ssh_flag_with_value "$flag"; then
+          value="${arg:$((j + 1))}"
+          if [ -z "$value" ]; then
+            ((i += 1))
+            value="${SSH_ARGS[$i]:-}"
+          fi
+          [ -n "$value" ] || return 1
+          case "$flag" in
+          -F | -i | -J | -l | -p)
+            SSH_CONFIG_ARGS+=("$flag" "$value")
+            ;;
+          -o)
+            # tssh extension options are not accepted by the OpenSSH parser.
+            case "${value,,}" in
+            autotransport* | reliableio* | udp* | tsshd* | reconnect*) ;;
+            *) SSH_CONFIG_ARGS+=("$flag" "$value") ;;
+            esac
+            ;;
+          esac
+          break
+        fi
+        case "$flag" in
+        -4 | -6) SSH_CONFIG_ARGS+=("$flag") ;;
+        -A | -a | -f | -g | -M | -N | -n | -q | -s | -T | -t | -v | -X | -x | -Y) ;;
+        *) return 1 ;;
+        esac
+      done
       ;;
     *)
       destination="$arg"
@@ -155,7 +183,7 @@ if [ -n "$ssh_pid" ]; then
   load_ssh_args "$ssh_pid"
   # Call without $() so SSH_CONFIG_ARGS mutations survive in this shell
   DESTINATION=""
-  extract_ssh_target
+  extract_ssh_target || SSH_CONFIG_ARGS=()
   destination="$DESTINATION"
 
   if [ -n "$destination" ]; then
@@ -166,7 +194,10 @@ if [ -n "$ssh_pid" ]; then
     target_label=""
   fi
 
-  ssh_config=$(@ssh@ -G "${SSH_CONFIG_ARGS[@]}" 2>/dev/null)
+  ssh_config=""
+  if [ -n "$destination" ]; then
+    ssh_config=$(@ssh@ -G "${SSH_CONFIG_ARGS[@]}" 2>/dev/null)
+  fi
   parse_ssh_config "$ssh_config"
 
   final_host="$CONFIG_HOST"
@@ -187,7 +218,12 @@ if [ -n "$ssh_pid" ]; then
         if ($1 < 1) printf "%.1fms", $1
         else printf "%dms", int($1 + 0.5)
       }')
-      display_text="$target_label ${latency_fmt}"
+      if [ "${SSH_ARGS[0]##*/}" = "tssh" ]; then
+        # A separate TCP/ICMP probe is not a measurement of the active KCP RTT.
+        display_text="$target_label probe ${latency_fmt}"
+      else
+        display_text="$target_label ${latency_fmt}"
+      fi
     fi
   fi
 fi

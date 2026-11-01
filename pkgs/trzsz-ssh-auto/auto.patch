@@ -1,0 +1,940 @@
+diff --git a/tssh/args.go b/tssh/args.go
+index 1b65aaca..0e39351c 100644
+--- a/tssh/args.go
++++ b/tssh/args.go
+@@ -90,6 +90,8 @@ type sshArgs struct {
+ 	RemoveHostKey  bool        `arg:"--remove-host-key" help:"remove the known_hosts entry before connecting"`
+ 	DNS            string      `arg:"--dns" placeholder:"[udp://|tcp://]host[:port]" help:"custom DNS server"`
+ 	TCP            bool        `arg:"--tcp" help:"force standard TCP SSH (overrides UdpMode)"`
++	AutoTransport  bool        `arg:"--auto-transport" help:"select KCP transactionally after authenticated capability negotiation"`
++	ReliableIO     bool        `arg:"--reliable-io" help:"retain non-PTY pending I/O and acknowledge settings before execution"`
+ 	UDP            bool        `arg:"--udp" help:"ssh over UDP like mosh (default: QUIC)"`
+ 	KCP            bool        `arg:"--kcp" help:"[udp] use KCP protocol for ssh over UDP"`
+ 	QUIC           bool        `arg:"--quic" help:"[udp] use QUIC protocol for ssh over UDP"`
+diff --git a/tssh/auto.go b/tssh/auto.go
+new file mode 100644
+index 00000000..1545c801
+--- /dev/null
++++ b/tssh/auto.go
+@@ -0,0 +1,552 @@
++package tssh
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"fmt"
++	"net"
++	"os/exec"
++	"path/filepath"
++	"reflect"
++	"strconv"
++	"strings"
++	"sync/atomic"
++	"time"
++
++	"github.com/trzsz/shellescape"
++	"github.com/trzsz/tsshd/tsshd"
++)
++
++const autoCapability = "tsshd-kcp-auto-v1"
++
++func applicationArgv(argv []string) []string {
++	values := make(map[string]bool)
++	argsType := reflect.TypeOf(sshArgs{})
++	for i := 0; i < argsType.NumField(); i++ {
++		field := argsType.Field(i)
++		for _, name := range strings.Split(field.Tag.Get("arg"), ",") {
++			if strings.HasPrefix(name, "-") && name != "--" {
++				values[name] = field.Type.Kind() != reflect.Bool
++			}
++		}
++	}
++	for i := 0; i < len(argv); i++ {
++		word := argv[i]
++		if word == "--" {
++			return argv
++		}
++		if !strings.HasPrefix(word, "-") || word == "-" {
++			result := append([]string(nil), argv[:i+1]...)
++			return append(append(result, "--"), argv[i+1:]...)
++		}
++		if strings.HasPrefix(word, "--") {
++			name, _, attached := strings.Cut(word, "=")
++			value, known := values[name]
++			if !known {
++				return argv
++			}
++			if value && !attached {
++				i++
++			}
++			continue
++		}
++		for j := 1; j < len(word); j++ {
++			value, known := values["-"+word[j:j+1]]
++			if !known {
++				return argv
++			}
++			if value {
++				if j+1 == len(word) {
++					i++
++				}
++				break
++			}
++		}
++	}
++	return argv
++}
++
++func wantsAutoTransport(args *sshArgs) bool {
++	if args.TCP || args.KCP || args.QUIC || args.UDP || args.Attach || args.Option.get("UdpMode") != "" ||
++		(userConfig != nil && getExConfig(args, "UdpMode") != "") {
++		return false
++	}
++	return args.AutoTransport || (userConfig != nil && strings.EqualFold(getExOptionConfig(args, "AutoTransport"), "yes")) ||
++		strings.EqualFold(args.Option.get("AutoTransport"), "yes")
++}
++
++func reliableIO(args *sshArgs) bool {
++	return args.ReliableIO || strings.EqualFold(args.Option.get("ReliableIO"), "yes") ||
++		(userConfig != nil && strings.EqualFold(getExOptionConfig(args, "ReliableIO"), "yes"))
++}
++
++func hasAutoCapability(client SshClient) bool {
++	metadata, ok := client.(interface{ ServerVersion() []byte })
++	if !ok {
++		return false
++	}
++	for _, token := range strings.Fields(string(metadata.ServerVersion())) {
++		if token == autoCapability {
++			return true
++		}
++	}
++	return false
++}
++
++type autoHop struct {
++	param    *sshParam
++	native   SshClient
++	udp      SshClient
++	offer    *tsshd.ServerInfo
++	endpoint string
++	budget   time.Duration
++	opaque   bool
++	path     string
++	quit     atomic.Pointer[error]
++}
++
++// Operations are separated from the transaction so failure ordering and the
++// no-application-before-commit boundary can be tested without remote servers.
++type autoOperations struct {
++	authenticate func(int) (SshClient, error)
++	prepare      func(int) (*tsshd.ServerInfo, error)
++	establish    func(int) (SshClient, error)
++	barrier      func(int) error
++	commit       func(int) error
++	cancel       func(int) error
++}
++
++func selectAutoChain(hops []*autoHop, ops autoOperations) (bool, error) {
++	closeNative := func() {
++		for i := len(hops) - 1; i >= 0; i-- {
++			if hops[i].native != nil {
++				_ = hops[i].native.Close()
++			}
++		}
++	}
++	rollback := func() {
++		for i := len(hops) - 1; i >= 0; i-- {
++			if hops[i].offer != nil {
++				if err := ops.cancel(i); err != nil {
++					warning("automatic KCP cleanup failed at hop %d; setup lease remains the cleanup bound: %v", i+1, err)
++				}
++			}
++			if hops[i].udp != nil {
++				_ = hops[i].udp.Close()
++			}
++		}
++	}
++	for i, hop := range hops {
++		client, err := ops.authenticate(i)
++		if err != nil {
++			closeNative()
++			return false, err
++		}
++		hop.native = client
++	}
++	for _, hop := range hops {
++		if hop.opaque || !hasAutoCapability(hop.native) {
++			return false, nil
++		}
++	}
++	for i, hop := range hops {
++		info, err := ops.prepare(i)
++		// Retain even malformed offers with a valid handle for owned cleanup.
++		hop.offer = info
++		if err == nil {
++			err = tsshd.ValidateAutoOffer(info)
++		}
++		if err != nil {
++			rollback()
++			closeNative()
++			return false, fmt.Errorf("prepare hop %d: %w", i+1, err)
++		}
++	}
++	for i, hop := range hops {
++		client, err := ops.establish(i)
++		hop.udp = client
++		if err != nil {
++			rollback()
++			var timeout *tsshd.ConnectionTimeout
++			if errors.As(err, &timeout) {
++				return false, nil
++			}
++			closeNative()
++			return false, fmt.Errorf("establish hop %d: %w", i+1, err)
++		}
++	}
++	for i := range hops {
++		if err := ops.barrier(i); err != nil {
++			rollback()
++			closeNative()
++			return false, fmt.Errorf("setup I/O barrier hop %d: %w", i+1, err)
++		}
++	}
++	for i := range hops {
++		if err := ops.commit(i); err != nil {
++			rollback()
++			closeNative()
++			return false, fmt.Errorf("setup commit hop %d: %w", i+1, err)
++		}
++	}
++	closeNative()
++	return true, nil
++}
++
++func cloneAutoArgs(args *sshArgs, destination string, target bool) *sshArgs {
++	copy := *args
++	copy.Destination, copy.originalDest, copy.canonicalDest = destination, "", ""
++	copy.Option.options = make(map[string][]string)
++	for key, values := range args.Option.options {
++		if target || (key != "hostname" && key != "user" && key != "port" && key != "proxyjump" && key != "proxycommand") {
++			copy.Option.options[key] = append([]string(nil), values...)
++		}
++	}
++	if !target {
++		copy.ProxyJump, copy.LoginName, copy.Port = "", "", 0
++		copy.Command, copy.Argument = "", nil
++	}
++	return &copy
++}
++
++func knownAutoCommand(param *sshParam, option string, expectedArgs int) bool {
++	binary := getExOptionConfig(param.args, option)
++	if !filepath.IsAbs(binary) || param.command == "" {
++		return false
++	}
++	argv, err := splitCommandLine(param.command)
++	return err == nil && len(argv) == expectedArgs && argv[0] == binary
++}
++
++func buildAutoChain(target *sshParam) ([]*autoHop, error) {
++	var hops []*autoHop
++	visiting := make(map[string]bool)
++	var visit func(*sshParam) error
++	visit = func(param *sshParam) error {
++		identity := param.args.originalDest
++		if visiting[identity] || len(hops) >= 32 {
++			return fmt.Errorf("cyclic or excessive automatic jump chain")
++		}
++		visiting[identity] = true
++		defer delete(visiting, identity)
++		// Only the configured HM router is interpreted, and only its destination.
++		if knownAutoCommand(param, "AutoTransportJumpRouter", 3) {
++			argv, _ := splitCommandLine(param.command)
++			if argv[1] != "%h" || argv[2] != "%p" {
++				return fmt.Errorf("unsupported configured jump router arguments")
++			}
++			user, host, port := parseDestination(identity)
++			if strings.Count(host, "-") != 1 || strings.Contains(host, ".") {
++				return fmt.Errorf("invalid automatic jump destination")
++			}
++			parts := strings.SplitN(host, "-", 2)
++			if parts[0] == "" || parts[1] == "" {
++				return fmt.Errorf("empty automatic jump destination component")
++			}
++			destination := parts[0]
++			if user != "" {
++				destination = user + "@" + destination
++			}
++			if port != "" {
++				destination += ":" + port
++			}
++			replacement, err := getSshParam(cloneAutoArgs(param.args, destination, true), false)
++			if err != nil {
++				return err
++			}
++			replacement.proxies = []string{parts[1]}
++			replacement.command = ""
++			return visit(replacement)
++		}
++		for _, name := range param.proxies {
++			proxy, err := getSshParam(cloneAutoArgs(target.args, name, false), true)
++			if err != nil {
++				return err
++			}
++			if err := visit(proxy); err != nil {
++				return err
++			}
++		}
++		copy := *param
++		copy.proxies = append([]string(nil), param.proxies...)
++		copy.autoTransport, copy.udpMode = true, kUdpModeNo
++		copy.proxy, copy.muxMasterPath = nil, ""
++		budget := getUdpTimeoutConfig(copy.args, "AutoTransportTimeout", 10*time.Second)
++		path := getTsshdPath(copy.args)
++		if path == "tsshd" {
++			path = "/run/current-system/sw/bin/tsshd"
++		}
++		hop := &autoHop{param: &copy, budget: budget, path: path,
++			opaque: copy.user == "nix-ssh" || target.args.Subsystem || target.args.StdioForward != ""}
++		if copy.command != "" {
++			if knownAutoCommand(&copy, "AutoTransportResolver", 5) {
++				argv, _ := splitCommandLine(copy.command)
++				if argv[1] != "-domains" || argv[2] != getExOptionConfig(copy.args, "AutoTransportDomains") || argv[3] != "%h" || argv[4] != "%p" {
++					hop.opaque = true
++				} else {
++					copy.command = "" // exact configured resolver, never an opaque proxy
++				}
++			} else {
++				hop.opaque = true
++			}
++		}
++		hops = append(hops, hop)
++		return nil
++	}
++	if err := visit(target); err != nil {
++		return nil, err
++	}
++	if len(hops) == 0 {
++		return nil, fmt.Errorf("empty automatic jump chain")
++	}
++	return hops, nil
++}
++
++func resolveAutoOrigin(param *sshParam) error {
++	binary := getExOptionConfig(param.args, "AutoTransportResolver")
++	if binary == "" {
++		return nil
++	}
++	if !filepath.IsAbs(binary) {
++		return fmt.Errorf("AutoTransportResolver must be an absolute configured binary")
++	}
++	argv := []string{"--resolve"}
++	_, ipv4, ipv6 := getNetworkAddressFamily(param.args)
++	if ipv4 {
++		argv = append(argv, "-4")
++	}
++	if ipv6 {
++		argv = append(argv, "-6")
++	}
++	domains := getExOptionConfig(param.args, "AutoTransportDomains")
++	if domains != "" {
++		argv = append(argv, "-domains", domains)
++	}
++	argv = append(argv, param.host, param.port)
++	ctx, cancel := context.WithTimeout(context.Background(), getConnectTimeout(param.args))
++	defer cancel()
++	output, err := exec.CommandContext(ctx, binary, argv...).Output()
++	if err != nil {
++		return fmt.Errorf("configured SSH resolver failed: %w", err)
++	}
++	var result struct {
++		Host    string `json:"host"`
++		Address string `json:"address"`
++	}
++	if err := json.Unmarshal(output, &result); err != nil {
++		return fmt.Errorf("invalid SSH resolver output: %w", err)
++	}
++	ip := net.ParseIP(result.Address)
++	if result.Host == "" || ip == nil || (ipv4 && ip.To4() == nil) || (ipv6 && ip.To4() != nil) {
++		return fmt.Errorf("invalid SSH resolver candidate or address family")
++	}
++	param.addr = joinHostPort(ip.String(), param.port)
++	return nil
++}
++
++func withAutoSession(client SshClient, timeout time.Duration, operation func(SshSession) error) error {
++	type result struct {
++		session SshSession
++		err     error
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), timeout)
++	defer cancel()
++	opened := make(chan result)
++	go func() {
++		session, err := client.NewSession()
++		select {
++		case opened <- result{session, err}:
++		case <-ctx.Done():
++			if session != nil {
++				_ = session.Close()
++			}
++		}
++	}()
++	var session SshSession
++	select {
++	case res := <-opened:
++		if res.err != nil {
++			return res.err
++		}
++		session = res.session
++	case <-ctx.Done():
++		return ctx.Err()
++	}
++	defer session.Close()
++	done := make(chan error, 1)
++	go func() { done <- operation(session) }()
++	select {
++	case err := <-done:
++		return err
++	case <-ctx.Done():
++		return ctx.Err()
++	}
++}
++
++func autoLogin(param *sshParam, tty bool) (SshClient, error) {
++	if param.args.Reconnect || param.args.Attach || strings.EqualFold(getExOptionConfig(param.args, "UdpSessionAttach"), "yes") {
++		return nil, fmt.Errorf("automatic transport forbids application relogin and session attachment")
++	}
++	hops, err := buildAutoChain(param)
++	if err != nil {
++		return nil, err
++	}
++	lease := 30 * time.Second
++	for _, hop := range hops {
++		lease += getConnectTimeout(hop.param.args) + 5*hop.budget
++	}
++	if lease > time.Hour {
++		return nil, fmt.Errorf("automatic chain setup budget exceeds one hour")
++	}
++	var committed atomic.Bool
++	ops := autoOperations{}
++	ops.authenticate = func(i int) (SshClient, error) {
++		hop := hops[i]
++		if i > 0 {
++			hop.param.proxy = &proxyJump{hops[i-1].native, hops[i-1].param.args.Destination}
++		}
++		if i == 0 && hop.param.command == "" {
++			if err := resolveAutoOrigin(hop.param); err != nil {
++				return nil, err
++			}
++		}
++		return tcpLogin(hop.param, hop.param.proxy, kUdpModeNo)
++	}
++	ops.prepare = func(i int) (*tsshd.ServerInfo, error) {
++		hop := hops[i]
++		copy := *hop.param
++		copy.udpMode = kUdpModeKcp
++		mtu := uint16(1350)
++		if value := getExOptionConfig(copy.args, "UdpMTU"); value != "" {
++			parsed, err := strconv.ParseUint(value, 10, 16)
++			if err != nil || parsed < 576 || parsed > 1500 {
++				return nil, fmt.Errorf("invalid automatic UdpMTU")
++			}
++			mtu = uint16(parsed)
++		}
++		if mtu < 576 || mtu > 1500 {
++			return nil, fmt.Errorf("automatic KCP UdpMTU must be between 576 and 1500")
++		}
++		if i > 0 {
++			limit, err := tsshd.KCPProxyMTU(hops[i-1].offer.MTU)
++			if err != nil {
++				return nil, err
++			}
++			mtu = min(mtu, limit)
++		}
++		command := getTsshdCommand(&copy, shellescape.Quote(hop.path), mtu, false, hop.budget)
++		fmt.Fprintf(command, " --setup-timeout %d", (lease+time.Second-1)/time.Second)
++		return startTsshdServer(copy.args, hop.native, command.String())
++	}
++	ops.establish = func(i int) (SshClient, error) {
++		hop := hops[i]
++		bind := net.ParseIP(hop.offer.BindAddress)
++		host := bind.String()
++		if bind.IsUnspecified() {
++			metadata, ok := hop.native.(interface{ RemoteAddr() net.Addr })
++			if !ok {
++				return nil, fmt.Errorf("native peer metadata unavailable")
++			}
++			address, _, err := net.SplitHostPort(metadata.RemoteAddr().String())
++			if err != nil || net.ParseIP(address) == nil {
++				return nil, fmt.Errorf("literal authenticated peer address unavailable")
++			}
++			host = address
++		}
++		hop.endpoint = joinHostPort(host, strconv.Itoa(hop.offer.Port))
++		alive := getUdpTimeoutConfig(hop.param.args, "UdpAliveTimeout", 24*time.Hour)
++		heartbeat := getUdpTimeoutConfig(hop.param.args, "UdpHeartbeatTimeout", 8*time.Second)
++		reconnect := getUdpTimeoutConfig(hop.param.args, "UdpReconnectTimeout", kDefaultUdpReconnectTimeout)
++		interval := min(alive/10, min(heartbeat, reconnect)/3)
++		client := &sshUdpClient{intervalTime: interval, aliveTimeout: alive, connectTimeout: hop.budget,
++			reconnectTimeout: reconnect, sshDestName: hop.param.args.Destination}
++		opts := &tsshd.UdpClientOptions{Transactional: true, ServerInfo: hop.offer, TsshdAddr: hop.endpoint,
++			ConnectTimeout: hop.budget, AliveTimeout: alive, HeartbeatTimeout: heartbeat, IntervalTime: interval,
++			EnableDebugging: enableDebugLogging, EnableWarning: enableWarningLogging,
++			DebugFunc:   func(msec int64, msg string) { writeDebugLog(msec, hop.param.args.Destination, msg) },
++			WarningFunc: func(msg string) { warning("udp [%s] %s", hop.param.args.Destination, msg) },
++			QuitCallback: func(reason string) {
++				if !committed.Load() {
++					err := fmt.Errorf("remote setup terminated: %s", reason)
++					hop.quit.Store(&err)
++					return
++				}
++				if conn := client.sshConn.Load(); conn != nil {
++					conn.forceExit(kExitCodeSignalKill, reason)
++				}
++			},
++			ShouldPauseReconnect: shouldPauseReconnect}
++		// SSH direct-tcpip does not transmit AddressFamily to a native jump.
++		// Its authenticated target may use a different family from the root.
++		opts.IPv4 = net.ParseIP(host).To4() != nil
++		opts.IPv6 = !opts.IPv4
++		if i > 0 {
++			client.proxyClient = hops[i-1].udp.(*sshUdpClient)
++			opts.ProxyClient = client.proxyClient.SshUdpClient
++		}
++		client.SshUdpClient, err = tsshd.NewSshUdpClient(opts)
++		if err != nil {
++			return nil, err
++		}
++		return client, nil
++	}
++	ops.barrier = func(i int) error {
++		hop := hops[i]
++		if reason := hop.quit.Load(); reason != nil {
++			return *reason
++		}
++		if !tty && reliableIO(param.args) {
++			client := hop.udp.(*sshUdpClient)
++			if err := client.SetKeepPendingInput(true); err != nil {
++				return err
++			}
++			if err := client.SetKeepPendingOutput(true); err != nil {
++				return err
++			}
++			return client.HeartbeatBarrier(hop.budget)
++		}
++		return nil
++	}
++	ops.commit = func(i int) error {
++		if reason := hops[i].quit.Load(); reason != nil {
++			return *reason
++		}
++		return hops[i].udp.(*sshUdpClient).CommitSetup(hops[i].offer.SetupHandle, hops[i].budget)
++	}
++	ops.cancel = func(i int) error {
++		hop := hops[i]
++		if hop.offer.SetupVersion != 1 || len(hop.offer.SetupHandle) != 64 {
++			return fmt.Errorf("no valid cancellation handle")
++		}
++		return withAutoSession(hop.native, min(hop.budget, 3*time.Second), func(session SshSession) error {
++			return session.Run(shellescape.Quote(hop.path) + " --cancel-setup " + shellescape.Quote(hop.offer.SetupHandle))
++		})
++	}
++	udp, err := selectAutoChain(hops, ops)
++	if err != nil {
++		return nil, err
++	}
++	last := hops[len(hops)-1]
++	*param = *last.param
++	param.udpTransport = udp
++	committed.Store(udp)
++	if udp {
++		lastJumpUdpClient = last.udp.(*sshUdpClient)
++		globalUdpAliveTimeout = lastJumpUdpClient.aliveTimeout
++		if param.args.NoCommand || param.args.Background {
++			lastJumpUdpClient.waitCloseChan = make(chan struct{}, 1)
++		}
++		for _, hop := range hops {
++			client := hop.udp.(*sshUdpClient)
++			go client.udpKeepAlive()
++			addOnExitFunc(func() { _ = client.Close() })
++		}
++		return last.udp, nil
++	}
++	for _, hop := range hops {
++		client := hop.native
++		addOnExitFunc(func() { _ = client.Close() })
++	}
++	return last.native, nil
++}
+diff --git a/tssh/auto_test.go b/tssh/auto_test.go
+new file mode 100644
+index 00000000..31fed99c
+--- /dev/null
++++ b/tssh/auto_test.go
+@@ -0,0 +1,167 @@
++package tssh
++
++import (
++	"context"
++	"errors"
++	"fmt"
++	"reflect"
++	"strings"
++	"testing"
++
++	"github.com/trzsz/go-arg"
++	"github.com/trzsz/tsshd/tsshd"
++)
++
++type autoTestClient struct {
++	SshClient
++	version string
++	name    string
++	events  *[]string
++}
++
++func (c *autoTestClient) ServerVersion() []byte { return []byte(c.version) }
++func (c *autoTestClient) Close() error {
++	*c.events = append(*c.events, "close-"+c.name)
++	return nil
++}
++
++func validTestAutoOffer() *tsshd.ServerInfo {
++	return &tsshd.ServerInfo{ServerVer: "0.1.10", ProtoVer: 1, Mode: "KCP", Port: 61001, ServerID: 1,
++		BindAddress: "127.0.0.1", SetupVersion: 1, SetupHandle: strings.Repeat("a", 64),
++		ProxyKey: strings.Repeat("b", 64), Pass: strings.Repeat("c", 96), Salt: strings.Repeat("d", 96), MTU: 1350}
++}
++
++func TestAutoCapabilityExactAuthenticatedToken(t *testing.T) {
++	for _, test := range []struct {
++		version string
++		want    bool
++	}{
++		{"SSH-2.0-OpenSSH_10.6 " + autoCapability, true},
++		{"SSH-2.0-OpenSSH_10.6 other " + autoCapability + " extra", true},
++		{"SSH-2.0-OpenSSH_10.6 " + autoCapability + "-extra", false},
++		{"SSH-2.0-OpenSSH_10.6 prefix-" + autoCapability, false},
++		{"SSH-2.0-OpenSSH_10.6", false},
++	} {
++		if got := hasAutoCapability(&autoTestClient{version: test.version}); got != test.want {
++			t.Fatalf("%q: %v", test.version, got)
++		}
++	}
++}
++
++func TestAutoTransactionOrderingAndFailureIsolation(t *testing.T) {
++	for _, phase := range []string{"success", "unmarked", "authenticate", "prepare", "establish-timeout", "establish-fatal", "barrier", "commit"} {
++		for failure := 0; failure < 3; failure++ {
++			t.Run(fmt.Sprintf("%s/%d", phase, failure), func(t *testing.T) {
++				var events []string
++				hops := make([]*autoHop, 3)
++				for i := range hops {
++					hops[i] = &autoHop{}
++				}
++				step := func(name string, i int) error {
++					events = append(events, fmt.Sprintf("%s-%d", name, i))
++					if name == phase && i == failure {
++						return errors.New("fatal")
++					}
++					return nil
++				}
++				ops := autoOperations{
++					authenticate: func(i int) (SshClient, error) {
++						if err := step("authenticate", i); err != nil {
++							return nil, err
++						}
++						version := "SSH-2.0-test " + autoCapability
++						if phase == "unmarked" && i == failure {
++							version = "SSH-2.0-native"
++						}
++						return &autoTestClient{version: version, name: fmt.Sprintf("N%d", i), events: &events}, nil
++					},
++					prepare: func(i int) (*tsshd.ServerInfo, error) { return validTestAutoOffer(), step("prepare", i) },
++					establish: func(i int) (SshClient, error) {
++						events = append(events, fmt.Sprintf("establish-%d", i))
++						if i == failure {
++							if phase == "establish-timeout" {
++								return nil, fmt.Errorf("wrapped: %w", &tsshd.ConnectionTimeout{Cause: context.DeadlineExceeded})
++							}
++							if phase == "establish-fatal" {
++								return nil, errors.New("timeout text is not a classified timeout")
++							}
++						}
++						return &autoTestClient{name: fmt.Sprintf("U%d", i), events: &events}, nil
++					},
++					barrier: func(i int) error { return step("barrier", i) },
++					commit:  func(i int) error { return step("commit", i) },
++					cancel:  func(i int) error { return step("cancel", i) },
++				}
++				udp, err := selectAutoChain(hops, ops)
++				if phase == "success" {
++					if !udp || err != nil {
++						t.Fatalf("success: %v %v", udp, err)
++					}
++					want := []string{"authenticate-0", "authenticate-1", "authenticate-2", "prepare-0", "prepare-1", "prepare-2", "establish-0", "establish-1", "establish-2", "barrier-0", "barrier-1", "barrier-2", "commit-0", "commit-1", "commit-2", "close-N2", "close-N1", "close-N0"}
++					if !reflect.DeepEqual(events, want) {
++						t.Fatalf("wrong ordering: %v", events)
++					}
++				} else if phase == "unmarked" {
++					if udp || err != nil || len(events) != 3 {
++						t.Fatalf("unmarked must retain native chain without offers: %v %v %v", udp, err, events)
++					}
++				} else if phase == "establish-timeout" {
++					if udp || err != nil {
++						t.Fatalf("classified timeout did not fall back: %v %v", udp, err)
++					}
++					for _, event := range events {
++						if strings.HasPrefix(event, "close-N") || strings.HasPrefix(event, "commit-") {
++							t.Fatalf("fallback lost native ownership: %v", events)
++						}
++					}
++				} else if udp || err == nil {
++					t.Fatalf("fatal failure downgraded: %v %v", udp, err)
++				}
++				var cancellations []string
++				for _, event := range events {
++					if strings.HasPrefix(event, "cancel-") {
++						cancellations = append(cancellations, event)
++					}
++				}
++				if len(cancellations) > 1 {
++					for i := 1; i < len(cancellations); i++ {
++						if cancellations[i] >= cancellations[i-1] {
++							t.Fatalf("cleanup not reverse: %v", events)
++						}
++					}
++				}
++			})
++		}
++	}
++}
++
++func TestAutoExplicitTransportOverrides(t *testing.T) {
++	for _, args := range []*sshArgs{
++		{AutoTransport: true, TCP: true}, {AutoTransport: true, KCP: true}, {AutoTransport: true, QUIC: true}, {AutoTransport: true, UDP: true},
++		{AutoTransport: true, Option: sshOption{options: map[string][]string{"udpmode": {"KCP"}}}},
++	} {
++		if wantsAutoTransport(args) {
++			t.Fatal("explicit transport did not override auto")
++		}
++	}
++}
++
++func TestAutoApplicationArgvDoesNotParseRemoteOptions(t *testing.T) {
++	for _, argv := range [][]string{
++		{"--auto-transport", "-Tp2222", "-i", "/key with space", "host", "sh", "-v", "--debug"},
++		{"-o", "ProxyCommand=/native/ssh -W %h:%p jump", "host", "sh", "-v", "--debug"},
++		{"--", "host", "sh", "-v", "--debug"},
++	} {
++		var args sshArgs
++		parser, err := arg.NewParser(arg.Config{}, &args)
++		if err != nil {
++			t.Fatal(err)
++		}
++		if err := parser.Parse(applicationArgv(argv)); err != nil {
++			t.Fatal(err)
++		}
++		if args.Destination != "host" || args.Command != "sh" || args.Debug || !reflect.DeepEqual(args.Argument, []string{"-v", "--debug"}) {
++			t.Fatalf("remote arguments were reinterpreted: %+v", args)
++		}
++	}
++}
+diff --git a/tssh/ctrl_unix.go b/tssh/ctrl_unix.go
+index 4e4c3944..c4b081ce 100644
+--- a/tssh/ctrl_unix.go
++++ b/tssh/ctrl_unix.go
+@@ -393,6 +393,9 @@ func execControlCmd(args *sshArgs, dest string) int {
+ }
+ 
+ func connectViaControl(param *sshParam) SshClient {
++	if param.autoTransport || wantsAutoTransport(param.args) || reliableIO(param.args) {
++		return nil
++	}
+ 	ctrlPath := resolveControlPath(param)
+ 	if ctrlPath == "" {
+ 		return nil
+diff --git a/tssh/ctrl_windows.go b/tssh/ctrl_windows.go
+index 8b45fcaf..e667d123 100644
+--- a/tssh/ctrl_windows.go
++++ b/tssh/ctrl_windows.go
+@@ -45,6 +45,9 @@ func startMuxMaster(_ *sshParam, _ SshClient, _ string) (*muxMaster, error) {
+ func waitMuxMasterClients(_ *sshConnection) {}
+ 
+ func connectViaControl(param *sshParam) SshClient {
++	if param.autoTransport || wantsAutoTransport(param.args) || reliableIO(param.args) {
++		return nil
++	}
+ 	ctrlPath := param.args.ControlPath
+ 	if ctrlPath == "" {
+ 		ctrlPath = getOptionConfig(param.args, "ControlPath")
+diff --git a/tssh/login.go b/tssh/login.go
+index b6ed16d1..6c912320 100644
+--- a/tssh/login.go
++++ b/tssh/login.go
+@@ -52,17 +52,18 @@ type proxyJump struct {
+ }
+ 
+ type sshParam struct {
+-	args    *sshArgs
+-	host    string
+-	port    string
+-	user    string
+-	addr    string
+-	proxies []string
+-	command string
+-	proxy   *proxyJump
+-	udpMode udpModeType
+-	ipv4    bool
+-	ipv6    bool
++	args          *sshArgs
++	host          string
++	port          string
++	user          string
++	addr          string
++	proxies       []string
++	command       string
++	proxy         *proxyJump
++	udpMode       udpModeType
++	ipv4          bool
++	ipv6          bool
++	autoTransport bool
+ 	// asUdpProxy indicates whether this proxy's next hop requires UDP.
+ 	asUdpProxy bool
+ 	// controlClient indicates whether the client connects to a local master through ControlPath.
+@@ -625,10 +626,13 @@ func connectViaProxyJump(param *sshParam, config *ssh.ClientConfig) (SshClient,
+ 		return nil, fmt.Errorf("proxy jump [%s] new conn [%s] failed: %v", param.proxy.name, param.addr, err)
+ 	}
+ 	debug("login to [%s] via proxy jump [%s] success", param.args.Destination, param.proxy.name)
+-	addOnExitFunc(func() {
+-		_ = param.proxy.client.Close()
+-		debug("proxy jump [%s] close completed", param.proxy.name)
+-	})
++	if !param.autoTransport {
++		parent := *param.proxy
++		addOnExitFunc(func() {
++			_ = parent.client.Close()
++			debug("proxy jump [%s] close completed", parent.name)
++		})
++	}
+ 	return sshNewClient(ncc, chans, reqs), nil
+ }
+ 
+@@ -907,7 +911,12 @@ func sshConnect(args *sshArgs) (*sshConnection, error) {
+ 	}
+ 
+ 	// ssh login
+-	client, err := sshLogin(param, nil, kUdpModeNo)
++	var client SshClient
++	if wantsAutoTransport(args) {
++		client, err = autoLogin(param, tty)
++	} else {
++		client, err = sshLogin(param, nil, kUdpModeNo)
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+diff --git a/tssh/main.go b/tssh/main.go
+index 436a0d23..c7819f03 100644
+--- a/tssh/main.go
++++ b/tssh/main.go
+@@ -258,7 +258,7 @@ func TsshMain(argv []string) int {
+ 		return kExitCodeArgsInvalid
+ 	}
+ 
+-	if err := parser.Parse(argv); err != nil {
++	if err := parser.Parse(applicationArgv(argv)); err != nil {
+ 		if err == arg.ErrHelp {
+ 			parser.WriteHelp(os.Stdout)
+ 			return 0
+diff --git a/tssh/ssh.go b/tssh/ssh.go
+index 3146aa0c..4f19dfeb 100644
+--- a/tssh/ssh.go
++++ b/tssh/ssh.go
+@@ -442,6 +442,14 @@ type sshClientWrapper struct {
+ 	client *ssh.Client
+ }
+ 
++func (c *sshClientWrapper) ServerVersion() []byte {
++	return c.client.ServerVersion()
++}
++
++func (c *sshClientWrapper) RemoteAddr() net.Addr {
++	return c.client.RemoteAddr()
++}
++
+ func (c *sshClientWrapper) Wait() error {
+ 	return c.client.Wait()
+ }
+diff --git a/tssh/udp.go b/tssh/udp.go
+index e4599bc4..0fd26e57 100644
+--- a/tssh/udp.go
++++ b/tssh/udp.go
+@@ -383,11 +383,27 @@ func udpLogin(param *sshParam, tcpClient SshClient) (SshClient, error) {
+ }
+ 
+ func startTsshdServer(args *sshArgs, tcpClient SshClient, tsshdCmd string) (*tsshd.ServerInfo, error) {
++	if wantsAutoTransport(args) {
++		var info *tsshd.ServerInfo
++		err := withAutoSession(tcpClient, getConnectTimeout(args), func(session SshSession) error {
++			var err error
++			info, err = startTsshdSession(args, session, tsshdCmd)
++			return err
++		})
++		if err != nil {
++			return nil, err
++		}
++		return info, err
++	}
+ 	session, err := tcpClient.NewSession()
+ 	if err != nil {
+ 		return nil, fmt.Errorf("new session failed: %v", err)
+ 	}
+ 	defer func() { _ = session.Close() }()
++	return startTsshdSession(args, session, tsshdCmd)
++}
++
++func startTsshdSession(args *sshArgs, session SshSession, tsshdCmd string) (*tsshd.ServerInfo, error) {
+ 
+ 	// Some Windows SSH servers treat a missing stdin as EOF, which may
+ 	// cause the remote command to exit prematurely and prevent tsshd
+@@ -421,6 +437,9 @@ func startTsshdServer(args *sshArgs, tcpClient SshClient, tsshdCmd string) (*tss
+ 	}
+ 
+ 	if err := session.Wait(); err != nil {
++		if wantsAutoTransport(args) {
++			return nil, fmt.Errorf("automatic tsshd startup failed: %w", err)
++		}
+ 		var builder strings.Builder
+ 		fmt.Fprintf(&builder, "session wait failed: %v", err)
+ 		if outMsg, _ := readConsoleOutput(serverOut); outMsg != "" {
+@@ -437,6 +456,9 @@ func startTsshdServer(args *sshArgs, tcpClient SshClient, tsshdCmd string) (*tss
+ 
+ 	output, err := readConsoleOutput(serverOut)
+ 	if output == "" {
++		if wantsAutoTransport(args) {
++			return nil, fmt.Errorf("automatic tsshd startup returned no offer")
++		}
+ 		if errMsg, _ := readConsoleOutput(serverErr); errMsg != "" {
+ 			return nil, fmt.Errorf("stdout is empty, stderr output: %s", errMsg)
+ 		}
+@@ -461,11 +483,17 @@ func startTsshdServer(args *sshArgs, tcpClient SshClient, tsshdCmd string) (*tss
+ 	output = strings.ReplaceAll(output, "\r", "")
+ 	output = strings.ReplaceAll(output, "\n", "")
+ 	if !strings.HasPrefix(output, "{") || !strings.HasSuffix(output, "}") {
++		if wantsAutoTransport(args) {
++			return nil, fmt.Errorf("invalid automatic tsshd offer framing")
++		}
+ 		return nil, fmt.Errorf("unexpected stdout output: %s", strconv.QuoteToASCII(output))
+ 	}
+ 
+ 	var info tsshd.ServerInfo
+ 	if err := json.Unmarshal([]byte(output), &info); err != nil {
++		if wantsAutoTransport(args) {
++			return nil, fmt.Errorf("invalid automatic tsshd offer JSON: %w", err)
++		}
+ 		return nil, fmt.Errorf("json unmarshal [%s] failed: %v", strconv.QuoteToASCII(output), err)
+ 	}
+ 

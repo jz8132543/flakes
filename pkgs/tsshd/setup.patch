@@ -1,0 +1,1182 @@
+diff --git a/tsshd/bus.go b/tsshd/bus.go
+index 17a905be..e39f9a97 100644
+--- a/tsshd/bus.go
++++ b/tsshd/bus.go
+@@ -26,6 +26,7 @@ package tsshd
+ 
+ import (
+ 	"fmt"
++	"os"
+ 	"sync"
+ 	"sync/atomic"
+ 	"time"
+@@ -164,6 +165,8 @@ func (s *sshUdpServer) handleBusEvent(stream Stream) {
+ 			err = s.handleSettingEvent(stream)
+ 		case "rekey":
+ 			err = s.handleRekeyEvent(stream)
++		case "setup-commit":
++			err = s.handleSetupCommitEvent(stream)
+ 		default:
+ 			if err := handleUnknownEvent(stream, command); err != nil {
+ 				warning("handle bus command [%s] failed: %v. You may need to upgrade tsshd.", command, err)
+@@ -175,6 +178,20 @@ func (s *sshUdpServer) handleBusEvent(stream Stream) {
+ 	}
+ }
+ 
++func (s *sshUdpServer) handleSetupCommitEvent(stream Stream) error {
++	var msg setupMessage
++	if err := recvSetupMessage(stream, &msg); err != nil {
++		return fmt.Errorf("invalid setup commit message")
++	}
++	response := setupResponse{Version: 1}
++	if s.args.setup == nil {
++		response.Error = "instance has no auto setup lease"
++	} else if err := s.args.setup.confirm(msg.Handle, msg.Version, s.aliveTimeout); err != nil {
++		response.Error = err.Error()
++	}
++	return s.sendBusMessage("setup-commit", response)
++}
++
+ func (s *sshUdpServer) handleExitEvent(stream Stream) error {
+ 	var exitMsg exitMessage
+ 	if err := recvMessage(stream, &exitMsg); err != nil {
+@@ -185,6 +202,10 @@ func (s *sshUdpServer) handleExitEvent(stream Stream) error {
+ }
+ 
+ func (s *sshUdpServer) handleCloseEvent() {
++	if s.args.setup != nil {
++		// Transport rollback can race the retained native cancellation command.
++		_ = s.args.setup.cancel(s.args.setup.handle, 1, os.Getuid())
++	}
+ 	closeAllSessions()
+ 	debug("close bus and exit tsshd")
+ 
+@@ -231,6 +252,9 @@ func (s *sshUdpServer) handleAliveEvent(stream Stream, heartbeatTimeout time.Dur
+ 	}
+ 
+ 	s.clientAliveTime.Store(now)
++	if s.args.setup != nil {
++		s.args.setup.activity(s.aliveTimeout)
++	}
+ 
+ 	return s.sendBusMessage("alive", msg)
+ }
+diff --git a/tsshd/datagram.go b/tsshd/datagram.go
+index c0436d89..34824510 100644
+--- a/tsshd/datagram.go
++++ b/tsshd/datagram.go
+@@ -686,6 +686,9 @@ func (s *sshUdpServer) handleListenUdpEvent(stream Stream) {
+ 		sendError(stream, fmt.Errorf("recv listen udp message failed: %v", err))
+ 		return
+ 	}
++	if !s.commitSetupExecution(stream) {
++		return
++	}
+ 
+ 	if v := getSshdConfig("AllowTcpForwarding"); strings.EqualFold(v, "no") || strings.EqualFold(v, "local") {
+ 		sendProhibited(stream, "AllowTcpForwarding")
+diff --git a/tsshd/forward.go b/tsshd/forward.go
+index 211d427f..7d706fb6 100644
+--- a/tsshd/forward.go
++++ b/tsshd/forward.go
+@@ -108,6 +108,9 @@ func (s *sshUdpServer) handleDialEvent(stream Stream) {
+ 
+ 	var err error
+ 	var conn net.Conn
++	if !s.commitSetupExecution(stream) {
++		return
++	}
+ 	if msg.Timeout > 0 {
+ 		conn, err = net.DialTimeout(msg.Net, msg.Addr, msg.Timeout)
+ 	} else {
+@@ -156,6 +159,9 @@ func (s *sshUdpServer) handleListenEvent(stream Stream) {
+ 		return
+ 	}
+ 
++	if !s.commitSetupExecution(stream) {
++		return
++	}
+ 	if msg.Net == "unix" {
+ 		if err := unlinkStaleUnixSocket(msg.Addr); err != nil {
+ 			sendError(stream, err)
+diff --git a/tsshd/main.go b/tsshd/main.go
+index fb2f66b2..e27f678c 100644
+--- a/tsshd/main.go
++++ b/tsshd/main.go
+@@ -78,6 +78,10 @@ type tsshdArgs struct {
+ 	List           bool
+ 	View           string
+ 	Attach         string
++	SetupTimeout   time.Duration
++	CancelSetup    string
++	SetupError     error
++	setup          *setupLease
+ 	MTU            uint16
+ 	Port           string
+ 	ConnectTimeout time.Duration
+@@ -86,7 +90,8 @@ type tsshdArgs struct {
+ func printHelp() int {
+ 	fmt.Printf("usage: tsshd [-h|-v|-V] [--kcp] [--tcp] [--ipv4] [--ipv6] [--debug] " +
+ 		"[--attachable] [--socket] [--list] [--view <PID>.<SID>] [--attach <PID>] " +
+-		"[--mtu N] [--port low-high] [--connect-timeout t]\n\n" +
++		"[--mtu N] [--port low-high] [--connect-timeout t] " +
++		"[--setup-timeout seconds] [--cancel-setup handle]\n\n" +
+ 		"tsshd: A UDP-based SSH server with seamless roaming and auto-reconnect.\n\n" +
+ 		"optional arguments:\n" +
+ 		"  -h, --help             show this help message and exit\n" +
+@@ -104,7 +109,9 @@ func printHelp() int {
+ 		"  --attach <PID>         Attach to tsshd session specified by PID\n" +
+ 		"  --mtu N                Sets the Maximum Transmission Unit (MTU)\n" +
+ 		"  --port low-high        UDP port range that the tsshd listens on\n" +
+-		"  --connect-timeout t    The timeout for tssh connecting to tsshd\n")
++		"  --connect-timeout t    The timeout for tssh connecting to tsshd\n" +
++		"  --setup-timeout t      Fresh auto setup lease, 1..3600 seconds\n" +
++		"  --cancel-setup handle Cancel this account's unexecuted setup\n")
+ 	return 0
+ }
+ 
+@@ -163,6 +170,22 @@ func parseTsshdArgs() *tsshdArgs {
+ 				}
+ 				i++
+ 			}
++		case "--setup-timeout":
++			args.SetupError = fmt.Errorf("setup timeout must be an integer in [1, 3600]")
++			if i+1 < len(os.Args) {
++				if seconds, err := strconv.ParseUint(os.Args[i+1], 10, 32); err == nil && seconds >= 1 && seconds <= 3600 {
++					args.SetupTimeout = time.Duration(seconds) * time.Second
++					args.SetupError = nil
++				}
++				i++
++			}
++		case "--cancel-setup":
++			args.SetupError = fmt.Errorf("missing setup handle")
++			if i+1 < len(os.Args) {
++				args.CancelSetup = os.Args[i+1]
++				args.SetupError = nil
++				i++
++			}
+ 		}
+ 	}
+ 	return args
+@@ -253,6 +276,15 @@ func RunMain(opts ...Option) (int, error) {
+ 	if args.VerDetailed {
+ 		return printVersionDetailed(), nil
+ 	}
++	if args.SetupError != nil {
++		return kExitCodeApplyOptions, args.SetupError
++	}
++	if args.CancelSetup != "" {
++		return handleCancelSetupCommand(args.CancelSetup)
++	}
++	if args.SetupTimeout > 0 && (args.Attachable || args.Socket || args.Attach != "" || args.TCP) {
++		return kExitCodeApplyOptions, fmt.Errorf("auto setup requires an independent UDP instance")
++	}
+ 
+ 	if args.List {
+ 		return handleListCommand()
+@@ -284,6 +316,15 @@ func RunMain(opts ...Option) (int, error) {
+ 	if args.ConnectTimeout <= 0 {
+ 		args.ConnectTimeout = kDefaultConnectTimeout
+ 	}
++	if args.SetupTimeout > 0 {
++		// Early hops must remain available while later offers and transports are prepared.
++		args.ConnectTimeout = args.SetupTimeout
++		args.setup, err = newSetupLease(args.SetupTimeout)
++		if err != nil {
++			return kExitCodeInitServer, err
++		}
++		defer args.setup.close()
++	}
+ 
+ 	// init logging and sshd_config
+ 	enableWarningLogging = true
+@@ -344,6 +385,10 @@ func monitorServerLiveness(args *tsshdArgs) {
+ 	beginTime := time.Now()
+ 
+ 	for {
++		if args.setup != nil && args.setup.isPending() {
++			time.Sleep(time.Second)
++			continue
++		}
+ 		server := activeSshUdpServer.Load()
+ 		if server == nil {
+ 			// NOTE: Do not check server.serving.Load() here. In attachable mode,
+diff --git a/tsshd/proto.go b/tsshd/proto.go
+index db0572e5..ca07598d 100644
+--- a/tsshd/proto.go
++++ b/tsshd/proto.go
+@@ -82,20 +82,53 @@ func (e *Error) Error() string {
+ 
+ // ServerInfo includes all information used for client login
+ type ServerInfo struct {
+-	ServerVer  string `json:",omitempty"`
+-	ProtoVer   int    `json:",omitempty"`
+-	Port       int    `json:",omitempty"`
+-	Mode       string `json:",omitempty"`
+-	Pass       string `json:",omitempty"`
+-	Salt       string `json:",omitempty"`
+-	ServerCert string `json:",omitempty"`
+-	ClientCert string `json:",omitempty"`
+-	ClientKey  string `json:",omitempty"`
+-	ProxyKey   string `json:",omitempty"`
+-	ClientID   uint64 `json:",omitempty"`
+-	ServerID   uint64 `json:",omitempty"`
+-	ProxyMode  string `json:",omitempty"`
+-	MTU        uint16 `json:",omitempty"`
++	BindAddress  string `json:",omitempty"`
++	SetupHandle  string `json:",omitempty"`
++	SetupVersion int    `json:",omitempty"`
++	ServerVer    string `json:",omitempty"`
++	ProtoVer     int    `json:",omitempty"`
++	Port         int    `json:",omitempty"`
++	Mode         string `json:",omitempty"`
++	Pass         string `json:",omitempty"`
++	Salt         string `json:",omitempty"`
++	ServerCert   string `json:",omitempty"`
++	ClientCert   string `json:",omitempty"`
++	ClientKey    string `json:",omitempty"`
++	ProxyKey     string `json:",omitempty"`
++	ClientID     uint64 `json:",omitempty"`
++	ServerID     uint64 `json:",omitempty"`
++	ProxyMode    string `json:",omitempty"`
++	MTU          uint16 `json:",omitempty"`
++}
++
++type setupMessage struct {
++	Handle  string `json:",omitempty"`
++	Version int
++}
++
++type setupResponse struct {
++	Version int
++	Error   string
++}
++
++func recvSetupMessage(stream io.Reader, msg any) error {
++	var size [4]byte
++	if _, err := io.ReadFull(stream, size[:]); err != nil {
++		return fmt.Errorf("invalid setup message")
++	}
++	n := binary.BigEndian.Uint32(size[:])
++	if n == 0 || n > 4096 {
++		return fmt.Errorf("invalid setup message size")
++	}
++	data := make([]byte, n)
++	if _, err := io.ReadFull(stream, data); err != nil {
++		return fmt.Errorf("incomplete setup message")
++	}
++	// Setup tokens must not appear in malformed-message debug logs.
++	if err := json.Unmarshal(data, msg); err != nil {
++		return fmt.Errorf("invalid setup message JSON")
++	}
++	return nil
+ }
+ 
+ type SessionInfo struct {
+diff --git a/tsshd/server.go b/tsshd/server.go
+index 8a26fdaa..f4894868 100644
+--- a/tsshd/server.go
++++ b/tsshd/server.go
+@@ -375,6 +375,12 @@ func (s *sshUdpServer) handleStream(stream Stream) {
+ 			sendError(stream, fmt.Errorf("not the active server instance"))
+ 			return
+ 		}
++		if s.args.setup != nil {
++			if err := s.args.setup.authorizeStream(command); err != nil {
++				sendError(stream, err)
++				return
++			}
++		}
+ 	}
+ 
+ 	// dispatch handler
+@@ -434,3 +440,13 @@ func (s *sshUdpServer) closeActiveStreams() {
+ func (s *sshUdpServer) isClientAlive() bool {
+ 	return time.Since(time.UnixMilli(s.clientAliveTime.Load())) < s.clientChecker.heartbeatTimeout
+ }
++
++func (s *sshUdpServer) commitSetupExecution(stream Stream) bool {
++	if s.args.setup != nil {
++		if err := s.args.setup.execute(); err != nil {
++			sendError(stream, err)
++			return false
++		}
++	}
++	return true
++}
+diff --git a/tsshd/service.go b/tsshd/service.go
+index edca065c..002a8957 100644
+--- a/tsshd/service.go
++++ b/tsshd/service.go
+@@ -144,6 +144,18 @@ func initServer(args *tsshdArgs) (*ServerInfo, string, error) {
+ 		Port:      port,
+ 		MTU:       args.MTU,
+ 	}
++	if frontend, ok := conn.(*udpFrontendConn); ok && len(frontend.connList) == 1 {
++		addr := frontend.connList[0].LocalAddr().(*net.UDPAddr)
++		info.BindAddress = addr.IP.String()
++		if addr.Zone != "" {
++			info.BindAddress += "%" + addr.Zone
++		}
++	} else if args.setup != nil {
++		return nil, "", fmt.Errorf("auto setup requires one actual UDP bind address (SSH_CONNECTION)")
++	}
++	if args.setup != nil {
++		info.SetupHandle, info.SetupVersion = args.setup.handle, 1
++	}
+ 
+ 	proxy, err := startServerProxy(args, info, conn)
+ 	if err != nil {
+diff --git a/tsshd/session.go b/tsshd/session.go
+index 780282c2..9e1e7e51 100644
+--- a/tsshd/session.go
++++ b/tsshd/session.go
+@@ -298,7 +298,11 @@ func (c *sessionContext) discardPendingInput(server *sshUdpServer, buf []byte, m
+ func (c *sessionContext) forwardInput(stream Stream) {
+ 	defer func() {
+ 		debug("session [%d] stdin completed", c.id)
+-		_ = c.stdin.Close()
++		// A PTY master is also the output reader; input EOF must not hang up
++		// the remote process or discard output that is still being produced.
++		if c.pty == nil {
++			_ = c.stdin.Close()
++		}
+ 		_ = stream.CloseRead()
+ 	}()
+ 
+@@ -588,6 +592,9 @@ func (s *sshUdpServer) handleSessionEvent(stream Stream) {
+ 		sendError(stream, fmt.Errorf("recv start message failed: %v", err))
+ 		return
+ 	}
++	if !s.commitSetupExecution(stream) {
++		return
++	}
+ 
+ 	errID := msg.ID
+ 	if msg.Attach {
+diff --git a/tsshd/session_test.go b/tsshd/session_test.go
+index d4204f33..413e5065 100644
+--- a/tsshd/session_test.go
++++ b/tsshd/session_test.go
+@@ -35,6 +35,30 @@ import (
+ 	"github.com/stretchr/testify/require"
+ )
+ 
++type eofSessionStream struct{ Stream }
++
++func (eofSessionStream) Read([]byte) (int, error) { return 0, io.EOF }
++func (eofSessionStream) CloseRead() error         { return nil }
++
++type sessionInputCloser struct{ closed bool }
++
++func (*sessionInputCloser) Write(buf []byte) (int, error) { return len(buf), nil }
++func (c *sessionInputCloser) Close() error                { c.closed = true; return nil }
++
++func TestSessionInputEOFPreservesPTYMaster(t *testing.T) {
++	for _, pty := range []bool{true, false} {
++		input := &sessionInputCloser{}
++		sess := &sessionContext{stdin: input}
++		if pty {
++			sess.pty = &tsshdPty{}
++		}
++		sess.forwardInput(eofSessionStream{})
++		if input.closed == pty {
++			t.Fatalf("PTY=%v, input closed=%v", pty, input.closed)
++		}
++	}
++}
++
+ // newCmdTestSession starts a session running the given shell command, the output
+ // pipes are created by StartCmd, but nothing is forwarding the output yet.
+ func newCmdTestSession(t *testing.T, script string) *sessionContext {
+@@ -53,7 +77,7 @@ func TestSessionOutputPipesAfterWait(t *testing.T) {
+ 		t.Skip("the test uses a unix shell command")
+ 	}
+ 
+-	sess := newCmdTestSession(t, "/bin/echo -n stdout-marker; /bin/echo -n stderr-marker >&2; exit 7")
++	sess := newCmdTestSession(t, "printf stdout-marker; printf stderr-marker >&2; exit 7")
+ 
+ 	require.NoError(t, sess.StartCmd())
+ 
+@@ -88,7 +112,7 @@ func TestSessionWaitWithDescendant(t *testing.T) {
+ 	outputForwardTimeout = 300 * time.Millisecond
+ 	defer func() { outputForwardTimeout = oldTimeout }()
+ 
+-	sess := newCmdTestSession(t, "(sleep 0.1; /bin/echo -n stdout-marker; sleep 2) & exit 0")
++	sess := newCmdTestSession(t, "(sleep 0.1; printf stdout-marker; sleep 2) & exit 0")
+ 
+ 	require.NoError(t, sess.StartCmd())
+ 
+@@ -119,8 +143,8 @@ func TestSessionWaitWithDescendantPTY(t *testing.T) {
+ 	outputForwardTimeout = 300 * time.Millisecond
+ 	defer func() { outputForwardTimeout = oldTimeout }()
+ 
+-	sess := newCmdTestSession(t, `python3 -c 'import os, subprocess; os.setsid(); `+
+-		`subprocess.Popen(["sh", "-c", "sleep 0.1; /bin/echo -n stdout-marker; sleep 2"])'`)
++	sess := newCmdTestSession(t, `python3 -c 'import subprocess; `+
++		`subprocess.Popen(["sh", "-c", "sleep 0.1; printf stdout-marker; sleep 2"], start_new_session=True)'`)
+ 
+ 	require.NoError(t, sess.StartPty())
+ 
+diff --git a/tsshd/setup_linux.go b/tsshd/setup_linux.go
+new file mode 100644
+index 00000000..3b831352
+--- /dev/null
++++ b/tsshd/setup_linux.go
+@@ -0,0 +1,432 @@
++//go:build linux
++
++package tsshd
++
++import (
++	"crypto/rand"
++	"crypto/subtle"
++	"encoding/hex"
++	"encoding/json"
++	"fmt"
++	"io"
++	"net"
++	"os"
++	"path/filepath"
++	"strings"
++	"sync"
++	"time"
++
++	"golang.org/x/sys/unix"
++)
++
++const setupRecordLifetime = 24 * time.Hour
++
++type setupRecord struct {
++	Handle   string
++	UID      int
++	State    string
++	Deadline int64
++}
++
++type setupLease struct {
++	mu       sync.Mutex
++	handle   string
++	uid      int
++	state    string
++	deadline time.Time
++	timer    *time.Timer
++	dir      string
++	listener net.Listener
++	onStop   func()
++}
++
++func validSetupHandle(handle string) bool {
++	if len(handle) != 64 {
++		return false
++	}
++	_, err := hex.DecodeString(handle)
++	return err == nil && strings.ToLower(handle) == handle
++}
++
++func setupPaths(dir, handle string) (string, string) {
++	return filepath.Join(dir, "setup-"+handle), filepath.Join(dir, "s-"+handle[:32])
++}
++
++func newSetupLease(timeout time.Duration) (*setupLease, error) {
++	if timeout <= 0 || timeout > time.Hour {
++		return nil, fmt.Errorf("invalid setup lease")
++	}
++	dir, err := getSocketDir()
++	if err != nil {
++		return nil, fmt.Errorf("private setup runtime directory unavailable")
++	}
++	gcSetupRecords(dir)
++	buf := make([]byte, 32)
++	if _, err := rand.Read(buf); err != nil {
++		return nil, fmt.Errorf("setup entropy unavailable")
++	}
++	lease := &setupLease{handle: hex.EncodeToString(buf), uid: os.Getuid(), state: "pending",
++		deadline: time.Now().Add(timeout), dir: dir, onStop: func() { exitWithCode(kExitCodeConnTimeout) }}
++	recordPath, socketPath := setupPaths(dir, lease.handle)
++	file, err := os.OpenFile(recordPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
++	if err != nil {
++		return nil, fmt.Errorf("cannot create private setup record")
++	}
++	_ = file.Close()
++	if err := lease.storeLocked(); err != nil {
++		_ = os.Remove(recordPath)
++		return nil, err
++	}
++	listener, err := net.Listen("unix", socketPath)
++	if err != nil {
++		_ = os.Remove(recordPath)
++		return nil, fmt.Errorf("cannot create private setup socket")
++	}
++	lease.listener = listener
++	if err := os.Chmod(socketPath, 0600); err != nil {
++		_ = listener.Close()
++		_ = os.Remove(recordPath)
++		return nil, fmt.Errorf("cannot protect setup socket")
++	}
++	lease.timer = time.AfterFunc(timeout, lease.expire)
++	go lease.serve()
++	return lease, nil
++}
++
++func (l *setupLease) storeLocked() error {
++	record := setupRecord{l.handle, l.uid, l.state, l.deadline.UnixMilli()}
++	data, _ := json.Marshal(record)
++	file, err := os.CreateTemp(l.dir, ".setup-")
++	if err != nil {
++		return fmt.Errorf("cannot write setup state")
++	}
++	name := file.Name()
++	defer os.Remove(name)
++	if _, err := file.Write(data); err != nil {
++		_ = file.Close()
++		return fmt.Errorf("cannot write setup state")
++	}
++	if err := file.Close(); err != nil {
++		return fmt.Errorf("cannot close setup state")
++	}
++	path, _ := setupPaths(l.dir, l.handle)
++	if err := os.Rename(name, path); err != nil {
++		return fmt.Errorf("cannot publish setup state")
++	}
++	return nil
++}
++
++func (l *setupLease) authenticateLocked(handle string, version, uid int) error {
++	if uid != l.uid {
++		return fmt.Errorf("setup UID mismatch")
++	}
++	if version != 1 {
++		return fmt.Errorf("unsupported setup version")
++	}
++	if !validSetupHandle(handle) || subtle.ConstantTimeCompare([]byte(handle), []byte(l.handle)) != 1 {
++		return fmt.Errorf("invalid setup token")
++	}
++	return nil
++}
++
++func (l *setupLease) confirm(handle string, version int, lifetime time.Duration) error {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	if err := l.authenticateLocked(handle, version, os.Getuid()); err != nil {
++		return err
++	}
++	if l.state == "executing" || l.state == "ready" {
++		return nil
++	}
++	if l.state != "pending" || !time.Now().Before(l.deadline) {
++		return fmt.Errorf("setup is no longer pending")
++	}
++	if lifetime <= 0 || lifetime > setupRecordLifetime {
++		lifetime = setupRecordLifetime
++	}
++	oldDeadline := l.deadline
++	l.state, l.deadline = "ready", time.Now().Add(lifetime)
++	if err := l.storeLocked(); err != nil {
++		l.state, l.deadline = "pending", oldDeadline
++		return err
++	}
++	l.timer.Reset(lifetime)
++	return nil
++}
++
++func (l *setupLease) authorizeStream(command string) error {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	if l.state == "executing" {
++		return nil
++	}
++	if (l.state != "pending" && l.state != "ready") || !time.Now().Before(l.deadline) {
++		return fmt.Errorf("setup is cancelled or expired")
++	}
++	if command == "dial-udp" {
++		return nil
++	}
++	if l.state != "ready" {
++		return fmt.Errorf("setup must be explicitly confirmed before application execution")
++	}
++	return nil
++}
++
++func (l *setupLease) activity(lifetime time.Duration) {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	if l.state != "ready" || !time.Now().Before(l.deadline) {
++		return
++	}
++	if lifetime <= 0 || lifetime > setupRecordLifetime {
++		lifetime = setupRecordLifetime
++	}
++	// Intermediate hops have no shell execution to stop the setup timer.
++	// After confirmation, their lifetime is an idle budget, not a session cap.
++	l.deadline = time.Now().Add(lifetime)
++	l.timer.Reset(lifetime)
++}
++
++func (l *setupLease) execute() error {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	if l.state == "executing" {
++		return nil
++	}
++	if l.state != "ready" || !time.Now().Before(l.deadline) {
++		return fmt.Errorf("setup is not confirmed or has expired")
++	}
++	l.state = "executing"
++	if err := l.storeLocked(); err != nil {
++		l.state = "ready"
++		return err
++	}
++	l.timer.Stop()
++	return nil
++}
++
++func (l *setupLease) cancel(handle string, version, uid int) error {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	if err := l.authenticateLocked(handle, version, uid); err != nil {
++		return err
++	}
++	if l.state == "executing" {
++		return fmt.Errorf("setup has committed application execution")
++	}
++	if l.state == "cancelled" || l.state == "expired" {
++		return nil
++	}
++	if l.state != "pending" && l.state != "ready" {
++		return fmt.Errorf("invalid setup state")
++	}
++	oldState := l.state
++	l.state = "cancelled"
++	if err := l.storeLocked(); err != nil {
++		l.state = oldState
++		return err
++	}
++	l.timer.Stop()
++	return nil
++}
++
++func (l *setupLease) expire() {
++	l.mu.Lock()
++	if (l.state != "pending" && l.state != "ready") || time.Now().Before(l.deadline) {
++		l.mu.Unlock()
++		return
++	}
++	l.state = "expired"
++	_ = l.storeLocked()
++	l.mu.Unlock()
++	l.onStop()
++}
++
++func (l *setupLease) isPending() bool {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	return l.state == "pending"
++}
++
++func (l *setupLease) close() {
++	l.mu.Lock()
++	defer l.mu.Unlock()
++	l.timer.Stop()
++	_ = l.listener.Close()
++	if l.state != "cancelled" && l.state != "expired" {
++		path, _ := setupPaths(l.dir, l.handle)
++		_ = os.Remove(path)
++	}
++}
++
++func setupPeerUID(conn net.Conn) (int, error) {
++	unixConn, ok := conn.(*net.UnixConn)
++	if !ok {
++		return -1, fmt.Errorf("not a Unix socket")
++	}
++	raw, err := unixConn.SyscallConn()
++	if err != nil {
++		return -1, fmt.Errorf("socket credentials unavailable")
++	}
++	var cred *unix.Ucred
++	var credErr error
++	if err := raw.Control(func(fd uintptr) { cred, credErr = unix.GetsockoptUcred(int(fd), unix.SOL_SOCKET, unix.SO_PEERCRED) }); err != nil || credErr != nil || cred == nil {
++		return -1, fmt.Errorf("socket credentials unavailable")
++	}
++	return int(cred.Uid), nil
++}
++
++func (l *setupLease) serve() {
++	for {
++		conn, err := l.listener.Accept()
++		if err != nil {
++			return
++		}
++		go l.handleConn(conn)
++	}
++}
++
++func (l *setupLease) handleConn(conn net.Conn) {
++	defer conn.Close()
++	_ = conn.SetDeadline(time.Now().Add(kSocketTimeout))
++	uid, err := setupPeerUID(conn)
++	if err != nil || uid != l.uid {
++		return
++	}
++	reader := io.LimitReader(conn, 4096)
++	command, err := recvCommand(reader)
++	if err != nil || command != "setup-cancel" {
++		return
++	}
++	var msg setupMessage
++	if err := recvSetupMessage(reader, &msg); err != nil {
++		return
++	}
++	response := setupResponse{Version: 1}
++	if err := l.cancel(msg.Handle, msg.Version, uid); err != nil {
++		response.Error = err.Error()
++	}
++	_ = sendCommandAndMessage(conn, "setup-cancel", response)
++	if response.Error == "" {
++		l.onStop()
++	}
++}
++
++func validateSetupStat(stat *unix.Stat_t, uid int, socket bool) error {
++	kind := uint32(unix.S_IFREG)
++	if socket {
++		kind = unix.S_IFSOCK
++	}
++	if int(stat.Uid) != uid || stat.Mode&unix.S_IFMT != kind || stat.Mode&0077 != 0 {
++		return fmt.Errorf("setup ownership or permissions invalid")
++	}
++	return nil
++}
++
++func readSetupRecord(path, handle string, uid int) (*setupRecord, error) {
++	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
++	if err != nil {
++		return nil, fmt.Errorf("setup record unavailable")
++	}
++	file := os.NewFile(uintptr(fd), "setup-record")
++	defer file.Close()
++	var stat unix.Stat_t
++	if err := unix.Fstat(fd, &stat); err != nil {
++		return nil, fmt.Errorf("setup record unavailable")
++	}
++	if err := validateSetupStat(&stat, uid, false); err != nil {
++		return nil, err
++	}
++	var record setupRecord
++	if err := json.NewDecoder(io.LimitReader(file, 4096)).Decode(&record); err != nil {
++		return nil, fmt.Errorf("invalid setup record")
++	}
++	if record.UID != uid || !validSetupHandle(record.Handle) || subtle.ConstantTimeCompare([]byte(record.Handle), []byte(handle)) != 1 {
++		return nil, fmt.Errorf("setup record token or UID mismatch")
++	}
++	return &record, nil
++}
++
++func cancelSetup(handle string) error {
++	if !validSetupHandle(handle) {
++		return fmt.Errorf("invalid setup handle")
++	}
++	dir, err := getSocketDir()
++	if err != nil {
++		return fmt.Errorf("private setup runtime directory unavailable")
++	}
++	path, socket := setupPaths(dir, handle)
++	record, err := readSetupRecord(path, handle, os.Getuid())
++	if err != nil {
++		return err
++	}
++	switch record.State {
++	case "cancelled", "expired":
++		return nil
++	case "executing":
++		return fmt.Errorf("setup has committed application execution")
++	case "pending", "ready":
++	default:
++		return fmt.Errorf("invalid setup state")
++	}
++	var stat unix.Stat_t
++	if err := unix.Lstat(socket, &stat); err != nil {
++		return fmt.Errorf("setup socket unavailable")
++	}
++	if err := validateSetupStat(&stat, os.Getuid(), true); err != nil {
++		return err
++	}
++	conn, err := connectSocket(socket)
++	if err != nil {
++		// Expiration/cancellation may remove the socket between the stat and dial.
++		if record, e := readSetupRecord(path, handle, os.Getuid()); e == nil && (record.State == "cancelled" || record.State == "expired") {
++			return nil
++		}
++		return fmt.Errorf("setup socket unavailable")
++	}
++	defer conn.Close()
++	if uid, err := setupPeerUID(conn); err != nil || uid != os.Getuid() {
++		return fmt.Errorf("setup socket owner mismatch")
++	}
++	_ = conn.SetDeadline(time.Now().Add(kSocketTimeout))
++	if err := sendCommandAndMessage(conn, "setup-cancel", setupMessage{handle, 1}); err != nil {
++		return fmt.Errorf("setup cancellation request failed")
++	}
++	command, err := recvCommand(conn)
++	if err != nil || command != "setup-cancel" {
++		return fmt.Errorf("invalid setup cancellation response")
++	}
++	var response setupResponse
++	if err := recvSetupMessage(conn, &response); err != nil || response.Version != 1 {
++		return fmt.Errorf("invalid setup cancellation response")
++	}
++	if response.Error != "" {
++		return fmt.Errorf("%s", response.Error)
++	}
++	return nil
++}
++
++func handleCancelSetupCommand(handle string) (int, error) {
++	if err := cancelSetup(handle); err != nil {
++		return kExitCodeApplyOptions, err
++	}
++	return 0, nil
++}
++
++func gcSetupRecords(dir string) {
++	entries, err := os.ReadDir(dir)
++	if err != nil {
++		return
++	}
++	for _, entry := range entries {
++		handle := strings.TrimPrefix(entry.Name(), "setup-")
++		if !validSetupHandle(handle) {
++			continue
++		}
++		path, _ := setupPaths(dir, handle)
++		record, err := readSetupRecord(path, handle, os.Getuid())
++		if err == nil && (record.State == "cancelled" || record.State == "expired") && time.Now().UnixMilli() > record.Deadline+setupRecordLifetime.Milliseconds() {
++			_ = os.Remove(path)
++		}
++	}
++}
+diff --git a/tsshd/setup_linux_test.go b/tsshd/setup_linux_test.go
+new file mode 100644
+index 00000000..5b485201
+--- /dev/null
++++ b/tsshd/setup_linux_test.go
+@@ -0,0 +1,286 @@
++//go:build linux
++
++package tsshd
++
++import (
++	"bytes"
++	"encoding/binary"
++	"net"
++	"os"
++	"strings"
++	"sync"
++	"testing"
++	"time"
++
++	"golang.org/x/sys/unix"
++)
++
++func setupTestLease(t *testing.T, timeout time.Duration) *setupLease {
++	t.Helper()
++	dir, err := os.MkdirTemp("", "ts-")
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Cleanup(func() { _ = os.RemoveAll(dir) })
++	t.Setenv("XDG_RUNTIME_DIR", dir)
++	l, err := newSetupLease(timeout)
++	if err != nil {
++		t.Fatal(err)
++	}
++	t.Cleanup(l.close)
++	return l
++}
++
++func TestAutoSetupRejectTokenUIDVersionAndState(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	for _, command := range []string{"session", "stderr", "dial", "listen", "accept", "listen-udp", "accept-udp"} {
++		if err := l.authorizeStream(command); err == nil {
++			t.Fatalf("unconfirmed %s allowed", command)
++		}
++	}
++	if err := l.execute(); err == nil {
++		t.Fatal("unconfirmed execution allowed")
++	}
++	for _, request := range []struct {
++		handle       string
++		version, uid int
++	}{
++		{strings.Repeat("0", 64), 1, l.uid}, {l.handle, 2, l.uid}, {l.handle, 1, l.uid + 1}, {"../socket", 1, l.uid},
++	} {
++		if err := l.cancel(request.handle, request.version, request.uid); err == nil {
++			t.Fatal("unauthorized cancellation allowed")
++		}
++	}
++	if err := l.confirm(strings.Repeat("0", 64), 1, time.Hour); err == nil {
++		t.Fatal("wrong token confirmed")
++	}
++	if err := l.confirm(l.handle, 2, time.Hour); err == nil {
++		t.Fatal("wrong version confirmed")
++	}
++	if err := l.confirm(l.handle, 1, time.Hour); err != nil {
++		t.Fatal(err)
++	}
++	deadline := l.deadline
++	if err := l.confirm(l.handle, 1, time.Hour); err != nil || l.deadline != deadline {
++		t.Fatal("repeat confirmation renewed lease")
++	}
++	if err := l.authorizeStream("session"); err != nil {
++		t.Fatal(err)
++	}
++	if l.state != "ready" {
++		t.Fatal("opening session committed execution")
++	}
++	if err := l.execute(); err != nil {
++		t.Fatal(err)
++	}
++	if err := l.cancel(l.handle, 1, l.uid); err == nil {
++		t.Fatal("committed execution cancelled")
++	}
++	if err := cancelSetup(l.handle); err == nil {
++		t.Fatal("committed record cancelled")
++	}
++}
++
++func TestAutoSetupCrossInstanceAndIdempotentSocketCancel(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	other, err := newSetupLease(time.Minute)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer other.close()
++	if l.handle == other.handle {
++		t.Fatal("setup token reused")
++	}
++	if err := l.cancel(other.handle, 1, l.uid); err == nil {
++		t.Fatal("cross-instance cancellation accepted")
++	}
++	if err := l.authorizeStream("dial-udp"); err != nil {
++		t.Fatal(err)
++	}
++	if err := l.confirm(l.handle, 1, time.Hour); err != nil {
++		t.Fatal(err)
++	}
++	if err := l.authorizeStream("dial-udp"); err != nil || l.state != "ready" {
++		t.Fatal("provisional forwarding committed")
++	}
++	if err := cancelSetup(l.handle); err != nil {
++		t.Fatal(err)
++	}
++	l.close()
++	if err := cancelSetup(l.handle); err != nil {
++		t.Fatalf("repeat cancel after exit: %v", err)
++	}
++	if other.state != "pending" {
++		t.Fatal("unrelated instance cancelled")
++	}
++	if err := l.authorizeStream("session"); err == nil {
++		t.Fatal("cancelled instance executed")
++	}
++	if err := l.confirm(l.handle, 1, time.Hour); err == nil {
++		t.Fatal("cancelled instance reconfirmed")
++	}
++}
++
++func TestAutoSetupLeaseExpiresAndReadyExtends(t *testing.T) {
++	l := setupTestLease(t, 30*time.Millisecond)
++	l.mu.Lock()
++	l.timer.Stop()
++	expired := make(chan struct{}, 1)
++	l.onStop = func() { expired <- struct{}{} }
++	l.timer.Reset(time.Until(l.deadline))
++	l.mu.Unlock()
++	select {
++	case <-expired:
++	case <-time.After(time.Second):
++		t.Fatal("setup lease did not expire")
++	}
++	if err := l.execute(); err == nil {
++		t.Fatal("expired setup executed")
++	}
++	if err := cancelSetup(l.handle); err != nil {
++		t.Fatal(err)
++	}
++	ready, err := newSetupLease(100 * time.Millisecond)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer ready.close()
++	ready.mu.Lock()
++	ready.timer.Stop()
++	ready.onStop = func() { expired <- struct{}{} }
++	ready.timer.Reset(time.Until(ready.deadline))
++	ready.mu.Unlock()
++	if err := ready.confirm(ready.handle, 1, 300*time.Millisecond); err != nil {
++		t.Fatal(err)
++	}
++	select {
++	case <-expired:
++		t.Fatal("ready expired at original setup deadline")
++	case <-time.After(150 * time.Millisecond):
++	}
++	if err := ready.cancel(ready.handle, 1, ready.uid); err != nil {
++		t.Fatal(err)
++	}
++}
++
++func TestAutoSetupCancellationExecutionAtomic(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	if err := l.confirm(l.handle, 1, time.Hour); err != nil {
++		t.Fatal(err)
++	}
++	var wg sync.WaitGroup
++	var execution, cancellation error
++	wg.Add(2)
++	go func() { defer wg.Done(); execution = l.execute() }()
++	go func() { defer wg.Done(); cancellation = l.cancel(l.handle, 1, l.uid) }()
++	wg.Wait()
++	if (execution == nil) == (cancellation == nil) {
++		t.Fatalf("must have exactly one winner: execution=%v cancel=%v", execution, cancellation)
++	}
++}
++
++func TestAutoSetupActivityCannotExtendPendingLease(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	deadline := l.deadline
++	l.activity(time.Hour)
++	if l.deadline != deadline {
++		t.Fatal("heartbeat extended an uncommitted setup lease")
++	}
++	if err := l.confirm(l.handle, 1, time.Minute); err != nil {
++		t.Fatal(err)
++	}
++	deadline = l.deadline
++	l.activity(time.Hour)
++	if !l.deadline.After(deadline) {
++		t.Fatal("confirmed intermediate hop did not renew its idle lifetime")
++	}
++}
++
++func TestAutoSetupRecordOwnershipAndSymlink(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	path, socket := setupPaths(l.dir, l.handle)
++	for _, stat := range []unix.Stat_t{
++		{Uid: uint32(l.uid + 1), Mode: unix.S_IFREG | 0600},
++		{Uid: uint32(l.uid), Mode: unix.S_IFREG | 0644},
++		{Uid: uint32(l.uid), Mode: unix.S_IFLNK | 0600},
++	} {
++		if err := validateSetupStat(&stat, l.uid, false); err == nil {
++			t.Fatal("invalid stat accepted")
++		}
++	}
++	if _, err := readSetupRecord(path, l.handle, l.uid+1); err == nil {
++		t.Fatal("wrong owner accepted")
++	}
++	if err := os.Chmod(socket, 0666); err != nil {
++		t.Fatal(err)
++	}
++	if err := cancelSetup(l.handle); err == nil {
++		t.Fatal("public socket accepted")
++	}
++	if err := os.Chmod(socket, 0600); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.Remove(path); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.Symlink(socket, path); err != nil {
++		t.Fatal(err)
++	}
++	if err := cancelSetup(l.handle); err == nil {
++		t.Fatal("symlink record accepted")
++	}
++}
++
++func TestAutoSetupSocketRejectsCrossInstanceToken(t *testing.T) {
++	l := setupTestLease(t, time.Minute)
++	_, socket := setupPaths(l.dir, l.handle)
++	conn, err := net.Dial("unix", socket)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer conn.Close()
++	_ = conn.SetDeadline(time.Now().Add(time.Second))
++	if err := sendCommandAndMessage(conn, "setup-cancel", setupMessage{strings.Repeat("0", 64), 1}); err != nil {
++		t.Fatal(err)
++	}
++	cmd, err := recvCommand(conn)
++	if err != nil || cmd != "setup-cancel" {
++		t.Fatal("missing rejection response")
++	}
++	var response setupResponse
++	if err := recvSetupMessage(conn, &response); err != nil || response.Error == "" {
++		t.Fatal("wrong token not rejected")
++	}
++	if l.state != "pending" {
++		t.Fatal("wrong token changed state")
++	}
++}
++
++func TestAutoSetupMessageBoundAndTokenRedaction(t *testing.T) {
++	var size [4]byte
++	binary.BigEndian.PutUint32(size[:], 1<<30)
++	if err := recvSetupMessage(bytes.NewReader(size[:]), &setupMessage{}); err == nil {
++		t.Fatal("oversized message accepted")
++	}
++	secret := strings.Repeat("a", 64)
++	data := []byte(`{"Handle":"` + secret + `",`)
++	binary.BigEndian.PutUint32(size[:], uint32(len(data)))
++	if err := recvSetupMessage(bytes.NewReader(append(size[:], data...)), &setupMessage{}); err == nil || strings.Contains(err.Error(), secret) {
++		t.Fatal("malformed setup token disclosed")
++	}
++}
++
++func TestAutoSetupCLIValidation(t *testing.T) {
++	saved := os.Args
++	defer func() { os.Args = saved }()
++	for _, timeout := range []string{"0", "-1", "3601", "1.5", "bogus"} {
++		os.Args = []string{"tsshd", "--setup-timeout", timeout}
++		if parseTsshdArgs().SetupError == nil {
++			t.Fatalf("invalid lease %s accepted", timeout)
++		}
++	}
++	os.Args = []string{"tsshd", "--setup-timeout", "3600"}
++	if args := parseTsshdArgs(); args.SetupError != nil || args.SetupTimeout != time.Hour {
++		t.Fatal("valid lease rejected")
++	}
++}
+diff --git a/tsshd/setup_other.go b/tsshd/setup_other.go
+new file mode 100644
+index 00000000..83bd70e1
+--- /dev/null
++++ b/tsshd/setup_other.go
+@@ -0,0 +1,26 @@
++//go:build !linux
++
++package tsshd
++
++import (
++	"fmt"
++	"time"
++)
++
++type setupLease struct{ handle string }
++
++func newSetupLease(time.Duration) (*setupLease, error) {
++	return nil, fmt.Errorf("auto setup requires Linux peer credentials")
++}
++func (*setupLease) close()                        {}
++func (*setupLease) activity(time.Duration)        {}
++func (*setupLease) isPending() bool               { return false }
++func (*setupLease) authorizeStream(string) error  { return fmt.Errorf("auto setup unsupported") }
++func (*setupLease) execute() error                { return fmt.Errorf("auto setup unsupported") }
++func (*setupLease) cancel(string, int, int) error { return fmt.Errorf("auto setup unsupported") }
++func (*setupLease) confirm(string, int, time.Duration) error {
++	return fmt.Errorf("auto setup unsupported")
++}
++func handleCancelSetupCommand(string) (int, error) {
++	return kExitCodeApplyOptions, fmt.Errorf("auto setup requires Linux peer credentials")
++}

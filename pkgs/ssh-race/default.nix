@@ -10,6 +10,7 @@ stdenv.mkDerivation {
   src = ./.;
 
   nativeBuildInputs = [ go ];
+  doCheck = true;
 
   buildPhase = ''
     runHook preBuild

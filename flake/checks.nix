@@ -26,7 +26,63 @@ let
           echo "$testResult" > $out
         '';
   };
+  tsshTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."tssh-auto-test" = import ../tests/tssh-auto-test.nix {
+      pkgs = fra0Pkgs;
+    };
+  };
+  tsshPolicyTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."tssh-policy-test" =
+      let
+        results = lib.mapAttrs (
+          name: host:
+          let
+            cfg = host.config;
+            transport = cfg.programs.ssh.transport;
+            enabled = !(builtins.elem name transport.excludedHosts);
+            marker = cfg.services.openssh.settings.VersionAddendum or null;
+            packages = map toString cfg.environment.systemPackages;
+          in
+          {
+            inherit (transport) excludedHosts;
+            valid =
+              transport.enable
+              && transport.effectiveEnabled == enabled
+              && cfg.programs.ssh.package.pname == "openssh"
+              && cfg.services.openssh.package.pname == "openssh"
+              && builtins.elem 22 cfg.services.openssh.ports
+              && builtins.elem cfg.ports.ssh cfg.services.openssh.ports
+              && (marker == "tsshd-kcp-auto-v1") == enabled
+              && builtins.elem (toString transport.package) packages == enabled
+              && builtins.elem transport.udpPortRange cfg.networking.firewall.allowedUDPPortRanges == enabled;
+          }
+        ) config.flake.nixosConfigurations;
+      in
+      assert lib.assertMsg (lib.all (result: result.valid) (
+        builtins.attrValues results
+      )) "SSH transport policy does not preserve OpenSSH or the host exception list";
+      fra0Pkgs.runCommand "tssh-policy-test" { result = builtins.toJSON results; } ''
+        printf '%s\n' "$result" > "$out"
+      '';
+  };
+  tsshAdapterTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."tssh-adapter-test" =
+      fra0Pkgs.runCommand "tssh-adapter-test" { nativeBuildInputs = [ fra0Pkgs.python3 ]; }
+        ''
+          mkdir -p tests home-manager/modules/desktop
+          cp ${../tests/test-vscode-ssh-adapter.py} tests/test-vscode-ssh-adapter.py
+          cp ${../home-manager/modules/desktop/vscode-ssh-adapter.py} home-manager/modules/desktop/vscode-ssh-adapter.py
+          python3 -B tests/test-vscode-ssh-adapter.py
+          touch "$out"
+        '';
+  };
 in
 {
-  flake.checks = lib.recursiveUpdate hostToplevels hpbTest;
+  flake.checks = lib.foldr lib.recursiveUpdate { } [
+    hostToplevels
+    hpbTest
+    tsshTest
+    tsshPolicyTest
+    tsshAdapterTest
+  ];
 }

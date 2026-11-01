@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -14,10 +15,10 @@ import (
 )
 
 type dialResult struct {
-	host     string
-	conn     net.Conn
-	rtt      time.Duration
-	score    float64
+	host  string
+	conn  net.Conn
+	rtt   time.Duration
+	score float64
 }
 
 func main() {
@@ -26,16 +27,21 @@ func main() {
 	var window time.Duration
 	var dn42Bonus time.Duration
 	var fallback bool
+	var resolve bool
+	var ipv4, ipv6 bool
 
 	flag.StringVar(&domainsFlag, "domains", getenv("SSH_RACE_DOMAINS", ""), "comma-separated suffixes to try for bare hostnames")
 	flag.DurationVar(&timeout, "timeout", 3*time.Second, "dial timeout for each candidate")
 	flag.DurationVar(&window, "window", 25*time.Millisecond, "smart evaluation window after the first handshake")
 	flag.DurationVar(&dn42Bonus, "dn42-bonus", 15*time.Millisecond, "latency preference bonus for DN42 internal network")
 	flag.BoolVar(&fallback, "fallback", true, "try the original host after suffix candidates")
+	flag.BoolVar(&resolve, "resolve", false, "print the selected host and literal peer address as JSON, then close")
+	flag.BoolVar(&ipv4, "4", false, "use IPv4 only")
+	flag.BoolVar(&ipv6, "6", false, "use IPv6 only")
 	flag.Parse()
 
-	if flag.NArg() != 2 {
-		fmt.Fprintln(os.Stderr, "usage: ssh-race [-domains dn42,dora.im,ts,et] [-timeout 3s] [-window 25ms] [-dn42-bonus 15ms] [-fallback=true] host port")
+	if flag.NArg() != 2 || (ipv4 && ipv6) {
+		fmt.Fprintln(os.Stderr, "usage: ssh-race [--resolve] [-4|-6] [-domains dn42,dora.im,ts,et] [-timeout 3s] [-window 25ms] [-dn42-bonus 15ms] [-fallback=true] host port")
 		os.Exit(2)
 	}
 
@@ -44,12 +50,35 @@ func main() {
 	suffixes := splitList(domainsFlag)
 	candidates := buildCandidates(host, suffixes, fallback)
 
-	conn, chosen, err := dialRace(candidates, port, timeout, window, dn42Bonus)
+	network := "tcp"
+	if ipv4 {
+		network = "tcp4"
+	} else if ipv6 {
+		network = "tcp6"
+	}
+	conn, chosen, err := dialRace(network, candidates, port, timeout, window, dn42Bonus)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(255)
 	}
 	defer conn.Close()
+
+	if resolve {
+		peer := conn.RemoteAddr().(*net.TCPAddr)
+		address := peer.IP.String()
+		if peer.Zone != "" {
+			address += "%" + peer.Zone
+		}
+		err := json.NewEncoder(os.Stdout).Encode(struct {
+			Host    string `json:"host"`
+			Address string `json:"address"`
+		}{chosen, address})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(255)
+		}
+		return
+	}
 
 	fmt.Fprintf(os.Stderr, "ssh-race: selected %s\n", chosen)
 
@@ -141,7 +170,7 @@ func computeScore(host string, rtt time.Duration, dn42Bonus time.Duration) float
 	return score
 }
 
-func dialRace(candidates []string, port string, timeout time.Duration, window time.Duration, dn42Bonus time.Duration) (net.Conn, string, error) {
+func dialRace(network string, candidates []string, port string, timeout time.Duration, window time.Duration, dn42Bonus time.Duration) (net.Conn, string, error) {
 	if len(candidates) == 0 {
 		return nil, "", fmt.Errorf("no candidates to try")
 	}
@@ -161,7 +190,7 @@ func dialRace(candidates []string, port string, timeout time.Duration, window ti
 		go func() {
 			defer wg.Done()
 			start := time.Now()
-			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(candidate, port))
+			conn, err := dialer.DialContext(ctx, network, net.JoinHostPort(candidate, port))
 			elapsed := time.Since(start)
 
 			if err != nil {
@@ -174,10 +203,10 @@ func dialRace(candidates []string, port string, timeout time.Duration, window ti
 
 			score := computeScore(candidate, elapsed, dn42Bonus)
 			resChan <- dialResult{
-				host:     candidate,
-				conn:     conn,
-				rtt:      elapsed,
-				score:    score,
+				host:  candidate,
+				conn:  conn,
+				rtt:   elapsed,
+				score: score,
 			}
 		}()
 	}
@@ -193,7 +222,7 @@ func dialRace(candidates []string, port string, timeout time.Duration, window ti
 		close(allDone)
 	}()
 
-	loop:
+loop:
 	for {
 		select {
 		case res := <-resChan:
@@ -225,6 +254,11 @@ func dialRace(candidates []string, port string, timeout time.Duration, window ti
 
 	// 终止其他仍在等待的拨号任务
 	cancel()
+	wg.Wait()
+	close(resChan)
+	for res := range resChan {
+		_ = res.conn.Close()
+	}
 
 	if len(finalists) == 0 {
 		close(errs)

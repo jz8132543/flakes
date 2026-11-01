@@ -9,6 +9,7 @@
       ...
     }:
     let
+      localPackages = (import ../pkgs).packages pkgs;
       can0LowmemKexec =
         let
           nixosImagesPkgs = inputs.nixos-images.inputs.nixos-unstable.legacyPackages.${system};
@@ -74,6 +75,11 @@
     {
       packages = {
         inherit (pkgs) nixos-anywhere;
+        inherit (localPackages)
+          ssh-race
+          trzsz-ssh-auto
+          tsshd
+          ;
       }
       // can0LowmemKexec;
       checks = lib.mapAttrs' (name: p: lib.nameValuePair "package/${name}" p) self'.packages;

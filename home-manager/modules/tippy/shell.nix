@@ -1,10 +1,16 @@
 {
   pkgs,
-  osConfig,
+  osConfig ? { },
   config,
   lib,
   ...
 }:
+let
+  systemConfig = if osConfig == null then { } else osConfig;
+  transport = config.programs.ssh.transport;
+  terminalEnabled = transport.effectiveEnabled && transport.terminalValidated;
+  nativeSsh = "${pkgs.openssh}/bin/ssh";
+in
 {
   programs = {
     fish = {
@@ -33,6 +39,14 @@
         (lib.mkBefore ''
           set -g fish_escape_delay_ms 300
           set -g fish_greeting
+          function ssh-tcp --wraps ${nativeSsh}
+            ${nativeSsh} $argv
+          end
+          ${lib.optionalString terminalEnabled ''
+            function ssh --wraps ${nativeSsh}
+              ${transport.clientPackage}/bin/tssh --auto-transport $argv
+            end
+          ''}
         '')
         (lib.mkAfter ''
           ${pkgs.nix-your-shell}/bin/nix-your-shell --nom fish | source
@@ -85,6 +99,12 @@
         sl = "journalctl --unit";
       };
       initContent = lib.mkOrder 550 ''
+        if [[ -o interactive ]]; then
+          ssh-tcp() { ${nativeSsh} "$@"; }
+          ${lib.optionalString terminalEnabled ''
+            ssh() { ${transport.clientPackage}/bin/tssh --auto-transport "$@"; }
+          ''}
+        fi
         zstyle ':completion:*' matcher-list 'r:|=*' 'l:|=* r:|=* m:{a-z\-}={A-Z\_}'
         export LS_COLORS="$(vivid generate molokai)"
         zstyle ':completion:*' list-colors "''${(s.:.)LS_COLORS}"
@@ -185,7 +205,7 @@
       ];
 
       settings = {
-        sync_address = "https://atuin.${osConfig.networking.domain}";
+        sync_address = "https://atuin.${systemConfig.networking.domain or "dora.im"}";
         sync_frequency = "1m";
         dialect = "uk";
         enter_accept = false;

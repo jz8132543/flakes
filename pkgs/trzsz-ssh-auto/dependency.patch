@@ -1,0 +1,810 @@
+diff --git a/tsshd/auto_client.go b/tsshd/auto_client.go
+new file mode 100644
+index 00000000..a8e3515b
+--- /dev/null
++++ b/tsshd/auto_client.go
+@@ -0,0 +1,182 @@
++package tsshd
++
++import (
++	"context"
++	"crypto/aes"
++	"encoding/hex"
++	"errors"
++	"fmt"
++	"net"
++	"os"
++	"sync/atomic"
++	"time"
++)
++
++// ConnectionTimeout identifies only a deadline during initial transport setup.
++// Application, remote administrative, and reconnection errors do not use it.
++type ConnectionTimeout struct{ Cause error }
++
++func (e *ConnectionTimeout) Error() string { return "UDP establishment timeout: " + e.Cause.Error() }
++func (e *ConnectionTimeout) Unwrap() error { return e.Cause }
++
++func connectionError(err error) error {
++	var remote *Error
++	if errors.As(err, &remote) {
++		return err
++	}
++	var timeout net.Error
++	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, os.ErrDeadlineExceeded) ||
++		(errors.As(err, &timeout) && timeout.Timeout()) {
++		return &ConnectionTimeout{Cause: err}
++	}
++	return err
++}
++
++// ValidateAutoOffer rejects incompatible or malformed offers before network I/O.
++func ValidateAutoOffer(info *ServerInfo) error {
++	if info == nil || info.SetupVersion != 1 || info.ProtoVer != kTsshdProtocol ||
++		info.Mode != kUdpModeKCP || info.ProxyMode != "" || info.Port < 1 || info.Port > 65535 || info.ServerID == 0 {
++		return fmt.Errorf("incompatible automatic KCP offer")
++	}
++	if net.ParseIP(info.BindAddress) == nil {
++		return fmt.Errorf("invalid automatic KCP bind address")
++	}
++	handle, err := hex.DecodeString(info.SetupHandle)
++	if err != nil || len(handle) != 32 || hex.EncodeToString(handle) != info.SetupHandle {
++		return fmt.Errorf("invalid automatic KCP setup handle")
++	}
++	key, err := hex.DecodeString(info.ProxyKey)
++	if err != nil {
++		return fmt.Errorf("invalid automatic KCP proxy key")
++	}
++	if _, err := aes.NewCipher(key); err != nil {
++		return fmt.Errorf("invalid automatic KCP proxy key length")
++	}
++	for _, value := range []string{info.Pass, info.Salt} {
++		decoded, err := hex.DecodeString(value)
++		if err != nil || len(decoded) != 48 {
++			return fmt.Errorf("invalid automatic KCP key material")
++		}
++	}
++	if info.MTU < 576 || info.MTU > 1500 {
++		return fmt.Errorf("invalid automatic KCP MTU")
++	}
++	return nil
++}
++
++type setupCommitMessage struct {
++	Handle  string
++	Version int
++}
++
++type setupCommitResponse struct {
++	Version int
++	Error   string
++}
++
++var barrierSequence atomic.Int64
++
++// HeartbeatBarrier confirms all preceding settings on the same ordered bus.
++// KCPProxyMTU matches the locked upstream AES-GCM/FEC 1+1 OOB layout.
++// Every child KCP packet must fit entirely in its parent's real UDP datagram.
++func KCPProxyMTU(mtu uint16) (uint16, error) {
++	const overhead = 12 + 16 + 8 + 4 + kUdpForwardChannelIdSize
++	if mtu < 576+overhead || mtu > 1500 {
++		return 0, fmt.Errorf("KCP proxy datagram budget is too small or unsupported")
++	}
++	return mtu - overhead, nil
++}
++
++func (c *SshUdpClient) HeartbeatBarrier(timeout time.Duration) error {
++	deadline := time.Now().Add(timeout)
++	token := barrierSequence.Add(-1)
++	ack := make(chan struct{}, 1)
++	c.barrierMutex.Lock()
++	if c.barrierAcks == nil {
++		c.barrierAcks = make(map[int64]chan struct{})
++	}
++	c.barrierAcks[token] = ack
++	c.barrierMutex.Unlock()
++	defer func() {
++		c.barrierMutex.Lock()
++		delete(c.barrierAcks, token)
++		c.barrierMutex.Unlock()
++	}()
++	if err := c.sendBoundedBusMessage("alive", aliveMessage{Time: token}, timeout); err != nil {
++		return err
++	}
++	timer := time.NewTimer(time.Until(deadline))
++	defer timer.Stop()
++	select {
++	case <-ack:
++		return nil
++	case <-c.busClosed:
++		return net.ErrClosed
++	case <-timer.C:
++		return fmt.Errorf("ordered heartbeat barrier: %w", context.DeadlineExceeded)
++	}
++}
++
++func (c *SshUdpClient) sendBoundedBusMessage(command string, message any, timeout time.Duration) error {
++	ctx, cancel := context.WithTimeout(context.Background(), timeout)
++	defer cancel()
++	locked := make(chan struct{})
++	go func() {
++		c.busMutex.Lock()
++		select {
++		case locked <- struct{}{}:
++		case <-ctx.Done():
++			c.busMutex.Unlock()
++		}
++	}()
++	select {
++	case <-locked:
++	case <-ctx.Done():
++		return ctx.Err()
++	}
++	defer c.busMutex.Unlock()
++	if c.busStream == nil || c.IsClosed() {
++		return net.ErrClosed
++	}
++	deadline, _ := ctx.Deadline()
++	if err := c.busStream.SetWriteDeadline(deadline); err != nil {
++		return err
++	}
++	defer c.busStream.SetWriteDeadline(time.Time{})
++	return sendCommandAndMessage(c.busStream, command, message)
++}
++
++// CommitSetup extends the setup lease after the complete chain is ready.
++// Its errors are intentionally not ConnectionTimeout: rollback may clean up,
++// but it must not downgrade after a commit acknowledgement becomes ambiguous.
++func (c *SshUdpClient) CommitSetup(handle string, timeout time.Duration) error {
++	deadline := time.Now().Add(timeout)
++	if c.setupAck == nil {
++		return fmt.Errorf("not a transactional UDP client")
++	}
++	if err := c.sendBoundedBusMessage("setup-commit", setupCommitMessage{handle, 1}, timeout); err != nil {
++		return err
++	}
++	timer := time.NewTimer(time.Until(deadline))
++	defer timer.Stop()
++	select {
++	case resp := <-c.setupAck:
++		if resp.Version != 1 || resp.Error != "" {
++			return fmt.Errorf("setup commit rejected: version=%d error=%s", resp.Version, resp.Error)
++		}
++		c.activeChecker.onTimeout(c.tryToReconnect)
++		c.setupCommitted.Store(true)
++		return nil
++	case <-c.busClosed:
++		return net.ErrClosed
++	case <-timer.C:
++		return fmt.Errorf("setup commit acknowledgement: %w", context.DeadlineExceeded)
++	}
++}
++
++func (c *SshUdpClient) establishmentTimeout() time.Duration {
++	if c.establishmentDeadline.IsZero() {
++		return c.connectTimeout
++	}
++	return max(time.Until(c.establishmentDeadline), time.Nanosecond)
++}
+diff --git a/tsshd/auto_client_test.go b/tsshd/auto_client_test.go
+new file mode 100644
+index 00000000..aec02b4c
+--- /dev/null
++++ b/tsshd/auto_client_test.go
+@@ -0,0 +1,115 @@
++package tsshd
++
++import (
++	"context"
++	"crypto/aes"
++	"crypto/cipher"
++	"errors"
++	"fmt"
++	"net"
++	"strings"
++	"testing"
++	"time"
++
++	"github.com/trzsz/kcp-go/v5"
++)
++
++func testAutoOffer() *ServerInfo {
++	return &ServerInfo{ServerVer: "0.1.10", ProtoVer: 1, Mode: "KCP", Port: 61001, ServerID: 1, BindAddress: "127.0.0.1", SetupVersion: 1,
++		SetupHandle: strings.Repeat("a", 64), ProxyKey: strings.Repeat("b", 64), Pass: strings.Repeat("c", 96), Salt: strings.Repeat("d", 96), MTU: 1350}
++}
++
++func TestAutoOfferValidation(t *testing.T) {
++	if err := ValidateAutoOffer(testAutoOffer()); err != nil {
++		t.Fatal(err)
++	}
++	for _, mutate := range []func(*ServerInfo){
++		func(s *ServerInfo) { s.ProtoVer++ }, func(s *ServerInfo) { s.SetupVersion++ }, func(s *ServerInfo) { s.Port = 0 },
++		func(s *ServerInfo) { s.BindAddress = "host.test" }, func(s *ServerInfo) { s.SetupHandle = "../token" },
++		func(s *ServerInfo) { s.ProxyKey = "bad" }, func(s *ServerInfo) { s.Pass = "bad" }, func(s *ServerInfo) { s.MTU = 0 },
++		func(s *ServerInfo) { s.ProxyMode = "TCP" }, func(s *ServerInfo) { s.ServerID = 0 },
++	} {
++		s := testAutoOffer()
++		mutate(s)
++		if err := ValidateAutoOffer(s); err == nil {
++			t.Fatal("invalid offer accepted")
++		}
++	}
++}
++
++func TestAutoTypedTimeoutPreservesCause(t *testing.T) {
++	cause := fmt.Errorf("wrapped: %w", context.DeadlineExceeded)
++	var timeout *ConnectionTimeout
++	if err := connectionError(cause); !errors.As(err, &timeout) || !errors.Is(err, context.DeadlineExceeded) {
++		t.Fatalf("lost cause: %v", err)
++	}
++	if err := connectionError(errors.New("timeout")); errors.As(err, &timeout) {
++		t.Fatal("matched timeout text")
++	}
++	remote := &Error{Msg: "remote timeout"}
++	if err := connectionError(fmt.Errorf("remote: %w", remote)); errors.As(err, &timeout) {
++		t.Fatal("remote error downgraded")
++	}
++}
++
++type autoTestStream struct{ net.Conn }
++
++func (s autoTestStream) CloseRead() error  { return s.Close() }
++func (s autoTestStream) CloseWrite() error { return s.Close() }
++
++func TestAutoBoundedBusWriteAndLock(t *testing.T) {
++	a, b := net.Pipe()
++	defer a.Close()
++	defer b.Close()
++	c := &SshUdpClient{busStream: autoTestStream{a}}
++	start := time.Now()
++	if err := c.sendBoundedBusMessage("alive", aliveMessage{}, 20*time.Millisecond); err == nil {
++		t.Fatal("unread write did not time out")
++	}
++	if time.Since(start) > time.Second {
++		t.Fatal("unbounded write")
++	}
++	c.busMutex.Lock()
++	start = time.Now()
++	if err := c.sendBoundedBusMessage("alive", aliveMessage{}, 20*time.Millisecond); err == nil {
++		t.Fatal("busy mutex did not time out")
++	}
++	c.busMutex.Unlock()
++	if time.Since(start) > time.Second {
++		t.Fatal("unbounded mutex acquisition")
++	}
++}
++
++func TestAutoKCPProxyMTUMatchesLockedEngine(t *testing.T) {
++	packet, err := net.ListenPacket("udp4", "127.0.0.1:0")
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer packet.Close()
++	block, err := aes.NewCipher(make([]byte, 32))
++	if err != nil {
++		t.Fatal(err)
++	}
++	aead, err := cipher.NewGCM(block)
++	if err != nil {
++		t.Fatal(err)
++	}
++	conn, err := kcp.NewConn2(&net.UDPAddr{IP: net.IPv4(127, 0, 0, 1), Port: 9}, kcp.NewAEADCrypt(aead), 1, 1, packet)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer conn.Close()
++	for _, mtu := range []uint16{624, 1200, 1350, 1500} {
++		if !conn.SetMtu(int(mtu)) {
++			t.Fatal("upstream rejected MTU")
++		}
++		want := uint16(conn.GetOOBMaxSize()) - kUdpForwardChannelIdSize
++		got, err := KCPProxyMTU(mtu)
++		if err != nil || got != want {
++			t.Fatalf("MTU %d: got %d, want %d: %v", mtu, got, want, err)
++		}
++	}
++	if _, err := KCPProxyMTU(576); err == nil {
++		t.Fatal("accepted undersized child datagram")
++	}
++}
+diff --git a/tsshd/client.go b/tsshd/client.go
+index 5a344162..6e0f889f 100644
+--- a/tsshd/client.go
++++ b/tsshd/client.go
+@@ -60,43 +60,50 @@ type agentRequest struct {
+ 
+ // SshUdpClient implements a UDP SSH client
+ type SshUdpClient struct {
+-	proxyClient          *SshUdpClient
+-	protoClient          protocolClient
+-	protoVersion         int
+-	clientProxy          *clientProxy
+-	intervalTime         time.Duration
+-	connectTimeout       time.Duration
+-	exitWG               sync.WaitGroup
+-	closed               atomic.Bool
+-	quited               atomic.Bool
+-	detached             atomic.Bool
+-	busMutex             sync.Mutex
+-	busStream            Stream
+-	busClosed            chan struct{}
+-	sessionMutex         sync.Mutex
+-	sessionID            atomic.Uint64
+-	sessionMap           map[uint64]*SshUdpSession
+-	channelMutex         sync.Mutex
+-	channelMap           map[string]chan ssh.NewChannel
+-	rttCallback          func(int64)
+-	quitCallback         func(string)
+-	discardCallback      func([]byte, uint64, uint64)
+-	enableDebugging      bool
+-	clientDebugFunc      func(int64, string)
+-	enableWarning        bool
+-	clientWarningFn      func(string)
+-	activeChecker        *timeoutChecker
+-	activeAckChan        chan int64
+-	reconnectMutex       sync.Mutex
+-	reconnectError       atomic.Pointer[error]
+-	maxHeartbeatCnt      atomic.Uint64
+-	needLogHeartbeat     atomic.Bool
+-	keepPendingInput     atomic.Bool
+-	shouldPauseReconnect func() (bool, string)
++	proxyClient           *SshUdpClient
++	protoClient           protocolClient
++	protoVersion          int
++	clientProxy           *clientProxy
++	intervalTime          time.Duration
++	connectTimeout        time.Duration
++	exitWG                sync.WaitGroup
++	closed                atomic.Bool
++	quited                atomic.Bool
++	detached              atomic.Bool
++	busMutex              sync.Mutex
++	busStream             Stream
++	busClosed             chan struct{}
++	sessionMutex          sync.Mutex
++	sessionID             atomic.Uint64
++	sessionMap            map[uint64]*SshUdpSession
++	channelMutex          sync.Mutex
++	channelMap            map[string]chan ssh.NewChannel
++	rttCallback           func(int64)
++	quitCallback          func(string)
++	discardCallback       func([]byte, uint64, uint64)
++	enableDebugging       bool
++	clientDebugFunc       func(int64, string)
++	enableWarning         bool
++	clientWarningFn       func(string)
++	activeChecker         *timeoutChecker
++	activeAckChan         chan int64
++	reconnectMutex        sync.Mutex
++	reconnectError        atomic.Pointer[error]
++	maxHeartbeatCnt       atomic.Uint64
++	needLogHeartbeat      atomic.Bool
++	keepPendingInput      atomic.Bool
++	shouldPauseReconnect  func() (bool, string)
++	establishmentDeadline time.Time
++	transactional         bool
++	setupCommitted        atomic.Bool
++	barrierMutex          sync.Mutex
++	barrierAcks           map[int64]chan struct{}
++	setupAck              chan setupCommitResponse
+ }
+ 
+ // UdpClientOptions contains all configuration parameters required to create and initialize a new SshUdpClient
+ type UdpClientOptions struct {
++	Transactional        bool
+ 	ProxyClient          *SshUdpClient
+ 	EnableDebugging      bool
+ 	EnableWarning        bool
+@@ -120,8 +127,17 @@ type UdpClientOptions struct {
+ 
+ // NewSshUdpClient creates a SshUdpClient
+ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error) {
+-	enableDebugLogging, clientDebugFn = opts.EnableDebugging, opts.DebugFunc
+-	enableWarningLogging, clientWarningFn = opts.EnableWarning, opts.WarningFunc
++	if opts == nil || opts.ServerInfo == nil {
++		return nil, fmt.Errorf("missing UDP client offer")
++	}
++	if opts.Transactional {
++		if err := ValidateAutoOffer(opts.ServerInfo); err != nil {
++			return nil, err
++		}
++	} else {
++		enableDebugLogging, clientDebugFn = opts.EnableDebugging, opts.DebugFunc
++		enableWarningLogging, clientWarningFn = opts.EnableWarning, opts.WarningFunc
++	}
+ 
+ 	if opts.ServerInfo.ProtoVer == 0 {
+ 		ver, err := parseTsshdVersion(opts.ServerInfo.ServerVer)
+@@ -150,8 +166,16 @@ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error
+ 		activeChecker:        newTimeoutChecker(opts.HeartbeatTimeout),
+ 		shouldPauseReconnect: opts.ShouldPauseReconnect,
+ 	}
++	if opts.Transactional {
++		udpClient.establishmentDeadline = time.Now().Add(opts.ConnectTimeout)
++		udpClient.setupAck = make(chan setupCommitResponse, 1)
++		udpClient.transactional = true
++	}
+ 	defer func() {
+ 		if err != nil {
++			if opts.Transactional {
++				err = connectionError(err)
++			}
+ 			_ = udpClient.Close()
+ 			udpClient = nil
+ 		}
+@@ -162,7 +186,7 @@ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error
+ 		return
+ 	}
+ 	beginTime := time.Now()
+-	err = udpClient.clientProxy.renewTransportPath(opts.ProxyClient, opts.ConnectTimeout)
++	err = udpClient.clientProxy.renewTransportPath(opts.ProxyClient, udpClient.establishmentTimeout())
+ 	if err != nil {
+ 		if opts.ConnectTimeout > 2*time.Second && time.Since(beginTime) > (opts.ConnectTimeout-time.Second) {
+ 			net := "UDP"
+@@ -173,7 +197,7 @@ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error
+ 			if pos := strings.LastIndex(opts.TsshdAddr, ":"); pos >= 0 {
+ 				port = opts.TsshdAddr[pos+1:]
+ 			}
+-			err = fmt.Errorf("%v\r\n%s", err, fmt.Sprintf(
++			err = fmt.Errorf("%w\r\n%s", err, fmt.Sprintf(
+ 				"\033[0;36mHint:\033[0m This may be caused by a firewall blocking the %s port (%s) that tsshd is listening on.", net, port))
+ 		}
+ 		return
+@@ -199,11 +223,18 @@ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error
+ 			})
+ 		})
+ 	}
+-	udpClient.activeChecker.onTimeout(udpClient.tryToReconnect)
++	if !opts.Transactional {
++		udpClient.activeChecker.onTimeout(udpClient.tryToReconnect)
++	}
+ 
+-	busStream, err := doWithTimeout(func() (Stream, error) { return udpClient.newStream("bus") }, opts.ConnectTimeout)
++	var busStream Stream
++	if opts.Transactional {
++		busStream, err = udpClient.newStream("bus")
++	} else {
++		busStream, err = doWithTimeout(func() (Stream, error) { return udpClient.newStream("bus") }, opts.ConnectTimeout)
++	}
+ 	if err != nil {
+-		err = fmt.Errorf("new bus stream failed: %v", err)
++		err = fmt.Errorf("new bus stream failed: %w", err)
+ 		return
+ 	}
+ 
+@@ -224,16 +255,21 @@ func NewSshUdpClient(opts *UdpClientOptions) (udpClient *SshUdpClient, err error
+ 	err = recvResponse(busStream, &resp)
+ 	if err != nil {
+ 		_ = busStream.Close()
+-		err = fmt.Errorf("bus stream init failed: %v", err)
++		err = fmt.Errorf("bus stream init failed: %w", err)
+ 		return
+ 	}
+ 	udpClient.debug("bus response next session id: %d", resp.NextSessionID)
+ 	udpClient.sessionID.Store(resp.NextSessionID)
++	_ = busStream.SetDeadline(time.Time{})
++	udpClient.establishmentDeadline = time.Time{}
++	if client, ok := udpClient.protoClient.(*kcpClient); ok {
++		client.initialDeadline = time.Time{}
++	}
+ 
+ 	udpClient.busStream, udpClient.busClosed = busStream, make(chan struct{})
++	udpClient.activeAckChan = make(chan int64, 1)
+ 	go udpClient.handleBusEvent()
+ 
+-	udpClient.activeAckChan = make(chan int64, 1)
+ 	go udpClient.keepAlive(opts.IntervalTime)
+ 
+ 	return
+@@ -331,10 +367,20 @@ func (c *SshUdpClient) Detach() {
+ }
+ 
+ func (c *SshUdpClient) newStream(cmd string) (Stream, error) {
+-	stream, err := c.protoClient.newStream(c.connectTimeout)
++	return c.newStreamDeadline(cmd, time.Now().Add(c.establishmentTimeout()))
++}
++
++func (c *SshUdpClient) newStreamDeadline(cmd string, deadline time.Time) (Stream, error) {
++	stream, err := c.protoClient.newStream(max(time.Until(deadline), time.Nanosecond))
+ 	if err != nil {
+ 		return nil, fmt.Errorf("new stream [%s] failed: %w", cmd, err)
+ 	}
++	if !c.establishmentDeadline.IsZero() {
++		deadline = c.establishmentDeadline
++	}
++	if c.transactional {
++		_ = stream.SetDeadline(deadline)
++	}
+ 	if err := sendCommand(stream, cmd); err != nil {
+ 		_ = stream.Close()
+ 		return nil, fmt.Errorf("send command [%s] failed: %w", cmd, err)
+@@ -343,6 +389,9 @@ func (c *SshUdpClient) newStream(cmd string) (Stream, error) {
+ 		_ = stream.Close()
+ 		return nil, fmt.Errorf("new stream [%s] error: %w", cmd, err)
+ 	}
++	if cmd != "bus" {
++		_ = stream.SetDeadline(time.Time{})
++	}
+ 	return stream, nil
+ }
+ 
+@@ -401,10 +450,15 @@ func (c *SshUdpClient) DialUDPDatagramOnly(network, addr string, timeout time.Du
+ }
+ 
+ func (c *SshUdpClient) dialUDP(network, addr string, timeout time.Duration, datagramOnly bool) (PacketConn, error) {
+-	stream, err := c.newStream("dial-udp")
++	deadline := time.Now().Add(timeout)
++	stream, err := c.newStreamDeadline("dial-udp", deadline)
+ 	if err != nil {
+ 		return nil, err
+ 	}
++	if c.transactional {
++		_ = stream.SetDeadline(deadline)
++		defer stream.SetDeadline(time.Time{})
++	}
+ 
+ 	msg := dialUdpMessage{
+ 		Net:     network,
+@@ -681,7 +735,12 @@ func (c *SshUdpClient) keepAlive(intervalTime time.Duration) {
+ 			}
+ 		}
+ 
+-		ackTime := <-c.activeAckChan
++		var ackTime int64
++		select {
++		case ackTime = <-c.activeAckChan:
++		case <-c.busClosed:
++			return
++		}
+ 
+ 		if c.rttCallback != nil {
+ 			go c.rttCallback(time.Now().UnixMilli() - ackTime)
+@@ -739,6 +798,9 @@ func (c *SshUdpClient) sendBusMessage(command string, msg any) error {
+ 	if c.detached.Load() {
+ 		return nil
+ 	}
++	if c.transactional && !c.setupCommitted.Load() {
++		return c.sendBoundedBusMessage(command, msg, c.connectTimeout)
++	}
+ 	c.busMutex.Lock()
+ 	defer c.busMutex.Unlock()
+ 	return sendCommandAndMessage(c.busStream, command, msg)
+@@ -771,6 +833,16 @@ func (c *SshUdpClient) handleBusEvent() {
+ 			c.handleDiscardEvent()
+ 		case "rekey":
+ 			c.handleRekeyEvent()
++		case "setup-commit":
++			var resp setupCommitResponse
++			if err := recvMessage(c.busStream, &resp); err != nil {
++				_ = c.busStream.Close()
++			} else if c.setupAck != nil {
++				select {
++				case c.setupAck <- resp:
++				default:
++				}
++			}
+ 		default:
+ 			if err := handleUnknownEvent(c.busStream, command); err != nil {
+ 				c.warning("handle bus command [%s] failed: %v. You may need to upgrade tssh.", command, err)
+@@ -867,7 +939,21 @@ func (c *SshUdpClient) handleAliveEvent() {
+ 		return
+ 	}
+ 
+-	c.activeAckChan <- aliveMsg.Time
++	if aliveMsg.Time < 0 {
++		c.barrierMutex.Lock()
++		if ack := c.barrierAcks[aliveMsg.Time]; ack != nil {
++			select {
++			case ack <- struct{}{}:
++			default:
++			}
++		}
++		c.barrierMutex.Unlock()
++		return
++	}
++	select {
++	case c.activeAckChan <- aliveMsg.Time:
++	default:
++	}
+ }
+ 
+ func (c *SshUdpClient) handleDiscardEvent() {
+diff --git a/tsshd/comm.go b/tsshd/comm.go
+index 426ec647..2e9505e5 100644
+--- a/tsshd/comm.go
++++ b/tsshd/comm.go
+@@ -203,7 +203,7 @@ func doWithTimeout[T any](task func() (T, error), timeout time.Duration) (T, err
+ 	select {
+ 	case <-ctx.Done():
+ 		var ret T
+-		return ret, fmt.Errorf("timeout exceeded %v", timeout)
++		return ret, fmt.Errorf("timeout exceeded %v: %w", timeout, ctx.Err())
+ 	case res := <-done:
+ 		return res.ret, res.err
+ 	}
+diff --git a/tsshd/proto.go b/tsshd/proto.go
+index db0572e5..b08473f4 100644
+--- a/tsshd/proto.go
++++ b/tsshd/proto.go
+@@ -35,6 +35,7 @@ import (
+ 	"io"
+ 	"net"
+ 	"strconv"
++	"sync/atomic"
+ 	"time"
+ 
+ 	"github.com/trzsz/kcp-go/v5"
+@@ -82,20 +83,23 @@ func (e *Error) Error() string {
+ 
+ // ServerInfo includes all information used for client login
+ type ServerInfo struct {
+-	ServerVer  string `json:",omitempty"`
+-	ProtoVer   int    `json:",omitempty"`
+-	Port       int    `json:",omitempty"`
+-	Mode       string `json:",omitempty"`
+-	Pass       string `json:",omitempty"`
+-	Salt       string `json:",omitempty"`
+-	ServerCert string `json:",omitempty"`
+-	ClientCert string `json:",omitempty"`
+-	ClientKey  string `json:",omitempty"`
+-	ProxyKey   string `json:",omitempty"`
+-	ClientID   uint64 `json:",omitempty"`
+-	ServerID   uint64 `json:",omitempty"`
+-	ProxyMode  string `json:",omitempty"`
+-	MTU        uint16 `json:",omitempty"`
++	BindAddress  string `json:",omitempty"`
++	SetupHandle  string `json:",omitempty"`
++	SetupVersion int    `json:",omitempty"`
++	ServerVer    string `json:",omitempty"`
++	ProtoVer     int    `json:",omitempty"`
++	Port         int    `json:",omitempty"`
++	Mode         string `json:",omitempty"`
++	Pass         string `json:",omitempty"`
++	Salt         string `json:",omitempty"`
++	ServerCert   string `json:",omitempty"`
++	ClientCert   string `json:",omitempty"`
++	ClientKey    string `json:",omitempty"`
++	ProxyKey     string `json:",omitempty"`
++	ClientID     uint64 `json:",omitempty"`
++	ServerID     uint64 `json:",omitempty"`
++	ProxyMode    string `json:",omitempty"`
++	MTU          uint16 `json:",omitempty"`
+ }
+ 
+ type SessionInfo struct {
+@@ -427,9 +431,10 @@ type protocolClient interface {
+ }
+ 
+ type kcpClient struct {
+-	conn      *kcp.UDPSession
+-	session   *smux.Session
+-	forwarder *udpForwarder
++	conn            *kcp.UDPSession
++	session         *smux.Session
++	forwarder       *udpForwarder
++	initialDeadline time.Time
+ }
+ 
+ func (c *kcpClient) reset() {
+@@ -446,7 +451,21 @@ func (c *kcpClient) getUdpForwarder() *udpForwarder {
+ }
+ 
+ func (c *kcpClient) newStream(connectTimeout time.Duration) (Stream, error) {
++	var expired atomic.Bool
++	if !c.initialDeadline.IsZero() {
++		timer := time.AfterFunc(max(time.Until(c.initialDeadline), time.Nanosecond), func() {
++			expired.Store(true)
++			_ = c.session.Close()
++		})
++		defer timer.Stop()
++	}
+ 	stream, err := c.session.OpenStream()
++	if expired.Load() {
++		if stream != nil {
++			_ = stream.Close()
++		}
++		return nil, context.DeadlineExceeded
++	}
+ 	if err != nil {
+ 		return nil, fmt.Errorf("kcp smux open stream failed: %w", err)
+ 	}
+@@ -533,7 +552,11 @@ func newKcpClient(opts *UdpClientOptions, client *SshUdpClient, udpConn net.Pack
+ 	if err != nil {
+ 		return nil, fmt.Errorf("kcp smux client failed: %w", err)
+ 	}
+-	return &kcpClient{conn, session, &udpForwarder{conn: newKcpDatagramConn(conn)}}, nil
++	clientImpl := &kcpClient{conn: conn, session: session, forwarder: &udpForwarder{conn: newKcpDatagramConn(conn)}}
++	if opts.Transactional {
++		clientImpl.initialDeadline = client.establishmentDeadline
++	}
++	return clientImpl, nil
+ }
+ 
+ func newQuicClient(opts *UdpClientOptions, udpConn net.PacketConn, remoteAddr net.Addr) (*quicClient, error) {
+diff --git a/tsshd/proxy_client.go b/tsshd/proxy_client.go
+index afc057b2..c174ddd3 100644
+--- a/tsshd/proxy_client.go
++++ b/tsshd/proxy_client.go
+@@ -213,7 +213,11 @@ func (p *clientProxy) renewTransportPath(proxyClient *SshUdpClient, connectTimeo
+ 	p.backendCond.Broadcast()
+ 	p.backendMutex.Unlock()
+ 
+-	ctx, cancel := context.WithTimeout(context.Background(), p.serverChecker.heartbeatTimeout)
++	waitBudget := p.serverChecker.heartbeatTimeout
++	if !p.client.establishmentDeadline.IsZero() {
++		waitBudget = p.client.establishmentTimeout()
++	}
++	ctx, cancel := context.WithTimeout(context.Background(), waitBudget)
+ 	defer cancel()
+ 
+ 	// In UDP mode, send dummy (non-authenticated) packets to notify the server that the transport path is active.
+@@ -245,7 +249,7 @@ func (p *clientProxy) renewTransportPath(proxyClient *SshUdpClient, connectTimeo
+ 	// or abort if no server response is received before the heartbeat deadline.
+ 	if err := p.serverChecker.waitReconnect(ctx); err != nil {
+ 		p.clearBackendConn(conn)
+-		return fmt.Errorf("wait for server response failed: %v", err)
++		return fmt.Errorf("wait for server response failed: %w", err)
+ 	}
+ 
+ 	return nil
+@@ -255,7 +259,7 @@ func (p *clientProxy) dialStream(proxyClient *SshUdpClient, connectTimeout time.
+ 	if proxyClient != nil {
+ 		tcpConn, err := proxyClient.DialTimeout(p.serverNet, p.serverAddr, connectTimeout)
+ 		if err != nil {
+-			return nil, fmt.Errorf("proxy dial [%s] [%s] failed: %v", p.serverNet, p.serverAddr, err)
++			return nil, fmt.Errorf("proxy dial [%s] [%s] failed: %w", p.serverNet, p.serverAddr, err)
+ 		}
+ 		return &serverConnHolder{&tcpServerConn{tcpConn}}, nil
+ 	}
+@@ -375,7 +379,7 @@ func (p *clientProxy) renewUdpPath(proxyClient *SshUdpClient, connectTimeout tim
+ 	if proxyClient != nil {
+ 		udpConn, err := proxyClient.DialUDP(p.serverNet, p.serverAddr, connectTimeout)
+ 		if err != nil {
+-			return nil, fmt.Errorf("proxy dial [%s] [%s] failed: %v", p.serverNet, p.serverAddr, err)
++			return nil, fmt.Errorf("proxy dial [%s] [%s] failed: %w", p.serverNet, p.serverAddr, err)
+ 		}
+ 		conn = &serverConnHolder{udpConn}
+ 	} else {
+@@ -383,11 +387,11 @@ func (p *clientProxy) renewUdpPath(proxyClient *SshUdpClient, connectTimeout tim
+ 			return net.ResolveUDPAddr(p.serverNet, p.serverAddr)
+ 		}, connectTimeout)
+ 		if err != nil {
+-			return nil, fmt.Errorf("resolve udp addr [%s] [%s] failed: %v", p.serverNet, p.serverAddr, err)
++			return nil, fmt.Errorf("resolve udp addr [%s] [%s] failed: %w", p.serverNet, p.serverAddr, err)
+ 		}
+ 		udpConn, err := net.DialUDP("udp", nil, serverAddr)
+ 		if err != nil {
+-			return nil, fmt.Errorf("dial [%s] [%s] failed: %v", p.serverNet, p.serverAddr, err)
++			return nil, fmt.Errorf("dial [%s] [%s] failed: %w", p.serverNet, p.serverAddr, err)
+ 		}
+ 		setDSCP(udpConn, kProxyDSCP)
+ 		_ = udpConn.SetReadBuffer(kProxyBufferSize)
+@@ -405,7 +409,7 @@ func (p *clientProxy) renewUdpPath(proxyClient *SshUdpClient, connectTimeout tim
+ 		for ctx.Err() == nil {
+ 			n, err := conn.Read(buffer)
+ 			if err != nil {
+-				done <- fmt.Errorf("read auth packet failed: %v", err)
++				done <- fmt.Errorf("read auth packet failed: %w", err)
+ 				return
+ 			}
+ 			if p.isAuthSuccessful(buffer[:n]) {
+@@ -427,6 +431,10 @@ func (p *clientProxy) renewUdpPath(proxyClient *SshUdpClient, connectTimeout tim
+ 	for {
+ 		select {
+ 		case err := <-done:
++			if err != nil {
++				_ = conn.Close()
++				return nil, err
++			}
+ 			return conn, err
+ 		case <-ticker.C:
+ 			if err := p.sendAuthPacket(conn); err != nil {
+@@ -435,7 +443,7 @@ func (p *clientProxy) renewUdpPath(proxyClient *SshUdpClient, connectTimeout tim
+ 			}
+ 		case <-ctx.Done():
+ 			_ = conn.Close()
+-			return nil, fmt.Errorf("renew path to [%s] [%s] timeout [%v]", p.serverNet, p.serverAddr, connectTimeout)
++			return nil, fmt.Errorf("renew path to [%s] [%s] timeout [%v]: %w", p.serverNet, p.serverAddr, connectTimeout, ctx.Err())
+ 		}
+ 	}
+ }
