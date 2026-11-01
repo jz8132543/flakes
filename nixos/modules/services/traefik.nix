@@ -189,7 +189,8 @@ with lib;
             transport = {
               respondingTimeouts = {
                 readTimeout = 180;
-                writeTimeout = 180;
+                # A total response deadline cuts off long-running SSE streams.
+                writeTimeout = 0;
                 idleTimeout = 180;
               };
             };
@@ -205,7 +206,7 @@ with lib;
             transport = {
               respondingTimeouts = {
                 readTimeout = 180;
-                writeTimeout = 180;
+                writeTimeout = 0;
                 idleTimeout = 180;
               };
             };
