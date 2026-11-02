@@ -36,6 +36,7 @@ pkgs.testers.runNixOSTest {
       ];
     };
     server = {
+      programs.bash.promptInit = ''PS1="__INTERACTIVE_READY__ "'';
       systemd.services.http-fixture = {
         wantedBy = [ "multi-user.target" ];
         preStart = ''
@@ -90,6 +91,8 @@ pkgs.testers.runNixOSTest {
       #!! UdpAliveTimeout 24h
     """
     client.succeed("printf '%s' " + shlex.quote(ssh_config) + " > /root/.ssh/config")
+    client.succeed("mkdir -p /root/.config/tssh")
+    client.succeed("printf 'FuzzyHostSelection = no\\n' > /root/.config/tssh/tssh.conf")
     tssh = "timeout -k 5 45 ${pkgs.trzsz-ssh-auto}/bin/tssh --auto-transport --reliable-io -4 -T"
 
     def run(host, command, options=""):
@@ -150,6 +153,9 @@ pkgs.testers.runNixOSTest {
 
     with subtest("PTY initial size and SIGWINCH propagation"):
         client.succeed("python3 ${./tssh-pty-test.py} ${pkgs.trzsz-ssh-auto}/bin/tssh")
+
+    with subtest("bare short-host interactive login bypasses alias prediction"):
+        client.succeed("python3 ${./tssh-interactive-test.py} ${pkgs.trzsz-ssh-auto}/bin/tssh")
 
     with subtest("non-PTY installer-style stdin and dynamic forwarding"):
         script = "mkdir -p /tmp/installer-fixture; printf installed > /tmp/installer-fixture/result; printf installer-ok"

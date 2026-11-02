@@ -102,6 +102,12 @@ with lib.strings;
     ]
     ++ lib.optional transport.effectiveEnabled transport.clientPackage;
 
+    xdg.configFile."tssh/tssh.conf" = lib.mkIf transport.effectiveEnabled {
+      # Explicit SSH destinations must not enumerate and resolve unrelated aliases.
+      force = true;
+      text = "FuzzyHostSelection = no\n";
+    };
+
     programs = {
       ssh = {
         enable = true;

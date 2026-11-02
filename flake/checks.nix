@@ -43,6 +43,8 @@ let
             enabled = !(builtins.elem name transport.excludedHosts);
             marker = cfg.services.openssh.settings.VersionAddendum or null;
             packages = map toString cfg.environment.systemPackages;
+            home = cfg.home-manager.users.tippy;
+            tsshSettings = home.xdg.configFile."tssh/tssh.conf" or { enable = false; };
           in
           {
             inherit (transport) excludedHosts;
@@ -55,7 +57,8 @@ let
               && builtins.elem cfg.ports.ssh cfg.services.openssh.ports
               && (marker == "tsshd-kcp-auto-v1") == enabled
               && builtins.elem (toString transport.package) packages == enabled
-              && builtins.elem transport.udpPortRange cfg.networking.firewall.allowedUDPPortRanges == enabled;
+              && builtins.elem transport.udpPortRange cfg.networking.firewall.allowedUDPPortRanges == enabled
+              && (if enabled then tsshSettings.text == "FuzzyHostSelection = no\n" else !tsshSettings.enable);
           }
         ) config.flake.nixosConfigurations;
       in
