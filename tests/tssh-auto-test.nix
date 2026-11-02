@@ -13,6 +13,7 @@ pkgs.testers.runNixOSTest {
       config = {
         networking.domain = "test";
         virtualisation.memorySize = 768;
+        boot.kernelModules = [ "sch_netem" ];
         programs.ssh.transport = {
           package = pkgs.tsshd;
           clientPackage = pkgs.trzsz-ssh-auto;
@@ -58,7 +59,9 @@ pkgs.testers.runNixOSTest {
 
     start_all()
     for machine in (client, server, cu):
+        machine.wait_for_unit("multi-user.target")
         machine.wait_for_unit("sshd.service")
+        machine.wait_for_open_port(1022)
         machine.succeed("mkdir -p /root/.ssh && chmod 700 /root/.ssh")
 
     client.succeed("ssh-keygen -q -t ed25519 -N \"\" -f /root/.ssh/id_ed25519")
@@ -96,7 +99,7 @@ pkgs.testers.runNixOSTest {
         server.succeed("grep -Fx 'VersionAddendum tsshd-kcp-auto-v1' /etc/ssh/sshd_config")
         cu.fail("grep -F 'VersionAddendum tsshd-kcp-auto-v1' /etc/ssh/sshd_config")
         cu.fail("test -x /run/current-system/sw/bin/tsshd")
-        run("server", "true", "--tcp")
+        run("server", "true", "--tcp --debug")
         run("plain", "true")
 
     with subtest("direct KCP and reliable payload EOF"):
@@ -160,5 +163,63 @@ pkgs.testers.runNixOSTest {
         client.wait_for_open_port(1080)
         assert client.succeed("curl -fsS --max-time 10 --socks5-hostname 127.0.0.1:1080 --noproxy \"\" http://127.0.0.1:18080/marker").strip() == "forward-ok"
         client.succeed("systemctl stop tssh-forward")
+
+    with subtest("independent concurrent instances use distinct UDP ports"):
+        def udp_ports():
+            return {line.split()[3].rsplit(":", 1)[-1] for line in
+                    server.succeed("ss -Hlun 'sport >= 61001 and sport <= 61999'").splitlines()}
+
+        before = udp_ports()
+        for index in range(2):
+            command = "touch /tmp/concurrent-" + str(index) + "; sleep 30"
+            client.succeed("systemd-run --unit=tssh-concurrent-" + str(index) +
+                           " --property=TimeoutStopSec=5 --setenv=HOME=/root "
+                           "${pkgs.trzsz-ssh-auto}/bin/tssh --auto-transport --reliable-io -4 -T -n "
+                           "-oAutoTransportTimeout=10 server sh -c " + shlex.quote(command))
+        for index in range(2):
+            server.wait_until_succeeds("test -e /tmp/concurrent-" + str(index), timeout=20)
+        assert len(udp_ports() - before) >= 2
+        for index in range(2):
+            client.succeed("systemctl stop tssh-concurrent-" + str(index))
+
+    with subtest("exhausted configured port fails closed before application"):
+        port = next(port for port in range(61001, 62000) if str(port) not in udp_ports())
+        holder = ("import socket,time,pathlib; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); "
+                  "s.bind(('0.0.0.0'," + str(port) + ")); "
+                  "pathlib.Path('/tmp/port-held').touch(); time.sleep(60)")
+        server.succeed("systemd-run --unit=tssh-port-holder --property=TimeoutStopSec=5 "
+                       "${pkgs.python3}/bin/python3 -c " + shlex.quote(holder))
+        server.wait_until_succeeds("test -e /tmp/port-held", timeout=20)
+        client.fail(tssh + " -n -oTsshdPort=" + str(port) + " server touch /tmp/exhaustion-application")
+        server.fail("test -e /tmp/exhaustion-application")
+        server.succeed("systemctl stop tssh-port-holder")
+
+    with subtest("KCP payload survives delay loss duplication and reordering"):
+        server.succeed("tc qdisc replace dev eth1 root netem delay 50ms loss 5% duplicate 1% reorder 5%")
+        kcp_only = 'case "$(ps -o comm= -p "$PPID")" in tsshd*) cat;; *) exit 99;; esac'
+        client.succeed(tssh + " -oAutoTransportTimeout=10 server sh -c " + shlex.quote(kcp_only) +
+                       " < /tmp/input > /tmp/impaired-output")
+        client.succeed("cmp /tmp/input /tmp/impaired-output")
+        server.succeed("tc qdisc del dev eth1 root")
+
+    with subtest("short post-commit UDP blackout does not rerun the application"):
+        command = ('case "$(ps -o comm= -p "$PPID")" in tsshd*) ;; *) exit 99;; esac; '
+                   "echo once >> /tmp/blackout-count; touch /tmp/blackout-start; "
+                   "printf begin; sleep 2; printf middle; sleep 4; printf end")
+        client.succeed("systemd-run --unit=tssh-blackout --property=TimeoutStopSec=5 "
+                       "--property=StandardOutput=file:/tmp/blackout-output --property=StandardError=journal --setenv=HOME=/root "
+                       "${pkgs.trzsz-ssh-auto}/bin/tssh --auto-transport --reliable-io -4 -T -n "
+                       "server sh -c " + shlex.quote(command))
+        server.wait_until_succeeds("test -e /tmp/blackout-start", timeout=20)
+        server.succeed("iptables -I INPUT -p udp --dport 61001:61999 -j DROP")
+        server.succeed("ip6tables -I INPUT -p udp --dport 61001:61999 -j DROP")
+        server.succeed("sleep 4")
+        server.succeed("iptables -D INPUT -p udp --dport 61001:61999 -j DROP")
+        server.succeed("ip6tables -D INPUT -p udp --dport 61001:61999 -j DROP")
+        client.wait_until_succeeds("! systemctl is-active --quiet tssh-blackout", timeout=30)
+        assert client.succeed("systemctl show tssh-blackout -p ExecMainStatus --value").strip() == "0"
+        output = client.succeed("cat /tmp/blackout-output")
+        assert output == "beginmiddleend", repr(output)
+        assert server.succeed("wc -l < /tmp/blackout-count").strip() == "1"
   '';
 }

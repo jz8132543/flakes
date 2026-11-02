@@ -1,5 +1,6 @@
 {
   config,
+  self,
   lib,
   ...
 }:
@@ -76,6 +77,34 @@ let
           touch "$out"
         '';
   };
+  hostIndependenceTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."host-independence-test" =
+      let
+        result = import ../tests/ssh-host-independence-test.nix {
+          inherit self lib;
+          configurations = config.flake.nixosConfigurations;
+        };
+      in
+      assert lib.assertMsg (
+        result.sshArtifactsUnchanged && result.extensionControlUnchanged && result.systemToplevelsUnchanged
+      ) "Adding a host inventory entry changed an existing system derivation.";
+      fra0Pkgs.runCommand "host-independence-test" { result = builtins.toJSON result; } ''
+        printf '%s\n' "$result" > "$out"
+      '';
+  };
+  grafanaRuntimeHostsTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."grafana-runtime-hosts-test" =
+      fra0Pkgs.runCommand "grafana-runtime-hosts-test"
+        {
+          nativeBuildInputs = [ fra0Pkgs.python3 ];
+          dashboard =
+            config.flake.nixosConfigurations.fra0.config.services.grafana.settings.dashboards.default_home_dashboard_path;
+        }
+        ''
+          python3 -c 'import json,os; v=json.load(open(os.environ["dashboard"]))["templating"]["list"][0]; assert v["type"] == "query"; assert v["query"] == "label_values(up{job=\"node\"}, instance)"; assert v["options"] == []; assert v["refresh"] == 1; assert v["datasource"]["uid"] == "prometheus-default"'
+          touch "$out"
+        '';
+  };
 in
 {
   flake.checks = lib.foldr lib.recursiveUpdate { } [
@@ -84,5 +113,7 @@ in
     tsshTest
     tsshPolicyTest
     tsshAdapterTest
+    hostIndependenceTest
+    grafanaRuntimeHostsTest
   ];
 }

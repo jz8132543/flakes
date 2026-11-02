@@ -1,18 +1,11 @@
 {
   config,
   lib,
-  self,
   pkgs,
   ...
 }:
 let
   domain = "dash.${config.networking.domain}";
-  inherit (self) hostNames;
-  hostOptions = map (name: {
-    text = name;
-    value = name;
-    selected = false;
-  }) hostNames;
   hostsDashboard =
     let
       dashboard = builtins.fromJSON (builtins.readFile ./grafana-dashboards/hosts.json);
@@ -27,13 +20,19 @@ let
               value = [ "$__all" ];
             };
             includeAll = true;
+            allValue = ".*";
+            datasource = {
+              type = "prometheus";
+              uid = "prometheus-default";
+            };
             multi = true;
             name = "hosts";
-            options = hostOptions;
-            query = lib.concatStringsSep "," hostNames;
-            refresh = 0;
+            options = [ ];
+            query = "label_values(up{job=\"node\"}, instance)";
+            refresh = 1;
             regex = "";
-            type = "custom";
+            sort = 1;
+            type = "query";
           }
         ];
       };

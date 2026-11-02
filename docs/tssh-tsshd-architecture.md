@@ -4,7 +4,7 @@
 
 实现依据为 `.kilo/plans/1793463170275-tssh-tsshd-migration.md`，并纳入后续要求：尽可能复用官方包；主机例外使用字符串列表，默认仅包含 `cu`。
 
-截至 2026-11-01，代码、定向包、回归测试及全部现役配置求值已完成。没有执行 NixOS/HM 激活、Colmena 部署、提交或推送。
+截至 2026-11-01，代码、定向包、回归测试及全部现役配置求值已完成。后续按明确授权执行了 `colmena apply --verbose --on cu,fra0`：`cu` 激活成功；`fra0` 已切换配置，SSH/KCP 可用，但整体激活因独立的 `podman-zotero-sync-server.service` 启动失败返回错误。未对 `arx8` 执行部署，未提交或推送。
 
 - 除 `cu` 外，服务器能力和交互终端自动入口默认启用。
 - `cu` 不安装该 tsshd、不发布能力标识、不启用交互 tssh 入口。
@@ -196,6 +196,8 @@ tmux 状态识别 tssh 的真实目的地及配置参数，配置解析仍使用
 - VM直连和完整多跳 KCP、实际 UDP socket、链式字节 `cmp`、非零退出码、IPv6、缺标识的混合链。
 - VM首跳及目标跳 UDP阻断回退，原 stdin完整保留，应用计数严格一次，stale path报错及显式 TCP绕过。
 - VM PTY `40x100 -> 50x120` 与 `SIGWINCH`、安装器式 stdin、真实 `-T/-D` SOCKS HTTP传输。
+- VM 同用户并发独立实例与不同 UDP 端口、占满指定单端口后启动报错且应用不执行。
+- VM 50ms 延迟、5% 丢包、1% 重复、5% 重排下的 KCP 字节校验；提交后阻断 UDP 4 秒，恢复后输出完整且应用计数仍为一次。
 - VS Code 参数转译/认证前委托检查，以及全舰队 OpenSSH、端口、包/标识和主机列表策略检查。
 - 12 个 NixOS toplevel 和 2 个 standalone HM activation derivation 对锁定输入求值。
 
@@ -204,6 +206,8 @@ nix build --no-link path:.#ssh-race path:.#trzsz-ssh-auto path:.#tsshd
 nix build --no-link path:.#checks.x86_64-linux.tssh-auto-test
 nix build --no-link path:.#checks.x86_64-linux.tssh-policy-test
 nix build --no-link path:.#checks.x86_64-linux.tssh-adapter-test
+nix build --no-link path:.#checks.x86_64-linux.host-independence-test
+nix build --no-link path:.#checks.x86_64-linux.grafana-runtime-hosts-test
 ```
 
 完整配置求值，不构建/部署舰队：
@@ -219,13 +223,43 @@ nix eval --impure --json --expr '
 
 现役名称为 `arx8 can0 cu fra0 fra1 hkg0 hkg5 nue0 sjc0 surface tyo0 tyo1`；standalone HM为 `tippy@localhost`、`tippy@shg0`。现有 Navidrome和 networkd/DHCP求值警告未作为无关问题改动。
 
-未认证完成的边界：真实 VS Code桌面扩展安装/工作区完整流程、多设备/多用户并发及端口耗尽压力、代表性高 RTT/丢包性能、丢包重排/短黑洞/地址重绑定专项、长断网及 daemon重启连续性。不要把安装器夹具或 VM无损网络当成这些场景的验收。
+未认证完成的边界：真实 VS Code桌面扩展安装/工作区完整流程、多设备/多用户及大量并发压力、整个端口池耗尽压力、代表性高 RTT 性能对比、地址重绑定、长断网及 daemon重启连续性。小规模并发、单端口耗尽和短时故障注入不等于这些场景的完整验收。
+
+### 10.1 主机清单独立性
+
+SSH 运行配置只依赖本机 `sourceHost`、排除列表和包/参数，不枚举其它机器。全舰队策略检查是独立的 `checks` 产物，不是单机系统的构建输入。
+
+排查时发现旧 Grafana 模块会把 `self.hostNames` 编译为静态下拉列表，仅影响 `fra0`、`nue0`。现已改为从既有监控源运行时查询 `label_values(up{job="node"}, instance)`，不嵌入主机选项列表；刷新仪表盘即可发现新上报的节点。
+
+`host-independence-test` 对现有 12 台机器扩展同一个 `self`，追加一个故意不可求值的新主机，同时保持源码路径和 revision 不变。原生 SSH包、tsshd包、系统/HM SSH配置及所有系统 toplevel derivation 均相同；额外对照验证排除了 `extendModules` 自身造成的差异。`grafana-runtime-hosts-test` 校验实际生成的 dashboard 是运行时 query 类型、没有静态 options。
+
+这不承诺任意 Git 提交都保持系统顶层路径不变：仓库原有的 `system.configurationRevision = self.rev`、flake registry 等来源追踪仍可能改变版本元数据。顶层 derivation 变化也不等于重新编译所有依赖包。
+
+### 10.2 三台实机复测
+
+随后测试范围限定为 `arx8`、`fra0`、`cu`，未部署或探测其它节点。初次 `arx8 → fra0` 的 resolver 和原生 SSH均失败，候选 TCP/DNS确实超时；远端激活后 resolver 选中公网 IPv6，普通用户连接恢复，远端进程父级确认是 `tsshd`。
+
+| 实机路径                    | 结果与边界                                                                          |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `arx8 → fra0`               | 自动 KCP、stdin/SHA-256 校验、EOF 和退出码 37 通过                                  |
+| `arx8 → cu`                 | 原生 TCP自动回退、stdin/SHA-256 校验通过，Cu保持例外策略                            |
+| `cu → fra0`                 | 显式公网 IPv6原生 SSH通过；普通公网 IPv4路径仍失败                                  |
+| `fra0 → arx8`               | Tailscale `100.64.0.7` 的原生 SSH通过；公网/DN42直连未通过                          |
+| `cu → arx8`                 | 经 `fra0` 的公网 IPv6和 Tailscale跳板通过；直接路径未通过                           |
+| `fra0 → cu`                 | 经 `arx8` 跳板通过；直接 IPv4/IPv6路径未通过                                        |
+| `arx8 → fra0 → arx8` 自动链 | SHA-256校验通过；目标 UDP建立失败后整链 TCP回退，进程树证明不是全 KCP，不误报为成功 |
+
+检查还发现 `arx8` 的公布地址与本机当前 Wi-Fi IPv6地址不同。未为掩盖网络问题修改其它节点、公共路由、TCP Brutal、IPsec密钥或全局代理模式；不把缺失的直接连通性归咎于认证成功后的 KCP应用层。
+
+黑洞测试最初误把 systemd 默认继承到 stdout文件的 stderr诊断当成丢失数据；夹具将 `StandardError` 独立送入 journal 后，输出与应用计数断言通过。最后无需再 stop已成功退出并被卸载的临时 unit。
 
 KCP不是所有网络都更快；smux有队头阻塞，1+1 FEC有明显带宽成本。仓库仍关闭严格 host-key checking，本次没有加强或声称加强这个独立安全策略。
 
 ## 11. 部署与回滚边界
 
-实际部署仍需单独决策。先部署兼容服务器包及标识，并保留独立 TCP救援会话，再迁移客户端。没有共享监听器、sysctl、NAT穿透或自动舰队部署。
+后续部署仍需单独决策。先部署兼容服务器包及标识，并保留独立 TCP救援会话，再迁移客户端。没有共享监听器、sysctl、NAT穿透或自动舰队部署。
+
+实机部署发现 Colmena原本从本机监听列表选取 `cu:1022`，覆盖了已声明的外部映射端口 `50560`。通用模块现在优先读取本机名称对应的既有 `programs.ssh.customHosts` 条目的 `port`，没有匹配条目时仍使用监听端口。只读取本机条目，不新增全局主机清单。
 
 - 临时救援用 `ssh-tcp` 或绝对路径 OpenSSH；自动客户端可显式 `--tcp`。
 - 回滚终端入口用 `terminalValidated = false`，VS Code用 `vscodeValidated = false`。
