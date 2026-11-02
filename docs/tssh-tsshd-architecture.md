@@ -306,6 +306,26 @@ FuzzyHostSelection = no
 
 普通连接探针设置小于 30秒的上限，超时即报告失败。该修复不消除 10.3记录的独立 IPv4回程问题或短时 resolver失败；不能将这些问题混为同一个根因。
 
+### 10.5 重复 known-host 提示与连接等待
+
+用户要求去掉 `Warning: Permanently added ...` 并评估连接速度后，确认 tssh 将成功写 known-host记录也当作 warning输出，且 `LogLevel ERROR` 仍启用 warning。原配置指向 `/dev/null`，每次都“写入成功”却不保存，于是每次打印；不能靠关闭所有 warning解决，否则会隐藏重要诊断。
+
+复用官方 `ConfigPath` 为 tssh声明一个薄配置入口 `tssh/ssh_config`，首先设置：
+
+```sshconfig
+UserKnownHostsFile none
+CanonicalizeHostname no
+Include /home/tippy/.ssh/config
+```
+
+上面的 home路径由 HM按本机用户生成，不是固定主机表。原生 `.ssh/config` 保持 `/dev/null` 和原有 canonicalization语义；tssh沿用全部其它配置与 `GlobalKnownHostsFile`，仅关闭本来就未持久保存的用户 known-host写入。测试发现直接把共用文件改为 `none` 会让当前原生 OpenSSH新连接报 host-key verification失败，因此已恢复共用文件、隔离 tssh特定选项；未给包增加补丁。
+
+tssh不再先做一轮短名称 canonicalization，再调用已经处理 `dn42,dora.im,ts,et` 的 ssh-race。这消除了重复/串行 DNS等待，保留主机逻辑身份、完整新认证和事务式 UDP选择。
+
+一次同机采样：原 tssh约 `18.98s`，新薄配置约 `8.10s`，resolver约 `0.64s`。这是可避免等待的实测样本，不是统计基准或每次保证；期间也有一次独立 TCP拨号超时。剩余延迟包括真实网络 RTT、SSH认证、按需启动 tsshd、UDP认证和确认，不通过复用旧会话或减少验证伪造加速。
+
+已即时应用当前用户的这两份同内容 tssh配置，并同步 HM声明；原生配置已恢复。真实裸 PTY登录没有重复提示，提示符/命令/退出正常，进程父级确认 tsshd；原生 SSH新连接成功，错误的 `TsshdPath` 仍明确报错。VM、Cu例外/原生配置策略、适配器及 standalone HM求值检查均通过。显式 `-F` 使用调用者自己的配置，不强制套用这一薄入口。
+
 ## 11. 部署与回滚边界
 
 后续部署仍需单独决策。先部署兼容服务器包及标识，并保留独立 TCP救援会话，再迁移客户端。没有共享监听器、sysctl、NAT穿透或自动舰队部署。

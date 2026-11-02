@@ -92,7 +92,8 @@ pkgs.testers.runNixOSTest {
     """
     client.succeed("printf '%s' " + shlex.quote(ssh_config) + " > /root/.ssh/config")
     client.succeed("mkdir -p /root/.config/tssh")
-    client.succeed("printf 'FuzzyHostSelection = no\\n' > /root/.config/tssh/tssh.conf")
+    client.succeed("printf 'FuzzyHostSelection = no\\nConfigPath = /root/.config/tssh/ssh_config\\n' > /root/.config/tssh/tssh.conf")
+    client.succeed("printf 'UserKnownHostsFile none\\nCanonicalizeHostname no\\nInclude /root/.ssh/config\\n' > /root/.config/tssh/ssh_config")
     tssh = "timeout -k 5 45 ${pkgs.trzsz-ssh-auto}/bin/tssh --auto-transport --reliable-io -4 -T"
 
     def run(host, command, options=""):
@@ -106,6 +107,8 @@ pkgs.testers.runNixOSTest {
         run("plain", "true")
 
     with subtest("direct KCP and reliable payload EOF"):
+        output = client.succeed(tssh + " -n server true 2>&1")
+        assert "Permanently added" not in output, output
         assert run("server", "printf kcp-ok").strip() == "kcp-ok"
         assert run("server", "ss -Hlun 'sport >= 61001 and sport <= 61999'").strip()
         client.succeed("seq 1 8192 > /tmp/input")

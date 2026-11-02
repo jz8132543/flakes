@@ -45,6 +45,7 @@ let
             packages = map toString cfg.environment.systemPackages;
             home = cfg.home-manager.users.tippy;
             tsshSettings = home.xdg.configFile."tssh/tssh.conf" or { enable = false; };
+            tsshProfile = home.xdg.configFile."tssh/ssh_config" or { enable = false; };
           in
           {
             inherit (transport) excludedHosts;
@@ -58,7 +59,16 @@ let
               && (marker == "tsshd-kcp-auto-v1") == enabled
               && builtins.elem (toString transport.package) packages == enabled
               && builtins.elem transport.udpPortRange cfg.networking.firewall.allowedUDPPortRanges == enabled
-              && (if enabled then tsshSettings.text == "FuzzyHostSelection = no\n" else !tsshSettings.enable);
+              && (
+                if enabled then
+                  lib.hasInfix "FuzzyHostSelection = no" tsshSettings.text
+                  && lib.hasInfix "ConfigPath = ${home.xdg.configHome}/tssh/ssh_config" tsshSettings.text
+                  && lib.hasInfix "UserKnownHostsFile none" tsshProfile.text
+                  && lib.hasInfix "CanonicalizeHostname no" tsshProfile.text
+                  && home.programs.ssh.settings."*".data.userKnownHostsFile == "/dev/null"
+                else
+                  !tsshSettings.enable && !tsshProfile.enable
+              );
           }
         ) config.flake.nixosConfigurations;
       in

@@ -105,7 +105,18 @@ with lib.strings;
     xdg.configFile."tssh/tssh.conf" = lib.mkIf transport.effectiveEnabled {
       # Explicit SSH destinations must not enumerate and resolve unrelated aliases.
       force = true;
-      text = "FuzzyHostSelection = no\n";
+      text = ''
+        FuzzyHostSelection = no
+        ConfigPath = ${config.xdg.configHome}/tssh/ssh_config
+      '';
+    };
+    xdg.configFile."tssh/ssh_config" = lib.mkIf transport.effectiveEnabled {
+      force = true;
+      text = ''
+        UserKnownHostsFile none
+        CanonicalizeHostname no
+        Include ${config.home.homeDirectory}/.ssh/config
+      '';
     };
 
     programs = {
