@@ -1,4 +1,4 @@
-{ nixosModules, ... }: {
+{ nixosModules, lib, ... }: {
   imports =
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
@@ -22,6 +22,16 @@
   services.nextcloud-talk-edge = {
     enable = true;
   };
+
+  # Use the audited kernel backend without a ~1 GiB userspace dummy pool.
+  # This is best effort, not a remedy for host CPU steal or a RAM reservation.
+  services.anti-balloon = {
+    memoryFiller = false;
+    kernel.enable = true;
+  };
+
+  # Host CPU steal caused a 5-minute activation timeout after only ~4s of CPU.
+  systemd.services.home-manager-tippy.serviceConfig.TimeoutStartSec = lib.mkForce "15min";
 
   environment.networkTune = {
     enable = true;

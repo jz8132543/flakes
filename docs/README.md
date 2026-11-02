@@ -4,6 +4,8 @@
 
 ## 目录索引
 
+- [anti-balloon 内核/用户态架构、虚拟化回收机制与验证记录](./anti-balloon-architecture.md)
+
 - [Apache Traffic Control (ATC) 分布式 CDN 架构与动态同步运维实战指南](./cdn-architecture.md)
   - **一、 宏观架构总览与分层解耦愿景**（五层架构全景图、各层职责边界）
   - **二、 核心子系统深度剖析与实现细节**

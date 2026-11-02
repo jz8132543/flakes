@@ -6,29 +6,27 @@
 }:
 let
   cfg = config.services.anti-balloon;
+  kernel = config.boot.kernelPackages.kernel;
+  kernelModule = pkgs.stdenv.mkDerivation {
+    pname = "kfree-hybrid-ept";
+    version = "0.1.0";
+    src = ./anti-balloon-kernel-src;
+    nativeBuildInputs = kernel.moduleBuildDependencies;
+    hardeningDisable = [
+      "pic"
+      "format"
+    ];
+    makeFlags = config.boot.kernelPackages.kernelModuleMakeFlags ++ [
+      "KDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
+      "INSTALL_MOD_PATH=$(out)"
+    ];
+    meta.platforms = [ "x86_64-linux" ];
+  };
 
-  # 超轻量 C 防气球与内存保护常驻守护程序：
-  # 1. 击穿宿主机内存压缩 (Defeat ESXi/Hyper-V/zswap Compression)：
-  #    - full 模式：每页 4096 字节全部填充高熵 SplitMix64 伪随机数，数据熵接近 8.0 bits/byte，杜绝 ESXi/Hyper-V/zswap 压缩。
-  #    - sparse 模式：每页散布 16 个 cacheline (128 字节) 伪随机数，仅用于瓦解 KSM 及基础气球探测，无法防御宿主机整页内存压缩。
-  # 2. 零误判自修复与压缩脏页窗口 (Dual-Sampling & Bounded Dirty Window)：
-  #    - 首字节强制非零 + 双采样（偏移 0 和 2048 均为 0 才判定为被内核回收），消除误报重填损耗。
-  #    - 重填时每攒满 2MB (BATCH_FLUSH_LIMIT) 即强制下刷 madvise(MADV_FREE)，极度压缩脏页留存窗口，杜绝被 Guest swap 击穿。
-  # 3. 统一口径与安全回退的动态扩容 (Dynamic Expansion via smaps_rollup LazyFree with Fallback)：
-  #    - 动态从 /proc/self/smaps_rollup 读取当前进程真实存活的 LazyFree 内存，meminfo 路径扣除自身持有量；
-  #    - 若 smaps_rollup 读取失败或受阻，自动回退至 g_total_allocated 记账值作为上限保护，防止误判外部可用引发失控扩容；
-  #    - 内存块列表采用 realloc 动态数组，解除静态数量上限；单次扩容上限平滑控制为 512MB。
-  # 4. cgroup 与容器内存限制感知 (cgroup v1/v2 Awareness)：
-  #    - 优先探测 /sys/fs/cgroup/memory.max (v2) 与 memory.limit_in_bytes (v1)，防止打爆容器或 slice 限制。
-  #    - 若在无配额容器中运行，输出显式警告日志。
-  # 5. 规避 THP 干扰 (MADV_NOHUGEPAGE)：
-  #    - 分配时显式禁用透明大页，避免 2MB THP 拆分延迟，保证细粒度 4KB 页面分配可控。
-  # 6. EPT Accessed 保温与绝对零 OOM (Keep-Warm & Zero OOM)：
-  #    - 纯读 1 字节/页刷新硬件 EPT Accessed=1，不置脏位；MADV_FREE 保证全部计入 MemAvailable，内核按需秒级丢弃。
-  #    - （注：纯读会置位 Guest 页表 accessed/young 位，轻微延缓 Guest 内核回收探测，这是为了维持硬件 EPT Accessed=1 的必要权衡）。
-  # 7. 全链路日志与信号响应：
-  #    - 填充循环内层定期检查 g_running，收到 SIGTERM 秒级退出；所有关键动作与异常输出 stderr 记录至 journal。
-  antiBalloonDaemon = pkgs.writeCBin "anti-balloon-daemon" ''
+  # 可选的 best-effort 随机内存池。MADV_FREE 页面仍计入 RSS/cgroup，
+  # 周期读取还会影响客户机 LRU；它既不隐身，也不构成宿主机内存预留。
+  # full 降低压缩收益，sparse 降低整页去重收益，两者均不能阻止 host swap。
+  antiBalloonSource = ''
     #include <stdio.h>
     #include <stdlib.h>
     #include <stdint.h>
@@ -60,7 +58,7 @@ let
         g_running = 0;
     }
 
-    // SplitMix64 PRNG: 寄存器级伪随机数生成器（>3.5 GB/s 吞吐）
+    // SplitMix64 supplies inexpensive, non-cryptographic page contents.
     static inline uint64_t splitmix64(uint64_t *state) {
         uint64_t z = (*state += 0x9e3779b97f4a7c15ULL);
         z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -68,7 +66,7 @@ let
         return z ^ (z >> 31);
     }
 
-    // 整页填充：每页 4096 字节全部填入高熵随机数，彻底击穿 ESXi/Hyper-V/zswap 内存压缩
+    // High-entropy contents reduce compression opportunities, not host swapping.
     // 强制首字节非零，消除误判为零页的微小概率（1/256 -> 0）
     static inline void fill_page_full(char *page, uint64_t *state) {
         uint64_t *p64 = (uint64_t *)page;
@@ -80,7 +78,7 @@ let
         }
     }
 
-    // 稀疏填充：每页散布 16 个 cacheline (128 字节)，仅瓦解 KSM 及基础气球探测，无法防宿主整页压缩
+    // 16 distinct words (128 bytes) per page discourage equality-based merging.
     static inline void fill_page_sparse(char *page, uint64_t *state) {
         for (int k = 0; k < 16; k++) {
             uint64_t r = splitmix64(state);
@@ -318,9 +316,9 @@ let
     // 计算自适应脏页分块大小（限制 MADV_FREE 前的未标记脏页峰值）
     static size_t calc_chunk_sz(unsigned long long total_bytes) {
         if (total_bytes <= 512ULL * 1024 * 1024) {
-            return 4ULL * 1024 * 1024; // 4MB 分块，脏页峰值极低，杜绝小机器 OOM
+            return 4ULL * 1024 * 1024; // Limit the dirty window on small guests.
         }
-        return 64ULL * 1024 * 1024; // 64MB 分块
+        return BATCH_FLUSH_LIMIT; // Keep the initial dirty window bounded too.
     }
 
     static int allocate_and_fill_block(size_t alloc_sz, int is_full, uint64_t *prng_state, size_t chunk_sz) {
@@ -353,7 +351,7 @@ let
             size_t this_chunk = chunk_sz;
             if (offset + this_chunk > alloc_sz) this_chunk = alloc_sz - offset;
 
-            for (size_t i = 0; i < this_chunk; i += 4096) {
+            for (size_t i = 0; i < this_chunk && g_running; i += 4096) {
                 refill_page(buf + offset + i, is_full, prng_state);
             }
             madvise(buf + offset, this_chunk, MADV_FREE);
@@ -434,18 +432,16 @@ let
             }
             if (!g_running) break;
 
-            // 1. 保温触碰与批量 madvise 自修复
-            // 注意：纯读访问会置位 Guest 页表的 accessed/young 位，
-            // 轻微延缓 Guest 内核的页帧换出探测（需第二轮 LRU 遍历才丢弃），
-            // 这是为了维持硬件 EPT Accessed=1 阻止宿主 Swap 的必要且可接受代价。
-            for (size_t b = 0; b < g_num_blocks; b++) {
+            // Accesses may influence host aging, but cannot prohibit host swap.
+            // They also affect guest aging and must remain optional.
+            for (size_t b = 0; b < g_num_blocks && g_running; b++) {
                 char *buf = g_blocks[b].buf;
                 size_t sz = g_blocks[b].sz;
 
                 char *batch_start = NULL;
                 size_t batch_len = 0;
 
-                for (size_t i = 0; i < sz; i += 4096) {
+                for (size_t i = 0; i < sz && g_running; i += 4096) {
                     volatile unsigned char *p = (volatile unsigned char *)(buf + i);
                     unsigned char c = *p;
                     // 双采样判定：偏移 0 和偏移 2048 均为 0 才确认页面已被内核回收为共享零页
@@ -464,8 +460,7 @@ let
                                 batch_len = 4096;
                             }
 
-                            // 压缩脏页窗口：累积达 BATCH_FLUSH_LIMIT (2MB) 即强制刷出，
-                            // 彻底杜绝极端内存压力下重填脏页被换入 Guest swap 的风险
+                            // Bound newly dirtied memory before making it reclaimable.
                             if (batch_len >= BATCH_FLUSH_LIMIT) {
                                 madvise(batch_start, batch_len, MADV_FREE);
                                 batch_start = NULL;
@@ -510,6 +505,10 @@ let
         return 0;
     }
   '';
+  antiBalloonDaemon = (pkgs.writeCBin "anti-balloon-daemon" antiBalloonSource).overrideAttrs (_: {
+    # writeCBin invokes $CC directly without an optimization level.
+    env.NIX_CFLAGS_COMPILE = "-O2";
+  });
 in
 {
   options.services.anti-balloon = {
@@ -517,11 +516,41 @@ in
       default = true;
     };
 
+    memoryFiller = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        是否运行随机内存填充进程。设为 false 时仅保留气球驱动阻断与内核配置，
+        不分配内存、不周期扫描，也不降低宿主机去重或压缩的收益。
+        填充进程的 MADV_FREE 页面仍计入 RSS/cgroup，并非对其它程序不可见。
+        无论是否填充，客户机都不能保证宿主机不换出内存。
+      '';
+    };
+
+    kernel.enable = lib.mkEnableOption ''
+      experimental Linux 7.3 x86_64 free-page randomization without a retained
+      userspace pool. This uses a conservative order-0 release tracepoint and
+      the kernel's isolated page-reporting API, not unsafe refcount/PFN scans.
+      Some frees are skipped; there is no periodic EPT or host swap guarantee.
+      Filling adds CPU cost to free calls, outside userspace CPU quotas.
+      Reporting temporarily isolates up to one 4 MiB block on this kernel
+    '';
+
+    cpuQuotaPercent = lib.mkOption {
+      type = lib.types.ints.between 1 100;
+      default = 5;
+      description = ''
+        填充进程的 CPU 硬上限，按单个 CPU 的百分比计算，包含初始化与重填。
+        默认 5 表示最多占用 0.05 个 CPU，而非整机 CPU 的 5%。
+        更低的上限会延长初始化及扫描耗时；Nice 不能代替此上限。
+      '';
+    };
+
     interval = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = "3m";
       description = ''
-        防止宿主机将冷内存换出到宿主 Swap 的刷新间隔（定时以纯读方式触碰内存刷新 EPT Accessed 位并执行动态自适应扩容）。
+        best-effort 内存触碰与重填间隔。访问可能影响宿主机的活跃度估计，但不能阻止 host swap。
         默认为 3m。设为 null 或 "" 可禁用后台常驻保温与动态扩容（仅保留开机一次性初始分配）。
       '';
     };
@@ -539,11 +568,8 @@ in
       type = lib.types.bool;
       default = false;
       description = ''
-        是否在内核早期启动阶段开启 memtest=1 进行全内存物理着色（0 运行时开销）。
-        开启后 Linux 内核在 early boot 阶段（进入用户空间前，mm/memtest.c）会遍历写入全部物理内存，
-        强制宿主机 EPT 为整台虚拟机分配 100% 物理页（GPA -> HPA）并置位 Accessed/Dirty 位。
-        测试完成后物理页立即归还给内核伙伴系统，运行时 0 内存开销、0 OOM 风险。
-        在 <= 512MB 的超小 VPS 上耗时仅约 0.01 秒，强烈推荐配合使用。
+        是否启用内核早期 memtest=1。它测试可用物理内存范围，会增加启动耗时，
+        不是随机填充或宿主机内存预留机制，也不能持续阻止去重、压缩或换出。
       '';
     };
 
@@ -555,24 +581,51 @@ in
       default = "full";
       description = ''
         页面填充模式：
-        - "full": 整页 4096 字节填满 SplitMix64 伪随机数（高熵，彻底击穿 ESXi、Hyper-V 及宿主机 zswap 的整页内存压缩与 KSM 去重，推荐）；
-        - "sparse": 每页散布 16 个 cacheline (128 字节) 伪随机数，仅用于瓦解 KSM 及基础气球探测，无法防御宿主机整页内存压缩（初始化 CPU 开销极低）。
+        - "full": 整页 4096 字节填满 SplitMix64 伪随机数，降低压缩与整页去重收益；
+        - "sparse": 每页散布 16 个 8 字节随机数，降低整页去重收益，页面仍高度可压缩。
+        两种模式都不能阻止气球驱动回收或宿主机换出。
       '';
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # 0. 早期内核级物理内存着色（0 运行期内存开销，开机 EPT 满载）
+    assertions = lib.optionals cfg.kernel.enable [
+      {
+        assertion = !cfg.memoryFiller;
+        message = "anti-balloon: disable memoryFiller when enabling the kernel backend.";
+      }
+      {
+        assertion = pkgs.stdenv.hostPlatform.isx86_64 && kernel.modDirVersion == "7.3.0";
+        message = "anti-balloon: the experimental kernel backend is audited only for x86_64 Linux 7.3.0.";
+      }
+    ];
+    boot.extraModulePackages = lib.optional cfg.kernel.enable kernelModule;
+    system.build.anti-balloon-kernel = kernelModule;
+
+    systemd.services.anti-balloon-kernel = lib.mkIf cfg.kernel.enable {
+      description = "Best-effort kernel free-page randomization";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-modules-load.service" ];
+      unitConfig.ConditionVirtualization = "vm";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        # modprobe uses the booted generation's module tree after a live switch.
+        # Load this built artifact directly; vermagic still rejects a wrong ABI.
+        ExecStart = "${pkgs.kmod}/bin/insmod ${kernelModule}/lib/modules/${kernel.modDirVersion}/updates/kfree_hybrid_ept.ko.xz";
+        ExecStop = "${pkgs.kmod}/bin/rmmod kfree_hybrid_ept";
+        TimeoutStartSec = "2min";
+        TimeoutStopSec = "2min";
+      };
+    };
+
+    # Optional early memory test, not a residency guarantee.
     boot.kernelParams = lib.mkIf cfg.bootMemtest [ "memtest=1" ];
 
-    # 1. 禁用 QEMU Guest Agent 与相关探测
-    # 注意：禁用 qemuGuest 会使 Proxmox/SolusVM 等控制面板无法获取客户机内部 IP，
-    # 且基于 QEMU-GA 的 fsfreeze 快照一致性保障将失效（但 ACPI 在线关机等不受影响）。
-    services.qemuGuest.enable = lib.mkForce false;
-
-    # 2. 彻底焊死各大虚拟化厂商的内存气球回收驱动（Fake install）
+    # QEMU Guest Agent is independent of ballooning; preserve its configured state.
+    # Block loadable balloon drivers and their free-page reporting channels.
     # 注意：若内核将 virtio_balloon 等驱动编译为 built-in (=y)，modprobe 黑名单无法阻止驱动加载，
-    # 此时主要依靠上述守护进程的真实物理页扣押与定期 keep-warm 保温提供防护。
+    # 内置驱动需要对应内核/宿主机配置；填充进程不能替代驱动阻断。
     boot.extraModprobeConfig = ''
       install virtio_balloon /bin/false
       install vmw_balloon /bin/false
@@ -593,8 +646,8 @@ in
     };
 
     # 4. 内存常驻保护守护进程
-    systemd.services.anti-balloon = {
-      description = "Anti-balloon memory protection daemon (EPT keep-warm & KSM prevention)";
+    systemd.services.anti-balloon = lib.mkIf cfg.memoryFiller {
+      description = "Best-effort random memory filler (not a host memory reservation)";
       wantedBy = [ "multi-user.target" ];
       after = [
         "multi-user.target"
@@ -613,8 +666,10 @@ in
         } --margin ${toString cfg.safetyMarginMB} --fill ${cfg.fillMode}";
         Restart = "on-failure";
         RestartSec = "10s";
+        # Unmapping a large pool also needs CPU time under the quota/host steal.
+        TimeoutStopSec = "2min";
 
-        # 绝不将自身换出到 Swap 分区
+        # Prevent guest cgroup swapping; this does not control host swapping.
         MemorySwapMax = "0";
 
         # 初始化填充窗口期若突发极端内存压力，优先牺牲本守护进程，保护业务服务
@@ -626,7 +681,8 @@ in
         NoNewPrivileges = true;
         PrivateTmp = true;
 
-        # 最低 CPU 与 IO 调度优先级，确保完全不影响任何业务进程
+        # Limit CPU bursts as well as lowering scheduling priority.
+        CPUQuota = "${toString cfg.cpuQuotaPercent}%";
         Nice = 19;
         CPUSchedulingPolicy = "batch";
         IOSchedulingClass = "idle";
