@@ -9,175 +9,50 @@ let
   cfg = config.services.atc.router;
   domain = config.networking.domain;
   data = (builtins.fromJSON (builtins.readFile ../../../../lib/data/data.json)).cdn;
-  nsHosts =
-    data.nsHosts or (
-      if data ? nsHost then [ data.nsHost ] else (data.controlNodeNames or [ config.networking.hostName ])
-    );
-  primaryNsHost = head nsHosts;
-
-  controlNode = findFirst (
-    c: (if builtins.isAttrs c then c.name else c) == config.networking.hostName
-  ) null (data.controlNodes or [ ]);
-  controlIpv4 =
-    if controlNode != null && builtins.isAttrs controlNode then (controlNode.ipv4 or null) else null;
-  controlIpv6 =
-    if controlNode != null && builtins.isAttrs controlNode then (controlNode.ipv6 or null) else null;
-
-  selfNode = findFirst (n: n.name == config.networking.hostName) null data.edgeNodes;
-  selfIpv4 =
-    if controlIpv4 != null then
-      controlIpv4
-    else
-      (if selfNode != null then (selfNode.ipv4 or "127.0.0.1") else "127.0.0.1");
-  selfIpv6 =
-    if controlIpv6 != null then
-      controlIpv6
-    else
-      (if selfNode != null then (selfNode.ipv6 or null) else null);
-
-  defaultGeoIpDatabase = pkgs.fetchurl {
-    url = "https://github.com/P3TERX/GeoLite.mmdb/raw/download/GeoLite2-City.mmdb";
-    hash = "sha256-/+2ydRyuFv3YhoFKbISAYzyRXsE2wVgspcn8WGH3gao=";
+  controls = filter builtins.isAttrs (data.controlNodes or [ ]);
+  origins = controls ++ (filter builtins.isAttrs (data.originNodes or [ ]));
+  nsHosts = data.nsHosts or [ data.nsHost ];
+  controlNode = findFirst (n: n.name == config.networking.hostName) null controls;
+  selfNode = findFirst (n: n.name == config.networking.hostName) controlNode data.edgeNodes;
+  selfIpv4 = if selfNode != null then selfNode.ipv4 or null else null;
+  selfIpv6 = if selfNode != null then selfNode.ipv6 or null else null;
+  addresses = n: {
+    ipv4 = n.ipv4 or null;
+    ipv6 = n.ipv6 or null;
   };
+  python = pkgs.python3.withPackages (ps: [ ps.dnslib ]);
 
-  serviceLabels = unique ((attrNames data.services) ++ (attrValues data.services));
-
-  dynamicZonePath = "/var/lib/traffic_router/cdn.${domain}.zone";
-
-  # ── CoreDNS 配置文件 ─────────────────────────────────────────────────────────
+  # Whitelist public routing data; no Ops credentials enter this derivation.
+  steeringConfig = pkgs.writeText "atc-steering.json" (
+    builtins.toJSON {
+      zone = "cdn.${domain}";
+      nameservers = map (n: "${n}.${domain}") nsHosts;
+      admin = "admin.${domain}";
+      ttl = cfg.dns.ttl;
+      edges = map (n: (addresses n) // { inherit (n) name weight; }) data.edgeNodes;
+      origins = listToAttrs (map (n: nameValuePair n.name (addresses n)) origins);
+      inherit (data) services;
+      apex_origin = cfg.steering.apexOrigin;
+      origin_bypass_services = cfg.steering.originBypassServices;
+      dns_port = cfg.steering.port;
+      status_port = cfg.steering.statusPort;
+      poll_interval = cfg.steering.pollInterval;
+      poll_budget = cfg.steering.pollBudget;
+      http_timeout = cfg.steering.httpTimeout;
+      max_age = cfg.steering.maxAge;
+      recovery_successes = cfg.steering.recoverySuccesses;
+      slow_start = cfg.steering.slowStartSeconds;
+    }
+  );
   corefile = pkgs.writeText "Corefile" ''
     cdn.${domain}:${toString cfg.dns.port} {
         bind ${concatStringsSep " " cfg.dns.listenAddresses}
-        file ${dynamicZonePath} cdn.${domain} {
-            reload 5s
+        forward . 127.0.0.1:${toString cfg.steering.port} {
+            max_concurrent 256
         }
         errors
         ${optionalString cfg.dns.log "log"}
     }
-  '';
-
-  # ── 默认兜底 Zone 文件 ────────────────────────────────────────────────────────
-  defaultZone = pkgs.writeText "cdn.${domain}.zone.default" ''
-    $ORIGIN cdn.${domain}.
-    $TTL ${toString cfg.dns.ttl}
-    @ IN SOA ${primaryNsHost}.${domain}. admin.${domain}. (
-        2026102401 ; Serial
-        7200
-        3600
-        1209600
-        ${toString cfg.dns.ttl}
-    )
-
-    ${concatMapStringsSep "\n" (h: "@ IN NS ${h}.${domain}.") nsHosts}
-
-    ; Edge nodes (Static Fallback Pool)
-    ${concatMapStringsSep "\n" (node: ''
-      @ IN A ${node.ipv4}
-      ${node.name} IN A ${node.ipv4}
-      ${optionalString ((node.ipv6 or null) != null) ''
-        @ IN AAAA ${node.ipv6}
-        ${node.name} IN AAAA ${node.ipv6}
-      ''}
-    '') data.edgeNodes}
-
-    ; Service labels alias to zone apex
-    ${concatMapStringsSep "\n" (label: "${label} IN CNAME @") serviceLabels}
-    * IN CNAME @
-  '';
-
-  # ── 动态健康选路与故障摘除脚本 ──────────────────────────────────────────────
-  updateDnsScript = pkgs.writeShellScript "atc-dynamic-dns" ''
-    set -euo pipefail
-
-    ZONE_FILE="${dynamicZonePath}"
-    TMP_FILE="''${ZONE_FILE}.tmp"
-    CRCONFIG="/var/lib/traffic_monitor/crconfig.backup"
-    EDGE_NODES_JSON='${builtins.toJSON data.edgeNodes}'
-    SERVICE_LABELS='${builtins.toJSON serviceLabels}'
-    TTL="${toString cfg.dns.ttl}"
-    DOMAIN="${domain}"
-    PRIMARY_NS="${primaryNsHost}.${domain}."
-    NS_HOSTS="${concatMapStringsSep " " (h: "${h}.${domain}.") nsHosts}"
-
-    mkdir -p "$(dirname "$ZONE_FILE")"
-
-    # 1. 从 Traffic Monitor crconfig 获取在线边缘节点
-    ONLINE_NODES=()
-    if [ -s "$CRCONFIG" ]; then
-      while IFS= read -r host; do
-        if [ -n "$host" ] && [ "$host" != "null" ]; then
-          ONLINE_NODES+=("$host")
-        fi
-      done < <(${pkgs.jq}/bin/jq -r '
-        .contentServers // {} |
-        to_entries[] |
-        select(.value.status == "REPORTED" or .value.status == "ONLINE") |
-        select((.value.routingDisabled // 0) == 0) |
-        .key
-      ' "$CRCONFIG" 2>/dev/null || true)
-    fi
-
-    # 2. 如果 TM 未完成首轮探测或无节点上报，使用全部配置节点兜底，绝不丢弃 DNS 响应
-    if [ ''${#ONLINE_NODES[@]} -eq 0 ]; then
-      while IFS= read -r host; do
-        if [ -n "$host" ] && [ "$host" != "null" ]; then
-          ONLINE_NODES+=("$host")
-        fi
-      done < <(echo "$EDGE_NODES_JSON" | ${pkgs.jq}/bin/jq -r '.[].name')
-    fi
-
-    # 3. 构造最新 DNS Zone 记录
-    SERIAL=$(date -u +%Y%m%d%H)
-    {
-      echo "\$ORIGIN cdn.''${DOMAIN}."
-      echo "\$TTL ''${TTL}"
-      echo "@ IN SOA ''${PRIMARY_NS} admin.''${DOMAIN}. ("
-      echo "    ''${SERIAL} ; Serial"
-      echo "    7200"
-      echo "    3600"
-      echo "    1209600"
-      echo "    ''${TTL}"
-      echo ")"
-      echo ""
-      for ns in $NS_HOSTS; do
-        echo "@ IN NS ''${ns}"
-      done
-      echo ""
-      echo "; Healthy Active Edge Nodes (Managed by Traffic Monitor)"
-      for node in "''${ONLINE_NODES[@]}"; do
-        NODE_DATA=$(echo "$EDGE_NODES_JSON" | ${pkgs.jq}/bin/jq -c --arg n "$node" '.[] | select(.name == $n)')
-        if [ -n "$NODE_DATA" ]; then
-          V4=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.ipv4 // empty')
-          V6=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.ipv6 // empty')
-          WEIGHT=$(echo "$NODE_DATA" | ${pkgs.jq}/bin/jq -r '.weight // 1')
-
-          # 性能加权展开 (高权重节点响应频次更高)
-          for ((i=0; i<WEIGHT; i++)); do
-            if [ -n "$V4" ]; then
-              echo "@ IN A ''${V4}"
-              echo "''${node} IN A ''${V4}"
-            fi
-            if [ -n "$V6" ]; then
-              echo "@ IN AAAA ''${V6}"
-              echo "''${node} IN AAAA ''${V6}"
-            fi
-          done
-        fi
-      done
-
-      echo ""
-      echo "; CDN Service Endpoints Aliases"
-      while IFS= read -r label; do
-        if [ -n "$label" ]; then
-          echo "''${label} IN CNAME @"
-        fi
-      done < <(echo "$SERVICE_LABELS" | ${pkgs.jq}/bin/jq -r '.[]')
-      echo "* IN CNAME @"
-    } > "$TMP_FILE"
-
-    # 原子写入，保证 CoreDNS reload 期间读到的文件完整有效
-    mv -f "$TMP_FILE" "$ZONE_FILE"
-    chmod 0644 "$ZONE_FILE"
   '';
 in
 {
@@ -185,53 +60,86 @@ in
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = "Run Apache Traffic Control Traffic Router (CoreDNS DNS Steering Engine).";
+      description = "Run the CoreDNS front door and local authoritative CDN scheduler (not the Apache Java Traffic Router).";
     };
-
     package = mkOption {
       type = types.package;
       default = pkgs.coredns;
-      description = "CoreDNS package providing high-performance DNS steering.";
+      description = "CoreDNS public DNS front door package.";
     };
-
     dns = {
       listenAddresses = mkOption {
         type = types.listOf types.str;
-        default = (optional (selfIpv4 != "127.0.0.1") selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
-        defaultText = "Current host's public addresses from terraform/cdn.tf";
-        description = "Public IP addresses on which Traffic Router DNS listens.";
+        default = (optional (selfIpv4 != null) selfIpv4) ++ (optional (selfIpv6 != null) selfIpv6);
+        description = "Public addresses from cdn.controlNodes/edgeNodes to bind.";
       };
-
       port = mkOption {
         type = types.port;
         default = 53;
-        description = "DNS listening port.";
+        description = "Public UDP and TCP DNS port.";
       };
-
       ttl = mkOption {
-        type = types.int;
+        type = types.ints.between 1 300;
         default = 30;
-        description = "DNS response TTL in seconds for fast failover.";
+        description = "DNS TTL. Effective weights expand repeated address records; recursive resolvers may deduplicate them.";
       };
-
       log = mkOption {
         type = types.bool;
         default = false;
         description = "Enable CoreDNS query logging.";
       };
     };
-
-    geoip = {
-      enable = mkOption {
-        type = types.bool;
-        default = true;
-        description = "Load MaxMind GeoIP2 database.";
+    steering = {
+      port = mkOption {
+        type = types.port;
+        default = 5354;
+        description = "Loopback-only authoritative UDP/TCP DNS port.";
       };
-
-      databaseFile = mkOption {
-        type = types.path;
-        default = defaultGeoIpDatabase;
-        description = "Path to GeoLite2 City database.";
+      statusPort = mkOption {
+        type = types.port;
+        default = 9131;
+        description = "Loopback-only HTTP /status and /metrics port.";
+      };
+      apexOrigin = mkOption {
+        type = types.nullOr types.str;
+        default = if length controls == 1 then (head controls).name else null;
+        description = "Explicit control origin for apex fallback; defaults only when there is exactly one control node. Null means SERVFAIL on empty apex pool.";
+      };
+      originBypassServices = mkOption {
+        type = types.listOf types.str;
+        default = data.originOnlyServices or [ ];
+        example = [ "chat" ];
+        description = "Service labels to route directly to their data.services origin, including while edges are healthy. Defaults to generated cdn.originOnlyServices; supports migration of temporary chat bypasses.";
+      };
+      pollInterval = mkOption {
+        type = types.ints.between 1 60;
+        default = 5;
+        description = "Seconds between background health snapshots.";
+      };
+      pollBudget = mkOption {
+        type = types.ints.between 1 30;
+        default = 3;
+        description = "Total wall-clock seconds allowed for one bounded-concurrency snapshot poll.";
+      };
+      httpTimeout = mkOption {
+        type = types.ints.between 1 10;
+        default = 1;
+        description = "HTTP socket timeout in seconds within the total poll budget.";
+      };
+      maxAge = mkOption {
+        type = types.ints.between 5 120;
+        default = 20;
+        description = "Maximum age of CrStates lastPoll, edge cdn.sampled_at and in-memory snapshots; missing/malformed/stale data always fail closed.";
+      };
+      recoverySuccesses = mkOption {
+        type = types.ints.between 1 20;
+        default = 3;
+        description = "Consecutive fresh successful samples required per address family before readmission.";
+      };
+      slowStartSeconds = mkOption {
+        type = types.ints.between 1 600;
+        default = 60;
+        description = "Seconds to gradually ramp a recovered edge to its bounded performance weight.";
       };
     };
   };
@@ -239,96 +147,116 @@ in
   config = mkIf cfg.enable {
     assertions = [
       {
-        assertion = controlNode != null || selfNode != null;
-        message = "services.atc.router: networking.hostName must be present in controlNodes or cdn_edge_nodes.";
+        assertion =
+          all (n: isInt n.weight && n.weight >= 1) data.edgeNodes
+          && foldl' (sum: n: sum + n.weight) 0 data.edgeNodes <= 256;
+        message = "services.atc.router: weights must be positive integers totaling at most 256 repeated DNS records.";
+      }
+      {
+        assertion = selfNode != null && cfg.dns.listenAddresses != [ ];
+        message = "services.atc.router: current host must have public addresses in cdn.controlNodes/edgeNodes.";
+      }
+      {
+        assertion = nsHosts != [ ] && all (h: any (n: n.name == h) (controls ++ data.edgeNodes)) nsHosts;
+        message = "services.atc.router: nameservers must be configured control/edge nodes.";
+      }
+      {
+        assertion = cfg.steering.apexOrigin == null || any (n: n.name == cfg.steering.apexOrigin) controls;
+        message = "services.atc.router: apexOrigin must be an explicitly configured control node.";
       }
       {
         assertion = all (
-          h:
-          any (n: (if builtins.isAttrs n then n.name else n) == h) (
-            (data.controlNodes or [ ]) ++ (data.edgeNodes or [ ])
-          )
-        ) nsHosts;
-        message = "services.atc.router: all cdn.nsHosts entries must be present in controlNodes or cdn_edge_nodes.";
+          s: data.services ? ${s} && any (n: n.name == data.services.${s}) origins
+        ) cfg.steering.originBypassServices;
+        message = "services.atc.router: every bypass service must map to a configured control/origin node.";
+      }
+      {
+        assertion =
+          cfg.steering.pollBudget <= cfg.steering.pollInterval
+          && cfg.steering.maxAge > cfg.steering.pollInterval + cfg.steering.pollBudget;
+        message = "services.atc.router: pollBudget must not exceed pollInterval; maxAge must exceed pollInterval + pollBudget.";
+      }
+      {
+        assertion =
+          length (unique [
+            cfg.dns.port
+            cfg.steering.port
+            cfg.steering.statusPort
+          ]) == 3;
+        message = "services.atc.router: DNS and status ports must be distinct.";
       }
     ];
-
     networking.firewall.allowedUDPPorts = [ cfg.dns.port ];
     networking.firewall.allowedTCPPorts = [ cfg.dns.port ];
-
     users.users.trafficrouter = {
       isSystemUser = true;
       group = "trafficrouter";
-      description = "Apache Traffic Router daemon user";
-      extraGroups = [ "trafficops" ];
+      description = "Local CDN authoritative DNS scheduler";
     };
     users.groups.trafficrouter = { };
-
-    systemd.tmpfiles.rules = [
-      "d /etc/traffic_router 0750 trafficrouter trafficrouter -"
-      "d /var/lib/traffic_router 0755 trafficrouter trafficrouter -"
-    ];
-
     environment.etc."traffic_router/Corefile".source = corefile;
+    environment.etc."traffic_router/steering.json".source = steeringConfig;
 
-    # ── Traffic Router 服务 (CoreDNS 智能调度引擎) ───────────────────────────
-    systemd.services.traffic-router = {
-      description = "Apache Traffic Control Traffic Router (CoreDNS Steering Engine)";
+    systemd.services.atc-dns-steering = {
+      description = "ATC authoritative DNS and background health sampler";
       after = [ "network-online.target" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
-      preStart = ''
-        mkdir -p /var/lib/traffic_router
-        if [ ! -f "${dynamicZonePath}" ]; then
-          cp -f "${defaultZone}" "${dynamicZonePath}"
-          chmod 0644 "${dynamicZonePath}"
-        fi
-      '';
+      startLimitIntervalSec = 0;
+      serviceConfig = {
+        Type = "simple";
+        User = "trafficrouter";
+        Group = "trafficrouter";
+        ExecStart = "${python}/bin/python3 ${./steering.py} /etc/traffic_router/steering.json";
+        Restart = "always";
+        RestartSec = "2s";
+        TimeoutStopSec = "5s";
+        MemoryMax = "128M";
+        TasksMax = 96;
+        LimitNOFILE = 4096;
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+        ];
+      };
+      restartTriggers = [
+        steeringConfig
+        ./steering.py
+      ];
+    };
+    systemd.services.traffic-router = {
+      description = "CoreDNS CDN public DNS front door";
+      after = [
+        "network-online.target"
+        "atc-dns-steering.service"
+      ];
+      wants = [
+        "network-online.target"
+        "atc-dns-steering.service"
+      ];
+      wantedBy = [ "multi-user.target" ];
+      startLimitIntervalSec = 0;
       serviceConfig = {
         Type = "simple";
         User = "trafficrouter";
         Group = "trafficrouter";
         AmbientCapabilities = [ "CAP_NET_BIND_SERVICE" ];
         CapabilityBoundingSet = [ "CAP_NET_BIND_SERVICE" ];
-        Restart = "on-failure";
-        RestartSec = "5s";
-        StartLimitIntervalSec = "60s";
-        StartLimitBurst = 5;
+        Restart = "always";
+        RestartSec = "2s";
         MemoryMax = "128M";
-        LimitNOFILE = 65536;
+        LimitNOFILE = 4096;
+        NoNewPrivileges = true;
+        ProtectSystem = "strict";
+        ProtectHome = true;
+        PrivateTmp = true;
         ExecStart = "${cfg.package}/bin/coredns -conf /etc/traffic_router/Corefile";
-        ExecReload = "${pkgs.coreutils}/bin/kill -SIGUSR1 $MAINPID";
       };
       restartTriggers = [ corefile ];
-    };
-
-    # ── 动态健康选路定时同步服务 ─────────────────────────────────────────────
-    # 定期读取 Traffic Monitor 的健康检查产物 /var/lib/traffic_monitor/crconfig.backup，
-    # 自动摘除异常/离线节点，CoreDNS 5 秒内热重载生效。
-    systemd.services.atc-dynamic-dns = {
-      description = "ATC Dynamic DNS Health & Steering Sync";
-      after = [
-        "network-online.target"
-        "traffic-router.service"
-      ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        User = "trafficrouter";
-        Group = "trafficrouter";
-        ExecStart = "${updateDnsScript}";
-      };
-    };
-
-    systemd.timers.atc-dynamic-dns = {
-      description = "Periodic timer for ATC dynamic DNS health sync";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnBootSec = "5s";
-        OnUnitActiveSec = "10s";
-        RandomizedDelaySec = "2s";
-      };
     };
   };
 }

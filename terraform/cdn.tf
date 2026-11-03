@@ -46,33 +46,37 @@ locals {
 
   # ── 边缘加速节点列表 (Edge Cache Nodes) ────────────────────────────────────
   # 运行 Apache Traffic Server (ATS) 高速缓存代理与 t3c 动态热同步 Agent
-  # 用户明确指定：fra1, tyo0, hkg0, hkg5 (tyo1 不跑边缘节点，不带有任何配置)
+  # 声明的加速节点为 sjc0、fra1、hkg5；控制面仍为 fra0。
+  # 功能验收先使用 fra0/sjc0，全部通过前不继续部署或测试 hkg5。
+  # 新节点在健康证据齐全前不会被权威 DNS 发布。
   #
   # Fields:
   #   name   – 主机短名 (与系统 networking.hostName 一致)
   #   region – 节点地域标签 (EU / AP / HK / US 等)
-  #   weight – DNS 轮询解析相对权重系数
+  #   weight – 整数容量基准；乘以实时压力/恢复因子后展开重复 A/AAAA 记录
+  #            不健康/timeout 节点完全移除；递归 DNS 可能去重，不保证流量比例
+  #            全部节点基准权重之和不能超过 256（限制 DNS 响应资源消耗）
   cdn_edge_nodes = [
+    {
+      name   = "sjc0"
+      region = "US"
+      weight = 5
+    },
     {
       name   = "fra1"
       region = "EU"
-      weight = 10
+      weight = 5
     },
     {
-      name   = "tyo0"
-      region = "AP"
-      weight = 5
+      name   = "hkg5"
+      region = "HK"
+      weight = 8
     },
     # {
     #   name   = "hkg0"
     #   region = "HK"
     #   weight = 8
     # },
-    {
-      name   = "hkg5"
-      region = "HK"
-      weight = 8
-    },
   ]
 
   # ── 加速业务映射 (Accelerated Services) ──────────────────────────────────────
@@ -92,6 +96,17 @@ locals {
     bot      = "fra0"
     napcat   = "fra0"
   }
+
+  # 保留当前流式聊天直达源站的恢复策略，不再依赖 /run 下的 DNS 覆盖脚本。
+  cdn_origin_only_services = ["chat"]
+
+  cdn_origin_nodes_with_addresses = [
+    for name in sort(distinct(values(local.cdn_services))) : {
+      name = name
+      ipv4 = try(local.hosts[name].records.a.value, null)
+      ipv6 = try(local.hosts[name].records.aaaa.value, null)
+    }
+  ]
 
   cdn_control_nodes_with_addresses = [
     for name in local.cdn_control_nodes : {
@@ -116,15 +131,17 @@ output "cdn_data" {
   description = "Full CDN dataset consumed by NixOS ATC modules"
   sensitive   = false
   value = {
-    controlDomain    = "ops.${cloudflare_zone.im_dora.name}"
-    controlHost      = "ops.${cloudflare_zone.im_dora.name}"
-    controlNodes     = local.cdn_control_nodes_with_addresses
-    controlNodeNames = local.cdn_control_nodes
-    nsHost           = local.cdn_ns_host
-    nsHosts          = local.cdn_ns_hosts
-    edgeNodes        = local.cdn_edge_nodes_with_addresses
-    edgeNodeNames    = [for n in local.cdn_edge_nodes : n.name]
-    services         = local.cdn_services
+    controlDomain      = "ops.${cloudflare_zone.im_dora.name}"
+    controlHost        = "ops.${cloudflare_zone.im_dora.name}"
+    controlNodes       = local.cdn_control_nodes_with_addresses
+    controlNodeNames   = local.cdn_control_nodes
+    nsHost             = local.cdn_ns_host
+    nsHosts            = local.cdn_ns_hosts
+    edgeNodes          = local.cdn_edge_nodes_with_addresses
+    edgeNodeNames      = [for n in local.cdn_edge_nodes : n.name]
+    services           = local.cdn_services
+    originNodes        = local.cdn_origin_nodes_with_addresses
+    originOnlyServices = local.cdn_origin_only_services
   }
 }
 

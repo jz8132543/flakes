@@ -4,6 +4,27 @@
   ...
 }:
 let
+  shellScriptMimeTypes = [
+    "application/x-shellscript"
+    "text/x-shellscript"
+  ];
+  shellScriptRunner = pkgs.writeShellApplication {
+    name = "shell-script-runner";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      if [[ $# -ne 1 ]]; then
+        printf 'Expected one shell script path\n' >&2
+        exit 1
+      fi
+      script=$(realpath -e -- "$1")
+      if [[ ! -f "$script" || ! -r "$script" ]]; then
+        printf 'Not a readable script: %s\n' "$script" >&2
+        exit 1
+      fi
+      cd -- "$(dirname -- "$script")"
+      exec ${lib.getExe pkgs.bash} -- "$script"
+    '';
+  };
   wpsTemplateRoot = ../../../conf/wps;
   writerTemplate = wpsTemplateRoot + "/Normal.dotm";
   sheetTemplate = wpsTemplateRoot + "/Normal.xltx";
@@ -98,10 +119,12 @@ let
       "x-scheme-handler/ksowebstartupwpp"
     ];
   };
-  documentAssociations = lib.foldlAttrs (
-    result: name: mimeTypes:
-    result // lib.genAttrs mimeTypes (_: [ "${name}.desktop" ])
-  ) { "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ]; } documentMimeTypes;
+  fileAssociations =
+    lib.foldlAttrs (
+      result: name: mimeTypes:
+      result // lib.genAttrs mimeTypes (_: [ "${name}.desktop" ])
+    ) { "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ]; } documentMimeTypes
+    // lib.genAttrs shellScriptMimeTypes (_: [ "shell-script-runner.desktop" ]);
 in
 {
   imports = [
@@ -112,6 +135,7 @@ in
   ];
 
   home.packages = with pkgs; [
+    shellScriptRunner
     telegram-desktop
     ffmpeg
     thunderbird
@@ -271,11 +295,25 @@ in
 
   xdg.mimeApps = {
     enable = true;
-    associations.added = documentAssociations;
-    defaultApplications = documentAssociations;
+    associations.added = fileAssociations;
+    defaultApplications = fileAssociations;
   };
 
+  xdg.configFile = lib.genAttrs [ "gnome-mimeapps.list" "dde-mimeapps.list" ] (_: {
+    text = lib.generators.toINI { } {
+      "Default Applications" = lib.genAttrs shellScriptMimeTypes (_: "shell-script-runner.desktop");
+    };
+  });
+
   xdg.desktopEntries = {
+    shell-script-runner = {
+      name = "Run Shell Script";
+      comment = "Run a shell script without opening a terminal";
+      exec = "${lib.getExe shellScriptRunner} %f";
+      mimeType = shellScriptMimeTypes;
+      terminal = false;
+      noDisplay = true;
+    };
     antigravity-ide = {
       name = "Antigravity IDE";
       genericName = "Text Editor";

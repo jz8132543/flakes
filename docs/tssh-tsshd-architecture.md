@@ -326,6 +326,27 @@ tssh不再先做一轮短名称 canonicalization，再调用已经处理 `dn42,d
 
 已即时应用当前用户的这两份同内容 tssh配置，并同步 HM声明；原生配置已恢复。真实裸 PTY登录没有重复提示，提示符/命令/退出正常，进程父级确认 tsshd；原生 SSH新连接成功，错误的 `TsshdPath` 仍明确报错。VM、Cu例外/原生配置策略、适配器及 standalone HM求值检查均通过。显式 `-F` 使用调用者自己的配置，不强制套用这一薄入口。
 
+### 10.6 2026-11-03 IPv4-only 下的通用网络层修复
+
+本机再次无法 `ssh fra0` 时，最初观察到旧系统 generation 在启动时恢复旧 HM配置；用户随后更新后，两份 tssh官方配置均正确加载，但仍无 IPv6默认路由，IPv4 SSH仍被内核 `8996` 和 Mihomo规则强制 DIRECT。因此“之前用户配置修复已部署”不等于“公网 TCP路径已修复”。
+
+在用户明确授权后，只更新 arx8 的网络层，设置 `services.mihomo.routing.proxyPublicSsh = true`。开关属于 Mihomo，不在 `programs.ssh` 中；tssh/tsshd二进制、配置解析和会话生命周期没有新增 Tailscale、DN42或 Mihomo服务查询/依赖。没有指定 fra0或 cu中转，也没有 Tailscale控制面域名例外。
+
+- 外国公网 IPv4 TCP SSH交回既有网络代理策略；私网、overlay和国内地址仍直连。
+- 保留有物理路由时的 IPv6直连查表、UID998 `8980/8985`、标记规则、DN42 `80/81/90`、组播和独立 UDP端口池。
+- 本机加载的配置来自持久 `/etc/mihomo/config.yaml`，修改订阅发布器本身不能更新该运行输入。Mihomo自己的 `ExecStartPre` 读取不可变 systemd credential，仅重排规则，原样保留其它 YAML/凭据文本，再原子写入私有 `/run/mihomo/config.yaml`。
+- runtime目录为 `0700`，文件为 `0600`；源文件与 credential的 SHA-256一致，没有把密钥写到 Nix store或日志。原先的 PROXY选择仍为 `ALL`，不改变用户选择。
+
+使用 HEAD `95bce8937be96f9d40ef561dcb33997383d7ac84` 的干净源快照，只复制本次网络模块、准备器及测试，排除并保留工作区中其它 ATC、Tailscale、DN42、Postgres未提交改动。lockfile校验不变。构建产生的 `result` 链接不保留在快照输入中，避免把前一系统闭包带入下一次求值。
+
+11项纯路由断言、12项 runtime配置测试通过，覆盖服务解耦、旧默认行为、私网/国内/公网顺序、UDP及防回流规则、幂等、源不可变、凭据文本保留、私有权限和错误脱敏。仅执行本机 `nixos-rebuild switch`，没有部署其它节点或提交。
+
+最终运行系统和 `/nix/var/nix/profiles/system` 指向 `/nix/store/2wv6dvx44b102skkamy3r68g52lfn99m-nixos-system-arx8-26.11.20261023.3ec6363`，下次启动使用该 generation。完整 switch仍因原有 `tailscale-setup.service` 超时返回状态4；新网络配置已激活，Mihomo及其路由单元正常，未把这个独立服务失败隐藏为完整部署成功。
+
+在同一 IPv4-only 网络中，普通 Fish `ssh fra0`、裸 tssh和禁用旧 master的原生 SSH均成功；tssh远端父进程为 `tsshd`，并非误报整链 TCP。真实 stdin SHA-256和 EOF通过，错误 `TsshdPath`仍报错。此时 Tailscale setup仍失败，直接证明 SSH没有以它为启动前提。初始 TCP经网络代理可达，而直接 UDP实际可用；选择 KCP仍由原有认证后事务决定，不强制或伪装协议。
+
+此修复不改变已观察到的公网 IPv4直连回程过滤，也不保证所有运营商/网络都允许 UDP。若部署者以后从整个工作树更新，应继续保留该网络选项及模块；不要只手工改变运行时文件。
+
 ## 11. 部署与回滚边界
 
 后续部署仍需单独决策。先部署兼容服务器包及标识，并保留独立 TCP救援会话，再迁移客户端。没有共享监听器、sysctl、NAT穿透或自动舰队部署。

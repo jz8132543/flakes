@@ -7,6 +7,16 @@
 let
   cfg = config.services.subscriptionPublisher;
   domain = config.networking.domain;
+  proxyPublicTcp = config.services.mihomo.routing.proxyPublicSsh or false;
+  sshPorts = lib.unique (
+    [
+      22
+      (config.ports.ssh or 1022)
+    ]
+    ++ lib.filter (p: p != 80 && p != 443) (
+      lib.mapAttrsToList (_: h: h.port) (config.programs.ssh.customHosts or { })
+    )
+  );
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
 
   selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
@@ -306,17 +316,34 @@ let
     ))
     ++ [
       "DST-PORT,6696,DIRECT"
-
-      # 放行 SSH 端口直连
+    ]
+    ++ lib.optionals (!proxyPublicTcp) [
       "DST-PORT,22,DIRECT"
       "DST-PORT,1022,DIRECT"
-
+    ]
+    ++ [
       # DN42 专用内网段直连，交由内核 Babel 路由表处理，绝不进代理环路
       "IP-CIDR,172.20.0.0/14,DIRECT,no-resolve"
       "IP-CIDR,172.31.0.0/16,DIRECT,no-resolve"
       "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
       "IP-CIDR,fd00::/8,DIRECT,no-resolve"
-
+    ]
+    ++ lib.optionals proxyPublicTcp (
+      [
+        # Resolve private destinations before the public SSH/domain overrides.
+        "GEOSITE,private,DIRECT"
+        "GEOIP,private,DIRECT"
+        "IP-CIDR,100.64.0.0/10,DIRECT,no-resolve"
+        "IP-CIDR,fc00::/7,DIRECT,no-resolve"
+        "DOMAIN-SUFFIX,ts,DIRECT"
+        "DOMAIN-SUFFIX,et,DIRECT"
+      ]
+      ++ lib.optional (cfg.dn42Domain != "") "DOMAIN-SUFFIX,${cfg.dn42Domain},DIRECT"
+      # Keep domestic SSH direct (including non-standard custom ports).
+      ++ map (p: "AND,((NETWORK,TCP),(DST-PORT,${toString p}),(GEOIP,CN)),DIRECT") sshPorts
+      ++ map (p: "AND,((NETWORK,TCP),(DST-PORT,${toString p})),PROXY") sshPorts
+    )
+    ++ [
       # PT 与特殊业务直连
       "DOMAIN-KEYWORD,m-team,DIRECT"
       "DOMAIN-SUFFIX,m-team.cc,DIRECT"

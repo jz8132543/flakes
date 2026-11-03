@@ -27,6 +27,11 @@ FIXED = {
     "proxy.config.http.server_ports": "STRING 8089",
     "proxy.config.cache.ram_cache.size": "INT 33554432",
     "proxy.config.net.listen_backlog": "INT 512",
+    "proxy.config.http.cache.cache_responses_to_cookies": "INT 0",
+    "proxy.config.http.cache.ignore_authentication": "INT 0",
+    "proxy.config.http.cache.ignore_client_no_cache": "INT 0",
+    "proxy.config.http.cache.ignore_server_no_cache": "INT 0",
+    "proxy.config.http.cache.required_headers": "INT 2",
 }
 ALIASES = {
     "proxy.config.exec_thread.autoconfig": "proxy.config.exec_thread.autoconfig.enabled",
@@ -189,21 +194,102 @@ ROLLBACK;
         "-d", "postgres", "-v", "ON_ERROR_STOP=1", text=sql)
 
 
+def storage_case(script, sync, work):
+    seed = work / "storage-seed"
+    seed.write_text("/var/cache/trafficserver 256M\n")
+    hosting_seed = work / "hosting-seed"
+    hosting_seed.write_text("")
+    for name, source in (("missing", None), ("empty", ""), ("comments", "# generated\n\n"),
+                         ("existing", "/existing/cache 512M id=keep\n")):
+        directory = work / name
+        directory.mkdir()
+        storage = directory / "storage.config"
+        if source is not None:
+            storage.write_text(source)
+        cache = directory / "cache.db"
+        cache.write_bytes(b"existing-cache-data")
+        inode = cache.stat().st_ino
+        adapted = script.replace("storage=/var/lib/trafficserver/etc/storage.config",
+                                 f"storage={shlex.quote(str(storage))}")
+        adapted = adapted.replace("volume=/var/lib/trafficserver/etc/volume.config",
+                                  f"volume={shlex.quote(str(directory / 'volume.config'))}")
+        adapted = adapted.replace("hosting=/var/lib/trafficserver/etc/hosting.config",
+                                  f"hosting={shlex.quote(str(directory / 'hosting.config'))}")
+        adapted = adapted.replace("chown trafficserver:trafficserver",
+                                  f"chown {os.getuid()}:{os.getgid()}")
+        adapted, count = re.subn(r"cp /nix/store/\S+-atc-default-storage.config",
+                                 f"cp {shlex.quote(str(seed))}", adapted)
+        assert count == 1
+        adapted, count = re.subn(r"cp /nix/store/\S+-atc-default-hosting.config",
+                                 f"cp {shlex.quote(str(hosting_seed))}", adapted)
+        assert count == 1
+        executable = directory / "prepare-storage.sh"
+        executable.write_text(adapted)
+        run("bash", str(executable))
+        expected = source if name == "existing" else seed.read_text()
+        assert storage.read_text() == expected
+        first = storage.stat()
+        run("bash", str(executable))
+        assert storage.read_text() == expected and storage.stat().st_ino == first.st_ino
+        assert cache.read_bytes() == b"existing-cache-data" and cache.stat().st_ino == inode
+        hosting = directory / "hosting.config"
+        hosting.write_text("# t3c-generate\nhostname=* volume=1\n")
+        run("bash", str(executable))
+        assert hosting.read_text() == "", "Implicit volume 0 was left bound to nonexistent volume 1"
+        hosting.write_text("hostname=custom.example volume=1\n")
+        run("bash", str(executable))
+        assert hosting.read_text() == "hostname=custom.example volume=1\n", "User hosting was overwritten"
+        print(f"PASS storage-{name}")
+    directory = work / "storage-rollback"
+    (directory / "etc").mkdir(parents=True)
+    storage = directory / "etc/storage.config"
+    volume = directory / "etc/volume.config"
+    hosting = directory / "etc/hosting.config"
+    original_storage = "/old/cache 512M volume=3 id=preserve\n"
+    original_volume = "volume=3 scheme=http size=100%\n"
+    storage.write_text(original_storage)
+    volume.write_text(original_volume)
+    hosting.write_text("hostname=* volume=3\n")
+    snapshot = "cache_snapshot=" + sync.split("cache_snapshot=", 1)[1].split(
+        "# Repair even after", 1)[0]
+    restore = "if ! grep -q" + sync.split("if ! grep -q", 1)[1].split(
+        'rm -rf "$cache_snapshot"', 1)[0] + 'rm -rf "$cache_snapshot"\n'
+    simulated_download = "printf '# empty generated storage\\n' > /var/lib/trafficserver/etc/storage.config\n"
+    simulated_download += "printf 'volume=1 scheme=http size=100%%\\n' > /var/lib/trafficserver/etc/volume.config\n"
+    simulated_download += "printf 'hostname=* volume=1\\n' > /var/lib/trafficserver/etc/hosting.config\n"
+    executable = directory / "rollback.sh"
+    executable.write_text((snapshot + simulated_download + restore).replace(
+        "/var/lib/trafficserver", str(directory)))
+    run("bash", str(executable))
+    assert storage.read_text() == original_storage and volume.read_text() == original_volume
+    assert hosting.read_text() == "hostname=* volume=3\n"
+    assert not list(directory.glob(".cache-config.*"))
+    print("PASS storage-and-volume-rollback")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pg-socket", type=Path)
     parser.add_argument("--pg-port", type=int, default=55432)
+    parser.add_argument("--edge-host", default="sjc0")
     args = parser.parse_args()
     raw = json.loads(run("nix", "eval", "--json", "--file", str(ROOT / "lib/data/atc-records.nix")))
     baseline = {key: f"{'INT' if isinstance(value, int) else 'STRING'} {value}"
                 for key, value in raw.items()}
     for key, value in FIXED.items():
         assert baseline[key] == value, f"Unsafe shared baseline: {key}={baseline[key]}"
-    script = generated_script("nixosConfigurations.hkg5.config.systemd.services.trafficserver.preStart",
-                              "atc-prepare-records")
+    script = generated_script(f"nixosConfigurations.{args.edge_host}.config.systemd.services.trafficserver.preStart",
+                               "atc-prepare-records")
+    storage_script = generated_script(f"nixosConfigurations.{args.edge_host}.config.systemd.services.trafficserver.preStart",
+                                      "atc-prepare-storage")
+    sync = json.loads(run("nix", "eval", "--json",
+                         f"path:.#nixosConfigurations.{args.edge_host}.config.systemd.services.atc-t3c-sync.script"))
+    net_threads = json.loads(run("nix", "eval", "--json",
+                                f"path:.#nixosConfigurations.{args.edge_host}.config.services.atc.edge.netThreads"))
+    edge_baseline = {**baseline, "proxy.config.exec_thread.limit": f"INT {net_threads}"}
     ops = generated_script("nixosConfigurations.fra0.config.systemd.services.traffic-ops-init.serviceConfig.ExecStart",
                            "traffic-ops-db-init") if args.pg_socket else None
-    expected = [f"CONFIG {key} {value}" for key, value in baseline.items()]
+    expected = [f"CONFIG {key} {value}" for key, value in edge_baseline.items()]
     legacy = "".join(f"{ALIASES.get(key, key)} {value}\n" for key, value in raw.items())
     legacy += "proxy.config.ram_cache.size 268435456\nproxy.config.net.listen_backlog 55720\n"
     legacy += "proxy.config.body_factory.template_sets_dir /missing/templates\n"
@@ -228,6 +314,7 @@ def main():
     failures = []
     with tempfile.TemporaryDirectory(prefix="atc-regression-", dir="/tmp/kilo") as tmp:
         work = Path(tmp)
+        storage_case(storage_script, sync, work)
         (work / "generated-prepare.sh").write_text(script)
         for name, source, output in tests:
             try:

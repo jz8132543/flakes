@@ -22,6 +22,10 @@ in
     # 启用 envfs 提供 /bin/bash 等传统路径兼容，供 U 盘内置 autorun.sh 脚本直接执行。
     services.envfs.enable = lib.mkDefault true;
 
+    # SAFECD 内置 Qt 默认查找 /usr/share/X11/xkb；NixOS 需显式提供键盘数据路径，
+    # 否则 XKB context 创建失败，窗口能显示但密码框无法接收键盘输入。
+    environment.variables.QT_XKB_CONFIG_ROOT = "${pkgs.xkeyboard-config}/share/X11/xkb";
+
     # 预置非打补丁外部 ELF 二进制程序运行所需的共享库（nix-ld）。
     programs.nix-ld.libraries = with pkgs; [
       libxcrypt-legacy
@@ -43,11 +47,13 @@ in
 
     # 系统级运行工具及 Qt 运行时检测依赖：
     # - lsb-release: autorun.sh 获取发行版标识
+    # - xdpyinfo: 探测真实 XWayland 连接，避免仅检查文件套接字而误选后台 Xvfb
     # - xhost: 原始脚本调用的 X11 访问控制命令
     # - qt5.qtbase.dev: 提供 qmake，供启动器运行时自动识别宿主 Qt5 环境
     # - qt5.qtbase / qt5.qtwayland: 提供 Wayland/X11 平台插件 (libqwayland-egl 等)
     environment.systemPackages = with pkgs; [
       lsb-release
+      xdpyinfo
       xhost
       qt5.qtbase
       qt5.qtbase.dev

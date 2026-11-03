@@ -22,6 +22,8 @@
 
   optimize.brutal.target = "!cn";
 
+  services.mihomo.routing.proxyPublicSsh = true;
+
   programs.winpodx.activation.method = "mas";
   # XWayland exposes twice GNOME's logical size on this HiDPI display.
   programs.winpodx.dpi = 200;

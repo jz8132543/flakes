@@ -4,9 +4,14 @@
   "proxy.config.cache.ram_cache.algorithm" = 1;
   # Keep the shared edge profile usable on sub-1GiB nodes.
   "proxy.config.cache.ram_cache.size" = 33554432;
-  "proxy.config.exec_thread.autoconfig" = 1;
-  "proxy.config.http.cache.cache_responses_to_cookies" = 1;
-  "proxy.config.http.cache.required_headers" = 0;
+  # Explicit net threads prevent VPS topology (e.g. 128 visible cores) from sizing ATS.
+  "proxy.config.exec_thread.autoconfig" = 0;
+  "proxy.config.exec_thread.limit" = 1;
+  "proxy.config.http.cache.cache_responses_to_cookies" = 0;
+  "proxy.config.http.cache.ignore_authentication" = 0;
+  "proxy.config.http.cache.ignore_client_no_cache" = 0;
+  "proxy.config.http.cache.ignore_server_no_cache" = 0;
+  "proxy.config.http.cache.required_headers" = 2;
   "proxy.config.http.server_ports" = "8089";
   "proxy.config.log.logging_enabled" = 3;
   "proxy.config.net.connections_throttle" = 10000;

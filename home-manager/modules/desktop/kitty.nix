@@ -4,6 +4,16 @@
   ...
 }:
 {
+  dconf.settings."org/gnome/desktop/default-applications/terminal" = {
+    exec = "kitty";
+    exec-arg = "-e";
+  };
+
+  xdg.terminal-exec = {
+    enable = true;
+    settings.default = [ "kitty.desktop" ];
+  };
+
   programs.kitty = {
     enable = true;
     package = config.lib.self.wrapNoIme {

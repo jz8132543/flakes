@@ -37,7 +37,9 @@ in
     home.sessionVariables = {
       GDK_BACKEND = "wayland";
       CLUTTER_BACKEND = "wayland";
-      QT_QPA_PLATFORM = "wayland-egl";
+      # Let Qt select its backend; older vendor builds may only contain xcb.
+      QT_AUTO_SCREEN_SCALE_FACTOR = "1"; # Qt 5.6-5.13
+      QT_ENABLE_HIGHDPI_SCALING = "1"; # Qt 5.14+
       # QT_WAYLAND_DISABLE_WINDOWDECORATION = "1";
       # MOZ_ENABLE_WAYLAND = "1";
       # MOZ_USE_XINPUT2 = "1";

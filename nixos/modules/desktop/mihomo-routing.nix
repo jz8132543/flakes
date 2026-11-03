@@ -5,6 +5,7 @@
   ...
 }:
 let
+  proxyPublicTcp = config.services.mihomo.routing.proxyPublicSsh;
   sshPorts = lib.unique (
     [
       22
@@ -31,11 +32,12 @@ let
     dn42Cfg.natTPort
   ];
 
-  # SSH 端口直连 main 表的 FIB 规则。
-  # 与上方 nftables route_output 的 dport 打标互为冗余：打标依赖 route hook 与 nat redirect
-  # 的先后时序，而 FIB 规则在 Initial Route Lookup 阶段即生效，确保 SSH 恒定旁路 Meta TUN。
+  # IPv6 keeps a physical/direct first lookup. Without a main route it falls
+  # through to TUN; do not mark SSH, which would make 8995 reject that fallback.
   sshDirectRules = lib.concatMapStringsSep "\n" (port: ''
-    ip -4 rule add ipproto tcp dport ${toString port} lookup main priority 8996
+    ${lib.optionalString (
+      !proxyPublicTcp
+    ) "ip -4 rule add ipproto tcp dport ${toString port} lookup main priority 8996"}
     ip -6 rule add ipproto tcp dport ${toString port} lookup main priority 8996
   '') sshPorts;
 
@@ -49,6 +51,11 @@ let
   '';
 in
 {
+  options.services.mihomo.routing.proxyPublicSsh = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = "Let public non-domestic IPv4 TCP SSH follow Mihomo policy; retain direct IPv6 when a physical route exists.";
+  };
   config = lib.mkIf config.services.mihomo.enable {
     networking.nftables.tables.mihomo-process-bypass = {
       family = "inet";
@@ -58,8 +65,8 @@ in
 
           meta skuid 998 counter meta mark set meta mark | 0x1
 
-          # 放行 SSH 端口直连，强制走主路由表绕过 Meta TUN，避免被 DNS 反查劫持至 CDN 边缘池
-          ${lib.optionalString (sshPorts != [ ]) ''
+          # Unconditional SSH bypass is incompatible with public TCP proxying.
+          ${lib.optionalString (!proxyPublicTcp && sshPorts != [ ]) ''
             tcp dport { ${
               lib.concatMapStringsSep ", " toString sshPorts
             } } counter meta mark set meta mark | 0x1
@@ -139,7 +146,7 @@ in
         #    只能直连被污染的 DNS 结果而超时。
         #    本规则优先级高于 9002，故未打标流量在初始选路即落入 table 2022；
         #    8980/8985/8990/8995 与 DN42 的 80/81/90 全部位于更前优先级，豁免语义不变。
-        #    8996 放行 SSH 与组播；DN42/Tailscale/EasyTier 网段与公共 DNS 地址在 table 2022
+        #    8996 保留 IPv6 SSH 与组播，IPv4 SSH 可按策略进入 TUN；DN42/Tailscale/EasyTier 网段与公共 DNS 地址在 table 2022
         #    中无路由，查询失败后自动按优先级续降至 main 表，行为与现状一致。
         #    IPv4 广播与环回地址由 local 表 (priority 0) 先行接管，ICMP/PMTUD 由 DN42 的
         #    priority 90 放行，Mihomo 自身出站由 8980/8985 熔断，均不受本规则影响。

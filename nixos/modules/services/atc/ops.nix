@@ -18,6 +18,53 @@ let
   edgeNodes = cdnData.edgeNodes or [ ];
   servicesMap = cdnData.services or { };
   baselineRecords = import ../../../../lib/data/atc-records.nix;
+  monitorCfg = config.services.atc.monitor;
+  # In TC 8.0.2 "health" is the stats interval; "heartbeat" is availability.
+  # The bridge is reachable on HTTP :80 via Traefik, not directly on :9130.
+  monitoringParameters = [
+    {
+      profile = "RASCAL_GLOBAL";
+      name = "peers.polling.interval";
+      file = "rascal-config.txt";
+      value = toString monitorCfg.peerPollingIntervalMs;
+    }
+    {
+      profile = "RASCAL_GLOBAL";
+      name = "heartbeat.polling.interval";
+      file = "rascal-config.txt";
+      value = toString monitorCfg.healthPollingIntervalMs;
+    }
+    {
+      profile = "RASCAL_GLOBAL";
+      name = "health.polling.interval";
+      file = "rascal-config.txt";
+      value = toString monitorCfg.statPollingIntervalMs;
+    }
+    {
+      profile = "EDGE_ATS_GLOBAL";
+      name = "health.polling.url";
+      file = "rascal.properties";
+      value = "http://\${hostname}/_astats";
+    }
+    {
+      profile = "EDGE_ATS_GLOBAL";
+      name = "health.polling.format";
+      file = "rascal.properties";
+      value = "astats";
+    }
+    {
+      profile = "EDGE_ATS_GLOBAL";
+      name = "health.polling.type";
+      file = "rascal.properties";
+      value = "HTTP";
+    }
+    {
+      profile = "EDGE_ATS_GLOBAL";
+      name = "health.connection.timeout";
+      file = "rascal.properties";
+      value = toString monitorCfg.healthConnectionTimeoutMs;
+    }
+  ];
 
   # ── 版本指纹元数据 (用于多控制节点版本仲裁与防倒退比对) ───────────────────
   versionInfo = {
@@ -52,9 +99,8 @@ let
         read_timeout = 60;
         write_timeout = 60;
         idle_timeout = 300;
-        # Running over plain HTTP on the public interface, TLS is terminated
-        # by Traefik (or handled by the origin's own TLS stack).
-        # No insecure flag needed — we are the origin server.
+        # The backend serves HTTPS with the runtime certificate above;
+        # Traefik terminates public TLS and connects to this local backend.
         log_location_error = "stderr";
         log_location_warning = "stderr";
         log_location_info = "null";
@@ -187,25 +233,43 @@ let
         FROM cdn c WHERE c.name = 'dora-cdn'
         ON CONFLICT (name) DO NOTHING;
 
-        INSERT INTO parameter (name, config_file, value) VALUES
-          ('peers.polling.interval', 'rascal-config.txt', '3000'),
-          ('health.polling.interval', 'rascal-config.txt', '20000'),
-          ('stat.polling.interval', 'rascal-config.txt', '60000'),
-          ('health.polling.url', 'rascal.properties', 'http://''${hostname}/_astats'),
-          ('health.polling.format', 'rascal.properties', 'astats'),
-          ('health.polling.type', 'rascal.properties', 'HTTP'),
-          ('health.connection.timeout', 'rascal.properties', '5000')
-        ON CONFLICT (name, config_file, value) DO NOTHING;
+        -- BEGIN managed monitoring contract migration
+        DO ''$''$
+        DECLARE
+          rec RECORD;
+          profile_id INT;
+          parameter_id INT;
+        BEGIN
+          -- Remove the unsupported old interval link, never its shared row.
+          DELETE FROM profile_parameter pp USING profile pr, parameter p
+          WHERE pp.profile = pr.id AND pp.parameter = p.id
+            AND pr.name = 'RASCAL_GLOBAL' AND p.config_file = 'rascal-config.txt'
+            AND p.name = 'stat.polling.interval';
 
-        INSERT INTO profile_parameter (profile, parameter)
-        SELECT p.id, pr.id FROM profile p CROSS JOIN parameter pr
-        WHERE p.name = 'RASCAL_GLOBAL' AND pr.config_file = 'rascal-config.txt'
-        ON CONFLICT DO NOTHING;
+          FOR rec IN SELECT * FROM (VALUES
+            ${concatMapStringsSep ",\n            " (
+              p: "('${p.profile}', '${p.name}', '${p.file}', '${p.value}')"
+            ) monitoringParameters}
+          ) AS desired(profile_name, pname, pfile, pvalue)
+          LOOP
+            SELECT id INTO profile_id FROM profile WHERE name = rec.profile_name;
+            IF profile_id IS NOT NULL THEN
+              DELETE FROM profile_parameter pp USING parameter p
+              WHERE pp.profile = profile_id AND pp.parameter = p.id
+                AND p.name = rec.pname AND p.config_file = rec.pfile
+                AND p.value IS DISTINCT FROM rec.pvalue;
 
-        INSERT INTO profile_parameter (profile, parameter)
-        SELECT p.id, pr.id FROM profile p CROSS JOIN parameter pr
-        WHERE p.name = 'EDGE_ATS_GLOBAL' AND pr.config_file = 'rascal.properties'
-        ON CONFLICT DO NOTHING;
+              INSERT INTO parameter (name, config_file, value)
+              VALUES (rec.pname, rec.pfile, rec.pvalue)
+              ON CONFLICT (name, config_file, value) DO NOTHING;
+              SELECT id INTO parameter_id FROM parameter
+              WHERE name = rec.pname AND config_file = rec.pfile AND value = rec.pvalue;
+              INSERT INTO profile_parameter (profile, parameter)
+              VALUES (profile_id, parameter_id) ON CONFLICT DO NOTHING;
+            END IF;
+          END LOOP;
+        END ''$''$;
+        -- END managed monitoring contract migration
 
         -- Minimal topology required by Traffic Monitor/t3c discovery.
         INSERT INTO division (name) VALUES ('Global') ON CONFLICT (name) DO NOTHING;
@@ -312,6 +376,7 @@ let
             ELSE
               UPDATE server SET
                 domain_name = '${domain}',
+                tcp_port = 80,
                 cachegroup = cachegroup_id_value,
                 type = edge_type,
                 status = reported_status,
@@ -356,25 +421,41 @@ let
               AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '127.0.0.1'::inet AND ip.server = s.id);
           '') controlNodes}
 
-          -- ── 为所有边缘节点注册网卡与 IP ───────────────────────────────
+          -- BEGIN managed edge monitoring addresses
+          -- eth0 is the bridge's logical statistics interface, not a claim
+          -- about the physical NIC. Its counters come from the real route NIC.
+          -- Keep monitoring enabled: worker-off/invalid ATS must remain down.
           ${concatMapStringsSep "\n" (node: ''
             INSERT INTO interface (name, monitor, mtu, server)
             SELECT 'eth0', true, 1500, s.id FROM server s
             WHERE s.host_name = '${node.name}'
               AND NOT EXISTS (SELECT 1 FROM interface i WHERE i.name = 'eth0' AND i.server = s.id);
 
+            UPDATE interface i SET monitor = true
+            FROM server s WHERE i.server = s.id AND s.host_name = '${node.name}' AND i.name = 'eth0';
+
             INSERT INTO ip_address (address, interface, server, service_address)
             SELECT '${node.ipv4}'::inet, 'eth0', s.id, true
             FROM server s WHERE s.host_name = '${node.name}'
               AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '${node.ipv4}'::inet AND ip.server = s.id);
 
+            UPDATE ip_address ip SET interface = 'eth0', service_address = true
+            FROM server s WHERE ip.server = s.id AND s.host_name = '${node.name}'
+              AND ip.address = '${node.ipv4}'::inet;
+
             ${optionalString ((node.ipv6 or null) != null) ''
               INSERT INTO ip_address (address, interface, server, service_address)
-              SELECT '${node.ipv6}'::inet, 'eth0', s.id, false
+              SELECT '${node.ipv6}'::inet, 'eth0', s.id, true
               FROM server s WHERE s.host_name = '${node.name}'
                 AND NOT EXISTS (SELECT 1 FROM ip_address ip WHERE ip.address = '${node.ipv6}'::inet AND ip.server = s.id);
+
+              -- TM ignores non-service IPv6 addresses when constructing polls.
+              UPDATE ip_address ip SET interface = 'eth0', service_address = true
+              FROM server s WHERE ip.server = s.id AND s.host_name = '${node.name}'
+                AND ip.address = '${node.ipv6}'::inet;
             ''}
           '') edgeNodes}
+          -- END managed edge monitoring addresses
 
           -- ── 绑定所有 Delivery Services 到所有边缘缓存节点 ────────────
           ${concatMapStringsSep "\n" (
@@ -469,16 +550,6 @@ let
 
     EOF
 
-        echo "Triggering initial Traffic Ops CRConfig Snapshot for dora-cdn..."
-        PASS="$(cat ${passwordFilePath} | tr -d '\r\n')"
-        COOKIE_JAR="$(mktemp)"
-        curl -k -s -c "$COOKIE_JAR" -H "Content-Type: application/json" \
-          -d "{\"u\":\"${cfg.syncUser}\",\"p\":\"$PASS\"}" \
-          https://127.0.0.1:${toString cfg.port}/api/5.0/user/login > /dev/null || true
-        curl -k -s -X PUT -b "$COOKIE_JAR" \
-          "https://127.0.0.1:${toString cfg.port}/api/5.0/snapshot?cdn=dora-cdn" > /dev/null || true
-        rm -f "$COOKIE_JAR"
-
         echo "Traffic Ops initialization completed successfully."
   '';
 in
@@ -495,7 +566,7 @@ in
     port = mkOption {
       type = types.port;
       default = 8084;
-      description = "Port to listen on (plain HTTP; Traefik terminates TLS externally).";
+      description = "Local HTTPS API port; Traefik terminates public TLS separately.";
     };
 
     dbHost = mkOption {
@@ -525,7 +596,7 @@ in
     syncUser = mkOption {
       type = types.str;
       default = "t3c-sync";
-      description = "Read-only Traffic Ops API username for t3c edge nodes synchronization.";
+      description = "Traffic Ops operations account for edge synchronization, monitoring, and snapshots.";
     };
 
     syncPasswordFile = mkOption {
@@ -589,6 +660,8 @@ in
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
+        # Stay active so NixOS reactivation reruns changed, idempotent seeds.
+        RemainAfterExit = true;
         # Migrations alter tables created by the postgres owner. The script
         # connects as PostgreSQL's local postgres role and must not run as the
         # unprivileged daemon user.
@@ -655,6 +728,47 @@ in
             -dbcfg /etc/traffic_ops/database.conf
         '';
       };
+    };
+
+    # Snapshot publication needs a running API; the database seed runs before it.
+    systemd.services.traffic-ops-snapshot = {
+      description = "Publish seeded CDN topology after the Traffic Ops API is ready";
+      after = [ "traffic-ops.service" ];
+      requires = [ "traffic-ops.service" ];
+      wantedBy = [ "multi-user.target" ];
+      restartTriggers = [ initScript ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        User = "root";
+        RuntimeDirectory = "traffic-ops-snapshot";
+        RuntimeDirectoryMode = "0700";
+        UMask = "0077";
+        TimeoutStartSec = "75s";
+      };
+      script = ''
+        set -euo pipefail
+        login=/run/traffic-ops-snapshot/login.json
+        cookies=/run/traffic-ops-snapshot/cookies
+        trap 'rm -f "$login" "$cookies"' EXIT
+        ${pkgs.jq}/bin/jq -n --arg u '${cfg.syncUser}' \
+          --rawfile p '${passwordFilePath}' \
+          '{u: $u, p: ($p | rtrimstr("\n") | rtrimstr("\r"))}' > "$login"
+        for attempt in $(seq 1 5); do
+          if ${pkgs.curl}/bin/curl -k -fsS --connect-timeout 2 --max-time 5 \
+            -c "$cookies" -H 'Content-Type: application/json' --data-binary "@$login" \
+            https://127.0.0.1:${toString cfg.port}/api/5.0/user/login >/dev/null \
+            && ${pkgs.curl}/bin/curl -k -fsS --connect-timeout 2 --max-time 5 \
+              -X PUT -b "$cookies" \
+              'https://127.0.0.1:${toString cfg.port}/api/5.0/snapshot?cdn=dora-cdn' >/dev/null; then
+            echo 'Published Traffic Ops CRConfig snapshot for dora-cdn.'
+            exit 0
+          fi
+          sleep 2
+        done
+        echo 'Traffic Ops snapshot publication failed; topology is not confirmed.' >&2
+        exit 1
+      '';
     };
 
     # 5. 控制平面版本服务 (提供 /version.json 与 /api/version.json 供边缘节点比对选优)

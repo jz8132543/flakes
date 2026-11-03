@@ -9,6 +9,14 @@ let
   cfg = config.programs.dde-file-manager;
   dde-pkgs = inputs.dde-nixos.legacyPackages.${pkgs.stdenv.hostPlatform.system}.deepin.overrideScope (
     _final: prev: {
+      dde-file-manager = prev.dde-file-manager.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          # DDE has no run-by-default preference and does not read GNOME's terminal setting.
+          substituteInPlace src/dfm-base/file/local/localfilehandler.cpp \
+            --replace-fail 'int code = DialogManagerInstance->showRunExcutableScriptDialog(fileUrl);' \
+              'int code = fileUrl.path().endsWith(".sh", Qt::CaseInsensitive) ? 1 : DialogManagerInstance->showRunExcutableScriptDialog(fileUrl);'
+        '';
+      });
       dtkwidget = prev.dtkwidget.overrideAttrs (old: {
         postPatch = (old.postPatch or "") + ''
           # Qt 6.12 does not export the private QFont shared-pointer destructor.
@@ -54,7 +62,7 @@ let
     }
   '';
 
-  # 原生包轻量包装：仅注入自身独立环境变量与优化桌面项，完全不重编、不修改原生二进制
+  # 包装已修补的文件管理器，注入独立环境变量与优化桌面项
   dde-file-manager-wrapped = pkgs.symlinkJoin {
     name = "dde-file-manager-wrapped";
     paths = [ dde-pkgs.dde-file-manager ];

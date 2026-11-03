@@ -612,9 +612,11 @@ let
               iproute2
               ethtool
               strongswan
+              config.services.bird.package
               gawk
               gnugrep
               findutils
+              systemd
             ]
           )
         }"
@@ -718,35 +720,38 @@ let
           fi
         fi
 
-        # 2c. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
-        NOW=$(date +%s)
-        SELF_PAYLOAD=$(jq -n \
-          --arg name "$SELF_NAME" \
-          --argjson id "$SELF_ID" \
-          --arg dn42_ip4 "$SELF_IP4" \
-          --arg dn42_ip6 "$SELF_IP6" \
-          --argjson endpoints "$SELF_ENDPOINTS" \
-          --argjson nat_t_port "$SELF_PORT" \
-          --argjson ike_port "$SELF_IKE_PORT" \
-          --arg pubkey "" \
-          --argjson updated_at "$NOW" \
-          --argjson build_time "${toString flakeRevision}" \
-          '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, build_time: $build_time, updated_at: $updated_at}}')
+        # Only contact controllers after the local configuration is ready.
+        if [ "''${1:-}" = "--sync" ]; then
+          # 2c. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
+          NOW=$(date +%s)
+          SELF_PAYLOAD=$(jq -n \
+            --arg name "$SELF_NAME" \
+            --argjson id "$SELF_ID" \
+            --arg dn42_ip4 "$SELF_IP4" \
+            --arg dn42_ip6 "$SELF_IP6" \
+            --argjson endpoints "$SELF_ENDPOINTS" \
+            --argjson nat_t_port "$SELF_PORT" \
+            --argjson ike_port "$SELF_IKE_PORT" \
+            --arg pubkey "" \
+            --argjson updated_at "$NOW" \
+            --argjson build_time "${toString flakeRevision}" \
+            '{($name): {id: $id, dn42_ip4: $dn42_ip4, dn42_ip6: $dn42_ip6, endpoints: $endpoints, nat_t_port: $nat_t_port, ike_port: $ike_port, pubkey: $pubkey, build_time: $build_time, updated_at: $updated_at}}')
 
-        TOKEN=$(cat "${tokenFile}")
+          TOKEN=$(cat "${tokenFile}")
 
-        for ctrl in "''${CONTROLLERS[@]}"; do
-          REMOTE_JSON=$(curl -fsSL --max-time 4 -X POST -H "X-DN42-Auth: $TOKEN" -d "$SELF_PAYLOAD" "$ctrl/sync" 2>/dev/null || true)
-          if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
-            jq -s '
-              (.[0] // {}) as $orig | (.[1] // {}) as $new |
-              reduce ($new | to_entries[]) as $item ($orig;
-                if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-                then .[$item.key] = $item.value else . end
-              )
-            ' "$CACHE_FILE" <(echo "$REMOTE_JSON") > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
-          fi
-        done
+          for ctrl in "''${CONTROLLERS[@]}"; do
+            REMOTE_JSON=$(curl -fsSL --max-time 4 -X POST -H "X-DN42-Auth: $TOKEN" -d "$SELF_PAYLOAD" "$ctrl/sync" 2>/dev/null || true)
+            if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
+              jq -s '
+                (.[0] // {}) as $orig | (.[1] // {}) as $new |
+                reduce ($new | to_entries[]) as $item ($orig;
+                  if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
+                  then .[$item.key] = $item.value else . end
+                )
+              ' "$CACHE_FILE" <(echo "$REMOTE_JSON") > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
+            fi
+          done
+        fi
 
         # 若本机是 Controller，将最新 peers.json 同步到 registry.json
         if [ "${if baseCfg.sdwan.isController then "1" else "0"}" = "1" ]; then
@@ -758,7 +763,6 @@ let
         #      k <= peer_eps            -> initiator：主动连接对端第 k 个已发布端点
         #      peer_eps < k <= my_eps   -> responder：接收对端连入本机第 k 个端点
         #    两侧接口数均为 max(peer_eps, my_eps)，if_id 集合逐 k 对齐，Child SA 双端必落位。
-        CONF_CHANGED=0
         EDGE_LABELS_TMP="$STATE_DIR/edge-labels.tmp"
         : > "$EDGE_LABELS_TMP"
         ACTIVE_CONF_FILES=()
@@ -856,8 +860,8 @@ let
           [ -e "$existing_conf" ] || continue
           base_name=$(basename "$existing_conf")
           if ! [[ " ''${ACTIVE_CONF_FILES[*]} " =~ " ''${base_name} " ]]; then
+            touch "$STATE_DIR/reload-pending"
             rm -f "$existing_conf"
-            CONF_CHANGED=1
           fi
         done
 
@@ -939,22 +943,32 @@ let
     )
 
           if [ ! -f "$peer_conf" ] || [ "$new_content" != "$(cat "$peer_conf" 2>/dev/null || true)" ]; then
+            touch "$STATE_DIR/reload-pending"
             echo "$new_content" > "$peer_conf"
-            CONF_CHANGED=1
           fi
         done
 
+        if [ "''${1:-}" != "--sync" ]; then
+          systemd-notify --ready --status="Local tunnel configuration ready; connecting in the background"
+          # Readiness releases the daemons ordered after us. Wait for their local
+          # startup in the background before syncing and initiating tunnels.
+          systemctl start strongswan-swanctl.service bird.service
+          exec "$0" --sync
+        fi
+
         # 4. 仅在配置真正发生变化时增量热重载 strongSwan 与 BIRD，不中断已有连接
-        if [ "$CONF_CHANGED" -eq 1 ]; then
-          swanctl --load-all --noprompt 2>/dev/null || true
-          birdc configure 2>/dev/null || true
+        # Keep the marker across failed runs so recovery also retries a reload.
+        if [ -e "$STATE_DIR/reload-pending" ]; then
+          if timeout 10 swanctl --load-all --noprompt 2>/dev/null && timeout 5 birdc configure 2>/dev/null; then
+            rm -f "$STATE_DIR/reload-pending"
+          fi
         fi
 
         # 4b. 链路自愈：为缺失的主动隧道补发握手。
         #     - 仅对当前没有 IKE_SA 的连接发起，已建立的连接不触发 rekey 抖动
         #     - 每次发起带超时上限，对端宕机不会阻塞 agent（否则 timer 失速、全网停摆）
         #     - 覆盖对端宕机恢复、本端 charon 重试耗尽、NAT 客户端上线等场景
-        EXISTING_SAS=$(swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
+        EXISTING_SAS=$(timeout 5 swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
         for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
           IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
           [ "$t_saction" = "start" ] || continue
@@ -1280,12 +1294,17 @@ in
             ];
             wantedBy = [ "multi-user.target" ];
             restartTriggers = [ sdwanAgentScript ];
+            startLimitIntervalSec = 0;
             serviceConfig = {
-              Type = "oneshot";
+              Type = "notify";
+              NotifyAccess = "all";
               RemainAfterExit = false;
               ExecStart = "${sdwanAgentScript}";
-              # 兜底：单次同步异常挂起时强制结束，避免 timer 的 OnUnitInactiveSec 永不重武装
-              TimeoutStartSec = "180s";
+              # Only local preparation gates startup; online work is bounded
+              # separately so the timer can retry after a failed/offline run.
+              TimeoutStartSec = "30s";
+              RuntimeMaxSec = "180s";
+              TimeoutStopSec = "10s";
             };
           };
 

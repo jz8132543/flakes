@@ -54,12 +54,23 @@ in
         ];
         wants = [ "network-online.target" ];
         wantedBy = [ "multi-user.target" ];
+        startLimitIntervalSec = 0;
         path = [
           config.services.tailscale.package
           pkgs.jq
           pkgs.coreutils
         ];
         script = ''
+          if [ "''${1:-}" != "--attempt" ]; then
+            # A temporary login failure is not a failed system startup. Keep
+            # retrying in this managed worker, with a deadline for each attempt.
+            until timeout 3m "$0" --attempt; do
+              echo "Tailscale login attempt failed; retrying in 10 seconds."
+              sleep 10
+            done
+            exit 0
+          fi
+
           login_server=https://ts.${config.networking.domain}
           preauth_key=${config.sops.secrets.tailscale_preauth_key.path}
 
@@ -87,11 +98,11 @@ in
 
           if [ "$status" = "Running" ] || [ "$status" = "Starting" ]; then
             echo "Tailscale is already authenticated (state: $status); reconciling configured flags."
+            exit_code=0
             timeout 2m tailscale up \
               --reset \
               --login-server "$login_server" \
-              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
-            exit_code=$?
+              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1 || exit_code=$?
             if [ $exit_code -ne 0 ]; then
               echo "tailscale up failed with exit code $exit_code while reconciling flags. Log output:"
               cat /tmp/tailscale-setup.log
@@ -103,12 +114,12 @@ in
           if [ "$status" = "NeedsLogin" ] || [ "$status" = "NoState" ]; then
             echo "Tailscale not authenticated (state: $status), logging in..."
             AUTH_KEY=$(cat "${config.sops.secrets.tailscale_preauth_key.path}" | tr -d '\n\r' || true)
+            exit_code=0
             timeout 2m tailscale up \
               --reset \
               --login-server "$login_server" \
               --auth-key "$AUTH_KEY" \
-              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1
-            exit_code=$?
+              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1 || exit_code=$?
             if [ $exit_code -ne 0 ]; then
               echo "tailscale up failed with exit code $exit_code. Log output:"
               cat /tmp/tailscale-setup.log
@@ -120,11 +131,13 @@ in
           fi
         '';
         serviceConfig = {
-          Type = "oneshot";
+          # Login runs after the start job completes, so an offline control server
+          # cannot hold multi-user.target or nixos-rebuild open.
+          Type = "exec";
           RemainAfterExit = true;
           Restart = "on-failure";
           RestartSec = "10";
-          TimeoutStartSec = "3m";
+          TimeoutStopSec = "10s";
         };
       };
 
