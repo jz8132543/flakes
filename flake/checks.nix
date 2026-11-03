@@ -118,6 +118,47 @@ let
           touch "$out"
         '';
   };
+  aiRegistrationTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."ai-registration-test" =
+      let
+        cfg = config.flake.nixosConfigurations.fra0.config;
+        containers = cfg.virtualisation.oci-containers.containers;
+        difyRegistrationDisabled =
+          env:
+          env.ALLOW_REGISTER == "false"
+          && env.ALLOW_CREATE_WORKSPACE == "false"
+          && env.ENABLE_EMAIL_CODE_LOGIN == "false"
+          && env.ENABLE_SOCIAL_OAUTH_LOGIN == "false"
+          && env.ENABLE_EMAIL_PASSWORD_LOGIN == "true";
+        newApiScript = cfg.systemd.services.new-api-bootstrap.script;
+        mcpEnv = containers.contextforge.environment;
+        realm = builtins.fromJSON cfg.sops.templates."keycloak-realm-dora".content;
+        results = {
+          newApi =
+            lib.hasInfix ''upsert_opt "RegisterEnabled" "false"'' newApiScript
+            && lib.hasInfix ''upsert_opt "PasswordRegisterEnabled" "false"'' newApiScript
+            && lib.hasInfix ''upsert_opt "PasswordLoginEnabled" "true"'' newApiScript;
+          difyApi = difyRegistrationDisabled containers.dify-api.environment;
+          difyWorker = difyRegistrationDisabled containers.dify-worker.environment;
+          contextforge =
+            mcpEnv.PUBLIC_REGISTRATION_ENABLED == "false"
+            && mcpEnv.SSO_AUTO_CREATE_USERS == "false"
+            && mcpEnv.SSO_ENABLED == "true"
+            && mcpEnv.SSO_PRESERVE_ADMIN_AUTH == "true"
+            && mcpEnv.PLATFORM_ADMIN_EMAIL == "i@${cfg.networking.domain}";
+          keycloakRealm = realm.realm == "users" && !realm.registrationAllowed;
+          keycloakExistingRealm =
+            lib.hasInfix "registration_allowed = false" cfg.systemd.services.keycloak-ldap-reconcile.script
+            && builtins.elem "keycloak-ldap-reconcile.service" cfg.systemd.services.keycloak.requires;
+        };
+      in
+      assert lib.assertMsg (lib.all (value: value) (
+        builtins.attrValues results
+      )) "fra0 AI registration policy must block self-registration while preserving existing logins";
+      fra0Pkgs.runCommand "ai-registration-test" { result = builtins.toJSON results; } ''
+        printf '%s\n' "$result" > "$out"
+      '';
+  };
 in
 {
   flake.checks = lib.foldr lib.recursiveUpdate { } [
@@ -128,5 +169,6 @@ in
     tsshAdapterTest
     hostIndependenceTest
     grafanaRuntimeHostsTest
+    aiRegistrationTest
   ];
 }

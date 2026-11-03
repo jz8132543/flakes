@@ -116,6 +116,7 @@ in
         "code.${config.networking.domain}"
         "cookie.${config.networking.domain}"
         "cpa.${config.networking.domain}"
+        "openhands.${config.networking.domain}" # Authenticated Canvas is not a public 2xx endpoint.
         "s.${config.networking.domain}"
         "cache.${config.networking.domain}"
         "ha.${config.networking.domain}"

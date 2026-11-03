@@ -402,6 +402,8 @@ in
             }
 
             upsert_opt "PasswordLoginEnabled" "true"
+            # OAuth account creation uses RegisterEnabled, not PasswordRegisterEnabled.
+            upsert_opt "RegisterEnabled" "false"
             upsert_opt "PasswordRegisterEnabled" "false"
             upsert_opt "EmailVerificationEnabled" "false"
 

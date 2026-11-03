@@ -68,6 +68,7 @@ in
       {
         "realm": "users",
         "enabled": true,
+        "registrationAllowed": false,
         "loginTheme": "phasetwo-ui",
         "accountTheme": "phasetwo-ui",
         "adminTheme": "phasetwo-ui",
@@ -390,7 +391,8 @@ in
         set login_theme = 'phasetwo-ui',
             account_theme = 'phasetwo-ui',
             admin_theme = 'phasetwo-ui',
-            email_theme = 'phasetwo-ui'
+            email_theme = 'phasetwo-ui',
+            registration_allowed = false
         where name = 'users';
 
         update component_config

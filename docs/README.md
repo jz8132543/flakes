@@ -4,6 +4,10 @@
 
 ## 目录索引
 
+- [全栈 AI 基建与数字伴侣架构设计与运维实战指南](./ai-architecture.md)
+
+  包含组件认证、fra0 用户注册关闭策略（2.1 节）、SSO 账号边界、非部署回归检查与 OpenHands 工作台说明。
+
 - [anti-balloon 内核/用户态架构、虚拟化回收机制与验证记录](./anti-balloon-architecture.md)
 
 - [Apache Traffic Control (ATC) 分布式 CDN 架构与动态同步运维实战指南](./cdn-architecture.md)

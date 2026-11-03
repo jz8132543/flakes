@@ -112,6 +112,7 @@ locals {
     code        = { on = "fra0", proxy = false }
     api         = { on = "fra0", proxy = false }
     cpa         = { on = "fra0", proxy = false }
+    openhands   = { on = "fra0", proxy = false }
   }, local.media_service_cname_mappings)
 }
 output "service_cname_mappings" {
@@ -133,6 +134,11 @@ resource "cloudflare_dns_record" "general_cname" {
   type    = "CNAME"
   content = "${each.value.on}.dora.im"
   zone_id = cloudflare_zone.im_dora.id
+}
+
+import {
+  to = cloudflare_dns_record.general_cname["openhands"]
+  id = "9ba11950ef551770c2f43b98c6674055/ab9666e32daea840f9a77a89d291b220"
 }
 
 # ROOT record

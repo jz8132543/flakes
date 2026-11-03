@@ -54,9 +54,12 @@ in
       # ── 管理员账户 (邮箱认证) ─────────────────────────────────────
       PLATFORM_ADMIN_EMAIL = "i@${config.networking.domain}";
       BASIC_AUTH_USER = "i";
+      PUBLIC_REGISTRATION_ENABLED = "false";
 
       # ── Keycloak SSO 单点登录 ─────────────────────────────────────
       SSO_ENABLED = "true";
+      SSO_AUTO_CREATE_USERS = "false";
+      SSO_PRESERVE_ADMIN_AUTH = "true";
       SSO_KEYCLOAK_ENABLED = "true";
       SSO_KEYCLOAK_BASE_URL = "https://sso.${config.networking.domain}";
       SSO_KEYCLOAK_REALM = "users";

@@ -189,6 +189,7 @@ in
 
             python3 - "$PASS_FILE" << 'PYEOF'
       import base64
+      import binascii
       import hashlib
       import json
       import os
@@ -218,14 +219,17 @@ in
               cur.execute("INSERT INTO dify_setups (version, setup_at) VALUES ('0.15.3', NOW());")
               conn.commit()
 
-      # 2. Hash password with Dify's PBKDF2-SHA256 algorithm
-      salt = base64.b64encode(secrets.token_bytes(16)).decode('utf-8')
+      # 2. Dify stores base64-encoded hex PBKDF2 digests and base64-encoded raw salts.
+      salt_bytes = secrets.token_bytes(16)
+      salt = base64.b64encode(salt_bytes).decode('utf-8')
       password_hash = base64.b64encode(
-          hashlib.pbkdf2_hmac(
-              'sha256',
-              raw_password.encode('utf-8'),
-              salt.encode('utf-8'),
-              100000
+          binascii.hexlify(
+              hashlib.pbkdf2_hmac(
+                  'sha256',
+                  raw_password.encode('utf-8'),
+                  salt_bytes,
+                  10000
+              )
           )
       ).decode('utf-8')
 

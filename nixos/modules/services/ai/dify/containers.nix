@@ -112,13 +112,14 @@ let
     # ── 登录与认证（官方原生邮箱密码登录，移除 Keycloak SSO 猴子补丁）─────
     ENABLE_SOCIAL_OAUTH_LOGIN = "false";
     ENABLE_EMAIL_PASSWORD_LOGIN = "true";
+    ENABLE_EMAIL_CODE_LOGIN = "false";
+    ALLOW_REGISTER = "false";
+    ALLOW_CREATE_WORKSPACE = "false";
 
     # ── 安全 ─────────────────────────────────────────────────────────
     WEB_API_CORS_ALLOW_ORIGINS = "*";
     CONSOLE_CORS_ALLOW_ORIGINS = "*";
   };
-
-  # ── Keycloak OIDC 桥接：通过挂载定制 oauth.py 让 Dify CE 原生支持 Keycloak SSO ──
 
   # ── 统一 systemd 依赖声明（所有容器共用）────────────────────────────
   mkContainerDeps = extraAfter: {

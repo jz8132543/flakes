@@ -71,6 +71,7 @@
     ];
 
   services.moviepilot.enable = true;
+  services.ai.openhands-agent-canvas.enable = true;
   # services.ai.litellm.enable = true;
 
   # ── Dify AI 应用平台（接管 chat.dora.im）────────────────────────
