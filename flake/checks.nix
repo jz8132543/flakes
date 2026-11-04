@@ -54,6 +54,16 @@ let
               && transport.effectiveEnabled == enabled
               && cfg.programs.ssh.package.pname == "openssh"
               && cfg.services.openssh.package.pname == "openssh"
+              && !cfg.services.logind.settings.Login.KillUserProcesses
+              && (
+                !(cfg.environment.minimal or false)
+                || (
+                  cfg.systemd.services.systemd-logind.reloadIfChanged
+                  &&
+                    builtins.elem cfg.environment.etc."systemd/logind.conf".source
+                      cfg.systemd.services.systemd-logind.restartTriggers
+                )
+              )
               && builtins.elem 22 cfg.services.openssh.ports
               && builtins.elem cfg.ports.ssh cfg.services.openssh.ports
               && (marker == "tsshd-kcp-auto-v1") == enabled
@@ -159,6 +169,32 @@ let
         printf '%s\n' "$result" > "$out"
       '';
   };
+  dn42SdwanTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."dn42-sdwan-state-test" =
+      let
+        services = config.flake.nixosConfigurations.fra0.config.systemd.services;
+      in
+      fra0Pkgs.runCommand "dn42-sdwan-state-test"
+        {
+          nativeBuildInputs = with fra0Pkgs; [
+            python3
+            bash
+            jq
+            util-linux
+            coreutils
+          ];
+          DN42_SDWAN_CONTROLLER_SCRIPT = builtins.head services.dn42-sdwan-controller.restartTriggers;
+          DN42_SDWAN_AGENT_SCRIPT = builtins.head services.dn42-sdwan-agent.restartTriggers;
+        }
+        ''
+          mkdir -p tests nixos/modules/services/networking/dn42
+          cp ${../tests/dn42-sdwan-state-test.py} tests/dn42-sdwan-state-test.py
+          cp ${../nixos/modules/services/networking/dn42/sdwan-state.sh} nixos/modules/services/networking/dn42/sdwan-state.sh
+          cp ${../nixos/modules/services/networking/dn42/sdwan-state.jq} nixos/modules/services/networking/dn42/sdwan-state.jq
+          python3 -B tests/dn42-sdwan-state-test.py -v
+          touch "$out"
+        '';
+  };
 in
 {
   flake.checks = lib.foldr lib.recursiveUpdate { } [
@@ -170,5 +206,6 @@ in
     hostIndependenceTest
     grafanaRuntimeHostsTest
     aiRegistrationTest
+    dn42SdwanTest
   ];
 }

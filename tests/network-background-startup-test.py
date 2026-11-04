@@ -91,8 +91,22 @@ class NetworkBackgroundStartupTest(unittest.TestCase):
         mock = self.bin / "mock"
         mock.write_text("#!" + sys.executable + "\n" + MOCK)
         mock.chmod(0o700)
+        # No-op commands must not spend the readiness budget starting Python.
+        fast_mock = self.bin / "fast-mock"
+        fast_mock.write_text('''#!/bin/sh
+if [ "${0##*/}" = ip ]; then
+    for arg do
+        if [ "$arg" = -j ]; then
+            printf '[]\\n'
+            break
+        fi
+    done
+fi
+''')
+        fast_mock.chmod(0o700)
         for command in ("ip", "ethtool", "curl", "systemctl", "swanctl", "birdc", "tailscale"):
-            (self.bin / command).symlink_to(mock)
+            target = fast_mock if command in ("ip", "ethtool", "systemctl", "birdc") else mock
+            (self.bin / command).symlink_to(target)
 
     def tearDown(self):
         for suffix in (".timer", ".service"):

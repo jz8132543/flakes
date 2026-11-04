@@ -26,9 +26,7 @@ let
   hostName = config.networking.hostName or "unknown";
   clusterDomain = config.networking.domain;
 
-  # SD-WAN registry version: the flake revision timestamp (self.lastModified).
-  # It only advances on git commits, never on plain `terraform apply` runs, so
-  # data.json diffs stay meaningful and conflict resolution stays monotonic.
+  # Configuration version, separate from runtime registration leases.
   flakeRevision = self.lastModified or self.lastModifiedDate or 0;
 
   stripPort =
@@ -434,6 +432,13 @@ let
     )
   );
 
+  sdwanStateSetup = ''
+    export DN42_SDWAN_BOOTSTRAP_FILE="${bootstrapPeersFile}"
+    export DN42_SDWAN_FILTER="${./sdwan-state.jq}"
+    export DN42_SDWAN_LEASE_SECONDS="${toString baseCfg.sdwan.leaseSeconds}"
+    source "${./sdwan-state.sh}"
+  '';
+
   selfMeshNode = dn42Data.mesh.${hostName} or { };
   selfIsNat =
     selfMeshNode.nat
@@ -498,7 +503,7 @@ let
   # ── SD-WAN Controller 轻量级 HTTP 同步处理脚本 ──
   # 用法:
   #   dn42-sdwan-controller-handler          通过 stdin/stdout 服务 HTTP (socat SYSTEM)
-  #   dn42-sdwan-controller-handler pull-peers 从其他主控拉取 registry 并按 build_time 合并
+  #   dn42-sdwan-controller-handler pull-peers 合并仍在租约内的远端注册
   sdwanControllerScript = pkgs.writeShellScript "dn42-sdwan-controller-handler" ''
     set -euo pipefail
     export PATH="${
@@ -517,37 +522,16 @@ let
     REGISTRY_DIR="''${DN42_SDWAN_STATE_DIR:-/var/lib/dn42-sdwan}"
     REGISTRY_FILE="$REGISTRY_DIR/registry.json"
     mkdir -p "$REGISTRY_DIR"
+    ${sdwanStateSetup}
 
-    if [ ! -s "$REGISTRY_FILE" ]; then
-      cp "${bootstrapPeersFile}" "$REGISTRY_FILE"
-    else
-      jq -s '
-        (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
-        reduce ($bootstrap | to_entries[]) as $item ($cache;
-           if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-           then .[$item.key] = $item.value else . end
-        )
-      ' "${bootstrapPeersFile}" "$REGISTRY_FILE" > "$REGISTRY_FILE.tmp" && mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
-    fi
-
-    # ── pull-peers 模式：主控间周期互同步，按最大 build_time 合并 ──
+    # Synchronisation preserves absolute expiry; copying a record is not a heartbeat.
     if [ "$MODE" = "pull-peers" ]; then
+      sdwan_state_update "$REGISTRY_FILE" init >/dev/null
       TOKEN=$(cat "${tokenFile}")
       for ctrl in ${lib.concatStringsSep " " peerControllerUrls}; do
         REMOTE_JSON=$(curl -fsSL --max-time 8 -H "X-DN42-Auth: $TOKEN" "$ctrl/peers" 2>/dev/null || true)
-        if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
-          (
-            flock -x 200
-            jq -s '
-              (.[0] // {}) as $orig | (.[1] // {}) as $new |
-              reduce ($new | to_entries[]) as $item ($orig;
-                 if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-                 then .[$item.key] = $item.value
-                 else . end
-              )
-            ' "$REGISTRY_FILE" <(echo "$REMOTE_JSON") > "$REGISTRY_FILE.tmp"
-            mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
-          ) 200>"$REGISTRY_DIR/registry.lock"
+        if [ -n "$REMOTE_JSON" ]; then
+          sdwan_state_update "$REGISTRY_FILE" merge <<< "$REMOTE_JSON" >/dev/null || true
         fi
       done
       exit 0
@@ -565,7 +549,9 @@ let
       if [[ "$lower_line" =~ ^content-length:[[:space:]]*([0-9]+) ]]; then
         content_length="''${BASH_REMATCH[1]}"
       elif [[ "$lower_line" =~ ^x-dn42-auth:[[:space:]]*(.*) ]]; then
-        auth_header="''${BASH_REMATCH[1]}"
+        auth_header="''${line#*:}"
+        auth_header="''${auth_header#"''${auth_header%%[![:space:]]*}"}"
+        auth_header="''${auth_header%"''${auth_header##*[![:space:]]}"}"
       fi
     done
 
@@ -575,25 +561,26 @@ let
       exit 0
     fi
 
-    if [ "$method" = "POST" ] && [ "$content_length" -gt 0 ]; then
-      body=$(head -c "$content_length")
-      if echo "$body" | jq -e 'type == "object"' >/dev/null 2>&1; then
-        (
-          flock -x 200
-          jq -s '
-            (.[0] // {}) as $orig | (.[1] // {}) as $new |
-            reduce ($new | to_entries[]) as $item ($orig;
-               if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-              then .[$item.key] = $item.value
-              else . end
-            )
-          ' "$REGISTRY_FILE" <(echo "$body") > "$REGISTRY_FILE.tmp"
-          mv "$REGISTRY_FILE.tmp" "$REGISTRY_FILE"
-        ) 200>"$REGISTRY_DIR/registry.lock"
+    if [ "$method" = "POST" ] && [ "$path" = "/sync" ]; then
+      if [ "$content_length" -le 0 ] || [ "$content_length" -gt 65536 ]; then
+        printf "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\nInvalid registration size\n"
+        exit 0
       fi
+      body=$(head -c "$content_length")
+      if ! resp=$(sdwan_state_update "$REGISTRY_FILE" register "$body"); then
+        printf "HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\nInvalid registration\n"
+        exit 0
+      fi
+    elif [ "$method" = "GET" ] && { [ "$path" = "/peers" ] || [ "$path" = "/sync" ]; }; then
+      if ! resp=$(sdwan_state_update "$REGISTRY_FILE" init); then
+        printf "HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\nRegistry unavailable\n"
+        exit 0
+      fi
+    else
+      printf "HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\nNot found\n"
+      exit 0
     fi
 
-    resp=$(cat "$REGISTRY_FILE")
     len=$(printf "%s" "$resp" | wc -c)
     printf "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n%s" "$len" "$resp"
   '';
@@ -617,6 +604,7 @@ let
               gnugrep
               findutils
               systemd
+              util-linux
             ]
           )
         }"
@@ -625,6 +613,7 @@ let
         CACHE_FILE="$STATE_DIR/peers.json"
         SWAN_D="''${DN42_SDWAN_CONF_DIR:-/run/swanctl/conf.d}"
         mkdir -p "$STATE_DIR" "$SWAN_D"
+        ${sdwanStateSetup}
 
         # 辅助函数：从 host:port 字符串中分离 host 与 port (支持 IPv6 [addr]:port 语法)
         extract_host_port() {
@@ -641,18 +630,8 @@ let
           fi
         }
 
-        # 1. 若本地缓存不存在，用 bootstrapPeersFile 初始化；若存在，按 build_time 版本合并静态配置
-        if [ ! -s "$CACHE_FILE" ]; then
-          cp "${bootstrapPeersFile}" "$CACHE_FILE"
-        else
-          jq -s '
-            (.[0] // {}) as $bootstrap | (.[1] // {}) as $cache |
-            reduce ($bootstrap | to_entries[]) as $item ($cache;
-               if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-              then .[$item.key] = $item.value else . end
-            )
-          ' "${bootstrapPeersFile}" "$CACHE_FILE" > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
-        fi
+        # Expired nodes disappear even when controllers cannot be contacted.
+        sdwan_state_update "$CACHE_FILE" init >/dev/null
 
         SELF_NAME="${hostName}"
         SELF_ID="${toString selfNodeId}"
@@ -705,7 +684,7 @@ let
         PUBLIC_V6=$(echo "$DISCOVERED_IPS" | jq -r '[.[] | select(.family == "inet6" and .is_private == false).local][0] // empty')
 
         # 2b. 提取或自适应扩充本机端点表（纯 NAT 节点绝不发布端点，保持 endpoints=[] 纯客户端模式）
-        STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
+        STATIC_ENDPOINTS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "${bootstrapPeersFile}" 2>/dev/null || echo "[]")
         SELF_ENDPOINTS="$STATIC_ENDPOINTS"
         if [ "$IS_NAT" != "true" ] && { [ "$SELF_ENDPOINTS" = "[]" ] || [ -z "$SELF_ENDPOINTS" ]; }; then
           NEW_EPS="[]"
@@ -722,7 +701,7 @@ let
 
         # Only contact controllers after the local configuration is ready.
         if [ "''${1:-}" = "--sync" ]; then
-          # 2c. 向 3 台主控上报本机状态，并拉取最新全网节点表合并到本地缓存
+          # 2c. Only this node's registration renews its lease.
           NOW=$(date +%s)
           SELF_PAYLOAD=$(jq -n \
             --arg name "$SELF_NAME" \
@@ -739,23 +718,17 @@ let
 
           TOKEN=$(cat "${tokenFile}")
 
+          if [ "${if baseCfg.sdwan.isController then "1" else "0"}" = "1" ]; then
+            REGISTRY_JSON=$(sdwan_state_update "$STATE_DIR/registry.json" register "$SELF_PAYLOAD")
+            sdwan_state_update "$CACHE_FILE" merge <<< "$REGISTRY_JSON" >/dev/null
+          fi
+
           for ctrl in "''${CONTROLLERS[@]}"; do
             REMOTE_JSON=$(curl -fsSL --max-time 4 -X POST -H "X-DN42-Auth: $TOKEN" -d "$SELF_PAYLOAD" "$ctrl/sync" 2>/dev/null || true)
-            if [ -n "$REMOTE_JSON" ] && echo "$REMOTE_JSON" | jq -e 'type == "object"' >/dev/null 2>&1; then
-              jq -s '
-                (.[0] // {}) as $orig | (.[1] // {}) as $new |
-                reduce ($new | to_entries[]) as $item ($orig;
-                  if (.[$item.key] == null) or (($item.value.build_time // 0) >= (.[$item.key].build_time // 0))
-                  then .[$item.key] = $item.value else . end
-                )
-              ' "$CACHE_FILE" <(echo "$REMOTE_JSON") > "$CACHE_FILE.tmp" && mv "$CACHE_FILE.tmp" "$CACHE_FILE"
+            if [ -n "$REMOTE_JSON" ]; then
+              sdwan_state_update "$CACHE_FILE" merge <<< "$REMOTE_JSON" >/dev/null || true
             fi
           done
-        fi
-
-        # 若本机是 Controller，将最新 peers.json 同步到 registry.json
-        if [ "${if baseCfg.sdwan.isController then "1" else "0"}" = "1" ]; then
-          cp "$CACHE_FILE" "$STATE_DIR/registry.json" 2>/dev/null || true
         fi
 
         # 3. 遍历 peers.json，热创建/维护多线路虚拟网卡 dn42x-* 与 swanctl 配置文件
@@ -770,7 +743,7 @@ let
         ACTIVE_IFACES=()
 
         # 本机已发布端点数量（对端将按该数量向本机各端点发起连接）
-        MY_EPS=$(jq -c --arg s "$SELF_NAME" '(.[$s].endpoints // []) | if type == "array" then . elif type == "object" then to_entries | map({name: .key, value: .value}) else [] end' "$CACHE_FILE" 2>/dev/null || echo "[]")
+        MY_EPS="$SELF_ENDPOINTS"
         MY_EPS_COUNT=$(echo "$MY_EPS" | jq 'length' 2>/dev/null || echo "0")
         case "$MY_EPS_COUNT" in ""|*[!0-9]*) MY_EPS_COUNT=0 ;; esac
 
@@ -861,6 +834,9 @@ let
           base_name=$(basename "$existing_conf")
           if ! [[ " ''${ACTIVE_CONF_FILES[*]} " =~ " ''${base_name} " ]]; then
             touch "$STATE_DIR/reload-pending"
+            old_conn="''${base_name#sdwan-}"
+            old_conn="''${old_conn%.conf}"
+            timeout 5 swanctl --terminate --ike "$old_conn" 2>/dev/null || true
             rm -f "$existing_conf"
           fi
         done
@@ -968,7 +944,7 @@ let
         #     - 仅对当前没有 IKE_SA 的连接发起，已建立的连接不触发 rekey 抖动
         #     - 每次发起带超时上限，对端宕机不会阻塞 agent（否则 timer 失速、全网停摆）
         #     - 覆盖对端宕机恢复、本端 charon 重试耗尽、NAT 客户端上线等场景
-        EXISTING_SAS=$(timeout 5 swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
+        EXISTING_SAS=$(timeout 5 swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9_-]+:' | tr -d ':' | sort -u || true)
         for inst in "''${ALL_TUNNEL_INSTANCES[@]}"; do
           IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
           [ "$t_saction" = "start" ] || continue
