@@ -10,6 +10,10 @@
 
 - [anti-balloon 内核/用户态架构、虚拟化回收机制与验证记录](./anti-balloon-architecture.md)
 
+- [小磁盘 Nix 部署、GC 保活机制与完整复现指南](./nix-copy-gc-architecture.md)
+
+包含当前无源码补丁的 A/B/C 阈值策略、历史保活实验、锁与 GC roots 的区别、问题解决记录、hkg5 完整依赖大小，以及无公网 IP 的 binary cache 拉取流程与生效边界。
+
 - [Apache Traffic Control (ATC) 分布式 CDN 架构与动态同步运维实战指南](./cdn-architecture.md)
   - **一、 宏观架构总览与分层解耦愿景**（五层架构全景图、各层职责边界）
   - **二、 核心子系统深度剖析与实现细节**

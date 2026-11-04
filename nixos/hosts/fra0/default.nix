@@ -203,18 +203,6 @@
         regions = [ "US" ];
       }
       {
-        name = "hkg0";
-        server = "hkg0";
-        port = 8555;
-        regions = [ "HK" ];
-      }
-      {
-        name = "hkg0-kxy";
-        server = "cu";
-        port = 50566;
-        regions = [ "HK" ];
-      }
-      {
         name = "hkg5";
         server = "hkg5";
         port = 8555;

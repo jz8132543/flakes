@@ -77,7 +77,8 @@ in
         ALTERO_PUBLIC_URL = "https://${zoteroHost}";
       };
       volumes = [
-        "${cfg.dataDir}/data:/data"
+        # Match the image's non-root UID/GID, including existing attachment files.
+        "${cfg.dataDir}/data:/data:U"
       ];
     };
 

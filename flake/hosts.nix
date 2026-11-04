@@ -89,9 +89,6 @@ let
     arx8 = {
       system = "x86_64-linux";
     };
-    nue0 = {
-      system = "x86_64-linux";
-    };
     fra0 = {
       system = "x86_64-linux";
     };
@@ -102,9 +99,6 @@ let
     #   system = "x86_64-linux";
     # };
     tyo0 = {
-      system = "x86_64-linux";
-    };
-    hkg0 = {
       system = "x86_64-linux";
     };
     hkg5 = {
@@ -119,24 +113,6 @@ let
     tyo1 = {
       system = "x86_64-linux";
     };
-    can0 = {
-      system = "x86_64-linux";
-    };
-    # can1 = {
-    #   system = "x86_64-linux";
-    # };
-    # can2 = {
-    #   system = "x86_64-linux";
-    # };
-    # xiy0 = {
-    #   system = "x86_64-linux";
-    # };
-    # xiy1 = {
-    #   system = "x86_64-linux";
-    # };
-    # xiy2 = {
-    #   system = "x86_64-linux";
-    # };
   };
 
   mkHostModules =

@@ -243,7 +243,6 @@
     jq
     nmap
     colmena
-    nixos-anywhere
     # tools
     yq-go
     fd
@@ -257,7 +256,6 @@
     inetutils
     findutils
     dnsutils
-    nixos-install-tools
 
     # Utils
     # gnutar

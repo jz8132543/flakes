@@ -72,11 +72,6 @@ locals {
       region = "HK"
       weight = 8
     },
-    # {
-    #   name   = "hkg0"
-    #   region = "HK"
-    #   weight = 8
-    # },
   ]
 
   # ── 加速业务映射 (Accelerated Services) ──────────────────────────────────────

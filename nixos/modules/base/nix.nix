@@ -2,10 +2,19 @@
   inputs,
   config,
   lib,
+  pkgs,
   self,
   ...
 }:
 {
+  # Bytes, exported for inspection and consumed when evaluating nix.conf/scripts.
+  # Shell exports do not change a running daemon; edit here and deploy instead.
+  environment.variables = {
+    NIX_GC_A = toString (4 * 1024 * 1024 * 1024); # A: prune all old generations below 4 GiB after deployment.
+    NIX_GC_B = toString (1024 * 1024 * 1024); # B: trigger emergency auto-GC below 1 GiB during imports/builds.
+    NIX_GC_C = toString (30 * 1024 * 1024 * 1024); # C: aim for 30 GiB free; stop when collectable garbage is exhausted.
+  };
+
   imports = [
   ];
   # Minimal registry: only register this flake to avoid evaluating all inputs
@@ -29,6 +38,7 @@
       # dates = "weekly"; # default: "03:15"
       options = "--delete-older-than 7d";
     };
+    package = pkgs.nixVersions.nix_2_35;
     settings = {
       connect-timeout = 2;
       stalled-download-timeout = 30;
@@ -54,8 +64,8 @@
       use-cgroups = true;
       auto-optimise-store = true;
       warn-dirty = false;
-      min-free = 3500 * 1024 * 1024; # 3.5 GiB: trigger auto-GC when free space drops below 3.5G
-      max-free = 5000 * 1024 * 1024; # 5.0 GiB: stop GC when free space recovers to 5.0G
+      min-free = lib.toInt config.environment.variables.NIX_GC_B;
+      max-free = lib.toInt config.environment.variables.NIX_GC_C;
       sandbox = true;
       keep-outputs = true;
       keep-derivations = true;

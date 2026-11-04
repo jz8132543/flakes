@@ -7,6 +7,7 @@
 }:
 let
   systemConfig = if osConfig == null then { } else osConfig;
+  minimal = systemConfig.environment.minimal or false;
   transport = config.programs.ssh.transport;
   terminalEnabled = transport.effectiveEnabled && transport.terminalValidated;
   nativeSsh = "${pkgs.openssh}/bin/ssh";
@@ -14,7 +15,7 @@ in
 {
   programs = {
     fish = {
-      enable = true;
+      enable = !minimal;
       shellAliases = {
         # ls = "${pkgs.eza}/bin/eza --icons=auto";
         # tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
@@ -167,7 +168,7 @@ in
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
+      enableFishIntegration = !minimal;
       settings = {
         # git
         git_commit.commit_hash_length = 7;
@@ -198,7 +199,7 @@ in
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
+      enableFishIntegration = !minimal;
       flags = [
         "--disable-up-arrow"
         # "--disable-ctrl-r"
@@ -222,7 +223,7 @@ in
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
+      enableFishIntegration = !minimal;
       historyWidget.command = "";
       tmux.enableShellIntegration = true;
     };
@@ -230,12 +231,12 @@ in
       enable = true;
       enableBashIntegration = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
+      enableFishIntegration = !minimal;
     };
     eza = {
       enable = true;
       enableZshIntegration = true;
-      enableFishIntegration = true;
+      enableFishIntegration = !minimal;
       git = true;
       icons = "auto";
     };
@@ -268,7 +269,8 @@ in
       ripgrep
       rsync
       vivid
-
+    ]
+    ++ lib.optionals (!minimal) [
       # Fish plugins from NixOS
       fishPlugins.autopair-fish
       fishPlugins.fish-you-should-use

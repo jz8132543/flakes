@@ -106,11 +106,6 @@ let
       capacity = 50;
     }
     {
-      name = "hkg0";
-      # hkg0 is not a CDN edge; its public address must be declared explicitly.
-      publicIp = "103.231.56.56";
-    }
-    {
       name = "hkg5";
       # 缺省字段由 normalizeNode 自动从 data.json 计算并补齐默认值
     }

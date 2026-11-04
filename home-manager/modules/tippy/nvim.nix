@@ -1,9 +1,15 @@
 {
+  lib,
+  osConfig ? { },
   ...
 }:
+let
+  systemConfig = if osConfig == null then { } else osConfig;
+  minimal = systemConfig.environment.minimal or false;
+in
 {
 
-  home.sessionVariables = {
+  home.sessionVariables = lib.mkIf (!minimal) {
     MANPAGER = "nvim -c 'Man!' -o -";
   };
 

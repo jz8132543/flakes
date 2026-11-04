@@ -57,6 +57,10 @@ in
       };
       # nix.nixPath has been renamed to nix.settings.nix-path
       nix.settings.nix-path = lib.mkForce [ ];
+      nixpkgs.flake = {
+        setNixPath = lib.mkForce false;
+        setFlakeRegistry = lib.mkForce false;
+      };
 
       # 4. Nix 运行环境优化与激进 GC
       nix.settings = {
@@ -74,7 +78,7 @@ in
 
       # 每次切换系统（无论是本地构建还是 colmena 等远程推送）后执行：
       # 1. 动态判断启用的 bootloader (grub / systemd-boot) 读取其 configurationLimit 值
-      # 2. 读取 nix.settings.min-free，如果当前 /nix/store 剩余空间低于 min-free，则直接清理所有历史版本
+      # 2. 独立使用顶部环境变量 NIX_GC_A，低于 A 时清理旧代数；不再复用推送中应急 GC 的 B
       # 3. 如果空间充足，则修剪保留最新的 limit 个 generation，并立即触发 GC 回收旧代数
       system.activationScripts.pruneOldGenerationsAndGc =
         let
@@ -87,11 +91,7 @@ in
               systemdBootCfg.configurationLimit
             else
               2;
-          minFreeBytes =
-            let
-              mf = config.nix.settings.min-free or null;
-            in
-            if mf != null then mf else (5 * 1024 * 1024 * 1024);
+          postDeployMinFreeBytes = lib.toInt config.environment.variables.NIX_GC_A;
         in
         {
           supportsDryActivation = false;
@@ -99,10 +99,10 @@ in
             # 仅在正常运行的系统切换（switch）时执行清理，严禁在初始安装、disko 制作镜像或 chroot 环境中执行 GC
             if [ -e /run/booted-system ] && [ -e /run/current-system ] && [ -z "$NIXOS_INSTALL_BOOTLOADER" ] && [ -e /nix/var/nix/profiles/system ]; then
               FREE_BYTES=$(${pkgs.coreutils}/bin/df -B1 --output=avail /nix/store 2>/dev/null | ${pkgs.coreutils}/bin/tail -n 1 | ${pkgs.coreutils}/bin/tr -d ' ')
-              THRESHOLD_BYTES=${toString minFreeBytes}
+              THRESHOLD_BYTES=${toString postDeployMinFreeBytes}
 
               if [ -n "$FREE_BYTES" ] && [ "$FREE_BYTES" -lt "$THRESHOLD_BYTES" ]; then
-                echo "[auto-gc] Free disk space ($FREE_BYTES bytes) is below min-free threshold ($THRESHOLD_BYTES bytes)!"
+                echo "[auto-gc] Free disk space ($FREE_BYTES bytes) is below post-deploy threshold A ($THRESHOLD_BYTES bytes)!"
                 echo "[auto-gc] Purging ALL older system generations..."
                 ${config.nix.package}/bin/nix-env -p /nix/var/nix/profiles/system --delete-generations old || true
               else
@@ -141,8 +141,8 @@ in
       services.eternal-terminal.enable = lib.mkForce false;
       services.restic.backups = lib.mkForce { };
 
-      # 9. 精简 Shell 与核心工具，移除 Python/Perl 依赖
-      # programs.fish.enable = lib.mkForce false;
+      # 9. 使用 Bash；Python/Perl 若仍被服务引用，不能仅靠禁用 shell 移除。
+      programs.fish.enable = lib.mkForce false;
       # programs.zsh.enable = lib.mkForce false;
       # programs.mosh.enable = lib.mkForce false;
       # programs.command-not-found.enable = lib.mkForce false;
@@ -163,17 +163,15 @@ in
       # 登出时杀死用户所有的后台进程 (释放 systemd --user 及残留程序大约 26MB 的内存)
       services.logind.settings.Login.KillUserProcesses = lib.mkForce true;
 
-      # 允许在使用 minimal 模式时禁用用户的默认 Shell
-      # users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;
-      # users.users.tippy.ignoreShellProgramCheck = true;
+      users.defaultUserShell = lib.mkForce pkgs.bashInteractive;
+      users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;
 
-      # Disable heavy nvf and enable lightweight neovim in minimal environment
+      # Keep the real Vim from baseline-apps, without nvf/neovim aliases.
       programs.nvf.enable = lib.mkForce false;
-      programs.neovim = {
-        enable = lib.mkForce true;
-        defaultEditor = lib.mkForce true;
-        viAlias = lib.mkForce false;
-        vimAlias = lib.mkForce true;
+      programs.neovim.enable = lib.mkForce false;
+      environment.sessionVariables = {
+        EDITOR = lib.mkForce "vim";
+        VISUAL = lib.mkForce "vim";
       };
 
       home-manager.users.tippy = {
@@ -182,6 +180,10 @@ in
         #   xdg.configFile = lib.mkForce { };
         #   home.sessionVariables = lib.mkForce { };
         programs = {
+          bash.enable = true;
+          fish.enable = lib.mkForce false;
+          neovim.enable = lib.mkForce false;
+          man.enable = lib.mkForce false;
           #     git.enable = lib.mkforce false;
           #     delta.enable = lib.mkforce false;
           #     fish.enable = lib.mkforce false;
@@ -197,6 +199,11 @@ in
           atuin.enable = lib.mkForce false;
           #     starship.enable = lib.mkforce false;
           #     skim.enable = lib.mkforce false;
+        };
+        manual = {
+          html.enable = lib.mkForce false;
+          manpages.enable = lib.mkForce false;
+          json.enable = lib.mkForce false;
         };
         services.gpg-agent.enable = lib.mkForce false;
       };
