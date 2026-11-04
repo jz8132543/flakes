@@ -76,18 +76,21 @@ data "assert_test" "dn42_endpoint_count" {
 #### 1. 三主控高可用与轻量注册中心 (`dn42-sdwan-controller.service`)
 
 - **部署位置**：默认常驻在拥有稳定公网双栈 IP 的 `fra0`、`sjc0`、`cu` 节点上，监听 `TCP 54500`。
-- **极简零依赖实现**：使用系统原生 `socat` + `jq`，利用 `flock` 保证写安全，内存开销 < 5MB。
-- **主控互同步算法**：各主控定时通过 `--pull-peers` 相互抓取对方的 `/peers`，基于 `build_time`（`self.lastModified`）单调递增原则合并：
-  $$\text{Merged}[k] = \begin{cases} \text{Remote}[k], & \text{if } \text{Remote}[k].\text{build\_time} \ge \text{Local}[k].\text{build\_time} \\ \text{Local}[k], & \text{otherwise} \end{cases}$$
-- **抗灾韧性**：即使全部三台主控同时宕机，各节点本地均有 `/var/lib/dn42-sdwan/peers.json` 持久化缓存以及 Flake 编译期内嵌的 `bootstrapPeersJson`，存量隧道毫秒不中断。
+- **轻量实现与共用状态库**：HTTP 服务使用 Bash + `jq` + `socat`，Controller 与 Agent 共用 `sdwan-state.sh` / `sdwan-state.jq`，统一校验、迁移、合并、过期过滤和原子写入，不依赖 Python。
+- **主控互同步调度**：`dn42-sdwan-controller-sync.service` 以 `pull-peers` 模式抓取其他主控的 `/peers`。其 timer 为 `OnBootSec=20s`、`OnUnitInactiveSec=60s`、`AccuracySec=5s`，即上一轮服务结束后再等待约 60 秒，不是固定每分钟启动。
+- **动态成员而非节点白名单**：Nix/Terraform 声明只提供 bootstrap 配置，不决定运行时注册资格。持有共享认证 token 的手机、Windows 等未声明节点，也可通过 `POST /sync` 注册；不能仅因节点不在 bootstrap 中就删除其有效租约。
+- **兼容原接口**：保留 `POST /sync` 与 `GET /peers`，并兼容 `GET /sync` 读取有效 map；认证 header 为 `X-DN42-Auth`，请求与响应仍使用 plain node-map。`/sync` 注册请求必须只包含一个节点，响应与 `/peers` 返回可包含多个节点；不引入全局快照版本或新 envelope 协议。
+- **租约优先合并**：先判断记录是否过期，再优先比较 `last_seen` 选择较新的运行时记录；同一活动时间下，`build_time`（`self.lastModified`）作为配置更新辅助，再比较 expiry 并作确定性平局处理。`build_time` 不能单独证明节点存活。主控互同步、Agent 拉取/合并都保留记录原有的绝对到期时间，不把接收时刻当作续约时刻。
+- **主控故障边界**：各节点可在有效租约内使用 `/var/lib/dn42-sdwan/peers.json` 持久化缓存。全主控失联时，已有隧道不必立即拆除，但租约仍会到期并在后续维护中回收，不能承诺永久不中断；反复读取 bootstrap 也不能延长存活期。
 
 #### 2. 自愈 Agent (`dn42-sdwan-agent.service`)
 
-- **定时调度**：每 30 秒执行一次同步。
+- **定时调度**：timer 为 `OnBootSec=5s`、`OnUnitInactiveSec=30s`、`AccuracySec=5s`。下一轮在本轮服务结束后再等待约 30 秒，启动间隔还包含整轮同步和握手的耗时。故障期间观察到单轮约 76~88 秒，因此实际启动间隔约 106~120 秒，而非固定 30 秒。
+- **真实上报续约**：Agent 向 Controller 提交本机的单节点 map；只有此类真实注册/本机 Agent 上报更新 `last_seen` 与 `lease_expires_at`，转发其他节点记录不续约。Controller 本机的活跃注册直接合并写入自己的 `registry.json`，不得用整份 `peers.json` 覆盖 registry、丢失并发注册。
 - **自愈式握手补偿**：
-  为避免死机节点（如离线 VPS）阻塞 agent，导致系统级定时器停摆，设计了带超时的非阻塞握手探测：
+  对有效租约内尚未建立 IKE_SA 的连接补发握手，并给单次 `swanctl` 命令设置超时。单次超时不代表整轮固定耗时，也不保证取消 charon 内部已经启动的解析/协商工作：
   ```bash
-  EXISTING_SAS=$(swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9-]+:' | tr -d ':' | sort -u || true)
+   EXISTING_SAS=$(swanctl --list-sas 2>/dev/null | grep -oE '^[a-z0-9_-]+:' | tr -d ':' | sort -u || true)
   for inst in "${ALL_TUNNEL_INSTANCES[@]}"; do
     IFS=';' read -r _ _ t_conn _ _ _ t_saction _ _ _ _ <<< "$inst"
     [ "$t_saction" = "start" ] || continue
@@ -98,6 +101,33 @@ data "assert_test" "dn42_endpoint_count" {
   done
   ```
 - **增量热重载**：仅在 `/run/swanctl/conf.d/` 生成的配置文件内容与既有配置发生哈希变化时，才触发 `swanctl --load-all`，实现配置无感刷新。
+- **过期清理**：每次维护先过滤过期 peer，再按有效集合生成配置。已不在有效集合中的 `dn42x-*` XFRM 接口、`sdwan-*.conf` 配置及对应 SA 都必须清理；Agent 对陈旧连接执行对应的 `swanctl --terminate`，不能只删 JSON 或配置文件后留下存量 SA。
+
+#### 3. 租约字段、种子宽限与旧协议迁移
+
+以下描述本次动态租约改造的约定，不代表运行节点已经部署新实现。配置与验收方法见 4.3，故障证据与修复边界见 3.8。
+
+| 字段 / 来源        | 语义与更新边界                                                                                                                            |
+| :----------------- | :---------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_seen`        | Unix 秒，记录真实注册/本机 Agent 上报的活动时间；中继同步、bootstrap 重读不能刷新。                                                       |
+| `lease_expires_at` | Unix 秒，绝对到期时间。正常真实注册由接收端按 `last_seen + services.dn42.sdwan.leaseSeconds` 生成，默认 TTL 为 `600` 秒；同步时原值传播。 |
+| `updated_at`       | 保留旧协议兼容字段。没有新租约但具有正常非零旧时间戳的记录，按原 `updated_at + TTL` 迁移，不能按当前接收时间重置 TTL。                    |
+| `build_time`       | 配置辅助时间戳，通常来自 Flake Git 提交时间；不是心跳、不是全局快照版本，也不是成员授权依据。                                             |
+| bootstrap 种子     | 首次为当前声明中的节点提供一次默认 10 分钟宽限，持久化每个种子的固定 expiry；没有真实上报时不得把种子视作新的 `last_seen`。               |
+
+- **到期判定**：`lease_expires_at <= 当前 Unix 时间` 的记录过期，在 registry/cache 的每次维护中剔除。实际隧道回收发生在后续 Agent 维护轮次，不保证在第 600 秒整完成；系统时间必须可靠，主控与边缘应保持时钟同步。
+- **一次性种子**：bootstrap 为冷启动提供短期可用配置，不是永久成员库。每个种子的到期时间写入对应状态文件的 `STATE.bootstrap.json`，即 `peers.json.bootstrap.json` / `registry.json.bootstrap.json`，跨重复执行和重启持久化。对仍在当前 bootstrap 中的名称，即使 peer 已从有效 map 中移除，也保留其固定 expiry；配置更新不刷新该名称的宽限。从 bootstrap 删除的名称不再保留为当前种子，仍可凭合法动态注册重新入网。
+- **旧记录迁移**：没有有效新租约且 `updated_at=0` 的历史条目不具备活动证据。仅当前 bootstrap 中首次出现的种子可按上述一次性规则获得宽限；不在 bootstrap 的旧 `nue0` 不会因此获租，应自动清除。旧协议正常记录若 `updated_at + TTL` 仍在未来可继续使用，否则直接过期。
+- **重新上线**：过期节点可随时重新发送合法的、通过认证的单节点 `POST /sync` 获得新租约，随后由 Agent 重建连接。动态节点不需要补入 Nix 声明，较旧的 `build_time` 也不能阻止真实新注册。
+- **只同步不续命**：反复拉取同一主控、主控互同步、重启服务、重读 Nix bootstrap 都不能刷新他人的租约。删除声明/DNS 本身不是运行时撤销通知；停止真实上报后才按已有租约到期回收。
+
+#### 4. 状态写入与非法输入保护
+
+- **统一 per-file 锁**：同一状态文件的所有读改写路径都使用共用状态库和同一个稳定的 `STATE.lock`，即 `peers.json.lock` / `registry.json.lock`，种子 sidecar 也在对应锁内维护；旧 `registry.lock` 不再使用。锁覆盖初始化、bootstrap 合并、注册、主控互同步、Agent 缓存合并、旧协议迁移和过期过滤的完整读取到提交过程，不能仅在某一条 POST 路径加锁。
+- **唯一临时文件与原子替换**：在目标文件所在目录创建唯一临时文件，生成并验证完整 JSON 与节点结构后再原子 `rename` 替换；失败不能提交空文件或半份 JSON。不再允许固定共享 `.tmp` 文件与绕过锁的 `cp peers.json registry.json` 路径。
+- **注册安全校验**：认证成功后，仍须校验请求是单份 JSON 文档中的单节点 map、节点名与端点名/地址可安全用于配置、节点 ID 为整数 `1..99` 且不与有效集合中其他名称重复、端点最多 9 个，以及地址/端口等字段类型与范围。注册 body 限制为 `1..65536` 字节。不能把任意 JSON 字符串直接拼入 shell、接口名或 swanctl 配置；客户端自报的租约不能替代接收端的真实注册时间。
+- **损坏状态处理**：非法远端 JSON 或非法注册应记录告警并拒绝进入状态库；非法本地 registry/cache 主文件应记录告警并由受控 bootstrap 重建合法状态，而不是回传坏 JSON。恢复仍必须遵守已持久化的种子 expiry；若种子历史自身损坏，则拒绝更新并保留故障证据，不能猜测当前时间并重新发宽限。认证失败为 `401`，注册非法/失败为 `400`，读取时状态维护失败为 `503`，未知接口为 `404`。
+- **认证边界**：共享 token 是集群级凭证，不等于每节点独立身份验证，格式校验也不证明申报地址可达或为申报者所有。通过运行时密钥文件提供认证材料，不在文档、Nix Store 或日志中写入明文 token；公网明文 HTTP 不提供保密性，应通过受保护网络或 TLS 入口访问。
 
 ---
 
@@ -494,11 +524,38 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 
 ---
 
+### 3.8 问题八：已撤除节点残留、重复 DNS 重试与状态写入风险
+
+#### 1. 已确认的故障链与证据边界
+
+2026-11-04 排查 `hkg5` 的周期性 strongSwan 报错时，确认以下链路：
+
+1. **声明与 DNS 已撤除**：提交 `df081d4`（2026-10-24）从 Terraform DNS/主机声明以及 `lib/data/data.json` 的 SD-WAN 拓扑中删除 `nue0`。当前 bootstrap 不含 `nue0`；其 Flake 主机定义/目录仍存在，不足以证明 VPS 本身已经停机。
+2. **旧缓存仍存在**：`fra0`、`hkg5` 的旧运行态保留了 10 月 22 日的 `nue0` 配置，端点仍是 `nue0.dora.im:4500`。旧合并机制仅新增/覆盖且以 `build_time` 优先，没有租约回收，因此旧记录继续生成 XFRM 和 swanctl 配置。
+3. **失败来自权威 NXDOMAIN**：直接权威查询确认 `nue0.dora.im` 返回 NXDOMAIN；strongSwan 解析该地址失败，`%any` 并不能充当主动握手的可达目标。Agent 对未建立 SA 的连接反复补发，表现为约每 106~120 秒出现一次解析/发起失败，间隔来自整轮执行耗时加 `OnUnitInactiveSec=30s`。
+4. **不是 CDN 故障或 CPU 100% 主因**：这是 SD-WAN 陈旧成员与已删除公网 DNS 记录之间的不一致，不能归因于 CDN 调度。同期 CPU 满占用的主要证据指向虚拟机的高 `steal`，这些周期性解析失败不是其主因；修复注册表也不能承诺消除宿主机 CPU 争用。
+5. **另有状态一致性风险，但未唯一归因**：`fra0` 期间观察到 NUL/JSON 解析错误。旧代码存在多个写入路径、部分写入绕过锁、共享临时文件以及 Agent 直接覆盖 registry 的行为，具备竞态和原子性风险；尚不能声称已将所见损坏唯一追踪到某一条写入路径。
+
+#### 2. 解决方案与取舍
+
+采用 2.2 所述动态 lease 合并机制，而不是节点白名单、全局权威快照版本、手工删除某台机器缓存或恢复已撤除节点的 DNS：
+
+- **回收陈旧成员**：旧 `nue0` 不在 bootstrap，且旧记录 `updated_at=0`、没有有效租约，因此在状态维护时清除；不需要按节点名硬编码特例。不只清理 `hkg5` 一份缓存，所有主控/边缘统一过滤，避免旧主控再次灌回。
+- **保留合法动态注册**：手机、Windows 等未知于 Nix 的节点，凭认证 token 和合法单节点上报正常加入，不因为缺少声明而被清理。
+- **阻止缓存相互续命**：旧协议用原时间戳迁移，新协议传播原绝对 expiry，bootstrap 只发一次种子宽限；接收远端缓存不是观察到了节点本人在线。
+- **回收数据面**：Agent 按有效 peer 集合删除陈旧 XFRM、swanctl 配置并 terminate 对应 SA，从源头停止为已过期节点补发握手。
+- **收敛所有写入路径**：Controller 与 Agent 共用 Bash+jq 状态库，完整 per-file `flock`、唯一 temp、验证后原子 rename；Controller 本机 Agent 只合并本机注册，不再整份覆盖其他注册。
+- **允许到期造成中断**：默认 10 分钟在现有较慢 Agent 周期下提供余量，但不是无限容灾。离线/控制面失联超过 TTL 后允许回收和短暂业务中断，不以延长他人租约或复活过期种子来掩盖故障；节点真实重新注册后恢复。
+
+此方案只管理运行时 SD-WAN 成员与连接，不会自动为动态节点生成 Terraform DNS、ATC/CDN 记录、Mihomo 订阅或原生手机/Windows 的完整 IKE/Babel 客户端配置。
+
+---
+
 ## 四、 关键配置与运维指南
 
-### 4.1 节点扩展最佳实践（零接触）
+### 4.1 声明式服务器扩展最佳实践（零接触）
 
-未来若向集群中加入新节点 `tyo2`：
+以下是需要 Terraform DNS、订阅等配套配置的声明式服务器流程，不是运行时节点准入白名单。手机/Windows 等动态客户端见 4.3。未来若向集群中加入新服务器 `tyo2`：
 
 1. 在 `terraform/hosts.tf` 中追加机器定义（主机名、公网解析记录、host_indices 等）；
 2. 执行 `terraform-pipe`（或 `terraform apply`）：
@@ -526,3 +583,97 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 | **SmartDNS 本地响应** | `dig @127.0.0.1 -p 5335 www.baidu.com`                                                                    | Query time < 30ms，并发竞速秒回                                        |
 | **CoreDNS 权威解析**  | `dig @172.20.232.1 dora.dn42 SOA +short`<br>`dig @172.20.232.1 tyo0.dora.dn42 +short`                     | 返回 `ns1.dora.dn42.` 与对应节点内网 IP                                |
 | **Mihomo 节点延迟**   | `curl -s http://127.0.0.1:9090/proxies/<name>/delay?timeout=5000&url=http://www.gstatic.com/generate_204` | 返回 `{"delay": <ms>}`，无超时或 DNS 失败                              |
+
+### 4.3 动态租约配置、客户端注册与部署后验证
+
+#### 1. 配置选项
+
+| 选项                                 | 默认值 / 来源                                   | 用途                                                                                                                          |
+| :----------------------------------- | :---------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| `services.dn42.sdwan.enable`         | `true`                                          | 启用动态 SD-WAN。                                                                                                             |
+| `services.dn42.sdwan.isController`   | 当前节点 `is_controller` 声明，未声明为 `false` | 启用注册中心及主控互同步。                                                                                                    |
+| `services.dn42.sdwan.controllerPort` | `54500`                                         | HTTP 控制接口监听端口，不是 IKE/NAT-T 端口。                                                                                  |
+| `services.dn42.sdwan.leaseSeconds`   | `600` 秒                                        | 动态注册 TTL，以及首次 bootstrap 种子宽限的默认时长；不改变 timer 调度语义。                                                  |
+| `services.dn42.mesh.ipsec.pskFile`   | `null`；应显式指定运行时密钥文件                | 当前控制面共用的认证 token 文件来源；通过 sops-nix 等运行时提供。保留的 `psk` 回退会生成 Store 文件，不应使用其承载真实秘密。 |
+
+`leaseSeconds` 应覆盖预期整轮执行时间、调度等待与网络抖动，不能根据“每 30 秒固定执行”的错误假设过度缩短。同步已携带新字段的记录时保留其绝对 expiry；不要假定调整本机 TTL 会立即重算所有远端租约。
+
+#### 2. 手机 / Windows 必须主动 HTTP 注册
+
+**普通手机/Windows IKE 连接不自动加入 registry。** IKE 身份验证、网络地址分配与 `POST /sync` 是不同的过程；客户端必须另外运行注册/心跳程序，持有控制面共享 token，向至少一个可达 Controller 主动上报，并在租约到期前周期续约。仅打开系统原生 VPN 或连接 IKE 并不是心跳。
+
+注册程序发送 `POST /sync`，header 包含 `X-DN42-Auth` 与 `Content-Type: application/json`，body 为单节点 map。以下仅展示结构，`203.0.113.20` 是文档示例地址，实际需替换为可达端点并分配不与现有节点冲突的 ID/内网地址；不需要给节点添加 Nix 白名单：
+
+```json
+{
+  "win50": {
+    "id": 50,
+    "dn42_ip4": "172.20.232.50",
+    "dn42_ip6": "fd53:90fd:4bb6:32::1",
+    "endpoints": [
+      { "name": "wan4", "addr": "203.0.113.20", "family": "ipv4", "port": 4500 }
+    ],
+    "nat_t_port": 4500,
+    "ike_port": 500,
+    "pubkey": "",
+    "build_time": 0,
+    "updated_at": 0
+  }
+}
+```
+
+新租约时间由 Controller 在真实接收注册时生成，客户端无需伪造 `last_seen` 或 `lease_expires_at`。端点兼容上述数组，以及旧的 `{端点名: "host:port"}` map；无可发布公网端点时可为空集合。纯 NAT 客户端不得为了注册而填入 TUN/Fake-IP 等虚假公网地址；是否能建链还取决于其 IKE 配置、NAT、端点和路由能力，注册成功不等于数据面已经连通。
+
+节点离线但未超过 TTL 时仍在有效 map 中；超过 TTL 后被各处维护回收。重新上线需重新发送合法注册，不能只让其他主控重传旧缓存。租约过期并不是永久封禁，动态客户端仍可用原 ID 合法重新加入。
+
+#### 3. 部署后只读验证
+
+以下命令供所有节点部署新实现后由运维者执行，**本次文档修订未 SSH、未部署，也未执行这些运行态验收**。命令只读，不包含 POST、重启、删除状态或主动发起/终止 SA；失联/重新上线与并发写入情景应在单独测试环境验证，不通过生产节点破坏性命令模拟。
+
+**检查实际调度与服务耗时**：
+
+```bash
+systemctl cat dn42-sdwan-agent.timer dn42-sdwan-controller-sync.timer
+systemctl list-timers --all 'dn42-sdwan-*'
+systemctl show dn42-sdwan-agent.service -p ExecMainStartTimestamp -p ExecMainExitTimestamp
+journalctl -u dn42-sdwan-agent.service -u dn42-sdwan-controller.service -u dn42-sdwan-controller-sync.service --since '30 minutes ago' --no-pager
+```
+
+非 Controller 没有主控 timer/service 属正常情况。确认 Agent 的 inactive 间隔为 30 秒、主控为 60 秒，日志中的起始间隔还包含本轮耗时；关注状态校验/恢复告警，不把告警消失单独当作完整修复证明。
+
+**检查本地 JSON、有效租约与旧节点清理**：
+
+```bash
+sudo jq -se 'length == 1 and (.[0] | type == "object")' /var/lib/dn42-sdwan/peers.json
+sudo jq -se 'length == 1 and (.[0] | type == "object")' /var/lib/dn42-sdwan/registry.json
+sudo jq 'with_entries(.value |= {last_seen, lease_expires_at})' /var/lib/dn42-sdwan/peers.json.bootstrap.json
+sudo jq 'with_entries(.value |= {last_seen, lease_expires_at})' /var/lib/dn42-sdwan/registry.json.bootstrap.json
+sudo jq --argjson now "$(date +%s)" 'to_entries | map({name: .key, last_seen: .value.last_seen, lease_expires_at: .value.lease_expires_at, remaining_seconds: ((.value.lease_expires_at // 0) - $now)})' /var/lib/dn42-sdwan/peers.json
+sudo jq --argjson now "$(date +%s)" '[to_entries[] | select((.value.lease_expires_at // 0) <= $now) | .key]' /var/lib/dn42-sdwan/peers.json
+sudo jq 'has("nue0")' /var/lib/dn42-sdwan/peers.json
+sudo jq 'has("nue0")' /var/lib/dn42-sdwan/registry.json
+```
+
+registry 及其种子 sidecar 仅在 Controller 上检查。完整维护后有效 map 的过期列表应为空；未真实注册的旧 `nue0` 应为 `false`。种子 sidecar 允许保留已过期的固定 expiry，重复维护时该值不能推进，不能将其误判为需要删除的活跃 peer。`jq` 语法校验不是完整节点安全校验，仍需结合共用状态库测试。活跃节点的租约应随本人上报推进，只有中继同步的节点 expiry 不应因同步而改变；读取快照与下一次维护之间可能存在到期时间差。
+
+**检查主控 `/peers` 与数据面**：先通过安全的运行时方式为本机 shell 提供 `DN42_AUTH_TOKEN`，不要把秘密写入文档或命令历史。以下 GET 示例通过 stdin 传 header，不把 token 直接放入 curl 参数；在 Controller 本机读取回环接口：
+
+```bash
+printf 'X-DN42-Auth: %s\n' "${DN42_AUTH_TOKEN:?}" | curl -fsS --max-time 8 --header @- http://127.0.0.1:54500/peers | jq -se 'length == 1 and (.[0] | type == "object" and (has("nue0") | not))'
+ip -d link show type xfrm
+sudo swanctl --list-conns
+sudo swanctl --list-sas
+sudo rg -n 'nue0' /run/swanctl/conf.d
+dig @dion.ns.cloudflare.com nue0.dora.im A +norecurse
+vmstat 1 5
+```
+
+对各 Controller 分别读取 `/peers`，确认合法动态节点能保留，而旧 `nue0` 不会从其他主控再次回灌。GET 本身不注册/续约，但服务端会在返回 map 前维护并过滤到期记录。XFRM、已加载连接、SA 和生成配置中都不应有过期节点；`rg` 无匹配时退出码为 1 是预期。历史权威 NXDOMAIN 应结合当前 DNS 声明解释，不以“恢复旧 DNS”为验收条件；`vmstat` 的 `st` 用于独立观察 steal，不能把 SD-WAN 清理成功等同于 CPU 资源问题已解决。
+
+#### 4. 仓库回归测试（不部署）
+
+```bash
+nix build path:.#checks.x86_64-linux.dn42-sdwan-state-test --no-link
+```
+
+测试使用临时状态目录和隔离命令替身，验证租约续期/过期、种子不复活、动态注册、并发写入、非法输入拒绝，以及实际生成的 Controller HTTP 和 Agent 清理流程，不连接生产节点或启动生产服务。`path:.` 包含工作区新增文件，并使用仓库锁定输入，不依赖全局 Flake registry。

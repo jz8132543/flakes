@@ -160,8 +160,10 @@ in
       };
       services.earlyoom.enable = true;
 
-      # 登出时杀死用户所有的后台进程 (释放 systemd --user 及残留程序大约 26MB 的内存)
-      services.logind.settings.Login.KillUserProcesses = lib.mkForce true;
+      # Upstream reloadIfChanged reloads logind safely when this trigger changes.
+      systemd.services.systemd-logind.restartTriggers = [
+        config.environment.etc."systemd/logind.conf".source
+      ];
 
       users.defaultUserShell = lib.mkForce pkgs.bashInteractive;
       users.users.tippy.shell = lib.mkForce pkgs.bashInteractive;

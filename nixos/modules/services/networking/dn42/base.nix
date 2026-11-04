@@ -277,6 +277,12 @@ in
         default = 54500;
         description = "SD-WAN 控制端轻量级 HTTP JSON 同步端口";
       };
+
+      leaseSeconds = mkOption {
+        type = types.ints.positive;
+        default = 600;
+        description = "Dynamic registration lease in seconds. Only node registration renews it; bootstrap and peer synchronisation do not.";
+      };
     };
   };
 

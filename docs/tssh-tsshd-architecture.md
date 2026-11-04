@@ -347,6 +347,20 @@ tssh不再先做一轮短名称 canonicalization，再调用已经处理 `dn42,d
 
 此修复不改变已观察到的公网 IPv4直连回程过滤，也不保证所有运营商/网络都允许 UDP。若部署者以后从整个工作树更新，应继续保留该网络选项及模块；不要只手工改变运行时文件。
 
+### 10.7 minimal 登出清理杀死 hkg5 的 tsshd
+
+2026-11-04 在 fra0执行 `ssh hkg5` 时，自动传输出现远端 `receiving signal [terminated]` 与总线关闭；原生 SSH或显式 `--tcp` 均成功。新建 fra0 KCP会话的 agent能够列出密钥，因此 agent缺失不是这个传输失败的必要条件。
+
+在 hkg5创建一个新按需 tsshd（PID 50112），实测其 cgroup为 `/user.slice/user-1000.slice/session-18.scope`。启动 SSH会话结束后，journal明确记录 `session-18.scope: Killing process 50112 (tsshd) with signal SIGTERM.`。实际 `KillUserProcesses=true` 来自 `optimize/minimal.nix` 的强制登出清理，与后台 tsshd启动方式冲突；`nohup` 或 `setsid` 不会脱离 systemd scope。
+
+按用户要求已删除 minimal中 `services.logind.settings.Login.KillUserProcesses = lib.mkForce true;` 及对应说明，让 NixOS默认 `false` 生效。不是删除 `KillExcludeUsers`：该项本来未配置，删除它也不会关闭用户进程清理。12台配置求值均为 `KillUserProcesses=false`，OpenSSH及监听端口不变，并在传输策略检查中加入回归断言。
+
+删除强制策略时未直接部署。用户随后更新本机和 hkg5后，hkg5文件配置已为 `false`，但登录管理器的 D-Bus `KillUserProcesses` 属性仍为 `true`，所以旧进程仍在执行旧清理策略。hkg5的 systemd-logind为 `Type=notify-reload`，已仅执行 `systemctl reload systemd-logind.service`，未重启会话管理器；运行属性变为 `false`，主进程启动时间不变。复测 `fra0 → hkg5` 的真实嵌套 KCP成功，父进程为 tsshd，新日志为“等待进程退出”，不再 SIGTERM杀后台进程。
+
+为避免下一次“配置已更新但未加载”，minimal已给 logind增加 `restartTriggers = [ config.environment.etc."systemd/logind.conf".source ]`；上游现有 `reloadIfChanged=true` 会把该变化作为安全重载，不是服务重启。求值和传输策略检查验证了配置被跟踪；这个后续触发器源码仍需下次常规部署。副作用是 minimal不再强制清理用户退出后的所有后台进程，这是移除该优化的明确取舍，不增加新服务或 tssh依赖。
+
+原先 fra0上的 `agent-428847-1` 由旧 tsshd PID 428847提供，进程退出后套接字会消失，但旧 shell/tmux仍可能持有其 `SSH_AUTH_SOCK`。新策略不会重建旧套接字；应建立新会话或刷新到同一用户仍存活的 agent。不要把 hkg5的 SIGTERM说成它直接删除了 fra0的文件。
+
 ## 11. 部署与回滚边界
 
 后续部署仍需单独决策。先部署兼容服务器包及标识，并保留独立 TCP救援会话，再迁移客户端。没有共享监听器、sysctl、NAT穿透或自动舰队部署。

@@ -71,10 +71,9 @@ in
         __GL_GSYNC_ALLOWED = "1";
         __GL_SYNC_TO_VBLANK = "1";
         __GL_VRR_ALLOWED = "1";
-        __NV_WAYLAND_PROTOCOL_VERSIONS = "wp_commit_timing_manager_v1=0";
+        # __NV_WAYLAND_PROTOCOL_VERSIONS = "wp_commit_timing_manager_v1=0";
         SDL_VIDEODRIVER = "wayland";
       };
-
     }
 
     (lib.mkIf (cfg.mode == "offload") {
