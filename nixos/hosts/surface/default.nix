@@ -1,6 +1,5 @@
 {
   nixosModules,
-  lib,
   pkgs,
   ...
 }:
@@ -24,16 +23,9 @@
 
   optimize.brutal.target = "!cn";
 
-  # hardware.microsoft-surface = {
-  #   kernelVersion = "longterm";
-  # };
-  services.iptsd.enable = lib.mkForce false;
-
   desktop.nvidia = {
     mode = "sync";
   };
-
-  users.users.tippy.extraGroups = [ "surface-control" ];
 
   # services.create_ap = {
   #   enable = true;
@@ -54,7 +46,6 @@
   environment.systemPackages = with pkgs; [
     efibootmgr
     pciutils
-    surface-control
     usbutils
     v4l-utils
     # ms365
