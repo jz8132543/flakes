@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise generated network workers in isolated user-systemd services."""
 
+import fcntl
 import json
 import os
 from pathlib import Path
@@ -190,10 +191,9 @@ fi
         )
         script = re.sub(r'TOKEN=\$\(cat "[^"]+"\)', "TOKEN=test-token", script)
         self.start_worker(script, self.config["agent"], timer=True)
-        self.assertTrue(list((self.root / "conf").glob("sdwan-*.conf")))
-        self.assertTrue((self.root / "state" / "reload-pending").exists())
         (self.root / "fail-reload").touch()
         self.recover_network()
+        self.assertTrue(list((self.root / "conf").glob("sdwan-*.conf")))
         self.assertTrue((self.root / "state" / "reload-pending").exists())
         (self.root / "fail-reload").unlink()
         self.wait_for(
@@ -201,6 +201,22 @@ fi
             and not (self.root / "state" / "reload-pending").exists(),
             "Pending configuration reload was lost across offline failures",
         )
+
+    def test_dn42_readiness_does_not_wait_for_local_state_lock(self):
+        state = self.root / "state"
+        state.mkdir()
+        script = self.agent_script.replace(
+            'export PATH="', f'export PATH="{self.bin}:', 1,
+        )
+        script = re.sub(r'TOKEN=\$\(cat "[^"]+"\)', "TOKEN=test-token", script)
+        with (state / "peers.json.lock").open("w") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            self.start_worker(script, self.config["agent"])
+            self.assertFalse((state / "peers.json").exists())
+            self.assertFalse((self.root / "attempts").exists())
+            fcntl.flock(lock, fcntl.LOCK_UN)
+        self.wait_for(lambda: (self.root / "attempts").exists(),
+                      "Background reconciliation did not resume after releasing the lock")
 
     def tailscale_script(self):
         key = self.root / "key"

@@ -1,6 +1,7 @@
 {
   config,
   self,
+  inputs,
   lib,
   ...
 }:
@@ -182,9 +183,12 @@ let
             jq
             util-linux
             coreutils
+            gnugrep
+            iproute2
           ];
           DN42_SDWAN_CONTROLLER_SCRIPT = builtins.head services.dn42-sdwan-controller.restartTriggers;
           DN42_SDWAN_AGENT_SCRIPT = builtins.head services.dn42-sdwan-agent.restartTriggers;
+          DN42_SDWAN_CHARON_PRESTART = services.strongswan-swanctl.preStart;
         }
         ''
           mkdir -p tests nixos/modules/services/networking/dn42
@@ -192,6 +196,59 @@ let
           cp ${../nixos/modules/services/networking/dn42/sdwan-state.sh} nixos/modules/services/networking/dn42/sdwan-state.sh
           cp ${../nixos/modules/services/networking/dn42/sdwan-state.jq} nixos/modules/services/networking/dn42/sdwan-state.jq
           python3 -B tests/dn42-sdwan-state-test.py -v
+          touch "$out"
+        '';
+  };
+  tcpBrutalRoutingTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."tcp-brutal-routing-test" =
+      let
+        render =
+          target:
+          let
+            module = import ../nixos/modules/optimize/brutal.nix {
+              inherit inputs;
+              inherit (fra0Pkgs) lib;
+              pkgs = fra0Pkgs // {
+                writeShellScriptBin = _: text: { outPath = text; };
+              };
+              config = {
+                boot.kernelPackages = fra0Pkgs.linuxPackages;
+                optimize.brutal = {
+                  inherit target;
+                  enable = true;
+                  bandwidth = 500;
+                  enableIpv4 = true;
+                  enableIpv6 = true;
+                  extraCidrs = [
+                    "198.51.100.0/24"
+                    "2001:db8:ffff::/48"
+                  ];
+                };
+              };
+            };
+            script = lib.removeSuffix "/bin/tcp-brutal-apply-rules" module.config.content.systemd.services.tcp-brutal-china-rules.serviceConfig.ExecStart;
+          in
+          # The test replaces kernel/proc and binary paths; do not build a kernel.
+          fra0Pkgs.writeText "tcp-brutal-${if target == "cn" then "cn" else "non-cn"}-test.sh" (
+            builtins.unsafeDiscardStringContext script
+          );
+      in
+      fra0Pkgs.runCommand "tcp-brutal-routing-test"
+        {
+          nativeBuildInputs = with fra0Pkgs; [
+            python3
+            bash
+            gawk
+            coreutils
+            gnugrep
+          ];
+          TCP_BRUTAL_CN_SCRIPT = render "cn";
+          TCP_BRUTAL_NON_CN_SCRIPT = render "!cn";
+        }
+        ''
+          mkdir -p tests
+          cp ${../tests/tcp-brutal-routing-test.py} tests/tcp-brutal-routing-test.py
+          python3 -B tests/tcp-brutal-routing-test.py -v
           touch "$out"
         '';
   };
@@ -207,5 +264,6 @@ in
     grafanaRuntimeHostsTest
     aiRegistrationTest
     dn42SdwanTest
+    tcpBrutalRoutingTest
   ];
 }

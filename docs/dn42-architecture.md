@@ -86,6 +86,7 @@ data "assert_test" "dn42_endpoint_count" {
 #### 2. 自愈 Agent (`dn42-sdwan-agent.service`)
 
 - **定时调度**：timer 为 `OnBootSec=5s`、`OnUnitInactiveSec=30s`、`AccuracySec=5s`。下一轮在本轮服务结束后再等待约 30 秒，启动间隔还包含整轮同步和握手的耗时。故障期间观察到单轮约 76~88 秒，因此实际启动间隔约 106~120 秒，而非固定 30 秒。
+- **启动就绪与业务就绪分离**：`Type=notify` 只宣告维护 worker 已运行，不等待租约锁、完整 XFRM 初始化、网卡 offload 调整或控制面响应。随后在同一个进程的 `--sync` 活动阶段执行这些工作，受 `RuntimeMaxSec=180s` 约束，失败后仍由 timer 重试。不能用 `Started` 代替注册成功、SA 建立或 Babel 收敛的检查。
 - **真实上报续约**：Agent 向 Controller 提交本机的单节点 map；只有此类真实注册/本机 Agent 上报更新 `last_seen` 与 `lease_expires_at`，转发其他节点记录不续约。Controller 本机的活跃注册直接合并写入自己的 `registry.json`，不得用整份 `peers.json` 覆盖 registry、丢失并发注册。
 - **自愈式握手补偿**：
   对有效租约内尚未建立 IKE_SA 的连接补发握手，并给单次 `swanctl` 命令设置超时。单次超时不代表整轮固定耗时，也不保证取消 charon 内部已经启动的解析/协商工作：
@@ -513,13 +514,13 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 2. **对端强校验拒连 (`AUTH_FAILED`)**：全网节点同步注册表后，将连接配置的 `remote_addrs` 锁死为 `198.18.0.1`。当 ARX8 从真实 NAT 出站发起 IKE 握手时，对端强校验发现源地址不匹配，无差别返回 `AUTH_FAILED`，全网隧道集体中断；
 3. **多端点展开算法失衡引发 if_id 错位**：ARX8 因多出一个虚假的 `auto_v4` 端点（端点数从 1 变为 2），触发了 `mesh.nix` 为对端预留 responder 被动接口（`dn42x-*-r2`）的逻辑。该逻辑在循环末尾用 `ip -6 route replace` 将对端 IPv6 路由强行指向了**尚未建链、没有 SA 的 r2 网卡**，导致 ping 对端时内核当场返回 `Destination unreachable: Address unreachable`；同时导致两端生成的 `if_id` 一个为 1311、一个为 1312，产生单向通、反向丢的严重错位；
 4. **Strongswan 自身选路污染**：Strongswan 在未设置 `ignore_routing_tables = 2022` 时，自身出站查询会被 table 2022 误导，把 `from 198.18.0.1` 写入 IKE 报文头；
-5. **Babel RTT 阈值过窄**：跨国链路（如国内至法兰克福）日常 RTT 为 320-340ms，原默认 `rttMax = 300` 导致 Babel 将正常延迟判定为不可用（Metric 65535），拒绝下发内网路由。
+5. **Babel RTT 成本范围过窄**：跨国链路（如国内至法兰克福）日常 RTT 为 320-340ms，原默认 `rttMax = 300` 使这些链路达到 RTT 成本惩罚上限。`rttMax` 不应被误解为节点失效期限；出现 Metric 65535 时，还必须检查双向 Hello/IHU 与实际数据面，不能仅调整 RTT 参数掩盖丢包。
 
 #### 2. 终极根治方案：四重隔离与端点净化
 
 1. **网卡与 IP 探测彻底绝缘**：在 `mesh.nix` 的 `DISCOVERED_IPS` 过滤链中，将 `meta.*`、`Meta.*`、`tailscale.*`、`docker.*`、`podman.*` 以及 `198.18.*`、`198.19.*`、`100.*` 彻底排除，确保纯 NAT 客户端绝不上报虚假 IPv4 端点；
-2. **主路由保护**：`mesh.nix` 限制仅在 `t_saction = "start"`（主动发起端）时才接管 peer IPv4 与对端 IPv6 路由，被动端（responder / `r2`）仅配置本端地址，严禁越权覆盖；
-3. **Strongswan 协议栈绝缘**：在 `charon.conf` 恢复 `interfaces_ignore = Meta, ...`、`ignore_routing_tables = 2022` 与 `plugins.socket-default.fwmark = 0x1`，从内核与 socket 层面杜绝 charon 接触代理路由表；
+2. **主路由保护**：peer IPv4 地址使用 `noprefixroute`，并精确清除同一目标/接口的旧 metric-0 路由；主动、被动端均可保留 metric `1024+k` 的引导/回程路由，但必须让位于 BIRD 的 metric-32 最优路径。不同端点的 fallback metric 分离，避免 `r2/r3/r4` 覆盖较优路径；
+3. **Strongswan 协议栈绝缘**：daemon 的 `preStart` 根据运行时接口枚举生成精确 `charon.interfaces_use`，排除 DN42/Tailscale/Mihomo 等 overlay；保留 `ignore_routing_tables = 2022` 与 `plugins.socket-default.fwmark = 0x1`。strongSwan 的接口名单不支持通配符，不能使用 `dn42*` 等字符串冒充 glob；
 4. **Babel RTT 上限放宽**：将 `rttMax` 默认值放宽至 `500ms`，完全容纳跨大洲长肥管道的物理延迟，恢复内网路由的正常收敛。
 
 ---
@@ -548,6 +549,24 @@ Priority 90:  ip rule add to 172.20.0.0/14 lookup main
 - **允许到期造成中断**：默认 10 分钟在现有较慢 Agent 周期下提供余量，但不是无限容灾。离线/控制面失联超过 TTL 后允许回收和短暂业务中断，不以延长他人租约或复活过期种子来掩盖故障；节点真实重新注册后恢复。
 
 此方案只管理运行时 SD-WAN 成员与连接，不会自动为动态节点生成 Terraform DNS、ATC/CDN 记录、Mihomo 订阅或原生手机/Windows 的完整 IKE/Babel 客户端配置。
+
+### 3.9 问题九：启动超时、直连路由黑洞与 MOBIKE 外层路径污染
+
+2026-11-05 凌晨部署后的只读检查确认了三个独立缺陷：
+
+1. **启动超时**：hkg5 连续三次在 `TimeoutStartSec=30s` 内未发送 READY；30 秒墙钟只消耗约 0.3~1.6 秒 CPU。旧 worker 在 READY 前构建整套 XFRM、调整 offload、写 swanctl 配置，严重 steal 下这些本地操作也可能超时。修复把 READY 提前到轻量 worker 启动，所有协调工作放进活动阶段，也避免同一轮先准备、再 `exec --sync` 重复生成。
+2. **有 Babel 路由却 ping 不通**：cu/fra0 的 BIRD 已学到经 fra1/tyo0 中转的健康路由，但 `ip route get` 仍选无 SA 的直连 XFRM。`ip addr ... peer ...` 自动产生的 `proto kernel` metric-0 `/32` 胜过 `proto bird` metric-32 路由。修复不仅加 `noprefixroute`，还显式删除旧自动路由，再装 metric `1024+k` 的 fallback。仅改变地址 flag 不能保证旧 kernel route 被删除；隔离网络命名空间验证必须覆盖迁移清理。对无发布端点的 NAT responder 同样保留低优先级回程，不能让回复误走公网默认路由。
+3. **MOBIKE 候选污染**：arx8 日志显示尝试用 `172.20.232.31`、DN42 IPv6 和 `100.64.*` 地址探测外层 IKE 路径；原 `interfaces_ignore = ... dn42*, tailscale*` 按字面名匹配，不会排除真实接口。修复在 strongSwan `preStart` 写 `/run/dn42-sdwan/charon-interfaces.conf`，用启动时实际 underlay 名生成 `interfaces_use`。这样支持未在 Nix 声明的 `wlp4s0` 等物理接口，并让未来新建的动态 XFRM 接口也不成为外层路径。它是本机接口隔离，不是节点准入白名单，也不关闭 MOBIKE。
+
+物理接口上的地址变化仍由 MOBIKE 处理。接口名单在 daemon 初始化时加载；新增或替换物理接口后需要重新启动 daemon，不能仅凭文件改写或普通配置 reload 断言接口名单已更新。如果没有可用 underlay 名，使用不匹配的占位名而不是空字符串，避免退回“允许所有接口”。
+
+抓包同时看到 arx8 向 fra0 发送 Babel Hello/IHU，而该时段 fra0 对应 XFRM 未看到这些入站包。Metric 65535 / RTT 0 是缺少反向 IHU 的结果，不足以单独证明 RTT 参数、重复 link-local 或 MOBIKE 是唯一丢包原因。部署后仍须用双向 SA/包计数、Babel 邻居与内核 FIB 验证实际恢复；本地隔离测试通过不等于现网 ping 已恢复。
+
+### 3.10 独立服务错误：TCP Brutal 丢失 IPv6 onlink 标志
+
+hkg5 地址 `2401:2660:2:93::a/64` 的默认网关是该 `/64` 外的 `2401:2660:2::1`，networkd 已正确配置 `GatewayOnLink=true`，实际 default route 有 `onlink`。`optimize/brutal.nix` 的旧生成器仅复制 `via/dev`，向 China CIDR 安装路由时触发 `RTNETLINK answers: No route to host`。
+
+修复从同一条默认路由/下一跳记录提取设备、网关和 flag，只有实际选中的带网关记录含 `onlink` 时才继承；同时覆盖 `cn`、`!cn`、排除网段和额外 CIDR。不能无条件给所有网关加 `onlink`，也不能从另一个默认出口混取网关或 flag。该错误独立于 DN42 租约与 Babel；回归使用隔离 `ip`/proc 替身，不修改真实内核路由。
 
 ---
 
@@ -673,7 +692,7 @@ vmstat 1 5
 #### 4. 仓库回归测试（不部署）
 
 ```bash
-nix build path:.#checks.x86_64-linux.dn42-sdwan-state-test --no-link
+nix build path:.#checks.x86_64-linux.dn42-sdwan-state-test path:.#checks.x86_64-linux.tcp-brutal-routing-test --no-link
 ```
 
-测试使用临时状态目录和隔离命令替身，验证租约续期/过期、种子不复活、动态注册、并发写入、非法输入拒绝，以及实际生成的 Controller HTTP 和 Agent 清理流程，不连接生产节点或启动生产服务。`path:.` 包含工作区新增文件，并使用仓库锁定输入，不依赖全局 Flake registry。
+测试使用临时状态目录、隔离网络命名空间和命令替身，验证租约续期/过期、动态注册、并发写入、非法输入拒绝、实际生成的 Controller/Agent、Babel 路由优先级、精确 underlay 名和 TCP Brutal onlink 继承，不连接生产节点或启动生产服务。网络命名空间不可用时内核 FIB 测试会明确跳过，其余模拟器检查仍运行。`path:.` 包含工作区新增文件，并使用仓库锁定输入，不依赖全局 Flake registry。

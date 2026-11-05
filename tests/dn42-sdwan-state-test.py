@@ -566,13 +566,14 @@ class SdwanControllerHttpTest(unittest.TestCase):
 @unittest.skipUnless(os.environ.get("DN42_SDWAN_AGENT_SCRIPT"),
                      "Set DN42_SDWAN_AGENT_SCRIPT for generated agent tests")
 class SdwanAgentTest(unittest.TestCase):
-    def test_sync_removes_retired_peer_interface_and_ike_configuration(self):
+    def run_agent(self, extra_nodes=None):
         with tempfile.TemporaryDirectory(prefix="dn42-sdwan-agent-") as directory:
             root = Path(directory)
             conf = root / "conf"
             conf.mkdir()
             bootstrap = root / "bootstrap.json"
-            bootstrap.write_text(json.dumps({"fra0": node(1, dn42_ip4="172.20.232.1")}),
+            bootstrap.write_text(json.dumps({"fra0": node(1, dn42_ip4="172.20.232.1"),
+                                             **(extra_nodes or {})}),
                                  encoding="utf-8")
             cache = root / "peers.json"
             cache.write_text(json.dumps({"nue0": node(3, updated_at=0)}), encoding="utf-8")
@@ -637,7 +638,7 @@ elif command == "ip" and args == ["-o", "link", "show", "type", "xfrm"]:
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             peers = json.loads(cache.read_text())
-            self.assertEqual(set(peers), {"fra0"})
+            self.assertEqual(set(peers), {"fra0"} | set(extra_nodes or {}))
             self.assertEqual(peers["fra0"]["last_seen"], 1000)
             self.assertFalse(stale_conf.exists())
             self.assertFalse(list(conf.glob("*nue0*")))
@@ -646,7 +647,99 @@ elif command == "ip" and args == ["-o", "link", "show", "type", "xfrm"]:
             self.assertIn(["swanctl", "--terminate", "--ike", "dn42-nue0-default"], calls)
             self.assertTrue(any(call[0] == "curl" for call in calls))
             self.assertFalse(any(call[0] in ("systemctl", "systemd-notify") for call in calls))
-            self.assertFalse(any(call[:2] == ["swanctl", "--initiate"] for call in calls))
+            return calls
+
+    def test_sync_removes_retired_peer_interface_and_ike_configuration(self):
+        calls = self.run_agent()
+        self.assertFalse(any(call[:2] == ["swanctl", "--initiate"] for call in calls))
+
+    def test_babel_routes_precede_direct_and_nat_responder_fallbacks(self):
+        calls = self.run_agent({
+            "peer": node(2, dn42_ip6="fd00::2", endpoints=[
+                {"name": "wan1", "addr": "one.example.test", "port": 4500},
+                {"name": "wan2", "addr": "two.example.test", "port": 4500},
+            ]),
+            "mobile": node(42, dn42_ip6="fd00::42", endpoints=[]),
+        })
+        address_calls = [call for call in calls if call[:4] == ["ip", "-4", "addr", "replace"]]
+        self.assertTrue(address_calls)
+        self.assertTrue(all("noprefixroute" in call for call in address_calls))
+        routes = [call for call in calls if call[:4] == ["ip", "-4", "route", "replace"]]
+        self.assertEqual(len(routes), 3)
+        self.assertTrue(all(int(call[call.index("metric") + 1]) > 32 for call in routes))
+        self.assertEqual(sorted(int(call[call.index("metric") + 1]) for call in routes
+                                if call[4] == "172.20.0.2/32"), [1025, 1026])
+        self.assertTrue(any(call[4] == "172.20.0.42/32" and "dn42x-mobile-r1" in call
+                            for call in routes))
+        removed = [call for call in calls if call[:4] == ["ip", "-4", "route", "del"]]
+        self.assertTrue(any(call[-4:] == ["proto", "kernel", "metric", "0"] for call in removed))
+        removed_v6 = [call for call in calls if call[:4] == ["ip", "-6", "route", "del"]]
+        self.assertTrue(any(call[4] == "fd00::2/128"
+                            and call[-4:] == ["proto", "boot", "metric", "1024"]
+                            for call in removed_v6))
+
+
+class KernelRoutePreferenceTest(unittest.TestCase):
+    def test_peer_prefix_route_cannot_shadow_babel(self):
+        if not shutil.which("unshare") or not shutil.which("ip"):
+            self.skipTest("unshare and ip are required")
+        probe = subprocess.run(["unshare", "--user", "--map-root-user", "--net", "true"],
+                               capture_output=True, text=True)
+        if probe.returncode:
+            self.skipTest("User network namespaces unavailable: " + probe.stderr.strip())
+        script = r'''
+set -eu
+ip link add direct type dummy
+ip link add transit type dummy
+ip link set direct up
+ip link set transit up
+ip -4 addr add 192.0.2.1/32 peer 192.0.2.2/32 dev direct
+ip -4 route add 192.0.2.2/32 dev transit proto bird metric 32
+ip -4 route get 192.0.2.2 | grep -q 'dev direct'
+ip -4 addr replace 192.0.2.1/32 peer 192.0.2.2/32 noprefixroute dev direct
+ip -4 route del 192.0.2.2/32 dev direct proto kernel metric 0
+ip -4 route replace 192.0.2.2/32 dev direct proto boot metric 1025 src 192.0.2.1
+ip -4 route get 192.0.2.2 | grep -q 'dev transit'
+'''
+        result = subprocess.run(["unshare", "--user", "--map-root-user", "--net", "bash", "-c", script],
+                                capture_output=True, text=True, timeout=15)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+
+@unittest.skipUnless(os.environ.get("DN42_SDWAN_CHARON_PRESTART"),
+                     "Set DN42_SDWAN_CHARON_PRESTART for generated interface-policy tests")
+class CharonInterfacePolicyTest(unittest.TestCase):
+    def test_runtime_underlay_names_exclude_dynamic_overlays(self):
+        match = re.search(r"/nix/store/[a-z0-9]+-dn42-charon-interfaces",
+                          os.environ["DN42_SDWAN_CHARON_PRESTART"])
+        self.assertIsNotNone(match)
+        generated = Path(match[0]).read_text()
+        cases = [
+            (["lo", "wlp4s0", "eth0", "dn42", "dn42x-mobile-r1", "tailscale0",
+              "Meta", "easytier0", "wg0", "veth123", "br-test"], {"eth0", "wlp4s0"}),
+            (["lo", "dn42x-newpeer", "tailscale0"], {"dn42-no-wan"}),
+            ([], {"dn42-no-wan"}),
+        ]
+        for names, expected in cases:
+            with self.subTest(names=names), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                mock_bin = root / "bin"
+                mock_bin.mkdir()
+                ip = mock_bin / "ip"
+                ip.write_text("#!" + sys.executable + "\nimport os\nprint(os.environ['TEST_LINKS'])\n")
+                ip.chmod(0o700)
+                script = root / "policy.sh"
+                script.write_text(generated.replace('export PATH="', f'export PATH="{mock_bin}:', 1))
+                policy = root / "charon.conf"
+                env = os.environ.copy()
+                env.update({"DN42_SDWAN_CHARON_CONFIG_FILE": str(policy),
+                            "TEST_LINKS": json.dumps([{"ifname": name} for name in names])})
+                subprocess.run(["bash", str(script)], env=env, check=True,
+                               capture_output=True, text=True, timeout=10)
+                content = policy.read_text()
+                self.assertNotIn("*", content)
+                value = re.search(r"interfaces_use = (.+)", content)[1]
+                self.assertEqual({name.strip() for name in value.split(",")}, expected)
 
 
 if __name__ == "__main__":

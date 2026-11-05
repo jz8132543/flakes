@@ -439,6 +439,30 @@ let
     source "${./sdwan-state.sh}"
   '';
 
+  charonInterfacesScript = pkgs.writeShellScript "dn42-charon-interfaces" ''
+    set -euo pipefail
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.coreutils
+        pkgs.iproute2
+        pkgs.jq
+      ]
+    }"
+    policy="''${DN42_SDWAN_CHARON_CONFIG_FILE:-/run/dn42-sdwan/charon-interfaces.conf}"
+    mkdir -p "$(dirname "$policy")"
+    interfaces=$(ip -j link show | jq -r '
+      [.[] | .ifname |
+        select(test("^(lo|Meta.*|meta.*|virbr.*|tailscale.*|easytier.*|dn42.*|xfrm.*|wireguard.*|wg.*|tun.*|dummy.*|docker.*|podman.*|veth.*|br-.*)$") | not) |
+        select(test("^[A-Za-z0-9_.:-]{1,15}$"))] | unique | join(", ")')
+    # An empty interfaces_use would enable every interface, including overlays.
+    [ -n "$interfaces" ] || interfaces="dn42-no-wan"
+    tmp=$(mktemp "$policy.XXXXXX")
+    trap 'rm -f "$tmp"' EXIT
+    printf 'charon {\n  interfaces_use = %s\n}\n' "$interfaces" > "$tmp"
+    chmod 644 "$tmp"
+    mv -f "$tmp" "$policy"
+  '';
+
   selfMeshNode = dn42Data.mesh.${hostName} or { };
   selfIsNat =
     selfMeshNode.nat
@@ -615,6 +639,14 @@ let
         mkdir -p "$STATE_DIR" "$SWAN_D"
         ${sdwanStateSetup}
 
+        if [ "''${1:-}" != "--sync" ]; then
+          # Reconciliation is background work: even local netlink operations
+          # can exceed the startup deadline on a CPU-starved virtual machine.
+          systemd-notify --ready --status="Worker ready; reconciling tunnels in the background"
+          systemctl start strongswan-swanctl.service bird.service
+          exec "$0" --sync
+        fi
+
         # 辅助函数：从 host:port 字符串中分离 host 与 port (支持 IPv6 [addr]:port 语法)
         extract_host_port() {
           local raw="$1"
@@ -699,7 +731,7 @@ let
           fi
         fi
 
-        # Only contact controllers after the local configuration is ready.
+        # The active worker owns registration and all local reconciliation.
         if [ "''${1:-}" = "--sync" ]; then
           # 2c. Only this node's registration renews its lease.
           NOW=$(date +%s)
@@ -863,16 +895,20 @@ let
           ip link set "$t_iface" mtu 1360 multicast on up 2>/dev/null || true
           ethtool -K "$t_iface" tx off gso off gro off 2>/dev/null || true
 
-          if [ "$t_saction" = "start" ]; then
-            ip -4 addr replace "''${SELF_IP4}/32" peer "''${t_peer_ip4}/32" dev "$t_iface" 2>/dev/null || ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
-            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
-            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
-            [ -n "''${t_peer_ip6}" ] && ip -6 route replace "''${t_peer_ip6}/128" dev "$t_iface" 2>/dev/null || true
-          else
-            # 被动端 (responder) 仅配置本端 IP 与 link-local，不覆盖对端主路由
-            ip -4 addr replace "''${SELF_IP4}/32" dev "$t_iface" 2>/dev/null || true
-            ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
-            [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+          # Peer addresses otherwise install metric-0 kernel routes that beat
+          # Babel's metric-32 routes, including healthy multi-hop alternatives.
+          ip -4 addr replace "''${SELF_IP4}/32" peer "''${t_peer_ip4}/32" noprefixroute dev "$t_iface" 2>/dev/null || ip -4 addr replace "''${SELF_IP4}/32" noprefixroute dev "$t_iface" 2>/dev/null || true
+          ip -4 route del "''${t_peer_ip4}/32" dev "$t_iface" proto kernel metric 0 2>/dev/null || true
+          ip -4 route del "''${t_peer_ip4}/32" dev "$t_iface" proto boot metric 0 2>/dev/null || true
+          route_metric=$((1024 + t_if_id % 10))
+          # Keep bootstrap/return paths for NAT responders too, without letting
+          # a later r2/r3/r4 overwrite the preferred path or a Babel route.
+          ip -4 route replace "''${t_peer_ip4}/32" dev "$t_iface" proto boot metric "$route_metric" src "$SELF_IP4" 2>/dev/null || true
+          ip -6 addr replace "fe80::''${SELF_ID}/64" dev "$t_iface" 2>/dev/null || true
+          [ -n "$SELF_IP6" ] && ip -6 addr replace "''${SELF_IP6}/128" dev "$t_iface" 2>/dev/null || true
+          if [ -n "''${t_peer_ip6}" ]; then
+            ip -6 route del "''${t_peer_ip6}/128" dev "$t_iface" proto boot metric 1024 2>/dev/null || true
+            ip -6 route replace "''${t_peer_ip6}/128" dev "$t_iface" proto boot metric "$route_metric" 2>/dev/null || true
           fi
 
           peer_conf="$SWAN_D/sdwan-''${t_conn}.conf"
@@ -923,14 +959,6 @@ let
             echo "$new_content" > "$peer_conf"
           fi
         done
-
-        if [ "''${1:-}" != "--sync" ]; then
-          systemd-notify --ready --status="Local tunnel configuration ready; connecting in the background"
-          # Readiness releases the daemons ordered after us. Wait for their local
-          # startup in the background before syncing and initiating tunnels.
-          systemctl start strongswan-swanctl.service bird.service
-          exec "$0" --sync
-        fi
 
         # 4. 仅在配置真正发生变化时增量热重载 strongSwan 与 BIRD，不中断已有连接
         # Keep the marker across failed runs so recovery also retries a reload.
@@ -1276,8 +1304,8 @@ in
               NotifyAccess = "all";
               RemainAfterExit = false;
               ExecStart = "${sdwanAgentScript}";
-              # Only local preparation gates startup; online work is bounded
-              # separately so the timer can retry after a failed/offline run.
+              # Readiness gates only worker startup; local and online
+              # reconciliation share the bounded active phase below.
               TimeoutStartSec = "30s";
               RuntimeMaxSec = "180s";
               TimeoutStopSec = "10s";
@@ -1295,7 +1323,10 @@ in
               "dn42-sdwan-agent.service"
             ]
             ++ lib.optional cfg.ipsec.mimic.enable "dn42-mimic-autobind.service";
-            preStart = "mkdir -p /run/swanctl/conf.d";
+            preStart = ''
+              mkdir -p /run/swanctl/conf.d
+              ${charonInterfacesScript}
+            '';
           };
         }
         // (optionalAttrs (baseCfg.sdwan.enable && baseCfg.sdwan.isController) {
@@ -1452,7 +1483,6 @@ in
               send_vendor_id = no
               # 允许同一节点建立多个并发隧道（如多路径 IPv4 + IPv6 双栈并发，不因同名 ID 相互剔除）
               uniqueids = no
-              interfaces_ignore = Meta, virbr*, tailscale*, easytier*, dn42*
               # 忽略全局代理路由表 (2022)，迫使 charon 查询 main 表走物理网卡默认网关
               ignore_routing_tables = 2022
               plugins {
@@ -1461,6 +1491,8 @@ in
                 }
               }
             }
+            # strongSwan interface lists are exact names, not glob patterns.
+            include /run/dn42-sdwan/charon-interfaces.conf
           '';
 
           swanctl = {

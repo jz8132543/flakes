@@ -85,12 +85,22 @@ let
 
     echo "Applying TCP Brutal rules (target: $TARGET) with rate: ''${RATE_MBPS} Mbps (''${RATE_BYTES} B/s, fallback CC: ''${DEFAULT_CC})..."
 
-    # 3. 获取 IPv4 / IPv6 默认网关与出口网卡
-    DEV_V4=$(${pkgs.iproute2}/bin/ip -4 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
-    VIA_V4=$(${pkgs.iproute2}/bin/ip -4 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="via") {print $(i+1); exit}}')
+    # Keep the device, gateway and flags from the same default route/nexthop.
+    DEFAULT_V4=$(${pkgs.iproute2}/bin/ip -4 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print; exit}}')
+    DEV_V4=$(${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}' <<< "$DEFAULT_V4")
+    VIA_V4=$(${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="via") {print $(i+1); exit}}' <<< "$DEFAULT_V4")
+    ONLINK_V4=()
+    if [ -n "$VIA_V4" ] && [[ " $DEFAULT_V4 " = *" onlink "* ]]; then
+      ONLINK_V4=(onlink)
+    fi
 
-    DEV_V6=$(${pkgs.iproute2}/bin/ip -6 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}')
-    VIA_V6=$(${pkgs.iproute2}/bin/ip -6 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="via") {print $(i+1); exit}}')
+    DEFAULT_V6=$(${pkgs.iproute2}/bin/ip -6 route show default | ${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print; exit}}')
+    DEV_V6=$(${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="dev") {print $(i+1); exit}}' <<< "$DEFAULT_V6")
+    VIA_V6=$(${pkgs.gawk}/bin/awk '{for(i=1;i<=NF;i++) if($i=="via") {print $(i+1); exit}}' <<< "$DEFAULT_V6")
+    ONLINK_V6=()
+    if [ -n "$VIA_V6" ] && [[ " $DEFAULT_V6 " = *" onlink "* ]]; then
+      ONLINK_V6=(onlink)
+    fi
 
     exec 3> /proc/net/tcp_brutal/rules
 
@@ -105,8 +115,8 @@ let
           done < "${chinaCidrs}/ipv4.txt"
 
           if [ -n "$VIA_V4" ]; then
-            ${pkgs.gawk}/bin/awk -v via="$VIA_V4" -v dev="$DEV_V4" \
-              '{print "route replace", $0, "via", via, "dev", dev, "congctl lock brutal proto 233"}' \
+            ${pkgs.gawk}/bin/awk -v via="$VIA_V4" -v dev="$DEV_V4" -v onlink="''${ONLINK_V4[*]}" \
+              '{print "route replace", $0, "via", via, "dev", dev, onlink, "congctl lock brutal proto 233"}' \
               "${chinaCidrs}/ipv4.txt" | ${pkgs.iproute2}/bin/ip -4 -batch -
           else
             ${pkgs.gawk}/bin/awk -v dev="$DEV_V4" \
@@ -127,8 +137,8 @@ let
           done < "${chinaCidrs}/ipv6.txt"
 
           if [ -n "$VIA_V6" ]; then
-            ${pkgs.gawk}/bin/awk -v via="$VIA_V6" -v dev="$DEV_V6" \
-              '{print "route replace", $0, "via", via, "dev", dev, "congctl lock brutal proto 233"}' \
+            ${pkgs.gawk}/bin/awk -v via="$VIA_V6" -v dev="$DEV_V6" -v onlink="''${ONLINK_V6[*]}" \
+              '{print "route replace", $0, "via", via, "dev", dev, onlink, "congctl lock brutal proto 233"}' \
               "${chinaCidrs}/ipv6.txt" | ${pkgs.iproute2}/bin/ip -6 -batch -
           else
             ${pkgs.gawk}/bin/awk -v dev="$DEV_V6" \
@@ -153,8 +163,8 @@ let
 
           # 全局双 /1 锁定 brutal
           if [ -n "$VIA_V4" ]; then
-            ${pkgs.iproute2}/bin/ip -4 route replace 0.0.0.0/1 via "$VIA_V4" dev "$DEV_V4" congctl lock brutal proto 233
-            ${pkgs.iproute2}/bin/ip -4 route replace 128.0.0.0/1 via "$VIA_V4" dev "$DEV_V4" congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -4 route replace 0.0.0.0/1 via "$VIA_V4" dev "$DEV_V4" "''${ONLINK_V4[@]}" congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -4 route replace 128.0.0.0/1 via "$VIA_V4" dev "$DEV_V4" "''${ONLINK_V4[@]}" congctl lock brutal proto 233
           else
             ${pkgs.iproute2}/bin/ip -4 route replace 0.0.0.0/1 dev "$DEV_V4" congctl lock brutal proto 233
             ${pkgs.iproute2}/bin/ip -4 route replace 128.0.0.0/1 dev "$DEV_V4" congctl lock brutal proto 233
@@ -162,8 +172,8 @@ let
 
           # 大陆与私网保留网段显式锁定为默认 CC，排除在 brutal 之外
           cat "${chinaCidrs}/ipv4.txt" "${privateCidrsV4}" | if [ -n "$VIA_V4" ]; then
-            ${pkgs.gawk}/bin/awk -v via="$VIA_V4" -v dev="$DEV_V4" -v cc="$DEFAULT_CC" \
-              '{print "route replace", $0, "via", via, "dev", dev, "congctl lock", cc, "proto 233"}' | \
+            ${pkgs.gawk}/bin/awk -v via="$VIA_V4" -v dev="$DEV_V4" -v onlink="''${ONLINK_V4[*]}" -v cc="$DEFAULT_CC" \
+              '{print "route replace", $0, "via", via, "dev", dev, onlink, "congctl lock", cc, "proto 233"}' | \
               ${pkgs.iproute2}/bin/ip -4 -batch -
           else
             ${pkgs.gawk}/bin/awk -v dev="$DEV_V4" -v cc="$DEFAULT_CC" \
@@ -180,16 +190,16 @@ let
           echo "add 8000::/1 rate=$RATE_BYTES" >&3
 
           if [ -n "$VIA_V6" ]; then
-            ${pkgs.iproute2}/bin/ip -6 route replace ::/1 via "$VIA_V6" dev "$DEV_V6" congctl lock brutal proto 233
-            ${pkgs.iproute2}/bin/ip -6 route replace 8000::/1 via "$VIA_V6" dev "$DEV_V6" congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -6 route replace ::/1 via "$VIA_V6" dev "$DEV_V6" "''${ONLINK_V6[@]}" congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -6 route replace 8000::/1 via "$VIA_V6" dev "$DEV_V6" "''${ONLINK_V6[@]}" congctl lock brutal proto 233
           else
             ${pkgs.iproute2}/bin/ip -6 route replace ::/1 dev "$DEV_V6" congctl lock brutal proto 233
             ${pkgs.iproute2}/bin/ip -6 route replace 8000::/1 dev "$DEV_V6" congctl lock brutal proto 233
           fi
 
           cat "${chinaCidrs}/ipv6.txt" "${privateCidrsV6}" | if [ -n "$VIA_V6" ]; then
-            ${pkgs.gawk}/bin/awk -v via="$VIA_V6" -v dev="$DEV_V6" -v cc="$DEFAULT_CC" \
-              '{print "route replace", $0, "via", via, "dev", dev, "congctl lock", cc, "proto 233"}' | \
+            ${pkgs.gawk}/bin/awk -v via="$VIA_V6" -v dev="$DEV_V6" -v onlink="''${ONLINK_V6[*]}" -v cc="$DEFAULT_CC" \
+              '{print "route replace", $0, "via", via, "dev", dev, onlink, "congctl lock", cc, "proto 233"}' | \
               ${pkgs.iproute2}/bin/ip -6 -batch -
           else
             ${pkgs.gawk}/bin/awk -v dev="$DEV_V6" -v cc="$DEFAULT_CC" \
@@ -206,7 +216,7 @@ let
       if echo "${cidr}" | grep -q ':'; then
         if [ -n "$DEV_V6" ]; then
           if [ -n "$VIA_V6" ]; then
-            ${pkgs.iproute2}/bin/ip -6 route replace ${cidr} via $VIA_V6 dev $DEV_V6 congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -6 route replace ${cidr} via "$VIA_V6" dev "$DEV_V6" "''${ONLINK_V6[@]}" congctl lock brutal proto 233
           else
             ${pkgs.iproute2}/bin/ip -6 route replace ${cidr} dev $DEV_V6 congctl lock brutal proto 233
           fi
@@ -214,7 +224,7 @@ let
       else
         if [ -n "$DEV_V4" ]; then
           if [ -n "$VIA_V4" ]; then
-            ${pkgs.iproute2}/bin/ip -4 route replace ${cidr} via $VIA_V4 dev $DEV_V4 congctl lock brutal proto 233
+            ${pkgs.iproute2}/bin/ip -4 route replace ${cidr} via "$VIA_V4" dev "$DEV_V4" "''${ONLINK_V4[@]}" congctl lock brutal proto 233
           else
             ${pkgs.iproute2}/bin/ip -4 route replace ${cidr} dev $DEV_V4 congctl lock brutal proto 233
           fi
