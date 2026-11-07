@@ -8,6 +8,10 @@
 
   包含组件认证、fra0 用户注册关闭策略（2.1 节）、SSO 账号边界、非部署回归检查与 OpenHands 工作台说明。
 
+- [Dify 考公老师方法对照：架构、配置、重建与验收](./kaogong-teacher-skills.md)
+
+  记录 4 位老师、5 张批准社区方法卡及 29 个待审候选，详解 18 节点原生并行图、知识库硬过滤与关键词补强、JSON/提示词合同、私密凭据、CLI 重建和恢复。明确区分本地测试、资源配置与真实老师端到端验收；上游模型授权阻塞不写成调用成功。
+
 - [anti-balloon 内核/用户态架构、虚拟化回收机制与验证记录](./anti-balloon-architecture.md)
 
 - [小磁盘 Nix 部署、GC 保活机制与完整复现指南](./nix-copy-gc-architecture.md)

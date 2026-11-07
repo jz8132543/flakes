@@ -1,10 +1,51 @@
-{ pkgs, ... }: {
+{
+  config,
+  inputs,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  surfaceModule = inputs.nixos-hardware.nixosModules.microsoft-surface-common;
+  surfaceKernel =
+    (import surfaceModule { inherit config lib pkgs; }).config.boot.kernelPackages.kernel;
+  latestKernel = pkgs.linuxPackages_latest.kernel;
+  kernelSeries = lib.versions.majorMinor latestKernel.version;
+  patchDir = "${inputs.linux-surface}/patches/${kernelSeries}";
+  configFile = "${inputs.linux-surface}/configs/surface-${kernelSeries}.config";
+in
+{
+  imports = [ surfaceModule ];
+
   # ==========================================
   # Surface 核心硬件与内核配置
   # ==========================================
-  # hardware.microsoft-surface = {
-  #   kernelVersion = "stable";
-  # };
+  # Keep the nixos-hardware Surface kernel builder, but track nixpkgs sources.
+  # Update both inputs with: nix flake update nixpkgs linux-surface
+  boot.kernelPackages = lib.mkForce (
+    assert lib.assertMsg (builtins.pathExists patchDir && builtins.pathExists configFile)
+      "linux-surface has no patches/config for Linux ${kernelSeries}; update the linux-surface input before upgrading the kernel.";
+    pkgs.linuxPackagesFor (
+      surfaceKernel.override {
+        inherit (latestKernel) src version modDirVersion;
+        ignoreConfigErrors = false;
+        kernelPatches = map (name: {
+          name = "ms-surface/${name}";
+          patch = "${patchDir}/${name}";
+        }) (lib.filter (lib.hasSuffix ".patch") (builtins.attrNames (builtins.readDir patchDir)));
+        # Translate the matching upstream Kconfig fragment to Nix's name/value format.
+        # Disabled symbols may no longer exist; enabled drivers remain required.
+        extraConfig =
+          lib.concatMapStringsSep "\n"
+            (lib.replaceStrings [ "# CONFIG_" "CONFIG_" "=" " is not set" ] [ "" "" " " "? n" ])
+            (
+              lib.filter (line: lib.hasPrefix "CONFIG_" line || lib.hasPrefix "# CONFIG_" line) (
+                lib.splitString "\n" (builtins.readFile configFile)
+              )
+            );
+      }
+    )
+  );
 
   # nix.settings.substituters = ["https://linux-surface.cachix.org"];
   # nix.settings.trusted-public-keys = [

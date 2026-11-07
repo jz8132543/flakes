@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "topics": [
+    { "topic_id": "unknown", "subject": "unknown", "name": "题型待澄清" },
+    {
+      "topic_id": "xingce.verbal.words",
+      "subject": "xingce",
+      "name": "言语理解：选词填空"
+    },
+    {
+      "topic_id": "xingce.verbal.reading",
+      "subject": "xingce",
+      "name": "言语理解：片段与篇章阅读"
+    },
+    {
+      "topic_id": "xingce.verbal.ordering",
+      "subject": "xingce",
+      "name": "言语理解：语句排序与衔接"
+    },
+    {
+      "topic_id": "xingce.quantity.arithmetic",
+      "subject": "xingce",
+      "name": "数量关系：算术与比例"
+    },
+    {
+      "topic_id": "xingce.quantity.equations",
+      "subject": "xingce",
+      "name": "数量关系：方程与不定方程"
+    },
+    {
+      "topic_id": "xingce.quantity.geometry",
+      "subject": "xingce",
+      "name": "数量关系：几何"
+    },
+    {
+      "topic_id": "xingce.quantity.probability",
+      "subject": "xingce",
+      "name": "数量关系：排列组合与概率"
+    },
+    {
+      "topic_id": "xingce.reasoning.figures",
+      "subject": "xingce",
+      "name": "判断推理：图形推理"
+    },
+    {
+      "topic_id": "xingce.reasoning.definitions",
+      "subject": "xingce",
+      "name": "判断推理：定义判断"
+    },
+    {
+      "topic_id": "xingce.reasoning.analogy",
+      "subject": "xingce",
+      "name": "判断推理：类比推理"
+    },
+    {
+      "topic_id": "xingce.reasoning.logic",
+      "subject": "xingce",
+      "name": "判断推理：形式逻辑"
+    },
+    {
+      "topic_id": "xingce.reasoning.arguments",
+      "subject": "xingce",
+      "name": "判断推理：论证评价"
+    },
+    {
+      "topic_id": "xingce.data.growth",
+      "subject": "xingce",
+      "name": "资料分析：基期、现期与增长"
+    },
+    {
+      "topic_id": "xingce.data.proportion",
+      "subject": "xingce",
+      "name": "资料分析：比重"
+    },
+    {
+      "topic_id": "xingce.data.average",
+      "subject": "xingce",
+      "name": "资料分析：平均数与倍数"
+    },
+    {
+      "topic_id": "xingce.data.comparison",
+      "subject": "xingce",
+      "name": "资料分析：比较与综合分析"
+    },
+    {
+      "topic_id": "xingce.common.knowledge",
+      "subject": "xingce",
+      "name": "常识判断"
+    },
+    {
+      "topic_id": "xingce.political.theory",
+      "subject": "xingce",
+      "name": "政治理论"
+    },
+    {
+      "topic_id": "shenlun.summary",
+      "subject": "shenlun",
+      "name": "申论：归纳概括"
+    },
+    {
+      "topic_id": "shenlun.analysis",
+      "subject": "shenlun",
+      "name": "申论：综合分析"
+    },
+    {
+      "topic_id": "shenlun.proposals",
+      "subject": "shenlun",
+      "name": "申论：提出对策"
+    },
+    {
+      "topic_id": "shenlun.practical",
+      "subject": "shenlun",
+      "name": "申论：应用文写作"
+    },
+    {
+      "topic_id": "shenlun.essay",
+      "subject": "shenlun",
+      "name": "申论：文章写作"
+    },
+    {
+      "topic_id": "interview.structured",
+      "subject": "interview",
+      "name": "面试：结构化"
+    },
+    {
+      "topic_id": "interview.group",
+      "subject": "interview",
+      "name": "面试：无领导小组讨论"
+    }
+  ]
+}

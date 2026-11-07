@@ -651,6 +651,22 @@
         "type": "github"
       }
     },
+    "linux-surface": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1793907532,
+        "narHash": "sha256-9nAG/RjTh8jj/aSJoRy7lLfqI7IvPzLp8eAHKVyFMHk=",
+        "owner": "linux-surface",
+        "repo": "linux-surface",
+        "rev": "9cd223c411499a6f66f2f5ae62e647a29390f9d0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "linux-surface",
+        "repo": "linux-surface",
+        "type": "github"
+      }
+    },
     "linyinfeng": {
       "inputs": {
         "devshell": [
@@ -1433,6 +1449,18 @@
         "type": "github"
       }
     },
+    "rime-wanxiang-gram": {
+      "flake": false,
+      "locked": {
+        "narHash": "sha256-xYxlSqvyg7m7YJWD+2h8JuGXlVZ9kMzcyk2alpTtolQ=",
+        "type": "file",
+        "url": "https://github.com/amzxyz/rime-wanxiang-data/releases/download/LTS/wanxiang-lts-zh-hans.gram"
+      },
+      "original": {
+        "type": "file",
+        "url": "https://github.com/amzxyz/rime-wanxiang-data/releases/download/LTS/wanxiang-lts-zh-hans.gram"
+      }
+    },
     "root": {
       "inputs": {
         "aagl": "aagl",
@@ -1455,6 +1483,7 @@
         "impermanence": "impermanence",
         "kaogong": "kaogong",
         "latest": "latest",
+        "linux-surface": "linux-surface",
         "linyinfeng": "linyinfeng",
         "lix": "lix",
         "neovim-nightly-overlay": "neovim-nightly-overlay",
@@ -1476,6 +1505,7 @@
         "plasma-manager": "plasma-manager",
         "pre-commit-hooks-nix": "pre-commit-hooks-nix",
         "preservation": "preservation",
+        "rime-wanxiang-gram": "rime-wanxiang-gram",
         "rust-overlay": "rust-overlay_2",
         "sops-nix": "sops-nix",
         "systems": "systems_7",

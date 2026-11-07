@@ -1,0 +1,424 @@
+{
+  "schema_version": 1,
+  "methods": [
+    {
+      "skill_id": "honglingjin.option-substitution",
+      "teacher_id": "honglingjin",
+      "subject": "xingce",
+      "topic_id": "xingce.quantity.equations",
+      "name": "选项代入逐条件检验（社区整理）",
+      "status": "approved",
+      "version": "1.0.0",
+      "license": "MIT",
+      "applicable": [
+        {
+          "condition_id": "finite-options",
+          "text": "题目给出所求量的有限备选数值，选项与所求变量的含义、单位一致。"
+        },
+        {
+          "condition_id": "explicit-constraints",
+          "text": "题干给出足以检验候选值的等式或数量约束，变量的取值范围明确。"
+        },
+        {
+          "condition_id": "complete-question",
+          "text": "题干和全部选项可读；能逐项核对所有约束，而不只验证其中一个关系。"
+        }
+      ],
+      "not_applicable": [
+        "缺失题干关系或选项时，不能补造约束后代入。",
+        "多个选项均满足已知条件时，不能凭选项分布或偏好宣称唯一答案。",
+        "要求推导通式或给出全部解时，有限选项检验不能替代完整证明。"
+      ],
+      "steps": [
+        "先明确选项代表哪个量，逐条记录原题等式、单位及整数或非负等限制。",
+        "把一个选项代入所求变量；只用题干已知关系计算其他变量，不增加题干没有的等式。",
+        "检查所得值是否同时满足每一个关系和取值限制；任一条件不符即排除该选项。",
+        "继续检验其余选项，记录每次排除的具体等式或范围依据。",
+        "只有一个选项通过全部检验时报告它；零个或多个通过时指出题面、选项或唯一性存在缺口。这里不承诺比列方程更快。"
+      ],
+      "examples": [
+        {
+          "input": "自编例题：整数x、y均非负，x+y=7，2x+3y=18。求x。选项A=1、B=2、C=3、D=4。",
+          "output": "由y=7-x代入。A对应y=6，2x+3y=20；B对应y=5，结果19；C对应y=4，结果18；D对应y=3，结果17。只有C满足两个等式及非负整数限制，故x=3。"
+        },
+        {
+          "input": "自编例题：x、y均非负，x+y=5，2x+y=8。求x。选项1、2、3、4。",
+          "output": "依次得到y=4、3、2、1，第二个等式左边分别为6、7、8、9；仅x=3通过全部检验。"
+        }
+      ],
+      "counterexamples": [
+        {
+          "input": "自编反例：只给出非负整数x+y=7，问x，选项1、2、3、4。",
+          "reason": "四个选项都能配出合法y，条件不足以唯一确定x。不能把任意一个可行选项当作唯一答案。"
+        },
+        {
+          "input": "自编反例：题目要求正整数x、y，给出x+y=7、2x+3y=14，选项含x=7。",
+          "reason": "x=7虽满足代入等式，却得到y=0，不满足正整数条件。代入必须同时核验取值范围。"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "redscarf-quant-substitution-u0029",
+          "repo": "MUMU0208/redscarf-gongkao-skills",
+          "commit": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
+          "path": "skills/redscarf-quant/references/数量关系.md",
+          "url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/skills/redscarf-quant/references/数量关系.md",
+          "license": "MIT",
+          "evidence_type": "community_transcript",
+          "locator": "核心规则 > 代入法（17次） > 2024-02-18 2024第6季省考通用卷模考资料分析+数量关系复盘__u0029",
+          "quote": "方程有点慢我们可以根据选项去代入这样会快一点而且你可以先做",
+          "summary": "该社区转写单元明确提出按选项代入；同节u0013记载代入后核对符合。这里只归属这一可辨认的操作，不复原残缺原题，不认可必然更快的比较。卡片步骤、等式、适用条件及例题是本地自写的数学解释，不宣称为红领巾的原话或独创公式。"
+        }
+      ],
+      "audit": {
+        "permission": {
+          "passed": true,
+          "basis": "Read pinned LICENSE (Copyright (c) 2026 liuyuexi1987) and README 仓库说明: MIT permits use/copy/modify of software and associated documentation; README explicitly includes reusable skills. Use is a self-authored explanation of the mathematical trial-substitution procedure plus one short attributed repository fragment, not copying a lesson/transcript corpus. MIT notice retained in conf/dify-kaogong/THIRD_PARTY_LICENSES.txt. No grant over underlying course media is inferred."
+        },
+        "attribution": {
+          "passed": true,
+          "basis": "Pinned README identifies the redscarf skills as 红领巾 community material. Actual 数量关系.md section 代入法 explicitly says 根据选项去代入 and records the full dated title/unit_id u0029; u0013 describes checking a substituted value. This is traceable community_transcript attribution only, not authenticated audio, teacher endorsement, real-name identification or exclusive invention. The isolated operation is intelligible without reconstructing the missing course problem."
+        },
+        "method": {
+          "passed": true,
+          "basis": "Finite candidate substitution is sound when every original equality and domain restriction is checked. Independently derived y=7-x: second equality gives 20,19,18,17 for x=1,2,3,4; only3 succeeds. Second self-authored example yields6,7,8,9. Counterexamples check multiple feasible choices and the invalid y=0 positive-integer boundary. No source numerical example, guessing heuristic, ASR-derived formula or speed guarantee imported."
+        },
+        "reviewer": "Kilo source review; automated assistant, not teacher endorsement",
+        "reviewed_on": "2026-11-05"
+      },
+      "content_hash": "e91e42e35223b5c2cb19428d08216161bbcefae2bb918f9f79a295106c129b8a"
+    },
+    {
+      "skill_id": "li-mengyuan.keyword-extraction",
+      "teacher_id": "li-mengyuan",
+      "subject": "shenlun",
+      "topic_id": "shenlun.summary",
+      "name": "按作答对象定位关键词与合并要点（社区笔记）",
+      "status": "approved",
+      "version": "1.0.0",
+      "license": "MIT",
+      "applicable": [
+        {
+          "condition_id": "summary-request",
+          "text": "题目要求归纳概括，并明确概括对象是问题、原因、影响、做法等哪一类信息。"
+        },
+        {
+          "condition_id": "material-scope",
+          "text": "给定材料完整可读，题目指定的作答范围及字数要求可确认。"
+        },
+        {
+          "condition_id": "context-available",
+          "text": "可读取关键词所在的完整句段，核对主体、时间、否定及转折语义。"
+        }
+      ],
+      "not_applicable": [
+        "不能把关键词出现次数、个别词语或上游的80%说法当作评分规则。",
+        "材料没有某类标志词不等于没有该类要点；需要通读语义，不能只做字符串匹配。",
+        "无材料、要求外部事实判断或只凭自选素材写作的任务，不由此卡直接给答案。"
+      ],
+      "steps": [
+        "先写清作答对象、材料范围和字数限制，避免把问题、原因与对策混在一起。",
+        "带着对象通读材料，用表示问题、因果、影响或措施的词定位候选句，并记录每条所在句段。",
+        "回读上下文，核对主体、范围、时间、否定和转折；标志词只是线索，不是答案本身。",
+        "提取与作答对象有关的信息，保留限制条件；再通读检查没有明显标志词但语义相关的要点。",
+        "合并重复内容，区分不同角度，按要求压缩作答；每一点应能回指材料，不补充无依据的原因或政策。"
+      ],
+      "examples": [
+        {
+          "input": "自编例题：概括维修服务存在的问题，不超过80字。材料：报修登记后无人告知办理进度。热线与网站重复登记同一事项。夜间无人接听报修电话。",
+          "output": "作答对象是问题。根据两处无人及重复定位三句，再确认分别对应反馈、登记、接听。参考概括：进度反馈缺失，登记重复，夜间接听服务缺位。三点分别回指材料三句，不增写经费或人员原因。"
+        }
+      ],
+      "counterexamples": [
+        {
+          "input": "自编反例：概括当前问题。材料：过去资金不足；今年资金已足额到位，但夜间无人接听电话。",
+          "reason": "不足位于过去的已解决问题，不能列作当前问题；转折后的夜间接听缺位才符合对象和时间。"
+        },
+        {
+          "input": "自编反例：概括排队问题。材料仅写居民从上午等到下午仍未办成。",
+          "reason": "没有不足或缺乏等典型词仍有等待时间长的信息。关键词定位是阅读辅助，不是排除未命中句子的规则。"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "wang-shenlun-li-keywords-1-4",
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "locator": "一、李梦圆：关键词定位法 > 1.4 操作步骤，第3项；适用范围见1.5",
+          "quote": "遇到标志词，标记并提取要点",
+          "summary": "具名章节1.4给出审题、带目标阅读、标记、合并、书写的流程，1.5明确用于归纳概括。这里只概括该阅读方法；上下文与否定检查是本地明确的使用边界，不是补写老师原话。不采用1.1未经验证的答案比例或分数承诺。"
+        }
+      ],
+      "audit": {
+        "permission": {
+          "passed": true,
+          "basis": "Pinned README ends with MIT License © WangJunqing-coder and a License: MIT badge; its 致敬 & 引用 section describes community-organized generic methods and excludes paid course originals. This is an explicit MIT declaration for the repository documentation, accepted despite absence of a separate LICENSE file. Only a short exact repository quote and self-authored summary/examples are reused; no underlying course rights inferred. Attribution and standard MIT terms retained in conf/dify-kaogong/THIRD_PARTY_LICENSES.txt."
+        },
+        "attribution": {
+          "passed": true,
+          "basis": "Actual pinned reference heading 一、李梦圆：关键词定位法, §§1.4-1.5, explicitly associates this procedure with 李梦圆; README 致敬 & 引用 names 李梦圆公开教学视频 for the same method. Traceability terminates at this identified community note, which the user permits. No primary-course authentication, teacher endorsement or exclusive authorship is claimed."
+        },
+        "method": {
+          "passed": true,
+          "basis": "Reviewed §§1.2-1.5 and tested self-authored three-sentence problem extraction with one-to-one material support. The time/negation counterexample rejects an already-resolved historical funding problem; the no-keyword counterexample preserves semantic reading. Approval covers scoped evidence extraction and merging, not a claim of official scoring, completeness from keyword matching, 80% answer share or guaranteed examination correctness."
+        },
+        "reviewer": "Kilo source review; automated assistant, not teacher endorsement",
+        "reviewed_on": "2026-11-05"
+      },
+      "content_hash": "69554b9f0f1bd94085fd6e18eedb5b5ea4ddafcc8a39aa12daab11dd59d17d70"
+    },
+    {
+      "skill_id": "yuan-dong.summary-headings",
+      "teacher_id": "yuan-dong",
+      "subject": "shenlun",
+      "topic_id": "shenlun.summary",
+      "name": "材料要点前置概括句（社区笔记）",
+      "status": "approved",
+      "version": "1.0.0",
+      "license": "MIT",
+      "applicable": [
+        {
+          "condition_id": "summary-request",
+          "text": "题目要求对给定材料归纳概括，允许分点组织答案。"
+        },
+        {
+          "condition_id": "supported-points",
+          "text": "每个待概括要点均有可定位的材料事实，能够区分不同角度。"
+        },
+        {
+          "condition_id": "length-budget",
+          "text": "题目字数限制明确，概括句与必要事实可共同保留在字数范围内。"
+        }
+      ],
+      "not_applicable": [
+        "不能根据人数、金额等孤立数字擅自推断不足、低效或失职。",
+        "为了对仗而改变事实、因果或程度，或用大标题替代关键细节，不适用此卡。",
+        "只需原文摘录、固定表格字段或极短答案时，应服从题目格式，不强加前置句。"
+      ],
+      "steps": [
+        "先按题目对象提取材料事实，逐点记录出处，不从标题模板反推不存在的事实。",
+        "把同类事实放在一起，不同问题或角度分开。",
+        "为每组写一个能覆盖该组事实的短概括句，使用不过度推断的核心词。",
+        "把概括句放在该点开头，后接必要的材料事实或限定语，再分点排列。",
+        "逐点检查概括句是否由后文事实支持、是否遗漏限制，最后删冗余并核对字数；不以对仗工整替代准确性。"
+      ],
+      "examples": [
+        {
+          "input": "自编例题：概括维修服务存在的问题，不超过80字。材料：报修登记后无人告知办理进度。热线与网站重复登记同一事项。夜间无人接听报修电话。",
+          "output": "参考组织：一是反馈缺失，登记后不告知进度。二是登记重复，热线与网站重复记录同一事项。三是夜间服务缺位，无人接听电话。每个前置句由同一点的材料事实支撑，不增写原因。"
+        }
+      ],
+      "counterexamples": [
+        {
+          "input": "自编反例：材料只说服务站有3名工作人员，没有任务量、投诉或比较数据。",
+          "reason": "无法仅凭3人概括为人员严重不足。前置句不得比材料事实作更强的判断。"
+        },
+        {
+          "input": "自编反例：材料说仅夜间电话无人接听，拟用前置句全天服务瘫痪。",
+          "reason": "把夜间扩大成全天、把电话问题扩大成全部服务，超出事实范围，应拒绝这种概括。"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "wang-shenlun-yuan-headings-5-3",
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "locator": "五、袁东：底层思维三维度 + 前置句提炼 > 5.3 前置句提炼法，原理句；范围见5.4",
+          "quote": "每个要点前加一个概括性短句，让答案更有条理。",
+          "summary": "5.3明确说明前置句的组织作用，5.2要求精读提炼后分类输出，5.4将单一题列为适用场景。本卡用自编材料验证概括句与事实的支持关系，不复制上游例题，不将格式建议说成固定得分规则。"
+        }
+      ],
+      "audit": {
+        "permission": {
+          "passed": true,
+          "basis": "The pinned WangJunqing-coder/shenlun-skill README explicitly declares MIT License © WangJunqing-coder for this community documentation and describes the generic-method, non-paid-original scope. A separate LICENSE filename is not required to recognize that grant. Reuse is limited to the short principle quote plus self-authored organization steps and examples. conf/dify-kaogong/THIRD_PARTY_LICENSES.txt preserves the upstream attribution and MIT terms; no course-media permission is asserted."
+        },
+        "attribution": {
+          "passed": true,
+          "basis": "Pinned reference §五 explicitly names 袁东; §5.3 is titled 前置句提炼法 and contains the quoted principle, with §5.4 identifying 单一题. README method table also associates 前置句提炼 with 袁东. This establishes the community note's attribution, not authenticated teacher authorship or endorsement. No interview method is approved."
+        },
+        "method": {
+          "passed": true,
+          "basis": "Reviewed §§5.2-5.4. Self-authored output maps three headings to three supplied facts and stays within80 characters. Counterexamples prohibit unsupported personnel-shortage inference and expansion from night-time phone service to all-day collapse. Approval is for a material-grounded answer-organization technique, not a guarantee of official scoring or semantic correctness on arbitrary questions."
+        },
+        "reviewer": "Kilo source review; automated assistant, not teacher endorsement",
+        "reviewed_on": "2026-11-05"
+      },
+      "content_hash": "66a38c0a26e9d4bcf3ba97a11ddb19e66cfe6cbba5dad8b2604bad46b294fd24"
+    },
+    {
+      "skill_id": "bailu.material-proposals",
+      "teacher_id": "bailu",
+      "subject": "shenlun",
+      "topic_id": "shenlun.proposals",
+      "name": "从材料问题、原因与已给经验形成对策（社区笔记）",
+      "status": "approved",
+      "version": "1.0.0",
+      "license": "MIT",
+      "applicable": [
+        {
+          "condition_id": "proposal-request",
+          "text": "题目明确要求针对给定问题提出对策、建议或措施。"
+        },
+        {
+          "condition_id": "material-support",
+          "text": "材料给出可定位的问题，以及原因、直接建议或可借鉴经验中的至少一类信息。"
+        },
+        {
+          "condition_id": "feasible-scope",
+          "text": "可确认作答主体、权限和限制；建议需与这些条件相容，未知资源不能当作既有事实。"
+        }
+      ],
+      "not_applicable": [
+        "题目只要求概括问题时，不自动扩写成对策题。",
+        "没有经过核验的外部政策、法律或数据时，不使用记忆中的权威表述作事实依据。",
+        "材料未说明问题原因或可行条件时，不能把主观猜测的原因、预算、人员或预期效果写成事实。"
+      ],
+      "steps": [
+        "按题目锁定需要解决的问题和作答主体，记录材料中的具体表现。",
+        "优先提取材料已经给出的对策或成功经验，说明其适用对象与限制。",
+        "如需补充建议，沿材料明确的原因思考对应措施，写清要解决哪个问题；将新提出的措施标为建议，而非既成事实。",
+        "检查每条措施的执行主体、操作内容和可行条件；材料未核实的政策不引用，未知资源不预设。",
+        "合并重复措施，按题目字数分点表达；最后逐条核对问题或原因与措施的对应关系，不承诺必然效果。"
+      ],
+      "examples": [
+        {
+          "input": "自编例题：为图书馆提出改进借还服务的建议，不超过100字。材料：借还机因缺少巡检经常离线；另一分馆已采用开馆前检测。读者反映午间无法借还。馆长表示可在现有人员内调整轮班。",
+          "output": "参考建议：借鉴分馆做法，开展开馆前设备检测，记录故障并安排维修；根据午间借还需求，在现有人员内调整轮班。前一项对应设备离线及已给经验，后一项对应午间需求和可调班条件。措施是建议，不是已经实施的事实。"
+        }
+      ],
+      "counterexamples": [
+        {
+          "input": "自编反例：材料只反映借还机离线，没有全国联网需求、预算或采购权限；答案拟写已拨款一千万元建设全国平台。",
+          "reason": "金额、既成拨款和全国平台均无材料依据，也未针对已知原因，不能编造事实来填对策。"
+        },
+        {
+          "input": "自编反例：题目只要求概括服务问题，答案却大量写采购设备和增加编制。",
+          "reason": "偏离作答对象；此对策卡不应匹配只要求概括的问题。"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "heshuai-bailu-proposals-1-3",
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/bailu-shenlun.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/bailu-shenlun.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "locator": "一、申论题型分类与解题思路 > 3. 对策建议题 > 解题步骤，第5项及对策来源",
+          "quote": "针对原因提对策",
+          "summary": "具名白鹭社区笔记在对策建议题中列出问题、原因、经验及直接对策来源。本卡只取材料内可复核的子集，不扩展为调用缺失的本地课程PDF，也不采纳未经核实的政策理论。操作化与可行性边界是本地自写的使用限制。"
+        }
+      ],
+      "audit": {
+        "permission": {
+          "passed": true,
+          "basis": "Read pinned repository LICENSE: Copyright (c) 2026 heshuai-ai, full MIT grant including associated documentation. Reuse is a four-word principle quotation and a self-authored explanation of material-to-proposal reasoning, not a copied course handout. Notice retained in conf/dify-kaogong/THIRD_PARTY_LICENSES.txt. The uncommitted PDF/course paths are provenance limitations, not permission to copy those files; none were accessed or reproduced."
+        },
+        "attribution": {
+          "passed": true,
+          "basis": "Actual reference title is 白鹭申论解题体系完整方法论; §一3 explicitly supplies the proposal procedure. The pinned parent SKILL labels references/bailu-shenlun.md as 白鹭申论解题体系. This is traceable community_notes attribution only. The 60-day course and local PDF names are not treated as verified primary media, nor is any institutional endorsement inferred."
+        },
+        "method": {
+          "passed": true,
+          "basis": "Individually reviewed §一3, not the full claimed teaching system. Self-authored library example maps each proposal to an explicit problem/experience and the supplied staffing constraint. Counterexamples reject invented money/platform authority and a summary-only task. This is a bounded reasoning workflow: suggestions remain suggestions, their success is not guaranteed, and no unsupported policy statement, fixed format or training-outcome claim is approved."
+        },
+        "reviewer": "Kilo source review; automated assistant, not teacher endorsement",
+        "reviewed_on": "2026-11-05"
+      },
+      "content_hash": "e5e9ecc3759ea523c8b1c1eaf7ab4f34a0445ffca6f4c0dd2cd344ef30664fcd"
+    },
+    {
+      "skill_id": "bailu.essay-topic-decomposition",
+      "teacher_id": "bailu",
+      "subject": "shenlun",
+      "topic_id": "shenlun.essay",
+      "name": "拆题干关键词并用材料限定立意（社区笔记）",
+      "status": "approved",
+      "version": "1.0.0",
+      "license": "MIT",
+      "applicable": [
+        {
+          "condition_id": "essay-outline",
+          "text": "题目属于申论文章写作，当前需要确定立意或提纲，而不是把提纲当作完整成文。"
+        },
+        {
+          "condition_id": "prompt-keywords",
+          "text": "题干有可解释的主题关键词及写作要求；完整题干可读。"
+        },
+        {
+          "condition_id": "supporting-material",
+          "text": "给定材料足以解释关键词的具体语境和相互关系，并支持拟定的论点。"
+        }
+      ],
+      "not_applicable": [
+        "不能把固定短语机械拆字，也不能规定每个关键词必须各写一个分论点。",
+        "材料不足时不能捏造案例、政策、名言或凭空补充因果关系。",
+        "不能用三个固定分论点或固定段落字数替代题目的主题、篇幅和文体要求。"
+      ],
+      "steps": [
+        "读完整题干，区分指定题目、主题词与格式、篇幅等限制。",
+        "找出主题关键词，在材料中定位对应事实或观点，先理解语境再解释词义。",
+        "分析关键词之间在本题中的关系，例如并重、条件或手段与目标；关系必须受材料支持，不仅凭词面联想。",
+        "据此写一个覆盖题目对象和关键词关系的中心论点，再选材料支持的角度组织提纲。",
+        "回查题干与材料，排除偷换主题、重复分论点及无依据的外部素材。输出注明这是立意提纲，不是完整文章或保证得分的模板。"
+      ],
+      "examples": [
+        {
+          "input": "自编例题：围绕便利与规范，为一篇申论文章拟立意和提纲。材料：乡镇整合服务窗口后，群众等待时间缩短；办理人员仍保留必要的身份核验。",
+          "output": "参考立意：便民与规范并重。可论述两个材料支持的角度：整合窗口减少等待；保留必要核验维护办理规范。二者是协调关系，不能把便利解释为取消核验。这里只提供提纲，不编造实际降时数据或法律条文。"
+        }
+      ],
+      "counterexamples": [
+        {
+          "input": "自编反例：围绕便利与规范，材料强调保留必要核验，提纲却主张为提高速度取消一切核验。",
+          "reason": "立意与材料直接冲突。关键词拆解不能推翻题干和材料限定的关系。"
+        },
+        {
+          "input": "自编反例：题干只有人民至上这一完整理念，拟机械分成人民和至上两篇不相关论述。",
+          "reason": "拆关键词不是拆散固定概念；必须保留整体含义及材料语境，没有依据不能硬造多个方向。"
+        }
+      ],
+      "sources": [
+        {
+          "source_id": "wang-shenlun-bailu-decomposition-4-3",
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "locator": "四、白鹭：60天扎马步 + 拆题法 + 豹头凤尾 > 4.3 拆题法（大作文立意） > 第一步：拆题干",
+          "quote": "分析关键词关系",
+          "summary": "只审核4.3的题干关键词、关键词关系、材料词及立意步骤。没有批准4.2训练效果、4.4金句，或4.5每词一个分论点与自行补充的扩展说法。例题和材料约束均为本地自写，不冒称原课示例。"
+        }
+      ],
+      "audit": {
+        "permission": {
+          "passed": true,
+          "basis": "Pinned README explicitly declares MIT License © WangJunqing-coder and describes the community-documentation scope. Accept the actual README grant without requiring a particular license filename. Reuse is one short phrase plus self-authored factual workflow/examples; no original lecture, paid handout or full example reproduced. conf/dify-kaogong/THIRD_PARTY_LICENSES.txt retains attribution and MIT terms; no broader course-rights claim."
+        },
+        "attribution": {
+          "passed": true,
+          "basis": "Reference §四 explicitly names 白鹭 and §4.3 is titled 拆题法（大作文立意）. README 致敬 & 引用 independently within the same repository associates 白鹭公开教学 with 拆题法. These locators establish the community compiler's attribution, not independent primary verification, an official teacher skill or ownership of a generic technique."
+        },
+        "method": {
+          "passed": true,
+          "basis": "Reviewed only the operational §4.3 submethod for approval. Self-authored 便利与规范 example preserves the two material facts and their compatible relationship; counterexamples reject contradiction and mechanical splitting of a fixed concept. Conditions restrict use to supported planning, not guaranteed high-scoring prose. No assertion that every keyword yields a subargument, no invented material, and no60-day training efficacy is imported."
+        },
+        "reviewer": "Kilo source review; automated assistant, not teacher endorsement",
+        "reviewed_on": "2026-11-05"
+      },
+      "content_hash": "f7835ac296ad3578161f3475a132a1115698eefae0bfbcab916a3b13abe7d539"
+    }
+  ]
+}

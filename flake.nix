@@ -5,12 +5,21 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     latest.url = "github:NixOS/nixpkgs/master"; # 使用 master 分支的 nixpkgs
     nixos-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # LTS is mutable; refresh with: nix flake update --refresh rime-wanxiang-gram
+    rime-wanxiang-gram = {
+      url = "file+https://github.com/amzxyz/rime-wanxiang-data/releases/download/LTS/wanxiang-lts-zh-hans.gram";
+      flake = false;
+    };
     nur = {
       url = "github:nix-community/NUR";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-parts.follows = "flake-parts";
     };
     nixos-hardware.url = "github:nixos/nixos-hardware";
+    linux-surface = {
+      url = "github:linux-surface/linux-surface";
+      flake = false;
+    };
     impermanence = {
       url = "github:nix-community/impermanence";
       inputs.nixpkgs.follows = "nixpkgs";

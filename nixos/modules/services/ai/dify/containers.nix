@@ -153,6 +153,7 @@ in
       ];
       environment = commonApiEnv // {
         MODE = "api";
+        ENABLE_COLLABORATION_MODE = "false";
         MIGRATION_ENABLED = "true";
         PORT = toString apiPort;
         DIFY_PORT = toString apiPort;

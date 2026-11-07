@@ -152,6 +152,7 @@
         inherit (final) matrix-synapse-unwrapped;
       };
       qdrant = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.qdrant;
+      rime-wanxiang-gram = inputs.rime-wanxiang-gram.outPath;
     }
   )
   (import "${self}/pkgs").overlay

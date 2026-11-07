@@ -1,0 +1,979 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-05",
+  "candidates": [
+    {
+      "teacher_id": "li-mengyuan",
+      "name": "李梦圆",
+      "status": "approved",
+      "reason": "Approved only li-mengyuan.keyword-extraction from the pinned Wang community note, §§1.4-1.5. Explicit README MIT declaration permits this limited documentation reuse; teacher attribution is traceable at the community-note level, not official endorsement. Self-authored material-bounded summary and counterexamples passed review. Distill and other subjects remain unapproved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/李梦圆/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/李梦圆/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; this SKILL body not reviewed. The interview directory is the same candidate, not another teacher."
+        },
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read actual section 一 and README, including explicit MIT footer and stated generic-method/non-paid-original scope. Approve only §§1.4-1.5 keyword-guided extraction as li-mengyuan.keyword-extraction; exact short quote, fixed section locator, self-authored steps/examples and material/negation counterexamples. Do not import the unverified80% claim or infer original-course/official attribution. MIT notice retained in THIRD_PARTY_LICENSES.txt."
+        }
+      ]
+    },
+    {
+      "teacher_id": "zhong-jun",
+      "name": "钟君",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/钟君/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/钟君/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "mu-song",
+      "name": "穆松",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; concrete method attribution, applicability and correctness remain unaudited. README says the interview material is source-only/pending.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/穆松/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/穆松/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body not reviewed. The interview entry is deduplicated into this candidate."
+        }
+      ]
+    },
+    {
+      "teacher_id": "zhang-yuehan",
+      "name": "张跃瀚",
+      "status": "pending",
+      "reason": "README identifies 瀚叔 as this candidate; no identified reuse license. Concrete method attribution, applicability and correctness remain unaudited; interview material is described as source-only/pending.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/张跃瀚/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/张跃瀚/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README name/alias verified; SKILL body not reviewed. The interview entry is not counted again."
+        }
+      ]
+    },
+    {
+      "teacher_id": "shan-shuling",
+      "name": "单淑玲",
+      "status": "pending",
+      "reason": "Community attribution and README MIT declaration in the Wang source are traceable; a missing LICENSE filename is not a rejection. Section 六 was read, but its fixed paragraph budgets, material-copy advice and stock-case approach have not been separately conditioned and validated as a usable card in this limited review. No approved method; distill permission still unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/单淑玲/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/单淑玲/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; this SKILL body not reviewed."
+        },
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 六 and the explicit README MIT declaration for community documentation. No bulk course copying or official attribution assumed. No card approved: fixed150/250-word paragraph budgets and stock-material suggestions need task-specific validation; this bounded review did not validate that method."
+        }
+      ]
+    },
+    {
+      "teacher_id": "zhang-xiaolong",
+      "name": "张小龙",
+      "status": "pending",
+      "reason": "Name/path verified only. Upstream self-reported release grades do not establish permission, attribution or method correctness; all three gates remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/张小龙/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/张小龙/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body not reviewed. Essay/interview entries deduplicated; README publish claims not treated as actual files."
+        }
+      ]
+    },
+    {
+      "teacher_id": "li-yuanji",
+      "name": "李元极",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/申论/李元极/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/申论/李元极/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "guo-xi",
+      "name": "郭熙",
+      "status": "pending",
+      "reason": "Name/path verified; explicitly distinct from 葛欣 in README. Permission and concrete method attribution/validation are unresolved. Interview material is described as source-only/pending.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/言语理解/郭熙/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/言语理解/郭熙/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body not reviewed. The interview entry is not counted again."
+        }
+      ]
+    },
+    {
+      "teacher_id": "zhao-xiaoxi",
+      "name": "赵晓曦",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/言语理解/赵晓曦/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/言语理解/赵晓曦/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "ge-xin",
+      "name": "葛欣",
+      "status": "pending",
+      "reason": "README alias 欣说言语 verified; not 郭熙. Reuse permission, independently attributable method evidence and correctness remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/言语理解/葛欣/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/言语理解/葛欣/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README name/alias verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "gu-fei",
+      "name": "顾斐",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/言语理解/顾斐/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/言语理解/顾斐/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "cai-jinlong",
+      "name": "蔡金龙",
+      "status": "pending",
+      "reason": "Name/path verified, but the cited book is jointly credited to 蔡金龙 and 张超. Bibliography/contents cannot establish sole authorship of a method. Permission and method-level evidence remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/判断推理/蔡金龙/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/判断推理/蔡金龙/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; this SKILL body not reviewed."
+        },
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/判断推理/蔡金龙/references/sources/books/gaofen-sucheng-v5-toc.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/判断推理/蔡金龙/references/sources/books/gaofen-sucheng-v5-toc.md",
+          "license": "NOASSERTION: note explicitly says full-text page-by-page quotation authorization was not obtained.",
+          "evidence_type": "syllabus_only",
+          "review_scope": "Read entire short bibliography: 判断推理高分速成第5版, ISBN 9787504149138, credits both 蔡金龙 and 张超. External bookstore link not followed; no book text or specific method verified."
+        }
+      ]
+    },
+    {
+      "teacher_id": "waiwai",
+      "name": "歪歪",
+      "status": "pending",
+      "reason": "Retained to preserve the actual upstream candidate roster, NOT a verified teacher identity or method. SKILL explicitly says identity/institution unverified and all executable content is generic. Excluded from teacher methods; no identified reuse permission.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/判断推理/歪歪/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/判断推理/歪歪/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read full SKILL, especially sections 0 and 8. It disclaims attributable notes, verified transcripts and personal-method evidence. Its generic checklist is not approved or copied into methods."
+        }
+      ]
+    },
+    {
+      "teacher_id": "xu-lai",
+      "name": "徐来",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/判断推理/徐来/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/判断推理/徐来/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "long-fei",
+      "name": "龙飞",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/判断推理/龙飞/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/判断推理/龙飞/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body, image examples and underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "qi-lin",
+      "name": "齐麟",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/数量关系/齐麟/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/数量关系/齐麟/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "li-weiming",
+      "name": "李委明",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/数量关系/李委明/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/数量关系/李委明/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "gao-zhao",
+      "name": "高照",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/数量关系/高照/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/数量关系/高照/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "du-yan",
+      "name": "杜岩",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/数量关系/杜岩/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/数量关系/杜岩/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "tang-song",
+      "name": "唐宋",
+      "status": "pending",
+      "reason": "Name/path verified only. Reuse permission is unresolved; teacher attribution, concrete method conditions and correctness have not been individually audited.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/资料分析/唐宋/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/资料分析/唐宋/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "huasheng-shisan",
+      "name": "花生十三",
+      "status": "pending",
+      "reason": "Four repositories share the candidate label, not four independent teachers. Original teaching attribution and reuse permission are unresolved; community growth/approximation and guessing errors are separately quarantined. No corrected formula is rebranded as this teacher's method.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/行测/言语理解/花生十三/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/行测/言语理解/花生十三/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; this SKILL body not reviewed. Directory placement does not limit or prove the claimed cross-subject methods."
+        },
+        {
+          "repo": "ksbsjsj/huasheng-shisan-perspective",
+          "commit": "1108f755ddb1362670ca340f2e30f5d412db2720",
+          "path": "README.md",
+          "url": "https://github.com/ksbsjsj/huasheng-shisan-perspective/blob/1108f755ddb1362670ca340f2e30f5d412db2720/README.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README; course-note/OCR rights unverified.",
+          "evidence_type": "repository_readme",
+          "review_scope": "Read README and verified tree. Actual SKILL, course-note and 600-question OCR files exist, but their bodies were not audited. README calls the material course-note/OCR extraction rather than verbatim speech and says it does not represent the teacher. Persona instructions must not be imported."
+        },
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/shenghua-susuan.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/shenghua-susuan.md",
+          "license": "MIT: repository LICENSE read; original course/handout rights and compiler authority unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read reference, SKILL and LICENSE. Reference title explicitly says 花生十三 despite shenghua filename and shorter 花生 label. SKILL points to uncommitted local course paths; growth and approximation errors reproduced."
+        },
+        {
+          "repo": "WangJunqing-coder/huasheng13-skill",
+          "commit": "6a43d776741f69a231eb2d75f9d5d59efe870659",
+          "path": "SKILL.md",
+          "url": "https://github.com/WangJunqing-coder/huasheng13-skill/blob/6a43d776741f69a231eb2d75f9d5d59efe870659/SKILL.md",
+          "license": "MIT claimed in README; linked LICENSE absent from pinned tree; original teaching rights and grant scope unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read SKILL and README, including inconsistent guessing expectations. Generic attribution to videos/forums/maps lacks per-method locators; remaining references not audited."
+        }
+      ]
+    },
+    {
+      "teacher_id": "li-mengjiao",
+      "name": "李梦娇",
+      "status": "pending",
+      "reason": "Name/path verified; explicitly distinct from 李梦圆. Permission and attributable, current, correct subject methods remain unverified. Interview material is described as source-only/pending.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/事业单位/公基/李梦娇/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/事业单位/公基/李梦娇/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body not reviewed. The interview entry is not counted again; no current-affairs or legal facts validated."
+        }
+      ]
+    },
+    {
+      "teacher_id": "laomei",
+      "name": "老梅",
+      "status": "pending",
+      "reason": "Account label/path verified only. Upstream self-reported release grade is not permission or independent method verification; attribution and correctness remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/面试/老梅/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/面试/老梅/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "laomu",
+      "name": "老牧",
+      "status": "pending",
+      "reason": "Account label/path verified only. Upstream self-reported release grade is not permission or independent method verification; attribution and correctness remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/面试/老牧/agent.interview.SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/面试/老牧/agent.interview.SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified. The actual source file is agent.interview.SKILL.md, not SKILL.md; body and original sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "jiang-muyun",
+      "name": "江牧云",
+      "status": "pending",
+      "reason": "Name/path verified only. Upstream self-reported release grade is not permission or independent method verification; attribution and correctness remain unresolved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/面试/江牧云/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/面试/江牧云/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README roster verified; SKILL body and its underlying sources not reviewed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "xiang-lijun",
+      "name": "相丽君",
+      "status": "pending",
+      "reason": "Overlapping candidate labels verified. Distill describes this as source-only; the standalone README claims MIT but its tree has no license text or original source corpus. Method attribution and correctness remain unverified.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/面试/相丽君/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/面试/相丽君/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README source-only listing verified; this SKILL body not reviewed."
+        },
+        {
+          "repo": "sk18700181887-ship-it/xianglijun-interview-perspective",
+          "commit": "dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70",
+          "path": "README.md",
+          "url": "https://github.com/sk18700181887-ship-it/xianglijun-interview-perspective/blob/dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70/README.md",
+          "license": "MIT claimed in README License section; no standalone license text; original teaching rights and scope unverified.",
+          "evidence_type": "repository_readme",
+          "review_scope": "Read README label, summary and MIT claim; complete tree contains README and SKILL only. SKILL body and purported original teaching corpus not reviewed. Commit resolved through GitHub API on checked_at."
+        }
+      ]
+    },
+    {
+      "teacher_id": "yuan-dong",
+      "name": "袁东",
+      "status": "approved",
+      "reason": "Approved only yuan-dong.summary-headings from the pinned Wang community note §§5.2-5.4. README explicitly grants MIT for repository documentation; the named section supports community attribution. Self-authored examples validate material-supported headings without stronger-than-material claims. No interview skill, full teaching system or official endorsement approved.",
+      "sources": [
+        {
+          "repo": "hilltahuang/gongkao-distill",
+          "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+          "path": "source/公务员/面试/袁东/SKILL.md",
+          "url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/source/公务员/面试/袁东/SKILL.md",
+          "license": "NOASSERTION: no license file or explicit reuse grant identified in the pinned tree/README.",
+          "evidence_type": "repository_tree",
+          "review_scope": "Exact blob path and README source-only listing verified; this SKILL body not reviewed."
+        },
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 五 and README MIT declaration. Approve only the material-supported heading procedure in §§5.2-5.4 as yuan-dong.summary-headings. Short exact quote from5.3, self-authored examples and overgeneralization counterexamples retained. Community-note attribution, not primary verification; no upstream example copied. MIT notice retained in THIRD_PARTY_LICENSES.txt."
+        }
+      ]
+    },
+    {
+      "teacher_id": "honglingjin",
+      "name": "红领巾",
+      "status": "approved",
+      "reason": "Approved only honglingjin.option-substitution from the actual quantity reference's 代入法/u0029. MIT covers contributor documentation; the short intelligible operation is community-attributed by dated unit_id, and locally authored finite-option examples independently verify it. No full transcript, speed guarantee, guessing strategy or specialized data-growth formula approved. Data-reference fragments remain research only.",
+      "sources": [
+        {
+          "repo": "MUMU0208/redscarf-gongkao-skills",
+          "commit": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
+          "path": "skills/redscarf-data/references/资料分析.md",
+          "url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/skills/redscarf-data/references/资料分析.md",
+          "license": "MIT: LICENSE credits liuyuexi1987; original course/video quotation rights and redistribution authority unverified.",
+          "evidence_type": "community_transcript",
+          "review_scope": "Read the full data reference and, in follow-up, 资料分析技巧索引.md. Specialized formula fragments do not supply enough complete operations/conditions for approval of growth, ratio or approximation methods in this review. This is an individual method-evidence limit, not a blanket original-media prerequisite. Prior enrichment report is not independent quality evidence. No data method card or original media imported."
+        },
+        {
+          "repo": "MUMU0208/redscarf-gongkao-skills",
+          "commit": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
+          "path": "skills/redscarf-quant/references/数量关系.md",
+          "url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/skills/redscarf-quant/references/数量关系.md",
+          "license": "MIT",
+          "evidence_type": "community_transcript",
+          "review_scope": "Read actual full reference; approve only option substitution in 核心规则/代入法, unit2024-02-18 2024第6季省考通用卷模考资料分析+数量关系复盘__u0029, with the same section's u0013 corroborating validation. README names 红领巾, LICENSE credits liuyuexi1987. Short exact repository quote plus self-authored mathematical explanation/examples; no recovered original problem, fabricated formula, speed claim or guessing rule. MIT notice retained in THIRD_PARTY_LICENSES.txt."
+        }
+      ]
+    },
+    {
+      "teacher_id": "xiaohei",
+      "name": "小黑",
+      "status": "pending",
+      "reason": "Read the actual heshuai reference and MIT grant. Its named community attribution is traceable, but §三's absolute-word exclusion heuristic is unsupported and unsafe as a deterministic rule; recorded separately in quarantine. Topic lists and changing political/legal facts are not validated answer methods. No approved card; no real-name identity or official endorsement inferred.",
+      "sources": [
+        {
+          "repo": "sk18700181887-ship-it/xiaohei-gongkao-perspective",
+          "commit": "a41043f12cb0d5921c0019e7dd537c21372d29e5",
+          "path": "README.md",
+          "url": "https://github.com/sk18700181887-ship-it/xiaohei-gongkao-perspective/blob/a41043f12cb0d5921c0019e7dd537c21372d29e5/README.md",
+          "license": "MIT claimed in README License section; no standalone license text; original teaching rights and scope unverified.",
+          "evidence_type": "repository_readme",
+          "review_scope": "Read README label, framework and MIT claim; tree has .gitignore, README and SKILL, no original corpus. SKILL body not reviewed. Commit resolved through GitHub API on checked_at; default-correct heuristic not approved."
+        },
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/xiaohei-changshi.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/xiaohei-changshi.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Follow-up read the full reference and parent SKILL. §三优先排除绝对化表述 supplies no empirical support for its usually-wrong assertion and is not a valid logical rule; true universal statements are counterexamples to deterministic exclusion. Other sections mostly list topics rather than demonstrated methods. No current policy/legal fact audit or method approval. Missing local course PDFs were not accessed or copied."
+        }
+      ]
+    },
+    {
+      "teacher_id": "xiaomage",
+      "name": "小马哥",
+      "status": "pending",
+      "reason": "Named community section and explicit README MIT declaration verified. Section 二 offers fixed fill-in templates, but this limited review did not validate task-specific applicability or a concrete card; generic framework suitability is not automatic. Pending is not based on missing original video, official endorsement or a LICENSE filename.",
+      "sources": [
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 二 and README MIT footer/scope. Traceable community framework attribution, not a teacher-authenticated source. No standalone template card approved because task-specific conditions and counterexamples were not individually validated in this bounded subset; no course media accessed."
+        }
+      ]
+    },
+    {
+      "teacher_id": "zhanzhang",
+      "name": "站长",
+      "status": "pending",
+      "reason": "Community account attribution and README MIT declaration verified. Section 三's four-step analysis was read, but its universal extension to outlook/positive impact has not been validated for particular question demands. No scoped card approved; do not infer a real name or official endorsement from this account label.",
+      "sources": [
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 三 and explicit README MIT declaration. Four-step community summary is locatable, but no example/counterexample set validating its task-specific boundaries was approved. No original-course requirement is imposed; no primary identity or score guarantee is inferred."
+        }
+      ]
+    },
+    {
+      "teacher_id": "bailu",
+      "name": "白鹭",
+      "status": "approved",
+      "reason": "Approved only bailu.material-proposals (heshuai §一3) and bailu.essay-topic-decomposition (Wang §4.3). Actual MIT file/README grant and named community sections support limited reuse/attribution; self-authored examples verify material-grounded conditions. No complete course,60-day outcomes, primary-teacher endorsement, generic public-document formats or unsupported outside facts approved.",
+      "sources": [
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 四 and README explicit MIT declaration; approve only4.3 keyword/relationship/material-bound essay planning as bailu.essay-topic-decomposition. Exclude training efficacy, stock quotations,4.5 mechanical one-keyword/one-argument and unsupported supplementation. Community attribution only; short quote and self-authored examples, notice retained in THIRD_PARTY_LICENSES.txt."
+        },
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/bailu-shenlun.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/bailu-shenlun.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read the full actual reference, parent SKILL and MIT LICENSE. Approve only §一3 material-to-proposal submethod as bailu.material-proposals; facts and suggestions separated, external policies excluded unless separately verified. No local PDF/course copying, training guarantee or official endorsement. Short quote and self-authored example/counterexamples; notice retained in THIRD_PARTY_LICENSES.txt."
+        }
+      ]
+    },
+    {
+      "teacher_id": "feiyang",
+      "name": "飞扬",
+      "status": "pending",
+      "reason": "Named community section and README MIT declaration verified. Section 七's keyword-equals-points/scoring assurances lack an official scoring basis; this review did not approve that method or repair it into a different teacher claim. Team affiliation remains an upstream claim, not independent identity evidence; no card approved.",
+      "sources": [
+        {
+          "repo": "WangJunqing-coder/shenlun-skill",
+          "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+          "path": "references/mingshi-xiangjie.md",
+          "url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 七 and README explicit MIT grant/attribution. Precise keyword-scoring assurances are unsupported by an actual marking scheme; no method approved. Generic material reading can be useful but does not verify that scoring assertion or justify inventing corrected teacher methods."
+        }
+      ]
+    }
+  ],
+  "quarantined_methods": [
+    {
+      "quarantine_id": "heshuai-absolute-words-elimination",
+      "teacher_id": "xiaohei",
+      "name": "Community absolute-word option exclusion heuristic",
+      "status": "quarantined",
+      "reason": "Actual references/xiaohei-changshi.md §三/排除法四步走 says options with 只有/所有/一定/必然 are usually wrong and should be prioritized for exclusion. No empirical distribution is supplied, and absolute wording is not a logically sufficient reason to reject a statement. This is a community-note defect, not a verified teacher statement.",
+      "verification": "Self-authored counterexample to deterministic use: 所有偶数都能被2整除 is true by the definition of an even integer. Word-based exclusion would wrongly remove it. One example does not disprove a statistical usually claim; rather, the source provides no statistical evidence for that claim, so it cannot justify reliable option elimination. No corrected or relabeled version imported.",
+      "sources": [
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/xiaohei-changshi.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/xiaohei-changshi.md",
+          "license": "MIT",
+          "evidence_type": "community_notes",
+          "review_scope": "Read the actual full reference and §三 first exclusion step. Distinguish an unsubstantiated statistical assertion from a logical rule; independently checked a true universal mathematical statement. No script, course media or external policy source executed/accessed."
+        }
+      ]
+    },
+    {
+      "quarantine_id": "heshuai-current-growth-625",
+      "teacher_id": "huasheng-shisan",
+      "name": "Community current-period growth formula/example",
+      "status": "quarantined",
+      "reason": "Section 二, 百化分使用场景 / 场景1 multiplies current value by growth rate and returns 625 for 5000 at 12.5%; this confuses current and base periods and contradicts section 七. This is a repository error, not a verified statement by the teacher.",
+      "verification": "Independent arithmetic: base = 5000/1.125 = 4444.444444..., growth = 5000*0.125/1.125 = 555.555555..., not 625. jq recomputation performed; no upstream script executed. Correction is audit evidence only, not an approved teacher method.",
+      "sources": [
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/shenghua-susuan.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/shenghua-susuan.md",
+          "license": "MIT: repository LICENSE read; original course/handout rights and compiler authority unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read sections 二 and 七 and independently recomputed the explicit 5000/12.5% example."
+        }
+      ]
+    },
+    {
+      "quarantine_id": "heshuai-4151-approximation",
+      "teacher_id": "huasheng-shisan",
+      "name": "Community 4151 small-rate approximation",
+      "status": "quarantined",
+      "reason": "Section 四, 简化版：4151法 claims growth is approximately current/4*rate with small error when rate<10%. That factor of four is not a valid small-rate approximation.",
+      "verification": "Counterexample satisfying stated condition: current=1000, rate=5%; claimed expression gives 12.5, actual growth=1000*0.05/1.05=47.6190476..., relative error 73.75%. Recomputed with jq; not attributed to the actual teacher and not imported.",
+      "sources": [
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/shenghua-susuan.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/shenghua-susuan.md",
+          "license": "MIT: repository LICENSE read; original course/handout rights and compiler authority unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 四 and tested the stated rate range with an independent counterexample."
+        }
+      ]
+    },
+    {
+      "quarantine_id": "heshuai-base-adjustment",
+      "teacher_id": "huasheng-shisan",
+      "name": "Community base-period correction example",
+      "status": "quarantined",
+      "reason": "Section 四 example for current=1567, rate=7.2% arbitrarily adjusts a 1500 base by 15 to 1485. It provides no error bound or options justifying that approximation.",
+      "verification": "Independent division gives 1567/1.072=1461.7537313..., whereas 1485*1.072=1591.92, not 1567. The stated correction is not supported; no corrected teacher method is created.",
+      "sources": [
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/shenghua-susuan.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/shenghua-susuan.md",
+          "license": "MIT: repository LICENSE read; original course/handout rights and compiler authority unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 四 example; base value independently recomputed with jq."
+        }
+      ]
+    },
+    {
+      "quarantine_id": "heshuai-truncation-scale",
+      "teacher_id": "huasheng-shisan",
+      "name": "Community division truncation without scale restoration",
+      "status": "quarantined",
+      "reason": "Section 三 maps 123456/789 to 12/79 or 123/789 and its 12345/678 example jumps from 12/68=0.176 to option 18 without restoring powers of ten. The written procedure omits essential magnitude accounting.",
+      "verification": "The original 12345/678 is about 18.21, not 0.176. Retaining leading digits requires restoring the omitted scale (here about 100); blindly using the written quotient is unsafe. This finding concerns the incomplete community procedure, not the teacher's original method.",
+      "sources": [
+        {
+          "repo": "heshuai-ai/gongkao_skills",
+          "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+          "path": "references/shenghua-susuan.md",
+          "url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/shenghua-susuan.md",
+          "license": "MIT: repository LICENSE read; original course/handout rights and compiler authority unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 三 truncation table, steps and 12345/678 example; audited dimensional/magnitude consistency."
+        }
+      ]
+    },
+    {
+      "quarantine_id": "wang-huasheng-guessing-expectation",
+      "teacher_id": "huasheng-shisan",
+      "name": "Community guessing probability, expectation and option heuristics",
+      "status": "quarantined",
+      "reason": "README 场景三 uses 15*0.2*1=3 points; SKILL section 九 instead says about 1.25 points. Both lack a consistent probability/scoring model. Extreme-option exclusion and balanced ABCD claims lack exam-specific evidence.",
+      "verification": "Under an explicitly hypothetical four-equiprobable-option, one-point, no-penalty model, expectation=15*(1/4)=3.75. Fixed all-C performance on a real answer key is not guaranteed or inferred from that model. This counterexample exposes unsupported assumptions, not an endorsed guessing strategy or teacher attribution.",
+      "sources": [
+        {
+          "repo": "WangJunqing-coder/huasheng13-skill",
+          "commit": "6a43d776741f69a231eb2d75f9d5d59efe870659",
+          "path": "README.md",
+          "url": "https://github.com/WangJunqing-coder/huasheng13-skill/blob/6a43d776741f69a231eb2d75f9d5d59efe870659/README.md",
+          "license": "MIT claimed in README; linked LICENSE absent from pinned tree; original teaching rights and grant scope unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read 场景三：数量关系蒙题, including probability, score and option-distribution assertions."
+        },
+        {
+          "repo": "WangJunqing-coder/huasheng13-skill",
+          "commit": "6a43d776741f69a231eb2d75f9d5d59efe870659",
+          "path": "SKILL.md",
+          "url": "https://github.com/WangJunqing-coder/huasheng13-skill/blob/6a43d776741f69a231eb2d75f9d5d59efe870659/SKILL.md",
+          "license": "MIT claimed in README; linked LICENSE absent from pinned tree; original teaching rights and grant scope unverified.",
+          "evidence_type": "community_notes",
+          "review_scope": "Read section 九, 数量关系全蒙 C 行不行, and compared the 1.25-point assertion with README's 3 points."
+        }
+      ]
+    }
+  ],
+  "audit": {
+    "candidate_count": 33,
+    "approved_count": 4,
+    "scope": "2026-11-05 source research, with follow-up card validation on2026-11-06. Initial inventory verified33 distinct upstream labels/paths, not33 authenticated teachers:27 distill labels plus 红领巾/小黑/小马哥/站长/白鹭/飞扬. Follow-up individually approved5 methods for4 labels: 红领巾 option substitution; 李梦圆 keyword extraction; 袁东 material-supported headings; 白鹭 material proposals and essay topic decomposition. Approval is limited to these traceable community records and self-authored bounded summaries, not whole courses or repositories.29 candidates remain pending; original5 quarantines are unchanged and1 independently observed 小黑 heuristic defect is added.",
+    "limits": [
+      "All three gates are individually required: permission for intended limited reuse, traceable community or primary attribution, and a concrete method with checked conditions/counterexamples. Approved5 cards cover4 candidates, not an official whole-teacher skill. A candidate is approved only because at least one approved method exists; its other listed files are not automatically approved.",
+      "Actual method/topic coverage: xingce.quantity.equations=1 (honglingjin.option-substitution); shenlun.summary=2 (li-mengyuan.keyword-extraction, yuan-dong.summary-headings); shenlun.proposals=1 (bailu.material-proposals); shenlun.essay=1 (bailu.essay-topic-decomposition). All other taxonomy topics remain uncovered. The two summary cards offer distinct extraction/organization techniques, not guaranteed different final facts.",
+      "Most distill entries were checked at tree/README level only. Selected bodies are identified individually in review_scope. The plan's prior 14-body research claim is not inherited as evidence of this audit.",
+      "Only GitHub API trees/commit resolution and pinned raw repository text were accessed through webfetch. No upstream scripts, skills, hooks, MCP servers, installers, arbitrary embedded links, course videos, paid material or login bypasses were executed/accessed.",
+      "GitHub returned truncated=false for all ten recursive trees. The tool display truncated three large responses; targeted checks used the retained complete API output. Complete tree enumeration does not imply every file body was reviewed.",
+      "All plan-specified SHAs are preserved. Four repositories without plan SHAs were pinned to the single commit returned by GitHub commits?per_page=1 on checked_at; those commits are recorded below. No floating-branch source permalinks are used.",
+      "Read full MIT texts for MUMU/heshuai and the explicit MIT License © WangJunqing-coder README declaration. A README declaration can license contributor documentation despite no LICENSE filename. Compiler grants do not prove rights over original lessons, questions, recordings or OCR. Cards use only short exact repository quotations, self-authored explanations and self-authored examples; no course corpus or upstream worked example copied. Notices are retained in conf/dify-kaogong/THIRD_PARTY_LICENSES.txt and must accompany distribution of these assets.",
+      "Community_notes and intelligible community_transcript evidence are permitted, without requiring official endorsement or original media. Fixed commit + named section or dated unit_id binds each quote. Redscarf specialized data formulas remain unapproved because the inspected fragments lack sufficiently complete operations/conditions, not because all community transcripts are disallowed. Original ASR transcription accuracy is not certified.",
+      "No official teacher authorization, authenticated original transcript, complete course lineage, exhaustive whole-repository correctness review or whole-web teacher coverage is claimed. The quarantine list is a set of observed errors, not an exhaustive error inventory.",
+      "Sources use representative actual file permalinks, not every file in each teacher directory. Secondary subject entries remain part of the same candidate. Candidate IDs are local inventory identifiers, not upstream identities or callable skills.",
+      "Approval is method-level catalog configuration. Hash/schema validation cannot establish real-world truth, and prose methods are bounded reading/organization aids, not guaranteed official scores. The catalog enables5 eligible methods only when consumed by the application; this source audit makes no claim of successful Dify deployment, indexing, retrieval, model execution or live end-to-end testing."
+    ],
+    "evidence_types": {
+      "repository_tree": "Exact committed file/path and candidate label existence only; linked file body was not reviewed unless review_scope explicitly says otherwise. Not method evidence.",
+      "repository_readme": "Read repository-authored description/roster/license claim; it verifies what the repository claims, not the teacher's authorship or method truth.",
+      "community_notes": "Read community-authored summary, framework or example; not an official or authenticated teacher source.",
+      "community_transcript": "Community-extracted speech/ASR fragments with fixed unit IDs. Only individually intelligible, conditioned operations can be approved; original recording accuracy and course-media rights are not certified. A unit locator is community evidence, not a media-authentication claim.",
+      "syllabus_only": "Read bibliography/course/contents-level evidence only; cannot substantiate an individually attributed method."
+    },
+    "repository_checks": [
+      {
+        "repo": "hilltahuang/gongkao-distill",
+        "commit": "36d2d10d2ac3299974e762914db7875484605ed2",
+        "tree_url": "https://api.github.com/repos/hilltahuang/gongkao-distill/git/trees/36d2d10d2ac3299974e762914db7875484605ed2?recursive=1",
+        "readme_url": "https://github.com/hilltahuang/gongkao-distill/blob/36d2d10d2ac3299974e762914db7875484605ed2/README.md",
+        "license": "NOASSERTION",
+        "license_url": null,
+        "notes": "Plan pin retained. 27 distinct named source candidates, excluding 综应A and 女娲; jq dedup of exact source SKILL paths confirms count. README claims 26 publish teacher directories/27 installable skills, but actual publish tree contains README and style files, not those claimed agent SKILL files. No LICENSE/COPYING or README reuse grant identified."
+      },
+      {
+        "repo": "MUMU0208/redscarf-gongkao-skills",
+        "commit": "065f5084279a4cd43dc3c7a978e5508fd44158fc",
+        "tree_url": "https://api.github.com/repos/MUMU0208/redscarf-gongkao-skills/git/trees/065f5084279a4cd43dc3c7a978e5508fd44158fc?recursive=1",
+        "readme_url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/README.md",
+        "license": "MIT; actual text read, copyright2026 liuyuexi1987; limited contributor-documentation reuse, not full course-media rights",
+        "license_url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/LICENSE",
+        "notes": "Plan pin retained and actual recursive tree rechecked. Eight skill directories represent one account, not eight teachers. Read README, LICENSE, full data reference, data technique index and full quantity reference. Approve only quantity/代入法/u0029 as honglingjin.option-substitution. README installation owner differs from current owner; preserve actual liuyuexi1987 copyright notice, do not certify copy lineage or original media. Data snippets are not sufficient evidence of complete specialized formulas. No upstream scripts executed.",
+        "approved_skill_ids": ["honglingjin.option-substitution"],
+        "method_file_url": "https://github.com/MUMU0208/redscarf-gongkao-skills/blob/065f5084279a4cd43dc3c7a978e5508fd44158fc/skills/redscarf-quant/references/数量关系.md",
+        "notice_file": "conf/dify-kaogong/THIRD_PARTY_LICENSES.txt"
+      },
+      {
+        "repo": "ksbsjsj/huasheng-shisan-perspective",
+        "commit": "1108f755ddb1362670ca340f2e30f5d412db2720",
+        "tree_url": "https://api.github.com/repos/ksbsjsj/huasheng-shisan-perspective/git/trees/1108f755ddb1362670ca340f2e30f5d412db2720?recursive=1",
+        "readme_url": "https://github.com/ksbsjsj/huasheng-shisan-perspective/blob/1108f755ddb1362670ca340f2e30f5d412db2720/README.md",
+        "license": "NOASSERTION",
+        "license_url": null,
+        "notes": "Plan pin retained. README and full tree checked, including actual course-note/OCR blobs. No identified license; readable course scans/extractions are not presumed redistributable. README's self-reported quality tests were not executed."
+      },
+      {
+        "repo": "WangJunqing-coder/shenlun-skill",
+        "commit": "ba3760375c270735ff49d2dfa58ab53205553a9f",
+        "tree_url": "https://api.github.com/repos/WangJunqing-coder/shenlun-skill/git/trees/ba3760375c270735ff49d2dfa58ab53205553a9f?recursive=1",
+        "readme_url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/README.md",
+        "license": "MIT; explicit README footer MIT License © WangJunqing-coder and badge; contributor community-documentation scope accepted",
+        "license_url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/README.md",
+        "notes": "Plan pin retained. Read actual README and entire references/mingshi-xiangjie.md. MIT footer is an explicit grant, not rejected for absent LICENSE filename; README says generic community methods, no paid-course originals. Approve only 李梦圆§§1.4-1.5, 袁东§§5.2-5.4 and 白鹭§4.3 as bounded self-authored summaries, each with short exact quote/section locator. Other named sections remain pending with individual review limits; no official scoring, guaranteed training results, original-course authentication or whole-reference approval. Preserve footer without inventing a copyright year.",
+        "approved_skill_ids": [
+          "li-mengyuan.keyword-extraction",
+          "yuan-dong.summary-headings",
+          "bailu.essay-topic-decomposition"
+        ],
+        "method_file_url": "https://github.com/WangJunqing-coder/shenlun-skill/blob/ba3760375c270735ff49d2dfa58ab53205553a9f/references/mingshi-xiangjie.md",
+        "notice_file": "conf/dify-kaogong/THIRD_PARTY_LICENSES.txt"
+      },
+      {
+        "repo": "sk18700181887-ship-it/xiaohei-gongkao-perspective",
+        "commit": "a41043f12cb0d5921c0019e7dd537c21372d29e5",
+        "tree_url": "https://api.github.com/repos/sk18700181887-ship-it/xiaohei-gongkao-perspective/git/trees/a41043f12cb0d5921c0019e7dd537c21372d29e5?recursive=1",
+        "readme_url": "https://github.com/sk18700181887-ship-it/xiaohei-gongkao-perspective/blob/a41043f12cb0d5921c0019e7dd537c21372d29e5/README.md",
+        "license": "README-only MIT claim; no standalone license text; scope unresolved",
+        "license_url": "https://github.com/sk18700181887-ship-it/xiaohei-gongkao-perspective/blob/a41043f12cb0d5921c0019e7dd537c21372d29e5/README.md",
+        "notes": "Plan gave no SHA. Pinned via https://api.github.com/repos/sk18700181887-ship-it/xiaohei-gongkao-perspective/commits?per_page=1 on 2026-11-05, then read pinned README/tree. Original source corpus absent."
+      },
+      {
+        "repo": "sk18700181887-ship-it/xianglijun-interview-perspective",
+        "commit": "dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70",
+        "tree_url": "https://api.github.com/repos/sk18700181887-ship-it/xianglijun-interview-perspective/git/trees/dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70?recursive=1",
+        "readme_url": "https://github.com/sk18700181887-ship-it/xianglijun-interview-perspective/blob/dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70/README.md",
+        "license": "README-only MIT claim; no standalone license text; scope unresolved",
+        "license_url": "https://github.com/sk18700181887-ship-it/xianglijun-interview-perspective/blob/dfe492423f0e444ee98c5ed485ddc9cfc5ab5b70/README.md",
+        "notes": "Plan gave no SHA. Pinned via https://api.github.com/repos/sk18700181887-ship-it/xianglijun-interview-perspective/commits?per_page=1 on 2026-11-05, then read pinned README/tree. Same 相丽君 label as distill; no new candidate."
+      },
+      {
+        "repo": "heshuai-ai/gongkao_skills",
+        "commit": "1c59ad6e72d7a50d394ae727640b597b65cacb4b",
+        "tree_url": "https://api.github.com/repos/heshuai-ai/gongkao_skills/git/trees/1c59ad6e72d7a50d394ae727640b597b65cacb4b?recursive=1",
+        "readme_url": null,
+        "license": "MIT; actual text read, copyright2026 heshuai-ai; limited contributor-documentation reuse, not original course rights",
+        "license_url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/LICENSE",
+        "notes": "Plan pin retained. Initial shenghua numerical/procedure defects remain quarantined unchanged; do not repair/rebrand that file. Follow-up read actual SKILL.md, LICENSE, bailu-shenlun.md and xiaohei-changshi.md. Approve only 白鹭§一3 material-grounded proposal submethod. 小黑§三 absolute-word heuristic lacks support and is newly quarantined. Local Windows PDF/course paths were not accessed or reproduced; no current-affairs/legal factual approval or whole teaching-system review claimed.",
+        "approved_skill_ids": ["bailu.material-proposals"],
+        "method_file_url": "https://github.com/heshuai-ai/gongkao_skills/blob/1c59ad6e72d7a50d394ae727640b597b65cacb4b/references/bailu-shenlun.md",
+        "notice_file": "conf/dify-kaogong/THIRD_PARTY_LICENSES.txt"
+      },
+      {
+        "repo": "WangJunqing-coder/huasheng13-skill",
+        "commit": "6a43d776741f69a231eb2d75f9d5d59efe870659",
+        "tree_url": "https://api.github.com/repos/WangJunqing-coder/huasheng13-skill/git/trees/6a43d776741f69a231eb2d75f9d5d59efe870659?recursive=1",
+        "readme_url": "https://github.com/WangJunqing-coder/huasheng13-skill/blob/6a43d776741f69a231eb2d75f9d5d59efe870659/README.md",
+        "license": "MIT claimed in README, without linked LICENSE in tree; scope unresolved",
+        "license_url": "https://github.com/WangJunqing-coder/huasheng13-skill/blob/6a43d776741f69a231eb2d75f9d5d59efe870659/README.md",
+        "notes": "Plan pin retained. README/SKILL read and guessing conflict independently confirmed. Adds no teacher beyond 花生十三. Other reference bodies not audited; no guarantee that they are correct."
+      },
+      {
+        "repo": "liuyuexi1987/xingce-review-pro",
+        "commit": "72860f2b1993d168572e8ae5f99c8afa50cfefa2",
+        "tree_url": "https://api.github.com/repos/liuyuexi1987/xingce-review-pro/git/trees/72860f2b1993d168572e8ae5f99c8afa50cfefa2?recursive=1",
+        "readme_url": "https://github.com/liuyuexi1987/xingce-review-pro/blob/72860f2b1993d168572e8ae5f99c8afa50cfefa2/README.md",
+        "license": "GPL-3.0-only: license text read and README explicitly says only v3.0",
+        "license_url": "https://github.com/liuyuexi1987/xingce-review-pro/blob/72860f2b1993d168572e8ae5f99c8afa50cfefa2/LICENSE",
+        "notes": "Plan gave no SHA. Pinned via https://api.github.com/repos/liuyuexi1987/xingce-review-pro/commits?per_page=1 on 2026-11-05. Generic workflow, not a new named teacher. Actual SKILL path is skills/xingce-review-pro/SKILL.md (tree verified, body not read). README describes scripts/writeback.py; no scripts executed or workflow code reused."
+      },
+      {
+        "repo": "liuyuexi1987/shenlun-review-pro",
+        "commit": "66c49941aaadc2737e13b6d887363b3950629734",
+        "tree_url": "https://api.github.com/repos/liuyuexi1987/shenlun-review-pro/git/trees/66c49941aaadc2737e13b6d887363b3950629734?recursive=1",
+        "readme_url": "https://github.com/liuyuexi1987/shenlun-review-pro/blob/66c49941aaadc2737e13b6d887363b3950629734/README.md",
+        "license": "GPL-3.0-only: license text read and README explicitly says only v3.0",
+        "license_url": "https://github.com/liuyuexi1987/shenlun-review-pro/blob/66c49941aaadc2737e13b6d887363b3950629734/LICENSE.txt",
+        "notes": "Plan gave no SHA. Pinned via https://api.github.com/repos/liuyuexi1987/shenlun-review-pro/commits?per_page=1 on 2026-11-05. Generic workflow, not a new named teacher. Actual SKILL path is plugins/shenlun-review/skills/shenlun-review-pro/SKILL.md (tree verified, body not read). MCP/hooks described in README were not installed or executed."
+      }
+    ],
+    "retrieval_errors": [
+      {
+        "operation": "gh api for initial three pinned trees",
+        "error": "gh: command not found",
+        "resolution": "Used webfetch for GitHub API and pinned raw text instead; no source verification was inferred from failed commands."
+      },
+      {
+        "url": "https://raw.githubusercontent.com/liuyuexi1987/xingce-review-pro/72860f2b1993d168572e8ae5f99c8afa50cfefa2/SKILL.md",
+        "error": "HTTP 404: incorrect root-level SKILL path",
+        "resolution": "Pinned tree verifies actual skills/xingce-review-pro/SKILL.md. Root 404 does not imply missing repository or missing generic workflow; only README/license and actual path were audited."
+      },
+      {
+        "url": "https://raw.githubusercontent.com/liuyuexi1987/shenlun-review-pro/66c49941aaadc2737e13b6d887363b3950629734/SKILL.md",
+        "error": "HTTP 404: incorrect root-level SKILL path",
+        "resolution": "Pinned tree verifies actual plugins/shenlun-review/skills/shenlun-review-pro/SKILL.md. Root 404 does not imply missing repository or missing generic workflow; only README/license and actual path were audited."
+      },
+      {
+        "operation": "Independent arithmetic verification using python3",
+        "error": "python3: command not found",
+        "resolution": "Initial audit recomputed quarantine counterexamples with jq. Follow-up uses nix shell --inputs-from . nixpkgs#python3 --command python3 -B for local catalog/hash/size and self-authored arithmetic checks. No remote source code executed."
+      }
+    ],
+    "exclusions": [
+      {
+        "name": "综应A",
+        "reason": "Distill topic framework, not a teacher/account; excluded from the 33 candidate count."
+      },
+      {
+        "name": "女娲",
+        "reason": "Distill internal authoring tool under source/_tools, not a teacher/account; excluded from candidate count."
+      },
+      {
+        "name": "歪歪 personal methods",
+        "reason": "Actual repository label retained among 33 candidates, but identity is explicitly unverified and content generic; excluded from verified teacher methods."
+      },
+      {
+        "name": "张超 as a standalone skill candidate",
+        "reason": "Retained as coauthor evidence in 蔡金龙 record, not added as a fabricated standalone teacher skill; no separate candidate directory/skill identified in this audit."
+      },
+      {
+        "name": "xingce-review-pro / shenlun-review-pro",
+        "reason": "Generic workflow repositories, not two new teachers or evidence that repository maintainers are the named teachers. License/source obligations still apply if later reused."
+      }
+    ],
+    "gaps": [
+      {
+        "name": "刘文超",
+        "reason": "No corresponding named candidate skill found in the audited roster/tree scope; not a claim of whole-web absence. No placeholder method created."
+      },
+      {
+        "name": "聂佳",
+        "reason": "No corresponding named candidate skill found in the audited roster/tree scope; not a claim of whole-web absence. No placeholder method created."
+      },
+      {
+        "name": "章晓铭",
+        "reason": "No corresponding named candidate skill found in the audited roster/tree scope; not a claim of whole-web absence. No placeholder method created."
+      }
+    ]
+  }
+}

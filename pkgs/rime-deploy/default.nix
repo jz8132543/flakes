@@ -2,8 +2,8 @@
   pkgs,
   stdenv,
   lib,
-  fetchurl,
   librime,
+  rime-wanxiang-gram,
   rime-wanxiang ? pkgs.rime-wanxiang,
   rimeData ? pkgs.rime-data,
   framework ? "ibus",
@@ -21,11 +21,6 @@
   ...
 }:
 let
-  wanxiangGram = fetchurl {
-    url = "https://github.com/amzxyz/RIME-LMDG/releases/download/LTS/wanxiang-lts-zh-hans.gram";
-    sha256 = "sha256-jxstPtKydV/dRF9qsQPv9hMFIIC2KgwEn0sWYEOhasQ=";
-  };
-
   ibusCustomYaml = ''
     patch:
       style:
@@ -70,7 +65,7 @@ stdenv.mkDerivation {
         fi
 
         # 3. Copy grammar model.
-        cp -f ${wanxiangGram} shared-data/wanxiang-lts-zh-hans.gram
+        cp -f ${rime-wanxiang-gram} shared-data/wanxiang-lts-zh-hans.gram
 
         # 4. Copy user configuration from local directory.
         cat > rime-data/default.yaml <<'EOF'

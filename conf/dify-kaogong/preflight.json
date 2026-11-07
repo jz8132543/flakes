@@ -1,0 +1,1591 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-05",
+  "latest_status_section": "gemini_cutover_20261106",
+  "historical_snapshot_scope": "Top-level 2026-11-05 observations, deployment_acceptance, teacher_upgrade, model_provider_correction and repair_20261106 retain their historical phase results. In particular, repair_20261106 contains pre-Gemini Luna bindings, 178 tests and 15:27/15:37 canonical/file-byte hashes, not current Gemini evidence. Its old recovery cron is explicitly cancelled. Read gemini_cutover_20261106 for current model, finite-job progress and pending current-graph acceptance.",
+  "full_goal_complete": false,
+  "target": "fra0",
+  "studio_origin": "https://chat.dora.im",
+  "api_origin": "http://127.0.0.1:5001",
+  "installed_version": "1.19.0",
+  "installed_version_evidence": [
+    "dify-api:/app/api/pyproject.toml",
+    "dify-web:/app/targets/next/web/package.json"
+  ],
+  "source_revision": "8e689e868b63b6dd2b449d0eb568ca5cc7127759",
+  "dsl_version": "0.7.0",
+  "dsl_version_evidence": "dify-api:/app/api/constants/dsl_version.py",
+  "image_digests": {
+    "dify-api": "sha256:0d67842aedcb9b5884f75b88c4a5dd812e637916bff1ca892831f7ace2f3204f",
+    "dify-worker": "sha256:0d67842aedcb9b5884f75b88c4a5dd812e637916bff1ca892831f7ace2f3204f",
+    "dify-web": "sha256:f5f1ad000d6a268ae6b29b84c5095069fbd5994cbe43f937a3d32caa00038b4c",
+    "dify-sandbox": "sha256:750e1111426ef31a9217b81c98cccfb750f17b182af3221102e420afa9f0928e",
+    "dify-plugin-daemon": "sha256:cf5a7f61f157736e64c5990a35c3dbe63ace6e2e2231ecca562462c74b1f7554"
+  },
+  "service_observation": {
+    "active_systemd_units": [
+      "podman-dify-api",
+      "podman-dify-worker",
+      "podman-dify-web",
+      "podman-dify-sandbox",
+      "podman-dify-plugin-daemon",
+      "postgresql",
+      "redis-dify",
+      "qdrant"
+    ],
+    "limitation": "Active service/container state alone does not establish functional plugin, model, worker or sandbox health. See separate preview acceptance results."
+  },
+  "workspace_before_apply": {
+    "tenant_id": "d7064d47-746d-4c74-b280-4d854d54e4a9",
+    "role": "owner",
+    "workspace_count": 1,
+    "app_count": 0,
+    "dataset_count": 0,
+    "configured_llm_provider_count": 0,
+    "configured_embedding_provider_count": 0,
+    "configured_rerank_provider_count": 0
+  },
+  "gateway_probes": [
+    {
+      "endpoint": "GET /v1/models",
+      "status": 200,
+      "result": "Model names returned; not evidence that generation or embeddings work."
+    },
+    {
+      "endpoint": "POST /v1/chat/completions",
+      "model": "gpt-6-astra",
+      "request": "2+3 with a strict JSON result schema, max_tokens=256, no sampling parameters",
+      "status": 401,
+      "passed": false
+    },
+    {
+      "endpoint": "POST /v1/embeddings",
+      "model": "bge-m3",
+      "request": "Two short synthetic English strings",
+      "status": 404,
+      "passed": false
+    }
+  ],
+  "capability_limits": [
+    "Only the recorded requests were tested; no claim that every gateway model fails.",
+    "Vision and reranking were not probed or enabled; screenshots must be supplied as text.",
+    "No successful sampling-parameter or model-output-length capability test exists.",
+    "No model credentials, workspace model settings, plugins or infrastructure were changed."
+  ],
+  "credential_observation": {
+    "shared_console_password_mode": "0444",
+    "shared_permissions_changed": false,
+    "ephemeral_private_copy_used": true,
+    "ephemeral_private_copy_removed_after_verification": true,
+    "limitation": "A private temporary copy does not remediate the original shared credential permissions. No credential values or session cookies are included in this report."
+  },
+  "deployment_acceptance": {
+    "app_id": "c17f5fc5-0a1c-43f3-a691-bad3d0e9524d",
+    "studio_url": "https://chat.dora.im/app/c17f5fc5-0a1c-43f3-a691-bad3d0e9524d/workflow",
+    "mode": "empty-catalog-only",
+    "enable_site": false,
+    "enable_api": false,
+    "published": false,
+    "repeat_apply_changed": false,
+    "final_app_count": 1,
+    "final_dataset_count": 0,
+    "approved_method_count": 0,
+    "enabled_teacher_count": 0,
+    "real_teacher_comparison_count": 0,
+    "offline_unittest_count": 61,
+    "offline_unittest_passed": true,
+    "ruff_passed": true,
+    "authenticated_preview_case_count": 5,
+    "authenticated_preview_cases_passed": [
+      "current5000-rate12.5-growth",
+      "missing-shenlun-material",
+      "unclear-screenshot-text-request",
+      "same-conversation-why-not625",
+      "no-second-teacher"
+    ],
+    "anonymous_route_without_code": {
+      "http_status": 401,
+      "code": "unauthorized"
+    },
+    "anonymous_route_with_disabled_app_code": {
+      "http_status": 404,
+      "code": "app_not_found"
+    },
+    "browser_click_e2e_performed": false,
+    "full_teacher_plan_complete": false
+  },
+  "teacher_upgrade": {
+    "checked_at": "2026-11-06",
+    "status": "configured-model-acceptance-blocked",
+    "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+    "studio_url": "https://chat.dora.im/app/71afeb8d-4b69-45e0-b91d-eb7701b10059/workflow",
+    "previous_app_preserved": "c17f5fc5-0a1c-43f3-a691-bad3d0e9524d",
+    "previous_app_reason": "Its draft differed from the prior managed hash; it was not overwritten.",
+    "state_directory": "/var/lib/dify/kaogong-teachers",
+    "python_gc_root": "/var/lib/dify/kaogong-teachers/python",
+    "temporary_credentials_removed": true,
+    "runtime_directory_mode": "0700",
+    "state_and_knowledge_key_modes": "0600",
+    "enable_site": false,
+    "enable_api": false,
+    "published": false,
+    "native_node_count": 18,
+    "native_iteration_parallel_nums": 3,
+    "generic_llm_node_retries_enabled": false,
+    "candidate_count": 33,
+    "approved_teacher_count": 4,
+    "approved_method_count": 5,
+    "pending_candidate_count": 29,
+    "quarantined_method_count": 6,
+    "verified_teacher_answer_count": 0,
+    "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+    "document_count": 5,
+    "segment_count": 5,
+    "indexing_technique": "economy",
+    "retrieval_top_k": 5,
+    "keyword_strategy": "teaching-ascii-cjk2-6-v1",
+    "public_api_retrieval_probes": {
+      "positive": 10,
+      "negative": 20,
+      "per_run": true,
+      "passed": true
+    },
+    "native_retrieval_execution": {
+      "script": "scripts/dify-kaogong-native-probe.py",
+      "isolation_passed": true,
+      "correct_teacher_probes": 2,
+      "nonexistent_teacher_probes": 2,
+      "llm_tokens": 0,
+      "draft_unchanged": true,
+      "all_diagnostic_expectations_passed": false,
+      "off_topic_empty_expectation_failures": 2,
+      "limitation": "Honglingjin's own off-topic card is returned for both summary queries. Teacher/status isolation is correct, but lexical relevance requires downstream topic/applicability checks. The diagnostic deliberately exits 1 rather than hiding these two failed empty-result expectations.",
+      "debugger_limitation": "The single-node selector extractor only loads query. An omitted teacher template becomes literal kg_extract.teacher_id; extra debugger keys do not populate it. Seeded native runtime selectors retrieve the correct reviewed cards."
+    },
+    "repeat_apply_changed": false,
+    "anonymous_without_code": { "http_status": 401, "code": "unauthorized" },
+    "anonymous_with_app_code": { "http_status": 404, "code": "app_not_found" },
+    "bound_build_reproduction": {
+      "passed": true,
+      "historical_before_model_correction": true,
+      "dsl_file_sha256": "35bc7912e907c2cc3be229e8808c252dc491272c4f3512b65cd2c18df86c03ce",
+      "manifest_file_sha256": "21db4b449f7d52103a9af2210a8768615e5bc5e06fcd393724b9636252b5fb27",
+      "scope": "The credential-free server build and a fresh local build with the same nonsecret binding are byte-identical. This is not model acceptance."
+    },
+    "offline_tests": {
+      "base_and_cli": 70,
+      "teacher_runtime_and_graph": 40,
+      "knowledge": 36,
+      "passed": true
+    },
+    "ruff_note": "teacher_nodes.py is a concatenated fragment with globals supplied by nodes.py and the builder; F821 is excluded only for that fragment, and complete generated wrappers are compiled/executed in tests.",
+    "model_binding": {
+      "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+      "model": "API",
+      "upstream_model": "gpt-6.1-sol"
+    },
+    "model_limits_repaired": {
+      "context_size": { "before": "1,050,000", "after": "1050000" },
+      "max_tokens_to_sample": { "before": "128,000", "after": "128000" }
+    },
+    "prior_model_key_preservation_claim_was_incorrect": true,
+    "gateway_channels_modified": false,
+    "generation_probes": [
+      {
+        "route": "Existing Dify API model before key recovery",
+        "model": "gpt-6.1-sol",
+        "http_status": 401,
+        "result": "invalid token while the model stored a display mask; the earlier claim that the numeric repair preserved the key was incorrect"
+      },
+      {
+        "route": "Existing CPA route",
+        "model": "claude-opus-4-6",
+        "http_status": 403,
+        "result": "upstream account disabled; restriction was not bypassed"
+      },
+      {
+        "route": "Independent active gateway route",
+        "model": "gpt-5.6-luna",
+        "http_status": 500,
+        "result": "upstream reported no available channel"
+      },
+      {
+        "route": "Independent gateway model listed in channel metadata",
+        "model": "gpt-5.5-luna",
+        "http_status": 503,
+        "result": "no enabled dispatch ability for this model; no routes or group permissions were changed"
+      }
+    ],
+    "full_workflow_attempt": {
+      "passed": false,
+      "code_nodes_executed_successfully": [
+        "kg_prepare",
+        "kg_select",
+        "kg_serialize",
+        "kg_render"
+      ],
+      "failed_model_nodes": [
+        "kg_classifier",
+        "kg_general",
+        "kg_general_review"
+      ],
+      "reason": "All three model nodes returned upstream HTTP 401; successful fallback/error rendering is not answer acceptance."
+    },
+    "real_teacher_comparison_passed": false,
+    "vision_enabled": false,
+    "full_goal_complete": false
+  },
+  "model_provider_correction": {
+    "checked_at": "2026-11-06",
+    "affected_function": "scripts/dify-kaogong.py:repair_model_limits",
+    "cause": "The old updater sent the GET display mask back as api_key. Native Dify only preserves the original value when the update uses [__HIDDEN__] with the existing credential_id.",
+    "credential_corrupted_by_earlier_script": true,
+    "prior_credential_updated_at_utc": "2026-11-05T16:32:28.112159Z",
+    "original_existing_gateway_key_restored": true,
+    "new_gateway_token_created": false,
+    "runtime_readback_matches_recovered_original": true,
+    "runtime_key_contains_mask": false,
+    "native_keep_secret_roundtrip_verified": true,
+    "endpoint_model_and_other_settings_unchanged_by_recovery": true,
+    "key_values_recorded": false,
+    "temporary_login_copy_removed": true,
+    "model": "API",
+    "endpoint_model": "gpt-6.1-sol",
+    "api_type": "responses",
+    "compatibility_mode": "strict",
+    "token_parameter_name": "auto",
+    "current_gateway_authentication_valid": true,
+    "current_upstream_error": "401 unauthorized client detected",
+    "tested_standard_protocols": ["chat/completions", "responses"],
+    "user_poem_workflow_status": "partial-succeeded",
+    "user_poem_model_nodes": [
+      "kg_classifier",
+      "kg_general",
+      "kg_general_review"
+    ],
+    "user_poem_model_nodes_rejected_by_upstream_client_authorization": true,
+    "user_poem_answer_accepted": false,
+    "source_error_messages_fixed": true,
+    "error_message_template_applied_to_user_modified_draft": false,
+    "draft_not_overwritten": true,
+    "offline_tests": {
+      "base_and_cli": 74,
+      "teacher_runtime_and_graph": 42,
+      "knowledge": 36,
+      "passed": true
+    },
+    "full_model_acceptance": false
+  },
+  "repair_20261106": {
+    "checked_at": "2026-11-06",
+    "status": "historical-pre-gemini-studio-repair-and-luna-stage",
+    "latest_audit_at_utc": "2026-11-06T15:27:22Z",
+    "evidence_scope": "Live facts were reported by the root executor; this documentation update made no live calls and modified only docs/kaogong-teacher-skills.md and this file. Code behavior was checked against current local scripts. Pending fields are not inferred successes.",
+    "app": {
+      "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+      "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+      "app_and_dataset_ids_unchanged_at_last_observation": true,
+      "native_node_count": 18,
+      "enable_site": false,
+      "enable_api": false,
+      "published": false,
+      "previous_app_preserved": "c17f5fc5-0a1c-43f3-a691-bad3d0e9524d",
+      "new_graph_apply_status": "passed",
+      "new_graph_apply_time_utc_approx": "2026-11-06 14:17 UTC",
+      "new_graph_apply_changed": true,
+      "new_graph_apply_option": "--merge-ui-only",
+      "new_model_binding_applied": true,
+      "post_apply_model_names": {
+        "kg_classifier": "kaogong-gpt-5.6-luna",
+        "kg_solve": "kaogong-gpt-5.6-luna",
+        "kg_review": "kaogong-gpt-5.6-luna",
+        "kg_general": "kaogong-gpt-5.6-luna",
+        "kg_general_review": "kaogong-gpt-5.6-luna"
+      },
+      "post_apply_app_and_dataset_ids_unchanged": true,
+      "post_apply_resource_ids_unchanged": true,
+      "managed_resource_counts": { "app": 1, "dataset": 1, "documents": 5 },
+      "post_apply_baseline_hashes": {
+        "generated_draft_sha256": "778ea1019ceb88ee0dee42c5862edcc4b8bb7625e176b0da7a3c9ba871313aeb",
+        "applied_and_current_draft_sha256": "e2bc6b897b12f123812724ffa6202c334d1c2bb328fb337933752a73b6cb9b8a",
+        "bundle_sha256": "d2dbc251be0ca7fa024a86814cc8ebc7331284ac82a492872d3809fd62565d3c",
+        "applied_equals_current": true,
+        "execution_matches_generated": true,
+        "scope": "Canonical draft and bundle/manifest object hashes, not file-byte hashes or Dify concurrency tokens. Independent new-version byte-for-byte rebuild comparison has not been separately reported."
+      },
+      "repeat_apply_changed": false,
+      "repeat_apply_created_resources": false,
+      "independent_file_byte_build_reproduction": {
+        "at_utc": "2026-11-06T15:37:05Z",
+        "independent_cli_processes": 2,
+        "file_count": 5,
+        "byte_identical_between_builds": true,
+        "byte_identical_to_deployed_build": true,
+        "model_invocations": 0,
+        "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/no-model-checks.json",
+        "file_sha256": {
+          "chatflow.yml": "614beab6742bbfa3c0d08efad5ccdd932f952c7e1aea6ad33ecfbd0e90beb238",
+          "manifest.json": "3f81af0686d52c15815137ce31f0567d7c85f7c59a9c2119bf9c456a65e0560f",
+          "catalog.json": "9fb8901dbc78ff42614d992a682061337b9c18c5cc595672c3b83b5c73b2fb72",
+          "binding.json": "0adb897e64abeb94452e69d8c616500a3a1178a2cd8bba610882bf51ec85161a",
+          "THIRD_PARTY_LICENSES.txt": "55174afe56f8706d3731068639c5e04af71bb277b8610de17ad6e6a08326903d"
+        }
+      },
+      "post_apply_anonymous_denial_verified": true,
+      "anonymous_denial_verification": {
+        "at_utc": "2026-11-06T15:37:05Z",
+        "console_cookies_used": false,
+        "without_app_code": { "http_status": 401, "code": "unauthorized" },
+        "with_real_app_code": { "http_status": 404, "code": "app_not_found" },
+        "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/no-model-checks.json"
+      },
+      "subsequent_general_prompt_revision_deployment": "applied",
+      "subsequent_modifying_apply_changed": true,
+      "historical_subsequent_apply_blocker": "The second apply safely blocked on still-disabled upload hydration; exact hydration and top-level node.selected validation subsequently resolved this without forced overwrite.",
+      "final_audit_phase": "ready",
+      "all_five_context_variable_selectors": [],
+      "unique_metadata_condition_ids": [
+        "kg-filter-teacher",
+        "kg-filter-approved"
+      ],
+      "final_audit_evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/final-audit.json",
+      "limitation": "Initial and subsequent modifying applies succeeded on the same app/dataset with 18 nodes and five Luna bindings. Repeat apply returned changed=false with no new resources; the 15:27:22 audit confirmed ready/private/unpublished state and baseline/execution equality. At 15:37:05, two independent builds matched each other and deployed files byte-for-byte, and both anonymous passport denials were independently verified. None of these establish full live teacher acceptance."
+    },
+    "tool_provider_repair": {
+      "cause": "Both old bootstrap API provider registrations stored partial tools_str objects that did not satisfy ApiToolBundle. The global Studio API tool list failed; this was not limited to degoog.",
+      "native_update_endpoint": "POST /console/api/workspaces/current/tool-provider/api/update",
+      "direct_database_writes": false,
+      "provider_ids_preserved": true,
+      "names_owner_schema_icon_privacy_disclaimer_labels_preserved_except_documented_degoog_schema_delta": true,
+      "credentials_rule": "Both before snapshots contained precisely {}. Only these verified empty configurations were changed to auth_type:none. No blanket secret overwrite or credential reset is authorized by this repair.",
+      "providers": [
+        {
+          "name": "degoog",
+          "id": "d14fb78d-15c4-4b37-9664-af85357dc781",
+          "operation_ids": ["search_web", "fetch_webpage"],
+          "credentials_before": {},
+          "credentials_after": { "auth_type": "none" },
+          "schema_change": "Retained the existing schema and server/operations, aligned info.description with the existing provider description, and added the handed-off query parameters below.",
+          "added_parameters": {
+            "/search.get": [
+              {
+                "name": "q",
+                "in": "query",
+                "required": true,
+                "schema": { "type": "string" },
+                "description": "Search query keywords"
+              },
+              {
+                "name": "limit",
+                "in": "query",
+                "required": false,
+                "schema": { "type": "integer", "default": 5 },
+                "description": "Max results"
+              }
+            ],
+            "/fetch.get": [
+              {
+                "name": "url",
+                "in": "query",
+                "required": true,
+                "schema": { "type": "string" },
+                "description": "Webpage URL to read"
+              }
+            ]
+          }
+        },
+        {
+          "name": "contextforge",
+          "id": "2b261a9c-75b6-487c-9fb3-b72c3b1b4c8a",
+          "operation_ids": [
+            "media_search",
+            "moviepilot_subscribe",
+            "memos_create_note"
+          ],
+          "credentials_before": {},
+          "credentials_after": { "auth_type": "none" },
+          "existing_schema_reused_verbatim": true,
+          "all_three_operations_retained": true
+        }
+      ],
+      "global_api_tools_get": {
+        "endpoint": "GET /console/api/workspaces/current/tools/api",
+        "http_status": 200
+      },
+      "actual_tool_invocations": 0,
+      "subscriptions_created": 0,
+      "memos_created": 0,
+      "limitation": "Native registration and tool-list loading were verified, not business endpoint execution. No search/fetch/subscription/memo tool was invoked."
+    },
+    "collaboration": {
+      "cause": "Optional collaboration was enabled by default. Missing NEXT_PUBLIC_SOCKET_URL led to browser ws://localhost:5001; public socket.io routing and a websocket-capable API worker were also absent. URL-only repair would not be sufficient.",
+      "supported_resolution": "Disable optional collaboration globally with API-only ENABLE_COLLABORATION_MODE=false; ordinary single-person HTTP draft saving remains supported by installed Dify code.",
+      "nix_declaration": "nixos/modules/services/ai/dify/containers.nix: dify-api.environment.ENABLE_COLLABORATION_MODE",
+      "nix_declaration_value": "false",
+      "nix_declaration_edited": true,
+      "persistent_declaration_activated": false,
+      "runtime_override_applied": true,
+      "runtime_override_removed": false,
+      "runtime_override_reboot_volatile": true,
+      "runtime_drop_in": "/run/systemd/system/podman-dify-api.service.d/90-studio-collaboration.conf",
+      "runtime_exec_start": "/var/lib/dify/kaogong-teachers/collaboration-override/api-start",
+      "original_exec_start": "/nix/store/6a0jb7gx2nbixfscg3z85y19vzqhq6y6-unit-script-podman-dify-api-start/bin/podman-dify-api-start",
+      "override_scope": "ExecStart only; copied active script, inserted container -e ENABLE_COLLABORATION_MODE=false, pinned the same existing image digest and set --pull never. All other active arguments and secret-file references, unit pre/post/stop actions and dependencies were retained.",
+      "image": "docker.io/langgenius/dify-api@sha256:0d67842aedcb9b5884f75b88c4a5dd812e637916bff1ca892831f7ace2f3204f",
+      "image_id_before_and_after": "bf42bb4e30c68a485c3b6fe808152b1975791d25408c69d85fe39d631176767e",
+      "image_unchanged": true,
+      "restarted_units": ["podman-dify-api.service"],
+      "full_dirty_flake_deployment": false,
+      "new_websocket_endpoint_exposed": false,
+      "worker_web_proxy_changed_for_this_fix": false,
+      "public_system_features_enable_collaboration_mode": false,
+      "ordinary_http_save_supported_by_installed_code": true,
+      "native_http_apply_save_and_readback_verified": true,
+      "new_graph_browser_save_verified": null,
+      "activation_evidence": "/var/lib/dify/kaogong-teachers/collaboration-override/activation.json",
+      "durability_followup": "Build/review only nixosConfigurations.fra0.config.systemd.units.\"podman-dify-api.service\".unit or use an authorized normal declarative deployment. Activate the intended persistent container env, then remove only this runtime drop-in, daemon-reload and perform the required API-only restart/readback. Merely editing Nix or retaining the script under /var/lib is not durable activation. Do not replace a whole dirty generated unit or revert unrelated overrides.",
+      "browser_cache_note": "The feature query uses staleTime=Infinity; a full document reload or fresh authenticated browser is required, not just SPA navigation."
+    },
+    "browser_after_tool_and_runtime_repair": {
+      "real_authenticated_fresh_chromium": true,
+      "native_node_count": 18,
+      "api_tool_bundle_popup_present": false,
+      "global_api_tools_http_status": 200,
+      "checklist_all_issues_resolved": true,
+      "page_errors": 0,
+      "console_errors": 0,
+      "limitation": "Historical fresh browser load after the tool and API collaboration repairs. New graph observations are separately recorded in browser_after_graph_apply; no model or full teacher acceptance is inferred from either browser load."
+    },
+    "browser_after_graph_apply": {
+      "real_authenticated_fresh_chromium": true,
+      "native_node_count": 18,
+      "global_api_tools_http_status": 200,
+      "checklist_clean": true,
+      "page_errors": 0,
+      "console_errors": 0,
+      "iteration_selection_and_run_join_crash": false,
+      "iteration_run_status": "succeeded",
+      "iteration_run_reused_cached_empty_iterator": true,
+      "iteration_run_output": [],
+      "iteration_form_action_incomplete": true,
+      "explicit_fresh_iteration_input_form_acceptance": false,
+      "ordinary_http_ui_save_and_refresh_verified": null,
+      "limitation": "Historical cached-empty-iterator run succeeded with []. Its incomplete form flag remains unchanged. The subsequent isolated form-rendering check and final Studio audit are separate records; neither is full model acceptance."
+    },
+    "isolated_iteration_form_ui_test": {
+      "status": "passed",
+      "real_authenticated_chromium": true,
+      "page_scoped_get_response_selector_omitted": ["kg_select", "teachers"],
+      "omission_scope": "Only the matching client-side GET cache entry on this browser page; all other real response entries retained.",
+      "backend_cache_deleted": false,
+      "model_invoked": false,
+      "model_output_faked": false,
+      "form_submitted": false,
+      "actual_visible_fields": [
+        "query",
+        "context",
+        "question",
+        "iterator input",
+        "start run"
+      ],
+      "join_crash": false,
+      "page_errors": 0,
+      "console_errors": 0,
+      "global_api_tools_http_status": 200,
+      "limitation": "Isolated UI missing-client-cache form rendering, not naturally empty server cache, a fresh-input submission or native full-model acceptance. The prior cached [] native single run is recorded separately."
+    },
+    "final_studio_browser": {
+      "real_authenticated_fresh_chromium": true,
+      "native_node_count": 18,
+      "page_errors": 0,
+      "console_errors": 0,
+      "global_api_tools_http_status": 200,
+      "checklist_all_issues_resolved": true,
+      "teacher_node_max_retries": 5,
+      "other_llm_node_max_retries": 2,
+      "limitation": "Latest root-reported final Studio audit; not a claim of successful teacher/poem/follow-up generation or a separately demonstrated manual UI-save-and-refresh test."
+    },
+    "dedicated_model": {
+      "configured_existing_alias": "kaogong-gpt-5.6-luna",
+      "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+      "endpoint": "https://api.dora.im/v1",
+      "upstream_model": "gpt-5.6-luna",
+      "mode": "chat",
+      "api_type": "chat_completions",
+      "token_parameter_name": "max_tokens",
+      "compatibility_mode": "strict",
+      "context_size": 65536,
+      "context_size_scope": "Selected context budget, not a measured provider maximum.",
+      "max_tokens_to_sample": 8192,
+      "output_budget_scope": "This configured budget has succeeded through the actual plugin. A short successful output is not a measured 8192-token generation or maximum-length capability test.",
+      "native_structured_output_enabled": false,
+      "vision_enabled": false,
+      "tool_calling_enabled": false,
+      "original_api_model_and_key_preserved": true,
+      "explicit_binding_file": "/var/lib/dify/kaogong-teachers/working-model-binding.json",
+      "binding_file_is_not_a_credential": true,
+      "historical_real_successes": {
+        "date": "2026-11-06",
+        "recorded_times": ["12:40", "12:41", "13:03", "13:05"],
+        "scope": "Real prior route/plugin successes; not proof of uninterrupted availability. Times retain the supplied record convention without inventing a timezone."
+      },
+      "intervening_failures": {
+        "date": "2026-11-06",
+        "recorded_times": ["13:29", "13:31", "13:41"],
+        "http_status": 500,
+        "code": "get_channel_failed",
+        "message": "分组 auto 下模型 gpt-5.6-luna 的可用渠道不存在（retry）"
+      },
+      "scoped_route_diagnosis": {
+        "local_channel_id": 5,
+        "local_channel_name": "星茶会",
+        "local_channel_active": true,
+        "default_dispatch_ability_enabled": true,
+        "same_original_default_token_valid": true,
+        "auto_group_scope": "Upstream group in the returned error, not an established local group mismatch.",
+        "route_key_group_or_disabled_flags_changed": false,
+        "client_impersonation": false
+      },
+      "latest_root_model_probe": {
+        "status": "passed",
+        "current_repair_session": true,
+        "execution": "Actual Dify ModelManager invocation of the unchanged dedicated model",
+        "prompt": "Solve 11*x-8=69. Return only JSON with integer field answer.",
+        "parsed_output": { "answer": 7 },
+        "prompt_tokens": 1010,
+        "completion_tokens": 31,
+        "latency_seconds_approx": 6.52,
+        "exact_probe_timestamp": null,
+        "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/model-probe.json",
+        "limitation": "Real earlier standalone success in this repair session, not the latest availability conclusion. Later phone/growth successes and later unrecovered upstream 500 runs are recorded separately. Exact probe timestamp has not been separately reported; no key/route changes or causal link to the UI repair are claimed."
+      },
+      "latest_observed_availability": {
+        "status": "upstream-unavailable-in-latest-run-intermittent-over-session",
+        "started_at_utc": "2026-11-06T15:22:37Z",
+        "ended_at_utc": "2026-11-06T15:22:58Z",
+        "workflow_id": "b08f5758-03e5-4256-83ed-fc2c71fea992",
+        "http_status": 500,
+        "code": "get_channel_failed",
+        "serial_llm_nodes_exhausted": [
+          "kg_classifier",
+          "kg_general",
+          "kg_general_review"
+        ],
+        "teachers_selected": false,
+        "concurrency_only_cause_proven": false,
+        "new_key_loss": false,
+        "enabled_routes_or_authentication_changed": false
+      },
+      "full_model_task_acceptance": false,
+      "full_teacher_acceptance": false
+    },
+    "live_workflow_observations": {
+      "phone_before_general_prompt_revision": {
+        "recorded_at_utc": "2026-11-06T14:18:40Z",
+        "workflow_id_prefix": "23676118",
+        "full_workflow_id": null,
+        "model": "kaogong-gpt-5.6-luna",
+        "succeeded_llm_nodes": [
+          "kg_classifier",
+          "kg_general",
+          "kg_general_review"
+        ],
+        "solver_choice": "C",
+        "solver_choice_correct_as_reported_by_root": true,
+        "review_passed": false,
+        "review_rejection_reasons": [
+          "Background knowledge was not explicitly present in the original question",
+          "Imprecise gas-station risk explanation"
+        ],
+        "answer_acceptance_passed": false,
+        "limitation": "Historical pre-revision run: all three invocations succeeded but review rejected the answer. The subsequent real phone pass is recorded separately and does not erase this failure."
+      },
+      "summary_comparison": {
+        "recorded_at_utc": "2026-11-06T14:21:19Z",
+        "workflow_id_prefix": "6cedc95c",
+        "full_workflow_id": null,
+        "workflow_status": "partial-succeeded",
+        "both_native_retrievals_correct": true,
+        "teacher_results": [
+          {
+            "teacher_id": "li-mengyuan",
+            "kg_verify_status": "answered",
+            "reference_answer_characters": 30,
+            "material_facts_supported_as_reported_by_root": true
+          },
+          {
+            "teacher_id": "yuan-dong",
+            "solver_error": "Unknown error",
+            "reviewer_error": "Unknown error",
+            "rendered_status": "failed",
+            "named_failure_preserved": true
+          }
+        ],
+        "two_teacher_comparison_passed": false,
+        "yuan_dong_exact_error_cause": {
+          "http_status": 500,
+          "code": "get_channel_failed",
+          "gateway_channel_id": 5,
+          "scope": "Upstream failure correlated across persisted node error, plugin and gateway records by the root diagnosis."
+        },
+        "diagnosis_status": "correlated-upstream-http-500",
+        "iteration_parallel_nums_retained": 3,
+        "limitation": "One real teacher branch answered; the other remains a named failure. Subsequent diagnosis correlated Unknown error with actual upstream HTTP 500 get_channel_failed, not an established iteration concurrency bug. This diagnosis does not establish a successful rerun."
+      },
+      "phone_after_general_prompt_revision": {
+        "recorded_at_utc": "2026-11-06T14:49:50Z",
+        "workflow_id": "41171172-fad4-4555-aa42-6b747cd08e99",
+        "answer_choice": "C",
+        "reasoning_scope": "Driving distraction distinguished from wireless communication; possible risk described without claiming inevitable phone-caused explosions.",
+        "real_solver_passed": true,
+        "real_review_passed": true,
+        "all_observed_final_node_statuses_succeeded": true,
+        "workflow_status": "partial-succeeded",
+        "error": null,
+        "exceptions_count": 1,
+        "recovered_exceptions": 1,
+        "answer_acceptance_passed": true,
+        "limitation": "One real recovered retry remains visible in Dify's original partial-succeeded summary; this is not rewritten as succeeded and does not imply full teacher acceptance or continuous availability."
+      },
+      "poem_latest_result": null,
+      "followup_latest_result": null,
+      "missing_material_latest_result": null,
+      "growth_latest_result": {
+        "recorded_at_utc": "2026-11-06T14:34:31Z",
+        "workflow_status": "succeeded",
+        "answer": "555.56",
+        "model_review_passed": true,
+        "program_calculation_passed": true,
+        "operation": "growth_from_current",
+        "current": "5000",
+        "base": "4444.44",
+        "answer_acceptance_passed": true,
+        "limitation": "Real original natural-language income-growth question, not a fixture or fixed fallback response."
+      },
+      "full_remote_verify_attempts": [
+        {
+          "started_at_utc": "2026-11-06T14:55:37Z",
+          "ended_at_utc": "2026-11-06T14:56:28Z",
+          "case": "summary-comparison",
+          "passed": false,
+          "final_teacher_results": [
+            { "teacher_id": "li-mengyuan", "status": "failed" },
+            { "teacher_id": "yuan-dong", "status": "failed" }
+          ],
+          "yuan_dong_solver_answered": true,
+          "unrecovered_upstream_500_nodes": [
+            "li-mengyuan:kg_solve",
+            "yuan-dong:kg_review"
+          ],
+          "limitation": "An answered intermediate solver does not replace independent review and kg_verify; neither teacher completed this attempt."
+        },
+        {
+          "started_at_utc": "2026-11-06T15:22:37Z",
+          "ended_at_utc": "2026-11-06T15:22:58Z",
+          "workflow_id": "b08f5758-03e5-4256-83ed-fc2c71fea992",
+          "passed": false,
+          "serial_llm_nodes_exhausted_upstream_500": [
+            "kg_classifier",
+            "kg_general",
+            "kg_general_review"
+          ],
+          "error_code": "get_channel_failed",
+          "teachers_selected": false,
+          "limitation": "Failure also affects serial classifier/general/reviewer nodes, so the outage is not proven concurrency-only and does not mean the approved catalog disappeared."
+        }
+      ],
+      "full_remote_verify_result": {
+        "status": "failed",
+        "latest_evidence_directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1793978556097763935",
+        "full_teacher_acceptance": false,
+        "poem_acceptance": false,
+        "followup_acceptance": false
+      }
+    },
+    "general_prompt_revision": {
+      "reason": "The real phone solver selected the correct answer, but the independent general reviewer rejected ordinary background knowledge absent verbatim from the question and an imprecise risk explanation.",
+      "source_file": "conf/dify-kaogong/teacher_nodes.py",
+      "changed_prompt_constants_only": [
+        "GENERAL_PROMPT",
+        "GENERAL_REVIEW_PROMPT"
+      ],
+      "source_change_present": true,
+      "deployment_status": "applied",
+      "phone_final_acceptance_passed": true,
+      "allowed_knowledge": "Reliable low-risk common knowledge, basic science and stable cultural knowledge with reasonable reasoning; distinguish input facts, common-knowledge judgments and absence of fresh external verification.",
+      "risk_explanations": "Distinguish primary mechanism, possible risk and certainty; do not turn general cautions into inevitable accidents or universally applicable current rules.",
+      "refusal_boundaries_retained": [
+        "Missing necessary question/options/material/facts",
+        "Uncertain critical knowledge",
+        "Time-sensitive facts or current law/policy without reliable support",
+        "Professional controversy"
+      ],
+      "strict_gates_retained": [
+        "Teacher source and applicability checks",
+        "Material-bound facts and exact material quotes",
+        "Mathematical operations/units/roles and output schema",
+        "Word limits",
+        "Independent review requires all true flags and no issues"
+      ],
+      "question_specific_hardcoded_answer": false,
+      "offline_regression": {
+        "test": "test_general_background_knowledge_still_requires_independent_review",
+        "fixture": "Synthetic mammal classification, whale versus carp; not the user's phone question",
+        "review_false_still_blocks": true,
+        "real_model_accuracy_test": false
+      },
+      "limitation": "The historical second-apply block was resolved through exact validation. Generalized prompts are online and the real 14:49:50 phone case passed, without question-specific answer code. Full teacher/poem/follow-up acceptance and stable upstream availability remain unproved."
+    },
+    "bounded_llm_retry_revision": {
+      "reason": "Persisted node/plugin/gateway evidence confirmed intermittent upstream HTTP 500 get_channel_failed in the Yuan Dong branch.",
+      "source_file": "conf/dify-kaogong/workflow.py",
+      "all_five_llm_nodes": true,
+      "initial_retry_revision": {
+        "retry_enabled": true,
+        "max_retries": 2,
+        "retry_interval": 2000
+      },
+      "current_teacher_nodes": {
+        "node_ids": ["kg_solve", "kg_review"],
+        "retry_enabled": true,
+        "max_retries": 5,
+        "retry_interval": 5000,
+        "maximum_attempts_per_node": 6
+      },
+      "current_other_llm_nodes": {
+        "node_ids": ["kg_classifier", "kg_general", "kg_general_review"],
+        "retry_enabled": true,
+        "max_retries": 2,
+        "retry_interval": 2000,
+        "maximum_attempts_per_node": 3
+      },
+      "retry_interval_unit": "milliseconds",
+      "iteration_parallel_nums": 3,
+      "is_parallel": true,
+      "deployment_status": "applied-and-final-browser-audited",
+      "last_applied_graph_retry_enabled": true,
+      "default_value_failure_after_exhaustion_retained": true,
+      "configuration_or_state_write_retry_added": false,
+      "full_offline_verification_after_revision": {
+        "at_utc": "2026-11-06T15:26:54Z",
+        "total": 178,
+        "passed": true
+      },
+      "authentication_or_routes_changed": false,
+      "limitation": "Native generic LLM retry is bounded but not proven HTTP-status-selective. More retries are not a cure: the latest serial run still exhausted upstream 500. No configuration/state/API-write retries or authentication changes were added."
+    },
+    "draft_merge": {
+      "recovery_baseline_exactly_matches_recorded_state": true,
+      "observed_pre_apply_drift": [
+        "nodes.data.selected=false",
+        "derived nodes.positionAbsolute",
+        "nodes and edges zIndex=0 outside or 1001 inside iteration",
+        "six inner edges data.iteration_id=kg_iteration"
+      ],
+      "observed_executable_edits": false,
+      "default_apply_remains_strict": true,
+      "explicit_option": "apply --merge-ui-only",
+      "source_implementation_present": true,
+      "requires_existing_managed_app_and_unchanged_knowledge": true,
+      "existing_model_binding_change_supported": true,
+      "ui_projection_scope": "Strict reviewed types, bounds and parent/edge relationships for viewport, position, derived positionAbsolute, sizes, title, independent top-level node.selected and data.selected booleans, zIndex and inner edge iteration annotations, plus exact disabled-upload defaults. Unknown fields and executable remote edits fail closed.",
+      "three_way_rule": "B=last generated, R=current remote, L=new generated. R==B uses L; L==B preserves R; R==L accepts; divergent both-changed fields conflict.",
+      "baseline_storage": "Atomic state.json draft_baseline capsule holds separate generated/applied drafts and hashes, with applied hash anchored to state.draft_sha256. Legacy recovery migration requires exact state manifest/DSL/draft checksum anchors.",
+      "frozen_recovery": "saving resumes the frozen desired graph without newer build/binding or helper mutations. Exact already-saved target is accepted, exact original base plus server hash can be saved, all other changes block. A later code change requires a subsequent apply.",
+      "before_snapshot_state": "Deep copy of original state before helpers/binding changes, not proposed new binding.",
+      "verify_ui_drift_behavior": "Validates known UI drift without adopting the hash, updating the baseline or saving the graph; remote verification still invokes real retrieval/model requests and records its result.",
+      "generator_repairs": {
+        "llm_context_variable_selector": [],
+        "metadata_condition_ids": ["kg-filter-teacher", "kg-filter-approved"],
+        "code_output_children": null,
+        "children_null_preserved": true,
+        "online_verified": true
+      },
+      "generated_vs_applied": "build/chatflow.yml is pure generated output; applied retains UI and has a different complete draft hash. The 15:27:22 final audit confirmed applied=current and execution_content matches generated; exact canonical hashes are recorded under app.post_apply_baseline_hashes, not as file-byte rebuild evidence."
+    },
+    "disabled_upload_hydration_followup": {
+      "observed_after": "Real browser autosave after the first successful graph apply",
+      "second_apply_safely_blocked": true,
+      "files_or_images_enabled": false,
+      "observed_changes": [
+        "features.file_upload.number_limits changed from 0 to 3",
+        "Image defaults remained enabled=false with number limit 3 and local/remote transfer options",
+        "fileUploadConfig gained 12 global limit fields"
+      ],
+      "implementation_status": "implemented-and-used-in-successful-live-apply",
+      "unknown_fields_ignored": false,
+      "source_basis": [
+        "Dify 1.19.0 web/app/components/workflow-app/utils.ts buildInitialFeatures",
+        "web/app/components/workflow-app/hooks/use-workflow-init.ts",
+        "api/controllers/console/files.py GET /files/upload",
+        "api/core/app/app_config/features/file_upload/manager.py convert enabled gate",
+        "api/core/app/apps/advanced_chat/app_generator.py disabled file_objs=[]"
+      ],
+      "final_exact_field_allowlist": {
+        "required": {
+          "enabled": false,
+          "allowed_file_types": [],
+          "allowed_file_extensions": [],
+          "allowed_file_upload_methods": []
+        },
+        "number_limits_allowed_integers": [0, 3],
+        "optional_image_exact": {
+          "enabled": false,
+          "number_limits": 3,
+          "transfer_methods": ["local_file", "remote_url"]
+        },
+        "optional_fileUploadConfig_exact_integer_values": {
+          "file_size_limit": 15,
+          "knowledge_file_size_limit": 15,
+          "batch_count_limit": 5,
+          "file_upload_limit": 20,
+          "image_file_size_limit": 10,
+          "video_file_size_limit": 100,
+          "audio_file_size_limit": 50,
+          "skill_file_size_limit": 50,
+          "workflow_file_upload_limit": 10,
+          "image_file_batch_limit": 10,
+          "single_chunk_attachment_limit": 10,
+          "attachment_image_file_size_limit": 2
+        },
+        "unknown_or_missing_required_keys_rejected": true,
+        "booleans_or_floats_in_integer_fields_rejected": true,
+        "enabled_uploads_or_changed_allow_arrays_rejected": true
+      },
+      "three_way_preserved_fields": [
+        "number_limits",
+        "image",
+        "fileUploadConfig"
+      ],
+      "top_level_node_selected": {
+        "separate_from_data_selected": true,
+        "type": "boolean-only",
+        "three_way_preserved": true
+      },
+      "final_regression_result": {
+        "included_in_root_full_verify_at_utc": "2026-11-06T15:26:54Z",
+        "total": 178,
+        "passed": true
+      },
+      "successful_followup_apply": true,
+      "limitation": "Only exact observed disabled settings are normalized in a deep-copied execution projection and preserved by three-way merge. This is not permission to ignore all features, enable uploads, change unknown values or accept executable remote edits."
+    },
+    "preview_recovered_retry_contract": {
+      "source_implemented": true,
+      "ordinary_success_status": "succeeded",
+      "conditionally_accepted_status": "partial-succeeded",
+      "requirements": [
+        "Complete message_end, workflow_finished, nonempty answer and consistent conversation UUID",
+        "At least one observed node_finished and every observed final node status succeeded",
+        "Both kg_render and kg_answer observed",
+        "exceptions_count is an actual positive integer, not a boolean",
+        "No truthy workflow error and no SSE error event"
+      ],
+      "error_check_scope": "Current code uses workflow_result.get(error) truthiness, not an explicit null-only schema check. The accepted real phone record had error:null.",
+      "preserved_report_fields": [
+        "workflow_status=partial-succeeded",
+        "recovered_exceptions"
+      ],
+      "unresolved_failures_rejected": true,
+      "teacher_answer_set_checks_unchanged": true,
+      "focused_preview_tests": { "count": 4, "passed": true },
+      "focused_native_graph_tests": { "count": 7, "passed": true },
+      "limitation": "Recovered retry metadata is not rewritten as an entirely clean workflow. Unresolved failures, missing final gates or invalid exception counts block; subsequent teacher result checks still require the exact expected answered set."
+    },
+    "offline_tests": {
+      "initial_merge_stage": {
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 42,
+        "base_and_cli": 91,
+        "total": 169,
+        "passed": true
+      },
+      "after_conflict_hardening_code_executor_report": {
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 42,
+        "base_and_cli": 94,
+        "total": 172,
+        "passed": true,
+        "ruff_scope": "F/E9 passed; four changed code/test files format-check passed"
+      },
+      "root_prompt_revision_stage": {
+        "reported_time_utc_approx": "2026-11-06 14:25 UTC",
+        "command": "verify (offline full suite)",
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 43,
+        "base_and_cli": 94,
+        "total": 173,
+        "passed": true,
+        "scope": "Root-executed full offline suite after the two-general-prompt change and synthetic mammal independent-review regression, BEFORE later bounded-retry and disabled-upload-hydration revisions; not final latest-code or live acceptance."
+      },
+      "root_hydration_stage": {
+        "at_utc": "2026-11-06T14:51:43Z",
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 43,
+        "base_and_cli": 98,
+        "total": 177,
+        "passed": true,
+        "scope": "Before latest preview-test addition and teacher retry=5 tuning."
+      },
+      "root_final_integration_result": {
+        "at_utc": "2026-11-06T15:26:54Z",
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 43,
+        "base_and_cli": 99,
+        "total": 178,
+        "exit_code": 0,
+        "passed": true,
+        "scope": "Full offline verify includes latest recovered-retry preview validation and teacher retry=5."
+      },
+      "latest_static_check_scope": {
+        "tool": "ruff",
+        "passed": true,
+        "selection": "Full repository-configured check, not narrowed F/E9 only",
+        "files": [
+          "scripts/dify-kaogong.py",
+          "scripts/dify_kaogong_knowledge.py",
+          "scripts/dify-kaogong-native-probe.py",
+          "conf/dify-kaogong",
+          "tests/test-dify-kaogong.py",
+          "tests/test-dify-kaogong-knowledge.py",
+          "tests/test-dify-kaogong-teachers.py"
+        ],
+        "per_file_ignore": "conf/dify-kaogong/teacher_nodes.py:F821",
+        "cache_directory": "/tmp/kilo/flakes-ruff-cache"
+      },
+      "nonfatal_environment_note": "Pre-existing unrelated Nix registry warning remains.",
+      "limitation": "Root final full offline 178-test verification and full Ruff check passed. These do not establish current upstream recovery, real teacher/poem/follow-up acceptance or goal completion. Focused suites are included coverage, not additional totals."
+    },
+    "credentials_and_evidence": {
+      "runtime_directory": "/var/lib/dify/kaogong-teachers",
+      "runtime_directory_mode": "0700",
+      "private_state_binding_recovery_and_knowledge_key_modes": "0600",
+      "current_login_password_copy": "/run/dify-kaogong/password",
+      "current_login_password_copy_mode": "0600",
+      "current_login_password_copy_recreated": true,
+      "current_login_password_copy_removed": false,
+      "cleanup_status": "pending-root-confirmation; historical removed flags do not describe the recreated copy",
+      "shared_original_permissions_remediated": false,
+      "secret_values_recorded": false,
+      "root_tmp_kilo_initially_empty": true,
+      "temporary_probes_and_browser_rebuilt": true,
+      "private_diagnostics": "/var/lib/dify/kaogong-teachers/repair-20261106",
+      "local_browser_materials": "/tmp/kilo/dify-browser",
+      "temporary_repair_executor": "/tmp/kilo/dify-repair.py",
+      "remote_private_trace_wrapper": "/tmp/dify-repair.py verify-all",
+      "private_sse_directory_pattern": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-<time_ns>/",
+      "latest_failed_verify_directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1793978556097763935",
+      "latest_failed_persisted_node_workflow_id": "b08f5758-03e5-4256-83ed-fc2c71fea992",
+      "trace_scope": "Per-case actual private SSE plus persisted node JSON; no fake model output, no raw secret-bearing traces copied into public docs. Temporary wrapper is not a new installed public CLI subcommand.",
+      "limitation": "Temporary executors/browser files are not durable installed CLI commands or backups. No private diagnostic payloads, cookies, passwords or keys are copied into this report."
+    },
+    "ongoing_recovery_wait": {
+      "status": "cancelled-historical-luna-cron",
+      "historically_scheduled_by_root": true,
+      "scheduled_by_root": false,
+      "active": false,
+      "interval_minutes": 10,
+      "bounded_short_model_probes": false,
+      "full_workflow_when_probe_fails": false,
+      "latest_scheduled_probe": {
+        "scheduled_for_utc": "2026-11-06T15:30:07.617Z",
+        "status": "failed",
+        "exception_type": "PluginInvokeError",
+        "full_workflow_started_after_failure": false
+      },
+      "cancelled_after": "Luna HTTP 403 client_not_allowed at 16:00 UTC, confirmed at 16:01; cron deleted immediately, no further Luna probes or client impersonation.",
+      "historical_plan_after_short_probe_success": "Run real full acceptance; this Luna plan is cancelled, not the current Gemini finite-job wait.",
+      "goal_complete": false
+    },
+    "historical_pending_root_results_at_luna_stage": [
+      "Upstream availability recovery via the already scheduled bounded short probes; latest serial run still exhausted HTTP 500",
+      "Full real teacher acceptance: both summary teachers answered, remaining approved teacher cases and exact kg_verify sets/statuses",
+      "Real poem case and same-conversation follow-up acceptance; phone and growth success do not cover these",
+      "Latest complete missing-material refusal as part of acceptance; anonymous passport denial was independently verified at 15:37:05 UTC",
+      "Any separately required natural-server-empty-cache/form-submit or manual HTTP UI save-and-refresh evidence; the isolated client-cache form-render test and final Studio audit are already passed",
+      "Exact earlier standalone successful probe timestamp if added from its private report",
+      "Current temporary password copy cleanup",
+      "Eventual persistent Nix declaration activation and removal of the runtime-only override; remain pending if not performed"
+    ],
+    "historical_full_goal_residuals_at_luna_stage": [
+      "Intermittent upstream availability, latest HTTP 500",
+      "No passing full teacher comparison/suite",
+      "Poem and same-conversation follow-up not passed",
+      "Latest full acceptance report still failed",
+      "Temporary password still retained for ongoing work",
+      "Collaboration disable uses a reboot-volatile runtime bridge, not activated durable Nix configuration"
+    ],
+    "verified_teacher_answer_count": 1,
+    "verified_teacher_ids": ["li-mengyuan"],
+    "verified_teacher_count_scope": "Observed answered branch in the 14:21:19 UTC real summary case, not acceptance of the full teacher suite or two-teacher comparison.",
+    "latest_full_verify_teacher_answer_count": 0,
+    "real_teacher_comparison_passed": false,
+    "full_goal_complete": false
+  },
+  "gemini_cutover_20261106": {
+    "checked_at": "2026-11-06",
+    "status": "gemini-constrained-editorial-review-and-exact-decimal-validation-live-cases-passed-final-current-graph-suite-pending",
+    "evidence_scope": "Root-reported actual facts through the 18:21 UTC handoff, with local source/test inspection only. No runtime calls, code edits or new markdown files by the documentation editor. Earlier full seven-case success, 17:18 audit and 17:58:54 offline 180-test success remain historical, not final current-graph acceptance.",
+    "authorization": {
+      "user_explicitly_allowed_model": "Gemini 3.8 Flash High",
+      "at_utc": "2026-11-06T16:03:00Z",
+      "timestamp_precision": "minute",
+      "kilo_credentials_used": false,
+      "kilo_providers_changed": false,
+      "client_impersonation": false
+    },
+    "luna_retirement": {
+      "first_observed_time_utc": "2026-11-06 16:00 UTC",
+      "confirmed_time_utc": "2026-11-06 16:01 UTC",
+      "http_status": 403,
+      "code": "client_not_allowed",
+      "request_id": "202611061600537900515778268d9d6BhF05wIP",
+      "gateway_log_correlation_rows": 0,
+      "specific_channel_attribution": null,
+      "local_vs_upstream_origin": null,
+      "old_ten_minute_cron_deleted": true,
+      "further_luna_probes": false,
+      "limitation": "The earlier channel-5 upstream-500 diagnosis does not establish the source/channel of this 403. No matching gateway rows were found, no identity/authorization bypass was attempted, and the old periodic Luna wait is cancelled."
+    },
+    "model": {
+      "alias": "kaogong-gemini-3.8-flash-high",
+      "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+      "endpoint": "https://api.dora.im/v1",
+      "upstream_model": "gemini-3.8-flash-high",
+      "mode": "chat",
+      "api_type": "chat_completions",
+      "token_parameter_name": "max_tokens",
+      "compatibility_mode": "strict",
+      "context_size": 65536,
+      "context_scope": "Selected client budget, not a measured provider maximum.",
+      "max_tokens_to_sample": 8192,
+      "native_structured_output_enabled": false,
+      "output_contract": "Ordinary JSON text with program validation, not native structured output; Markdown fences are not silently treated as compliant JSON.",
+      "vision_enabled": false,
+      "tool_calling_enabled": false,
+      "credential_name": "kg-gemini-20261106",
+      "credential_id": "01a1b1a7-f970-75b8-a45f-c97b96f412a9",
+      "new_dedicated_dify_credential_created": true,
+      "new_gateway_token_created": false,
+      "existing_valid_user_gateway_key_reused_in_memory": true,
+      "key_source": "Existing Luna Dify configuration's valid user gateway key, reused in memory only for the new dedicated Dify credential.",
+      "original_api_and_luna_models_or_credentials_modified": false,
+      "secret_values_recorded": false,
+      "binding_file": "/var/lib/dify/kaogong-teachers/gemini-model-binding.json",
+      "installation_file": "/var/lib/dify/kaogong-teachers/gemini-model-installation.json",
+      "installation_phase": "ready"
+    },
+    "existing_gateway_route_observation": {
+      "read_only": true,
+      "channel_id": 2,
+      "channel_type_as_reported": "existing CPA",
+      "status": 1,
+      "default_dispatch_ability_enabled": true,
+      "channels_enabled_by_this_cutover": false,
+      "gateway_authentication_or_group_permissions_changed": false
+    },
+    "generation_probes": [
+      {
+        "at_utc": "2026-11-06T16:08:54Z",
+        "path": "raw gateway call",
+        "http_status": 200,
+        "equation": "13*x=104",
+        "numeric_answer": 8,
+        "markdown_fence_present": true,
+        "strict_check_passed": false,
+        "limitation": "Successful HTTP transport and correct arithmetic did not satisfy the strict raw JSON contract."
+      },
+      {
+        "at_utc": "2026-11-06T16:14:45Z",
+        "path": "raw gateway call with explicit no-fence system/prompt",
+        "equation": "9*x+8=71",
+        "numeric_answer": 7,
+        "raw_json": true,
+        "strict_check_passed": true
+      },
+      {
+        "at_utc": "2026-11-06T16:20:15Z",
+        "path": "actual Dify model plugin invocation",
+        "equation": "12*x-5=103",
+        "parsed_output": { "answer": 9 },
+        "passed": true,
+        "latency_seconds": 45.286
+      }
+    ],
+    "app": {
+      "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+      "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+      "same_existing_app_and_dataset": true,
+      "new_app_created": false,
+      "native_node_count": 18,
+      "cutover_apply_option": "--merge-ui-only",
+      "cutover_apply_changed": true,
+      "cutover_model_readback": {
+        "kg_classifier": "kaogong-gemini-3.8-flash-high",
+        "kg_solve": "kaogong-gemini-3.8-flash-high",
+        "kg_review": "kaogong-gemini-3.8-flash-high",
+        "kg_general": "kaogong-gemini-3.8-flash-high",
+        "kg_general_review": "kaogong-gemini-3.8-flash-high"
+      },
+      "enable_site": false,
+      "enable_api": false,
+      "published": false,
+      "latest_format_prompt_deployment_readback": null,
+      "latest_code_hash": null,
+      "latest_generated_applied_and_bundle_hashes": null,
+      "latest_file_byte_build_reproduction": null,
+      "latest_repeat_apply_changed": null,
+      "latest_final_audit": null,
+      "latest_final_browser_audit": null,
+      "latest_runtime_growth_exercised_at_utc": "2026-11-06T18:18:48Z",
+      "limitation": "Same five Gemini bindings/app/dataset and 18 nodes. Live growth exercised immutable mathematical prose and exact decimal-padding behavior; final complete graph readback/audit, hashes, idempotence and full suite remain pending. Neither Luna 15:27/15:37 nor Gemini 17:18 hashes describe the final revised graph."
+    },
+    "gemini_studio_browser": {
+      "real_authenticated_fresh_chromium": true,
+      "native_node_count": 18,
+      "page_errors": 0,
+      "console_errors": 0,
+      "global_api_tools_http_status": 200,
+      "checklist_all_issues_resolved": true,
+      "limitation": "Actual Gemini Studio load, not proof of current full-suite model quality or a separate final post-format-edit audit."
+    },
+    "actual_cases": {
+      "phone": {
+        "scope": "historical-before-constrained-editorial-review",
+        "at_utc": "2026-11-06T16:25:08Z",
+        "workflow_status": "succeeded",
+        "answer_choice": "C",
+        "model_review_passed": true,
+        "all_three_llm_nodes_succeeded": true,
+        "reasoning": "Driver distraction rather than RF/wireless communication.",
+        "quality_note": "Correct selected answer, but verbose nonessential mechanism explanations motivated the later generic minimal-explanation prompt change."
+      },
+      "poem": {
+        "scope": "historical-before-constrained-editorial-review",
+        "at_utc": "2026-11-06T16:28:30Z",
+        "workflow_status": "succeeded",
+        "answer_choice": "B",
+        "model_review_passed": true,
+        "incorrect_extra_author_as_reported": "Li Ying for option D",
+        "independent_root_fact_check": {
+          "source": "Wikisource 全唐詩/卷656",
+          "url": "https://zh.wikisource.org/wiki/全唐詩/卷656",
+          "correct_author": "羅隱"
+        },
+        "full_answer_quality_passed": false,
+        "limitation": "Correct choice and reviewer=true did not validate the extra author assertion. The documentation editor did not make an external source request."
+      },
+      "historical_gemini_summary": {
+        "workflow_id": "86c3fe6b-5aa8-4f7b-b67d-022e7141e6b6",
+        "created_at_utc": "2026-11-06T16:32:03Z",
+        "finished_at_utc": "2026-11-06T16:41:00Z",
+        "elapsed_seconds": 537,
+        "workflow_status": "succeeded",
+        "exceptions_count": 0,
+        "teacher_results": [
+          {
+            "teacher_id": "li-mengyuan",
+            "own_correct_card_retrieved": true,
+            "solver_answered": true,
+            "review_passed": true,
+            "kg_verify_status": "answered"
+          },
+          {
+            "teacher_id": "yuan-dong",
+            "own_correct_card_retrieved": true,
+            "solver_answered": true,
+            "review_passed": true,
+            "kg_verify_status": "answered"
+          }
+        ],
+        "two_teacher_comparison_passed_for_executed_graph": true,
+        "reusable_for_latest_prompt_graph": false,
+        "limitation": "Real two-teacher success took almost nine minutes. Later format prompts changed execution content, so this remains historical and cannot count as the latest exact graph's first full-suite case."
+      },
+      "redscarf_before_math_answer_format_revision": {
+        "workflow_id": "e6878523-ec8e-4d91-9943-b14ab876a67b",
+        "started_at_utc": "2026-11-06T16:52:55Z",
+        "finished_at_utc": "2026-11-06T16:57:05Z",
+        "all_node_executions_succeeded": true,
+        "solver_choice": "C",
+        "solver_steps_numeric_result": "x=3",
+        "each_option_checked": true,
+        "model_review_passed": true,
+        "formal_answer": "C",
+        "kg_verify_status": "failed",
+        "kg_verify_reason": "invalid_output",
+        "general_fallback_formal_answer": "C",
+        "answer_acceptance_passed": false,
+        "cause": "Formal answer lacked the numeric result required to bind the answer to checked calculations; steps containing x=3 do not satisfy this gate."
+      },
+      "poem_after_constrained_editorial_review": {
+        "at_utc": "2026-11-06T17:41:02Z",
+        "workflow_status": "succeeded",
+        "answer_choice": "B",
+        "primary_answer_rewritten_by_reviewer": false,
+        "reviewed_explanation": "Correctly identifies Cold Food Festival (寒食), not Qingming (清明), and omits the erroneous option-D author claim.",
+        "option_b_attribution": "韩偓《寒食夜》",
+        "attribution_scope": "Independently checked earlier by root, not a fresh external lookup by the workflow or this documentation editor.",
+        "observed_answer_quality_passed": true,
+        "limitation": "Actual non-math editorial path succeeded; final full current-graph suite remains separate."
+      },
+      "phone_after_constrained_editorial_review": {
+        "at_utc": "2026-11-06T17:44:15Z",
+        "workflow_status": "succeeded",
+        "answer_choice": "C",
+        "primary_answer_rewritten_by_reviewer": false,
+        "reviewed_explanation": "Driver attention/distraction versus wireless transmission; no claim of inevitable phone-caused explosion.",
+        "risk_scope": "Potential RF risk is described within conventional exam-question context, not as a universal engineering claim.",
+        "observed_answer_quality_passed": true
+      },
+      "historical_growth_gate_failures": [
+        {
+          "time_utc_approx": "2026-11-06 18:06 UTC",
+          "answer": "555.56",
+          "answer_acceptance_passed": false,
+          "cause": "Equivalent decimal zero-padding in current was rejected by the prior text-exact result comparison."
+        },
+        {
+          "time_utc_approx": "2026-11-06 18:11 UTC",
+          "answer": "555.56",
+          "answer_acceptance_passed": false,
+          "cause": "Reviewer prose introduced a new fraction number 8 and was rejected by the numeric-claim gate."
+        }
+      ],
+      "growth_after_math_prose_and_decimal_fix": {
+        "at_utc": "2026-11-06T18:18:48Z",
+        "workflow_status": "succeeded",
+        "answer": "555.56",
+        "answer_acceptance_passed": true,
+        "original_steps_preserved": true,
+        "original_calculations_preserved": true,
+        "general_review_exact_key_count": 7,
+        "all_five_boolean_flags_true": true,
+        "issues": [],
+        "reviewed_steps": [],
+        "new_reviewer_fraction_number_published": false,
+        "limitation": "Latest independent live growth case passed, not a completed final seven-case suite."
+      }
+    },
+    "latest_prompt_revisions": {
+      "source_file": "conf/dify-kaogong/teacher_nodes.py",
+      "minimal_explanation_rules": {
+        "prompts": ["GENERAL_PROMPT", "GENERAL_REVIEW_PROMPT"],
+        "scope": "Only necessary discrimination and comparison; avoid nonessential authors, sources, dates, device mechanisms and accident chains; review extra explanation assertions even when the choice is correct."
+      },
+      "math_multiple_choice_answer_format": {
+        "prompts": ["SOLVE_PROMPT", "GENERAL_PROMPT"],
+        "scope": "Formal answer must contain both the choice and requested numeric result, not only a letter or a numeric value appearing only in steps."
+      },
+      "question_or_answer_hardcoded": false,
+      "historical_math_answer_format_revision_kept_existing_validation": true,
+      "existing_redscarf_test_extended": {
+        "test": "test_redscarf_synthetic_solution_checks_all_four_options_with_16_operations",
+        "synthetic_letter_only_C": "failed",
+        "synthetic_C_x_3": "answered"
+      },
+      "latest_teacher_tests": { "count": 45, "passed": true },
+      "last_complete_offline_before_final_math_prose_and_decimal_changes": {
+        "at_utc": "2026-11-06T17:58:54Z",
+        "knowledge": 36,
+        "teacher_runtime_and_graph": 45,
+        "base_and_cli": 99,
+        "total": 180,
+        "passed": true
+      },
+      "latest_full_offline_result": null,
+      "latest_full_static_check_result": null,
+      "historical_full_test_reference": "repair_20261106.offline_tests.root_final_integration_result (178 tests before these Gemini-era prompt/test changes)",
+      "limitation": "Current renderer and exact Decimal comparison changes are specified below. Latest 45 teacher tests passed; final complete offline/static verification is pending. The earlier complete 180-test run predates the last math-prose immutability and decimal-padding changes."
+    },
+    "current_runtime_contract": {
+      "teacher_review": {
+        "exact_keys": [
+          "passed",
+          "issues",
+          "facts_supported",
+          "method_applicable",
+          "calculations_consistent",
+          "word_limit_satisfied"
+        ],
+        "key_count": 6,
+        "boolean_flag_count": 5,
+        "schema_unchanged": true,
+        "reviewed_steps_allowed": false
+      },
+      "general_review": {
+        "exact_keys": [
+          "passed",
+          "issues",
+          "facts_supported",
+          "method_applicable",
+          "calculations_consistent",
+          "word_limit_satisfied",
+          "reviewed_steps"
+        ],
+        "key_count": 7,
+        "reviewed_steps_required": true,
+        "old_six_key_answered_review_accepted": false,
+        "all_five_boolean_flags_must_be_true": true,
+        "issues_must_be_empty": true,
+        "original_steps_validation": "Actual list with 1-16 nonempty strings, each at most 1500 characters; validated before considering editorial replacement.",
+        "non_math_editorial_scope": "Only steps may be replaced with 1-3 reviewed_steps. Final publication still requires all flags true, issues=[] and full existing _tn_check_answer validation.",
+        "non_math_numeric_claim_gate": "Values recognized by _tn_numbers in reviewed_steps must be a subset of those in original question, answer, original steps and calculations JSON. This is not a semantic proof of factual correctness.",
+        "immutable_solution_fields": [
+          "status",
+          "reason",
+          "skill_ids",
+          "evidence",
+          "conditions",
+          "answer",
+          "material_quotes",
+          "calculations"
+        ],
+        "mathematical_prose_predicate": "_tn_math(context) OR calculations is nonempty",
+        "math_original_steps_entirely_preserved": true,
+        "math_reviewed_steps_prompt_requirement": [],
+        "math_reviewed_steps_runtime_handling": "Shape-check actual list of 0-3 nonempty strings up to 1500 characters each, then ignore its prose completely. Nonempty ignored math prose cannot add a published number.",
+        "existing_gate_integration": "After restricted processing, remove only reviewed_steps from the review passed to _tn_check_answer and validate the complete candidate, original answer/anchors/calculations and original six review fields.",
+        "primary_answers_rewritten": false,
+        "teacher_material_evidence_or_calculations_rewritten": false,
+        "user_answer_hardcoded": false
+      },
+      "exact_decimal_result_comparison": {
+        "result_shape": ["operation", "values", "unit", "places", "rounding"],
+        "values_keys_must_exactly_match_calculated_result": true,
+        "value_comparison": "_number(claimed_value) == Decimal(actual_value), exact numeric equality, not float tolerance.",
+        "equivalent_examples": ["5000", "5000.0", "5000.00"],
+        "metadata_must_remain_exact": [
+          "operation",
+          "unit",
+          "places",
+          "rounding"
+        ],
+        "number_parser": "Bounded plain decimal strings only, at most 12 fractional digits and magnitude <=10^12; rejects non-string, exponent/fraction/comma/plus/nonfinite/invalid-leading-zero forms.",
+        "wrong_625_result_rejected": true,
+        "wrong_current_base_roles_or_units_rejected": true,
+        "original_calculation_records_rewritten_for_publication": false
+      },
+      "native_retry": {
+        "code_nodes": {
+          "count": 7,
+          "retry_enabled": true,
+          "max_retries": 2,
+          "retry_interval_ms": 1000,
+          "maximum_attempts": 3
+        },
+        "teacher_llm_nodes": {
+          "node_ids": ["kg_solve", "kg_review"],
+          "retry_enabled": true,
+          "max_retries": 5,
+          "retry_interval_ms": 5000
+        },
+        "other_llm_nodes": {
+          "node_ids": ["kg_classifier", "kg_general", "kg_general_review"],
+          "retry_enabled": true,
+          "max_retries": 2,
+          "retry_interval_ms": 2000
+        },
+        "code_retry_scope": "Native execution exceptions only; result-level validation failures returned by a successful Code execution are not retried to bypass gates.",
+        "sandbox_permissions_relaxed": false,
+        "api_write_retry_added": false,
+        "is_parallel": true,
+        "parallel_nums": 3,
+        "native_node_count": 18
+      }
+    },
+    "historical_full_production_suite_pass": {
+      "completion_time_utc_approx": "2026-11-06 around 17:18 UTC; exact completion second not supplied",
+      "evidence_directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1793984655002768280",
+      "production_entry": "original verify_remote",
+      "passed": true,
+      "case_count": 7,
+      "all_workflows_succeeded": true,
+      "retries_observed": 0,
+      "verified_teacher_count": 4,
+      "method_count": 5,
+      "followup_passed": true,
+      "missing_material_passed": true,
+      "anonymous_denied": true,
+      "cases": [
+        {
+          "case": "summary-comparison",
+          "workflow_id": "a28906eb-93de-4bb8-ac83-f356ad9f0760"
+        },
+        {
+          "case": "option-substitution",
+          "workflow_id": "b7a9c1fa-4724-4788-96f1-f03f5635233c"
+        },
+        {
+          "case": "material-proposals",
+          "workflow_id": "c9f0b7d8-3e01-46fd-87d7-9799fb586b9a"
+        },
+        {
+          "case": "essay-outline",
+          "workflow_id": "26f0bb95-953d-4c1d-8d29-c5b521359285"
+        },
+        {
+          "case": "general-growth",
+          "workflow_id": "506954cf-65d4-452a-a1fe-4c44e6280b44"
+        },
+        {
+          "case": "same-conversation-followup",
+          "workflow_id": "1975dc50-e871-4aee-bbdb-7e6db9f60b87"
+        },
+        {
+          "case": "missing-material",
+          "workflow_id": "66d7e5a9-4f88-4fd0-a8a1-d3b2ea008554"
+        }
+      ],
+      "covers_latest_runtime_graph": false,
+      "limitation": "Actual earlier Gemini seven-case success is retained. Later editorial/Code-retry/math-prose/decimal changes require a new complete run; this record cannot stand in for final current-graph acceptance."
+    },
+    "later_full_suite_failures": [
+      {
+        "suite_time_utc_approx": "2026-11-06 17:45 UTC",
+        "execution_error_at_utc": "2026-11-06T17:47:10Z",
+        "workflow_id": "e4584e4c-bf73-48d5-898a-620ec76d46c8",
+        "node": "kg_evidence",
+        "error": "operation not permitted",
+        "origin": "sandbox execution failure",
+        "one_teacher_branch_failed": true,
+        "full_suite_passed": false,
+        "subsequent_resolution_scope": "Bounded native Code execution retries only, no sandbox permission relaxation."
+      },
+      {
+        "time_utc_window": "2026-11-06 17:57-18:06 UTC",
+        "teacher_cases_passed": 4,
+        "failed_case": "general-growth",
+        "failure_scope": "Result formatting/validation, not proof of incorrect primary answer",
+        "full_suite_passed": false
+      }
+    ],
+    "historical_gemini_audit": {
+      "at_utc": "2026-11-06T17:18:31Z",
+      "generated_sha256": "d03013923f2b4de0a246215cc3608ae553e4c225093d28ac12f53bae0def73a1",
+      "applied_and_then_current_sha256": "37564f059fb1a47ead2d2671e021488680610dfc396e5584a69ef5b731183609",
+      "bundle_sha256": "180d2367b1ed497acd8b3c63c225d1f0222dee7f2c73fc3dc4006164c3116a4f",
+      "independent_build_and_anonymous_checks": {
+        "at_utc": "2026-11-06T17:18:45Z",
+        "independent_cli_builds": 2,
+        "file_count": 5,
+        "byte_identical_between_builds_and_then_deployed_files": true,
+        "anonymous_without_code": {
+          "http_status": 401,
+          "code": "unauthorized"
+        },
+        "anonymous_with_real_code": {
+          "http_status": 404,
+          "code": "app_not_found"
+        },
+        "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/gemini-no-model-checks.json"
+      },
+      "covers_latest_runtime_graph": false,
+      "limitation": "These Gemini hashes/build checks are now historical, just like the earlier Luna hashes. Final current code/graph/build audit has not been reported."
+    },
+    "finite_acceptance_job": {
+      "unit": "dify-kaogong-gemini-acceptance.service",
+      "purpose": "Finite isolated host-side real acceptance, robust to local monitor disconnection; not a new model service or periodic probe loop.",
+      "environment_path": "/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/tippy/bin",
+      "umask": "0077",
+      "runtime_max_sec": "2h",
+      "stdout_and_stderr_private_log": "/var/lib/dify/kaogong-teachers/repair-20261106/gemini-acceptance-service.log",
+      "first_launch": {
+        "status": "failed-before-model-invocation",
+        "cause": "missing PATH",
+        "explicit_path_fixed": true
+      },
+      "earlier_temporary_driver": {
+        "saved": "1-summary.sse",
+        "final_suite_result": null,
+        "exact_exit_cause_proven": false,
+        "possible_cause_not_proven": "Local monitor/connection interruption"
+      },
+      "historical_summary_resume": {
+        "actual_reused_workflow_id": "86c3fe6b-5aa8-4f7b-b67d-022e7141e6b6",
+        "persisted_workflow_graph_compared_to_then_current_execution_graph": true,
+        "graph_match_required": true,
+        "fake_api_replay": false,
+        "report": "/var/lib/dify/kaogong-teachers/Gemini-verification.json",
+        "allowed_for_latest_format_prompt_graph": false
+      },
+      "latest_fresh_suite_plan": "Launch final fresh full verify-all using original production verify_remote after immutable math-prose and exact decimal-padding changes. Earlier seven-case pass and later sandbox/growth failures remain separate; start current graph from summary again.",
+      "latest_fresh_suite_launch_and_exit": null,
+      "latest_current_graph_full_suite_result": null,
+      "execution_graph_comparison_loosened": false,
+      "current_wait_kind": "actual-gemini-finite-jobs-not-luna-cron",
+      "limitation": "Evidence reuse requires exact persisted/current execution-graph equality. The earlier full seven-case suite did pass, but later runtime changes break that equality; no final current-graph success or job exit is claimed before root reports it."
+    },
+    "current_operations": {
+      "optional_collaboration_disabled": true,
+      "api_runtime_override_unchanged": true,
+      "persistent_nix_declaration_activated": false,
+      "runtime_override_reboot_volatile": true,
+      "actual_boot_initrd_rootfs_reset_verified": true,
+      "etc_systemd_system_is_immutable_nix_symlink": true,
+      "manual_systemd_control_or_usr_local_units_survive_reboot": false,
+      "persistent_script_alone_makes_unit_discoverable_after_reboot": false,
+      "durable_activation_requirement": "A verified active-baseline Nix boot generation with the intended env change, or an authorized declarative persistent unit-search path; manual .control or /usr/local files and GC roots are not substitutes.",
+      "nix_build_dry_run": {
+        "performed_by_root": true,
+        "ifd_built_or_fetched_dependency_artifacts": true,
+        "host_profile_changed": false,
+        "services_changed_by_dry_run": false,
+        "boot_generation_activated": false,
+        "nixos_rebuild_boot_or_switch_performed": false,
+        "host_reboot_performed": false,
+        "limitation": "Dry-run evaluation was not artifact-free because IFD built/fetched dependencies, but no host/profile/service/boot activation occurred."
+      },
+      "original_api_start_script_gc_root": {
+        "planned": true,
+        "created": false,
+        "scope": "Protect original store script/closure against garbage collection, not runtime drop-in discovery across rootfs reset. Distinct from the existing Python interpreter GC root.",
+        "current_boot_caveat_required": true
+      },
+      "temporary_password_file": "/run/dify-kaogong/password",
+      "temporary_password_mode": "0600",
+      "temporary_password_removed": false,
+      "goal_ongoing": true
+    },
+    "pending_root_results": [
+      "Final complete offline/static result after immutable math prose and exact Decimal padding; latest 45 teacher tests passed, 17:58:54 full 180 predates these final changes",
+      "Fresh final finite-job launch/exit and full original-production seven-case verify_remote result for the latest exact graph, not reused earlier full-suite success",
+      "Final current-graph browser/node/Code-retry and model/configuration readback; independent latest poem/phone/growth successes do not substitute for the full suite",
+      "Final Gemini model/binding/resource/privacy audit, repeat apply and current generated/applied/bundle plus file-byte build hashes",
+      "Private final per-case SSE/report locations and accurate classification of any process interruption",
+      "Original API startup-script GC root creation result, explicitly preserving the current-boot-only/runtime-discovery caveat",
+      "Temporary password cleanup and final records; true reboot durability still requires verified-baseline Nix boot activation and has not been performed"
+    ],
+    "historical_gemini_teacher_answer_ids": [
+      "li-mengyuan",
+      "yuan-dong",
+      "honglingjin",
+      "bailu"
+    ],
+    "historical_gemini_two_teacher_comparison_passed": true,
+    "historical_gemini_original_seven_case_suite_passed": true,
+    "current_graph_full_teacher_acceptance_passed": false,
+    "latest_observed_poem_quality_passed": true,
+    "current_graph_poem_quality_passed": null,
+    "poem_scope": "17:41:02 actual editorial poem result passed; no blanket claim that a later changed exact graph has completed all regression evidence.",
+    "current_graph_full_suite_result": null,
+    "full_goal_complete": false
+  },
+  "backup_observation": {
+    "effective_dify_paths": [
+      "/var/lib/dify/storage/privkeys",
+      "/var/backup/qdrant",
+      "/var/backup/postgresql"
+    ],
+    "full_upload_storage_covered": false,
+    "runtime_kaogong_directory_covered": false,
+    "last_service_results": {
+      "postgresqlBackup": "success",
+      "qdrant-backup": "success",
+      "restic-backups-borgbase": "success"
+    },
+    "restic_last_exit": "2026-11-05T03:22:20+08:00",
+    "restore_test_performed": false,
+    "limitation": "Effective include/exclude files and service results inspected, not a restore test or proof of every snapshot's contents. Initial fallback uploads no documents. Keep repo/build assets and private runtime recovery copies independently."
+  }
+}
