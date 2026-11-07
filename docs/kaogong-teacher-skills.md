@@ -1,57 +1,54 @@
 # Dify 考公老师方法对照：架构、配置与重建手册
 
-本文记录截至 **2026-11-06** 的代码合同和实际观察。目标是让维护者或另一个 AI 在不读取先前聊天的情况下，理解系统、重建同一条工作流，并区分资料审核、资源配置、检索验证和真实解题验收。
+本文记录 **2026-11-07** 的最终实现与验收；运行时清理已于 01:40:30 UTC 完成，另附最终本地复现证明。目标是让维护者或另一个 AI 不依赖先前聊天即可重建、验证和回退同一工作流，同时区分历史故障、最终成功证据和仍然存在的产品边界。
 
 这是基于可追溯社区资料的多方法对照，不是老师人格模拟，也不是老师本人或机构的官方产品。不得为了显示老师姓名而编造方法、引用、授权或调用成功记录。
 
 ## 1. 当前状态与交付边界
 
-**当前同一 app/dataset、18 节点、五个 `kaogong-gemini-3.8-flash-high` 不变。已有较早 Gemini 图的真实 7 案全套通过；后续改动后最新全套仍待重跑，`full_goal_complete=false`。** 当前运行时只允许通用复核整理非数学解释，不改主答案、材料、证据或计算；数学原 steps 全部保留，计算结果允许精确 Decimal 等值的末尾补零。真实诗句 17:41:02、手机 17:44:15、增长 18:18:48 均成功；此前诗句错误、sandbox 执行异常及两次增长门禁失败保留为历史，不与这些成功互相覆盖。批准目录仍为 4 位老师/5 张卡、29 个 pending 候选、6 条隔离规则。
+**最终验收完成，`full_goal_complete=true`。** 同一 app/dataset、18 节点、五个 `kaogong-gemini-3.8-flash-high` 上，经原生 Console 接口执行的 7 个工作流场景与独立手机/诗句测试共 **9 次真实运行全部 succeeded、exceptions=0**；每次持久 workflow graph 的执行投影都与最终草稿精确一致，不复用旧版本通过记录。181 项离线及完整 Ruff 通过，真实 Studio 原生保存/恢复与刷新通过，独立双进程构建字节一致。API 协作关闭已注册到下一次启动的原生 Nix 代际，密码副本已清理；**未实际重启，也未切换正在运行的系统**。
 
 **2026-11-06 配置事故勘误：**此前“修复数字参数时未改变模型 Key”的判断不准确。早期 `repair_model_limits` 把控制台 GET 返回的展示掩码写回了 Key 字段，导致真实 Key 被掩码覆盖。这是配置脚本的错误，不是用户题目格式或原 Key 错误。已恢复同一把原 Key，并经真实 API 往返核实保密占位规则。原 `API` 的 401、Luna 的间歇 500 及后来 403 都保留各自时点，不推广为当前 Gemini 的错误。Gemini 新专用 Dify 凭据只在内存中复用有效用户网关 Key，原 API/Luna 未修改，未使用 Kilo 凭据。详见 4.2、4.6、4.7。
 
-以下最新进展来自主执行者 18:21 UTC 交接；本文编辑只检查本地文件并更新文档，没有运行时调用。Luna 403 后十分钟 cron 已删除，当前为有限 Gemini 验收任务。较早 7 案成功、17:18 Gemini 审计和 17:58:54 的 180 项离线通过都真实，但均不能代替最新数学 steps 不可改写/Decimal 补零修订后的最终全套、浏览器与代码哈希。
+最终依据是实际执行生成的服务端 `repair-20261106/final-seal.json`、离线报告、真实浏览器报告和启动比较/注册记录；`/tmp/kilo/dify-final-seal.json` 是其脱敏本地核对副本。图/模型证明封存于 01:29:29，清理确认于 01:40:30。旧 Luna 探测已取消，历次失败和旧图成功继续保留为各自时间点的历史，不能覆盖这里的最终状态。
 
-| 项目                         | 当前记录                                                                                                                                                                                                                           |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 工作室                       | `https://chat.dora.im`，仅登录后工作室预览                                                                                                                                                                                         |
-| 部署主机 / 控制台 API        | `fra0` / `http://127.0.0.1:5001`                                                                                                                                                                                                   |
-| 明确指定的租户               | `d7064d47-746d-4c74-b280-4d854d54e4a9`                                                                                                                                                                                             |
-| 当前专用部署根目录           | `/var/lib/dify/kaogong-teachers`                                                                                                                                                                                                   |
-| 服务器工具 / Python          | 已安装 `/var/lib/dify/kaogong-teachers/tool`；稳定解释器 `/var/lib/dify/kaogong-teachers/python/bin/python3`，3.14.8，已建立间接 GC root                                                                                           |
-| 当前目标应用名               | `考公老师方法对照`                                                                                                                                                                                                                 |
-| 当前专用应用 ID / 工作室 URL | `71afeb8d-4b69-45e0-b91d-eb7701b10059`；[登录后工作室](https://chat.dora.im/app/71afeb8d-4b69-45e0-b91d-eb7701b10059/workflow)                                                                                                     |
-| 当前图与合同                 | 五个 Gemini、18 节点不变。通用复核精确 7 键，老师复核仍 6 键；非数学只可整理解释，数学保留原 steps。7 个 Code 启用原生执行异常重试 2 次/1000ms，老师 LLM 5 次/5000ms、其余 LLM 2 次/2000ms、Iteration 并发 3 不变                  |
-| 重复 apply / 匿名拒绝        | 17:18:31 Gemini 旧图审计、17:18:45 两个独立 build 及无 Cookie passport 401/404 都已通过；现为后续改动前历史。最新图最终重入/浏览器/访问策略/代码 hash 待回填                                                                       |
-| 已创建知识库                 | `07576aa6-2220-450c-b586-c39f69f19682`；此 ID 只属于当前部署，不是另一租户重建时可直接采用的常量                                                                                                                                   |
-| 已观察到的文档状态           | 5 份完整 JSON 卡片、每份 1 个分段，5 个元数据字段映射正确                                                                                                                                                                          |
-| 初始 economy 召回            | 方法名称查询及 teacher/status 过滤检查通过；李梦圆、袁东、白鹭对策的原始例题查询未命中                                                                                                                                             |
-| 关键词补强后的真实召回       | 部署者于 2026-11-06 确认同一库的 30 次实际 service API 探测全部通过；未重复创建文档，正文和哈希未变；`state.knowledge.current` 已就绪                                                                                              |
-| 本地回归                     | 最新 45 项老师测试通过；最后完整 180=36+45+99 项通过于 17:58:54，早于最终数学解释不可改写/Decimal 补零修订。当前完整 180 项复跑和静态结果待主执行者确认，不预填通过                                                                |
-| 原生检索节点                 | 使用真实节点和真实库，李梦圆、袁东各返回自己的完整卡片，不存在的老师返回空；隔离通过。两项“给红领巾同题应为空”的诊断预期失败，实际为自己的非本题型卡片，必须再做题型/适用性审核，见 10.4                                           |
-| 实际独立题                   | 17:41:02 诗句 B，解释为寒食而非清明，无错误 D 作者；17:44:15 手机 C，关键原因是驾驶注意力，风险未写成必然爆炸；18:18:48 增长 555.56，原 steps/calculations 保留，7 键复核五个标志 true、issues=[]、reviewed_steps=[]               |
-| 草稿变更保护                 | 默认严格 hash、受审 UI 三方合并不变。旧 summary 只曾在持久执行图与当时当前图比较相同后复用；最新提示词改变执行图，该证据现为历史，必须重新跑当前全套，不能放松图比较                                                               |
-| 工具目录 / 浏览器            | 切换后 `gemini-studio` 全新认证 Chromium：18 节点、tools 200、检查清单全部解决、page/console errors=0。此前隔离 UI 缓存测试保留原范围，不冒充模型验收                                                                              |
-| 协作模式                     | 当前启动周期 API 开关 false、同镜像 runtime override 有效，但实际 boot initrd 会重建 rootfs；手工 /etc/.control 或 /usr/local unit 也不持久。未 boot/switch/reboot；需要经过核对的基线 Nix 启动代际，原启动脚本 GC root 仍仅计划中 |
-| 完整老师端到端验收           | 约 17:18 的旧 Gemini 图原生产 7 案全部 succeeded、无重试，4 老师/5 方法、追问/缺材料/匿名均通过。后续 17:45 全套遇 sandbox 异常，17:57–18:06 全套四个教师案通过但增长格式失败；最新全套尚无通过结果                                |
-| 发布 / 网站 / 应用 API       | 实际读回 `enable_site=false`、`enable_api=false`，没有发布版本                                                                                                                                                                     |
-| 运行时权限与临时凭据         | 部署根目录 0700，state/binding/恢复包/知识库 key 均 0600；最新 `/run/dify-kaogong/password` 已重新建立为 0600，尚未删除，最终清理待回填。历史删除记录不代表当前已清理                                                              |
-| 图片、文件、OCR、视觉、语音  | 关闭；题目、表格、选项和材料必须提供完整文字                                                                                                                                                                                       |
+| 项目                         | 当前记录                                                                                                                                                                                                                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 工作室                       | `https://chat.dora.im`，仅登录后工作室预览                                                                                                                                                                              |
+| 部署主机 / 控制台 API        | `fra0` / `http://127.0.0.1:5001`                                                                                                                                                                                        |
+| 明确指定的租户               | `d7064d47-746d-4c74-b280-4d854d54e4a9`                                                                                                                                                                                  |
+| 当前专用部署根目录           | `/var/lib/dify/kaogong-teachers`                                                                                                                                                                                        |
+| 服务器工具 / Python          | 已安装 `/var/lib/dify/kaogong-teachers/tool`；稳定解释器 `/var/lib/dify/kaogong-teachers/python/bin/python3`，3.14.8，已建立间接 GC root                                                                                |
+| 当前目标应用名               | `考公老师方法对照`                                                                                                                                                                                                      |
+| 当前专用应用 ID / 工作室 URL | `71afeb8d-4b69-45e0-b91d-eb7701b10059`；[登录后工作室](https://chat.dora.im/app/71afeb8d-4b69-45e0-b91d-eb7701b10059/workflow)                                                                                          |
+| 当前图与合同                 | 五个 Gemini、18 节点不变。通用复核精确 7 键，老师复核仍 6 键；非数学只可整理解释，数学保留原 steps。7 个 Code 启用原生执行异常重试 2 次/1000ms，老师 LLM 5 次/5000ms、其余 LLM 2 次/2000ms、Iteration 并发 3 不变       |
+| 重复 apply / 匿名拒绝        | 最终 UI 保存/恢复后重复 apply 返回 changed=false，无 app/dataset/document 重复；最终匿名探测无代码 401/unauthorized、带真实代码 404/app_not_found                                                                       |
+| 已创建知识库                 | `07576aa6-2220-450c-b586-c39f69f19682`；此 ID 只属于当前部署，不是另一租户重建时可直接采用的常量                                                                                                                        |
+| 已观察到的文档状态           | 5 份完整 JSON 卡片、每份 1 个分段，5 个元数据字段映射正确                                                                                                                                                               |
+| 初始 economy 召回            | 方法名称查询及 teacher/status 过滤检查通过；李梦圆、袁东、白鹭对策的原始例题查询未命中                                                                                                                                  |
+| 关键词补强后的真实召回       | 部署者于 2026-11-06 确认同一库的 30 次实际 service API 探测全部通过；未重复创建文档，正文和哈希未变；`state.knowledge.current` 已就绪                                                                                   |
+| 本地回归                     | 2026-11-07 01:05:27 UTC 完整 181=36+46+99 项、退出码 0；完整仓库规则 Ruff 通过。旧 registry 警告为既有非阻塞环境问题，未修改全局 registry                                                                               |
+| 原生检索节点                 | 使用真实节点和真实库，李梦圆、袁东各返回自己的完整卡片，不存在的老师返回空；隔离通过。两项“给红领巾同题应为空”的诊断预期失败，实际为自己的非本题型卡片，必须再做题型/适用性审核，见 10.4                                |
+| 实际独立题                   | Nov 7 01:17:42 手机 C，仅展示准确的驾驶分心理由，无加油站断言；01:18:22 诗句 B，简明区分寒食与清明，无无关作者归属。数学答案/步骤/计算仍保持原输出                                                                      |
+| 草稿变更保护                 | 默认严格 hash、受审 UI 三方合并不变；最终 9 个持久运行图均精确匹配当前执行投影，applied hash=当前草稿 hash，generated 执行投影一致                                                                                      |
+| 工具目录 / 浏览器            | final-181-native-save：18 节点、tools 200、检查清单全部解决、page/console errors=0；真实未拦截 HTTP 标题编辑/恢复两次 POST 均 200，GET 与硬刷新确认原标题恢复                                                           |
+| 协作模式                     | 当前 API false；完整 Nix 依赖图比较确认唯一功能变更为该 env，已成功 profile-set 与 boot-only 注册。新代际用于下次启动，运行代际/API/worker/web invocation IDs 不变；保留 runtime override 到重启，原脚本 GC root 已创建 |
+| 完整老师端到端验收           | 最新 verify-1794013433952828245 原生工作流 7 案全通过：4 老师/5 方法、双老师对照、增长、同会话追问、缺材料拒答及匿名保护。加手机/诗句共 9 案，均为最终图的真实运行                                                      |
+| 发布 / 网站 / 应用 API       | 实际读回 `enable_site=false`、`enable_api=false`，没有发布版本                                                                                                                                                          |
+| 运行时权限与临时凭据         | 部署根目录 0700、私有状态/凭据 0600；01:40:30 UTC 临时密码副本及其 /run 父目录已删除，长期知识库 key 和受管 state 保留                                                                                                  |
+| 图片、文件、OCR、视觉、语音  | 关闭；题目、表格、选项和材料必须提供完整文字                                                                                                                                                                            |
 
-旧应用 `c17f5fc5-0a1c-43f3-a691-bad3d0e9524d` 的保护历史保留，**没有重置、接管或删除它**。旧根目录 `/var/lib/dify/kaogong` 和 [`preflight.json`](../conf/dify-kaogong/preflight.json) 的 `deployment_acceptance`、`teacher_upgrade`、`model_provider_correction`、`repair_20261106` 保留各阶段事实；**`gemini_cutover_20261106` 是当前切换与待验收状态入口**。旧清理标志、Luna 错误、178 项和旧 hash 均不能覆盖当前 Gemini 记录。
+旧应用 `c17f5fc5-0a1c-43f3-a691-bad3d0e9524d` 未被重置、接管或删除。[`preflight.json`](../conf/dify-kaogong/preflight.json) 的 **`final_20261107` 是最终状态入口**；deployment_acceptance、teacher_upgrade、model_provider_correction、repair_20261106、gemini_cutover_20261106 均为历史快照，保留当时失败、未清理和待验收事实。其旧 pending/false/hash 不代表当前状态。
 
 本地成功意味着代码和数据合同可验证；知识库成功意味着索引和指定查询可用；只有真实工作流中的 `kg_verify` 返回预期老师 ID 且 `status=answered`，才能计入老师端到端通过数。
 
-### 1.1 尚未完成项
+### 1.1 保留边界
 
-| 项目            | 尚待提供的事实，不预填成功                                                                                                                           |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 最终源码/图     | 数学原 steps 不变/Decimal 等值补零后的完整离线、静态和最终实际图/代码/hash；17:58:54 的旧 180 项及 17:18 审计不能代替                                |
-| 当前整套验收    | 断连安全有限任务必须对最新执行图从头运行原生产 `verify_remote`；最新 summary、红领巾、白鹭、增长、同会话追问、缺材料拒答等逐案与最终报告待回填       |
-| 浏览器 / 独立题 | 诗句、手机已取得受限整理后的实际成功，增长也已成功；最终完整图的浏览器/节点检查及相应证据仍待回填，不把单题成功当完整套件                            |
-| 幂等 / 重建     | 当前 Gemini/最终提示词版本的重复 apply、资源稳定性、配置/访问策略审计、规范对象及文件字节复现待新证据                                                |
-| 有限任务        | 新全量任务的启动/退出、逐案原始私有 SSE 和最终结果；旧驱动中断的确切原因未知，不补造全套成功                                                         |
-| 运维收尾        | 原启动脚本的 GC root 创建结果及“仅保护 store、不让 runtime override 重启持久”的说明、最终记录和密码清理；真实 Nix 启动代际激活仍未做，不虚称 durable |
+- 覆盖仍为 4 位老师/5 张方法卡，29 个候选待审核、6 条规则隔离，不是假装所有老师已覆盖。
+- 仅登录后的 Studio 可用，网站/API 关闭且未发布；以后公开发布须单独授权和验收。
+- 仅完整文本输入，文件/OCR/视觉/语音关闭；模型复核、数值一致和来源绑定不是普遍事实正确性或数学建模证明。
+- 模型延迟和供应商可用性会变化，历史单案曾约 9 分钟；没有官方老师背书或得分保证。
+- 下一次启动的持久配置已注册；物理重启尚未实施或测试。当前保持旧运行系统及 runtime override，不能提前删掉它。
 
 ## 2. 架构与信任边界
 
@@ -356,22 +353,22 @@ sudo install -m 0600 /var/lib/new-api/internal-token /run/dify-kaogong/gateway-t
 
 私有证据位于 `/var/lib/dify/kaogong-teachers/repair-20261106` 的 `degoog-before.json`、`degoog-update-intent.json`、`degoog-after.json`、`contextforge-before.json`、`contextforge-full-before.json`、`contextforge-update-intent.json`、`contextforge-after.json`、`tools-verification.json`。临时执行器 `/tmp/kilo/dify-repair.py` 是一次性诊断材料，不是已安装 CLI 新命令；修复完成后其中精确 before 断言可能合理拒绝再次执行，不应删断言强跑。若临时文件丢失，按本节合同重建操作，不依赖聊天或猜测秘密。
 
-### 4.5 可选协作关闭：已生效的临时覆盖与持久化待办
+### 4.5 协作关闭与持久启动注册
 
 浏览器另一个独立错误来自 Dify 1.19.0 可选实时协作。API 默认 `ENABLE_COLLABORATION_MODE=true`，Web 未配置实际读取的 `NEXT_PUBLIC_SOCKET_URL`，浏览器尝试 `ws://localhost:5001`；仅设置 `SOCKET_URL` 无效。现有公共代理没有正确的 `/socket.io` 路由，API 的 `SERVER_WORKER_CLASS=gevent` 也不是 websocket worker，本机 upgrade 曾返回 `RuntimeError: The gevent-websocket server is not configured appropriately.`。只改 URL 不能完整修复。
 
-本次采用受支持的 **API-only `ENABLE_COLLABORATION_MODE=false`**，不暴露新 endpoint，不为可选功能同时调整 Web、API worker class 和共享 Traefik。其效果是全局关闭多人实时协作，不只是这个 app；安装源码仍支持单人普通 HTTP 草稿保存，CLI 的原生 HTTP apply 已实际保存并读回。浏览器手动 UI 保存后刷新这一专项未单独回传，不用源码支持或其他测试代替该项证据。
+本次采用受支持的 **API-only `ENABLE_COLLABORATION_MODE=false`**，不暴露新 endpoint，不同时调整 Web、worker class 和共享 Traefik。关闭的是全局可选多人协作，不是单人普通 HTTP 保存；最终真实浏览器已完成标题编辑、恢复、GET 读回和硬刷新，两个 POST 均 200，没有响应拦截。
 
-| 层次         | 已做 / 未做                                                                                                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 仓库持久声明 | 主执行者在 `nixos/modules/services/ai/dify/containers.nix` 的 `dify-api.environment` 添加 `ENABLE_COLLABORATION_MODE = "false";`，不是 commonApiEnv，不影响 worker 声明；尚未激活                  |
-| 活跃启动脚本 | 从原 `/nix/store/6a0jb7gx2nbixfscg3z85y19vzqhq6y6-unit-script-podman-dify-api-start/bin/podman-dify-api-start` 复制到 `/var/lib/dify/kaogong-teachers/collaboration-override/api-start`（0700）    |
-| 精确差异     | 仅插入容器 `-e ENABLE_COLLABORATION_MODE=false`，把同一已存在镜像改用完整 digest 并设 `--pull never`；其余参数、secret env-file 引用全部保留                                                       |
-| systemd 覆盖 | `/run/systemd/system/podman-dify-api.service.d/90-studio-collaboration.conf` 只清空并替换 ExecStart；不替换 ExecStartPre/Post/Stop、依赖或整份 unit                                                |
-| 实际激活     | 已 daemon-reload 并只 restart `podman-dify-api.service`，没有部署 dirty flake 的系统 toplevel，没有重启 Web/worker/Traefik                                                                         |
-| 镜像保证     | `docker.io/langgenius/dify-api@sha256:0d67842aedcb9b5884f75b88c4a5dd812e637916bff1ca892831f7ace2f3204f`；重启前后 image ID 同为 `bf42bb4e30c68a485c3b6fe808152b1975791d25408c69d85fe39d631176767e` |
-| 实际读回     | 公开 `/console/api/system-features` 的 `enable_collaboration_mode=false`；完整新建 Chromium 会话无 page errors 或 console errors，工具 200、检查清单正常                                           |
-| 持久性限制   | 当前实际 boot initrd 含 rootfs 删除/重建流程；`/run` 覆盖和未声明持久化的可写 systemd 搜索路径在重启后消失。`/var/lib` 脚本保留不等于启动时能找到它，Nix 声明未激活                                |
+| 层次           | 已做 / 未做                                                                                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 仓库持久声明   | `nixos/modules/services/ai/dify/containers.nix` 仅 dify-api.environment 增加该 env；新 fra0 toplevel 已构建、比较并成功注册到下一次启动，不改变 worker 声明                                        |
+| 活跃启动脚本   | 从原 `/nix/store/6a0jb7gx2nbixfscg3z85y19vzqhq6y6-unit-script-podman-dify-api-start/bin/podman-dify-api-start` 复制到 `/var/lib/dify/kaogong-teachers/collaboration-override/api-start`（0700）    |
+| 精确差异       | 仅插入容器 `-e ENABLE_COLLABORATION_MODE=false`，把同一已存在镜像改用完整 digest 并设 `--pull never`；其余参数、secret env-file 引用全部保留                                                       |
+| systemd 覆盖   | `/run/systemd/system/podman-dify-api.service.d/90-studio-collaboration.conf` 只清空并替换 ExecStart；不替换 ExecStartPre/Post/Stop、依赖或整份 unit                                                |
+| 初始运行时激活 | 早期只重启同镜像 API 使临时覆盖生效；最终 boot-only 注册没有再次重启 API/worker/web，也未切换运行系统                                                                                              |
+| 镜像保证       | `docker.io/langgenius/dify-api@sha256:0d67842aedcb9b5884f75b88c4a5dd812e637916bff1ca892831f7ace2f3204f`；重启前后 image ID 同为 `bf42bb4e30c68a485c3b6fe808152b1975791d25408c69d85fe39d631176767e` |
+| 实际读回       | 公开 `/console/api/system-features` 的 `enable_collaboration_mode=false`；完整新建 Chromium 会话无 page errors 或 console errors，工具 200、检查清单正常                                           |
+| 当前与下次启动 | 当前保留旧运行代际及 runtime override；下一次启动使用已注册的新原生 Nix unit，/run 清空后直接带该 env。注册已完成，实际物理重启未测试                                                              |
 
 覆盖文件内容是：
 
@@ -391,11 +388,54 @@ ExecStart=/var/lib/dify/kaogong-teachers/collaboration-override/api-start
 nix build --no-link '.#nixosConfigurations.fra0.config.systemd.units."podman-dify-api.service".unit'
 ```
 
-主执行者已执行过 `nix build --dry-run` 调查；求值中的 IFD **确实构建/获取了依赖产物**，所以不能声称 dry-run 完全无构建/下载副作用。但没有更改 host profile、服务或 boot generation，也没有 `nixos-rebuild boot/switch`、重启主机或持久化激活。若 dirty flake 求值带入其他改动，不能把整份新 unit/系统配置覆盖线上。
+早期 `nix build --dry-run` 的 IFD 确实构建/获取了依赖产物，当时没有 profile/service/boot 激活；这个历史阶段不等于最终仍未部署。最终已实际构建当前 fra0 toplevel，并在注册前完成以下严格比较，证明 dirty 工作区的其他 Surface/Rime 输入不改变该主机结果：
 
-可靠持久化需要经过核对的当前基线 Nix 启动代际，加上受审的单行 API env 变更，或另行批准的声明式 unit 搜索路径持久化；两者都涉及启动配置，不能由手工 .control 文件或 GC root 代替。只有实际新持久配置提供 env 后，才按受控步骤移除**该特定** runtime drop-in、核对启动/版本/feature，不整 unit revert 删除别人的覆盖。
+1. 读取旧运行系统及新候选的 derivation，按 Nix JSON v3（兼容其 derivations envelope）遍历全部发生变化的依赖；共享依赖及引用选择必须相同。
+2. 只允许恰好六个名称：`unit-script-podman-dify-api-start`、`unit-podman-dify-api.service`、`system-units`、`etc`、`activate`、`nixos-system-fra0-26.11.20261103.1d06008`。其他变化或未知字段差异失败关闭。
+3. 仅为这六对旧/新 derivation 路径及其输出路径建立显式对应映射；按最长路径优先规范化字典键、值、列表和字符串后，比较**全部字段**，不是忽略 hash、环境或未认识字段。
+4. 仅允许 API 启动 `structuredAttrs.text` 新增一次 `-e ENABLE_COLLABORATION_MODE=false`；从比较副本去掉这唯一行后须与旧内容完全一致。kernel、initrd、kernel-modules 的目标也必须相同。
 
-原启动脚本/store 闭包的额外 GC root **目前只是计划、尚未创建**，这与先前 Python 解释器已有 GC root 不是同一项。即使创建也只防止 store 闭包被垃圾回收，不能让 runtime drop-in 在 rootfs 重建后重新可见；必须继续明确“当前启动周期有效，重启持久性未完成”。浏览器 feature 缓存仍须完整刷新；可选协作重新启用/WSS/worker 配置不在本次关闭修复中。
+私有复现实现及证据为 `/var/lib/dify/kaogong-teachers/collaboration-override/boot-compare.py`、`boot-comparison.json`、`boot-activation.json`。比较报告中的 `activation_performed=false` 表示**比较阶段**没有激活；随后 activation 记录明确为 `boot-registered`，不能将两阶段混淆。
+
+| 实际注册结果                 | 值                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 旧运行系统                   | `/nix/store/fkqkqw9y06143dhg30p96lm7p6l7l8wh-nixos-system-fra0-26.11.20261103.1d06008`                       |
+| 新 system profile / 下次启动 | `/nix/store/34nzn6i7lcnv9zgk69c3h749qfayr3am-nixos-system-fra0-26.11.20261103.1d06008`                       |
+| 原 profile link              | `system-307-link`，注册前 profile 和 /run/current-system 均验证为旧系统                                      |
+| 已执行                       | `nix-env --profile /nix/var/nix/profiles/system --set NEW`，然后 `NEW/bin/switch-to-configuration boot` 成功 |
+| 未执行                       | 未运行 switch 激活、未重启主机；/run/current-system 仍是 OLD                                                 |
+| 无中断证明                   | API、worker、web 三个服务注册前后 InvocationID 全部相同                                                      |
+
+重建/注册时必须从**该主机当前基线和新比较报告**读取 OLD/NEW，不能在其他主机照抄上表 store 路径。先用锁定输入构建候选：
+
+```bash
+nix build --no-link --print-out-paths '.#nixosConfigurations.fra0.config.system.build.toplevel'
+```
+
+按上述六名称/全部字段算法产生并核对新报告后，本轮实际执行了以下原生 boot-only 操作。再次执行须先核对授权和当前基线；在当前已完成注册的状态直接重跑，会被旧 profile 断言阻止：
+
+```bash
+PROOF=/var/lib/dify/kaogong-teachers/collaboration-override/boot-comparison.json
+OLD=$(jq -er '.old_system' "$PROOF")
+NEW=$(jq -er '.new_system' "$PROOF")
+jq -e '.passed and .kernel_initrd_modules_unchanged and .all_other_derivation_fields_equal_after_explicit_dependency_path_mapping and (.changed_derivations | length == 6)' "$PROOF"
+test "$(readlink -f /nix/var/nix/profiles/system)" = "$OLD"
+test "$(readlink -f /run/current-system)" = "$OLD"
+sudo nix-env --profile /nix/var/nix/profiles/system --set "$NEW"
+sudo "$NEW/bin/switch-to-configuration" boot
+```
+
+本轮执行器先保存 phase=prepared 及原 profile/InvocationIDs，再写 profile-set/boot-registered；boot 命令失败会把 profile 设回 OLD，并运行 OLD 的 boot 命令恢复启动配置，不留下假成功。经授权回退已注册候选也用同样的已保存 OLD/NEW，不盲猜 generation：
+
+```bash
+test "$(readlink -f /nix/var/nix/profiles/system)" = "$NEW"
+sudo nix-env --profile /nix/var/nix/profiles/system --set "$OLD"
+sudo "$OLD/bin/switch-to-configuration" boot
+```
+
+回退改变下一次启动配置，不自动切换当前服务；恢复 OLD 也恢复其原启动行为，不能宣称仍有新 env。**现在不要删除 runtime override**：运行中的旧 unit 尚未含原生 env，必须保留到下次启动；届时 /run 清空，新原生代际提供 env。物理重启验证留给正常维护窗口，本次标记 `reboot_performed=false`，不是“注册待完成”。
+
+GC root 已实际建立：`/nix/var/nix/gcroots/dify-studio-collaboration-start` 指向 `/nix/store/6a0jb7gx2nbixfscg3z85y19vzqhq6y6-unit-script-podman-dify-api-start`，保护旧启动闭包及解释器免遭 GC，不改变挂载/启动搜索路径。真正的重启发现路径来自已注册的原生 Nix generation，不来自该 GC root 或手工 .control。浏览器 feature 缓存仍应完整刷新；重新启用实时协作或新增 WSS 服务属于另外的变更。
 
 ### 4.6 Luna 历史与停止探测
 
@@ -425,7 +465,7 @@ nix build --no-link '.#nixosConfigurations.fra0.config.systemd.units."podman-dif
 
 Luna 曾在真实成功后反复出现 500，15:22 串行节点也失败，不能将该阶段故障限定为老师并发。当时限定范围诊断确认本地 channel 5/default 有效，`auto` 属更上游 group；这些 500 的诊断不能自动用于后来不同的 403。
 
-**16:00 UTC Luna 改为 HTTP 403 `client_not_allowed`，16:01 再确认后立即删除原每 10 分钟 cron。** 请求 ID 为 `202611061600537900515778268d9d6BhF05wIP`。主执行者尝试按该 ID 关联网关日志但没有匹配行，因此不能断言该 403 来自哪个 channel 或是本地/上游哪一层。没有继续 Luna 探测、伪装客户端或改网关授权绕过拒绝；原“十分钟有界短探测等待”只保留为已取消历史。当前等待的是 Gemini 的有限验收任务。
+**16:00 UTC Luna 改为 HTTP 403 `client_not_allowed`，16:01 再确认后立即删除原每 10 分钟 cron。** 请求 ID 为 `202611061600537900515778268d9d6BhF05wIP`。网关日志没有匹配行，不能断言该 403 的 channel 或本地/上游来源。没有继续 Luna 探测、伪装客户端或更改授权绕过；其后用户授权 Gemini，并已完成最终有限验收，不再处于旧探测等待状态。
 
 ### 4.7 用户授权的 Gemini 切换
 
@@ -451,7 +491,7 @@ Luna 曾在真实成功后反复出现 500，15:22 串行节点也失败，不�
 | 16:14:45 | 显式无 fence 的 system/prompt，`9*x+8=71` 返回裸 JSON，结果 7 | 原始协议严格检查通过                           |
 | 16:20:15 | 真正 Dify 插件求 `12*x-5=103`，输出 `{"answer":9}`            | 插件调用通过，延迟 45.286 秒                   |
 
-这些只证明各自请求成功，不证明所有题目质量。后续双老师概括从 16:32:03 到 16:41:00 约 **8 分 57 秒**；不能把单次短题成功写成所有调用都很快，也不能因耗时较长就用假回放替代真实执行。当前受限解释编辑、数学 steps 不变、Decimal 等值和 Code 重试又改变执行图，最终版本的构建/hash/全套仍待回填。
+这些探测只证明各自请求成功，不证明所有题目质量。历史双老师概括曾用 **8 分 57 秒**，不能假定每次调用很快。最终受限单项说明、数学 steps 不变、Decimal/简单分数一致性和 Code 重试版本已重新完成 9 次实际运行、执行图匹配与封存，见 10.7，不靠旧图回放完成验收。
 
 ## 5. 文件职责与可重建资产
 
@@ -491,7 +531,7 @@ nix shell --inputs-from . nixpkgs#python3 --command python3 -B scripts/dify-kaog
 nix shell --inputs-from . nixpkgs#python3 --command python3 -B scripts/dify-kaogong.py verify
 ```
 
-`check` 验证目录/生成图，不报告线上老师已可用。`verify` 执行全部 `tests/test-dify-kaogong*.py`。历史完整结果包括 15:26:54 的 178 项和 **17:58:54 的 36 知识库 + 45 老师 + 99 基础/CLI = 180 项通过**。后者仍早于最终数学解释不可改写和 Decimal padding 修订。最新 45 项老师测试已通过，当前完整 180 项复跑/静态结果待回填，不把旧相同总数冒充新版本通过。focused 子集不与完整总数重复相加。
+`check` 验证目录/生成图；`verify` 执行全部 `tests/test-dify-kaogong*.py`。最终 **2026-11-07 01:05:27 UTC，36 知识库 + 46 老师 + 99 基础/CLI = 181 项通过，退出 0**，报告 `/tmp/kilo/kaogong-offline-verification.json`。新增覆盖未请求补充说明不展示、数学原步骤不变、Decimal 等值及有界简单分数校验。178/180 等旧结果仍是历史，focused 子集不重复计数。真实模型通过另外由最终 9 案证明，不能用离线数替代。
 
 静态检查命令如下。`teacher_nodes.py` 是拼接片段，所用全局函数由 `nodes.py` 和生成器注入，因此只对该片段豁免 `F821`，不全局忽略未定义名称。完整包装器会在测试中编译并执行。
 
@@ -505,7 +545,17 @@ nix shell --inputs-from . nixpkgs#ruff --command ruff check \
   tests/test-dify-kaogong-teachers.py
 ```
 
-Luna 阶段主执行者曾按上面**完整仓库规则**检查通过，不是只选 F/E9；缓存在项目外。后续 Gemini 提示词/测试改变后，完整静态检查也需相应新结果。既有 Nix registry 警告为无关环境提示，未借机修改锁定输入。旧离线/静态通过不证明当前完整教师验收。
+主执行者已对最终源码按上面**完整仓库规则**运行 Ruff 并通过，不是只选 F/E9；缓存在项目外。离线报告中的旧全局 Nix registry 警告仍是既有非阻塞问题，没有修全局 registry 或改锁定输入来掩盖它。
+
+本轮浏览器依赖曾被 Nix GC 删除，已从锁定 flake 输入重新构建 Python+Playwright 和浏览器闭包，不是靠不可复现的系统浏览器或全局 pip 安装。恢复命令模式如下，在仓库根目录运行，返回的 store 路径用于本机，不照抄别的主机旧路径：
+
+```bash
+PYTHON_ENV=$(nix build --no-link --print-out-paths --impure --expr 'let f = builtins.getFlake (toString ./.); p = import f.inputs.nixpkgs { system = builtins.currentSystem; }; in p.python3.withPackages (ps: [ ps.playwright ])')
+BROWSERS=$(nix build --no-link --print-out-paths --impure --expr 'let f = builtins.getFlake (toString ./.); p = import f.inputs.nixpkgs { system = builtins.currentSystem; }; in p.playwright-driver.browsers')
+export DIFY_CHROMIUM_EXECUTABLE="$BROWSERS/chromium-1248/chrome-linux64/chrome"
+```
+
+本锁定版本/Linux 的实际 Chromium 为 `/nix/store/njyg4nr7cy7g3b1g1a5yw422wn53s8l8-playwright-browsers/chromium-1248/chrome-linux64/chrome`。`/tmp/kilo/dify-browser.py` 已支持 `DIFY_CHROMIUM_EXECUTABLE`；更换平台/锁定版本须核对该构建的实际可执行文件位置。浏览器脚本是临时诊断工具，使用前仍需按受控流程认证，不能把已清理密码/旧 Cookie 当长期凭据；重建依赖不等于再次完成业务验收。
 
 离线默认 binding 的精确结构如下，其中全零 UUID 是明确占位，不可直接用于实际检索：
 
@@ -619,11 +669,11 @@ sudo rm -f -- /run/dify-kaogong/password /run/dify-kaogong/gateway-token
 sudo rmdir /run/dify-kaogong
 ```
 
-这是收尾步骤，不是已执行证明。本次最新登录副本 `/run/dify-kaogong/password` 仍存在、权限 0600；主执行者确认删除后再更新最新状态，不能引用历史清理结果。
+这些命令用于每次维护的收尾；本次已有独立最终证明：Nov 7 01:40:30 UTC 密码副本及其父目录已删除，长期知识库 key 和 state 保留。以后重跑受认证命令应重新建立短期 0600 凭据并再次清理，不依赖本次已删除副本。
 
 ### 6.4 部署版本的精确复现记录
 
-本节保存各历史版本的 hash：密钥事故前版本、15:27/15:37 Luna，以及 17:18 的较早 Gemini。最后一轮数学 steps 不变/Decimal 等值比较又改变执行代码，最新完整 build/hash/audit 仍待回填，不能复制本节旧 hash 当当前值。纯生成 DSL 与保留 UI 的 applied 草稿应分别核对，不必字节相同。
+本节先保留密钥事故前、15:27/15:37 Luna 和 17:18 Gemini 的历史 hash；**最终当前 hash 与双进程字节复现在 10.7**。旧 hash 不当成新版本证据。纯生成 DSL 与保留 UI 的 applied 草稿分别核对，不必字节相同；所有最终数据已封存，不再是待回填状态。
 
 已从服务器 `build` 目录仅导出 `chatflow.yml`、`manifest.json`、`catalog.json`、`binding.json` 和 `THIRD_PARTY_LICENSES.txt` 到本地 `/tmp/kilo/dify-kaogong-bound`。没有复制 `state.json`、登录密码、知识库 key 或 Cookie。
 
@@ -1128,7 +1178,7 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
 
 1. 先对原 `steps` 检查真正 list、1–16 条、每条非空字符串且至多 1500 字符；不能用一个好 reviewed_steps 掩盖坏类型的原 steps。
 2. 若 `_tn_math(context)` 为真，**或 calculations 非空**，整份原 steps 保持不变。提示词要求 reviewed_steps=[]；代码仍对该字段做 0–3 条非空字符串/长度校验，但不采用其中任何文字。即使未被采用的数学改写含新数值，也不会进入发布结果。
-3. 仅非数学通用候选允许用 1–3 条 reviewed_steps 替换 steps。passed=true 时该数组不能为空；其中按 `_tn_numbers` 识别出的数值必须是原 question、answer、original steps 和 calculations JSON 中数值集合的子集，不能新增分数/等价公式中的新数字。此集合限制不等于事实语义证明。
+3. 非数学通用候选允许 1–3 条 reviewed_steps，passed=true 时不能为空。若 `answer.strip()` 精确为一个 `[A-H]` 字母，且原题识别出至少两个不同 `[A-H]` 字母选项（后接 `.．、:：=`），只保留**第一条独立理由**供展示；其余可选补充不展示。不是针对某个题目或 B/C 的特判。所有输入条目先做类型/长度检查，保留条目的数值再须是原 question/answer/steps/calculations JSON 中 `_tn_numbers` 数值集合的子集。
 4. 只在候选副本中替换 steps，删除传给旧门禁的 reviewed_steps 扩展字段，然后对**完整候选**执行 `_tn_check_answer`：原主答案、精确材料引用、证据/条件、计算与角色/单位、字数和全部复核标志仍须通过。其他标志 false 或 issues 非空时，即使已暂存整理文字也不会展示。
 5. 非数学展示明确标注解释由独立复核整理；数学展示明确标注答案、步骤与计算记录保持原解题输出。该有限编辑不能挽救错误选项、错误数值、伪造引用或缺材料，也不硬编码用户答案。
 
@@ -1139,6 +1189,13 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
 `calculate` 返回完整 `{operation,values,unit,places,rounding}`，普通 values 只有 result，增长运算精确含 current/base/growth。模型必须提交完整 result，程序按相同精度/舍入重算：**values 键集合必须完全相同，各值经 `_number` 与实际结果的 Decimal 精确数值比较**，所以 `"5000"`、`"5000.0"`、`"5000.00"` 相等；不是浮点容差，也不允许靠近的错误结果。再将 values 暂以实际值代入比较副本，要求其余 operation/unit/places/rounding 元数据精确相同。此比较不改写原发布答案或计算记录。
 
 `_number` 仍只接受有界普通十进制字符串：不得有科学计数、加号、分数、逗号、非有限值、JSON 浮点/布尔或不合法前导零；小数最多 12 位，绝对值不超过 `10^12`。末尾补零等值不改变计算角色/单位/精度/舍入要求，错误的 625、偷换 current/base 或单位仍拒绝。操作数仍须来自原题/前序结果，另允许无量纲 0、1、100。算术正确不证明列式正确，独立复核仍不可省。
+
+最终还支持数学 **answer 文本内最多 16 个简单 `a/b` 或 `a÷b`**。这是独立的有界结果表示校验，不把 `_number` 改为表达式求值器，也不改变已展示答案。曾有真实增长答案正确给出 555.56 并补充 5000/9，被旧的字面分母检查挡住；该旧失败保留，修复规则为：
+
+1. 只提取有界普通十进制 a、b；零分母、超界/非法形式、链式除法或混合表达式拒绝。最多 16 项，不调用 eval，不支持任意表达式或未知 operation。
+2. 原 calculations 仍先通过完整复算/metadata/角色/单位门禁，再按其中每种已记录 rounding，以 6 位小数重算**相同原操作数和 operation**，建立这些高精度结果到原已验证声明值的对应。
+3. 对每个简单分数调用现有 `calculate("divide", ...)`，同样使用每种记录的 rounding 和 6 位小数；必须匹配前述重算结果。仅在**校验副本**中用匹配的已声明结果替代该分数，再执行原 answer 数值来源/结果门禁。原 answer、steps、calculations 不因这个过程改写。
+4. `5000/8`、零分母、链式/混合运算、未知运算和超界数值有拒绝测试。该规则证明的是**有限精度下的数值一致性**，不是符号恒等式或精确有理数证明，也不证明建模/选项正确。提示词仍要求 answer 只给所求数值/单位，推导放 steps。
 
 `GROWTH_ROLES` 同时识别“现期/本期”及“基期”的量、值、收入、营业收入、销售收入、销售额、产值、产量；`GROWTH_RATE` 识别增长率、同比/环比增长率和同比/环比增长。仍必须在原题中找到**唯一明确的金额角色、百分比和单位**，不把未经说明的金额、去年/今年或“下降”自动猜成另一口径。例如 `某企业现期收入5000万元，同比增长12.5%，增长额是多少？` 可以绑定为 `growth_from_current`，输出约 555.56 万元；把该输入改按基期计算，或用普通乘法提交 625，均会拒绝。新增的两个离线回归专门覆盖这种自然表述及错误口径，旧四节点占位流程的狭窄输入解析不再用于当前老师图。
 
@@ -1203,7 +1260,7 @@ Gemini 曾选对手机/诗句选项却额外写错诗人信息。仅要求“解
 
 18:06 左右增长候选 555.56 曾因 current 的十进制补零文本差异被拒绝；18:11 左右又因 reviewer 把说明换成引入新数值 8 的分数形式而拒绝。前者修成严格 Decimal 等值，后者修为**任何数学/calculations 非空都禁止步骤改写**，不是给新数字开白名单。18:18:48 实际增长 succeeded、555.56，原步骤/计算保留，通用复核 7 键、五个标志 true、issues=[]、reviewed_steps=[]。两个旧失败仍是失败，不改记 passed。
 
-最新 45 项老师测试包括非数学编辑、未知/缺失字段与额外数值拒绝、原答案/计算门禁、数学步骤不变、老师复核不能多出 reviewed_steps、Decimal padding 等值与错误值拒绝。它们和 17:58:54 的旧 180 项全套结果各有版本范围，最终当前图全套仍待主执行者回传。
+最终 46 项老师测试还覆盖单项只展示首条独立理由和有界分数一致性；完整 181 项以及当前图 9 案均已通过。17:58:54 的旧 180 项保留其历史范围，不用旧结果替代最终证据。
 
 ## 9. 持久化、幂等与恢复
 
@@ -1426,7 +1483,7 @@ nix shell --inputs-from . nixpkgs#python3 --command python3 -B \
 
 Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周期继续请求。用户随后授权 Gemini，不是绕过 Luna 的客户端禁用；当前采用下一节的有限主机任务执行实际验收。
 
-### 10.6 Gemini 真实证据与有限验收任务
+### 10.6 Gemini 迭代历史与有限任务
 
 | 时间 UTC / workflow                                                | 实际结果                                                                                                                                           | 不能推出的结论                                                                                                                                                    |
 | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1439,14 +1496,14 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 
 为避免本地会话断开影响长任务，主执行者改用 **`dify-kaogong-gemini-acceptance.service`** 的隔离有限 systemd 作业，不是持续后台循环，也不是新的模型服务：
 
-| 设置             | 实际值/限制                                                                                                                             |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| PATH             | `/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/tippy/bin`                                                         |
-| UMask            | `0077`                                                                                                                                  |
-| RuntimeMaxSec    | `2h`，有界运行，不无限等待/重试                                                                                                         |
-| stdout / stderr  | 都进入私有 `/var/lib/dify/kaogong-teachers/repair-20261106/gemini-acceptance-service.log`                                               |
-| 第一次启动       | 因缺 PATH 在模型调用前失败；之后显式修正 PATH，不能把此失败报告为 Gemini 不可用                                                         |
-| 当前最新版本全套 | 数学 steps 不变/Decimal padding 修订后准备再跑原生产 `verify_remote`/`verify-all`；旧成功全套及后来失败均保留，最新运行/退出/结果待回填 |
+| 设置            | 实际值/限制                                                                                                |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| PATH            | `/run/wrappers/bin:/run/current-system/sw/bin:/etc/profiles/per-user/tippy/bin`                            |
+| UMask           | `0077`                                                                                                     |
+| RuntimeMaxSec   | `2h`，有界运行，不无限等待/重试                                                                            |
+| stdout / stderr | 都进入私有 `/var/lib/dify/kaogong-teachers/repair-20261106/gemini-acceptance-service.log`                  |
+| 第一次启动      | 因缺 PATH 在模型调用前失败；之后显式修正 PATH，不能把此失败报告为 Gemini 不可用                            |
+| 当时任务状态    | 此阶段曾准备重新跑数学 steps 不变/Decimal 修订后的全套；其后的最终 7 案和手机/诗句 9 案已全部完成，见 10.7 |
 
 该 unit 让已启动的有限任务不依赖本地监控连接，不代表可跨主机重启持续运行或已完成。不要将私有 stdout/stderr 原文贴到仓库；只记录无秘密摘要、用例 ID 和状态。
 
@@ -1477,7 +1534,67 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 | 约 18:11 / 增长                 | 答案正确，但复核解释引入新分数数值 8 被门禁拒绝                                                             | 历史失败保留；随后数学题全面保留原 steps，不放开新数字                               |
 | 18:18:48 / 增长                 | 整图 succeeded、555.56，原 steps/calculations 保留；7 键复核五个标志 true、issues=[]、reviewed_steps=[]     | 最新独立增长通过，不等于最终当前图 7 案套件通过                                      |
 
-当前最后全套、浏览器/节点审计、GC root 及当前启动周期限制、最终代码/构建记录和密码清理仍待主执行者完成。`full_goal_complete=false`；本文件没有触发运行或等待/轮询任务。
+截至上述 18:21 历史阶段，最终全套等事项当时尚未完成；**这些状态已被下面 Nov 7 的最终封存替代**。旧失败不改成 passed，旧成功不冒充最终图。本文件编辑没有触发运行或等待/轮询任务。
+
+### 10.7 最终封存：181 项与 9 次真实运行
+
+最终入口为 `preflight.json.final_20261107`。主执行者脱敏封存 `/tmp/kilo/dify-final-seal.json` 的图/模型证据时间是 **2026-11-07 01:29:29.235639 UTC**，清理记录更新至 **01:40:30.101017 UTC**。最新原生产全套目录是 `/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794013433952828245`，不是较早的通过目录。
+
+以下九次都是真实新运行，status=succeeded、exceptions=0。封存逐一读取其持久 graph 并证明 execution projection **精确等于当前草稿**；不是只看模型名、节点数或用旧 SSE 假回放。7 案覆盖 4 位老师/5 张方法、一次双老师比较、增长、同会话追问和缺材料拒答，额外两案为用户手机/诗句题：
+
+| 案例                      | 最终 workflow ID                       | 结果                                        |
+| ------------------------- | -------------------------------------- | ------------------------------------------- |
+| summary-comparison        | `d175fc90-03a3-4402-8e94-e0504c9d48b5` | 李梦圆、袁东均 answered                     |
+| option-substitution       | `0e8b86e0-09b7-4a48-bb78-82e5c838447c` | 红领巾 answered                             |
+| material-proposals        | `d9b3c4ac-deee-4651-924e-930dbd502626` | 白鹭 answered                               |
+| essay-outline             | `333d2cac-2f03-4157-b66e-c92f56cfb6f5` | 白鹭 answered                               |
+| general-growth            | `ff244d04-18e3-456d-864a-853661b65872` | 通用解法与 555.56 检查通过                  |
+| 同会话追问                | `02b13bea-8c42-41f1-87f7-0527bbbc362b` | 保持原问题及匹配老师集合                    |
+| 缺材料拒答                | `f6d426aa-cc3f-437a-a848-b0570f7b2664` | 未补造材料/答案                             |
+| 手机，01:17:42.257819 UTC | `5fc5d2ba-ee81-42b7-8bd3-231f1f5f4e61` | C；首条独立解释为驾驶分心，无加油站断言展示 |
+| 诗句，01:18:22.710773 UTC | `1c6bcb40-aadc-4d24-878b-0612dc3f73a6` | B；寒食与清明的必要区别，无无关归属展示     |
+
+手机/诗句私有证据是 `repair-20261106/run-phone.json`、`run-poem.json`。检索报告五方法各有两项 positive query、teacher/status 过滤通过；其中 `native_node_execution_tested=false` 是该 service API 检查的范围，不能篡改成它单独运行了原生节点。实际完整工作流中的原生检索则由上述新运行证明；历史隔离节点探针也保留自己的范围。
+
+**当前规范对象哈希**（不是文件字节哈希，也不是 Dify 服务器并发 token）：
+
+| 对象                        | SHA-256                                                            |
+| --------------------------- | ------------------------------------------------------------------ |
+| generated 草稿              | `dc97380fb69488b818809f79687d76636fb7be530226056d1a10a87cfe099137` |
+| applied 及实际 current 草稿 | `3bfb6ea4ef378cd1b23504c89fb38a659aff136c751406ca5c12c06cf3c04d01` |
+| bundle                      | `788afe767ecb3dd8ee6e1150d33c4d41905059f2453ca3cdd02e19121b10a147` |
+
+01:29:03 审计为 phase=ready、18 节点、五个 Gemini/context selector=[]、7 个 Code retry=2/1000、教师 LLM=5/5000、其他 LLM=2/2000。applied=current 且执行投影匹配 generated；同一 app/dataset，恰好五个受管 document，没有重复创建。用户界面标题编辑/恢复后重复 apply 为 changed=false。
+
+01:29:28.766508 的两个独立 CLI 构建进程输出目录为 `repair-20261106/sealed-20261107T012928Z-a`、`sealed-20261107T012928Z-b`。五个文件互相以及与已部署 build **逐字节一致**，该重建本身无模型调用：
+
+| 文件                     | 最终字节 SHA-256                                                   |
+| ------------------------ | ------------------------------------------------------------------ |
+| chatflow.yml             | `d38f1e6d488275fdc8d823ef03bb65ede00cefe1bb2e85d0a79a88e3707e6a45` |
+| manifest.json            | `46db74a001438f06f1412ed5a96661aed7ddbad5b160e4f5a2100e2bfe4e1173` |
+| catalog.json             | `9fb8901dbc78ff42614d992a682061337b9c18c5cc595672c3b83b5c73b2fb72` |
+| binding.json             | `41f86d76e20c93e387eafb5981e4dedc1a47986506792e221efd411a919026f7` |
+| THIRD_PARTY_LICENSES.txt | `55174afe56f8706d3731068639c5e04af71bb277b8610de17ad6e6a08326903d` |
+
+**封存的部署源文件字节哈希**如下。五个本地 Python 文件字节与部署完全相同；四个资产 JSON 因排版而原始字节不同，经规范化 JSON 比对及额外本地构建，已确认语义相同、生成文件字节相同，未回退用户格式。哈希表仍记录真实部署字节，不伪称两边所有原始字节相同：
+
+| 源文件                             | SHA-256                                                            |
+| ---------------------------------- | ------------------------------------------------------------------ |
+| scripts/dify-kaogong.py            | `775d0032c46026f18411655e2cd2910b6a23ac58d89f4511f5be2b6f04e6daaa` |
+| scripts/dify_kaogong_knowledge.py  | `600c82898b8077480fe5dc6d16d085cf46b564b126fc2b9a4e3f7d7e50ea9a2e` |
+| conf/dify-kaogong/workflow.py      | `01b686e212577a71faabda2a3fcb1073235cce0c2735db6cee7d79d1b9da4993` |
+| conf/dify-kaogong/nodes.py         | `e271f32352ed85f5ef902ee0088ab148ab487f93cc2c27d6447083eaf2280a87` |
+| conf/dify-kaogong/teacher_nodes.py | `e2c345a662e849e1310c3b7c6873095a3893891e50b2a5500714a551d7af2349` |
+| conf/dify-kaogong/methods.json     | `2dc0d4e85f83183a8fd379b6a2dc7015891fc52cd0cc92098ae4dc96e89d3001` |
+| conf/dify-kaogong/sources.json     | `5c37cb672d4a3518670097be559859c94749115c726dee8678367262cc443896` |
+| conf/dify-kaogong/taxonomy.json    | `b7b99127c6438237c4071969a5badbbe7bcb2655d87196c15a581b84d8b685ba` |
+| conf/dify-kaogong/acceptance.json  | `826bdda4489e98793d548ad66e5c3d1033bdbb1e74765542ac842442eb6a45c0` |
+
+主执行者还用**当前本地仓库**及导出的非秘密 `/tmp/kilo/dify-final-binding.json` 独立运行 CLI build，输出 `/tmp/kilo/final-local-reproduction`，五个产物字节全部匹配上述部署封存哈希；证明为 `/tmp/kilo/local-reproduction-verification.json`。因此已验证两次独立服务器构建加一次独立本地构建，不需要改变用户 JSON 排版或借用服务器模型运行来伪造本地结果。
+
+最终浏览器 `/tmp/kilo/dify-browser/final-181-native-save.json` 确认 18 节点、零 page/console errors、tools 200、检查清单全部解决；**未拦截响应**的原生 HTTP 标题编辑/恢复为 `[200,200]`，GET 和硬刷新证实原始标题恢复。这不是早先只省略客户端缓存项的表单 fixture；早先隔离测试仍仅证明其 UI 范围。
+
+浏览器报告及截图也已归档到私有 `repair-20261106/browser-final`。最终匿名 passport 无代码为 401/unauthorized，带真实代码为 404/app_not_found；site/API=false、未发布，未开放公共入口。`/run/dify-kaogong/password` 与父目录已于 01:40:30.101017 UTC 删除，长期知识库 key、state、binding 和恢复证据保留，无未取消的探测/唤醒或活动测试作业。持久 boot 注册与 GC root 已按 4.5 完成；只有物理重启未实际测试。至此本次交付验收完成，`full_goal_complete=true`。
 
 ## 11. 排障与不应采用的捷径
 
@@ -1497,15 +1614,15 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 | 公共 retrieve 通过，单节点 debugger 却空                 | 核对调试入口接受的是 `query`，不是 `kg_select.query` 这个字段名；metadata 模板还需要变量池中真实 `kg_extract.teacher_id`。单节点输入提取可能只加载查询变量，不能用缺变量的调试结果否定公共召回，更不能往生产图塞固定 teacher_id 让测试通过 |
 | `invalid_output` / 模型默认 failed JSON                  | 从结构、完整输出、source_id、精确 quote、condition quote、calc result、字数逐层排查；不得跳过复核                                                                                                                                          |
 | 通用 solver 正确但 reviewer 因题干未写背景常识而拒绝     | 两段通用提示词已上线，手机题后续真实通过；指定材料和独立复核门禁保留，不硬编码选项或关闭复核                                                                                                                                               |
-| 单路老师 answered 或中间 solver 成功，但整体失败         | 检查本路 review/kg_verify 和整组预期老师；14:55 双路最终失败、15:22 串行失败仍存在，有界重试不是保证，不冒称双老师通过                                                                                                                     |
+| 单路老师 answered 或中间 solver 成功，但整体失败         | 检查本路 review/kg_verify 和精确预期老师集合；14:55/15:22 是保留的历史失败，最终当前图已另行通过。以后有界重试仍非成功保证                                                                                                                 |
 | 第二次 apply 曾因 disabled-upload/node.selected 漂移阻止 | 现已精确验证 12 个限制值、关闭开关/空数组及两层 selected bool，再三方保留；未知或执行改动仍拒绝，不忽略整个 features、不改 hash                                                                                                            |
 | partial-succeeded 但所有最终节点成功                     | 核对完整 SSE、末端节点、正整数 exceptions_count、无错误摘要及实际 answered 结果，按 10.2 记录已恢复异常；不能一律放行 partial                                                                                                              |
 | 诗句选项对、解释夹带作者错误                             | 通用 7 键复核只可整理非数学解释，五标志/完整候选仍过原门禁，主答案不可变；17:41 实际诗句成功，不把作者硬编码到工作流                                                                                                                       |
-| 数学题 steps 有数值、正式 answer 仅字母                  | 保留 numeric-grounding 门禁；answer 要同时给选项/所求数值。较早全套红领巾已真实通过，最终当前套件仍须重跑                                                                                                                                  |
+| 数学题 steps 有数值、正式 answer 仅字母                  | 保留 numeric-grounding 门禁；answer 同时给选项/所求数值。最终红领巾实际通过不意味着可以取消该门禁                                                                                                                                          |
 | 数学 reviewed_steps 补出新分数或数字                     | `_tn_math` 或 calculations 非空时不采用任何复核改写，保留原 steps；0–3 字符串形状检查仍做，不能靠新数字白名单绕过                                                                                                                          |
 | 等值计算结果因补零不同被拒绝                             | 最新 values 用 `_number`/Decimal 精确等值比较；键集合、operation/unit/places/rounding 仍精确，错误 625 或角色/单位仍拒绝                                                                                                                   |
 | Code sandbox operation not permitted                     | 仅原生执行异常有限重试，7 节点各最多 3 次；不改 sandbox 权限、不重试结果级 validation failed 来制造成功                                                                                                                                    |
-| 以 /etc/.control 或 /usr/local 代替 /run 实现持久化      | 实际 boot initrd 重建 rootfs，手工路径仍丢失；GC root 只保护 store，真实持久化须核对基线 Nix boot generation                                                                                                                               |
+| 以 /etc/.control 或 /usr/local 代替 /run 实现持久化      | 这些手工路径在 rootfs 重建时仍丢失；本次已通过完整基线比较注册原生 Nix boot generation，GC root 仅保护 store。不要提前移除当前旧运行系统的 runtime override                                                                                |
 | 长 summary 成功但 driver 没 final result                 | 仅接受已保存的真实单案；有限 systemd 作业继续/重跑，核对 PATH 和私有日志；图改变后不得复用旧证据冒充当前全套                                                                                                                               |
 | `unbound retrieved method` / 来源拒绝                    | 比对完整卡片、固定 commit/path/url、content_hash、原生 doc_metadata；不能只信文档标题                                                                                                                                                      |
 | 第一个老师正常，第二个消失                               | 检查原始老师数组、nullable iteration 结果和 positional serializer，禁止 remove-abnormal-output                                                                                                                                             |
@@ -1515,14 +1632,16 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 | 容量 pending / 模型输出截断                              | 结果尚未完成；保持待处理名单，不能截掉引文、老师或失败位置来宣称完成                                                                                                                                                                       |
 | 版本或镜像检查失败                                       | 重新审查安装源码/API/节点合同；不直接改 digest 常量、主机配置或跳过检查                                                                                                                                                                    |
 
-### 11.1 当前 Gemini 验收顺序
+### 11.1 后续版本的重验流程
 
-1. 保留 API/Luna 历史及 Gemini 用户授权边界；旧 Luna cron 已取消，当前只执行有界 Gemini 任务，不冒充客户端、不改网关权限。
-2. 完整本地验证最新 renderer/Decimal/Code 重试与测试后，以 `gemini-model-binding.json` 对原 app 做必要受限保存，读回图/模型；当前 hash 不能沿用 Luna 或 17:18 Gemini 产物。
-3. 通过断连安全、RuntimeMaxSec=2h 的有限任务从头执行原生产 `verify_remote`。旧 summary 虽真实成功，因图已变化不得计入当前套件，不减弱执行图比较。
-4. 逐案要求指定老师集合/answered、材料/算术/字数、追问与缺材料拒答；已有诗句/手机受限编辑和最新增长成功仍保留自己的执行证据，不代替最终全套。
-5. 完整套件结束后记录退出码、实际 run IDs、原始状态和私有证据位置，再做当前 Gemini 版本的幂等/匿名/配置审计及源码/构建哈希复现。未完成和失败都原样保留。
-6. 更新第 1 节及 preflight 的 `gemini_cutover_20261106`；实际创建原启动脚本 GC root 后只声明 store 保护，仍明确当前启动周期限制；密码确实删除才标清理。未核对/激活基线 Nix 启动代际不称持久，最新全套尚无结果时 `full_goal_complete=false`。
+本次最终版本已完成以下检查；以后修改代码、数据、binding 或部署边界时，需要为新版本重新执行，不沿用本次封存冒充新通过：
+
+1. 保留授权边界，固定新源码/绑定并完成离线和完整静态检查；不重新启用旧 Luna 探测或擅改网关权限。
+2. 用原 state 与明确 binding 做必要的受限保存并读回；代码/提示词/模型变更必须生成新 hash，不能只更新服务器文件就称图已更新。
+3. 用有限真实任务执行原生产 7 案及独立手机/诗句等目标题；逐一比较持久执行图与该次当前图，不减弱比较或假回放旧结果。
+4. 检查老师集合/answered、材料/数学/字数、追问和拒答；记录所有成功、恢复异常或失败，不把模型复核当普遍事实证明。
+5. 完成真实浏览器保存/恢复/刷新、幂等、匿名保护、资源审计及双进程字节复现，保存新版本源码/图/文件哈希。
+6. 清理临时凭据并保留私有恢复材料；启动配置若变更，重新比较/注册，明确区分 boot-only 与 running switch/实际重启。当前最终记录为 `final_20261107`，未来版本另记，不改写旧历史。
 
 ## 12. 安全、备份与后续扩展
 

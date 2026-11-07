@@ -41,11 +41,13 @@ answer和steps只写解题内容，不写老师名、官方背书、外部URL或
 按原题字数限制作答，程序按非空白字符计数，标点也计入；字数只限制answer，不限制解释steps。
 数学题answered必须有calculations并使最终数值在计算结果中出现；只能使用下列受限算术，不能输出或执行代码。
 数学选择题的answer须同时写出选项和所求数值，不能只写字母或只在steps中给数值，否则无法与calculations核对。
+数学answer只给选项（如有）、所求结果及单位；推导和混合算式放steps。分数结果只用简单数值a/b，不在answer中展开运算过程。
 operation仅add/subtract/multiply/divide/growth_from_current/growth_from_base。普通四则operands如上，数值为普通十进制字符串。
 growth_from_current的operands为{"current":"5000","rate":"12.5%","unit":""}；growth_from_base改用base。
 增长计算的result.values必须同时有current、base、growth。单位只用原题的已知单位；不支持的复合单位必须skip。
 result必须是完整calculate结果，含operation、values、unit、places(0至6)、rounding(half_up/half_even/down)，值为同精度字符串。
 数值操作数必须来自原题或前序计算；只允许0、1、100作为无量纲规范化常数。复算不证明列式本身正确。
+派生数必须先在calculations中列出产生它的运算，文字steps不替代计算记录；例如未达阈值的上限要先列“阈值减1”。人数单位写“人”（题干“名”同义）；纯单一未缩放计数单位的整数可一致用无量纲数值计算，计数边界可用该单位的0、1，不能省略货币/尺度单位或中途混用单位表示。
 不得把现期量乘增长率当成增长量。选项代入必须核对全部等式、取值限制及唯一性。
 """
 
@@ -75,7 +77,9 @@ answer和steps不出现老师归属、官方背书、外部URL或虚构source_id
 answer遵守题目字数，非空白字符及标点均计数。answered须有steps及精确material_quotes；解释步骤与正式answer分开。
 数学题answered必须给calculations:[{"operation":"add","operands":{"left":{"value":"2","unit":""},"right":{"value":"3","unit":""}},"result":{"operation":"add","values":{"result":"5.00"},"unit":"","places":2,"rounding":"half_up"}}]，最终数值须在计算结果中出现。
 数学选择题的answer须同时写出选项和所求数值，不能只写字母或只在steps中给数值。
+数学answer只给选项（如有）、所求结果及单位；推导和混合算式放steps。分数结果只用简单数值a/b，不在answer中展开运算过程。
 operation仅add/subtract/multiply/divide/growth_from_current/growth_from_base；数值为普通十进制字符串，操作数来自原题或前序结果，另可用无量纲0、1、100。
+所有派生操作数都先在calculations中给出来源运算，不能只在steps中解释后直接使用；尤其不要漏掉阈值减1、份数或差值的推导。人数单位写“人”（“名”同义）；纯单一未缩放计数单位的整数可一致用无量纲数值计算，也可用该计数单位的0、1作为边界常数。货币、缩放单位和不同单位不能这样省略或混用。
 growth_from_current operands={"current":"5000","rate":"12.5%","unit":""}，growth_from_base使用base。增长result.values同时含current/base/growth。
 每个result必须是完整calculate返回值，含operation、values、unit、places(0至6)、rounding(half_up/half_even/down)，不能只给标量或代码。
 不得把现期量乘增长率当作增长量；不能仅凭相同答案或模型复核保证正确。不能处理的运算或单位明确skip。
@@ -94,7 +98,8 @@ reviewed_steps中的数字只能复用原题、原answer、原steps或原calcula
 facts_supported检查题干、给定材料或适用的稳定基础知识是否支持答案；不确定关键事实、时效法律政策或专业争议仍须可靠依据，不能用模型自信代替。
 通用答案的skill_ids/evidence/conditions必须为空，不能虚构老师或来源；材料引用必须逐字属于原题。
 数学题需有可复算calculations，结果正确也不自动证明列式或唯一性。缺必要事实、材料、条件或无依据政策/名言时拒绝。
-精确输出：{"passed":true,"issues":[],"facts_supported":true,"method_applicable":true,"calculations_consistent":true,"word_limit_satisfied":true,"reviewed_steps":["独立核对后的简短解释"]}。
+若数学解法正确、原calculations非空，但直接使用了尚未列出来源运算的派生操作数，可在calculation_prefix补全缺失的前置计算；例如先求“阈值减1”再使用上限。每项必须是与原calculations相同的完整operation/operands/result对象，只准四则运算，最多16项，合计不超过40项。只能用原题数值、合法规范化常数和已核验前序结果，单位须与原计算链一致；不能更改或删除原算式，不能修正原错误结果，也不能靠前缀单独生成答案。纯单一未缩放计数的整数可作无量纲数值，计数单位0、1可作边界常数，人数单位统一写“人”。其余情况calculation_prefix为空。
+精确输出：{"passed":true,"issues":[],"facts_supported":true,"method_applicable":true,"calculations_consistent":true,"word_limit_satisfied":true,"reviewed_steps":["独立核对后的简短解释"],"calculation_prefix":[]}。
 全部标志为布尔值；必须确认原answer、原calculations和reviewed_steps均符合原题，才可全true且issues为空。不通过时reviewed_steps为空。method_applicable检查通用推导对原题的适用性，不是老师方法。
 复核为模型判断，不是事实或数学正确性的证明；不得因多数一致而通过。
 """
@@ -603,15 +608,46 @@ def _tn_numbers(text):
     units = "|".join(
         re.escape(x) for x in sorted(UNITS - {""}, key=lambda x: (-len(x), x))
     )
-    pattern = (
-        r"(?<![0-9.])(-?(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,12})?)(?![0-9.])\s*("
+    number = r"-?(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,12})?"
+    separator = r"(?:、|，|,|和|及|与)"
+    # Resolve the shared unit before individual tokens, so a money/count list
+    # does not accidentally make every item except the last dimensionless.
+    sequence = (
+        r"(?<![0-9.])("
+        + number
+        + r"(?:\s*"
+        + separator
+        + r"\s*"
+        + number
+        + r")+)\s*("
         + units
-        + r")?([%％])?"
+        + r"|名)"
+    )
+    inherited = []
+    for match in re.finditer(sequence, text):
+        if text[: match.start()].rstrip().endswith("第"):
+            continue
+        inherited.append(
+            (match.start(1), match.end(1), "人" if match[2] == "名" else match[2])
+        )
+    pattern = (
+        r"(?<![0-9.])(" + number + r")(?![0-9.])\s*(" + units + r"|名" + r")?([%％])?"
     )
     values = set()
     for match in re.finditer(pattern, text):
         value = _number(match[1])
-        values.add((value, match[2] or ""))
+        unit = match[2] or ""
+        if unit == "名":
+            ordinal = re.search(
+                r"第\s*(?:" + number + r"\s*" + separator + r"\s*)*$",
+                text[: match.start()],
+            )
+            unit = "" if ordinal else "人"
+        for start, end, shared_unit in inherited:
+            if start <= match.start(1) and match.end(1) <= end:
+                unit = shared_unit
+                break
+        values.add((value, unit))
         if match[3]:
             values.add((value / Decimal(100), ""))
     return values
@@ -638,7 +674,9 @@ def _tn_math(context):
     )
 
 
-def _tn_check_answer(solution, review, envelope, teacher_id, context, catalog):
+def _tn_check_answer(
+    solution, review, envelope, teacher_id, context, catalog, *, calculation_prefix=None
+):
     """Validate prose provenance and arithmetic; do not claim semantic proof."""
     _object(
         solution,
@@ -656,6 +694,11 @@ def _tn_check_answer(solution, review, envelope, teacher_id, context, catalog):
     )
     if solution["status"] not in {"answered", "skip", "not_needed"}:
         raise ValueError("unknown answer status")
+    prefix = [] if calculation_prefix is None else _list(calculation_prefix, 16)
+    if prefix and (
+        teacher_id or solution["status"] != "answered" or not solution["calculations"]
+    ):
+        raise ValueError("calculation prefix cannot replace original proof")
     _text(solution["reason"], 500, empty=True)
     if solution["status"] != "answered":
         if teacher_id and solution["status"] == "not_needed":
@@ -731,13 +774,30 @@ def _tn_check_answer(solution, review, envelope, teacher_id, context, catalog):
     elif skills or solution["evidence"] != [] or solution["conditions"] != []:
         raise ValueError("general answer pretends to use teacher evidence")
     calculations = _list(solution["calculations"], 40)
+    _list(prefix + calculations, 40)
     if _tn_math(context) and not calculations:
         raise ValueError("math answer lacks checked arithmetic")
     available = _tn_numbers(question) | {(Decimal(x), "") for x in (0, 1, 100)}
+    source_units = {unit for value, unit in available if unit}
+    count_units = source_units & {"人", "件", "个", "家", "户"}
+    if len(source_units) == 1 and count_units:
+        available |= {
+            (value, "")
+            for value, unit in available
+            if unit in count_units and value >= 0 and value == value.to_integral_value()
+        }
+    available |= {(Decimal(value), unit) for unit in count_units for value in (0, 1)}
     computed = set()
     previous = []
-    for item in calculations:
+    for index, item in enumerate(prefix + calculations):
         _object(item, {"operation", "operands", "result"})
+        if index < len(prefix) and item["operation"] not in {
+            "add",
+            "subtract",
+            "multiply",
+            "divide",
+        }:
+            raise ValueError("calculation prefix requires basic arithmetic")
         claimed = _object(
             item["result"], {"operation", "values", "unit", "places", "rounding"}
         )
@@ -765,7 +825,8 @@ def _tn_check_answer(solution, review, envelope, teacher_id, context, catalog):
         for value in actual["values"].values():
             pair = (Decimal(value), actual["unit"])
             available.add(pair)
-            computed.add(pair[0])
+            if index >= len(prefix):
+                computed.add(pair[0])
         previous.append({"kind": "calculation", "result": actual})
     if _tn_math(context):
         operations = {item["operation"] for item in calculations}
@@ -779,7 +840,57 @@ def _tn_check_answer(solution, review, envelope, teacher_id, context, catalog):
                 and operation not in operations
             ):
                 raise ValueError("explicit growth role needs the growth operation")
-        answer_numbers = {value for value, unit in _tn_numbers(solution["answer"])}
+        checked_answer = solution["answer"]
+        if "/" in checked_answer or "÷" in checked_answer:
+            decimal = r"-?(?:0|[1-9][0-9]{0,12})(?:\.[0-9]{1,12})?"
+            fractions = list(
+                re.finditer(
+                    r"(?<![A-Za-z0-9_./÷*×])("
+                    + decimal
+                    + r")\s*[/÷]\s*("
+                    + decimal
+                    + r")(?![0-9.]|\s*[/÷*×])",
+                    checked_answer,
+                )
+            )
+            if not fractions or len(fractions) > 16:
+                raise ValueError("unsupported answer fraction")
+            targets = {}
+            for item in calculations:
+                rounding = item["result"]["rounding"]
+                precise = calculate(
+                    item["operation"], item["operands"], places=6, rounding=rounding
+                )
+                for key, value in precise["values"].items():
+                    targets.setdefault(rounding, {}).setdefault(
+                        Decimal(value), set()
+                    ).add(Decimal(item["result"]["values"][key]))
+            for fraction in reversed(fractions):
+                matches = set()
+                for rounding, values in targets.items():
+                    divided = calculate(
+                        "divide",
+                        {
+                            "left": {"value": fraction[1], "unit": ""},
+                            "right": {"value": fraction[2], "unit": ""},
+                        },
+                        places=6,
+                        rounding=rounding,
+                    )
+                    matches.update(
+                        values.get(Decimal(divided["values"]["result"]), set())
+                    )
+                if not matches:
+                    raise ValueError("answer fraction is not a checked result")
+                # Validate a checking copy, never rewrite the model's displayed answer.
+                checked_answer = (
+                    checked_answer[: fraction.start()]
+                    + format(min(matches), "f")
+                    + checked_answer[fraction.end() :]
+                )
+            if re.search(r"[/÷*×^]|[0-9)）]\s*[+\-−]", checked_answer):
+                raise ValueError("mixed answer expressions are unsupported")
+        answer_numbers = {value for value, unit in _tn_numbers(checked_answer)}
         allowed = {
             value for value, unit in available | _tn_numbers(context["request"]["text"])
         }
@@ -941,7 +1052,7 @@ def teacher_serialize(results: list, context: str):
     return {"results": _tn_dump(_tn_pack(results, ctx, catalog))}
 
 
-def _tn_answer_block(solution):
+def _tn_answer_block(solution, *, calculation_prefix=None):
     count = sum(not char.isspace() for char in solution["answer"])
     lines = [
         "参考答案（模型生成，非官方答案）：",
@@ -954,9 +1065,14 @@ def _tn_answer_block(solution):
     lines.append("材料锚点：")
     for text in solution["material_quotes"]:
         lines.append("- “" + _display(text) + "”")
-    if solution["calculations"]:
-        lines.append("程序复算（只核验运算，不证明列式）：")
-        for item in solution["calculations"]:
+    for title, calculations in (
+        ("补充前置计算（独立复核提出，程序复算）：", calculation_prefix or []),
+        ("程序复算（只核验运算，不证明列式）：", solution["calculations"]),
+    ):
+        if not calculations:
+            continue
+        lines.append(title)
+        for item in calculations:
             actual = item["result"]
             lines.append(
                 "- "
@@ -1116,6 +1232,7 @@ def teacher_render(context: str, results: str, general: str, general_review: str
     lines.extend(blocks)
     if not answered and not ctx["blocked_reason"] and not ctx["pending"]:
         parsed, reviewed = None, None
+        calculation_prefix = []
         try:
             parsed = _tn_load(general, 30000)
             reviewed = (
@@ -1134,8 +1251,15 @@ def teacher_render(context: str, results: str, general: str, general_review: str
                         "calculations_consistent",
                         "word_limit_satisfied",
                         "reviewed_steps",
-                    },
+                    }
+                    | (
+                        {"calculation_prefix"}
+                        if isinstance(reviewed, dict)
+                        and "calculation_prefix" in reviewed
+                        else set()
+                    ),
                 )
+                calculation_prefix = _list(reviewed.get("calculation_prefix", []), 16)
                 original_steps = _list(parsed["steps"], 16, 1)
                 for step in original_steps:
                     _text(step, 1500)
@@ -1183,18 +1307,30 @@ def teacher_render(context: str, results: str, general: str, general_review: str
                 reviewed = {
                     key: value
                     for key, value in reviewed.items()
-                    if key != "reviewed_steps"
+                    if key not in {"reviewed_steps", "calculation_prefix"}
                 }
-            status = _tn_check_answer(parsed, reviewed, None, "", ctx, catalog)
+            status = _tn_check_answer(
+                parsed,
+                reviewed,
+                None,
+                "",
+                ctx,
+                catalog,
+                calculation_prefix=calculation_prefix,
+            )
             if status == "answered":
                 block = "\n".join(
                     [
                         "**通用解法（不使用老师 skill）**",
-                        "数学步骤、答案和计算记录保持原解题输出，经独立复核后展示。"
+                        (
+                            "原答案、步骤及原计算记录保留；补充前置运算已单独核验。"
+                            if calculation_prefix
+                            else "数学步骤、答案和计算记录保持原解题输出，经独立复核后展示。"
+                        )
                         if math_prose
                         else "以下解释由独立复核整理；答案和算术数据未经改写。",
                     ]
-                    + _tn_answer_block(parsed)
+                    + _tn_answer_block(parsed, calculation_prefix=calculation_prefix)
                 )
                 if sum(len(x) + 2 for x in lines) + len(block) + 1500 < _TN_OUTPUT:
                     lines.append(block)
@@ -1209,10 +1345,21 @@ def teacher_render(context: str, results: str, general: str, general_review: str
             AttributeError,
             InvalidOperation,
             RecursionError,
-        ):
+        ) as error:
+            reason = {
+                "invented arithmetic operand or unit": "计算链中有未建立来源的操作数，或单位表示不一致；需要补齐前置计算，文字解释不能替代计算记录",
+                "arithmetic result mismatch": "模型计算结果与程序复算不一致",
+                "arithmetic metadata mismatch": "计算的操作、单位、精度或舍入信息不一致",
+                "math answer lacks checked arithmetic": "数学答案缺少可复算的计算记录",
+                "answer numeric claims not grounded in checked calculation": "正式答案中的数值尚未得到原计算记录的支持",
+                "calculation prefix cannot replace original proof": "补充前置计算不能代替原计算记录，也不能用于老师分支",
+                "calculation prefix requires basic arithmetic": "补充前置计算只能使用受限四则运算",
+            }.get(str(error))
             lines.append(
                 "通用解法节点的" + _TN_FAILURES["model_failure"] + "，未展示其答案。"
                 if parsed == _TN_MODEL_FAILURE or reviewed == _TN_MODEL_FAILURE
+                else "通用解法校验未通过：" + reason + "。未展示其答案。"
+                if reason
                 else "通用解法未通过材料、计算、字数或输出结构检查，未展示其答案。"
             )
     if pending_names:

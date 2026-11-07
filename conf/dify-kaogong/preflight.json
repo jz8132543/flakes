@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "checked_at": "2026-11-05",
-  "latest_status_section": "gemini_cutover_20261106",
-  "historical_snapshot_scope": "Top-level 2026-11-05 observations, deployment_acceptance, teacher_upgrade, model_provider_correction and repair_20261106 retain their historical phase results. In particular, repair_20261106 contains pre-Gemini Luna bindings, 178 tests and 15:27/15:37 canonical/file-byte hashes, not current Gemini evidence. Its old recovery cron is explicitly cancelled. Read gemini_cutover_20261106 for current model, finite-job progress and pending current-graph acceptance.",
-  "full_goal_complete": false,
+  "latest_status_section": "final_20261107",
+  "historical_snapshot_scope": "All prior sections, including gemini_cutover_20261106, retain historical observations, failures, pending fields, cleanup flags and hashes from their own checkpoints. They do not override final_20261107. Final current-graph acceptance, native Studio saving, boot-only persistence registration and cleanup are complete; physical reboot was not performed.",
+  "full_goal_complete": true,
   "target": "fra0",
   "studio_origin": "https://chat.dora.im",
   "api_origin": "http://127.0.0.1:5001",
@@ -1570,6 +1570,413 @@
     "poem_scope": "17:41:02 actual editorial poem result passed; no blanket claim that a later changed exact graph has completed all regression evidence.",
     "current_graph_full_suite_result": null,
     "full_goal_complete": false
+  },
+  "final_20261107": {
+    "status": "complete",
+    "full_goal_complete": true,
+    "proof_sealed_utc": "2026-11-07T01:29:29.235639+00:00",
+    "cleanup_completed_utc": "2026-11-07T01:40:30.101017+00:00",
+    "evidence_scope": "Final sanitized root-generated seal and local proof files were read directly for this documentation update. No runtime calls, code edits, new markdown files or commits by the documentation editor. Earlier failed runs remain unchanged in historical snapshots.",
+    "evidence_files": {
+      "seal": "/tmp/kilo/dify-final-seal.json",
+      "offline": "/tmp/kilo/kaogong-offline-verification.json",
+      "browser": "/tmp/kilo/dify-browser/final-181-native-save.json",
+      "private_browser_archive": "/var/lib/dify/kaogong-teachers/repair-20261106/browser-final",
+      "independent_local_reproduction": "/tmp/kilo/local-reproduction-verification.json",
+      "boot_comparison": "/tmp/kilo/dify-boot-comparison.json",
+      "private_boot_compare_script": "/var/lib/dify/kaogong-teachers/collaboration-override/boot-compare.py",
+      "private_boot_comparison": "/var/lib/dify/kaogong-teachers/collaboration-override/boot-comparison.json",
+      "private_boot_activation": "/var/lib/dify/kaogong-teachers/collaboration-override/boot-activation.json"
+    },
+    "app": {
+      "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+      "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+      "phase": "ready",
+      "native_node_count": 18,
+      "model": "kaogong-gemini-3.8-flash-high",
+      "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+      "endpoint": "https://api.dora.im/v1",
+      "upstream_model": "gemini-3.8-flash-high",
+      "context_budget": 65536,
+      "output_budget": 8192,
+      "context_budget_is_measured_maximum": false,
+      "enable_site": false,
+      "enable_api": false,
+      "published": false,
+      "access_scope": "Authenticated Studio only",
+      "same_app_dataset_and_documents_preserved": true,
+      "repeat_apply_after_ui_save_changed": false,
+      "duplicate_resources_created": false,
+      "document_ids": [
+        "579b3399-6726-4328-be92-1f139eebd277",
+        "3beb7277-0c9b-4949-859c-71d74c1a70f4",
+        "44b7224f-46ec-401b-b181-31daae100831",
+        "4e42e00f-9e59-4865-8ffc-8a1fb9fade32",
+        "57e3c3af-2113-40fd-abdf-c5340222e450"
+      ],
+      "all_five_llm_context_selectors": [],
+      "teacher_llm_retry": {
+        "node_ids": ["kg_solve", "kg_review"],
+        "retry_enabled": true,
+        "max_retries": 5,
+        "retry_interval_ms": 5000
+      },
+      "other_llm_retry": {
+        "node_ids": ["kg_classifier", "kg_general", "kg_general_review"],
+        "retry_enabled": true,
+        "max_retries": 2,
+        "retry_interval_ms": 2000
+      },
+      "code_retry": {
+        "node_ids": [
+          "kg_prepare",
+          "kg_select",
+          "kg_extract",
+          "kg_evidence",
+          "kg_verify",
+          "kg_serialize",
+          "kg_render"
+        ],
+        "retry_enabled": true,
+        "max_retries": 2,
+        "retry_interval_ms": 1000,
+        "scope": "Native execution exceptions, not result-level validation retries"
+      },
+      "iteration_is_parallel": true,
+      "iteration_parallel_nums": 3,
+      "sandbox_permissions_relaxed": false,
+      "api_write_retry_added": false
+    },
+    "current_graph_acceptance": {
+      "status": "passed",
+      "all_nine_current_execution_graphs_match": true,
+      "comparison_scope": "Every persisted workflow graph execution projection exactly equals the current draft execution projection, not just model names or node count.",
+      "fresh_real_workflow_runs": 9,
+      "all_statuses": "succeeded",
+      "exceptions_per_run": 0,
+      "fake_api_replay": false,
+      "old_graph_passes_reused": false,
+      "full_suite_directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794013433952828245",
+      "cases": [
+        {
+          "case": "summary-comparison",
+          "run_id": "d175fc90-03a3-4402-8e94-e0504c9d48b5",
+          "status": "succeeded",
+          "exceptions": 0,
+          "teacher_ids": ["li-mengyuan", "yuan-dong"],
+          "evidence_file": "1-summary.sse"
+        },
+        {
+          "case": "option-substitution",
+          "run_id": "0e8b86e0-09b7-4a48-bb78-82e5c838447c",
+          "status": "succeeded",
+          "exceptions": 0,
+          "teacher_ids": ["honglingjin"],
+          "evidence_file": "2-substitution.sse"
+        },
+        {
+          "case": "material-proposals",
+          "run_id": "d9b3c4ac-deee-4651-924e-930dbd502626",
+          "status": "succeeded",
+          "exceptions": 0,
+          "teacher_ids": ["bailu"],
+          "evidence_file": "3-case-3.sse"
+        },
+        {
+          "case": "essay-outline",
+          "run_id": "333d2cac-2f03-4157-b66e-c92f56cfb6f5",
+          "status": "succeeded",
+          "exceptions": 0,
+          "teacher_ids": ["bailu"],
+          "evidence_file": "4-case-4.sse"
+        },
+        {
+          "case": "general-growth",
+          "run_id": "ff244d04-18e3-456d-864a-853661b65872",
+          "status": "succeeded",
+          "exceptions": 0,
+          "teacher_ids": [],
+          "evidence_file": "5-growth.sse"
+        },
+        {
+          "case": "same-conversation-followup",
+          "run_id": "02b13bea-8c42-41f1-87f7-0527bbbc362b",
+          "status": "succeeded",
+          "exceptions": 0,
+          "evidence_file": "6-followup.sse"
+        },
+        {
+          "case": "missing-material",
+          "run_id": "f6d426aa-cc3f-437a-a848-b0570f7b2664",
+          "status": "succeeded",
+          "exceptions": 0,
+          "evidence_file": "7-case-7.sse"
+        },
+        {
+          "case": "phone",
+          "run_id": "5fc5d2ba-ee81-42b7-8bd3-231f1f5f4e61",
+          "status": "succeeded",
+          "exceptions": 0,
+          "answer": "C",
+          "utc": "2026-11-07T01:17:42.257819+00:00",
+          "explanation": "Accurate driving-distraction reason; no gas-station claims displayed",
+          "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/run-phone.json"
+        },
+        {
+          "case": "poem",
+          "run_id": "1c6bcb40-aadc-4d24-878b-0612dc3f73a6",
+          "status": "succeeded",
+          "exceptions": 0,
+          "answer": "B",
+          "utc": "2026-11-07T01:18:22.710773+00:00",
+          "explanation": "Concise Cold Food Festival versus Qingming distinction; no irrelevant attribution displayed",
+          "evidence": "/var/lib/dify/kaogong-teachers/repair-20261106/run-poem.json"
+        }
+      ],
+      "full_seven_case_production_suite_passed": true,
+      "verified_teacher_count": 4,
+      "method_count": 5,
+      "real_teacher_comparisons": 1,
+      "followup_passed": true,
+      "missing_material_passed": true,
+      "anonymous_denied": true,
+      "retrieval": {
+        "passed": true,
+        "indexing_technique": "economy",
+        "method_ids": [
+          "bailu.essay-topic-decomposition",
+          "bailu.material-proposals",
+          "honglingjin.option-substitution",
+          "li-mengyuan.keyword-extraction",
+          "yuan-dong.summary-headings"
+        ],
+        "positive_queries_per_method": 2,
+        "teacher_filter": true,
+        "status_filter": true,
+        "native_node_execution_tested_by_service_api_subcheck": false,
+        "scope": "The service API retrieval subcheck does not claim isolated native execution. The actual full workflow runs provide their own native-node evidence."
+      }
+    },
+    "final_runtime_contract": {
+      "teacher_review_key_count": 6,
+      "general_review_key_count": 7,
+      "general_review_required_extra_field": "reviewed_steps",
+      "five_boolean_flags_must_be_true_and_issues_empty": true,
+      "original_steps_typed_before_editorial_selection": true,
+      "non_math_reviewed_steps": "1-3 shape-checked strings; only retained prose can replace steps and must pass numeric-subset and full existing candidate checks.",
+      "standalone_single_choice": {
+        "predicate": "Non-math, answer.strip() exactly matches [A-H], and original question contains at least two distinct A-H option labels followed by one of .．、:：=",
+        "display": "Only the first independent reviewed_steps explanation; optional remaining notes are not displayed.",
+        "question_or_B_C_answer_specific": false,
+        "discard_unrequested_explanations_tested": true
+      },
+      "math_predicate": "_tn_math(context) OR calculations nonempty",
+      "math_steps_immutable": true,
+      "math_reviewed_steps": "Prompt requests []; runtime shape-checks 0-3 strings then ignores them.",
+      "answer_material_evidence_calculations_rewritten": false,
+      "exact_decimal_padding_equivalence": true,
+      "calculation_values_keys_and_operation_unit_places_rounding_exact": true,
+      "simple_answer_fraction": {
+        "maximum_count": 16,
+        "forms": ["bounded plain-decimal a/b", "bounded plain-decimal a÷b"],
+        "uses_existing_calculate_divide": true,
+        "checking_decimal_places": 6,
+        "rounding": "Each recorded rounding mode from the already checked original calculations",
+        "target": "Recompute the same original calculations at six decimal places, match fraction values there, then validate a checking copy against their already checked declared result values.",
+        "displayed_answer_rewritten": false,
+        "rejected": [
+          "Wrong 5000/8",
+          "Zero denominator",
+          "Chained or mixed expressions",
+          "Unknown operations",
+          "Oversized or invalid numeric forms"
+        ],
+        "eval_or_arbitrary_expression_execution": false,
+        "proof_scope": "Finite-precision numeric consistency, NOT symbolic or exact rational identity proof; modeling, evidence and review gates remain required."
+      }
+    },
+    "offline_and_static": {
+      "utc": "2026-11-07T01:05:27.034887+00:00",
+      "command": "nix shell --inputs-from . nixpkgs#python3 --command python3 -B scripts/dify-kaogong.py verify",
+      "knowledge": 36,
+      "teacher_runtime_and_graph": 46,
+      "base_and_cli": 99,
+      "total": 181,
+      "exit_code": 0,
+      "passed": true,
+      "full_ruff_passed": true,
+      "ruff_scope": "Full user-specified repository-rules check over CLI, knowledge helper, native probe, conf and all three test files; only existing teacher_nodes.py:F821 per-file exemption, not a narrowed F/E9 run.",
+      "preexisting_registry_warning": "cannot read old global flake registry; hash 'main' has wrong length for sha1",
+      "registry_warning_blocked_tests": false,
+      "global_nix_registry_modified": false
+    },
+    "audit_and_reproduction": {
+      "audit_utc": "2026-11-07T01:29:03.358254+00:00",
+      "generated_sha256": "dc97380fb69488b818809f79687d76636fb7be530226056d1a10a87cfe099137",
+      "applied_sha256": "3bfb6ea4ef378cd1b23504c89fb38a659aff136c751406ca5c12c06cf3c04d01",
+      "current_sha256": "3bfb6ea4ef378cd1b23504c89fb38a659aff136c751406ca5c12c06cf3c04d01",
+      "execution_matches_generated": true,
+      "bundle_sha256": "788afe767ecb3dd8ee6e1150d33c4d41905059f2453ca3cdd02e19121b10a147",
+      "canonical_hashes_are_file_byte_hashes": false,
+      "reproduction_utc": "2026-11-07T01:29:28.766508+00:00",
+      "independent_cli_process_builds": 2,
+      "all_file_bytes_match": true,
+      "matches_deployed_build": true,
+      "model_invocations_for_builds": 0,
+      "build_directories": [
+        "/var/lib/dify/kaogong-teachers/repair-20261106/sealed-20261107T012928Z-a",
+        "/var/lib/dify/kaogong-teachers/repair-20261106/sealed-20261107T012928Z-b"
+      ],
+      "file_sha256": {
+        "chatflow.yml": "d38f1e6d488275fdc8d823ef03bb65ede00cefe1bb2e85d0a79a88e3707e6a45",
+        "manifest.json": "46db74a001438f06f1412ed5a96661aed7ddbad5b160e4f5a2100e2bfe4e1173",
+        "catalog.json": "9fb8901dbc78ff42614d992a682061337b9c18c5cc595672c3b83b5c73b2fb72",
+        "binding.json": "41f86d76e20c93e387eafb5981e4dedc1a47986506792e221efd411a919026f7",
+        "THIRD_PARTY_LICENSES.txt": "55174afe56f8706d3731068639c5e04af71bb277b8610de17ad6e6a08326903d"
+      },
+      "deployed_source_byte_sha256": {
+        "scripts/dify-kaogong.py": "775d0032c46026f18411655e2cd2910b6a23ac58d89f4511f5be2b6f04e6daaa",
+        "scripts/dify_kaogong_knowledge.py": "600c82898b8077480fe5dc6d16d085cf46b564b126fc2b9a4e3f7d7e50ea9a2e",
+        "conf/dify-kaogong/workflow.py": "01b686e212577a71faabda2a3fcb1073235cce0c2735db6cee7d79d1b9da4993",
+        "conf/dify-kaogong/nodes.py": "e271f32352ed85f5ef902ee0088ab148ab487f93cc2c27d6447083eaf2280a87",
+        "conf/dify-kaogong/teacher_nodes.py": "e2c345a662e849e1310c3b7c6873095a3893891e50b2a5500714a551d7af2349",
+        "conf/dify-kaogong/methods.json": "2dc0d4e85f83183a8fd379b6a2dc7015891fc52cd0cc92098ae4dc96e89d3001",
+        "conf/dify-kaogong/sources.json": "5c37cb672d4a3518670097be559859c94749115c726dee8678367262cc443896",
+        "conf/dify-kaogong/taxonomy.json": "b7b99127c6438237c4071969a5badbbe7bcb2655d87196c15a581b84d8b685ba",
+        "conf/dify-kaogong/acceptance.json": "826bdda4489e98793d548ad66e5c3d1033bdbb1e74765542ac842442eb6a45c0"
+      },
+      "source_hash_scope": "Exact deployed source bytes. Five local Python files match byte-for-byte; four local asset JSON files have formatting-only raw-byte differences, with canonical semantic equality verified independently.",
+      "independent_local_build": {
+        "current_workspace_code_bytes_match_deployment": true,
+        "asset_json_semantics_match": true,
+        "asset_json_format_only_raw_differences": [
+          "conf/dify-kaogong/methods.json",
+          "conf/dify-kaogong/sources.json",
+          "conf/dify-kaogong/taxonomy.json",
+          "conf/dify-kaogong/acceptance.json"
+        ],
+        "user_formatting_reverted": false,
+        "binding_file": "/tmp/kilo/dify-final-binding.json",
+        "output_directory": "/tmp/kilo/final-local-reproduction",
+        "all_five_artifact_bytes_match_deployed_seal": true,
+        "server_independent_build_count": 2,
+        "additional_independent_local_build_count": 1,
+        "evidence": "/tmp/kilo/local-reproduction-verification.json"
+      }
+    },
+    "studio_browser": {
+      "tag": "final-181-native-save",
+      "native_node_count": 18,
+      "page_errors": 0,
+      "console_errors": 0,
+      "global_api_tools_http_status": 200,
+      "checklist_all_issues_resolved": true,
+      "native_http_save_passed": true,
+      "title_edit_and_restore_post_statuses": [200, 200],
+      "get_readback_confirmed": true,
+      "original_title_restored": true,
+      "hard_reload_verified": true,
+      "response_interception": false,
+      "earlier_isolated_iteration_form_test_scope": "Only client-side GET cache-entry omission, no backend cache deletion or fake model response; separate from this real native save."
+    },
+    "browser_dependencies": {
+      "old_python_and_chromium_paths_garbage_collected": true,
+      "restored_from_locked_flake_expression_builds": true,
+      "python_package": "python3.withPackages (ps: [ ps.playwright ])",
+      "browser_package": "playwright-driver.browsers",
+      "actual_chromium_executable": "/nix/store/njyg4nr7cy7g3b1g1a5yw422wn53s8l8-playwright-browsers/chromium-1248/chrome-linux64/chrome",
+      "template": "/tmp/kilo/dify-browser.py",
+      "executable_override": "DIFY_CHROMIUM_EXECUTABLE",
+      "global_registry_fix_applied": false
+    },
+    "anonymous_checks": [
+      {
+        "supplied_app_code": false,
+        "http_status": 401,
+        "error_code": "unauthorized"
+      },
+      {
+        "supplied_app_code": true,
+        "http_status": 404,
+        "error_code": "app_not_found"
+      }
+    ],
+    "boot_registration": {
+      "phase": "boot-registered",
+      "persistent_next_boot_configuration_complete": true,
+      "comparison_passed": true,
+      "old_system": "/nix/store/fkqkqw9y06143dhg30p96lm7p6l7l8wh-nixos-system-fra0-26.11.20261103.1d06008",
+      "new_system": "/nix/store/34nzn6i7lcnv9zgk69c3h749qfayr3am-nixos-system-fra0-26.11.20261103.1d06008",
+      "old_profile_link": "system-307-link",
+      "boot_profile": "/nix/store/34nzn6i7lcnv9zgk69c3h749qfayr3am-nixos-system-fra0-26.11.20261103.1d06008",
+      "candidate_current_fra0_toplevel_built": true,
+      "changed_derivations": [
+        "activate",
+        "etc",
+        "nixos-system-fra0-26.11.20261103.1d06008",
+        "system-units",
+        "unit-podman-dify-api.service",
+        "unit-script-podman-dify-api-start"
+      ],
+      "comparison_contract": "Nix JSON v3-compatible traversal of all changed dependencies; explicit mapping only for six paired derivation/output paths; all fields compared without ignoring unknowns.",
+      "only_functional_change": "Add one -e ENABLE_COLLABORATION_MODE=false line to API startup structuredAttrs.text",
+      "all_other_derivation_fields_equal_after_explicit_dependency_path_mapping": true,
+      "kernel_initrd_modules_unchanged": true,
+      "unrelated_dirty_surface_rime_inputs_change_host_result": false,
+      "old_profile_and_running_system_asserted_before_registration": true,
+      "native_profile_set_succeeded": true,
+      "switch_to_configuration_boot_succeeded": true,
+      "running_system_unchanged": true,
+      "running_system_switch_performed": false,
+      "reboot_performed": false,
+      "runtime_override_retained_until_boot": true,
+      "before_invocations": {
+        "podman-dify-api.service": "367155472746459ab52c47c8e4f341ea",
+        "podman-dify-worker.service": "9a91ba6aad5e45c08b0e50783fc00525",
+        "podman-dify-web.service": "15e2f699d48e481f8fc042bda440de44"
+      },
+      "after_invocations": {
+        "podman-dify-api.service": "367155472746459ab52c47c8e4f341ea",
+        "podman-dify-worker.service": "9a91ba6aad5e45c08b0e50783fc00525",
+        "podman-dify-web.service": "15e2f699d48e481f8fc042bda440de44"
+      },
+      "services_restarted_by_boot_registration": false,
+      "comparison_report_activation_false_scope": "Pre-registration comparison phase only; the later boot-activation record is successfully boot-registered.",
+      "gc_root": {
+        "created": true,
+        "path": "/nix/var/nix/gcroots/dify-studio-collaboration-start",
+        "target": "/nix/store/6a0jb7gx2nbixfscg3z85y19vzqhq6y6-unit-script-podman-dify-api-start",
+        "scope": "Protects original startup/interpreter store closure, not a mount or discovery path"
+      },
+      "reboot_discovery": "New native Nix boot generation, not manually persisted .control or /usr/local overrides; /run override is retained now and disappears on reboot.",
+      "rollback_contract": "Use validated recorded OLD/NEW for this host, assert the current profile is the expected NEW, set system profile to OLD and run OLD/bin/switch-to-configuration boot. Do not copy these store paths blindly to another machine or delete the current runtime override against the old running unit.",
+      "remaining_physical_verification": "A future actual reboot has not been performed or tested; boot registration itself is complete."
+    },
+    "cleanup": {
+      "utc": "2026-11-07T01:40:30.101017+00:00",
+      "temporary_password_file": "/run/dify-kaogong/password",
+      "temporary_password_removed": true,
+      "temporary_parent_directory_removed": true,
+      "longterm_knowledge_key_retained": true,
+      "managed_state_retained": true,
+      "private_binding_and_recovery_retained": true
+    },
+    "background_work_cleanup": {
+      "pending_probe_crons": 0,
+      "pending_wakeups": 0,
+      "active_test_jobs": 0,
+      "reported_by_root": true
+    },
+    "delivery_pending_fields": [],
+    "residual_limits": [
+      "Four approved teachers and five cards; 29 candidates still pending and six rules quarantined",
+      "Authenticated Studio only, unpublished with website and app API disabled",
+      "Complete text input only; no file/OCR/vision/voice acceptance",
+      "Model review and finite-precision arithmetic checks are not general factual/modeling or symbolic identity proofs",
+      "No official teacher endorsement or score guarantee",
+      "Provider availability and latency can vary",
+      "Physical reboot has not been tested; registered boot configuration and unchanged running system are separately proven"
+    ]
   },
   "backup_observation": {
     "effective_dify_paths": [

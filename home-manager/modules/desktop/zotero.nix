@@ -57,7 +57,7 @@ in
     "openai_api_key" = { };
   };
 
-  # 注册通用 zotero 桌面端（不固定版本号，统一引用 pkgs.zotero）与扩展管理
+  # Zotero follows the locked nixpkgs revision; plugins are updated explicitly.
   home.packages = [
     # pkgs.zotero # disabled due to build issue
     zoteroConfigDav
@@ -121,6 +121,8 @@ in
       // ── 插件自动化配置（免弹窗信任与自启动）──
       user_pref("extensions.autoDisableScopes", 0);
       user_pref("extensions.enabledScopes", 15);
+      user_pref("extensions.update.enabled", false);
+      user_pref("extensions.update.autoUpdateDefault", false);
 
       // ── Better BibTeX 自动化首选项 ──
       user_pref("extensions.zotero.translators.better-bibtex.citekeyFormat", "[auth:lower][year][veryshorttitle:lower]");

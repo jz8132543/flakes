@@ -1,6 +1,6 @@
 {
   lib,
-  fetchFromGitHub,
+  sources,
   installShellFiles,
   protobuf,
   rustPlatform,
@@ -9,14 +9,6 @@
 }:
 
 let
-  version = "2.6.4";
-  src = fetchFromGitHub {
-    owner = "EasyTier";
-    repo = "EasyTier";
-    rev = version;
-    fetchSubmodules = false;
-    sha256 = "sha256-lwqpOVKFm85AiBb7NWLAkjSrWSe5pzF0AuEmmDo+v0k=";
-  };
   enabledFeatures = [
     "faketcp"
     "kcp"
@@ -32,9 +24,9 @@ let
 in
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "easytier-latest";
-  inherit src version;
-
-  cargoHash = "sha256-fv4XDyTc3lH6zNT5S/mdwej44NVluSjL9z+yQkB0Y5c=";
+  version = lib.removePrefix "v" sources.easytier-latest.version;
+  inherit (sources.easytier-latest) src;
+  cargoLock = sources.easytier-latest.cargoLock."Cargo.lock";
 
   nativeBuildInputs = [
     protobuf

@@ -6,7 +6,7 @@ live_ssh_window_size ?= 4194304
 live_stream_port ?= 2233
 
 update-pkgs:
-	./scripts/update-pkgs.sh $(PKGS)
+	nvfetcher -c pkgs/nvfetcher.toml -o pkgs/_sources $(NVFETCHER_ARGS)
 
 disko:
 	nix --experimental-features 'nix-command flakes' build .#nixosConfigurations.${host}.config.system.build.disko

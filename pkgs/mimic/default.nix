@@ -1,7 +1,7 @@
 {
   lib,
   stdenv,
-  fetchFromGitHub,
+  sources,
   bpftools,
   llvmPackages,
   libbpf,
@@ -9,16 +9,10 @@
   pkg-config,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+stdenv.mkDerivation {
   pname = "mimic";
-  version = "0.7.1";
-
-  src = fetchFromGitHub {
-    owner = "hack3ric";
-    repo = "mimic";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-7ztGGWX7asTgLFvSIunpeeb0lA2jWywD0U8v3uien1o=";
-  };
+  version = lib.removePrefix "v" sources.mimic.version;
+  inherit (sources.mimic) src;
 
   patches = [
     ./0001-fix-esp-checksum.patch
@@ -67,4 +61,4 @@ stdenv.mkDerivation (finalAttrs: {
     ];
     mainProgram = "mimic";
   };
-})
+}

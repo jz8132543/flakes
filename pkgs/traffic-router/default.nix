@@ -1,24 +1,16 @@
 {
   lib,
   stdenv,
-  fetchFromGitHub,
+  sources,
   maven,
   openjdk17_headless,
   makeWrapper,
 }:
 
-let
-  version = "8.0.2";
-  src = fetchFromGitHub {
-    owner = "apache";
-    repo = "trafficcontrol";
-    rev = "v${version}";
-    sha256 = "1xcfd9g6zd9yli73pxsy98qdnilxpiwp5ar6hakyavjykg6kcpl6";
-  };
-in
 stdenv.mkDerivation {
   pname = "traffic-router";
-  inherit version src;
+  version = lib.removePrefix "v" sources.trafficcontrol.version;
+  inherit (sources.trafficcontrol) src;
 
   nativeBuildInputs = [
     maven

@@ -290,30 +290,12 @@ in
       jellyfin = {
         plugins."TheTVDB" = {
           enable = true;
-          package = (inputs.nixflix.lib.buildJellyfinPlugin { inherit pkgs; }) {
-            pname = "TheTVDB";
-            version = "22.0.0.0";
-            src = pkgs.fetchzip {
-              url = "https://repo.jellyfin.org/releases/plugin/thetvdb/thetvdb_22.0.0.0.zip";
-              hash = "sha256-X7XDq1rdwg5WrueKMI2NmZYvBGe0yzqe3QfF69+qgyE=";
-              stripRoot = false;
-            };
-            passthru.pluginDirName = "TheTVDB_22.0.0.0";
-          };
+          package = pkgs.jellyfin-thetvdb;
         };
 
         plugins."AniDB" = {
           enable = true;
-          package = (inputs.nixflix.lib.buildJellyfinPlugin { inherit pkgs; }) {
-            pname = "AniDB";
-            version = "13.0.0.0";
-            src = pkgs.fetchzip {
-              url = "https://repo.jellyfin.org/files/plugin/anidb/anidb_13.0.0.0.zip";
-              hash = "sha256-TiMl1kloW43CpKrLGaU9uZxrHi/oZHTA8Eu7MsRDneM=";
-              stripRoot = false;
-            };
-            passthru.pluginDirName = "AniDB_13.0.0.0";
-          };
+          package = pkgs.jellyfin-anidb;
         };
 
         libraries = {

@@ -1,19 +1,13 @@
 {
   lib,
   buildGoModule,
-  fetchFromGitHub,
+  sources,
   nettools,
 }:
 buildGoModule rec {
   pname = "trafficcontrol";
-  version = "8.0.2";
-
-  src = fetchFromGitHub {
-    owner = "apache";
-    repo = "trafficcontrol";
-    rev = "v${version}";
-    sha256 = "1xcfd9g6zd9yli73pxsy98qdnilxpiwp5ar6hakyavjykg6kcpl6";
-  };
+  version = lib.removePrefix "v" sources.trafficcontrol.version;
+  inherit (sources.trafficcontrol) src;
 
   # Upstream source vendor/ tree is incomplete, fetch dependencies via Go modules
   vendorHash = "sha256-dNz602E8BNUGy6gWNvzGUjkyG9MncHukBhDVhq8psNk=";

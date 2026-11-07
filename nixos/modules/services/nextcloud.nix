@@ -211,13 +211,7 @@ in
       in
       with cfg.package.packages.apps;
       {
-        eurooffice = pkgs.fetchNextcloudApp {
-          appName = "eurooffice";
-          appVersion = "11.0.0";
-          url = "https://github.com/nextcloud-releases/eurooffice/releases/download/v11.0.0/eurooffice-v11.0.0.tar.gz";
-          sha256 = "06pxys91nsvcp57a8i9xyyg5z1zl96anr394bmhchlapsnpgkjsn";
-          license = "agpl3Plus";
-        };
+        eurooffice = pkgs.nextcloud-eurooffice;
         spreed = spreed-patched; # Nextcloud Talk（含 8K 180fps 补丁）
         inherit
           # ── 日历 & 联系人（CalDAV/CardDAV）──

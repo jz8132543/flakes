@@ -1,16 +1,12 @@
 {
   lib,
   stdenvNoCC,
-  fetchurl,
+  sources,
 }:
-stdenvNoCC.mkDerivation rec {
+stdenvNoCC.mkDerivation {
   pname = "apple-pingfang-fonts";
-  version = "1.0.0";
-
-  src = fetchurl {
-    url = "https://raw.githubusercontent.com/ZWolken/PingFang/main/TrueType_Collection_format/PingFang.ttc";
-    hash = "sha256-gyC24au46C2hMQmukddIVP2ACjIPYvi1wDiko2NdrNw=";
-  };
+  version = "unstable-${sources.apple-pingfang.date}";
+  inherit (sources.apple-pingfang) src;
 
   dontUnpack = true;
 

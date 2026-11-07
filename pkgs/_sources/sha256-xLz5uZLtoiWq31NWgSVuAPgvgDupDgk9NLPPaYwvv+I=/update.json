@@ -1,0 +1,43 @@
+{
+  "addons": {
+    "zoterostyle@polygon.org": {
+      "updates": [
+        {
+          "version": "6.0.106",
+          "update_link": "https://gitee.com/MuiseDestiny/plugins/raw/master/zotero-style.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "6.999"
+            }
+          }
+        }
+      ]
+    },
+    "zoterogpt@polygon.org": {
+      "updates": [
+        {
+          "version": "3.1.200",
+          "update_link": "https://gitee.com/MuiseDestiny/plugins/raw/master/zotero-gpt.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "6.999"
+            }
+          }
+        }
+      ]
+    },
+    "zoteroreference@polygon.org": {
+      "updates": [
+        {
+          "version": "1.8.26",
+          "update_link": "https://gitee.com/MuiseDestiny/plugins/raw/master/zotero-reference.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "6.999"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

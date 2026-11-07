@@ -1,17 +1,12 @@
 {
   trzsz-ssh,
   buildGo126Module,
-  fetchFromGitHub,
+  sources,
 }:
 (trzsz-ssh.override { buildGoModule = buildGo126Module; }).overrideAttrs (old: {
   pname = "trzsz-ssh-auto";
-  version = "0.1.27";
-  src = fetchFromGitHub {
-    owner = "trzsz";
-    repo = "trzsz-ssh";
-    rev = "7dc4f01a9bc29b7775852bf6531745df2d1a0151";
-    hash = "sha256-wiObvHGSJdf8qXO1u7PvLdaQ1cvkLAgmQoGkw3hUMkQ=";
-  };
+  version = sources.trzsz-ssh-auto.packageVersion;
+  inherit (sources.trzsz-ssh-auto) src;
   patches = (old.patches or [ ]) ++ [ ./auto.patch ];
   vendorHash = "sha256-iftza3ymE6qyAFoPm+JoiAtUsjbSoNvYFnuXle1vVII=";
   modPostBuild = (old.modPostBuild or "") + ''

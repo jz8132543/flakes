@@ -1,7 +1,7 @@
 {
   lib,
   stdenv,
-  fetchurl,
+  sources,
   autoPatchelfHook,
   copyDesktopItems,
   cairo,
@@ -18,12 +18,7 @@
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "doubao-desktop";
-  version = "1.2.0";
-
-  src = fetchurl {
-    url = "https://github.com/gonwe/doubao-desktop/releases/download/v${finalAttrs.version}/doubao-desktop-${finalAttrs.version}-x86_64.tar.gz";
-    hash = "sha256-ys06p7GPH3FA71GUwumDpZ580Wzc2xcX++pu7ukTBL8=";
-  };
+  inherit (sources.doubao-desktop) version src;
 
   sourceRoot = "doubao-desktop-${finalAttrs.version}-x86_64";
 

@@ -1,37 +1,37 @@
 {
-  fetchurl,
+  jq,
   lib,
   stdenvNoCC,
+  sources,
+  unzip,
 }:
-stdenvNoCC.mkDerivation rec {
+let
+  updates = builtins.fromJSON (builtins.readFile sources.zotero-gpt.extract."update.json");
+in
+stdenvNoCC.mkDerivation {
   pname = "zotero-gpt";
-  version = "3.1.4";
-
-  src = fetchurl {
-    url = "https://github.com/MuiseDestiny/zotero-gpt/releases/download/${version}/zotero-gpt.xpi";
-    hash = "sha256-8wu/0E37wNxxRKajKGwNMVw2ayHA2FN0u8u8Q+Y7vXU=";
-  };
+  inherit ((builtins.head updates.addons."zoterogpt@polygon.org".updates)) version;
+  src = "${sources.zotero-gpt.src}/zotero-gpt.xpi";
 
   dontUnpack = true;
+  nativeBuildInputs = [
+    jq
+    unzip
+  ];
 
   installPhase = ''
     runHook preInstall
+    unzip -p "$src" manifest.json | jq -e --arg version "$version" \
+      '.version == $version and .applications.zotero.id == "zoterogpt@polygon.org"'
     mkdir -p "$out"
     cp "$src" "$out/zotero-gpt.xpi"
     runHook postInstall
   '';
 
-  passthru.updateScript = {
-    command = [
-      "nix-update"
-      pname
-    ];
-  };
-
   meta = with lib; {
     description = "Zotero AI/GPT plugin supporting custom API proxy & LLMs";
     homepage = "https://github.com/MuiseDestiny/zotero-gpt";
-    license = licenses.mit;
+    license = licenses.unfree;
     platforms = platforms.all;
   };
 }

@@ -1,7 +1,7 @@
 {
   pkgs,
   buildGo126Module,
-  fetchFromGitHub,
+  sources,
   python3,
 }:
 let
@@ -10,13 +10,8 @@ let
   };
 in
 upstream.overrideAttrs (old: {
-  version = "0.1.10";
-  src = fetchFromGitHub {
-    owner = "trzsz";
-    repo = "tsshd";
-    rev = "aadccecc014bff097e8b50e2af76a4449a0f561a";
-    hash = "sha256-GbP3im6E5eYyGIkst70YJJ/MQ400Z1m6EVm9X8szJWg=";
-  };
+  version = sources.tsshd.packageVersion;
+  inherit (sources.tsshd) src;
   patches = (old.patches or [ ]) ++ [ ./setup.patch ];
   vendorHash = "sha256-4gT9LC+OTzpBNiWaVNFyNzK4UF3zLNNZl0uj/OJb/6Q=";
   subPackages = [ "cmd/tsshd" ];

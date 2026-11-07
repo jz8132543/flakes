@@ -1,16 +1,12 @@
 {
   lib,
-  fetchurl,
+  sources,
   appimageTools,
   nodejs_24,
 }:
 let
   pname = "openhands-desktop";
-  version = "1.34.0";
-  src = fetchurl {
-    url = "https://github.com/OpenHands/OpenHands/releases/download/v${version}/OpenHands.Agent.Canvas-${version}.AppImage";
-    hash = "sha256-8VY5V2XHwZmNQcu1p0pk9g6wPDav+9CGemcg3Jyo9G4=";
-  };
+  inherit (sources.openhands-desktop) version src;
   contents = appimageTools.extract {
     inherit pname version src;
     postExtract = ''

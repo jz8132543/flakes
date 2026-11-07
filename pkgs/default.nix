@@ -1,4 +1,10 @@
 rec {
+  callLocalPackage =
+    pkgs: path:
+    pkgs.lib.callPackageWith (
+      pkgs // { sources = pkgs.callPackage ./_sources/generated.nix { }; }
+    ) path { };
+
   # 遍历自动发现顶级目录与分类子目录 (obsidian/, zotero/ 等) 下所有含有 default.nix 的包
   findPackages =
     dir:
@@ -56,7 +62,7 @@ rec {
     builtins.listToAttrs (
       map (p: {
         inherit (p) name;
-        value = pkgs.callPackage (import (./. + "/${p.relPath}")) { };
+        value = callLocalPackage pkgs (./. + "/${p.relPath}");
       }) pkgList
     );
 
@@ -67,7 +73,7 @@ rec {
       flatAttrs = builtins.listToAttrs (
         map (p: {
           inherit (p) name;
-          value = final.callPackage (import (./. + "/${p.relPath}")) { };
+          value = callLocalPackage final (./. + "/${p.relPath}");
         }) pkgList
       );
       # 额外暴露分类集合：obsidianPlugins 与 zoteroPlugins

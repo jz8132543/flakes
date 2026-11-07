@@ -1,0 +1,158 @@
+[haier]
+src.github_tag = "banto6/haier"
+src.include_regex = 'v\d+\.\d+\.\d+'
+fetch.github = "banto6/haier"
+
+[doubao-desktop]
+src.github = "gonwe/doubao-desktop"
+src.prefix = "v"
+fetch.url = "https://github.com/gonwe/doubao-desktop/releases/download/v$ver/doubao-desktop-$ver-x86_64.tar.gz"
+
+[fakehttp]
+src.github = "MikeWang000000/FakeHTTP"
+fetch.url = "https://github.com/MikeWang000000/FakeHTTP/releases/download/$ver/fakehttp-linux-x86_64.tar.gz"
+
+[keycloak-themes-phasetwo]
+src.github_tag = "p2-inc/keycloak-themes"
+src.include_regex = 'v\d+\.\d+'
+src.prefix = "v"
+fetch.url = "https://repo1.maven.org/maven2/io/phasetwo/keycloak/keycloak-themes/$ver/keycloak-themes-$ver.jar"
+
+[mimic]
+src.github = "hack3ric/mimic"
+fetch.github = "hack3ric/mimic"
+
+# Ignore temporary PR/evidence tags that do not contain desktop binaries.
+[openhands-desktop]
+src.github_tag = "OpenHands/OpenHands"
+src.include_regex = 'v\d+\.\d+\.\d+'
+src.prefix = "v"
+fetch.url = "https://github.com/OpenHands/OpenHands/releases/download/v$ver/OpenHands.Agent.Canvas-$ver.AppImage"
+
+# Local patches depend on this exact source revision.
+[save-restricted-content-bot]
+src.manual = "93129e163377f0ce292471c6f202f8eaf40106d1"
+fetch.github = "VJBots/VJ-Save-Restricted-Content"
+
+# Shared by trafficcontrol and traffic-router. Updating also requires reviewing
+# the Go vendorHash and Traffic Router's currently unvendored Maven dependencies.
+[trafficcontrol]
+src.manual = "v8.0.2"
+fetch.github = "apache/trafficcontrol"
+
+[kitty-catppuccin]
+src.git = "https://github.com/catppuccin/kitty.git"
+src.branch = "main"
+fetch.github = "catppuccin/kitty"
+
+[easytier-latest]
+src.github_tag = "EasyTier/EasyTier"
+src.include_regex = 'v\d+\.\d+\.\d+'
+fetch.github = "EasyTier/EasyTier"
+cargo_lock = ["Cargo.lock"]
+
+[realm-latest]
+src.github_tag = "zhboner/realm"
+src.include_regex = 'v\d+\.\d+\.\d+'
+fetch.github = "zhboner/realm"
+cargo_lock = ["Cargo.lock"]
+
+# nvfetcher does not update Go vendorHash or the local transport patches.
+[tsshd]
+src.manual = "aadccecc014bff097e8b50e2af76a4449a0f561a"
+fetch.github = "trzsz/tsshd"
+passthru = { packageVersion = "0.1.10" }
+
+[trzsz-ssh-auto]
+src.manual = "7dc4f01a9bc29b7775852bf6531745df2d1a0151"
+fetch.github = "trzsz/trzsz-ssh"
+passthru = { packageVersion = "0.1.27" }
+
+[apple-pingfang]
+src.git = "https://github.com/ZWolken/PingFang.git"
+src.branch = "main"
+fetch.url = "https://raw.githubusercontent.com/ZWolken/PingFang/$ver/TrueType_Collection_format/PingFang.ttc"
+url.name = "PingFang.ttc"
+
+[alacritty-catppuccin]
+src.git = "https://github.com/catppuccin/alacritty.git"
+src.branch = "yaml"
+fetch.github = "catppuccin/alacritty"
+
+[chinese-office-fonts]
+src.git = "https://github.com/DoveOutland/Common-Chinese-office-fonts-font-library-.git"
+fetch.github = "DoveOutland/Common-Chinese-office-fonts-font-library-"
+
+# Pin the official XPI and its version metadata together; GitHub tags are stale.
+[zotero-gpt]
+src.git = "https://gitee.com/MuiseDestiny/plugins.git"
+src.branch = "master"
+fetch.git = "https://gitee.com/MuiseDestiny/plugins.git"
+git.sparseCheckout = ["update.json", "zotero-gpt.xpi"]
+extract = ["update.json"]
+
+[zotero-better-bibtex]
+src.github = "retorquere/zotero-better-bibtex"
+src.prefix = "v"
+fetch.url = "https://github.com/retorquere/zotero-better-bibtex/releases/download/v$ver/zotero-better-bibtex-$ver.xpi"
+url.name = "zotero-better-bibtex.xpi"
+
+[obsidian-copilot-js]
+src.github = "logancyang/obsidian-copilot"
+fetch.url = "https://github.com/logancyang/obsidian-copilot/releases/download/$ver/main.js"
+url.name = "main.js"
+
+[obsidian-copilot-manifest]
+src.github = "logancyang/obsidian-copilot"
+fetch.url = "https://github.com/logancyang/obsidian-copilot/releases/download/$ver/manifest.json"
+url.name = "manifest.json"
+
+[obsidian-copilot-css]
+src.github = "logancyang/obsidian-copilot"
+fetch.url = "https://github.com/logancyang/obsidian-copilot/releases/download/$ver/styles.css"
+url.name = "styles.css"
+
+[obsidian-livesync-js]
+src.github = "vrtmrz/obsidian-livesync"
+fetch.url = "https://github.com/vrtmrz/obsidian-livesync/releases/download/$ver/main.js"
+url.name = "main.js"
+
+[obsidian-livesync-manifest]
+src.github = "vrtmrz/obsidian-livesync"
+fetch.url = "https://github.com/vrtmrz/obsidian-livesync/releases/download/$ver/manifest.json"
+url.name = "manifest.json"
+
+[obsidian-livesync-css]
+src.github = "vrtmrz/obsidian-livesync"
+fetch.url = "https://github.com/vrtmrz/obsidian-livesync/releases/download/$ver/styles.css"
+url.name = "styles.css"
+
+[obsidian-remotely-save-js]
+src.github = "remotely-save/remotely-save"
+fetch.url = "https://github.com/remotely-save/remotely-save/releases/download/$ver/main.js"
+url.name = "main.js"
+
+[obsidian-remotely-save-manifest]
+src.github = "remotely-save/remotely-save"
+fetch.url = "https://github.com/remotely-save/remotely-save/releases/download/$ver/manifest.json"
+url.name = "manifest.json"
+
+[obsidian-remotely-save-css]
+src.github = "remotely-save/remotely-save"
+fetch.url = "https://github.com/remotely-save/remotely-save/releases/download/$ver/styles.css"
+url.name = "styles.css"
+
+[obsidian-zotero-integration-js]
+src.github = "community-archive/obsidian-zotero-integration"
+fetch.url = "https://github.com/community-archive/obsidian-zotero-integration/releases/download/$ver/main.js"
+url.name = "main.js"
+
+[obsidian-zotero-integration-manifest]
+src.github = "community-archive/obsidian-zotero-integration"
+fetch.url = "https://github.com/community-archive/obsidian-zotero-integration/releases/download/$ver/manifest.json"
+url.name = "manifest.json"
+
+[obsidian-zotero-integration-css]
+src.github = "community-archive/obsidian-zotero-integration"
+fetch.url = "https://github.com/community-archive/obsidian-zotero-integration/releases/download/$ver/styles.css"
+url.name = "styles.css"

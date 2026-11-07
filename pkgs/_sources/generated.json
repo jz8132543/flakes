@@ -1,0 +1,546 @@
+{
+  "alacritty-catppuccin": {
+    "cargoLock": null,
+    "date": "2022-09-27",
+    "extract": null,
+    "name": "alacritty-catppuccin",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "catppuccin",
+      "repo": "alacritty",
+      "rev": "3c808cbb4f9c87be43ba5241bc57373c793d2f17",
+      "sha256": "sha256-w9XVtEe7TqzxxGUCDUR9BFkzLZjG8XrplXJ3lX6f+x0=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "3c808cbb4f9c87be43ba5241bc57373c793d2f17"
+  },
+  "apple-pingfang": {
+    "cargoLock": null,
+    "date": "2024-07-02",
+    "extract": null,
+    "name": "apple-pingfang",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "PingFang.ttc",
+      "sha256": "sha256-gyC24au46C2hMQmukddIVP2ACjIPYvi1wDiko2NdrNw=",
+      "type": "url",
+      "url": "https://raw.githubusercontent.com/ZWolken/PingFang/92cad0e8cfce61ddae4a220739a250d95f22fb78/TrueType_Collection_format/PingFang.ttc"
+    },
+    "version": "92cad0e8cfce61ddae4a220739a250d95f22fb78"
+  },
+  "chinese-office-fonts": {
+    "cargoLock": null,
+    "date": "2025-05-21",
+    "extract": null,
+    "name": "chinese-office-fonts",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "DoveOutland",
+      "repo": "Common-Chinese-office-fonts-font-library-",
+      "rev": "0f5d77bdfad2e9bdfd03275111e2614caa88fff7",
+      "sha256": "sha256-0WH8w3/NCMRG252vS/Wc5salTbmyuw4J8V6Jy5Tiv3g=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "0f5d77bdfad2e9bdfd03275111e2614caa88fff7"
+  },
+  "doubao-desktop": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "doubao-desktop",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-ys06p7GPH3FA71GUwumDpZ580Wzc2xcX++pu7ukTBL8=",
+      "type": "url",
+      "url": "https://github.com/gonwe/doubao-desktop/releases/download/v1.2.0/doubao-desktop-1.2.0-x86_64.tar.gz"
+    },
+    "version": "1.2.0"
+  },
+  "easytier-latest": {
+    "cargoLock": {
+      "Cargo.lock": [
+        "sha256-t_a4V1pMoqr9fVfMGHJUfJPk8VD+mbOxB2Cvb2lsX9Q=/Cargo.lock",
+        {
+          "kcp-sys-0.1.0": "sha256-asl9yEB3+cMyKrwmOLBUFFbFPfJDu+VjIRDC/wCee5I=",
+          "service-manager-0.8.0": "sha256-b2eR11kG7txfOC6OmUXa9xGM9RAHy+W85QFaiozYSVI=",
+          "thunk-rs-0.3.5": "sha256-cFREqmXHacEdam7wC0LgudsUTk1WRZwj2jWwkCbW4kE=",
+          "tokio-websockets-0.13.2": "sha256-L1FXKlsD+7TScSlp8RK9pF8S2RlEj4VcmzS53AYI7cM=",
+          "tun-easytier-1.1.1": "sha256-pYyO2YWw2KXeMwMirQ//oIZvberOV+9nPuZ0mfmJRcQ=",
+          "windivert-0.6.0": "sha256-FPwXG9J9FN2m+9WmQHNidBU6pI5Sl9odMtLldSL0jHY="
+        }
+      ]
+    },
+    "date": null,
+    "extract": null,
+    "name": "easytier-latest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "EasyTier",
+      "repo": "EasyTier",
+      "rev": "v2.7.0",
+      "sha256": "sha256-t/a4V1pMoqr9fVfMGHJUfJPk8VD+mbOxB2Cvb2lsX9Q=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v2.7.0"
+  },
+  "fakehttp": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "fakehttp",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-DNvjQndYez6f+BF+YTDV241xa7nFFDRAiEpSftHVv8k=",
+      "type": "url",
+      "url": "https://github.com/MikeWang000000/FakeHTTP/releases/download/0.9.18/fakehttp-linux-x86_64.tar.gz"
+    },
+    "version": "0.9.18"
+  },
+  "haier": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "haier",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "banto6",
+      "repo": "haier",
+      "rev": "v1.3.0",
+      "sha256": "sha256-ZVz2Tfkrhq1xpYU4D749wTTePvqOEWmyNse3evDBUgk=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v1.3.0"
+  },
+  "keycloak-themes-phasetwo": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "keycloak-themes-phasetwo",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-d3crWrz6qQbx7g+nDThhrN79wbEzu/CanIrKYYFWyKM=",
+      "type": "url",
+      "url": "https://repo1.maven.org/maven2/io/phasetwo/keycloak/keycloak-themes/0.77/keycloak-themes-0.77.jar"
+    },
+    "version": "0.77"
+  },
+  "kitty-catppuccin": {
+    "cargoLock": null,
+    "date": "2026-01-16",
+    "extract": null,
+    "name": "kitty-catppuccin",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "catppuccin",
+      "repo": "kitty",
+      "rev": "43098316202b84d6a71f71aaf8360f102f4d3f1a",
+      "sha256": "sha256-akRkdq8l2opGIg3HZd+Y4eky6WaHgKFQ5+iJMC1bhnQ=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "43098316202b84d6a71f71aaf8360f102f4d3f1a"
+  },
+  "mimic": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "mimic",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "hack3ric",
+      "repo": "mimic",
+      "rev": "v0.7.1",
+      "sha256": "sha256-7ztGGWX7asTgLFvSIunpeeb0lA2jWywD0U8v3uien1o=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v0.7.1"
+  },
+  "obsidian-copilot-css": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-copilot-css",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "styles.css",
+      "sha256": "sha256-dY+Tdsg9L11LxIOP6LbU7TqwK9RobSTW/mzXXogBHvE=",
+      "type": "url",
+      "url": "https://github.com/logancyang/obsidian-copilot/releases/download/4.0.18/styles.css"
+    },
+    "version": "4.0.18"
+  },
+  "obsidian-copilot-js": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-copilot-js",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "main.js",
+      "sha256": "sha256-0QA7/A0g9rv0hV0BzMZKGwjS7eDczIXW/Kk6ivoDd3g=",
+      "type": "url",
+      "url": "https://github.com/logancyang/obsidian-copilot/releases/download/4.0.18/main.js"
+    },
+    "version": "4.0.18"
+  },
+  "obsidian-copilot-manifest": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-copilot-manifest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "manifest.json",
+      "sha256": "sha256-YtkA4SL/03nlVjOslRo/vutbSJEFyepSMSMTpUO16d8=",
+      "type": "url",
+      "url": "https://github.com/logancyang/obsidian-copilot/releases/download/4.0.18/manifest.json"
+    },
+    "version": "4.0.18"
+  },
+  "obsidian-livesync-css": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-livesync-css",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "styles.css",
+      "sha256": "sha256-9CqZwu7Z8SQFJmJwPe00RaqBNkMdBYmnwZ/0qP0vp5w=",
+      "type": "url",
+      "url": "https://github.com/vrtmrz/obsidian-livesync/releases/download/1.0.45/styles.css"
+    },
+    "version": "1.0.45"
+  },
+  "obsidian-livesync-js": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-livesync-js",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "main.js",
+      "sha256": "sha256-5rPWcWsAqCnvfLfM9PmMYBoYQoyC7ueK90JuqvWq6w8=",
+      "type": "url",
+      "url": "https://github.com/vrtmrz/obsidian-livesync/releases/download/1.0.45/main.js"
+    },
+    "version": "1.0.45"
+  },
+  "obsidian-livesync-manifest": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-livesync-manifest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "manifest.json",
+      "sha256": "sha256-Czlu8rHP6MP67WHl/i+MBAIRPwPTk+bpYl2/L7q5L74=",
+      "type": "url",
+      "url": "https://github.com/vrtmrz/obsidian-livesync/releases/download/1.0.45/manifest.json"
+    },
+    "version": "1.0.45"
+  },
+  "obsidian-remotely-save-css": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-remotely-save-css",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "styles.css",
+      "sha256": "sha256-h1hOfVOMpYxSevuyYlsJ6igryue/eEt8zjPKkung37M=",
+      "type": "url",
+      "url": "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/styles.css"
+    },
+    "version": "0.5.25"
+  },
+  "obsidian-remotely-save-js": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-remotely-save-js",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "main.js",
+      "sha256": "sha256-s6+9J/FRiLl4RhjJWGB4abqkNNwKvPByd0+ZNiwR+gQ=",
+      "type": "url",
+      "url": "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/main.js"
+    },
+    "version": "0.5.25"
+  },
+  "obsidian-remotely-save-manifest": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-remotely-save-manifest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "manifest.json",
+      "sha256": "sha256-cdnAthYAPzppaIDnqogpblsxVVdX6TOhLSkAuWxMqpA=",
+      "type": "url",
+      "url": "https://github.com/remotely-save/remotely-save/releases/download/0.5.25/manifest.json"
+    },
+    "version": "0.5.25"
+  },
+  "obsidian-zotero-integration-css": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-zotero-integration-css",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "styles.css",
+      "sha256": "sha256-PqaYiqtsRRg9xpyF1Yc3h9y70NdiZPIRwHuEAPnbwGo=",
+      "type": "url",
+      "url": "https://github.com/community-archive/obsidian-zotero-integration/releases/download/3.2.1/styles.css"
+    },
+    "version": "3.2.1"
+  },
+  "obsidian-zotero-integration-js": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-zotero-integration-js",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "main.js",
+      "sha256": "sha256-QVgkSNeQ17mkaRwA/0bdoJsPO76gLInQk8xAGN/BQDI=",
+      "type": "url",
+      "url": "https://github.com/community-archive/obsidian-zotero-integration/releases/download/3.2.1/main.js"
+    },
+    "version": "3.2.1"
+  },
+  "obsidian-zotero-integration-manifest": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "obsidian-zotero-integration-manifest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "manifest.json",
+      "sha256": "sha256-wY8lKh+SEIVGe6gj19Jyo2nmXj8wAR9vlViuQgGROVw=",
+      "type": "url",
+      "url": "https://github.com/community-archive/obsidian-zotero-integration/releases/download/3.2.1/manifest.json"
+    },
+    "version": "3.2.1"
+  },
+  "openhands-desktop": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "openhands-desktop",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": null,
+      "sha256": "sha256-8VY5V2XHwZmNQcu1p0pk9g6wPDav+9CGemcg3Jyo9G4=",
+      "type": "url",
+      "url": "https://github.com/OpenHands/OpenHands/releases/download/v1.34.0/OpenHands.Agent.Canvas-1.34.0.AppImage"
+    },
+    "version": "1.34.0"
+  },
+  "realm-latest": {
+    "cargoLock": {
+      "Cargo.lock": [
+        "sha256-P7jyVe6KNe1evan2qRtpA99ZKbgF1Zz7DiRxi1+h7WI=/Cargo.lock",
+        {}
+      ]
+    },
+    "date": null,
+    "extract": null,
+    "name": "realm-latest",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "zhboner",
+      "repo": "realm",
+      "rev": "v2.9.6",
+      "sha256": "sha256-P7jyVe6KNe1evan2qRtpA99ZKbgF1Zz7DiRxi1+h7WI=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v2.9.6"
+  },
+  "save-restricted-content-bot": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "save-restricted-content-bot",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "VJBots",
+      "repo": "VJ-Save-Restricted-Content",
+      "rev": "93129e163377f0ce292471c6f202f8eaf40106d1",
+      "sha256": "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "93129e163377f0ce292471c6f202f8eaf40106d1"
+  },
+  "trafficcontrol": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "trafficcontrol",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "apache",
+      "repo": "trafficcontrol",
+      "rev": "v8.0.2",
+      "sha256": "sha256-hl42zZtebuWngiarcnm8nUbbMEpe9ztOpD61b15qjvU=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "v8.0.2"
+  },
+  "trzsz-ssh-auto": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "trzsz-ssh-auto",
+    "passthru": {
+      "packageVersion": "0.1.27"
+    },
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "trzsz",
+      "repo": "trzsz-ssh",
+      "rev": "7dc4f01a9bc29b7775852bf6531745df2d1a0151",
+      "sha256": "sha256-wiObvHGSJdf8qXO1u7PvLdaQ1cvkLAgmQoGkw3hUMkQ=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "7dc4f01a9bc29b7775852bf6531745df2d1a0151"
+  },
+  "tsshd": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "tsshd",
+    "passthru": {
+      "packageVersion": "0.1.10"
+    },
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "owner": "trzsz",
+      "repo": "tsshd",
+      "rev": "aadccecc014bff097e8b50e2af76a4449a0f561a",
+      "sha256": "sha256-GbP3im6E5eYyGIkst70YJJ/MQ400Z1m6EVm9X8szJWg=",
+      "sparseCheckout": [],
+      "type": "github"
+    },
+    "version": "aadccecc014bff097e8b50e2af76a4449a0f561a"
+  },
+  "zotero-better-bibtex": {
+    "cargoLock": null,
+    "date": null,
+    "extract": null,
+    "name": "zotero-better-bibtex",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "name": "zotero-better-bibtex.xpi",
+      "sha256": "sha256-pfHSuvj/QshXYbej2PZ5n/wwbwgugCTVuDzoDoWSvQs=",
+      "type": "url",
+      "url": "https://github.com/retorquere/zotero-better-bibtex/releases/download/v9.0.77/zotero-better-bibtex-9.0.77.xpi"
+    },
+    "version": "9.0.77"
+  },
+  "zotero-gpt": {
+    "cargoLock": null,
+    "date": "2026-11-05",
+    "extract": {
+      "update.json": "sha256-xLz5uZLtoiWq31NWgSVuAPgvgDupDgk9NLPPaYwvv+I=/update.json"
+    },
+    "name": "zotero-gpt",
+    "passthru": null,
+    "pinned": false,
+    "src": {
+      "deepClone": false,
+      "fetchSubmodules": false,
+      "leaveDotGit": false,
+      "name": null,
+      "rev": "287f4d04cdabc18ed5281cf0f4998e5e84019665",
+      "sha256": "sha256-xLz5uZLtoiWq31NWgSVuAPgvgDupDgk9NLPPaYwvv+I=",
+      "sparseCheckout": ["update.json", "zotero-gpt.xpi"],
+      "type": "git",
+      "url": "https://gitee.com/MuiseDestiny/plugins.git"
+    },
+    "version": "287f4d04cdabc18ed5281cf0f4998e5e84019665"
+  }
+}

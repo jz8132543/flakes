@@ -1,21 +1,12 @@
 {
   buildHomeAssistantComponent,
-  fetchFromGitHub,
+  sources,
   lib,
   ...
 }:
-let
-  version = "1.2.0";
-  src = fetchFromGitHub {
-    owner = "banto6";
-    repo = "haier";
-    rev = version;
-    fetchSubmodules = false;
-    sha256 = "sha256-9eRSEL1pVbC4mquL0D4lwFvmethMidK1S+W+e3rI5s8=";
-  };
-in
 buildHomeAssistantComponent {
-  inherit version src;
+  version = lib.removePrefix "v" sources.haier.version;
+  inherit (sources.haier) src;
   owner = "banto6";
   domain = "haier";
   meta = {

@@ -1,47 +1,33 @@
 {
   lib,
+  jq,
   stdenvNoCC,
-  fetchurl,
 }:
 {
   pname,
-  version,
-  author,
-  repo ? pname,
-  hashJs,
-  hashManifest,
-  hashCss ? null,
+  main,
+  manifest,
+  css ? null,
   description ? "Obsidian plugin",
-  homepage ? "https://github.com/${author}/${repo}",
+  homepage,
   license ? lib.licenses.mit,
   passthru ? { },
 }:
+assert main.version == manifest.version;
+assert css == null || css.version == manifest.version;
 stdenvNoCC.mkDerivation {
-  inherit pname version;
-
-  srcMain = fetchurl {
-    url = "https://github.com/${author}/${repo}/releases/download/${version}/main.js";
-    hash = hashJs;
-  };
-
-  srcManifest = fetchurl {
-    url = "https://github.com/${author}/${repo}/releases/download/${version}/manifest.json";
-    hash = hashManifest;
-  };
-
-  srcCss =
-    if (hashCss != null) then
-      (fetchurl {
-        url = "https://github.com/${author}/${repo}/releases/download/${version}/styles.css";
-        hash = hashCss;
-      })
-    else
-      null;
+  inherit pname;
+  version = lib.removePrefix "v" manifest.version;
+  srcMain = main.src;
+  srcManifest = manifest.src;
+  srcCss = if css == null then null else css.src;
 
   dontUnpack = true;
+  nativeBuildInputs = [ jq ];
 
   installPhase = ''
     runHook preInstall
+    jq -e --arg version "$version" '.version == $version' "$srcManifest"
     mkdir -p "$out"
     cp "$srcMain" "$out/main.js"
     cp "$srcManifest" "$out/manifest.json"

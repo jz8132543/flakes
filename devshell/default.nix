@@ -71,9 +71,9 @@
       {
         name = "update-pkgs";
         category = "update";
-        help = "Update packages under pkgs/ with nix-update";
+        help = "Upgrade pkgs/ to concrete versions and pin matching hashes";
         command = ''
-          exec "$PRJ_ROOT/scripts/update-pkgs.sh" "$@"
+          exec nvfetcher -c "$PRJ_ROOT/pkgs/nvfetcher.toml" -o "$PRJ_ROOT/pkgs/_sources" "$@"
         '';
       }
       {
@@ -102,7 +102,7 @@
       taplo
 
       terraform
-      nix-update
+      nvfetcher
       # backblaze-b2
 
       ruby

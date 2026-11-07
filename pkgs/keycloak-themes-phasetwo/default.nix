@@ -1,17 +1,12 @@
 {
   lib,
   stdenvNoCC,
-  fetchurl,
+  sources,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "keycloak-themes-phasetwo";
-  version = "0.77";
-
-  src = fetchurl {
-    url = "https://repo1.maven.org/maven2/io/phasetwo/keycloak/keycloak-themes/${finalAttrs.version}/keycloak-themes-${finalAttrs.version}.jar";
-    hash = "sha256-d3crWrz6qQbx7g+nDThhrN79wbEzu/CanIrKYYFWyKM=";
-  };
+  inherit (sources.keycloak-themes-phasetwo) version src;
 
   dontUnpack = true;
 

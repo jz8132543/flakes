@@ -172,6 +172,61 @@ def growth_solution():
     return solution
 
 
+def arithmetic_record(operation, left, right, unit="", *, right_unit=None):
+    operands = {
+        "left": {"value": str(left), "unit": unit},
+        "right": {
+            "value": str(right),
+            "unit": unit if right_unit is None else right_unit,
+        },
+    }
+    return {
+        "operation": operation,
+        "operands": operands,
+        "result": NODES.calculate(operation, operands),
+    }
+
+
+def arithmetic_solution(question, calculations, answer):
+    solution = abstention("answered")
+    solution.update(
+        reason="",
+        answer=answer,
+        steps=["按原题数量顺序计算。"],
+        material_quotes=[question],
+        calculations=calculations,
+    )
+    return solution
+
+
+def recruitment_fixture(capacities=(100, 80, 70, 50), threshold=70, *, unit=""):
+    """Synthetic counterexample, never a replay of private live-run acceptance."""
+    counts = "、".join(str(value) for value in capacities[:-1])
+    counts += "和" + str(capacities[-1])
+    question = (
+        f"有{sum(capacities)}名求职者，四个专业分别有{counts}人。"
+        f"至少多少人找到工作，才能保证有{threshold}名找到工作的人专业相同？"
+    )
+    worst = [min(value, threshold - 1) for value in capacities]
+    total = worst[0]
+    calculations = []
+    for value in [*worst[1:], 1]:
+        calculations.append(arithmetic_record("add", total, value, unit))
+        total += value
+    solution = abstention("answered")
+    solution.update(
+        reason="",
+        answer=f"C. {total}人",
+        steps=[
+            f"最不利情形下，容量足够的专业各取{threshold - 1}人，其余全部取完。",
+            f"此时共有{total - 1}人，再增加一人即可保证达到目标。",
+        ],
+        material_quotes=[question],
+        calculations=calculations,
+    )
+    return question, solution, [arithmetic_record("subtract", threshold, 1, unit)]
+
+
 class TeacherRuntimeTests(unittest.TestCase):
     def setUp(self):
         self.original = copy.deepcopy(REAL_DATA)
@@ -236,6 +291,18 @@ class TeacherRuntimeTests(unittest.TestCase):
             serialized,
             dump(abstention()) if general is None else general,
             general_review,
+        )
+
+    def check_arithmetic(self, question, solution, *, prefix=None):
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        return self.runtime["_tn_check_answer"](
+            solution,
+            review(),
+            None,
+            "",
+            json.loads(selected["context"]),
+            self.runtime["_tn_catalog"](),
+            calculation_prefix=prefix,
         )
 
     def test_both_real_summary_teachers_enumerated_independently(self):
@@ -703,6 +770,30 @@ class TeacherRuntimeTests(unittest.TestCase):
         )["answer"]
         self.assertNotIn(solution["answer"], output)
 
+    def test_answer_fractions_are_checked_as_results_not_independent_denominators(self):
+        selected = self.select(GROWTH_QUESTION, topics=["xingce.data.growth"])
+        for fraction in ("5000/9", "5000 / 9", "5000÷9"):
+            for answer in (
+                fraction + "万元",
+                "增长额约555.56万元（即" + fraction + "万元）。",
+            ):
+                with self.subTest(answer=answer):
+                    solution = growth_solution()
+                    solution["answer"] = answer
+                    output = self.render([], selected=selected, general=dump(solution))[
+                        "answer"
+                    ]
+                    self.assertIn("参考答案（模型生成，非官方答案）", output)
+                    self.assertIn(fraction, output)
+        for fraction in ("5000/8", "5000/0", "5000/9*2", "5000/9/2", "(5000/9)+1"):
+            with self.subTest(fraction=fraction):
+                solution = growth_solution()
+                solution["answer"] = "增长额约555.56万元（即" + fraction + "万元）。"
+                output = self.render([], selected=selected, general=dump(solution))[
+                    "answer"
+                ]
+                self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+
     def test_general_reviewer_replaces_only_explanation_prose(self):
         question = "Which is a mammal? A. whale B. carp"
         selected = self.select(question, topics=["xingce.common.knowledge"])
@@ -800,6 +891,525 @@ class TeacherRuntimeTests(unittest.TestCase):
         checked = review()
         checked["reviewed_steps"] = ["This field is not allowed on teacher reviews."]
         self.assertEqual(self.record(checked_review=dump(checked))["status"], "failed")
+
+    def test_numeric_lists_inherit_explicit_units_and_person_alias_not_ordinal(self):
+        for unit in ("人", "名", "件", "万元", "万人", "公里"):
+            with self.subTest(unit=unit):
+                recognized = self.runtime["_tn_numbers"]("100、80、70和50" + unit)
+                expected_unit = "人" if unit == "名" else unit
+                self.assertEqual(
+                    recognized,
+                    {(number, expected_unit) for number in (100, 80, 70, 50)},
+                )
+        recognized = self.runtime["_tn_numbers"]("第70名和第80名，共50名求职者。")
+        self.assertIn((50, "人"), recognized)
+        self.assertNotIn((70, "人"), recognized)
+        self.assertNotIn((80, "人"), recognized)
+        self.assertEqual(
+            self.runtime["_tn_numbers"]("数量70，另有50人。"), {(70, ""), (50, "人")}
+        )
+
+    def test_unscaled_count_units_allow_integer_magnitudes_and_typed_zero_one(self):
+        for unit in ("人", "件", "个", "家", "户"):
+            question = f"现有50{unit}，求计算结果。"
+            for magnitude_unit, increment in itertools.product(("", unit), (0, 1)):
+                with self.subTest(
+                    unit=unit, magnitude_unit=magnitude_unit, increment=increment
+                ):
+                    solution = arithmetic_solution(
+                        question,
+                        [arithmetic_record("add", 50, increment, magnitude_unit)],
+                        str(50 + increment),
+                    )
+                    self.assertEqual(
+                        self.check_arithmetic(question, solution), "answered"
+                    )
+        for value, expected in (("0", "1"), ("50.0", "51")):
+            question = f"现有{value}人，求计算结果。"
+            solution = arithmetic_solution(
+                question,
+                [arithmetic_record("add", value, 1)],
+                expected,
+            )
+            self.assertEqual(self.check_arithmetic(question, solution), "answered")
+
+    def test_fractional_and_negative_counts_are_not_dimensionless_sources(self):
+        for value in ("7.5", "-7"):
+            question = f"原始记录为{value}人，求加一的结果。"
+            solution = arithmetic_solution(
+                question, [arithmetic_record("add", value, 1)], "0"
+            )
+            with (
+                self.subTest(value=value),
+                self.assertRaisesRegex(ValueError, "operand|unit"),
+            ):
+                self.check_arithmetic(question, solution)
+
+    def test_scaled_monetary_distance_and_mixed_units_are_not_stripped(self):
+        for question, value in (
+            ("原始数量50万人。", 50),
+            ("原始数量50万元。", 50),
+            ("原始数量50亿元。", 50),
+            ("原始数量50元。", 50),
+            ("原始距离50公里。", 50),
+            ("原始面积50平方公里。", 50),
+            ("原始数量50人，成本7元。", 50),
+            ("原始数量50人，另有7件。", 50),
+            ("原始数量80、70和50万元。", 70),
+            ("原始数量80、70和50万人。", 70),
+            ("原始距离80、70和50公里。", 70),
+            ("原始数量80、70和50人，成本7元。", 70),
+        ):
+            solution = arithmetic_solution(
+                question, [arithmetic_record("add", value, 1)], str(value + 1)
+            )
+            with (
+                self.subTest(question=question),
+                self.assertRaisesRegex(ValueError, "operand|unit"),
+            ):
+                self.check_arithmetic(question, solution)
+        for unit in ("万人", "万元", "亿元", "元", "公里", "平方公里"):
+            question = f"原始数量50{unit}。"
+            for constant in (0, 1):
+                solution = arithmetic_solution(
+                    question,
+                    [arithmetic_record("add", 50, constant, unit)],
+                    str(50 + constant),
+                )
+                with (
+                    self.subTest(unit=unit, constant=constant),
+                    self.assertRaisesRegex(ValueError, "operand|unit"),
+                ):
+                    self.check_arithmetic(question, solution)
+
+    def test_mixed_units_still_allow_present_typed_count_normalization(self):
+        question = "现有50人，7件物品，成本8万元。"
+        for unit, value in (("人", 50), ("件", 7)):
+            for constant in (0, 1):
+                solution = arithmetic_solution(
+                    question,
+                    [arithmetic_record("add", value, constant, unit)],
+                    str(value + constant),
+                )
+                with self.subTest(unit=unit, constant=constant):
+                    self.assertEqual(
+                        self.check_arithmetic(question, solution), "answered"
+                    )
+        solution = arithmetic_solution(
+            question, [arithmetic_record("add", 1, 0, "户")], "1"
+        )
+        with self.assertRaisesRegex(ValueError, "operand|unit"):
+            self.check_arithmetic(question, solution)
+
+    def test_recruitment_prefix_proves_missing_threshold_without_rewriting_solution(
+        self,
+    ):
+        question, solution, prefix = recruitment_fixture()
+        self.assertEqual(solution["answer"], "C. 258人")
+        self.assertEqual(solution["calculations"][0], arithmetic_record("add", 69, 69))
+        self.assertEqual(prefix, [arithmetic_record("subtract", 70, 1)])
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=prefix), "answered"
+        )
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        checked = {**review(), "reviewed_steps": [], "calculation_prefix": prefix}
+        output = self.render(
+            [], selected=selected, general=dump(solution), general_review=dump(checked)
+        )["answer"]
+        self.assertIn("参考答案（模型生成，非官方答案）", output)
+        self.assertIn(solution["answer"], output)
+        for text in solution["steps"] + solution["material_quotes"]:
+            self.assertIn(text, output)
+        self.assertIn("subtract", output)
+        self.assertIn("add", output)
+        self.assertRegex(output, "前置|前缀|补充")
+        self.assertIn("程序复算（只核验运算，不证明列式）", output)
+
+    def test_recruitment_without_prefix_never_trusts_implicit_threshold_minus_one(self):
+        question, solution, _ = recruitment_fixture()
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        for prefix in (None, []):
+            with (
+                self.subTest(prefix=prefix),
+                self.assertRaisesRegex(ValueError, "operand|unit"),
+            ):
+                self.check_arithmetic(question, solution, prefix=prefix)
+        output = self.render([], selected=selected, general=dump(solution))["answer"]
+        self.assertNotIn(solution["answer"], output)
+        self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+
+    def test_typed_person_recruitment_chain_uses_shared_units_and_one_person(self):
+        question, solution, prefix = recruitment_fixture(unit="人")
+        self.assertIn("100、80、70和50人", question)
+        self.assertIn("70名", question)
+        self.assertEqual(prefix[0]["operands"]["right"], {"value": "1", "unit": "人"})
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=prefix), "answered"
+        )
+        with self.assertRaisesRegex(ValueError, "operand|unit"):
+            self.check_arithmetic(question, solution)
+
+    def test_recruitment_prefix_generalizes_to_independent_threshold_and_capacities(
+        self,
+    ):
+        for unit in ("", "人"):
+            question, solution, prefix = recruitment_fixture(
+                (60, 45, 30, 15), 40, unit=unit
+            )
+            self.assertEqual(solution["answer"], "C. 124人")
+            self.assertNotIn("258", dump((question, solution, prefix)))
+            self.assertEqual(prefix[0], arithmetic_record("subtract", 40, 1, unit))
+            self.assertEqual(
+                self.check_arithmetic(question, solution, prefix=prefix), "answered"
+            )
+            selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+            checked = {**review(), "reviewed_steps": [], "calculation_prefix": prefix}
+            output = self.render(
+                [],
+                selected=selected,
+                general=dump(solution),
+                general_review=dump(checked),
+            )["answer"]
+            self.assertIn(solution["answer"], output)
+
+    def test_prefix_all_four_basic_operations_can_feed_later_prefix_operands(self):
+        question, solution, prefix = recruitment_fixture()
+        prefix.extend(
+            [
+                arithmetic_record("add", 69, 1),
+                arithmetic_record("multiply", 69, 100),
+                arithmetic_record("divide", 6900, 100),
+            ]
+        )
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=prefix), "answered"
+        )
+
+    def test_prefix_is_checked_before_original_and_cannot_use_future_results(self):
+        question, solution, prefix = recruitment_fixture()
+        for invalid in (
+            [arithmetic_record("add", 69, 1), *prefix],
+            [arithmetic_record("add", 138, 1), *prefix],
+            [arithmetic_record("subtract", 69, 0)],
+        ):
+            with (
+                self.subTest(prefix=invalid),
+                self.assertRaisesRegex(ValueError, "operand|unit"),
+            ):
+                self.check_arithmetic(question, solution, prefix=invalid)
+
+    def test_prefix_rejects_wrong_arithmetic_units_types_metadata_and_schema(self):
+        question, solution, prefix = recruitment_fixture()
+        changes = (
+            (("result", "values", "result"), "68.00"),
+            (("result", "values", "result"), 69),
+            (("result", "values", "result"), True),
+            (("result", "values", "result"), "NaN"),
+            (("result", "values"), {"result": "69.00", "extra": "69.00"}),
+            (("result", "unit"), "人"),
+            (("result", "operation"), "add"),
+            (("result", "places"), True),
+            (("result", "places"), 7),
+            (("result", "rounding"), "unrecognized"),
+            (("operands", "left", "value"), True),
+            (("operands", "left", "value"), 70),
+            (("operands", "left", "value"), "70-1"),
+            (("operands", "left", "unit"), "人"),
+            (("operands", "left", "unit"), "DO-NOT-LEAK-UNIT"),
+            (("operands", "left", "extra"), "not allowed"),
+            (("operation",), "unknown-operation"),
+            (("extra",), "not allowed"),
+        )
+        for path, value in changes:
+            malformed = copy.deepcopy(prefix)
+            item = malformed[0]
+            for key in path[:-1]:
+                item = item[key]
+            item[path[-1]] = value
+            with self.subTest(path=path, value=value), self.assertRaises(ValueError):
+                self.check_arithmetic(question, solution, prefix=malformed)
+        for missing in ("operation", "operands", "result"):
+            malformed = copy.deepcopy(prefix)
+            malformed[0].pop(missing)
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                self.check_arithmetic(question, solution, prefix=malformed)
+        for malformed in ({}, "[]", True, [None], [1]):
+            with self.subTest(prefix=malformed), self.assertRaises(ValueError):
+                self.check_arithmetic(question, solution, prefix=malformed)
+        for invalid in (
+            [arithmetic_record("subtract", 71, 2)],
+            [arithmetic_record("subtract", 70, 1, "件")],
+            [arithmetic_record("subtract", 70, 1, "人")],
+        ):
+            with (
+                self.subTest(prefix=invalid),
+                self.assertRaisesRegex(ValueError, "operand|unit"),
+            ):
+                self.check_arithmetic(question, solution, prefix=invalid)
+
+    def test_growth_operations_are_forbidden_in_prefix_even_when_correct(self):
+        solution = growth_solution()
+        with self.assertRaises(ValueError):
+            self.check_arithmetic(
+                GROWTH_QUESTION, solution, prefix=solution["calculations"]
+            )
+
+    def test_prefix_maximum_sixteen_and_combined_maximum_forty_are_enforced(self):
+        question, solution, prefix = recruitment_fixture()
+        maximum_prefix = prefix * 16
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=maximum_prefix), "answered"
+        )
+        with self.assertRaises(ValueError):
+            self.check_arithmetic(question, solution, prefix=prefix * 17)
+        solution["calculations"].extend(
+            copy.deepcopy(solution["calculations"][-1:]) * 20
+        )
+        self.assertEqual(len(solution["calculations"]) + len(maximum_prefix), 40)
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=maximum_prefix), "answered"
+        )
+        solution["calculations"].append(copy.deepcopy(solution["calculations"][-1]))
+        with self.assertRaises(ValueError):
+            self.check_arithmetic(question, solution, prefix=maximum_prefix)
+
+    def test_general_optional_prefix_preserves_seven_field_review_contract(self):
+        question, solution, prefix = recruitment_fixture()
+        solution["calculations"] = prefix + solution["calculations"]
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        original_review = {**review(), "reviewed_steps": []}
+        for checked in (original_review, {**original_review, "calculation_prefix": []}):
+            output = self.render(
+                [],
+                selected=selected,
+                general=dump(solution),
+                general_review=dump(checked),
+            )["answer"]
+            self.assertIn(solution["answer"], output)
+        invalid_reviews = [
+            {**original_review, "calculation_prefix": value}
+            for value in (None, {}, "[]", True)
+        ]
+        invalid_reviews.extend(
+            [
+                {**review(), "calculation_prefix": []},
+                {
+                    **original_review,
+                    "calculation_prefix": [],
+                    "answer": solution["answer"],
+                },
+            ]
+        )
+        for checked in invalid_reviews:
+            with self.subTest(review=checked):
+                output = self.render(
+                    [],
+                    selected=selected,
+                    general=dump(solution),
+                    general_review=dump(checked),
+                )["answer"]
+                self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+
+    def test_nonempty_prefix_requires_original_calculations_and_answered_status(self):
+        question = "Which is a mammal? A. whale B. carp"
+        selected = self.select(question, topics=["xingce.common.knowledge"])
+        prefix = [arithmetic_record("add", 1, 0)]
+        solution = arithmetic_solution(question, [], "A. whale")
+        for candidate in (solution, abstention("skip"), abstention("not_needed")):
+            with (
+                self.subTest(status=candidate["status"]),
+                self.assertRaises(ValueError),
+            ):
+                self.runtime["_tn_check_answer"](
+                    candidate,
+                    review(),
+                    None,
+                    "",
+                    json.loads(selected["context"]),
+                    self.runtime["_tn_catalog"](),
+                    calculation_prefix=prefix,
+                )
+        checked = {
+            **review(),
+            "reviewed_steps": ["A whale is a mammal."],
+            "calculation_prefix": prefix,
+        }
+        output = self.render(
+            [], selected=selected, general=dump(solution), general_review=dump(checked)
+        )["answer"]
+        self.assertNotIn(solution["answer"], output)
+
+    def test_prefix_only_answer_cannot_launder_wrong_original_numeric_or_fraction_answer(
+        self,
+    ):
+        question, solution, prefix = recruitment_fixture()
+        prefix += copy.deepcopy(solution["calculations"])
+        prefix.append(arithmetic_record("add", 258, 1))
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=prefix), "answered"
+        )
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        checked = {**review(), "reviewed_steps": [], "calculation_prefix": prefix}
+        for wrong_answer in ("C. 259人", "259/1人", "C. 69人"):
+            solution["answer"] = wrong_answer
+            with self.subTest(answer=wrong_answer):
+                with self.assertRaises(ValueError):
+                    self.check_arithmetic(question, solution, prefix=prefix)
+                output = self.render(
+                    [],
+                    selected=selected,
+                    general=dump(solution),
+                    general_review=dump(checked),
+                )["answer"]
+                self.assertNotIn(wrong_answer, output)
+                self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+                self.assertNotIn("subtract", output)
+
+    def test_valid_prefix_does_not_replace_wrong_original_arithmetic(self):
+        question, solution, prefix = recruitment_fixture()
+        solution["calculations"][0]["result"]["values"]["result"] = "137.00"
+        with self.assertRaisesRegex(ValueError, "arithmetic"):
+            self.check_arithmetic(question, solution, prefix=prefix)
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        checked = {**review(), "reviewed_steps": [], "calculation_prefix": prefix}
+        output = self.render(
+            [], selected=selected, general=dump(solution), general_review=dump(checked)
+        )["answer"]
+        self.assertNotIn(solution["answer"], output)
+        self.assertNotIn("subtract", output)
+
+    def test_prefix_is_not_displayed_when_independent_review_fails(self):
+        question, solution, prefix = recruitment_fixture()
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        checked = {
+            **review(),
+            "passed": False,
+            "issues": ["Synthetic independent rejection"],
+            "reviewed_steps": [],
+            "calculation_prefix": prefix,
+        }
+        output = self.render(
+            [], selected=selected, general=dump(solution), general_review=dump(checked)
+        )["answer"]
+        self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+        self.assertNotIn(solution["answer"], output)
+        self.assertNotIn("subtract", output)
+
+    def test_prefix_cannot_satisfy_growth_role_or_authorize_wrong_growth_answer(self):
+        prefix = [arithmetic_record("multiply", 5000, "0.125", "万元", right_unit="")]
+        original = growth_solution()
+        wrong_role = copy.deepcopy(original)
+        operands = {"base": "5000", "rate": "12.5%", "unit": "万元"}
+        wrong_role["calculations"] = [
+            {
+                "operation": "growth_from_base",
+                "operands": operands,
+                "result": NODES.calculate("growth_from_base", operands),
+            }
+        ]
+        wrong_operation = copy.deepcopy(original)
+        wrong_operation["calculations"] = copy.deepcopy(prefix)
+        for solution in (original, wrong_role, wrong_operation):
+            solution["answer"] = "625万元"
+            with (
+                self.subTest(operation=solution["calculations"][0]["operation"]),
+                self.assertRaises(ValueError),
+            ):
+                self.check_arithmetic(GROWTH_QUESTION, solution, prefix=prefix)
+
+    def test_prefix_validation_and_rendering_preserve_raw_original_record(self):
+        question, solution, prefix = recruitment_fixture()
+        checked = {
+            **review(),
+            "reviewed_steps": ["REVIEWER-REWRITE-MUST-NOT-APPEAR"],
+            "calculation_prefix": prefix,
+        }
+        original, original_review = copy.deepcopy(solution), copy.deepcopy(checked)
+        self.assertEqual(
+            self.check_arithmetic(question, solution, prefix=prefix), "answered"
+        )
+        self.assertEqual(solution, original)
+        self.assertEqual(checked, original_review)
+        raw_solution, raw_review = dump(solution), dump(checked)
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        checker = mock.Mock(wraps=self.runtime["_tn_check_answer"])
+        with mock.patch.dict(self.runtime, {"_tn_check_answer": checker}):
+            output = self.render(
+                [], selected=selected, general=raw_solution, general_review=raw_review
+            )["answer"]
+        self.assertEqual(checker.call_count, 1)
+        self.assertEqual(checker.call_args.args[0], original)
+        self.assertEqual(checker.call_args.args[1], review())
+        self.assertEqual(checker.call_args.kwargs["calculation_prefix"], prefix)
+        self.assertEqual(raw_solution, dump(original))
+        self.assertEqual(raw_review, dump(original_review))
+        self.assertNotIn("REVIEWER-REWRITE-MUST-NOT-APPEAR", output)
+        self.assertIn(solution["answer"], output)
+        self.assertNotIn("calculation_prefix", checker.call_args.args[0])
+
+    def test_teacher_reviews_reject_even_empty_calculation_prefix(self):
+        self.assertEqual(self.record()["status"], "answered")
+        for prefix in ([], [arithmetic_record("add", 1, 0)]):
+            checked = {**review(), "calculation_prefix": prefix}
+            with self.subTest(prefix=prefix):
+                self.assertEqual(
+                    self.record(checked_review=dump(checked))["status"], "failed"
+                )
+        teacher_solution = summary_solution()
+        teacher_solution["calculations"] = [arithmetic_record("add", 1, 0)]
+        self.assertEqual(
+            self.record(solution=dump(teacher_solution))["status"], "answered"
+        )
+        with self.assertRaises(ValueError):
+            self.runtime["_tn_check_answer"](
+                teacher_solution,
+                review(),
+                json.loads(self.evidence()),
+                SUMMARY_IDS[0],
+                json.loads(self.selected["context"]),
+                self.runtime["_tn_catalog"](),
+                calculation_prefix=[arithmetic_record("add", 1, 0)],
+            )
+        question, solution, prefix = recruitment_fixture()
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        with self.assertRaises(TypeError):
+            self.runtime["_tn_check_answer"](
+                solution,
+                review(),
+                None,
+                "",
+                json.loads(selected["context"]),
+                self.runtime["_tn_catalog"](),
+                prefix,
+            )
+
+    def test_unbound_operand_diagnostic_is_safe_chinese_and_never_raw_exception(self):
+        question, solution, _ = recruitment_fixture()
+        selected = self.select(question, topics=["xingce.quantity.arithmetic"])
+        output = self.render([], selected=selected, general=dump(solution))["answer"]
+        self.assertIn("单位", output)
+        self.assertRegex(output, "来源|依据|原题")
+        self.assertNotIn("invented arithmetic operand or unit", output)
+        self.assertNotIn("ValueError", output)
+        self.assertNotIn(solution["answer"], output)
+        for error in (ValueError("DO-NOT-LEAK"), KeyError("DO-NOT-LEAK")):
+            with mock.patch.dict(
+                self.runtime, {"_tn_check_answer": mock.Mock(side_effect=error)}
+            ):
+                output = self.render([], selected=selected, general=dump(solution))[
+                    "answer"
+                ]
+            self.assertNotIn("DO-NOT-LEAK", output)
+            self.assertNotIn("参考答案（模型生成，非官方答案）", output)
+
+    def test_general_prefix_prompt_is_generic_not_recruitment_answer_keyed(self):
+        prompt = self.runtime["GENERAL_REVIEW_PROMPT"]
+        self.assertIn("calculation_prefix", prompt)
+        self.assertRegex(prompt, r"(?:阈值|门槛|目标).{0,20}(?:减|-)\s*1")
+        self.assertIn("16", prompt)
+        for name in ("GENERAL_PROMPT", "GENERAL_REVIEW_PROMPT"):
+            self.assertNotIn("258", self.runtime[name])
+            self.assertNotIn("100、80、70和50", self.runtime[name])
 
     def test_explicit_income_and_year_on_year_wording_is_not_fixed_template_only(self):
         questions = [

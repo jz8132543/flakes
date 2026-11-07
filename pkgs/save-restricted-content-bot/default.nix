@@ -1,20 +1,14 @@
 # VJBots/VJ-Save-Restricted-Content
 # 只将源代码暴露到 Nix store，供 podman build 使用
 {
-  fetchFromGitHub,
+  sources,
   lib,
   pkgs,
   ...
 }:
 let
-  version = "93129e163377f0ce292471c6f202f8eaf40106d1-p3";
-  src = fetchFromGitHub {
-    owner = "VJBots";
-    repo = "VJ-Save-Restricted-Content";
-    rev = "93129e163377f0ce292471c6f202f8eaf40106d1";
-    fetchSubmodules = false;
-    sha256 = "sha256-Tfb3RLkH+CLSlUQDxzzf91ZK/zNFuMLiz3RjA5yyvUI=";
-  };
+  version = "${sources.save-restricted-content-bot.version}-p3";
+  inherit (sources.save-restricted-content-bot) src;
 in
 pkgs.stdenv.mkDerivation {
   pname = "save-restricted-content-bot";
