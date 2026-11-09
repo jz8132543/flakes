@@ -93,6 +93,11 @@ in
 
   dconf.settings = lib.mkMerge [
     {
+      "org/gnome/desktop/media-handling" = {
+        automount = true;
+        autorun-never = false;
+        autorun-x-content-start-app = [ "x-content/unix-software" ];
+      };
       # Do not sleep when ac power connected
       "org/gnome/settings-daemon/plugins/power" = {
         power-button-action = "nothing";

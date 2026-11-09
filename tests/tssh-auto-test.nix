@@ -118,10 +118,12 @@ pkgs.testers.runNixOSTest {
         assert status == 37, (status, output)
 
     with subtest("native chain when any hop lacks capability"):
+        assert client.succeed(tssh + " -n plain -p 22 printf native-port22").strip() == "native-port22"
         assert run("plain", "printf mixed-ok", "-J server").strip() == "mixed-ok"
         assert run("server", "printf mixed-hop-ok", "-J plain").strip() == "mixed-hop-ok"
 
     with subtest("complete multi-hop KCP"):
+        assert client.succeed(tssh + " -n server -p 22 printf kcp-port22").strip() == "kcp-port22"
         assert run("client", "printf chain-ok", "-J server").strip() == "chain-ok"
         assert run("client", "ss -Hlun 'sport >= 61001 and sport <= 61999'", "-J server").strip()
         client.succeed(tssh + " -J server client cat < /tmp/input > /tmp/chain-output")
@@ -150,8 +152,9 @@ pkgs.testers.runNixOSTest {
         client.succeed("iptables -D INPUT -p udp --dport 61001:61999 -j DROP")
         client.succeed("ip6tables -D INPUT -p udp --dport 61001:61999 -j DROP")
 
-    with subtest("stale marker is fatal rather than a downgrade"):
-        client.fail(tssh + " -n -o TsshdPath=/nonexistent/tsshd server true")
+    with subtest("missing tsshd falls back without repeating the application"):
+        client.succeed(tssh + " -n -o TsshdPath=/nonexistent/tsshd server sh -c 'echo once >> /tmp/missing-tsshd-executions'")
+        assert server.succeed("wc -l < /tmp/missing-tsshd-executions").strip() == "1"
         run("server", "true", "--tcp -o TsshdPath=/nonexistent/tsshd")
 
     with subtest("PTY initial size and SIGWINCH propagation"):

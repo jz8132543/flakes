@@ -7,16 +7,27 @@ let
   shellScriptMimeTypes = [
     "application/x-shellscript"
     "text/x-shellscript"
+    "x-content/unix-software"
   ];
   shellScriptRunner = pkgs.writeShellApplication {
     name = "shell-script-runner";
     runtimeInputs = [ pkgs.coreutils ];
     text = ''
       if [[ $# -ne 1 ]]; then
-        printf 'Expected one shell script path\n' >&2
+        printf 'Expected one shell script or media directory path\n' >&2
         exit 1
       fi
       script=$(realpath -e -- "$1")
+      if [[ -d "$script" ]]; then
+        cd -- "$script"
+        # Follow the media autorun order; autorun.sh need not be executable.
+        for entry in .autorun autorun; do
+          if [[ -f "$entry" && -x "$entry" ]]; then
+            exec "./$entry"
+          fi
+        done
+        script="$script/autorun.sh"
+      fi
       if [[ ! -f "$script" || ! -r "$script" ]]; then
         printf 'Not a readable script: %s\n' "$script" >&2
         exit 1
@@ -293,6 +304,10 @@ in
     })
   ];
 
+  home.activation.configureWps = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run ${pkgs.wpsoffice-cn.configureWps}
+  '';
+
   xdg.mimeApps = {
     enable = true;
     associations.added = fileAssociations;
@@ -308,7 +323,7 @@ in
   xdg.desktopEntries = {
     shell-script-runner = {
       name = "Run Shell Script";
-      comment = "Run a shell script without opening a terminal";
+      comment = "Run a shell script or media startup program without opening a terminal";
       exec = "${lib.getExe shellScriptRunner} %f";
       mimeType = shellScriptMimeTypes;
       terminal = false;

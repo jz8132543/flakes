@@ -13,10 +13,10 @@ index 1b65aaca..0e39351c 100644
  	QUIC           bool        `arg:"--quic" help:"[udp] use QUIC protocol for ssh over UDP"`
 diff --git a/tssh/auto.go b/tssh/auto.go
 new file mode 100644
-index 00000000..1545c801
+index 00000000..4d17d39b
 --- /dev/null
 +++ b/tssh/auto.go
-@@ -0,0 +1,552 @@
+@@ -0,0 +1,564 @@
 +package tssh
 +
 +import (
@@ -50,14 +50,19 @@ index 00000000..1545c801
 +			}
 +		}
 +	}
++	destinationSeen := false
 +	for i := 0; i < len(argv); i++ {
 +		word := argv[i]
 +		if word == "--" {
 +			return argv
 +		}
 +		if !strings.HasPrefix(word, "-") || word == "-" {
-+			result := append([]string(nil), argv[:i+1]...)
-+			return append(append(result, "--"), argv[i+1:]...)
++			if !destinationSeen {
++				destinationSeen = true
++				continue
++			}
++			result := append([]string(nil), argv[:i]...)
++			return append(append(result, "--"), argv[i:]...)
 +		}
 +		if strings.HasPrefix(word, "--") {
 +			name, _, attached := strings.Cut(word, "=")
@@ -178,6 +183,13 @@ index 00000000..1545c801
 +		}
 +		if err != nil {
 +			rollback()
++			var missing interface {
++				error
++				ExitStatus() int
++			}
++			if errors.As(err, &missing) && missing.ExitStatus() == 127 {
++				return false, nil
++			}
 +			closeNative()
 +			return false, fmt.Errorf("prepare hop %d: %w", i+1, err)
 +		}
@@ -571,10 +583,10 @@ index 00000000..1545c801
 +}
 diff --git a/tssh/auto_test.go b/tssh/auto_test.go
 new file mode 100644
-index 00000000..31fed99c
+index 00000000..1db241ed
 --- /dev/null
 +++ b/tssh/auto_test.go
-@@ -0,0 +1,167 @@
+@@ -0,0 +1,225 @@
 +package tssh
 +
 +import (
@@ -625,8 +637,13 @@ index 00000000..31fed99c
 +	}
 +}
 +
++type autoTestRemoteExit struct{ status int }
++
++func (e *autoTestRemoteExit) Error() string   { return "remote executable failed" }
++func (e *autoTestRemoteExit) ExitStatus() int { return e.status }
++
 +func TestAutoTransactionOrderingAndFailureIsolation(t *testing.T) {
-+	for _, phase := range []string{"success", "unmarked", "authenticate", "prepare", "establish-timeout", "establish-fatal", "barrier", "commit"} {
++	for _, phase := range []string{"success", "unmarked", "authenticate", "prepare", "prepare-missing", "prepare-denied", "establish-timeout", "establish-fatal", "barrier", "commit"} {
 +		for failure := 0; failure < 3; failure++ {
 +			t.Run(fmt.Sprintf("%s/%d", phase, failure), func(t *testing.T) {
 +				var events []string
@@ -652,7 +669,18 @@ index 00000000..31fed99c
 +						}
 +						return &autoTestClient{version: version, name: fmt.Sprintf("N%d", i), events: &events}, nil
 +					},
-+					prepare: func(i int) (*tsshd.ServerInfo, error) { return validTestAutoOffer(), step("prepare", i) },
++					prepare: func(i int) (*tsshd.ServerInfo, error) {
++						if err := step("prepare", i); err != nil {
++							return validTestAutoOffer(), err
++						}
++						if i == failure && phase == "prepare-missing" {
++							return nil, fmt.Errorf("wrapped: %w", &autoTestRemoteExit{status: 127})
++						}
++						if i == failure && phase == "prepare-denied" {
++							return nil, &autoTestRemoteExit{status: 126}
++						}
++						return validTestAutoOffer(), nil
++					},
 +					establish: func(i int) (SshClient, error) {
 +						events = append(events, fmt.Sprintf("establish-%d", i))
 +						if i == failure {
@@ -682,7 +710,7 @@ index 00000000..31fed99c
 +					if udp || err != nil || len(events) != 3 {
 +						t.Fatalf("unmarked must retain native chain without offers: %v %v %v", udp, err, events)
 +					}
-+				} else if phase == "establish-timeout" {
++				} else if phase == "establish-timeout" || phase == "prepare-missing" {
 +					if udp || err != nil {
 +						t.Fatalf("classified timeout did not fall back: %v %v", udp, err)
 +					}
@@ -728,6 +756,8 @@ index 00000000..31fed99c
 +		{"--auto-transport", "-Tp2222", "-i", "/key with space", "host", "sh", "-v", "--debug"},
 +		{"-o", "ProxyCommand=/native/ssh -W %h:%p jump", "host", "sh", "-v", "--debug"},
 +		{"--", "host", "sh", "-v", "--debug"},
++		{"host", "-p", "22", "sh", "-v", "--debug"},
++		{"host", "-Tp2222", "-o", "ConnectTimeout=5", "sh", "-v", "--debug"},
 +	} {
 +		var args sshArgs
 +		parser, err := arg.NewParser(arg.Config{}, &args)
@@ -739,6 +769,46 @@ index 00000000..31fed99c
 +		}
 +		if args.Destination != "host" || args.Command != "sh" || args.Debug || !reflect.DeepEqual(args.Argument, []string{"-v", "--debug"}) {
 +			t.Fatalf("remote arguments were reinterpreted: %+v", args)
++		}
++	}
++}
++
++func TestAutoApplicationArgvAcceptsPostDestinationOptions(t *testing.T) {
++	for _, argv := range [][]string{
++		{"root@hkg0", "-p", "22"},
++		{"root@hkg0", "-p22"},
++		{"--auto-transport", "root@hkg0", "-T", "-p", "22"},
++		{"-p", "1022", "root@hkg0", "-p", "22"},
++	} {
++		var args sshArgs
++		parser, err := arg.NewParser(arg.Config{}, &args)
++		if err != nil {
++			t.Fatal(err)
++		}
++		if err := parser.Parse(applicationArgv(argv)); err != nil {
++			t.Fatalf("%v: %v", argv, err)
++		}
++		if args.Destination != "root@hkg0" || args.Port != 22 || args.Command != "" || len(args.Argument) != 0 {
++			t.Fatalf("client options were treated as a command: argv=%v args=%+v", argv, args)
++		}
++	}
++}
++
++func TestAutoApplicationArgvPreservesCommandPortOption(t *testing.T) {
++	for _, argv := range [][]string{
++		{"host", "-p", "22", "cmd", "-p", "1022"},
++		{"host", "-p22", "--", "cmd", "-p", "1022"},
++	} {
++		var args sshArgs
++		parser, err := arg.NewParser(arg.Config{}, &args)
++		if err != nil {
++			t.Fatal(err)
++		}
++		if err := parser.Parse(applicationArgv(argv)); err != nil {
++			t.Fatal(err)
++		}
++		if args.Port != 22 || args.Command != "cmd" || !reflect.DeepEqual(args.Argument, []string{"-p", "1022"}) {
++			t.Fatalf("remote command options were reinterpreted: %+v", args)
 +		}
 +	}
 +}

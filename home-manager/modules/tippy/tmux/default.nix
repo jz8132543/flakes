@@ -50,6 +50,11 @@ let
     printf "↓%s ↑%s" "$(format_speed $((rx_now - rx_old)) $dt)" "$(format_speed $((tx_now - tx_old)) $dt)"
   '';
   tmux-ssh-status = pkgs.writeShellScriptBin "tmux-ssh-status" tmuxSshStatusScript;
+  tmux-system-info = pkgs.writeShellScriptBin "tmux-system-info" ''
+    ${pkgs.fastfetch}/bin/fastfetch
+    printf '\nPress Enter to close.\n'
+    read -r
+  '';
 in
 {
   programs.tmux = {
@@ -58,6 +63,7 @@ in
     historyLimit = 200000;
     keyMode = "vi";
     mouse = true;
+    clock24 = true;
     escapeTime = 0;
     terminal = "tmux-256color";
 
@@ -80,8 +86,25 @@ in
         '';
       }
       {
-        plugin = pkgs.tmuxPlugins.cpu;
-        extraConfig = "";
+        plugin = dracula;
+        extraConfig = ''
+          set -g @dracula-plugins "battery time"
+          set -g @dracula-show-left-icon " #S"
+          set -g @dracula-left-icon-padding 0
+          set -g @dracula-show-powerline false
+          set -g @dracula-colors "white='#ffffff'"
+          set -g @dracula-battery-colors "dark_gray white"
+          set -g @dracula-time-colors "dark_gray white"
+          set -g @dracula-left-pad "| "
+          set -g @dracula-show-flags true
+          set -g @dracula-border-contrast true
+          set -g @dracula-refresh-rate 3
+          set -g @dracula-battery-label false
+          set -g @dracula-show-battery-status true
+          set -g @dracula-no-battery-label "AC"
+          set -g @dracula-military-time true
+          set -g @dracula-time-format "#{?#{>=:#{client_width},140},%a %m-%d %H:%M %Z,%H:%M}"
+        '';
       }
     ];
 
@@ -117,49 +140,39 @@ in
       set -g renumber-windows on
       set -g set-titles on
       set -g focus-events on
-      set -g status-position bottom
+      set -g status-position top
       setw -g automatic-rename on
       setw -g allow-rename on
       set -g automatic-rename-format '#{pane_current_command}'
 
-      # Status line configuration
-      set -g status-right-length 100
-      set -g status-left-length 100
-      set -g status-left ""
-
-      # Right side status      set -g status-right-length 150
-      set -g status-interval 3
-
-      # Clean macOS Terminal styling
-      set -g status-bg "#1e1e1e"
-      set -g status-fg "#ffffff"
-      set -g message-style "fg=#ffffff,bg=#1e1e1e"
-      set -g message-command-style "fg=#ffffff,bg=#1e1e1e"
-
-      set -g window-status-format " #[fg=#545454]#I #[fg=#e5e5e5]#W "
-      set -g window-status-current-format " #[fg=#46a1ff]#I #[fg=#ffffff,bold]#W "
-
-      set -g status-left "#[fg=#ffffff,bold]  #S "
-
+      # Keep Dracula's battery/time widgets after the existing telemetry.
+      set -gF @dracula-status-right '#{status-right}'
+      set -g status-right-length 180
+      set -g status-left-length 30
+      # Legacy colour options override status-style in existing servers.
+      set -gu status-bg
+      set -gu status-fg
+      set -g status-style "fg=#ffffff,bg=#282a36"
+      set -g status-left "#[fg=#ffffff,bg=#282a36]#{?client_prefix,#[bold],#[nobold]}  #S "
+      set -g window-status-format "#[fg=#ffffff,bg=#282a36,nobold] #I #W#{window_flags} "
+      set -g window-status-current-format "#[fg=#ffffff,bg=#282a36,bold] #I #W#{window_flags} "
       set -g status-right \
-        "#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_pid})"
+        "#[fg=#ffffff,bg=#282a36]#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_pid})"
 
       set -ag status-right \
-        "#[fg=#545454]│ #[fg=#e5e5e5]󰓅 #(${tmux-net-speed}/bin/tmux-net-speed) "
+        "| 󰓅 #(${tmux-net-speed}/bin/tmux-net-speed) "
 
       set -ag status-right \
-        "#[fg=#545454]│ #[fg=#e5e5e5]CPU #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh) "
+        "| CPU #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh) "
 
       set -ag status-right \
-        "#[fg=#545454]│ #[fg=#e5e5e5]RAM #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh) "
+        "| RAM #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh) #{E:@dracula-status-right}"
 
-      # Pane borders - macOS dark theme colors
-      set -g pane-border-style "fg=#333333"
-      set -g pane-active-border-style "fg=#46a1ff"
-
-      # Window and pane styles
-      set -g window-style 'bg=#1e1e1e,fg=#ffffff'
-      set -g window-active-style 'bg=#1e1e1e,fg=#ffffff'
+      set -g message-style "fg=#ffffff,bg=#282a36"
+      set -g message-command-style "fg=#ffffff,bg=#282a36"
+      set -g clock-mode-colour "#bd93f9"
+      set -g window-style 'bg=#282a36,fg=#f8f8f2'
+      set -g window-active-style 'bg=#282a36,fg=#f8f8f2'
 
       # Key bindings
       # unbind C-b
@@ -222,13 +235,15 @@ in
       bind-key u capture-pane \; save-buffer /tmp/tmux-buffer \; run-shell "$TERMINAL -e 'cat /tmp/tmux-buffer | urlview'"
       bind C-c run -b "tmux show-buffer | autoclipboard copy"
       bind C-v run "tmux set-buffer \"$(autoclipboard paste)\"; tmux paste-buffer"
+      bind I display-popup -E -w 90% -h 90% "${tmux-system-info}/bin/tmux-system-info"
       set -g status-position top
       set -g renumber-windows on
       set -g allow-passthrough on
-      new-session -s main
+      if-shell '! ${pkgs.tmux}/bin/tmux has-session -t =main 2>/dev/null' 'new-session -d -s main'
     '';
   };
   home.packages = with pkgs; [
+    fastfetch
     tcping-rs
   ];
 }

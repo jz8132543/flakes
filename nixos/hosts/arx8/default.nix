@@ -29,7 +29,7 @@
   programs.winpodx.dpi = 200;
 
   # 保持与当前运行环境一致的稳定 7.2 内核，避免 7.3 上游未签名外部模块 cer 报错
-  boot.kernelPackages = pkgs.linuxPackages_7_2;
+  boot.kernelPackages = pkgs.linuxPackages;
 
   # environment.isCN = true;
   environment.systemPackages = with pkgs; [

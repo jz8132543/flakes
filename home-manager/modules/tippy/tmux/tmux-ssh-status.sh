@@ -3,9 +3,6 @@ export PATH="@procps@/bin:@gnugrep@/bin:@gawk@/bin:@coreutils@/bin:@iproute2@/bi
 
 pane_pid=$1
 
-COLOR_FG="#e5e5e5"
-COLOR_SEP="#545454"
-
 ICON="  "
 display_text=$(hostname)
 
@@ -141,32 +138,20 @@ get_latency() {
   local host="$1" port="$2"
   [ -n "$host" ] && [ -n "$port" ] || return 1
 
-  local tcp_ms
-  tcp_ms=$(tcping -c 1 -o json "${host}:${port}" 2>/dev/null |
+  local target tcp_ms
+  host="${host#[}"
+  host="${host%]}"
+  if [[ $host == *:* ]]; then
+    target="[${host}]:${port}"
+  else
+    target="${host}:${port}"
+  fi
+  # Bound DNS resolution as well as the connection attempt; never use ICMP.
+  tcp_ms=$(timeout 2s tcping --timeout-ms 1200 -c 1 -o json "$target" 2>/dev/null |
     grep '"record":"probe"' |
     grep '"success":true' |
     grep -oE '"duration_ms":[0-9]+(\.[0-9]+)?' |
     grep -oE '[0-9]+(\.[0-9]+)?$')
-
-  local try_ping=0
-  if [ -z "$tcp_ms" ]; then
-    try_ping=1
-  else
-    local is_low
-    is_low=$(echo "$tcp_ms" | awk '{if ($1 < 5) print 1; else print 0}')
-    [ "$is_low" -eq 1 ] && try_ping=1
-  fi
-
-  if [ "$try_ping" -eq 1 ]; then
-    local ping_out ms
-    if ping_out=$(ping -c 1 -W 1 "$host" 2>/dev/null); then
-      ms=$(echo "$ping_out" | grep -oE 'time=[0-9]+(\.[0-9]+)?' | cut -d= -f2 | head -n 1)
-      if [ -n "$ms" ]; then
-        echo "$ms"
-        return 0
-      fi
-    fi
-  fi
 
   if [ -n "$tcp_ms" ]; then
     echo "$tcp_ms"
@@ -209,8 +194,11 @@ if [ -n "$ssh_pid" ]; then
   fi
 
   display_text="${target_label:-$(hostname)}"
+  if [ -n "$final_port" ] && [ "$final_port" != 22 ]; then
+    display_text="$display_text:$final_port"
+  fi
 
-  # Get latency via ICMP ping or tcping using the authoritative host:port from ssh -G
+  # Probe the configured SSH endpoint, not the RTT of an existing tunnel.
   if [ -n "$final_host" ] && [ -n "$final_port" ]; then
     latency_ms=$(get_latency "$final_host" "$final_port")
     if [ -n "$latency_ms" ]; then
@@ -219,13 +207,16 @@ if [ -n "$ssh_pid" ]; then
         else printf "%dms", int($1 + 0.5)
       }')
       if [ "${SSH_ARGS[0]##*/}" = "tssh" ]; then
-        # A separate TCP/ICMP probe is not a measurement of the active KCP RTT.
-        display_text="$target_label probe ${latency_fmt}"
+        display_text="$display_text TCP probe ${latency_fmt}"
       else
-        display_text="$target_label ${latency_fmt}"
+        display_text="$display_text TCP ${latency_fmt}"
       fi
+    else
+      display_text="$display_text TCP --"
     fi
+  else
+    display_text="$display_text TCP --"
   fi
 fi
 
-echo "#[fg=${COLOR_SEP}]│ #[fg=${COLOR_FG}]${ICON}$display_text "
+echo "${ICON}$display_text "
