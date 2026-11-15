@@ -72,3 +72,14 @@ output "ntfy_sh_topic_secret" {
   value     = random_password.ntfy_sh_topic_secret.result
   sensitive = true
 }
+
+resource "random_password" "livekit_suite_master_secret" {
+  length  = 64
+  special = false
+}
+
+output "livekit_suite_master_secret" {
+  value       = random_password.livekit_suite_master_secret.result
+  sensitive   = true
+  description = "LiveKit suite master seed, extracted into per-host SOPS files; never publish it to clients."
+}

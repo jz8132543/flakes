@@ -80,6 +80,11 @@ in
 
   systemd.services.postgresql.wants = [ "prometheus-postgres-exporter.service" ];
 
+  # TODO: 上游 switch 保证新地址单元先于数据库启动后，评估移除此显式依赖。
+  # postgres.ts 使用回环虚拟地址；缺少地址时数据库客户端会一直等待或超时。
+  systemd.services.postgresql.after = [ "network-addresses-lo.service" ];
+  systemd.services.postgresql.requires = [ "network-addresses-lo.service" ];
+
   systemd.services.postgresql.serviceConfig = {
     SystemCallFilter = lib.mkForce [
       "@system-service"

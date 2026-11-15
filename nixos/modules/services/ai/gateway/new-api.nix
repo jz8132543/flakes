@@ -8,6 +8,24 @@
 let
   cfg = config.services.new-api;
 
+  # Match GPT anywhere in the requested name, including provider namespaces and aliases.
+  responsesPatterns = [
+    "(?i)gpt"
+  ]
+  ++ map (family: "^(openai/)?${family}([-:@][a-zA-Z0-9._=-]+)*$") [
+    "o[0-9]+(-mini)?-(pro|deep-research)"
+    "codex"
+    "computer-use-preview"
+  ];
+  responsesPolicy = cfg.chatCompletionsToResponses;
+  responsesPolicyJSON = builtins.toJSON {
+    enabled = responsesPolicy.enable;
+    all_channels = responsesPolicy.allChannels;
+    channel_ids = responsesPolicy.channelIds;
+    channel_types = responsesPolicy.channelTypes;
+    model_patterns = responsesPolicy.modelPatterns;
+  };
+
   # Zero thresholds also disable each resource check when the monitor is off.
   perfEnabled = if cfg.performanceMonitor.enabled then "true" else "false";
   perfCpu =
@@ -97,6 +115,54 @@ in
       description = "Path to the file containing the deterministic internal API token for downstream AI services.";
     };
 
+    chatCompletionsToResponses = lib.mkOption {
+      default = { };
+      description = ''
+        Manage NewAPI's global Chat Completions to Responses policy, enabled by
+        default for every instance of this service. Null leaves the persisted
+        runtime policy unmanaged; enable = false writes a disabled policy.
+        Returning to null does not remove a previously persisted policy.
+        Matching uses the requested model before channel mapping, and request-body
+        passthrough bypasses conversion. Patterns select a protocol, not availability.
+      '';
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            enable = lib.mkEnableOption "native Chat Completions to Responses conversion" // {
+              default = true;
+            };
+            allChannels = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Apply to existing and future channels regardless of their IDs or types.";
+            };
+            channelIds = lib.mkOption {
+              type = lib.types.listOf lib.types.ints.positive;
+              default = [ ];
+              description = "Channel IDs selected when allChannels is false.";
+            };
+            channelTypes = lib.mkOption {
+              type = lib.types.listOf lib.types.ints.positive;
+              default = [ ];
+              description = "Native channel types selected when allChannels is false.";
+            };
+            modelPatterns = lib.mkOption {
+              type = lib.types.listOf lib.types.str;
+              default = responsesPatterns;
+              description = ''
+                Go regular expressions selecting models for Responses conversion.
+                Defaults match every name containing gpt, case-insensitively, and
+                retain the non-GPT compatibility families. This is an explicit
+                protocol choice, not an inference of exclusive endpoint support.
+                Override or extend the defaults for known upstream contracts;
+                these predicates do not advertise or authorize models.
+              '';
+            };
+          };
+        }
+      );
+    };
+
     # Disable the host-load guard by default so CPU, memory or disk usage does
     # not cause New-API to reject relay requests with HTTP 503.
     performanceMonitor = {
@@ -131,6 +197,28 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion =
+          responsesPolicy == null
+          || !responsesPolicy.enable
+          || (
+            responsesPolicy.modelPatterns != [ ]
+            && lib.all (pattern: builtins.match "[[:space:]]*" pattern == null) responsesPolicy.modelPatterns
+          );
+        message = "services.new-api.chatCompletionsToResponses: an enabled policy requires non-empty, non-blank modelPatterns.";
+      }
+      {
+        assertion =
+          responsesPolicy == null
+          || !responsesPolicy.enable
+          || responsesPolicy.allChannels
+          || responsesPolicy.channelIds != [ ]
+          || responsesPolicy.channelTypes != [ ];
+        message = "services.new-api.chatCompletionsToResponses: an enabled policy with allChannels = false requires channelIds or channelTypes.";
+      }
+    ];
+
     # 自动在本地 PostgreSQL 中创建数据库与角色
     services.postgresql =
       lib.mkIf (cfg.database.host == "127.0.0.1" || cfg.database.host == "localhost")
@@ -395,10 +483,12 @@ in
             upsert_opt() {
               local opt_key="$1"
               local opt_val="$2"
-              runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -d ${cfg.database.name} -c "
-                INSERT INTO options (key, value) VALUES ('$opt_key', '$opt_val')
+              # psql quotes variables as SQL literals; -c does not interpolate them.
+              runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -d ${cfg.database.name} \
+                --set=opt_key="$opt_key" --set=opt_val="$opt_val" >/dev/null <<'SQL'
+                INSERT INTO options (key, value) VALUES (:'opt_key', :'opt_val')
                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-              " >/dev/null
+        SQL
             }
 
             upsert_opt "PasswordLoginEnabled" "true"
@@ -414,6 +504,10 @@ in
             upsert_opt "performance_setting.monitor_memory_threshold" "${perfMemory}"
             upsert_opt "performance_setting.monitor_disk_threshold" "${perfDisk}"
 
+            ${lib.optionalString (responsesPolicy != null) ''
+              upsert_opt "global.chat_completions_to_responses_policy" ${lib.escapeShellArg responsesPolicyJSON}
+            ''}
+
             ${lib.optionalString cfg.oidc.enable ''
               OIDC_SEC="$(cat ${
                 config.sops.secrets.${cfg.oidc.clientSecretKey}.path
@@ -428,7 +522,17 @@ in
               upsert_opt "OIDCTokenEndpoint" "${cfg.oidc.issuer}/protocol/openid-connect/token"
               upsert_opt "OIDCUserinfoEndpoint" "${cfg.oidc.issuer}/protocol/openid-connect/userinfo"
             ''}
+          ${lib.optionalString (responsesPolicy != null) ''
+            else
+              echo "Cannot persist NewAPI Responses policy: options table is missing" >&2
+              exit 1
+          ''}
           fi
+        ${lib.optionalString (responsesPolicy != null) ''
+          else
+            echo "Cannot persist NewAPI Responses policy: users table is missing" >&2
+            exit 1
+        ''}
         fi
       '';
     };

@@ -162,6 +162,7 @@
       sonarr-anime = 8990;
       moviepilot = 3201;
       cookiecloud = 8088;
+      ctyun-dashboard = 8571;
       linkwarden = 3300;
       memos = 5230;
       mysql = 3306;
@@ -172,6 +173,7 @@
       new-api = 3280;
       openhands-agent-canvas = 3290;
       cpa = 8317;
+      workbuddy2api-hub = 8788;
       degoog = 8888;
       # Monitoring stack
       victoriametrics = 8428;

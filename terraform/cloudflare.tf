@@ -83,36 +83,43 @@ locals {
   }
 
   service_cname_mappings = merge({
-    call        = { on = "fra0", proxy = false }
-    vault       = { on = "fra0", proxy = false }
-    ts          = { on = "fra0", proxy = false }
-    ldap        = { on = "fra0", proxy = false }
-    sso         = { on = "fra0", proxy = false }
-    mta-sts     = { on = "fra0", proxy = false }
-    atuin       = { on = "fra0", proxy = false }
-    ntfy        = { on = "fra0", proxy = false }
-    pb          = { on = "fra0", proxy = false }
-    "admin.m"   = { on = "fra0", proxy = false }
-    talk        = { on = "fra0", proxy = false }
-    dash        = { on = "fra0", proxy = false }
-    metrics     = { on = "fra0", proxy = false }
-    cookiecloud = { on = "fra0", proxy = false }
-    cookie      = { on = "fra0", proxy = false }
-    home        = { on = "fra0", proxy = false }
-    ha          = { on = "fra0", proxy = false }
-    link        = { on = "fra0", proxy = false }
-    et          = { on = "fra0", proxy = false }
-    hydra       = { on = "fra0", proxy = false }
-    sub         = { on = "fra0", proxy = false }
-    memos       = { on = "fra0", proxy = false }
-    couchdb     = { on = "fra0", proxy = false }
-    zotero      = { on = "fra0", proxy = false }
-    cache       = { on = "fra0", proxy = false }
-    dns         = { on = "fra0", proxy = false }
-    code        = { on = "fra0", proxy = false }
-    api         = { on = "fra0", proxy = false }
-    cpa         = { on = "fra0", proxy = false }
-    openhands   = { on = "fra0", proxy = false }
+    call              = { on = "fra0", proxy = false }
+    vault             = { on = "fra0", proxy = false }
+    ts                = { on = "fra0", proxy = false }
+    ldap              = { on = "fra0", proxy = false }
+    sso               = { on = "fra0", proxy = false }
+    mta-sts           = { on = "fra0", proxy = false }
+    atuin             = { on = "fra0", proxy = false }
+    ntfy              = { on = "fra0", proxy = false }
+    pb                = { on = "fra0", proxy = false }
+    "admin.m"         = { on = "fra0", proxy = false }
+    talk              = { on = "fra0", proxy = false }
+    dash              = { on = "fra0", proxy = false }
+    metrics           = { on = "fra0", proxy = false }
+    cookiecloud       = { on = "fra0", proxy = false }
+    cookie            = { on = "fra0", proxy = false }
+    ctyun             = { on = "cu", proxy = false }
+    home              = { on = "fra0", proxy = false }
+    ha                = { on = "fra0", proxy = false }
+    link              = { on = "fra0", proxy = false }
+    et                = { on = "fra0", proxy = false }
+    hydra             = { on = "fra0", proxy = false }
+    sub               = { on = "fra0", proxy = false }
+    memos             = { on = "fra0", proxy = false }
+    couchdb           = { on = "fra0", proxy = false }
+    zotero            = { on = "fra0", proxy = false }
+    cache             = { on = "fra0", proxy = false }
+    dns               = { on = "fra0", proxy = false }
+    code              = { on = "fra0", proxy = false }
+    api               = { on = "fra0", proxy = false }
+    cpa               = { on = "fra0", proxy = false }
+    workbuddy         = { on = "fra0", proxy = false }
+    openhands         = { on = "fra0", proxy = false }
+    livekit           = { on = "fra0", proxy = false }
+    livekit-turn      = { on = "fra0", proxy = false }
+    livekit-sjc0      = { on = "sjc0", proxy = false }
+    livekit-turn-sjc0 = { on = "sjc0", proxy = false }
+    livekit-turn-cu   = { on = "cuv6", proxy = false }
   }, local.media_service_cname_mappings)
 }
 output "service_cname_mappings" {
@@ -134,6 +141,38 @@ resource "cloudflare_dns_record" "general_cname" {
   type    = "CNAME"
   content = "${each.value.on}.dora.im"
   zone_id = cloudflare_zone.im_dora.id
+}
+
+# A CNAME cannot coexist with A/AAAA records. Keep the already-applied record
+# identity while replacing livekit-cu's IPv6-only alias with a dual-stack name.
+moved {
+  from = cloudflare_dns_record.general_cname["livekit-cu"]
+  to   = cloudflare_dns_record.livekit_cu_ipv4
+}
+
+data "dns_a_record_set" "livekit_cu_ipv4" {
+  host = "${cloudflare_dns_record.dora_cu.name}."
+}
+
+resource "cloudflare_dns_record" "livekit_cu_ipv4" {
+  name    = "livekit-cu.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 60
+  type    = "A"
+  content = sort(data.dns_a_record_set.livekit_cu_ipv4.addrs)[0]
+  zone_id = cloudflare_zone.im_dora.id
+}
+
+resource "cloudflare_dns_record" "livekit_cu_ipv6" {
+  name    = "livekit-cu.${cloudflare_zone.im_dora.name}"
+  proxied = false
+  ttl     = 60
+  type    = "AAAA"
+  content = cloudflare_dns_record.dora_cuv6.content
+  zone_id = cloudflare_zone.im_dora.id
+
+  # Replace the existing CNAME with A before adding AAAA, avoiding a DNS conflict.
+  depends_on = [cloudflare_dns_record.livekit_cu_ipv4]
 }
 
 import {

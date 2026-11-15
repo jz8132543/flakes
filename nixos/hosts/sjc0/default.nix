@@ -16,6 +16,8 @@
       nixosModules.optimize.brutal
       nixosModules.services.networking.dn42.mesh
       nixosModules.services.traefik
+      nixosModules.services.livekit.all
+      ../../modules/services/livekit-suite/infrastructure.nix
       nixosModules.services.derp
       # nixosModules.services.stun
       nixosModules.matrix.matrix-rtc
@@ -32,6 +34,20 @@
     ];
 
   # ── 分布式 Nextcloud Talk HPB 边缘数据/信令面 ────────────────
+  services.livekitSuite = {
+    redis.enable = false;
+    web.enable = false;
+    _meta = {
+      domain = "livekit-sjc0.dora.im";
+      turnDomain = "livekit-turn-sjc0.dora.im";
+      publicIpv4 = "45.143.130.230";
+      publicIpv6 = "2604:a840:101:2d9::a";
+      privateAddress = "sjc0.ts";
+      region = "us-west";
+      latitude = 37.3382;
+      longitude = -121.8863;
+    };
+  };
   services.nextcloud-talk-edge = {
     enable = true;
   };

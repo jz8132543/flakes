@@ -10,6 +10,7 @@
     nixosModules.cloud.all
     ++ nixosModules.users.tippy.all
     ++ nixosModules.services.networking.dn42.all
+    ++ nixosModules.services.ctyun-dashboard.all
     ++ [
       ./hardware-configuration.nix
       nixosModules.optimize.minimal
@@ -19,9 +20,26 @@
       # nixosModules.services.derp
       nixosModules.services.haproxy-proxy
       nixosModules.nextcloud.talk-edge
+      nixosModules.services.livekit.all
+      ../../modules/services/livekit-suite/infrastructure.nix
     ];
 
   optimize.brutal.target = "!cn";
+  services.ctyun-dashboard.enable = true;
+  services.livekitSuite = {
+    redis.enable = false;
+    web.enable = false;
+    _meta = {
+      domain = "livekit-cu.dora.im";
+      httpsPort = config.environment.altHTTPS;
+      turnDomain = "livekit-turn-cu.dora.im";
+      publicIpv6 = "2408:8207:25b1:2701:6666:16:3efc:9adf";
+      privateAddress = "cu.ts";
+      region = "cn";
+      latitude = 35.0;
+      longitude = 105.0;
+    };
+  };
 
   services.nextcloud-talk-edge = {
     # cu 拥有独立公网 IPv6 地址，仅启用 IPv6 模式（拓扑参数继承自 data.nix）

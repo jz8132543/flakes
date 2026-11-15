@@ -11,7 +11,11 @@ let
   # Fix infinite recursion by importing lib locally instead of via self
   selfLib = import ../lib { inherit inputs lib; };
   rawNixosModules = selfLib.rake ../nixos/modules;
-  nixosModules = rawNixosModules;
+  nixosModules = rawNixosModules // {
+    services = rawNixosModules.services // {
+      livekit = import ../nixos/modules/services/livekit-suite;
+    };
+  };
   hmModules = selfLib.rake ../home-manager/modules;
   overlays = import ../lib/overlays.nix { inherit inputs lib self; };
 

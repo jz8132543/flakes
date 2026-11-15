@@ -433,6 +433,7 @@ let
 
     tun = {
       enable = true;
+      device = "Meta";
       stack = "system";
       auto-redirect = true;
       auto-route = true;

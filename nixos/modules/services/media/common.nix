@@ -24,7 +24,8 @@
       "Z /data/.state/lidarr 0777 lidarr media -"
       # "Z /data/.state/sabnzbd 0777 sabnzbd media -"
       "Z /data/.state/recyclarr 0777 recyclarr media -"
-      "Z /data/.state/autobrr 0777 autobrr media -"
+      # TODO: Remove when Autobrr's module creates its external SQLite directory; Z only changes permissions.
+      "d /data/.state/autobrr 0750 autobrr media -"
       "Z /data/.state/vertex 0777 root media -"
       "d /data/.state/iyuu 0777 root media -"
       "d /data/.state/tdarr 0777 root media -"

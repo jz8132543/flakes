@@ -7,7 +7,12 @@
 }:
 let
   selfLib = import ../lib { inherit inputs lib; };
-  nixosModules = selfLib.rake ../nixos/modules;
+  rawNixosModules = selfLib.rake ../nixos/modules;
+  nixosModules = rawNixosModules // {
+    services = rawNixosModules.services // {
+      livekit = import ../nixos/modules/services/livekit-suite;
+    };
+  };
 
   confNames = lib.filter (
     name: builtins.pathExists (../nixos/hosts + "/${name}")

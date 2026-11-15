@@ -29,6 +29,14 @@ let
       owned = true;
     };
     fra0 = {
+      key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
+      owned = true;
+    };
+    cu = {
+      key = "age1yrns84azc959kqy3lwh0jqxjlg98lf4mlccx8v3q9d4rphpy4e8s2sprwg";
+      owned = true;
+    };
+    sjc0 = {
       key = "age127t53m8m75mnxru8s8la5fxtah5tpa03s6eeh5kqxvzj6y5f9d4swddyrc";
       owned = true;
     };

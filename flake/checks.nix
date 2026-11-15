@@ -18,6 +18,43 @@ let
     lib.mapAttrsToList getHostToplevel config.flake.nixosConfigurations
   );
   fra0Pkgs = config.flake.nixosConfigurations.fra0.pkgs;
+  livekitSuiteTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."livekit-suite-test" =
+      let
+        lazy = import ../nixos/modules/services/livekit-suite/test-discovery.nix { inherit lib; };
+        cfg = config.flake.nixosConfigurations.fra0.config.services.livekitSuite;
+        hosts = map (name: config.flake.nixosConfigurations.${name}.config.services.livekitSuite) [
+          "fra0"
+          "cu"
+          "sjc0"
+        ];
+      in
+      assert lazy.noPackages && lazy.colmena;
+      assert cfg.topology.primary.name == "fra0";
+      assert builtins.length cfg.topology.sfuNodes == 3;
+      assert builtins.length cfg.topology.turnServers == 9;
+      assert builtins.length cfg.topology.redisNodes == 1;
+      assert lib.all (host: host.sfu.enable && host.turn.enable && !host.development) hosts;
+      fra0Pkgs.runCommand "livekit-suite-test"
+        {
+          nativeBuildInputs = with fra0Pkgs; [
+            python3
+            nodejs
+            livekit
+            coturn
+            redis
+          ];
+        }
+        ''
+          cp -r ${../nixos/modules/services/livekit-suite} suite
+          chmod -R u+w suite
+          python3 -B suite/test-runtime.py -v
+          python3 -B suite/test-android-control.py -v
+          node --check suite/frontend/app.js
+          python3 -B suite/test-services.py
+          touch "$out"
+        '';
+  };
   hpbTest = {
     "${fra0Pkgs.stdenv.hostPlatform.system}"."nextcloud-hpb-test" =
       fra0Pkgs.runCommand "nextcloud-hpb-test"
@@ -170,6 +207,163 @@ let
         printf '%s\n' "$result" > "$out"
       '';
   };
+  newApiResponsesPolicyTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."new-api-responses-policy-test" =
+      let
+        host = config.flake.nixosConfigurations.fra0;
+        cfg = host.config;
+        policy = cfg.services.new-api.chatCompletionsToResponses;
+        variant =
+          value:
+          (host.extendModules {
+            modules = [ { services.new-api.chatCompletionsToResponses = lib.mkForce value; } ];
+          }).config;
+        valid =
+          value:
+          lib.all (
+            item: item.assertion || !(lib.hasPrefix "services.new-api.chatCompletionsToResponses:" item.message)
+          ) (variant value).assertions;
+        unmanaged = variant null;
+        disabled = variant { enable = false; };
+        defaults = variant { };
+        custom = variant {
+          enable = true;
+          allChannels = false;
+          channelIds = [ 17 ];
+          channelTypes = [ 1 ];
+          modelPatterns = policy.modelPatterns ++ [
+            "^alias's[.]name\\\\path\"[$](suffix)?$"
+            "^alias[\n\t]$"
+          ];
+        };
+        invalidRegex = variant {
+          enable = true;
+          modelPatterns = [ "(?=unsupported-lookahead)" ];
+        };
+        fixture = conf: {
+          policy = conf.services.new-api.chatCompletionsToResponses;
+          # Only test the emitted text, not builds referenced by unrelated bootstrap steps.
+          script = builtins.unsafeDiscardStringContext conf.systemd.services.new-api-bootstrap.script;
+        };
+        script = cfg.systemd.services.new-api-bootstrap.script;
+      in
+      assert cfg.services.new-api.enable && !(cfg.services.ai.litellm.enable or false);
+      assert !(builtins.hasAttr "litellm" cfg.virtualisation.oci-containers.containers);
+      assert cfg.services.new-api.domain == "api.dora.im";
+      assert host.options.services.new-api.chatCompletionsToResponses.default == { };
+      assert policy.enable && policy.allChannels;
+      assert policy.channelIds == [ ] && policy.channelTypes == [ ];
+      assert policy == defaults.services.new-api.chatCompletionsToResponses;
+      assert builtins.length policy.modelPatterns == 4;
+      assert valid null && valid { } && valid { enable = true; };
+      assert valid {
+        enable = true;
+        allChannels = false;
+        channelIds = [ 17 ];
+      };
+      assert valid {
+        enable = true;
+        allChannels = false;
+        channelTypes = [ 1 ];
+      };
+      assert
+        !(valid {
+          enable = true;
+          allChannels = false;
+        });
+      assert lib.all
+        (
+          patterns:
+          !(valid {
+            enable = true;
+            modelPatterns = patterns;
+          })
+        )
+        [
+          [ ]
+          [ "" ]
+          [ " \t\r\n" ]
+          [
+            "^valid$"
+            " "
+          ]
+        ];
+      assert valid {
+        enable = false;
+        allChannels = false;
+        modelPatterns = [ ];
+      };
+      assert lib.all (text: lib.hasInfix text script) [
+        ''upsert_opt "RegisterEnabled" "false"''
+        ''upsert_opt "PasswordRegisterEnabled" "false"''
+        ''upsert_opt "PasswordLoginEnabled" "true"''
+        "SYNC_FREQUENCY"
+      ];
+      assert !(lib.hasInfix "systemctl restart" script);
+      fra0Pkgs.runCommand "new-api-responses-policy-test"
+        {
+          nativeBuildInputs = [
+            fra0Pkgs.go
+            cfg.services.postgresql.package
+          ];
+          fixtures = fra0Pkgs.writeText "new-api-responses-policy-fixtures.json" (
+            builtins.toJSON (
+              lib.mapAttrs (_: fixture) {
+                fra0 = cfg;
+                inherit
+                  unmanaged
+                  disabled
+                  custom
+                  invalidRegex
+                  defaults
+                  ;
+              }
+            )
+          );
+        }
+        ''
+          export HOME="$TMPDIR" GOCACHE="$TMPDIR/go-cache" GO111MODULE=off
+          export PGHOST="$PWD" PGPORT=55432 PGDATABASE=new_api
+          initdb -D pg --auth=trust --no-locale >/dev/null
+          trap 'pg_ctl -D pg -m immediate -w stop >/dev/null' EXIT
+          pg_ctl -D pg -o "-k $PWD -h \"\" -p $PGPORT" -w start >/dev/null
+          createdb new_api
+          go run ${../tests/new-api-responses-policy-test.go} "$fixtures"
+          touch "$out"
+        '';
+  };
+  workbuddyTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."workbuddy2api-hub-test" =
+      let
+        cfg = config.flake.nixosConfigurations.fra0.config;
+        gateway = cfg.services.workbuddy2api-hub;
+        container = cfg.virtualisation.oci-containers.containers.workbuddy2api-hub;
+        proxy = cfg.services.traefik.proxies.workbuddy2api-hub;
+        env = cfg.sops.templates."workbuddy2api-hub-env";
+      in
+      assert lib.assertMsg (
+        gateway.enable
+        && gateway.domain == "workbuddy.dora.im"
+        && container.ports == [ "127.0.0.1:${toString gateway.port}:8788" ]
+        && lib.hasInfix "--lan >/dev/null" (lib.concatStringsSep " " container.cmd)
+        && container.environment.WB_MEDIA_DIR == "/app/usage/media"
+        && container.environmentFiles == [ env.path ]
+        && env.mode == "0600"
+        && lib.hasInfix cfg.sops.placeholder.openai_api_key env.content
+        && proxy.rule == "Host(`${gateway.domain}`)"
+        && proxy.target == "http://127.0.0.1:${toString gateway.port}"
+        && builtins.elem "https://${gateway.domain}/health" cfg.services.cluster-monitoring.server.publicEndpoints
+        && builtins.elem gateway.dataDir cfg.environment.global-persistence.directories
+        && builtins.elem gateway.dataDir cfg.services.restic.backups.borgbase.paths
+      ) "WorkBuddy must use SOPS credentials, loopback-only publishing and persistent data";
+      fra0Pkgs.runCommand "workbuddy2api-hub-test" { nativeBuildInputs = [ fra0Pkgs.python3 ]; } ''
+        mkdir -p tests nixos/modules/services/ai/gateway
+        cp ${../tests/test-workbuddy2api-hub.py} tests/test-workbuddy2api-hub.py
+        cp ${../nixos/modules/services/ai/gateway/workbuddy2api-hub-init.py} nixos/modules/services/ai/gateway/workbuddy2api-hub-init.py
+        python3 -B tests/test-workbuddy2api-hub.py -v
+        touch "$out"
+      '';
+  };
   dn42SdwanTest = {
     "${fra0Pkgs.stdenv.hostPlatform.system}"."dn42-sdwan-state-test" =
       let
@@ -256,6 +450,7 @@ in
 {
   flake.checks = lib.foldr lib.recursiveUpdate { } [
     hostToplevels
+    livekitSuiteTest
     hpbTest
     tsshTest
     tsshPolicyTest
@@ -263,6 +458,8 @@ in
     hostIndependenceTest
     grafanaRuntimeHostsTest
     aiRegistrationTest
+    newApiResponsesPolicyTest
+    workbuddyTest
     dn42SdwanTest
     tcpBrutalRoutingTest
   ];

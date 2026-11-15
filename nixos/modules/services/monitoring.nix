@@ -96,6 +96,7 @@ in
         "https://pb.${config.networking.domain}"
         "https://reader.${config.networking.domain}"
         "https://api.${config.networking.domain}"
+        "https://workbuddy.${config.networking.domain}/health"
         "https://sub.${config.networking.domain}"
         "https://chat.${config.networking.domain}"
         "https://mcp.${config.networking.domain}"

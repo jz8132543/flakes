@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="referrer" content="no-referrer" />
+    <title>LiveKit 屏幕工作台</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script defer src="/livekit-client.umd.js"></script>
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <header class="masthead">
+      <div>
+        <p class="eyebrow">SELF-HOSTED / LIVEKIT 2.23.0</p>
+        <h1>屏幕工作台</h1>
+      </div>
+      <p id="connectionStatus" class="status" role="status">正在载入配置</p>
+    </header>
+    <main>
+      <section class="panel connection" aria-labelledby="joinTitle">
+        <div class="section-heading">
+          <h2 id="joinTitle">01 / 加入房间</h2>
+          <span>屏幕、系统声音与语音独立传输</span>
+        </div>
+        <form id="joinForm" autocomplete="off">
+          <label
+            >房间名<input
+              id="roomName"
+              value="screen-room"
+              required
+              maxlength="64"
+              pattern="[A-Za-z0-9_-]{1,64}"
+              spellcheck="false"
+              aria-describedby="roomHint"
+          /></label>
+          <label
+            >接入节点<select id="nodeSelect" disabled>
+              <option value="">主节点（默认）</option>
+            </select></label
+          >
+          <label
+            >加入密钥<input
+              id="joinKey"
+              type="password"
+              required
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="仅用于本次认证"
+          /></label>
+          <button id="joinButton" type="submit" class="primary" disabled>
+            加入房间
+          </button>
+          <button id="leaveButton" type="button" disabled>离开</button>
+        </form>
+        <p id="roomHint" class="hint">
+          房间名限 1–64
+          位英文字母、数字、下划线或连字符。默认使用主节点；也可明确选择任意节点，同名房间由共享
+          Redis 集群路由。
+        </p>
+        <div class="session-info">
+          <span>本机身份 <code id="identity">未连接</code></span
+          ><span>凭证到期 <code id="expiresAt">未获取</code></span>
+        </div>
+        <p id="errorMessage" class="error" role="alert" hidden></p>
+        <p id="noticeMessage" class="notice" role="status" hidden></p>
+      </section>
+
+      <div class="workspace">
+        <section class="screen-panel panel" aria-labelledby="viewTitle">
+          <div class="section-heading">
+            <h2 id="viewTitle">02 / 屏幕视图</h2>
+            <button id="fullscreenButton" type="button">全屏视图</button>
+          </div>
+          <label class="target-label"
+            >观看 / 触控目标（远端 identity）<select
+              id="remoteParticipant"
+              disabled
+            >
+              <option value="">选择远端参与者；未选择时显示本机预览</option>
+            </select></label
+          >
+          <div id="screenStage" class="screen-stage">
+            <video
+              id="screenVideo"
+              autoplay
+              playsinline
+              muted
+              aria-label="当前选中的共享屏幕"
+            ></video>
+            <div id="screenPlaceholder" class="screen-placeholder">
+              <span class="crosshair" aria-hidden="true"></span>
+              <p>等待共享屏幕</p>
+              <small>加入房间后选择远端参与者，或共享自己的屏幕。</small>
+            </div>
+            <div
+              id="touchSurface"
+              class="touch-surface"
+              aria-hidden="true"
+            ></div>
+            <span id="controlBadge" class="control-badge" hidden
+              >触控发送中</span
+            >
+          </div>
+          <div class="view-footer">
+            <span id="viewIdentity">尚无屏幕</span
+            ><button id="startPlaybackButton" type="button" disabled>
+              启用声音 / 播放
+            </button>
+          </div>
+          <dl class="telemetry">
+            <div>
+              <dt>实际编码</dt>
+              <dd id="actualCodec">等待统计</dd>
+            </div>
+            <div>
+              <dt>实际画面</dt>
+              <dd id="actualResolution">等待统计</dd>
+            </div>
+            <div>
+              <dt>视频 RTP 速率</dt>
+              <dd id="actualBitrate">等待统计</dd>
+            </div>
+            <div>
+              <dt>传输状态</dt>
+              <dd id="transportStatus">未连接</dd>
+            </div>
+          </dl>
+          <p class="hint">
+            统计来自当前屏幕轨道，不是目标值或整个房间总带宽。多层发送可能增加上行；分辨率、帧率、编码与速率以设备、浏览器、SFU
+            协商及拥塞控制为准。
+          </p>
+        </section>
+
+        <aside class="settings">
+          <section class="panel" aria-labelledby="shareTitle">
+            <div class="section-heading">
+              <h2 id="shareTitle">03 / 发布设置</h2>
+              <span>下次共享生效</span>
+            </div>
+            <div class="field-grid">
+              <label
+                >目标分辨率<select id="resolution">
+                  <option value="1080">1920 × 1080</option>
+                  <option value="1440">2560 × 1440</option>
+                  <option value="2160">3840 × 2160</option>
+                </select></label
+              >
+              <label
+                >目标帧率<select id="frameRate">
+                  <option value="60">60 fps</option>
+                  <option value="120">120 fps</option>
+                </select></label
+              >
+              <label
+                >内容提示<select id="contentHint">
+                  <option value="detail">细节 / 文字</option>
+                  <option value="motion">运动 / 视频</option>
+                </select></label
+              >
+              <label
+                >编码策略<select id="codecSelect">
+                  <option value="auto">按配置自动选择</option>
+                </select></label
+              >
+            </div>
+            <p id="codecSupport" class="hint">正在检查发送与接收能力</p>
+            <label class="check"
+              ><input
+                id="limitBitrate"
+                type="checkbox"
+              />设置有限的视频编码速率上限</label
+            >
+            <label class="range-label" for="maxBitrate"
+              >主视频层上限
+              <output id="bitrateValue" for="maxBitrate">12 Mbps</output></label
+            >
+            <input
+              id="maxBitrate"
+              type="range"
+              min="1"
+              max="80"
+              step="1"
+              value="12"
+              disabled
+            />
+            <p class="hint">
+              不勾选时不传入视频 encoding 上限，沿用 SDK
+              自适应默认值，并非无限带宽。有限上限不是多层、备用编码及音频的合计带宽保证。
+            </p>
+            <label class="check"
+              ><input
+                id="includeScreenAudio"
+                type="checkbox"
+                checked
+              />采集共享屏幕 / 标签页声音</label
+            >
+            <div class="actions">
+              <button id="shareButton" type="button" class="primary" disabled>
+                共享屏幕</button
+              ><button id="micButton" type="button" disabled>
+                开启语音麦克风
+              </button>
+            </div>
+            <p id="audioSettings" class="hint">
+              系统声音与麦克风为两条独立音轨。
+            </p>
+            <p class="hint">
+              麦克风默认关闭；静音只影响语音。系统音频是否可采集取决于浏览器、操作系统和所选共享源，通常需在选择器中勾选声音。采集需要
+              HTTPS 或 localhost。
+            </p>
+          </section>
+
+          <section class="panel control-panel" aria-labelledby="controlTitle">
+            <div class="section-heading">
+              <h2 id="controlTitle">04 / 触控数据</h2>
+              <span id="contactCount">0 / 10</span>
+            </div>
+            <p class="warning">
+              默认关闭。本网页只发送触控快照，不直接控制 Android
+              或其他远端系统。接收端必须有经用户授权的原生桥接，绑定下方会话
+              UUID 与本机 identity，并校验发送者、序号和目标。
+            </p>
+            <label
+              >控制会话 UUID<input
+                id="controlSession"
+                class="session-id"
+                readonly
+                value="连接后生成"
+                aria-describedby="grantHint"
+            /></label>
+            <p id="grantHint" class="hint">
+              此 UUID
+              不是授权令牌。请在原生端明确授予本会话控制权限；网页勾选不代表远端已同意。
+            </p>
+            <label class="check"
+              ><input
+                id="controlConsent"
+                type="checkbox"
+                disabled
+              />我已取得所选远端授权，且原生桥接已绑定本会话和身份</label
+            >
+            <button id="controlButton" type="button" disabled>
+              启用触控发送
+            </button>
+            <p id="controlStatus" class="hint" role="status">
+              触控关闭；仅屏幕内容区域接受指针，黑边不接受触摸。
+            </p>
+            <p id="controlSettings" class="hint">
+              完整快照 / 不可靠 DataChannel / 最多 10 点
+            </p>
+            <p class="hint">
+              原生接收端须拒绝未授权或过期会话、乱序包、非法坐标与重复触点，并在看门狗超时后释放全部触点。离开、失焦、隐藏页面或切换目标会停止发送；网络丢包和后台限频仍需原生看门狗兜底。
+            </p>
+          </section>
+        </aside>
+      </div>
+      <footer class="panel caveats">
+        <p>
+          连接说明：临时 TURN 凭据仅由
+          <code>/api/session</code>
+          返回，不保存密钥或令牌到浏览器存储。凭证到期后若重连失败，需要再次输入密钥加入；本页不保留密钥用于后台续签。ICE
+          选项在 <code>room.connect</code> 中提交，但 SDK / 服务端可能替换
+          <code>iceServers</code>；填写并不保证最终使用该列表。
+        </p>
+        <p>
+          编码说明：自动模式按配置优先级筛选本机发送与接收均支持的 LiveKit
+          编码。H.265 不保证硬件加速；仅 AV1 / VP9 使用 SVC，其他编码使用可用的
+          simulcast 回退。2.23.0 对屏幕 SVC 可能降为 L1T3 并将内容提示改为
+          motion。H.264 备用编码也须本机支持；远端支持情况由 SFU
+          协商决定。本页不修改 SDP 或关闭拥塞控制。
+        </p>
+      </footer>
+      <div id="audioContainer" hidden></div>
+    </main>
+  </body>
+</html>

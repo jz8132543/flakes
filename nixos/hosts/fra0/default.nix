@@ -1,5 +1,6 @@
 {
   nixosModules,
+  options,
   lib,
   ...
 }:
@@ -14,6 +15,8 @@
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
+      nixosModules.services.livekit.all
+      ../../modules/services/livekit-suite/infrastructure.nix
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.dev
       nixosModules.optimize.anti-balloon
@@ -71,6 +74,20 @@
     ];
 
   services.moviepilot.enable = true;
+  services.cluster-monitoring.server.publicEndpoints =
+    options.services.cluster-monitoring.server.publicEndpoints.default
+    ++ [ "https://livekit.dora.im/healthz" ];
+  services.livekitSuite._meta = {
+    primary = true;
+    domain = "livekit.dora.im";
+    turnDomain = "livekit-turn.dora.im";
+    publicIpv4 = "94.249.174.75";
+    publicIpv6 = "2a0e:6a80:3:b60::";
+    privateAddress = "fra0.ts";
+    region = "eu-central";
+    latitude = 50.1109;
+    longitude = 8.6821;
+  };
   services.ai.openhands-agent-canvas.enable = true;
   # services.ai.litellm.enable = true;
 
@@ -104,6 +121,7 @@
     };
   };
   services.cpa.enable = true;
+  services.workbuddy2api-hub.enable = true;
   services.degoog.enable = true;
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;

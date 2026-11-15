@@ -36,6 +36,8 @@ in
       DynamicUser = lib.mkForce false;
       User = lib.mkForce "autobrr";
       Group = lib.mkForce "media";
+      # TODO: Remove this credential bridge when the upstream module supports the SOPS session secret directly.
+      LoadCredential = [ "sessionSecret:${config.sops.secrets."media/autobrr_session_token".path}" ];
       ExecStartPre = lib.mkForce [ autobrrConfigScript ];
       ReadWritePaths = [
         "/data/.state/autobrr"
@@ -43,6 +45,9 @@ in
       ];
       UMask = "0002";
     };
+    systemd.services.autobrr.after = [ "sops-install-secrets.service" ];
+    systemd.services.autobrr.requires = [ "sops-install-secrets.service" ];
+    sops.secrets."media/autobrr_session_token".restartUnits = [ "autobrr.service" ];
 
     users.users.autobrr = {
       isSystemUser = true;

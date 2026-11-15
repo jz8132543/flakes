@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "checked_at": "2026-11-05",
-  "latest_status_section": "final_20261107",
-  "historical_snapshot_scope": "All prior sections, including gemini_cutover_20261106, retain historical observations, failures, pending fields, cleanup flags and hashes from their own checkpoints. They do not override final_20261107. Final current-graph acceptance, native Studio saving, boot-only persistence registration and cleanup are complete; physical reboot was not performed.",
-  "full_goal_complete": true,
+  "latest_status_section": "recruitment_followup_20261107",
+  "historical_snapshot_scope": "final_20261107 remains a true historical 181-test/nine-scenario success with its actual graph hashes, boot registration and 01:40 cleanup; it never proved all possible questions correct. A later user counterexample changed the evidence/unit contract. Read recruitment_followup_20261107 for the deployed targeted correction, real results and new cleanup; broader live regression remains blocked by model HTTP 503. Prior snapshots are preserved, not rewritten as failures or current results.",
+  "full_goal_complete": false,
   "target": "fra0",
   "studio_origin": "https://chat.dora.im",
   "api_origin": "http://127.0.0.1:5001",
@@ -1977,6 +1977,406 @@
       "Provider availability and latency can vary",
       "Physical reboot has not been tested; registered boot configuration and unchanged running system are separately proven"
     ]
+  },
+  "recruitment_followup_20261107": {
+    "checked_at": "2026-11-07",
+    "status": "targeted-fix-verified-and-cleaned-broader-live-regression-provider-blocked",
+    "full_goal_complete": false,
+    "targeted_acceptance_passed": true,
+    "broader_live_regression_passed": false,
+    "evidence_scope": "Root-reported 04:02 UTC handoff plus the later second full-suite provider failure, with local source/original-record inspection only. No SSH/runtime/model calls or other file/code edits by the documentation editor. Prior final_20261107 remains historical success, not blanket correctness or a seal for this changed graph.",
+    "unchanged_deployment": {
+      "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+      "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+      "model_alias": "kaogong-gemini-3.8-flash-high",
+      "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+      "five_llms_same_model": true,
+      "native_node_count": 18,
+      "code_retry": {
+        "count": 7,
+        "retry_enabled": true,
+        "max_retries": 2,
+        "retry_interval_ms": 1000
+      },
+      "teacher_llm_retry": { "max_retries": 5, "retry_interval_ms": 5000 },
+      "other_llm_retry": { "max_retries": 2, "retry_interval_ms": 2000 },
+      "iteration_parallel_nums": 3,
+      "new_app_created": false,
+      "knowledge_imports": 0,
+      "model_configuration_or_key_changed": false,
+      "enable_site": false,
+      "enable_api": false,
+      "published": false,
+      "boot_registration_changed": false,
+      "boot_registration_reference": "final_20261107.boot_registration",
+      "native_next_boot_registration_still_complete": true,
+      "physical_reboot_performed": false
+    },
+    "original_counterexample": {
+      "run_id": "158532f6-5de3-4c0d-a91d-0a1d22fb314e",
+      "persisted_created_at": "2026-11-07T02:19:54.569526",
+      "persisted_finished_at": "2026-11-07T02:23:54.968689",
+      "reported_timezone": "UTC",
+      "workflow_status": "succeeded",
+      "all_node_executions_succeeded": true,
+      "exceptions_count": 0,
+      "original_question_prefix": " 66. ",
+      "original_text_preserved": true,
+      "jobseekers": 300,
+      "capacities": [100, 80, 70, 50],
+      "threshold": 70,
+      "actual_solver_choice": "C",
+      "actual_solver_answer": 258,
+      "actual_solver_reasoning": "69+69+69+50+1",
+      "actual_review_flags_all_true": true,
+      "render_answer_accepted": false,
+      "missing_original_prerequisite": "Original calculations began with 69+69 without a prior 70-1 calculation record.",
+      "original_unit_mismatch": "Solver used dimensionless 50, while the old extractor exposed 50 only with person unit.",
+      "root_cause": "Output/arithmetic-evidence contract plus count-unit extraction defect, not an invalid user question, inability of the model to solve it, or teacher no-match.",
+      "execution_success_is_answer_acceptance": false,
+      "local_original_record": "/tmp/kilo/dify-recruitment-run.json",
+      "private_record_locator": "repair-20261106/persisted-158...json for the complete workflow ID above; abbreviated filename, not a fabricated exact path"
+    },
+    "original_offline_diagnosis": {
+      "script": "/tmp/kilo/recruitment-replay.py",
+      "actual_record_replayed": true,
+      "new_model_calls": 0,
+      "error_type": "ValueError",
+      "exact_error": "invented arithmetic operand or unit",
+      "old_available_69_dimensionless": false,
+      "old_available_50_dimensionless": false,
+      "old_available_50_persons": true,
+      "limitation": "Diagnosis describes the original runtime. The temporary script imports current source, so historical reproduction requires fixing the intended source version, not assuming today's extractor still produces the old set."
+    },
+    "runtime_changes": {
+      "file": "conf/dify-kaogong/teacher_nodes.py",
+      "applied_to_same_existing_app": true,
+      "unit_extraction": {
+        "shared_tail_unit_resolved_before_individual_tokens": true,
+        "enumeration_separators": ["、", "，", ",", "和", "及", "与"],
+        "example": "100、80、70和50人 yields all four typed person values, not blank-unit aliases from partial extraction.",
+        "money_or_scaled_enumerations_leak_untyped_values": false,
+        "person_alias": "名 -> 人, except ordinal 第...名",
+        "original_question_or_numbering_rewritten": false,
+        "optional_dimensionless_count_alias": "Only when the set of all recognized nonempty question units contains exactly one of 人/件/个/家/户; only nonnegative integer magnitudes of that count unit gain a dimensionless alias.",
+        "typed_count_boundary_constants": "0 and 1 may carry a count unit actually present in the question. This does not grant arbitrary typed constants or strip mixed units.",
+        "money_scaled_distance_or_multiple_units_stripped": false
+      },
+      "review_schema": {
+        "teacher_exact_keys": [
+          "passed",
+          "issues",
+          "facts_supported",
+          "method_applicable",
+          "calculations_consistent",
+          "word_limit_satisfied"
+        ],
+        "teacher_calculation_prefix_field_allowed": false,
+        "general_required_keys": [
+          "passed",
+          "issues",
+          "facts_supported",
+          "method_applicable",
+          "calculations_consistent",
+          "word_limit_satisfied",
+          "reviewed_steps"
+        ],
+        "general_optional_key": "calculation_prefix",
+        "new_prompt_field_count": 8,
+        "old_seven_key_review_accepted": true,
+        "absent_prefix_default": [],
+        "explicit_json_null_prefix_accepted": false,
+        "other_unknown_keys_accepted": false,
+        "all_boolean_flags_and_empty_issues_still_required": true
+      },
+      "calculation_prefix": {
+        "schema": "List of 0-16 complete operation/operands/result records, using the same exact arithmetic result metadata and validation as original calculations.",
+        "maximum_prefix_items": 16,
+        "maximum_prefix_plus_original_items": 40,
+        "allowed_operations": ["add", "subtract", "multiply", "divide"],
+        "nonempty_prefix_scope": "General answered solution with nonempty original calculations only; not teacher branches, skip/not_needed or a replacement for missing original proof.",
+        "validation_order": "Strictly validate the prefix first in order, then all original calculations in original order. Each operand comes from question/legal constants or already checked prior results, never future dependencies.",
+        "results_feed_operand_available_set": true,
+        "results_feed_final_answer_computed_set": false,
+        "prefix_alone_can_launder_answer": false,
+        "wrong_original_result_can_be_repaired_by_prefix": false,
+        "prefix_can_satisfy_required_growth_operation": false,
+        "growth_requirement_checks_original_calculations_only": true,
+        "original_answer_steps_material_quotes_and_calculations_modified": false,
+        "separate_display_heading": "补充前置计算（独立复核提出，程序复算）：",
+        "proof_scope": "Bounded provenance/unit/arithmetic consistency, not semantic/modeling correctness proof."
+      },
+      "existing_protections_retained": [
+        "Non-math-only reviewed_steps editing and first standalone multiple-choice explanation",
+        "Immutable original mathematical steps",
+        "Original answer/material/evidence/calculation records",
+        "Exact Decimal values and metadata checks",
+        "Bounded simple-fraction consistency, not symbolic proof",
+        "Teacher source/condition and general review gates"
+      ],
+      "question_specific_258_or_69_hardcoded_in_workflow": false,
+      "prompt_change_scope": "Require explicit operations establishing derived operands, consistent units and count boundary 1, with generic threshold-minus-one reminder and optional prefix schema.",
+      "safe_validation_categories": {
+        "invented arithmetic operand or unit": "计算链中有未建立来源的操作数，或单位表示不一致；需要补齐前置计算，文字解释不能替代计算记录",
+        "arithmetic result mismatch": "模型计算结果与程序复算不一致",
+        "arithmetic metadata mismatch": "计算的操作、单位、精度或舍入信息不一致",
+        "math answer lacks checked arithmetic": "数学答案缺少可复算的计算记录",
+        "answer numeric claims not grounded in checked calculation": "正式答案中的数值尚未得到原计算记录的支持",
+        "calculation prefix cannot replace original proof": "补充前置计算不能代替原计算记录，也不能用于老师分支",
+        "calculation prefix requires basic arithmetic": "补充前置计算只能使用受限四则运算"
+      },
+      "arbitrary_raw_exception_or_secret_displayed": false
+    },
+    "offline_verification": {
+      "reported_at_utc": "2026-11-07T03:24:28Z",
+      "passed": true,
+      "knowledge": 36,
+      "teacher_runtime_and_graph": 70,
+      "base_and_cli": 99,
+      "total": 205,
+      "original_teacher_tests_retained": 46,
+      "new_teacher_tests": 24,
+      "coverage": [
+        "Shared-unit extraction and person alias/ordinal distinction",
+        "Count normalization versus money/scaled/distance/multiunit restrictions",
+        "Original and independent threshold/capacity scenarios",
+        "Prefix four-operation, 16-prefix/40-total boundaries",
+        "Wrong result and original-data immutability",
+        "Future dependency and final-answer/growth laundering rejection",
+        "Teacher-prefix prohibition",
+        "Absent/empty/null/invalid prefix shape and safe Chinese diagnostics"
+      ],
+      "runtime_and_tests_full_ruff_passed": true,
+      "final_whole_project_static_result": {
+        "passed": true,
+        "scope": "CLI, knowledge helper, native probe, conf/dify-kaogong and all three test files; full repository Ruff rules, only teacher_nodes.py F821 exempt as a composed fragment"
+      },
+      "limitation": "The complete offline suite and static checks passed; neither is a full live workflow acceptance result."
+    },
+    "new_native_workflow_cases": [
+      {
+        "case": "original-recruitment-question",
+        "reported_at_utc": "2026-11-07T03:26:02Z",
+        "run_id": "deff4f65-3193-4a8a-97ed-5ab19028b64b",
+        "workflow_status": "succeeded",
+        "answer_choice": "C",
+        "answer": 258,
+        "original_full_question_and_prefix_preserved": true,
+        "actual_solver_first_calculation": "70人-1人=69人",
+        "subsequent_additions": 4,
+        "review_field_count": 8,
+        "review_flags_passed": true,
+        "calculation_prefix": [],
+        "full_solver_review_renderer_path_passed": true,
+        "evidence": "/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/recruitment.json"
+      },
+      {
+        "case": "independent-ball-capacity-variant",
+        "reported_at_utc": "2026-11-07T03:31:08Z",
+        "run_id": "e4c9c88a-d68f-4a18-bc2a-08953143eb92",
+        "workflow_status": "succeeded",
+        "capacities": [80, 60, 25, 10],
+        "threshold": 45,
+        "actual_derived_operand_recorded": "45-1=44",
+        "answer_choice": "B",
+        "answer": 124,
+        "full_solver_review_renderer_path_passed": true,
+        "evidence": "/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/recruitment-variant.json"
+      }
+    ],
+    "live_prefix_component_proof": {
+      "evidence": "/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/proof-replay.json",
+      "actual_current_dify_plugin_reviewer_invoked": true,
+      "same_current_model_and_node_parameters": true,
+      "input_solver_json": "Unmodified actual solver JSON from failed run 158532f6-5de3-4c0d-a91d-0a1d22fb314e",
+      "fresh_solver_invoked": false,
+      "fake_solver_output": false,
+      "new_reviewer_prefix": {
+        "operation": "subtract",
+        "left": "70",
+        "right": "1",
+        "result": "69.00",
+        "unit": ""
+      },
+      "exact_deployed_host_validation_and_renderer_passed": true,
+      "original_C_258_answer_unchanged": true,
+      "separate_prerequisite_proof_displayed": true,
+      "fresh_native_whole_workflow_run": false,
+      "scope": "Real new model REVIEW plus deployed host-runtime component test, not a fresh solver or end-to-end native workflow."
+    },
+    "full_regression_attempt": {
+      "directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794022726078998465",
+      "status": "failed",
+      "summary": {
+        "run_id": "eda61b55-d0b8-46d3-beed-8be37420652e",
+        "status": "succeeded",
+        "teacher_ids_answered": ["li-mengyuan", "yuan-dong"]
+      },
+      "next_quantity_case": {
+        "run_id": "6c3dd501-f9dd-4fbb-badd-07c343f33ec4",
+        "started_at_utc": "2026-11-07T03:44:52Z",
+        "finished_at_utc": "2026-11-07T03:45:08Z",
+        "failed_llm_invocations": 3,
+        "default_value": "model_failure"
+      },
+      "read_only_error_diagnosis": {
+        "error_types": ["PluginInvokeError", "InvokeError"],
+        "observed_http_status": 503,
+        "actual_client_restriction_identified": false
+      },
+      "failure_record_preserved": true,
+      "full_suite_passed": false
+    },
+    "later_bounded_availability_probe": {
+      "reported_time_utc": "2026-11-07 03:57 UTC",
+      "path": "Actual Dify ModelManager",
+      "query": "13+8",
+      "raw_json_answer": 21,
+      "passed": true,
+      "configuration_or_key_changed": false,
+      "limitation": "This short invocation recovered, but the subsequent second whole-suite attempt also encountered model-service failures; it did not establish full-suite acceptance."
+    },
+    "second_full_regression_attempt": {
+      "directory": "/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794024163382275395",
+      "status": "provider-blocked",
+      "summary": {
+        "run_id": "03c2aa6c-352c-4a8f-ace3-dce2b65acf3b",
+        "status": "succeeded",
+        "teacher_ids_answered": ["li-mengyuan", "yuan-dong"]
+      },
+      "redscarf": {
+        "run_id": "daec9417-f2d7-4def-a8c5-3fbc6d05cd62",
+        "solver_choice": "C",
+        "solver_numeric_result": 3,
+        "solver_calculation_records": 16,
+        "solver_correct_as_reported": true,
+        "reviewer_and_fallback_model_exceptions": true,
+        "default_value": "model_failure",
+        "workflow_outcome_as_reported": "partial"
+      },
+      "validation_defect_identified_as_cause": false,
+      "review_and_fallback_http_status": 503,
+      "model_key_or_permission_changes": false,
+      "full_suite_passed": false,
+      "further_whole_batches_planned": false,
+      "limitation": "Targeted original/variant/component acceptance passed, but broader live regression did not. No claim that every math question is fixed, no fabricated full-suite pass and no further batch planned."
+    },
+    "final_evidence": {
+      "full_regression_retry_result": {
+        "status": "provider-blocked",
+        "details": "second_full_regression_attempt",
+        "full_suite_passed": false,
+        "further_whole_batches_planned": false
+      },
+      "final_whole_project_static_result": {
+        "passed": true,
+        "details": "offline_verification.final_whole_project_static_result"
+      },
+      "current_module_source_hashes": {
+        "conf/dify-kaogong/teacher_nodes.py": "66ae3b5be0c511757b4f2b756cc064f30a5ba538d99f61b5831960d1ecb0e348",
+        "all_recorded_source_hashes": "/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/audit.json"
+      },
+      "current_generated_applied_bundle_hashes": {
+        "generated": "0ff97a563afa523592b45e21e3a4eb0d2cbffa973a84f6449e86554c154df61e",
+        "applied_and_current": "1899917ae2dd33d53d73b0af8307c973d8087ec8fb92b8e0c7adc161e97111b6",
+        "bundle": "d0e3e46481dc8f60e20828040fd79ce782b16618010fc0857adc5dd60782b9a2"
+      },
+      "current_draft_execution_matches_generated": true,
+      "current_run_graphs_match_and_seal": {
+        "performed": false,
+        "note": "No new nine-run graph seal; targeted real run records and current draft audit are separate evidence"
+      },
+      "independent_build_reproduction": {
+        "performed": false,
+        "note": "Earlier independent byte-build proofs remain historical"
+      },
+      "final_repeat_apply_and_resource_audit": {
+        "repeat_apply_changed": false,
+        "audited_at_utc": "2026-11-07T04:15:47Z",
+        "app_count": 1,
+        "dataset_count": 1,
+        "document_count": 5,
+        "enable_site": false,
+        "enable_api": false,
+        "published": false
+      },
+      "new_native_positive_run_ids": [
+        "deff4f65-3193-4a8a-97ed-5ab19028b64b",
+        "e4c9c88a-d68f-4a18-bc2a-08953143eb92"
+      ],
+      "targeted_result_record": "/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/result.json"
+    },
+    "credentials": {
+      "previous_cleanup_reference": "final_20261107.cleanup, actually completed at 01:40:30 UTC and preserved as true historical evidence",
+      "current_directory": "/run/dify-kaogong",
+      "current_directory_mode": "0700",
+      "current_password_file": "/run/dify-kaogong/password",
+      "current_password_mode": "0600",
+      "recreated_for_followup": true,
+      "current_password_removed": true,
+      "current_parent_directory_removed": true,
+      "cleanup_at_utc": "2026-11-07T04:17:19.997239Z",
+      "longterm_knowledge_key_and_state_retained": true
+    },
+    "pending_root_results": [],
+    "scope_limit": "Targeted counterexample repair, bounded evidence/unit contract, static checks, idempotence audit and cleanup are complete. Broader live regression is provider-blocked after two recorded attempts and is not marked passed. No new independent build or nine-run seal was performed, and no promise is made that every mathematical question or model output is correct."
+  },
+  "public_web_question_test_20261107": {
+    "status": "passed-for-sourced-summary-adaptation",
+    "started_utc": "2026-11-07T08:04:05.665690Z",
+    "finished_utc": "2026-11-07T08:05:04.748457Z",
+    "source_question": "根据“给定资料一”，概括S市在乡风文明建设方面的举措。（10分）",
+    "source_title": "2019年国考副省级申论第一题，第三方公开转载",
+    "question_url": "https://www.xingguanggongkao.com/ShenQuestion/singleList/subject_id/3/label_id/81/area_id/281/knows_id/2.html",
+    "material_url": "http://zjjgwy.com/3G/View_2628.html",
+    "source_is_verified_official_paper": false,
+    "material_is_own_summary_of_published_material": true,
+    "full_original_material_used": false,
+    "answer_or_teacher_names_supplied_in_test_input": false,
+    "word_limit": 150,
+    "app_id": "71afeb8d-4b69-45e0-b91d-eb7701b10059",
+    "model": "kaogong-gemini-3.8-flash-high",
+    "dataset_id": "07576aa6-2220-450c-b586-c39f69f19682",
+    "workflow_run_id": "133c37f4-da16-4490-9f07-4c9a80a61803",
+    "workflow_status": "succeeded",
+    "exceptions_count": 0,
+    "elapsed_seconds": 58.78203143000428,
+    "message_end_received": true,
+    "multiple_teacher_explanations_passed": true,
+    "all_selected_teachers_answered": true,
+    "teachers": [
+      {
+        "teacher_id": "li-mengyuan",
+        "skill_id": "li-mengyuan.keyword-extraction",
+        "source_id": "wang-shenlun-li-keywords-1-4",
+        "status": "answered",
+        "word_count_non_whitespace": 146,
+        "retrieval_evidence_solve_review_verify_all_succeeded": true,
+        "review_all_flags_true_and_no_issues": true
+      },
+      {
+        "teacher_id": "yuan-dong",
+        "skill_id": "yuan-dong.summary-headings",
+        "source_id": "wang-shenlun-yuan-headings-5-3",
+        "status": "answered",
+        "word_count_non_whitespace": 149,
+        "retrieval_evidence_solve_review_verify_all_succeeded": true,
+        "review_all_flags_true_and_no_issues": true
+      }
+    ],
+    "app_graph_model_or_knowledge_modified_by_test": false,
+    "complete_draft_hash_unchanged": false,
+    "tested_graph_execution_matches_post_test_graph": true,
+    "unrelated_draft_changes_overwritten": false,
+    "enable_site": false,
+    "enable_api": false,
+    "published": false,
+    "evidence_directory": "/var/lib/dify/kaogong-teachers/public-question-tests/20261107-1794038645661726465",
+    "temporary_password_file": "/run/dify-public-question-test/password",
+    "temporary_password_and_directory_removed": true,
+    "cleanup_utc": "2026-11-07T08:14:12.978019Z",
+    "longterm_key_and_state_retained": true,
+    "scope_limit": "Successful multi-teacher invocation and reviewed explanations for one publicly sourced question with adapted summary material. This is not full-original-paper grading, teacher endorsement, or proof that previous full-suite provider outages are resolved."
   },
   "backup_observation": {
     "effective_dify_paths": [

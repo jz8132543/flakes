@@ -209,6 +209,12 @@
         buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.sqlite ]);
       });
 
+      # TODO: 上游 nixpkgs 为 lk-jwt-service 补齐 pkg-config/aws-lc 依赖后移除此临时修复。
+      lk-jwt-service = prev.lk-jwt-service.overrideAttrs (old: {
+        nativeBuildInputs = final.lib.unique ((old.nativeBuildInputs or [ ]) ++ [ final.pkg-config ]);
+        buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.aws-lc ]);
+      });
+
       # TODO: 默认 nixpkgs 包含 #584667 后移除此 master 临时覆盖。
       inherit (masterPkgs) codex;
 
@@ -231,6 +237,8 @@
         inherit (final) matrix-synapse-unwrapped;
       };
       qdrant = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.qdrant;
+      # Keep ATS 9 and its matching PCRE1 dependency from the locked stable input.
+      trafficserver = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.trafficserver;
       rime-wanxiang-gram = inputs.rime-wanxiang-gram.outPath;
     }
     // prev.lib.optionalAttrs (prev ? anime-games-launcher) {

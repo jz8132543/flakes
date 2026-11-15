@@ -1,16 +1,18 @@
 # Dify 考公老师方法对照：架构、配置与重建手册
 
-本文记录 **2026-11-07** 的最终实现与验收；运行时清理已于 01:40:30 UTC 完成，另附最终本地复现证明。目标是让维护者或另一个 AI 不依赖先前聊天即可重建、验证和回退同一工作流，同时区分历史故障、最终成功证据和仍然存在的产品边界。
+本文记录 **2026-11-07 招聘题反例修复跟进**。较早 181 项/9 场景封存与 01:40:30 清理是真实历史，不是所有题目都正确的保证；新请求修改了数值来源/复核合同，本轮另有真实运行和审计记录。
 
 这是基于可追溯社区资料的多方法对照，不是老师人格模拟，也不是老师本人或机构的官方产品。不得为了显示老师姓名而编造方法、引用、授权或调用成功记录。
 
 ## 1. 当前状态与交付边界
 
-**最终验收完成，`full_goal_complete=true`。** 同一 app/dataset、18 节点、五个 `kaogong-gemini-3.8-flash-high` 上，经原生 Console 接口执行的 7 个工作流场景与独立手机/诗句测试共 **9 次真实运行全部 succeeded、exceptions=0**；每次持久 workflow graph 的执行投影都与最终草稿精确一致，不复用旧版本通过记录。181 项离线及完整 Ruff 通过，真实 Studio 原生保存/恢复与刷新通过，独立双进程构建字节一致。API 协作关闭已注册到下一次启动的原生 Nix 代际，密码副本已清理；**未实际重启，也未切换正在运行的系统**。
+**新增网页题实测（2026-11-07 08:05 UTC）：**使用公开题干和来源材料摘要，已成功调用李梦圆、袁东两个独立分支，检索、解题、复核及程序校验全部成功，见 10.9。本次单题成功不改写此前全套回归遇到模型 HTTP 503 的历史结果。
+
+**招聘题修复已部署，目标题/独立变体/补证路径通过；更广的 live 回归受模型 HTTP 503 阻塞，`full_goal_complete=false`。** 用户原题并无错误：旧 solver 已正确 C258，却因派生操作数前置证据和计数单位不一致被 renderer 拒绝。受限 calculation_prefix 与单位修复现已通过真实原题 C258、变体 B124、205 项离线及完整 Ruff；两轮完整回归均有模型服务异常，未被计为通过。本次针对性修复的审计、幂等和临时凭据清理已完成，不冒称所有数学题或整个服务都已无问题。
 
 **2026-11-06 配置事故勘误：**此前“修复数字参数时未改变模型 Key”的判断不准确。早期 `repair_model_limits` 把控制台 GET 返回的展示掩码写回了 Key 字段，导致真实 Key 被掩码覆盖。这是配置脚本的错误，不是用户题目格式或原 Key 错误。已恢复同一把原 Key，并经真实 API 往返核实保密占位规则。原 `API` 的 401、Luna 的间歇 500 及后来 403 都保留各自时点，不推广为当前 Gemini 的错误。Gemini 新专用 Dify 凭据只在内存中复用有效用户网关 Key，原 API/Luna 未修改，未使用 Kilo 凭据。详见 4.2、4.6、4.7。
 
-最终依据是实际执行生成的服务端 `repair-20261106/final-seal.json`、离线报告、真实浏览器报告和启动比较/注册记录；`/tmp/kilo/dify-final-seal.json` 是其脱敏本地核对副本。图/模型证明封存于 01:29:29，清理确认于 01:40:30。旧 Luna 探测已取消，历次失败和旧图成功继续保留为各自时间点的历史，不能覆盖这里的最终状态。
+本轮依据为原始持久运行、固定实际 solver 输出的诊断、`recruitment-fix-20261107/result.json` 及该目录下的原题、变体、补证和审计记录。之前 9 场景全部成功保留，但旧 source/build/execution hash 不代表新代码。app、dataset、Gemini、18 节点、重试和已注册 boot 配置均未改变；本轮重建的临时密码及父目录已于 04:17:19 UTC 删除，长期知识库 Key 和状态保留。
 
 | 项目                         | 当前记录                                                                                                                                                                                                                |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -21,24 +23,26 @@
 | 服务器工具 / Python          | 已安装 `/var/lib/dify/kaogong-teachers/tool`；稳定解释器 `/var/lib/dify/kaogong-teachers/python/bin/python3`，3.14.8，已建立间接 GC root                                                                                |
 | 当前目标应用名               | `考公老师方法对照`                                                                                                                                                                                                      |
 | 当前专用应用 ID / 工作室 URL | `71afeb8d-4b69-45e0-b91d-eb7701b10059`；[登录后工作室](https://chat.dora.im/app/71afeb8d-4b69-45e0-b91d-eb7701b10059/workflow)                                                                                          |
-| 当前图与合同                 | 五个 Gemini、18 节点不变。通用复核精确 7 键，老师复核仍 6 键；非数学只可整理解释，数学保留原 steps。7 个 Code 启用原生执行异常重试 2 次/1000ms，老师 LLM 5 次/5000ms、其余 LLM 2 次/2000ms、Iteration 并发 3 不变       |
-| 重复 apply / 匿名拒绝        | 最终 UI 保存/恢复后重复 apply 返回 changed=false，无 app/dataset/document 重复；最终匿名探测无代码 401/unauthorized、带真实代码 404/app_not_found                                                                       |
+| 当前图与合同                 | 通用复核新提示输出 8 字段，新增可选 calculation_prefix；旧 7 键按空前缀接受，老师仍严格 6 键。原答案/步骤/材料/计算不因补证改写。5 Gemini、18 节点、7 Code retry=2/1000、教师 LLM=5/5000、其余=2/2000、并行 3 不变      |
+| 重复 apply / 匿名拒绝        | 本轮重复 apply 返回 changed=false，04:15:47 审计确认同一 app/dataset、5 文档、私密未发布，无重复资源；此前独立匿名 401/404 是历史证据，本轮没有冒充新匿名测试                                                           |
 | 已创建知识库                 | `07576aa6-2220-450c-b586-c39f69f19682`；此 ID 只属于当前部署，不是另一租户重建时可直接采用的常量                                                                                                                        |
 | 已观察到的文档状态           | 5 份完整 JSON 卡片、每份 1 个分段，5 个元数据字段映射正确                                                                                                                                                               |
 | 初始 economy 召回            | 方法名称查询及 teacher/status 过滤检查通过；李梦圆、袁东、白鹭对策的原始例题查询未命中                                                                                                                                  |
 | 关键词补强后的真实召回       | 部署者于 2026-11-06 确认同一库的 30 次实际 service API 探测全部通过；未重复创建文档，正文和哈希未变；`state.knowledge.current` 已就绪                                                                                   |
-| 本地回归                     | 2026-11-07 01:05:27 UTC 完整 181=36+46+99 项、退出码 0；完整仓库规则 Ruff 通过。旧 registry 警告为既有非阻塞环境问题，未修改全局 registry                                                                               |
+| 本地回归                     | 03:24:28 UTC 完整 205=36 知识库+70 老师+99 基础/CLI 通过；原 46 老师测试保留并新增 24 项。既定 CLI/知识库/原生诊断/配置/3 组测试文件的完整 Ruff 检查通过                                                                |
 | 原生检索节点                 | 使用真实节点和真实库，李梦圆、袁东各返回自己的完整卡片，不存在的老师返回空；隔离通过。两项“给红领巾同题应为空”的诊断预期失败，实际为自己的非本题型卡片，必须再做题型/适用性审核，见 10.4                                |
-| 实际独立题                   | Nov 7 01:17:42 手机 C，仅展示准确的驾驶分心理由，无加油站断言；01:18:22 诗句 B，简明区分寒食与清明，无无关作者归属。数学答案/步骤/计算仍保持原输出                                                                      |
-| 草稿变更保护                 | 默认严格 hash、受审 UI 三方合并不变；最终 9 个持久运行图均精确匹配当前执行投影，applied hash=当前草稿 hash，generated 执行投影一致                                                                                      |
-| 工具目录 / 浏览器            | final-181-native-save：18 节点、tools 200、检查清单全部解决、page/console errors=0；真实未拦截 HTTP 标题编辑/恢复两次 POST 均 200，GET 与硬刷新确认原标题恢复                                                           |
+| 本轮实际独立题               | 03:26:02 原题全工作流 succeeded、C258，先列 70人-1人=69人，reviewer 8 字段、prefix=[]；03:31:08 变体 succeeded、B124，先列 45-1=44。没有硬编码答案                                                                      |
+| 草稿变更保护                 | 默认严格 hash 与受审 UI 三方合并不变；04:15:47 当前图的执行投影等于 generated，applied 与当前 hash 相等。新哈希见本轮审计；未重新创建独立字节构建或 9 图封存，不沿用旧封存冒充新版                                      |
+| 工具目录 / 浏览器            | final-181-native-save 的零错误、tools 200、真实 HTTP 保存/恢复证明仍保留为前轮结果；本轮只改数值证据合同，不声称旧浏览器报告是新代码最终审计                                                                            |
 | 协作模式                     | 当前 API false；完整 Nix 依赖图比较确认唯一功能变更为该 env，已成功 profile-set 与 boot-only 注册。新代际用于下次启动，运行代际/API/worker/web invocation IDs 不变；保留 runtime override 到重启，原脚本 GC root 已创建 |
-| 完整老师端到端验收           | 最新 verify-1794013433952828245 原生工作流 7 案全通过：4 老师/5 方法、双老师对照、增长、同会话追问、缺材料拒答及匿名保护。加手机/诗句共 9 案，均为最终图的真实运行                                                      |
+| 本轮完整回归                 | 第一轮 summary 成功后遇 503；03:57 短探测 21 成功。第二轮 summary 也成功，红领巾 solver 正确 C3/完整16运算，但 review 与 fallback 又异常，workflow partial；完整回归未通过，不再计划整批重试                            |
 | 发布 / 网站 / 应用 API       | 实际读回 `enable_site=false`、`enable_api=false`，没有发布版本                                                                                                                                                          |
-| 运行时权限与临时凭据         | 部署根目录 0700、私有状态/凭据 0600；01:40:30 UTC 临时密码副本及其 /run 父目录已删除，长期知识库 key 和受管 state 保留                                                                                                  |
+| 运行时权限与临时凭据         | 历史 01:40:30 清理保留；本轮新建的 0700 目录和 0600 password 已于 04:17:19 UTC 再次删除。长期知识库 Key/state 保留，有限验收服务已退出                                                                                  |
 | 图片、文件、OCR、视觉、语音  | 关闭；题目、表格、选项和材料必须提供完整文字                                                                                                                                                                            |
 
-旧应用 `c17f5fc5-0a1c-43f3-a691-bad3d0e9524d` 未被重置、接管或删除。[`preflight.json`](../conf/dify-kaogong/preflight.json) 的 **`final_20261107` 是最终状态入口**；deployment_acceptance、teacher_upgrade、model_provider_correction、repair_20261106、gemini_cutover_20261106 均为历史快照，保留当时失败、未清理和待验收事实。其旧 pending/false/hash 不代表当前状态。
+旧应用 `c17f5fc5-0a1c-43f3-a691-bad3d0e9524d` 未被重置、接管或删除。[`preflight.json`](../conf/dify-kaogong/preflight.json) 的 **`recruitment_followup_20261107` 是当前入口**。`final_20261107` 继续保持其真实历史 full_goal_complete=true、9 场景/hash/清理记录；它不是所有数学题正确的证明，也不覆盖这次新反例和代码。其他历史快照同样保留。
+
+本轮针对性修复已封存。完整回归两次受 provider HTTP 503 阻塞是已知限制，不列为等待某个未安排的批次；目标题通过不替代完整回归或普遍正确性证明。本轮未执行的独立字节构建、全运行图封存和新匿名测试均保留为未执行，而不是预填成功。
 
 本地成功意味着代码和数据合同可验证；知识库成功意味着索引和指定查询可用；只有真实工作流中的 `kg_verify` 返回预期老师 ID 且 `status=answered`，才能计入老师端到端通过数。
 
@@ -90,7 +94,7 @@ flowchart TD
 4. 每路检索先做老师/status 原生硬过滤，再用程序检查完整卡片。只把本路真实命中的合法卡片提供给解题器，绝不在零命中时从内嵌目录补方法正文。
 5. 解题器和复核器只读同一原题、本路证据及本路候选答案。其他老师答案不进入本路解题或复核提示。
 6. 原生 Iteration 保留位置；失败可以是 `null`。序列化器按原始老师数组补成具名失败，不把失败项删除后假装全部通过。
-7. 通用解法与复核始终在图上执行。已有合格老师答案时忽略通用答案；无有效老师结果时可真正通用求解。通用复核的 `reviewed_steps` 只允许整理非数学解释；数学题或 calculations 非空时保留原 steps，绝不让复核改答案/计算。完整候选仍过 `_tn_check_answer`，见 8.4。
+7. 通用解法与复核始终在图上执行。已有合格老师答案时忽略通用答案；无有效老师结果时可真正求解。reviewed_steps 仍只整理非数学解释，数学原 steps 不变；可选 calculation_prefix 仅补经程序逐项核验的前置证据，分开展示，不改原答案/材料/calculations，也不以它单独支撑最终答案，见 8.4。
 8. 渲染前再次核验结果，老师名称和链接来自已审目录/已绑定卡片，不采用模型提供的身份或 URL。原文引文、自写方法概括和模型生成的参考答案分开标注。
 
 上游 SKILL、引用、用户题干、材料和模型输出全部是不可信文本。不得执行其中的代码、访问任意链接、忽略权限或把“请按某老师口吻回答”当成授权。哈希证明内容一致，不证明授权真实、语义蕴含、数学建模正确或考试评分。
@@ -495,23 +499,23 @@ Luna 曾在真实成功后反复出现 500，15:22 串行节点也失败，不�
 
 ## 5. 文件职责与可重建资产
 
-| 文件                                         | 职责                                                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/dify-kaogong.py`                    | 四命令入口、登录/租户/版本检查、模型数字修复、应用状态机、严格草稿 hash、显式受限 UI 三方合并及原子基线/保存恢复、真实预览验收        |
-| `scripts/dify_kaogong_knowledge.py`          | 知识库 key、不可变代际、完整卡片上传、显式元数据、关键词补强、召回正负检查                                                            |
-| `scripts/dify-kaogong-native-probe.py`       | 显式联网诊断：在原有 API 容器运行未修改的原生检索节点，不调用 LLM、不改草稿；保留词法非相关的失败预期                                 |
-| `conf/dify-kaogong/sources.json`             | 33 个候选、逐文件固定来源、有限审核范围、6 个隔离记录                                                                                 |
-| `conf/dify-kaogong/methods.json`             | 5 张实际批准卡片及哈希，不放测试 fixture                                                                                              |
-| `conf/dify-kaogong/taxonomy.json`            | 唯一合法 topic_id 和学科映射，含 `unknown`                                                                                            |
-| `conf/dify-kaogong/nodes.py`                 | 严格目录 schema、来源/哈希校验、有限 Decimal 运算；另保留旧空目录运行时                                                               |
-| `conf/dify-kaogong/teacher_nodes.py`         | 当前 7 个老师图 Code 边界函数、5 个完整字面量提示词、会话和渲染                                                                       |
-| `conf/dify-kaogong/workflow.py`              | 确定性生成/校验 DSL；批准目录走 18 节点图，空目录才走历史四节点图                                                                     |
-| `conf/dify-kaogong/THIRD_PARTY_LICENSES.txt` | 许可归属和标准 MIT 条款，随资产和内嵌代码分发                                                                                         |
-| `conf/dify-kaogong/acceptance.json`          | 工程验收输入及明确标记的合成 fixture，禁止导入生产知识库                                                                              |
-| `conf/dify-kaogong/preflight.json`           | 保留历史快照；`repair_20261106` 为切换前修复/Luna 阶段，`gemini_cutover_20261106` 记录当前 Gemini、有限任务和最新提示词全套待验收边界 |
-| `tests/test-dify-kaogong.py`                 | 目录/旧运行时/CLI/草稿保护等离线回归                                                                                                  |
-| `tests/test-dify-kaogong-knowledge.py`       | 原生 API 形状、key/代际/索引/过滤/关键词恢复的隔离测试                                                                                |
-| `tests/test-dify-kaogong-teachers.py`        | 老师运行时和实际生成 Code 包装器的离线边界测试                                                                                        |
+| 文件                                         | 职责                                                                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/dify-kaogong.py`                    | 四命令入口、登录/租户/版本检查、模型数字修复、应用状态机、严格草稿 hash、显式受限 UI 三方合并及原子基线/保存恢复、真实预览验收 |
+| `scripts/dify_kaogong_knowledge.py`          | 知识库 key、不可变代际、完整卡片上传、显式元数据、关键词补强、召回正负检查                                                     |
+| `scripts/dify-kaogong-native-probe.py`       | 显式联网诊断：在原有 API 容器运行未修改的原生检索节点，不调用 LLM、不改草稿；保留词法非相关的失败预期                          |
+| `conf/dify-kaogong/sources.json`             | 33 个候选、逐文件固定来源、有限审核范围、6 个隔离记录                                                                          |
+| `conf/dify-kaogong/methods.json`             | 5 张实际批准卡片及哈希，不放测试 fixture                                                                                       |
+| `conf/dify-kaogong/taxonomy.json`            | 唯一合法 topic_id 和学科映射，含 `unknown`                                                                                     |
+| `conf/dify-kaogong/nodes.py`                 | 严格目录 schema、来源/哈希校验、有限 Decimal 运算；另保留旧空目录运行时                                                        |
+| `conf/dify-kaogong/teacher_nodes.py`         | 当前 7 个老师图 Code 边界函数、5 个完整字面量提示词、会话和渲染                                                                |
+| `conf/dify-kaogong/workflow.py`              | 确定性生成/校验 DSL；批准目录走 18 节点图，空目录才走历史四节点图                                                              |
+| `conf/dify-kaogong/THIRD_PARTY_LICENSES.txt` | 许可归属和标准 MIT 条款，随资产和内嵌代码分发                                                                                  |
+| `conf/dify-kaogong/acceptance.json`          | 工程验收输入及明确标记的合成 fixture，禁止导入生产知识库                                                                       |
+| `conf/dify-kaogong/preflight.json`           | 保留各阶段历史；final_20261107 是旧 181/9 场景成功，当前 recruitment_followup_20261107 单列招聘题修复及待完成的新回归/封存     |
+| `tests/test-dify-kaogong.py`                 | 目录/旧运行时/CLI/草稿保护等离线回归                                                                                           |
+| `tests/test-dify-kaogong-knowledge.py`       | 原生 API 形状、key/代际/索引/过滤/关键词恢复的隔离测试                                                                         |
+| `tests/test-dify-kaogong-teachers.py`        | 老师运行时和实际生成 Code 包装器的离线边界测试                                                                                 |
 
 禁止传整个仓库、`.git`、本地会话、秘密、SOPS 解密内容或运行时凭据。构建包无凭据，包含 `chatflow.yml`、`manifest.json`、`catalog.json`、`binding.json` 和许可通知；`chatflow.yml` 使用合法 JSON 子集表达 YAML，不依赖 PyYAML。
 
@@ -531,7 +535,7 @@ nix shell --inputs-from . nixpkgs#python3 --command python3 -B scripts/dify-kaog
 nix shell --inputs-from . nixpkgs#python3 --command python3 -B scripts/dify-kaogong.py verify
 ```
 
-`check` 验证目录/生成图；`verify` 执行全部 `tests/test-dify-kaogong*.py`。最终 **2026-11-07 01:05:27 UTC，36 知识库 + 46 老师 + 99 基础/CLI = 181 项通过，退出 0**，报告 `/tmp/kilo/kaogong-offline-verification.json`。新增覆盖未请求补充说明不展示、数学原步骤不变、Decimal 等值及有界简单分数校验。178/180 等旧结果仍是历史，focused 子集不重复计数。真实模型通过另外由最终 9 案证明，不能用离线数替代。
+`check` 验证目录/生成图；`verify` 执行全部 `tests/test-dify-kaogong*.py`。当前招聘题修复 **03:24:28 UTC 完整 205=36 知识库+70 老师+99 基础/CLI 通过**。原 46 项老师测试保留，新增 24 项覆盖计数/共享单位、前缀来源顺序/四则/16与40边界、原数据不可变、答案/增长规则不能借前缀绕过、未来依赖、teacher 禁用前缀以及 absent/[]/null/坏类型。旧 181 及其 9 场景封存保留版本范围；离线通过不等于新全套模型通过。
 
 静态检查命令如下。`teacher_nodes.py` 是拼接片段，所用全局函数由 `nodes.py` 和生成器注入，因此只对该片段豁免 `F821`，不全局忽略未定义名称。完整包装器会在测试中编译并执行。
 
@@ -545,7 +549,7 @@ nix shell --inputs-from . nixpkgs#ruff --command ruff check \
   tests/test-dify-kaogong-teachers.py
 ```
 
-主执行者已对最终源码按上面**完整仓库规则**运行 Ruff 并通过，不是只选 F/E9；缓存在项目外。离线报告中的旧全局 Nix registry 警告仍是既有非阻塞问题，没有修全局 registry 或改锁定输入来掩盖它。
+上述完整仓库范围曾在 181 阶段通过。本轮运行时和测试文件的完整 Ruff 检查通过（非仅 F/E9），最终全项目静态检查结果待主执行者回填；不沿用旧范围冒充当前完成。旧全局 Nix registry 警告仍是既有非阻塞问题，未修改全局 registry。
 
 本轮浏览器依赖曾被 Nix GC 删除，已从锁定 flake 输入重新构建 Python+Playwright 和浏览器闭包，不是靠不可复现的系统浏览器或全局 pip 安装。恢复命令模式如下，在仓库根目录运行，返回的 store 路径用于本机，不照抄别的主机旧路径：
 
@@ -669,11 +673,11 @@ sudo rm -f -- /run/dify-kaogong/password /run/dify-kaogong/gateway-token
 sudo rmdir /run/dify-kaogong
 ```
 
-这些命令用于每次维护的收尾；本次已有独立最终证明：Nov 7 01:40:30 UTC 密码副本及其父目录已删除，长期知识库 key 和 state 保留。以后重跑受认证命令应重新建立短期 0600 凭据并再次清理，不依赖本次已删除副本。
+这些命令用于每次维护收尾。前轮 Nov 7 01:40:30 UTC 的确删除过密码和父目录；为招聘题跟进已重新建立目录 0700、password 0600，目前尚未删除。长期知识库 key/state 保留，本轮清理须等实际确认后单独记录，不能引用前轮 cleanup=true。
 
 ### 6.4 部署版本的精确复现记录
 
-本节先保留密钥事故前、15:27/15:37 Luna 和 17:18 Gemini 的历史 hash；**最终当前 hash 与双进程字节复现在 10.7**。旧 hash 不当成新版本证据。纯生成 DSL 与保留 UI 的 applied 草稿分别核对，不必字节相同；所有最终数据已封存，不再是待回填状态。
+本节保留早期版本 hash，10.7 保留前轮 181 的真实封存与字节复现；**它们都不是招聘题新代码的当前 hash**。本轮 source/generated/applied/bundle 和最终新运行图封存待回填。纯生成 DSL 与保留 UI 的 applied 草稿仍分别核对，不必字节相同。
 
 已从服务器 `build` 目录仅导出 `chatflow.yml`、`manifest.json`、`catalog.json`、`binding.json` 和 `THIRD_PARTY_LICENSES.txt` 到本地 `/tmp/kilo/dify-kaogong-bound`。没有复制 `state.json`、登录密码、知识库 key 或 Cookie。
 
@@ -1108,7 +1112,7 @@ for name in names:
 
 skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不能 not_needed。通用分支的 skill_ids/evidence/conditions 始终为空，不能拿老师来源装饰通用答案。已有合格老师答案时，即便通用模型乱输出 answered，渲染器也不采纳。
 
-**老师 `REVIEW_PROMPT` 保持原 6 键**：五个布尔标志和 issues，不能添加 reviewed_steps：
+**老师 `REVIEW_PROMPT` 保持原 6 键**：五个布尔标志和 issues，不能添加 reviewed_steps 或 calculation_prefix（即使为空数组）：
 
 ```json
 {
@@ -1137,7 +1141,7 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
 }
 ```
 
-**通用 `GENERAL_REVIEW_PROMPT` 改为精确 7 键**，在同样六键上强制增加 reviewed_steps；不是可选兼容字段。通用 answered 结果缺它、或 reviewer 加 answer/calculations 等额外键都会拒绝：
+**通用 `GENERAL_REVIEW_PROMPT` 现在输出 8 字段**：原 7 个必填字段不变，新增可选 `calculation_prefix`。运行时接受旧 7 键并按 prefix=[] 处理；只有这个字段可缺省，不是接纳任意额外键。显式 JSON null、字符串、布尔、对象都不是空前缀，必须拒绝；内部函数参数默认 None 不代表外部 JSON null 合法。老师复核仍不允许该字段。
 
 ```json
 {
@@ -1167,6 +1171,56 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
       "type": "array",
       "maxItems": 3,
       "items": { "type": "string", "maxLength": 1500 }
+    },
+    "calculation_prefix": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/prefixCalculation" }
+    }
+  },
+  "$defs": {
+    "operand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "unit"],
+      "properties": {
+        "value": { "type": "string" },
+        "unit": { "type": "string" }
+      }
+    },
+    "prefixCalculation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "operands", "result"],
+      "properties": {
+        "operation": { "enum": ["add", "subtract", "multiply", "divide"] },
+        "operands": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["left", "right"],
+          "properties": {
+            "left": { "$ref": "#/$defs/operand" },
+            "right": { "$ref": "#/$defs/operand" }
+          }
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operation", "values", "unit", "places", "rounding"],
+          "properties": {
+            "operation": { "enum": ["add", "subtract", "multiply", "divide"] },
+            "values": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["result"],
+              "properties": { "result": { "type": "string" } }
+            },
+            "unit": { "type": "string" },
+            "places": { "type": "integer", "minimum": 0, "maximum": 6 },
+            "rounding": { "enum": ["half_up", "half_even", "down"] }
+          }
+        }
+      }
     }
   }
 }
@@ -1179,8 +1233,46 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
 1. 先对原 `steps` 检查真正 list、1–16 条、每条非空字符串且至多 1500 字符；不能用一个好 reviewed_steps 掩盖坏类型的原 steps。
 2. 若 `_tn_math(context)` 为真，**或 calculations 非空**，整份原 steps 保持不变。提示词要求 reviewed_steps=[]；代码仍对该字段做 0–3 条非空字符串/长度校验，但不采用其中任何文字。即使未被采用的数学改写含新数值，也不会进入发布结果。
 3. 非数学通用候选允许 1–3 条 reviewed_steps，passed=true 时不能为空。若 `answer.strip()` 精确为一个 `[A-H]` 字母，且原题识别出至少两个不同 `[A-H]` 字母选项（后接 `.．、:：=`），只保留**第一条独立理由**供展示；其余可选补充不展示。不是针对某个题目或 B/C 的特判。所有输入条目先做类型/长度检查，保留条目的数值再须是原 question/answer/steps/calculations JSON 中 `_tn_numbers` 数值集合的子集。
-4. 只在候选副本中替换 steps，删除传给旧门禁的 reviewed_steps 扩展字段，然后对**完整候选**执行 `_tn_check_answer`：原主答案、精确材料引用、证据/条件、计算与角色/单位、字数和全部复核标志仍须通过。其他标志 false 或 issues 非空时，即使已暂存整理文字也不会展示。
+4. 只在非数学候选副本中替换 steps；将 reviewed_steps/calculation_prefix 从传给原六键复核门禁的对象中移除，prefix 作为独立受限参数传给 `_tn_check_answer`。原主答案、材料、证据、条件、原计算记录与全部复核标志仍须通过。其他标志 false 或 issues 非空时不会展示补证或答案。
 5. 非数学展示明确标注解释由独立复核整理；数学展示明确标注答案、步骤与计算记录保持原解题输出。该有限编辑不能挽救错误选项、错误数值、伪造引用或缺材料，也不硬编码用户答案。
+
+**calculation_prefix 的执行边界**比 schema 更严格：
+
+1. 非空前缀仅适用于 general answered 且原 calculations 非空；不用于老师分支，不替代空原算式，不为 skip/not_needed 提供答案。prefix 最多 16 项、prefix+original 合计最多 40 项，超限拒绝而非截断。
+2. 只允许 add/subtract/multiply/divide，每项须含完整 operands/result。按前缀顺序**先验证**，再以原顺序验证全部原 calculations；每个操作数必须来自原题、合法常数或已经核验的前序结果，不能依赖未来项。
+3. 每项都经同一个 calculate、Decimal 结果比较、operation/unit/places/rounding 检查。错误前缀或原计算仍失败；前缀不能改写、删除、纠正原计算结果，也不能放宽单位或缺材料约束。
+4. 已验证前缀结果进入 available，供后续原计算使用，**不进入最终答案 computed 集合**。答案不能只由前缀的计算产物取得“已复算”资格。必须的 growth_from_current/base 仍只在原 calculations 中查找，前缀既不能声明增长运算，也不能满足此角色要求。
+5. 原 answer、数学 steps、material_quotes 和 calculations 保持不变。通过后单列“补充前置计算（独立复核提出，程序复算）”，再展示原程序复算；该补证是来源链检查，不是对最不利原理、建模或语义的证明。
+
+下面是合法形状示例，不是对实际模型响应的逐字转录；真实无需补证的新运行使用 calculation_prefix=[]。提示词只提醒通用的“阈值减 1 必须列前置运算”，没有把招聘题的 69/258 写进工作流：
+
+```json
+{
+  "passed": true,
+  "issues": [],
+  "facts_supported": true,
+  "method_applicable": true,
+  "calculations_consistent": true,
+  "word_limit_satisfied": true,
+  "reviewed_steps": [],
+  "calculation_prefix": [
+    {
+      "operation": "subtract",
+      "operands": {
+        "left": { "value": "70", "unit": "人" },
+        "right": { "value": "1", "unit": "人" }
+      },
+      "result": {
+        "operation": "subtract",
+        "values": { "result": "69" },
+        "unit": "人",
+        "places": 0,
+        "rounding": "half_up"
+      }
+    }
+  ]
+}
+```
 
 ### 8.5 算术、字数和结果 schema
 
@@ -1189,6 +1281,15 @@ skip/not_needed 时 answer 必须为空，所有数组为空；老师分支不�
 `calculate` 返回完整 `{operation,values,unit,places,rounding}`，普通 values 只有 result，增长运算精确含 current/base/growth。模型必须提交完整 result，程序按相同精度/舍入重算：**values 键集合必须完全相同，各值经 `_number` 与实际结果的 Decimal 精确数值比较**，所以 `"5000"`、`"5000.0"`、`"5000.00"` 相等；不是浮点容差，也不允许靠近的错误结果。再将 values 暂以实际值代入比较副本，要求其余 operation/unit/places/rounding 元数据精确相同。此比较不改写原发布答案或计算记录。
 
 `_number` 仍只接受有界普通十进制字符串：不得有科学计数、加号、分数、逗号、非有限值、JSON 浮点/布尔或不合法前导零；小数最多 12 位，绝对值不超过 `10^12`。末尾补零等值不改变计算角色/单位/精度/舍入要求，错误的 625、偷换 current/base 或单位仍拒绝。操作数仍须来自原题/前序结果，另允许无量纲 0、1、100。算术正确不证明列式正确，独立复核仍不可省。
+
+本轮进一步明确 `_tn_numbers` 的**来源单位归一化**，不是去掉所有单位：
+
+- 先识别以 `、`、`，`、`,`、`和`、`及`、`与` 连接、尾端共享单位的数字串，再提取个别数值。`100、80、70和50人` 四个数全部绑定人，不能让前几个数额外泄漏成无量纲；金额、缩放单位串也按相同顺序保留其单位。
+- 人数 `名` 归一为 `人`；`第...名` 的名次不当成人数，也不从原题删除题号或文字。识别到的题号仍保留在原文本，不将它偷换成建模依据。
+- 仅当原题中所有识别出的非空单位恰好是一个未缩放计数单位（人/件/个/家/户），其中非负整数才可额外获得无量纲表示。原 typed 表示仍保留，不允许把货币、万元/万人等缩放量、距离或混合单位整体剥离。
+- 对原题实际出现的这些计数单位，可用带该单位的 0、1 作为边界常数；该规则不把任意单位的 0/1 都加入。多个单位同时出现时仍不启用无量纲别名，运算内部单位须满足 calculate 的严格规则。
+
+派生量不能仅凭 steps 中的说明进入 available：先有原 calculations 中的推导，或有经过 8.4 规则验证的前缀，再能被后续算式使用。它允许纯计数的正确证据表达，不保证所有数学问题都能处理。
 
 最终还支持数学 **answer 文本内最多 16 个简单 `a/b` 或 `a÷b`**。这是独立的有界结果表示校验，不把 `_number` 改为表达式求值器，也不改变已展示答案。曾有真实增长答案正确给出 555.56 并补充 5000/9，被旧的字面分母检查挡住；该旧失败保留，修复规则为：
 
@@ -1260,7 +1361,7 @@ Gemini 曾选对手机/诗句选项却额外写错诗人信息。仅要求“解
 
 18:06 左右增长候选 555.56 曾因 current 的十进制补零文本差异被拒绝；18:11 左右又因 reviewer 把说明换成引入新数值 8 的分数形式而拒绝。前者修成严格 Decimal 等值，后者修为**任何数学/calculations 非空都禁止步骤改写**，不是给新数字开白名单。18:18:48 实际增长 succeeded、555.56，原步骤/计算保留，通用复核 7 键、五个标志 true、issues=[]、reviewed_steps=[]。两个旧失败仍是失败，不改记 passed。
 
-最终 46 项老师测试还覆盖单项只展示首条独立理由和有界分数一致性；完整 181 项以及当前图 9 案均已通过。17:58:54 的旧 180 项保留其历史范围，不用旧结果替代最终证据。
+181 阶段的 46 项老师测试及当时 9 案确实通过，未声称题目全集均正确。本轮再增加 24 项来源链/单位/前缀测试，总计 70 老师、205 全部离线通过；最新全工作流回归仍须独立记录。
 
 ## 9. 持久化、幂等与恢复
 
@@ -1536,9 +1637,9 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 
 截至上述 18:21 历史阶段，最终全套等事项当时尚未完成；**这些状态已被下面 Nov 7 的最终封存替代**。旧失败不改成 passed，旧成功不冒充最终图。本文件编辑没有触发运行或等待/轮询任务。
 
-### 10.7 最终封存：181 项与 9 次真实运行
+### 10.7 历史封存：181 项与 9 次真实运行
 
-最终入口为 `preflight.json.final_20261107`。主执行者脱敏封存 `/tmp/kilo/dify-final-seal.json` 的图/模型证据时间是 **2026-11-07 01:29:29.235639 UTC**，清理记录更新至 **01:40:30.101017 UTC**。最新原生产全套目录是 `/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794013433952828245`，不是较早的通过目录。
+本节对应 `preflight.json.final_20261107` 的**真实历史成功**，不是本轮最新状态。这里的“最终/当前图”均指 181 版本封存时的图；招聘题新代码入口为 recruitment_followup_20261107。脱敏副本 `/tmp/kilo/dify-final-seal.json` 的图证据时间为 **01:29:29.235639 UTC**，清理为 **01:40:30.101017 UTC**；该次全套目录 `/var/lib/dify/kaogong-teachers/repair-20261106/verify-1794013433952828245` 保持原样。
 
 以下九次都是真实新运行，status=succeeded、exceptions=0。封存逐一读取其持久 graph 并证明 execution projection **精确等于当前草稿**；不是只看模型名、节点数或用旧 SSE 假回放。7 案覆盖 4 位老师/5 张方法、一次双老师比较、增长、同会话追问和缺材料拒答，额外两案为用户手机/诗句题：
 
@@ -1594,7 +1695,87 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 
 最终浏览器 `/tmp/kilo/dify-browser/final-181-native-save.json` 确认 18 节点、零 page/console errors、tools 200、检查清单全部解决；**未拦截响应**的原生 HTTP 标题编辑/恢复为 `[200,200]`，GET 和硬刷新证实原始标题恢复。这不是早先只省略客户端缓存项的表单 fixture；早先隔离测试仍仅证明其 UI 范围。
 
-浏览器报告及截图也已归档到私有 `repair-20261106/browser-final`。最终匿名 passport 无代码为 401/unauthorized，带真实代码为 404/app_not_found；site/API=false、未发布，未开放公共入口。`/run/dify-kaogong/password` 与父目录已于 01:40:30.101017 UTC 删除，长期知识库 key、state、binding 和恢复证据保留，无未取消的探测/唤醒或活动测试作业。持久 boot 注册与 GC root 已按 4.5 完成；只有物理重启未实际测试。至此本次交付验收完成，`full_goal_complete=true`。
+该 181 阶段的浏览器/截图已归档 `repair-20261106/browser-final`，匿名 401/404 和 site/API 关闭均通过；01:40:30.101017 UTC 当时确已删除密码/父目录并保留长期 key/state。该阶段交付 full_goal_complete=true 的历史不变。随后招聘题开启新的跟进并重新建立密码，本轮状态以 10.8 为准；boot 注册/GC root 保持已完成且无物理重启。
+
+### 10.8 招聘题反例：本轮修复与证据范围
+
+用户新问题的实际持久上下文保留题号 `66.`，没有为适配计算而删题号或改写原题。题目定位如下；精确字节以私有原记录为准：
+
+```text
+66. 有300名求职者参加高端人才专场招聘会，其中软件设计类、市场营销类、财务管理类和人力资源管理类分别有100、80、70和50人。问至少有多少人找到工作，才能保证一定有70名找到工作的人专业相同?（　　）
+
+A. 71 B. 119 C. 258 D. 277
+```
+
+原生运行 `158532f6-5de3-4c0d-a91d-0a1d22fb314e` 于 **02:19:54–02:23:54 UTC** 全部节点 succeeded、exceptions=0，但最终 renderer 拒绝展示。实际 solver 已正确选 C、258，并说明 `69+69+69+50+1` 的最不利分配；reviewer 全部标志 true。问题是原 calculations 直接从 69+69 开始，没先列 70-1，而且把末项 50 写成 unit=""，旧抽取结果却只有 (50,"人")。
+
+主执行者用真实记录离线复演，得到精确 `ValueError: invented arithmetic operand or unit`：当时 available 无 69，无 (50,"")，但有 (50,"人")。诊断脚本 `/tmp/kilo/recruitment-replay.py` 不调用模型，本地原记录为 `/tmp/kilo/dify-recruitment-run.json`；服务端记录在 `repair-20261106` 的 `persisted-158...json`（对应上述完整 workflow ID）。脚本导入当前源码，重做历史诊断须固定当时版本，不能在修复后仍声称原抽取集合没变。
+
+这是**输出/计算证据合同和计数单位抽取缺陷**，不是用户题目错、不是模型不会解，也不是老师未匹配造成。没有匹配老师本就应走通用路径，通用答案正是已正确生成但被证据门禁挡住。Dify 的节点 succeeded 只表示节点执行完成，不等于内部 answer 已被 `_tn_check_answer` 接受。
+
+| 本轮证据                            | 实际结果                                                                                                                                                                                                                              | 边界                                                                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 03:24:28 / 完整离线                 | 205=36+70+99 通过，保留原 46 老师测试并加 24 项                                                                                                                                                                                       | 不等于完整 live 回归通过；本轮 runtime/tests Ruff 通过，全项目最后检查另待结果                                              |
+| 03:26:02 / 原始完整招聘题           | 真实新原生工作流 succeeded、C258；solver 先写 70人-1人=69人，再四次加法；reviewer 8 字段全 true、prefix=[]                                                                                                                            | 真正新 solver+review+renderer 全路径通过；原题与题号保留，不硬编码 258/69                                                   |
+| 03:31:08 / 独立球数变体             | 容量 80/60/25/10、阈值 45，真实 succeeded、B124；先推导 45-1=44，最不利总数 44+44+25+10 后加 1                                                                                                                                        | 独立输入而非只匹配原题，仍不是所有阈值/数学题都被证明可解                                                                   |
+| 另行前缀补证试验                    | 用当前实际 Dify 插件 reviewer、同模型/节点参数，输入**原先失败运行的真实 solver JSON**；新 reviewer 给出 unit="" 的 70-1=69.00 前缀，主机上精确部署的 validator/renderer 接受，原 C258 原样显示并单列前置证明                         | 这是**新真实模型复核 + 主机运行时组件测试**，没有新的 solver，也不是另一次原生完整工作流；不冒充端到端 run                  |
+| 回归首轮 verify-1794022726078998465 | summary `eda61b55-d0b8-46d3-beed-8be37420652e` succeeded、李梦圆/袁东均 answered；后续数量用例 `6c3dd501-f9dd-4fbb-badd-07c343f33ec4` 在 03:44:52–03:45:08 三个 LLM 异常/default model_failure                                        | 首轮完整回归失败，保留记录；只读错误显示 PluginInvokeError/InvokeError 与 503，未确定任何客户端限制，不套用旧 Luna 403 结论 |
+| 03:57 / 有界可用性短探测            | 实际 ModelManager 对 13+8 返回裸 JSON 答案 21                                                                                                                                                                                         | 未改配置/Key；只证明这次短调用恢复，不等于后续完整套件已经通过                                                              |
+| 第二轮 verify-1794024163382275395   | summary `03c2aa6c-352c-4a8f-ace3-dce2b65acf3b` succeeded、两位老师 answered；红领巾 `daec9417-f2d7-4def-a8c5-3fbc6d05cd62` solver 正确 C3、完整16项运算，但 reviewer 与 fallback 模型调用异常/default model_failure，workflow partial | 仍是模型服务异常而非新验证失败；完整当前套件未通过，不再计划整批请求，不修改模型/Key/权限来绕过                             |
+
+新三类正向证据位于 `/var/lib/dify/kaogong-teachers/recruitment-fix-20261107/recruitment.json`、`recruitment-variant.json`、`proof-replay.json`。前两份是原生全工作流，第三份是上述组件边界；没有修改原答案/计算来制造通过，也没有伪造新的 solver 输出。
+
+本轮改动已在原 app/dataset 的五个 Gemini/18 节点上线，目标题、独立变体、真实模型补证加主机验证均通过。模型/网关授权、知识库/导入、boot、公开入口和重试策略未改。两轮完整回归受模型服务异常阻塞，不再计划整批请求；收尾静态/代码/构建/新图审计及密码清理尚待确认。`full_goal_complete=false`，既不撤销前轮 9 案真成功，也不借它覆盖本轮未完成的更广回归。
+
+本轮 renderer 使用固定、安全的中文校验类别，不再把这些已知原因全部归成笼统失败。命中的内部错误只选择预先定义的文字，**不把任意异常、请求或凭据原文拼入页面**；其他结构/材料错误保留通用提示，真正 model_failure 仍走模型服务错误分支：
+
+| 内部类别                                                  | 中文说明核心                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| invented arithmetic operand or unit                       | 计算链中有未建立来源的操作数，或单位表示不一致；需要补齐前置计算，文字解释不能替代计算记录 |
+| arithmetic result mismatch                                | 模型计算结果与程序复算不一致                                                               |
+| arithmetic metadata mismatch                              | 计算的操作、单位、精度或舍入信息不一致                                                     |
+| math answer lacks checked arithmetic                      | 数学答案缺少可复算的计算记录                                                               |
+| answer numeric claims not grounded in checked calculation | 正式答案中的数值尚未得到原计算记录的支持                                                   |
+| calculation prefix cannot replace original proof          | 补充前置计算不能代替原计算记录，也不能用于老师分支                                         |
+| calculation prefix requires basic arithmetic              | 补充前置计算只能使用受限四则运算                                                           |
+
+### 10.9 公开网页题的多老师调用测试
+
+**题源与范围。**选用公开转载的 2019 年国考副省级申论第一题：
+
+> 根据“给定资料一”，概括S市在乡风文明建设方面的举措。（10分）
+
+作答要求为全面、准确、不超过150字。题干在[星光公考题库](https://www.xingguanggongkao.com/ShenQuestion/singleList/subject_id/3/label_id/81/area_id/281/knows_id/2.html)中标为 `2019-国考副省-001`，类别为概括题。给定资料参考[张家界育才教育公开转载页](http://zjjgwy.com/3G/View_2628.html)，该页日期为2020-11-04。本次材料页只能通过 HTTP 读取，HTTPS 未能读取；两站均为第三方转载，未作为官方原卷或开放授权全文认定。
+
+测试采用**原题题干加自写材料摘要**，不是官方材料全文，也没有向模型提供网站参考答案、教师姓名或预设分类标题。摘要会降低阅读和筛选难度，因此只能证明这份输入上的方法适配与调用流程，不作为完整真题能力评分。
+
+实际输入的摘要如下，完整请求另存于私密证据目录的 `input.json`：
+
+```text
+S市把乡风文明列入全市发展安排，在农村改革、村居建设和基层治理工作中一并部署，并分阶段建设示范村和标杆村，带动其他村居改进。市里完善相关政策，突出村党组织的领导作用，将法治要求融入基层治理；派104名机关干部到村任第一书记，招录205名大学生做村干部，把党支部设到村民小组，探索党组织带动自治、共治、法治、德治的办法。同时，把城区环境改善工作延伸到乡村，整治居住环境并推进绿化。当地投入两千多万元修复、利用文化遗存，根据各村历史特色举办不同的文化活动。各村设置展示好人善举的榜单，全市建起30个村居主题公园、143个农村道德讲堂，并通过景观标识、公益广告及身边榜样的宣讲传播核心价值观。当地还从农村传统中寻找道德教育内容，引导村民传承良好行为规范，改善精神风貌。
+```
+
+请求中明确标记“原材料摘要／适配测试，非官方全文”，并要求仅根据提供的材料作答。没有修改工作流、模型绑定、老师资料或公开权限来促成通过。
+
+**实际结果。**原生工作流 run ID 为 `133c37f4-da16-4490-9f07-4c9a80a61803`，`workflow_status=succeeded`，`exceptions_count=0`，运行约58.78秒，完整消息结束事件已收到。
+
+| 老师（社区整理归属） | 实际检索及使用的方法             | 检索／证据／独立解题／复核／程序校验 | 参考答案字数 |
+| -------------------- | -------------------------------- | ------------------------------------ | ------------ |
+| 李梦圆               | `li-mengyuan.keyword-extraction` | 全部 succeeded，最终 answered        | 146          |
+| 袁东                 | `yuan-dong.summary-headings`     | 全部 succeeded，最终 answered        | 149          |
+
+两份答案都满足150字限制。实际方法差异是：李梦圆分支先按动作和措施标志句提取关键词，再合并同类项；袁东分支按工作领域归类，为各类材料提炼前置概括短句。两份答案都覆盖规划示范、党建治理、环境整治、文化遗存和道德培育等输入中的行动，但程序没有按多数票判定它们完全等价。
+
+李梦圆分支实际使用来源 `wang-shenlun-li-keywords-1-4`，袁东分支使用 `wang-shenlun-yuan-headings-5-3`。逐分支核对原始 SSE，确认各自检索到本老师的方法卡，使用的 skill ID 与检索一致，模型复核全部标志为 true、issues 为空，最终 `kg_verify.status=answered`。不是仅看到节点执行 Success 就算通过，也不是通用解法冒充两位老师。
+
+本轮记录：
+
+- 应用仍为 `71afeb8d-4b69-45e0-b91d-eb7701b10059`，模型为 `kaogong-gemini-3.8-flash-high`，知识库未变。
+- 网站/API仍关闭，未发布，没有重配模型或修改工作流的请求。
+- 测试前后完整草稿内容 hash 不同；未覆盖这些变化。额外只读核对确认，本次保存的运行图与测试后图的节点/连线执行配置一致。
+- 私密证据目录为 `/var/lib/dify/kaogong-teachers/public-question-tests/20261107-1794038645661726465`，包含 `input.json`、`events.sse`、`preview.json` 和逐分支 `report.json`。
+- 本次独立临时密码位于 `/run/dify-public-question-test/password`，文件和父目录已于08:14:12 UTC删除；长期知识库 Key 和部署状态保留。
+- 这些讲解由模型依据已审核社区方法卡生成，不是老师本人现场答题或官方背书。
 
 ## 11. 排障与不应采用的捷径
 
@@ -1613,6 +1794,10 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 | 空 result                                                | 可能无命中，也可能 multiple retrieval 吞异常；保留“未取得可核验资料”歧义并查节点/索引日志                                                                                                                                                  |
 | 公共 retrieve 通过，单节点 debugger 却空                 | 核对调试入口接受的是 `query`，不是 `kg_select.query` 这个字段名；metadata 模板还需要变量池中真实 `kg_extract.teacher_id`。单节点输入提取可能只加载查询变量，不能用缺变量的调试结果否定公共召回，更不能往生产图塞固定 teacher_id 让测试通过 |
 | `invalid_output` / 模型默认 failed JSON                  | 从结构、完整输出、source_id、精确 quote、condition quote、calc result、字数逐层排查；不得跳过复核                                                                                                                                          |
+| 节点全 succeeded 但答案未展示                            | 先区分执行成功与内部校验；招聘题 solver 已正确 C258，但缺派生运算/单位不一致，不能归咎原题或模型不会解                                                                                                                                     |
+| 派生数在 steps 中出现、calculations 无来源               | 将推导显式列入原计算，或仅由通用 reviewer 提供受限前缀并逐项验证；不能把 steps 的任意数字直接加入 available                                                                                                                                |
+| calculation_prefix 用来改错答案/增长口径                 | 前缀不进入最终 computed 集合，原结果/增长 operation 仍由原 calculations 支撑；老师 reviewer 连空前缀字段也不接受                                                                                                                           |
+| 本轮回归模型 503                                         | 记录 PluginInvokeError/InvokeError 和实际时点；没有证据就不写成客户端封禁。短探测恢复后再等真实全套结果，不伪填通过                                                                                                                        |
 | 通用 solver 正确但 reviewer 因题干未写背景常识而拒绝     | 两段通用提示词已上线，手机题后续真实通过；指定材料和独立复核门禁保留，不硬编码选项或关闭复核                                                                                                                                               |
 | 单路老师 answered 或中间 solver 成功，但整体失败         | 检查本路 review/kg_verify 和精确预期老师集合；14:55/15:22 是保留的历史失败，最终当前图已另行通过。以后有界重试仍非成功保证                                                                                                                 |
 | 第二次 apply 曾因 disabled-upload/node.selected 漂移阻止 | 现已精确验证 12 个限制值、关闭开关/空数组及两层 selected bool，再三方保留；未知或执行改动仍拒绝，不忽略整个 features、不改 hash                                                                                                            |
@@ -1634,14 +1819,14 @@ Luna 十分钟探测在 16:00/16:01 的 403 后已取消，不再按该历史周
 
 ### 11.1 后续版本的重验流程
 
-本次最终版本已完成以下检查；以后修改代码、数据、binding 或部署边界时，需要为新版本重新执行，不沿用本次封存冒充新通过：
+181 版本曾完成以下检查；招聘题改变了代码合同，当前正在按同样要求重验。以后修改代码、数据、binding 或部署边界也须重新执行，不沿用旧封存冒充新通过：
 
 1. 保留授权边界，固定新源码/绑定并完成离线和完整静态检查；不重新启用旧 Luna 探测或擅改网关权限。
 2. 用原 state 与明确 binding 做必要的受限保存并读回；代码/提示词/模型变更必须生成新 hash，不能只更新服务器文件就称图已更新。
 3. 用有限真实任务执行原生产 7 案及独立手机/诗句等目标题；逐一比较持久执行图与该次当前图，不减弱比较或假回放旧结果。
 4. 检查老师集合/answered、材料/数学/字数、追问和拒答；记录所有成功、恢复异常或失败，不把模型复核当普遍事实证明。
 5. 完成真实浏览器保存/恢复/刷新、幂等、匿名保护、资源审计及双进程字节复现，保存新版本源码/图/文件哈希。
-6. 清理临时凭据并保留私有恢复材料；启动配置若变更，重新比较/注册，明确区分 boot-only 与 running switch/实际重启。当前最终记录为 `final_20261107`，未来版本另记，不改写旧历史。
+6. 清理本轮重新建立的临时凭据并保留恢复材料；启动配置本轮未改变，维持已注册 boot-only 事实。当前记录为 `recruitment_followup_20261107`，旧 final_20261107 的成功/清理不改写，也不替代新状态。
 
 ## 12. 安全、备份与后续扩展
 
