@@ -636,7 +636,7 @@ in
 
     healthCheckUrl = lib.mkOption {
       type = lib.types.str;
-      default = "https://speedtest.dora.im/generate_204";
+      default = "https://www.gstatic.com/generate_204";
       description = "URL used by URL-test and load-balance groups.";
     };
 
