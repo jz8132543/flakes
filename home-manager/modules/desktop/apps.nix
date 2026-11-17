@@ -1,6 +1,7 @@
 {
   lib,
   pkgs,
+  osConfig,
   ...
 }:
 let
@@ -33,6 +34,13 @@ let
         exit 1
       fi
       cd -- "$(dirname -- "$script")"
+      # SecU uses the host Qt5 runtime; keep file drags on native Wayland with GNOME/DDE.
+      if [[ "$(basename -- "$script")" == autorun.sh &&
+            -f ".Linux/$(uname -m)/SecU.out" &&
+            "''${XDG_SESSION_TYPE:-}" == wayland &&
+            -n "''${WAYLAND_DISPLAY:-}" ]]; then
+        export QT_QPA_PLATFORM='wayland;xcb'
+      fi
       exec ${lib.getExe pkgs.bash} -- "$script"
     '';
   };
@@ -131,10 +139,17 @@ let
     ];
   };
   fileAssociations =
-    lib.foldlAttrs (
-      result: name: mimeTypes:
-      result // lib.genAttrs mimeTypes (_: [ "${name}.desktop" ])
-    ) { "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ]; } documentMimeTypes
+    lib.foldlAttrs
+      (
+        result: name: mimeTypes:
+        result // lib.genAttrs mimeTypes (_: [ "${name}.desktop" ])
+      )
+      {
+        "application/wps-office.pdf" = [ "wps-office-pdf.desktop" ];
+        "application/wps-office.ofd" = [ "wps-office-pdf.desktop" ];
+        "application/wps-office.uof" = [ "wps-office-prometheus.desktop" ];
+      }
+      documentMimeTypes
     // lib.genAttrs shellScriptMimeTypes (_: [ "shell-script-runner.desktop" ]);
 in
 {
@@ -147,6 +162,22 @@ in
 
   home.packages = with pkgs; [
     shellScriptRunner
+    # Prefer the WPS-specific .wps type and register the missing OFD extension.
+    (pkgs.writeTextDir "share/mime/packages/wps-office-extra.xml" ''
+      <?xml version="1.0" encoding="UTF-8"?>
+      <mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+        <mime-type type="application/wps-office.wps">
+          <comment>WPS Writer document</comment>
+          <sub-class-of type="application/vnd.ms-works"/>
+          <glob pattern="*.wps" weight="80"/>
+        </mime-type>
+        <mime-type type="application/wps-office.ofd">
+          <comment>Open Fixed-layout Document</comment>
+          <sub-class-of type="application/zip"/>
+          <glob pattern="*.ofd"/>
+        </mime-type>
+      </mime-info>
+    '')
     telegram-desktop
     ffmpeg
     thunderbird
@@ -175,6 +206,7 @@ in
     devin-desktop
     code-cursor
     nur.repos.lonerOrz.trae
+    nur.repos.MCSeekeri.workbuddy
 
     gnome-connections
     # CD/DVD Burning is configured system-wide via programs.k3b.
@@ -183,6 +215,7 @@ in
     feishu
   ];
   programs = {
+    fluxdown.enable = true;
     # TODO
     # gitui = {
     #   enable = true;
@@ -191,14 +224,6 @@ in
     # };
     intelli-shell = {
       enable = true;
-      # Upstream v3.4.6 bug (PR #74): `bind \c$char` causes an "Invalid token '\c$char'" syntax error on Fish 4.x.
-      # Patch the embedded init template directly so official `enableFishIntegration` works cleanly.
-      package = pkgs.intelli-shell.overrideAttrs (old: {
-        postPatch = (old.postPatch or "") + ''
-          substituteInPlace src/_shell/intelli-shell.fish \
-            --replace-fail 'bind \c$char $target_func' 'eval "bind \\c$char \$target_func"'
-        '';
-      });
     };
     # Document viewer
     zathura = {
@@ -314,11 +339,18 @@ in
     defaultApplications = fileAssociations;
   };
 
-  xdg.configFile = lib.genAttrs [ "gnome-mimeapps.list" "dde-mimeapps.list" ] (_: {
-    text = lib.generators.toINI { } {
-      "Default Applications" = lib.genAttrs shellScriptMimeTypes (_: "shell-script-runner.desktop");
-    };
-  });
+  xdg.configFile = lib.mkMerge [
+    (lib.genAttrs [ "dde-mimeapps.list" ] (_: {
+      text = lib.generators.toINI { } {
+        "Default Applications" = lib.genAttrs shellScriptMimeTypes (_: "shell-script-runner.desktop");
+      };
+    }))
+    (lib.mkIf osConfig.desktop.gnome.enable (
+      import ../../../archive/desktop/gnome/home-manager/modules/desktop/apps.nix.bak {
+        inherit lib shellScriptMimeTypes;
+      }
+    ))
+  ];
 
   xdg.desktopEntries = {
     shell-script-runner = {
@@ -439,6 +471,10 @@ in
       ".config/Devin"
       ".devin"
       ".local/share/Devin"
+      ".workbuddy"
+      ".config/WorkBuddy"
+      # WorkBuddy stores login credentials outside its main data directory.
+      ".local/share/CodeBuddyExtension/Data/Public/auth"
     ];
     files = [
       # ".config/monitors.xml" # Removed to allow GNOME to adaptively configure monitors based on EDID

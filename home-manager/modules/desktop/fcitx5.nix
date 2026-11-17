@@ -1,4 +1,5 @@
 {
+  config,
   pkgs,
   lib,
   osConfig ? { },
@@ -35,28 +36,66 @@ lib.mkIf (imFramework == "fcitx5") {
     qt6Packages.fcitx5-configtool
   ];
 
+  home.global-persistence.directories = [
+    {
+      directory = ".config/fcitx5";
+      mode = "0700";
+    }
+    {
+      directory = ".local/share/fcitx5";
+      mode = "0700";
+    }
+  ];
+
   xdg.dataFile."fcitx5/rime" = {
     source = rimeUserData + "/share/rime-build";
     recursive = true;
   };
 
+  # Rime writes these at startup; migrate the old store links without losing state.
+  home.activation.initializeRimeState = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    rime_dir=${lib.escapeShellArg "${config.xdg.dataHome}/fcitx5/rime"}
+    run mkdir -p "$rime_dir"
+    for name in installation.yaml user.yaml; do
+      state="$rime_dir/$name"
+      if [ -L "$state" ] && [[ "$(readlink -f "$state")" == /nix/store/* ]]; then
+        run cp --remove-destination "$(readlink -f "$state")" "$state"
+        run chmod u+w "$state"
+      elif [ ! -e "$state" ] && [ ! -L "$state" ]; then
+        run cp ${rimeUserData}/share/rime-data/"$name" "$state"
+        run chmod u+w "$state"
+      fi
+    done
+    run mkdir -p "$rime_dir/build"
+    for source in ${rimeUserData}/share/rime-data/build/*.yaml; do
+      run cp --remove-destination "$source" "$rime_dir/build/$(basename "$source")"
+      run chmod u+w "$rime_dir/build/$(basename "$source")"
+    done
+  '';
+
   xdg.configFile."fcitx5/config" = {
     text = ''
       [Behavior]
-      # Do not share input state between any windows/apps
-      ShareInputState=No
-      # Enable application filter for the groups/rules below
-      EnableApplicationFilter=True
+      ActiveByDefault=True
+      ShareInputState=All
 
       [Hotkey]
       EnumerateWithTriggerKeys=True
       [Hotkey/TriggerKeys]
       0=Control+space
-      1=Shift_R
-      2=Shift_L
+      # Shift belongs to Rime's ASCII toggle, not Fcitx's input-method switching.
+      [Hotkey/AltTriggerKeys]
       [Hotkey/EnumerateForwardKeys]
-      0=Shift_L
-      1=Shift_R
+    '';
+    force = true;
+  };
+
+  xdg.configFile."fcitx5/conf/classicui.conf" = {
+    text = ''
+      Font=Sans 10
+      MenuFont=Sans 10
+      TrayFont=Sans Bold 10
+      EnableFractionalScale=True
     '';
     force = true;
   };
@@ -66,7 +105,7 @@ lib.mkIf (imFramework == "fcitx5") {
       [Groups/0]
       Name=Default
       Default Layout=us
-      DefaultIM=keyboard-us
+      DefaultIM=rime
 
       [Groups/0/Items/0]
       Name=keyboard-us
@@ -158,11 +197,8 @@ lib.mkIf (imFramework == "fcitx5") {
       XIM = "fcitx";
     }
     {
-      # GNOME Wayland uses fcitx5 through the ibus frontend / text-input-v3 path.
-      # Keep GTK on the desktop default path instead of forcing fcitx IM module
-      # globally, which is explicitly discouraged by upstream docs. Per-app
-      # terminal English mode is handled by the application filter above and by
-      # forcing selected terminals onto XWayland in their own module configs.
+      # Native GTK uses the compositor's text-input path; Qt uses the addon.
+      # Terminal ASCII behavior is retained by the existing Rime/app policies.
       QT_IM_MODULE = "fcitx";
     }
   ];

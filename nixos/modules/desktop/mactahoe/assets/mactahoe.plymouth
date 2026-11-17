@@ -1,0 +1,9 @@
+[Plymouth Theme]
+Name=MacTahoe Summit
+Description=Original monochrome Summit mark with readable boot and authentication prompts
+ModuleName=script
+
+[script]
+ImageDir=@THEME_DIR@
+ScriptFile=@THEME_DIR@/mactahoe.script
+ConsoleLogBackgroundColor=0x00000000

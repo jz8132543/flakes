@@ -1,0 +1,6 @@
+{ lib, shellScriptMimeTypes }:
+lib.genAttrs ["gnome-mimeapps.list"] (_: {
+  text = lib.generators.toINI {} {
+    "Default Applications" = lib.genAttrs shellScriptMimeTypes (_: "shell-script-runner.desktop");
+  };
+})

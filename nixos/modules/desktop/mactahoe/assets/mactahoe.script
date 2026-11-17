@@ -1,0 +1,113 @@
+# Original Summit boot theme. SPDX-License-Identifier: MIT
+# Esc remains handled by Plymouth's daemon: never install a keyboard hook.
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+logo.image = Image("logo.png");
+logo.sprite = Sprite(logo.image);
+logo.sprite.SetOpacity(0);
+bar.image = Image("progress.png");
+bar.track = Sprite(bar.image);
+bar.track.SetOpacity(0.18);
+bar.fill = Sprite(bar.image);
+bar.fill.SetOpacity(0);
+prompt.sprite = Sprite();
+entry.sprite = Sprite();
+message.sprite = Sprite();
+hint.image = Image.Text("Esc: boot details", 0.65, 0.65, 0.65, 1, "DejaVu Sans 12");
+hint.sprite = Sprite(hint.image);
+progress = 0;
+opacity = 0;
+status = "normal";
+
+fun place_text(sprite, text, y)
+{
+  image = Image.Text(text, 1, 1, 1, 1, "DejaVu Sans 14");
+  if (image.GetWidth() > Window.GetWidth() * 0.9)
+    image = image.Scale(Window.GetWidth() * 0.9,
+      image.GetHeight() * Window.GetWidth() * 0.9 / image.GetWidth());
+  sprite.SetImage(image);
+  sprite.SetPosition(Window.GetX() + (Window.GetWidth() - image.GetWidth()) / 2,
+    Window.GetY() + Window.GetHeight() * y, 100);
+  sprite.SetOpacity(1);
+}
+
+fun refresh()
+{
+  center_x = Window.GetX() + Window.GetWidth() / 2;
+  center_y = Window.GetY() + Window.GetHeight() * 0.43;
+  logo.sprite.SetPosition(center_x - logo.image.GetWidth() / 2,
+    center_y - logo.image.GetHeight() / 2, 1);
+  bar.track.SetPosition(center_x - bar.image.GetWidth() / 2, center_y + 85, 1);
+  bar.fill.SetPosition(center_x - bar.image.GetWidth() / 2, center_y + 85, 2);
+  hint.sprite.SetPosition(center_x - hint.image.GetWidth() / 2,
+    Window.GetY() + Window.GetHeight() * 0.92, 100);
+  if (global.progress < 1 || global.status != "normal")
+    global.opacity = Math.Min(1, global.opacity + 0.04);
+  else
+    global.opacity = Math.Max(0, global.opacity - 0.04);
+  logo.sprite.SetOpacity(global.opacity);
+}
+
+fun boot_progress(duration, value)
+{
+  # Never shrink the bar when Plymouth revises its duration estimate.
+  global.progress = Math.Max(global.progress, Math.Min(1, Math.Max(0, value)));
+  width = Math.Max(1, Math.Int(bar.image.GetWidth() * global.progress));
+  bar.fill.SetImage(bar.image.Scale(width, bar.image.GetHeight()));
+  bar.fill.SetOpacity(global.progress > 0);
+}
+
+fun display_normal()
+{
+  global.status = "normal";
+  prompt.sprite.SetOpacity(0);
+  entry.sprite.SetOpacity(0);
+}
+
+fun display_password(text, bullets)
+{
+  global.status = "password";
+  place_text(prompt.sprite, text, 0.64);
+  masked = "";
+  for (i = 0; i < Math.Min(bullets, 48); i++)
+    masked += "*";
+  # This callback receives only the bullet count, never the password itself.
+  place_text(entry.sprite, "[ " + masked + " ]", 0.70);
+}
+
+fun display_question(text, answer)
+{
+  global.status = "question";
+  place_text(prompt.sprite, text, 0.64);
+  place_text(entry.sprite, answer, 0.70);
+}
+
+fun display_message(text)
+{
+  # Authentication/storage errors stay visible independently of the logo fade.
+  global.message.text = text;
+  place_text(message.sprite, text, 0.80);
+}
+
+fun hide_message(text)
+{
+  if (text == global.message.text)
+    message.sprite.SetOpacity(0);
+}
+
+fun quit()
+{
+  logo.sprite.SetOpacity(0);
+  bar.track.SetOpacity(0);
+  bar.fill.SetOpacity(0);
+}
+
+Plymouth.SetRefreshFunction(refresh);
+Plymouth.SetBootProgressFunction(boot_progress);
+Plymouth.SetDisplayNormalFunction(display_normal);
+Plymouth.SetDisplayPasswordFunction(display_password);
+Plymouth.SetDisplayQuestionFunction(display_question);
+Plymouth.SetDisplayMessageFunction(display_message);
+Plymouth.SetHideMessageFunction(hide_message);
+Plymouth.SetQuitFunction(quit);

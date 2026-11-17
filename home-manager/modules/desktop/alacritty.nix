@@ -7,7 +7,6 @@ let
   alacrittyPackage = config.lib.self.wrapNoIme {
     inherit pkgs;
     pkg = pkgs.alacritty;
-    extraArgs = "--unset WAYLAND_DISPLAY";
   };
 in
 {
@@ -51,7 +50,7 @@ in
           italic.family = "JetBrainsMono Nerd Font";
           bold_italic.family = "JetBrainsMono Nerd Font";
           bold.family = "JetBrainsMono Nerd Font";
-          size = 15 * config.wayland.dpi / 96;
+          size = 15;
         };
         window = {
           # opacity = 0.8;

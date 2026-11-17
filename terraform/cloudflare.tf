@@ -352,3 +352,11 @@ resource "cloudflare_dns_record" "dora_xiy2" {
   content = "dxa.yiandrive.com"
   zone_id = cloudflare_zone.im_dora.id
 }
+
+module "speedtest_worker" {
+  source = "./modules/speedtest-worker"
+
+  account_id = local.cloudflare_main_account_id
+  zone_id    = cloudflare_zone.im_dora.id
+  hostname   = "speedtest.${cloudflare_zone.im_dora.name}"
+}

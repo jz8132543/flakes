@@ -11,7 +11,6 @@ in
 {
   imports = [
     ./edid
-    # ./monitors.nix
     inputs.nixos-hardware.nixosModules.common-hidpi
     inputs.nixos-hardware.nixosModules.common-pc-laptop
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
@@ -43,7 +42,7 @@ in
     ];
     kernelModules = [
       "kvm-amd"
-      "lenovo-legion-module"
+      "legion_laptop"
     ];
     kernelParams = [
       # "fbdev=1"
@@ -79,8 +78,8 @@ in
     };
   };
   services = {
-    # Cooling management
-    thermald.enable = lib.mkDefault true;
+    # Intel thermald does not support this AMD platform.
+    thermald.enable = lib.mkDefault false;
     # AMD has better battery life with PPD over TLP:
     # https://community.frame.work/t/responded-amd-7040-sleep-states/38101/13
     power-profiles-daemon.enable = lib.mkDefault true;
@@ -138,7 +137,6 @@ in
     __GL_SYNC_DISPLAY_DEVICE = MONITOR;
     VDPAU_NVIDIA_SYNC_DISPLAY_DEVICE = MONITOR;
   };
-  home-manager.users.tippy.wayland.dpi = 144;
   utils.disk = "/dev/nvme0n1";
   nix.gc.automatic = lib.mkForce false;
   environment.systemPackages = with pkgs; [

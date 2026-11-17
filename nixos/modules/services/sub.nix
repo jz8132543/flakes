@@ -70,16 +70,31 @@ let
         type = "vless";
         inherit server;
         uuid = config.sops.placeholder."xray/uuid";
-        network = "tcp";
+        network = cfg.transport;
         tls = true;
         udp = true;
-        flow = "xtls-rprx-vision";
         servername = cfg.serverName;
         reality-opts = {
           public-key = config.sops.placeholder."xray/public_key";
           short-id = config.sops.placeholder."xray/short_id";
+          support-x25519mlkem768 = true;
         };
         client-fingerprint = "chrome";
+      }
+      // lib.optionalAttrs (cfg.transport == "tcp") {
+        flow = "xtls-rprx-vision";
+      }
+      // lib.optionalAttrs (cfg.transport == "xhttp") {
+        xhttp-opts = {
+          path = cfg.xhttpPath;
+          host = cfg.serverName;
+          mode = cfg.xhttpMode;
+          x-padding-bytes = cfg.xhttpExtra.xPaddingBytes;
+          x-padding-obfs-mode = cfg.xhttpExtra.xPaddingObfsMode;
+          x-padding-placement = cfg.xhttpExtra.xPaddingPlacement;
+          x-padding-header = cfg.xhttpExtra.xPaddingHeader;
+          x-padding-method = cfg.xhttpExtra.xPaddingMethod;
+        };
       };
 
   # DN42 内网节点：因内部网络天然受 WireGuard/XFRM 隧道加密，直接使用高性能免加密 SOCKS5 协议
@@ -354,6 +369,11 @@ let
       "DOMAIN-SUFFIX,dora.im,DIRECT"
       "DOMAIN-SUFFIX,kxy.ovh,DIRECT"
 
+      # Noctalia IP geolocation and weather: use the local public IP, not the proxy exit.
+      "DOMAIN,api.noctalia.dev,DIRECT"
+      "DOMAIN,api.open-meteo.com,DIRECT"
+      "DOMAIN,invite.linuxdo.org,DIRECT"
+
       # 拦截广告
       "GEOSITE,category-ads-all,REJECT"
       "GEOIP,ad,REJECT,no-resolve"
@@ -518,19 +538,25 @@ let
     }
   '';
 
+  # This endpoint publishes VLESS URIs; Shadowsocks remains in the Mihomo document.
   v2rayText = lib.concatStringsSep "\n" (
     map (
       node:
       let
         server = publicServer node.server;
         safeName = lib.replaceStrings [ " " "#" "%" ] [ "-" "-" "-" ] node.name;
+        transportQuery =
+          if cfg.transport == "xhttp" then
+            "type=xhttp&path=${lib.escapeURL cfg.xhttpPath}&host=${lib.escapeURL cfg.serverName}&mode=${cfg.xhttpMode}&extra=${lib.escapeURL (builtins.toJSON cfg.xhttpExtra)}"
+          else
+            "type=tcp&flow=xtls-rprx-vision";
       in
       "vless://${
         config.sops.placeholder."xray/uuid"
-      }@${server}:${toString node.port}?encryption=none&security=reality&sni=${cfg.serverName}&fp=chrome&type=tcp&flow=xtls-rprx-vision&pbk=${
+      }@${server}:${toString node.port}?encryption=none&security=reality&sni=${lib.escapeURL cfg.serverName}&fp=chrome&${transportQuery}&pbk=${
         config.sops.placeholder."xray/public_key"
       }&sid=${config.sops.placeholder."xray/short_id"}#${safeName}"
-    ) cfg.nodes
+    ) (lib.filter (node: node.type == "vless") cfg.nodes)
   );
 in
 {
@@ -545,13 +571,72 @@ in
 
     serverName = lib.mkOption {
       type = lib.types.str;
-      default = "assets.msn.com";
+      default = "speedtest.dora.im";
       description = "SNI/serverName used by all VLESS Reality nodes.";
+    };
+
+    transport = lib.mkOption {
+      type = lib.types.enum [
+        "tcp"
+        "xhttp"
+      ];
+      default = "xhttp";
+      description = "VLESS transport; select tcp when rolling all servers back to the legacy sing-box configuration.";
+    };
+
+    xhttpPath = lib.mkOption {
+      type = lib.types.str;
+      default = "/speedtest";
+      description = "XHTTP path, which must match the server module's xhttpPath.";
+    };
+
+    xhttpMode = lib.mkOption {
+      type = lib.types.enum [
+        "stream-one"
+        "stream-up"
+        "packet-up"
+      ];
+      default = "stream-one";
+      description = "XHTTP mode, which must match the server module's xhttpMode.";
+    };
+
+    xhttpExtra = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          xPaddingBytes = lib.mkOption {
+            type = lib.types.str;
+            default = "100-1000";
+            description = "XHTTP padding length range, shared with the server module.";
+          };
+          xPaddingObfsMode = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = "Enable the XHTTP padding obfuscation mode on both ends.";
+          };
+          xPaddingPlacement = lib.mkOption {
+            type = lib.types.str;
+            default = "header";
+            description = "Explicit padding placement, required because the two clients have different defaults.";
+          };
+          xPaddingHeader = lib.mkOption {
+            type = lib.types.str;
+            default = "X-Padding";
+            description = "Shared HTTP header used for XHTTP padding.";
+          };
+          xPaddingMethod = lib.mkOption {
+            type = lib.types.str;
+            default = "repeat-x";
+            description = "Shared XHTTP padding encoding method.";
+          };
+        };
+      };
+      default = { };
+      description = "XHTTP extra settings supported by both Xray and Mihomo; keep server and client settings synchronized.";
     };
 
     healthCheckUrl = lib.mkOption {
       type = lib.types.str;
-      default = "https://www.gstatic.com/generate_204";
+      default = "https://speedtest.dora.im/generate_204";
       description = "URL used by URL-test and load-balance groups.";
     };
 
@@ -688,10 +773,14 @@ in
         assertion = cfg.nodes != [ ];
         message = "services.subscriptionPublisher.nodes must not be empty";
       }
+      {
+        assertion = lib.hasPrefix "/" cfg.xhttpPath;
+        message = "services.subscriptionPublisher.xhttpPath must begin with /";
+      }
     ];
 
     sops.secrets."xray/subscription_path_token" = {
-      mode = "0444";
+      mode = "0400";
     };
 
     services.nginx = {
@@ -712,20 +801,20 @@ in
 
     sops.templates."subscription/mihomo.yaml" = {
       owner = "nginx";
-      mode = "0444";
+      mode = "0400";
       file = mihomoYamlFile;
     };
 
     sops.templates."subscription/nginx.conf" = {
       owner = "nginx";
-      mode = "0444";
+      mode = "0400";
       restartUnits = [ "nginx.service" ];
       content = nginxText;
     };
 
     sops.templates."subscription/v2ray.txt" = {
       owner = "nginx";
-      mode = "0444";
+      mode = "0400";
       content = v2rayText;
     };
   };

@@ -23,7 +23,6 @@ let
     inputs.home-manager.nixosModules.home-manager
     inputs.nur.modules.nixos.default
     {
-      nixpkgs.overlays = overlays;
       lib.self = self.lib;
       home-manager = {
         sharedModules = commonHmModules;
@@ -63,7 +62,6 @@ let
     hmModules.base.all
     ++ hmModules.services.all
     ++ [
-      inputs.plasma-manager.homeModules.plasma-manager
       {
         lib.self = selfLib;
       }

@@ -50,9 +50,12 @@ in
         ];
         requires = [
           "sops-install-secrets.service"
-          "tailscaled.service"
         ];
-        wants = [ "network-online.target" ];
+        # A failed daemon start must not cancel the login worker's own retries.
+        wants = [
+          "tailscaled.service"
+          "network-online.target"
+        ];
         wantedBy = [ "multi-user.target" ];
         startLimitIntervalSec = 0;
         path = [
@@ -96,7 +99,7 @@ in
           status_json=$(tailscale status --json 2>/dev/null || true)
           status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
 
-          if [ "$status" = "Running" ] || [ "$status" = "Starting" ]; then
+          if [ "$status" = "Running" ] || [ "$status" = "Starting" ] || [ "$status" = "Stopped" ]; then
             echo "Tailscale is already authenticated (state: $status); reconciling configured flags."
             exit_code=0
             timeout 2m tailscale up \
@@ -126,8 +129,8 @@ in
               exit $exit_code
             fi
           else
-            echo "Tailscale is in state $status, no automatic login attempted."
-            exit 0
+            echo "Tailscale is in state $status; waiting for a usable state."
+            exit 1
           fi
         '';
         serviceConfig = {
@@ -194,10 +197,24 @@ in
       };
 
       systemd.services.tailscaled = {
-        before = [ "network.target" ];
+        # tailscaled handles offline links itself. Waiting for network-online
+        # can create an ordering cycle with services that need the overlay.
+        after = lib.mkForce [ "network-pre.target" ];
+        wants = lib.mkForce [ "network-pre.target" ];
+        startLimitIntervalSec = 0;
         serviceConfig = {
           Restart = "always";
+          RestartSec = "5s";
+          TimeoutStartSec = "60s";
           TimeoutStopSec = "5s";
+        };
+      };
+      systemd.services.tailscaled-set = lib.mkIf config.services.tailscale.enable {
+        startLimitIntervalSec = 0;
+        serviceConfig = {
+          Restart = "on-failure";
+          RestartSec = "5s";
+          TimeoutStartSec = "30s";
         };
       };
       services.restic.backups.borgbase.paths = [

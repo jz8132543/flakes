@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    latest.url = "github:NixOS/nixpkgs/master"; # 使用 master 分支的 nixpkgs
     nixos-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
     # LTS is mutable; refresh with: nix flake update --refresh rime-wanxiang-gram
     rime-wanxiang-gram = {
@@ -67,11 +66,10 @@
       url = "github:lix-project/lix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    plasma-manager = {
-      url = "github:nix-community/plasma-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
+    # Keep upstream's locked nixpkgs for the officially cached desktop builds.
+    umbriel.url = "github:noctalia-dev/umbriel/cachix";
+    noctalia.url = "github:noctalia-dev/noctalia/cachix";
+    noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
     gitignore-nix = {
       url = "github:hercules-ci/gitignore.nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -135,6 +133,14 @@
       inputs.flake-parts.follows = "flake-parts";
     };
     # Themes
+    mactahoe-gtk = {
+      url = "github:vinceliuice/MacTahoe-gtk-theme/1e45e19f510edb8cde18fa84d6cd5319f60b086b";
+      flake = false;
+    };
+    mactahoe-icons = {
+      url = "github:vinceliuice/MacTahoe-icon-theme/839848b9a8a38a92a6936e30c4abe35cc6f2546d";
+      flake = false;
+    };
     grub2-themes = {
       url = "github:vinceliuice/grub2-themes";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -182,6 +188,12 @@
     office365 = {
       url = "github:Tombert/office365_flake";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nectarlink = {
+      # Upstream Linux --minimized fix (#336), pending the next tagged release.
+      url = "github:thtbee/nectarlink/61972e3ad756e52b72a31ec8a5a5bd90ff256256";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
     };
     tcp-brutal = {
       url = "github:HyNetworks/tcp-brutal";

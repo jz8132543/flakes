@@ -39,7 +39,6 @@ in
       "gfkgnjfipffpfdnfmcpaoajkidapcplc"
       # CookieCloud - 同步PT站点Cookie
       "ffjiejobkoibkjlhjnlgmcnnigeelbdl"
-      "mpkodccbngfoacfalldjimigihfbocjn" # Aria2 Explorer
       # Linkwarden - Bookmark Manager
       "efpglpohdfnodejoimcladancmgeibao"
       # Zotero Connector - 一键抓取文献与PDF附件
@@ -52,8 +51,9 @@ in
       "--ozone-platform-hint=auto"
       "--ozone-platform=wayland"
 
-      # 2. 中文输入法适配 (Fcitx5 光标跟随)
-      "--gtk-version=4"
+      # 2. 中文输入法适配 (Wayland text-input-v3)
+      "--enable-wayland-ime"
+      "--wayland-text-input-version=3"
 
       # 3. GPU 硬解与图形加速
       "--enable-gpu-rasterization"
@@ -67,7 +67,7 @@ in
       "--enable-tcp-fastopen"
 
       # 6. 特性开关集合（合并避免多条 --enable-features 相互覆盖）
-      "--enable-features=TouchpadOverscrollHistoryNavigation,VaapiVideoDecodeLinuxGL,VaapiVideoEncoderLinuxGL,VaapiIgnoreDriverChecks,ParallelDownloading"
+      "--enable-features=TouchpadOverscrollHistoryNavigation,VaapiVideoDecodeLinuxGL,VaapiVideoEncoderLinuxGL,VaapiIgnoreDriverChecks,ParallelDownloading,WaylandWindowDecorations"
     ];
   };
   # programs.chromium = {

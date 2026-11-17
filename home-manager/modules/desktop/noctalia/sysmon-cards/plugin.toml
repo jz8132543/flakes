@@ -1,0 +1,28 @@
+id = "local/sysmon-cards"
+name = "System Monitor Cards"
+version = "1.0.0"
+plugin_api = 46
+description = "Named system metrics in grouped desktop cards."
+
+[[desktop_widget]]
+id = "card"
+entry = "card.luau"
+
+[[desktop_widget.setting]]
+key = "group"
+type = "select"
+label_key = "group"
+default = "network"
+options = [
+  { value = "network", label_key = "network" },
+  { value = "cpu", label_key = "cpu" },
+  { value = "gpu", label_key = "gpu" },
+  { value = "memory", label_key = "memory" },
+  { value = "vram", label_key = "vram" },
+]
+
+[[desktop_widget.setting]]
+key = "gpu_frequency_command"
+type = "string_list"
+label_key = "gpu_frequency_command"
+default = []

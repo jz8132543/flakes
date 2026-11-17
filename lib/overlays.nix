@@ -21,7 +21,6 @@
   (
     final: prev:
     let
-      masterPkgs = inputs.latest.legacyPackages.${final.stdenv.hostPlatform.system};
       configureWps = final.writeShellScript "configure-wps" ''
         set -eu
         export PATH=${final.lib.makeBinPath [ final.coreutils ]}
@@ -128,7 +127,7 @@
     in
     {
       wpsoffice-cn = prev.symlinkJoin {
-        name = "${prev.wpsoffice-cn.name or "wpsoffice-cn"}-no-scale";
+        name = "${prev.wpsoffice-cn.name or "wpsoffice-cn"}-configured";
         inherit (prev.wpsoffice-cn) version meta;
         paths = [ prev.wpsoffice-cn ];
         passthru = (prev.wpsoffice-cn.passthru or { }) // {
@@ -140,10 +139,7 @@
             if [ -f "$bin" ] && [ -x "$bin" ]; then
               wrapProgram "$bin" \
                 --run '${configureWps}' \
-                --run '${refreshWpsVersion} >/dev/null 2>&1 &' \
-                --set QT_AUTO_SCREEN_SCALE_FACTOR 0 \
-                --set QT_ENABLE_HIGHDPI_SCALING 0 \
-                --set QT_SCALE_FACTOR 1
+                --run '${refreshWpsVersion} >/dev/null 2>&1 &'
             fi
           done
         '';
@@ -186,6 +182,7 @@
       #   }
       # );
       #
+      # TODO: Upstream pysaml2 tests still fail with xmlschema 4.x.
       pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
         (_pyFinal: pyPrev: {
           pysaml2 = pyPrev.pysaml2.overridePythonAttrs (_: {
@@ -194,35 +191,17 @@
         })
       ];
 
-      # TODO: 默认 nixpkgs 包含 #584958 后将包来源切回默认 nixpkgs。
       # TODO: 上游隔离 document_link/grammar 单测的共享缓存后移除此串行测试覆盖。
-      neocmakelsp = masterPkgs.neocmakelsp.overrideAttrs (_: {
+      neocmakelsp = prev.neocmakelsp.overrideAttrs (_: {
         dontUseCargoParallelTests = true;
       });
-
-      # TODO: 默认 nixpkgs 包含 #584630 后移除此 master 临时覆盖。
-      inherit (masterPkgs) intelli-shell;
-
-      # TODO: 上游 nixpkgs 补齐 gersemi 的 pkg-config/sqlite 依赖后移除此临时覆盖。
-      gersemi = prev.gersemi.overridePythonAttrs (old: {
-        nativeBuildInputs = final.lib.unique ((old.nativeBuildInputs or [ ]) ++ [ final.pkg-config ]);
-        buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.sqlite ]);
-      });
-
-      # TODO: 上游 nixpkgs 为 lk-jwt-service 补齐 pkg-config/aws-lc 依赖后移除此临时修复。
-      lk-jwt-service = prev.lk-jwt-service.overrideAttrs (old: {
-        nativeBuildInputs = final.lib.unique ((old.nativeBuildInputs or [ ]) ++ [ final.pkg-config ]);
-        buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.aws-lc ]);
-      });
-
-      # TODO: 默认 nixpkgs 包含 #584667 后移除此 master 临时覆盖。
-      inherit (masterPkgs) codex;
 
       # TODO: 上游 nixpkgs 补齐 cc-switch 的 sqlite 依赖后移除此临时覆盖。
       cc-switch = prev.cc-switch.overrideAttrs (old: {
         buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.sqlite ]);
       });
 
+      # Host allowBroken includes pysaml2; Synapse tests still fail to import XMLSchema.
       matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overrideAttrs (_old: {
         doCheck = false;
         dontCheck = true;
@@ -233,26 +212,16 @@
         nativeCheckInputs = [ ];
       });
 
-      matrix-synapse = prev.matrix-synapse.override {
-        inherit (final) matrix-synapse-unwrapped;
-      };
+      # TODO: Upstream qdrant still lacks the system zstd dependency.
       qdrant = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.qdrant;
       # Keep ATS 9 and its matching PCRE1 dependency from the locked stable input.
       trafficserver = inputs.nixos-2605.legacyPackages.${final.stdenv.hostPlatform.system}.trafficserver;
+      nectarlink = inputs.nectarlink.packages.${final.stdenv.hostPlatform.system}.default;
       rime-wanxiang-gram = inputs.rime-wanxiang-gram.outPath;
-    }
-    // prev.lib.optionalAttrs (prev ? anime-games-launcher) {
-      # TODO: 上游 AAGL 为 anime-games-launcher 补齐 aws-lc/sqlite 依赖后移除此临时修复。
-      anime-games-launcher = prev.anime-games-launcher.override {
-        unwrapped = prev.anime-games-launcher.unwrapped.overrideAttrs (old: {
-          buildInputs = final.lib.unique (
-            (old.buildInputs or [ ])
-            ++ [
-              final.aws-lc
-              final.sqlite
-            ]
-          );
-        });
+      mactahoe = import ./mactahoe-packages.nix {
+        pkgs = final;
+        gtkSource = inputs.mactahoe-gtk;
+        iconsSource = inputs.mactahoe-icons;
       };
     }
   )

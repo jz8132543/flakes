@@ -17,6 +17,8 @@
     "org.gnome.Console"
     "gnome-terminal-server"
     "com.raggesilver.BlackBox"
+    "konsole"
+    "org.kde.konsole"
   ],
   ...
 }:
@@ -126,10 +128,15 @@ stdenv.mkDerivation {
   '';
 
   installPhase = ''
-    mkdir -p $out/share/rime-data
+    mkdir -p $out/share/rime-data/build
     mkdir -p $out/share/rime-build
     cp -rf shared-data/. $out/share/rime-data/
     cp -rf rime-data/. $out/share/rime-data/
     cp -rf deployed-data/. $out/share/rime-build/
+    # Config timestamps are refreshed by librime after Nix normalizes mtimes.
+    # Seed writable compiled YAML separately from the immutable dictionaries.
+    cp deployed-data/build/*.yaml $out/share/rime-data/build/
+    rm "$out/share/rime-build/build/"*.yaml
+    rm "$out/share/rime-build/installation.yaml" "$out/share/rime-build/user.yaml"
   '';
 }

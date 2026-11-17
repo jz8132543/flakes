@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   nixosModules,
   pkgs,
   ...
@@ -22,7 +23,139 @@
 
   optimize.brutal.target = "!cn";
 
+  # The compositor owns scaling; keep client font DPI at its unscaled default.
+  home-manager.users.tippy.wayland.dpi = 96;
+  home-manager.users.tippy.programs.umbriel.settings.general.xwayland_native_resolution = false;
+  services.displayManager.noctalia-greeter.settings.output = {
+    scales = "eDP-1:1.5";
+    use_synced_settings = false;
+  };
+  home-manager.users.tippy.programs.umbriel.settings.output."eDP-1" = {
+    # Measured from this host's active display; other outputs retain auto detection.
+    mode = "2560x1600@240";
+    scale = 1.5;
+    hdr = "on";
+    workspaces = 4;
+  };
+  # Keep the SDR background available until the HDR client commits its first frame.
+  home-manager.users.tippy.programs.noctalia.settings.wallpaper.enabled =
+    lib.mkIf config.desktop.umbriel.enable true;
+  home-manager.users.tippy.systemd.user.services.hdr-wallpaper =
+    lib.mkIf config.desktop.umbriel.enable
+      {
+        Unit = {
+          Description = "Static BT.2020/PQ HDR wallpaper";
+          After = [
+            "umbriel.service"
+            "umbriel-session.target"
+            "noctalia.service"
+          ];
+          Wants = [ "noctalia.service" ];
+          PartOf = [ "umbriel-session.target" ];
+        };
+        Service = {
+          Type = "notify";
+          NotifyAccess = "main";
+          TimeoutStartSec = 30;
+          ExecStart = "${pkgs.hdr-wallpaper}/bin/hdr-wallpaper eDP-1 ${pkgs.wallpaper.hdr}/wallpaper-hdr.png";
+          ExecStartPost = "${config.programs.noctalia.package}/bin/noctalia msg config-set wallpaper.enabled false";
+          ExecStopPost = "-${config.programs.noctalia.package}/bin/noctalia msg config-set wallpaper.enabled true";
+          Restart = "on-failure";
+          RestartSec = 5;
+        };
+        Install.WantedBy = [ "umbriel-session.target" ];
+      };
+  home-manager.users.tippy.programs.noctalia.settings.lockscreen_widgets =
+    let
+      placement = {
+        placement_width = 1706.0;
+        placement_height = 1066.0;
+      };
+    in
+    {
+      widget_order = [
+        "lock-cpu"
+        "lock-network"
+        "lock-ram"
+        "lock-clock"
+        "lock-calendar"
+        "lockscreen-login-box@eDP-1"
+      ];
+      widget.lock-cpu = placement // {
+        cx = 317.0;
+        cy = 289.0;
+        box_width = 336.0;
+        box_height = 220.0;
+      };
+      widget.lock-network = placement // {
+        cx = 317.0;
+        cy = 533.0;
+        box_width = 336.0;
+        box_height = 220.0;
+      };
+      widget.lock-ram = placement // {
+        cx = 317.0;
+        cy = 777.0;
+        box_width = 336.0;
+        box_height = 220.0;
+      };
+      widget.lock-clock = placement // {
+        cx = 853.0;
+        cy = 533.0;
+        box_width = 672.0;
+        box_height = 708.0;
+        settings.background_opacity = 0.38;
+      };
+      widget.lock-calendar = placement // {
+        cx = 1389.0;
+        cy = 533.0;
+        box_width = 336.0;
+        box_height = 708.0;
+      };
+      widget."lockscreen-login-box@eDP-1" = placement // {
+        type = "login_box";
+        output = "eDP-1";
+        cx = 853.0;
+        cy = 815.0;
+        box_width = 608.0;
+        box_height = 80.0;
+        settings = {
+          layout = "compact";
+          show_session_buttons = false;
+          show_media = false;
+          show_media_controls = false;
+          show_weather = false;
+          show_login_button = false;
+          show_password_reveal = false;
+          show_unlock_hint = false;
+          show_caps_lock = false;
+          show_keyboard_layout = false;
+          center_password_text = true;
+          background_color = "surface_container";
+          background_opacity = 0.0;
+          background_radius = 24.0;
+          input_opacity = 0.25;
+          input_radius = 16.0;
+        };
+      };
+    };
+  # Noctalia uses nonblocking swaps; forced NVIDIA vblank stalls its Wayland event loop.
+  systemd.user.services.noctalia = lib.mkIf config.desktop.noctalia.enable {
+    environment.__GL_SYNC_TO_VBLANK = "0";
+  };
+
   services.mihomo.routing.proxyPublicSsh = true;
+  services.mihomo.subscription = {
+    enable = true;
+    urlFile = config.sops.templates."mihomo/subscription-url".path;
+  };
+  sops.secrets."xray/subscription_path_token" = { };
+  sops.templates."mihomo/subscription-url" = {
+    mode = "0400";
+    content = "https://sub.${config.networking.domain}/${
+      config.sops.placeholder."xray/subscription_path_token"
+    }/mihomo.yaml";
+  };
 
   programs.winpodx.activation.method = "mas";
   # XWayland exposes twice GNOME's logical size on this HiDPI display.
@@ -35,6 +168,7 @@
   environment.systemPackages = with pkgs; [
     lenovo-legion
     efibootmgr
+    (bitwig-studio.override { applyJarPatch = true; })
   ];
   desktop.nvidia = {
     mode = "offload";

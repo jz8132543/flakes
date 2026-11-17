@@ -85,9 +85,7 @@ let
 in
 {
   options.programs.winpodx = {
-    enable = lib.mkEnableOption "WinPodX Windows Integration (FreeRDP RemoteApp + dockur/windows)" // {
-      default = true;
-    };
+    enable = lib.mkEnableOption "WinPodX Windows Integration (FreeRDP RemoteApp + dockur/windows)";
 
     package = lib.mkOption {
       type = lib.types.package;

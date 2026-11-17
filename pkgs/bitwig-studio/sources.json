@@ -1,0 +1,21 @@
+{
+  "version": "6.0",
+  "releaseTag": "bitwig-6.0",
+  "repository": "jz8132543/nixos-binary-assets",
+  "installer": {
+    "name": "bitwig-studio-6.0.deb",
+    "hash": "sha256-jrCTgaxfeWhfKwLeKLmqTQWS7RVbVnHqJ0InCipmm8k=",
+    "size": 379660088,
+    "format": "deb"
+  },
+  "jar": {
+    "name": "bitwig.jar",
+    "hash": "sha256-HrmY1hZzlkuXrjT0O7aR+O3GwN3HjwXNGRY2hW31l7Y=",
+    "size": 35223594,
+    "validation": {
+      "zipHeaders": "failed",
+      "invalidEntries": ["A.class", "A11.class", "A1X.class", "A1a.class"],
+      "runtime": "not-tested"
+    }
+  }
+}

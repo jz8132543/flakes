@@ -18,6 +18,10 @@ in
 {
   programs.vscode = {
     enable = true;
+    # Chromium does not recognize Umbriel; keep credentials in GNOME Keyring.
+    package = pkgs.vscode.override {
+      commandLineArgs = "--password-store=gnome-libsecret";
+    };
     profiles.default.extensions = with pkgs.vscode-extensions; [
       # TODO nix flake show broken due to IFD
       # ms-vscode.cpptools

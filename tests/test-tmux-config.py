@@ -5,6 +5,7 @@ import os
 import fcntl
 from pathlib import Path
 import pty
+import re
 import runpy
 import select
 import shutil
@@ -76,6 +77,7 @@ class SshStatusTests(unittest.TestCase):
             self.assertNotIn("ICMP", calls)
             self.assertEqual(result.stderr, "")
             self.assertNotIn("#[", result.stdout)
+            self.assertEqual(result.stdout, result.stdout.strip() + "\n")
             return result.stdout, calls
 
     def test_sub_millisecond_latency_is_not_replaced(self):
@@ -174,18 +176,18 @@ class ThemeTests(unittest.TestCase):
             raise AssertionError(f"tmux {args}: {result.stdout}{result.stderr}")
         return result.stdout.strip()
 
-    def test_dracula_widgets_and_existing_telemetry(self):
-        self.assertEqual(self.tmux("show-options", "-gv", "@dracula-plugins"), "battery time")
+    def test_telemetry_without_battery_or_time(self):
+        self.assertEqual(self.tmux("show-options", "-gv", "@dracula-plugins"), "")
         right = self.tmux("show-options", "-gv", "status-right")
         for component in ("tmux-ssh-status", "tmux-net-speed", "cpu_percentage", "ram_percentage"):
             self.assertIn(component, right)
-        tail = self.tmux("show-options", "-gv", "@dracula-status-right")
-        self.assertIn("battery.sh", tail)
-        self.assertIn("client_width", tail)
-        self.assertIn("%H:%M", tail)
-        self.assertNotIn("weather", right + tail)
-        self.assertNotIn("network.sh", right + tail)
-        self.assertIn("client_prefix", self.tmux("show-options", "-gv", "status-left"))
+        self.assertEqual(self.tmux("show-options", "-gqv", "@dracula-status-right"), "")
+        for removed in ("battery", "%H:%M", "dracula-status-right", "weather", "network.sh"):
+            self.assertNotIn(removed, right)
+
+    def test_status_left_is_hidden(self):
+        self.assertEqual(self.tmux("show-options", "-gv", "status-left"), "")
+        self.assertEqual(self.tmux("show-options", "-gv", "status-left-length"), "0")
 
     def test_theme_and_original_settings(self):
         for name, expected in (
@@ -201,7 +203,7 @@ class ThemeTests(unittest.TestCase):
 
     def test_status_is_white_and_matches_pane_background(self):
         for name in (
-            "status-style", "status-left", "status-right", "@dracula-status-right",
+            "status-style", "status-right",
             "window-status-format", "window-status-current-format", "message-style",
             "message-command-style",
         ):
@@ -211,16 +213,20 @@ class ThemeTests(unittest.TestCase):
                 self.assertIn("fg=#ffffff", style)
                 self.assertNotRegex(style, r"bg=(?!#282a36\b)[^,\]]+")
                 self.assertNotRegex(style, r"fg=(?!#ffffff\b)[^,\]]+")
-        left = self.tmux("show-options", "-gv", "status-left")
-        self.assertIn("client_prefix,#[bold],#[nobold]", left)
         self.assertIn("bold]", self.tmux("show-options", "-gv", "window-status-current-format"))
 
-    def test_status_widgets_have_consistent_separators(self):
+    def test_status_widgets_are_compact(self):
         right = self.tmux("show-options", "-gv", "status-right")
-        tail = self.tmux("show-options", "-gv", "@dracula-status-right")
-        self.assertEqual(right.count("| "), 3)
-        self.assertEqual(tail.count("| "), 2)
-        self.assertNotIn("\u2502", right + tail)
+        self.assertEqual(right.count("|"), 3)
+        for padding in ("| ", " |", "CPU ", "RAM ", "\u2502"):
+            self.assertNotIn(padding, right)
+        for option in ("@cpu_percentage_format", "@ram_percentage_format"):
+            self.assertEqual(self.tmux("show-options", "-gv", option), "%d%%")
+        net_speed = re.search(r"#\((\S+/bin/tmux-net-speed)\)", right).group(1)
+        output = subprocess.run(
+            [net_speed], capture_output=True, text=True, timeout=5, check=True,
+        ).stdout
+        self.assertRegex(output, r"^\u2193-?\d+[BKM]/s \u2191-?\d+[BKM]/s$")
 
     def test_shortcuts(self):
         prefix = self.tmux("list-keys", "-T", "prefix")
@@ -236,6 +242,7 @@ class ThemeTests(unittest.TestCase):
         self.tmux("source-file", self.config)
         self.assertEqual(before, self.tmux("show-options", "-gv", "status-right"))
         self.assertEqual(sessions, self.tmux("list-sessions", "-F", "#{session_name}"))
+        self.test_status_left_is_hidden()
 
     def test_reload_clears_legacy_status_colours(self):
         self.tmux("set-option", "-g", "status-bg", "#1e1e1e")
@@ -244,6 +251,11 @@ class ThemeTests(unittest.TestCase):
         self.assertEqual(self.tmux("show-options", "-gv", "status-bg"), "default")
         self.assertEqual(self.tmux("show-options", "-gv", "status-fg"), "default")
         self.test_status_is_white_and_matches_pane_background()
+
+    def test_reload_clears_legacy_battery_and_time(self):
+        self.tmux("set-option", "-g", "@dracula-status-right", "battery.sh %H:%M")
+        self.tmux("source-file", self.config)
+        self.test_telemetry_without_battery_or_time()
 
     @unittest.skipUnless(pyte, "pyte not installed")
     def test_rendered_status_background_including_blank_cells(self):
@@ -296,8 +308,6 @@ class ThemeTests(unittest.TestCase):
                 self.assertIn("NixOS", output)
                 self.assertNotIn("not found", output)
                 self.assertNotIn("%H:%M", output)
-                if width == 160:
-                    self.assertRegex(output, r"\b\d{2}-\d{2} \d{2}:\d{2}\b")
 
 
 if __name__ == "__main__":

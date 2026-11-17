@@ -170,10 +170,9 @@ main {
 }
 #joinForm {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(170px, 1fr) minmax(
-      200px,
-      1.25fr
-    ) auto auto;
+  grid-template-columns:
+    minmax(150px, 1fr) minmax(170px, 1fr) minmax(200px, 1.25fr)
+    auto auto;
   gap: 12px;
   align-items: end;
 }

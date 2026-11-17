@@ -1,6 +1,6 @@
 patch:
-  # 默认启动为英文状态
-  "switches/@0/reset": 1
+  # 默认启动为中文状态（终端等英文应用由 app_options 设为 ascii_mode）
+  "switches/@0/reset": 0
   schema_list:
     - schema: wanxiang
   ascii_composer:

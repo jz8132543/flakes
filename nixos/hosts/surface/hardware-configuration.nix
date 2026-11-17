@@ -88,12 +88,6 @@
   # 1. 禁用 UPower 和 GNOME 的默认低电量关机动作
   services.upower.criticalPowerAction = "Ignore";
   services.upower.allowRiskyCriticalPowerAction = true;
-  programs.dconf.profiles.user.databases = [
-    {
-      settings."org/gnome/settings-daemon/plugins/power".critical-battery-action = "nothing";
-    }
-  ];
-
   # # 2. Udev 仅保留事件触发
   # services.udev.extraRules = ''
   #   SUBSYSTEM=="power_supply", ACTION=="change", RUN+="${pkgs.systemd}/bin/systemctl --no-block start battery-guard.service"
@@ -119,6 +113,4 @@
   # 禁用 iio-sensor-proxy，防止环境光传感器引发屏幕亮度正反馈死循环
   hardware.sensor.iio.enable = false;
 
-  # Surface Pro 屏幕适配 200% 高分屏缩放 (192 DPI)
-  home-manager.users.tippy.wayland.dpi = 192;
 }

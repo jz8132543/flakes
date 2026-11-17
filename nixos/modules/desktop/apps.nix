@@ -45,14 +45,15 @@
       "cjpalhdlnbpafiamejdnhcphjbkeiagm"
       # PT-Depiler - PT站点效率工具
       "gfkgnjfipffpfdnfmcpaoajkidapcplc"
-      # Aria2 Explorer
-      "mpkodccbngfoacfalldjimigihfbocjn"
+      # FluxDown owns browser download interception.
+      "meleenglfggcmcajknpeeeiobnpfmahc"
       # Linkwarden - Bookmark Manager
       "efpglpohdfnodejoimcladancmgeibao"
       # Auto Tab Discard - 智能休眠标签页
       "jhnleheckmknfcgijgkadoemagpecfol"
     ];
     extraOpts = {
+      ExtensionSettings."mpkodccbngfoacfalldjimigihfbocjn".installation_mode = "blocked";
       "3rdparty" = {
         "extensions" = {
           "ffjiejobkoibkjlhjnlgmcnnigeelbdl" = {

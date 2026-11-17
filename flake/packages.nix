@@ -10,6 +10,11 @@
     }:
     let
       localPackages = (import ../pkgs).packages pkgs;
+      mactahoe = import ../lib/mactahoe-packages.nix {
+        inherit pkgs;
+        gtkSource = inputs.mactahoe-gtk;
+        iconsSource = inputs.mactahoe-icons;
+      };
       can0LowmemKexec =
         let
           nixosImagesPkgs = inputs.nixos-images.inputs.nixos-unstable.legacyPackages.${system};
@@ -75,13 +80,44 @@
     {
       packages = {
         inherit (pkgs) nixos-anywhere;
+        mactahoe-gtk = mactahoe.gtk;
+        mactahoe-gtk-visual = mactahoe.gtkVisual;
+        mactahoe-icons = mactahoe.icons;
+        mactahoe-cursors = mactahoe.cursors;
+        mactahoe-firefox = mactahoe.firefox;
+        mactahoe-wallpaper = mactahoe.wallpaper;
+        wallpaper-hdr = pkgs.wallpaper.hdr;
+        mactahoe-gdm = mactahoe.gdmTheme;
         inherit (localPackages)
+          fluxdown
+          hdr-wallpaper
           ssh-race
           trzsz-ssh-auto
           tsshd
           ;
       }
+      // lib.optionalAttrs (system == "x86_64-linux") {
+        inherit (localPackages) bitwig-studio;
+        bitwig-studio-patched = localPackages.bitwig-studio.override { applyJarPatch = true; };
+      }
       // can0LowmemKexec;
-      checks = lib.mapAttrs' (name: p: lib.nameValuePair "package/${name}" p) self'.packages;
+      checks = lib.mapAttrs' (name: p: lib.nameValuePair "package/${name}" p) self'.packages // {
+        mactahoe-assets-test =
+          pkgs.runCommand "mactahoe-assets-test"
+            {
+              nativeBuildInputs = [
+                pkgs.python3
+                pkgs.glib
+              ];
+            }
+            ''
+              python3 -B ${../tests/mactahoe-assets-test.py} \
+                --gtk ${mactahoe.gtk} --gtk-visual ${mactahoe.gtkVisual} --icons ${mactahoe.icons} \
+                --cursors ${mactahoe.cursors} --wallpaper ${mactahoe.wallpaper} --firefox ${mactahoe.firefox} \
+                --gtk-source ${inputs.mactahoe-gtk} --icons-source ${inputs.mactahoe-icons} \
+                --gdm-theme ${mactahoe.gdmTheme} --gnome-shell ${pkgs.gnome-shell}
+              touch "$out"
+            '';
+      };
     };
 }

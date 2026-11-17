@@ -17,6 +17,8 @@
         "browser.urlbar.autoFill.adaptiveHistory.enabled" = true;
         "browser.tabs.closeWindowWithLastTab" = false;
         # "media.peerconnection.enabled" = false;
+        # Disable Wayland subsurface compositor to prevent EGL/Wayland first-frame deadlock on Umbriel + NVIDIA
+        "gfx.webrender.compositor" = false;
       };
       ExtensionSettings = {
         "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
@@ -30,10 +32,6 @@
         "uBlock0@raymondhill.net" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
-        };
-        "aria2-integration" = {
-          installation_mode = "force_installed";
-          install_url = "https://addons.mozilla.org/firefox/downloads/latest/aria2-integration/latest.xpi";
         };
         # PT-Depiler - PT站点效率工具（聚合搜索、一键下载到qBittorrent等）
         "{4614e090-d5c4-4961-9eb4-5dd9f47d7d00}" = {

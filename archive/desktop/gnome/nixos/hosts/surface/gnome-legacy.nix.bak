@@ -1,0 +1,10 @@
+{ config, lib, ... }:
+{
+  config = lib.mkIf (config.desktop.gnome.enable && config.networking.hostName == "surface") {
+    programs.dconf.profiles.user.databases = [
+      {
+        settings."org/gnome/settings-daemon/plugins/power".critical-battery-action = "nothing";
+      }
+    ];
+  };
+}

@@ -3,7 +3,6 @@ export PATH="@procps@/bin:@gnugrep@/bin:@gawk@/bin:@coreutils@/bin:@iproute2@/bi
 
 pane_pid=$1
 
-ICON="  "
 display_text=$(hostname)
 
 find_ssh_pid() {
@@ -164,7 +163,6 @@ get_latency() {
 ssh_pid=$(find_ssh_pid "$pane_pid")
 
 if [ -n "$ssh_pid" ]; then
-  ICON="󰒋  "
   load_ssh_args "$ssh_pid"
   # Call without $() so SSH_CONFIG_ARGS mutations survive in this shell
   DESTINATION=""
@@ -219,4 +217,4 @@ if [ -n "$ssh_pid" ]; then
   fi
 fi
 
-echo "${ICON}$display_text "
+echo "$display_text"

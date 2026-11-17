@@ -1,0 +1,59 @@
+{ pkgs, ... }:
+let
+  extensions = with pkgs.gnomeExtensions; [
+    {
+      package = user-themes;
+      role = "user-theme";
+      schemas = [ "org.gnome.shell.extensions.user-theme" ];
+    }
+    {
+      package = dash-to-dock;
+      role = "dock";
+      schemas = [ "org.gnome.shell.extensions.dash-to-dock" ];
+    }
+    {
+      package = appindicator;
+      role = "appindicator";
+    }
+    {
+      package = blur-my-shell;
+      role = "blur";
+      schemas = map (area: "org.gnome.shell.extensions.blur-my-shell${area}") [
+        ""
+        ".panel"
+        ".overview"
+        ".dash-to-dock"
+        ".applications"
+      ];
+    }
+    {
+      package = just-perfection;
+      role = "perfection";
+      schemas = [ "org.gnome.shell.extensions.just-perfection" ];
+    }
+    {
+      package = compiz-alike-magic-lamp-effect;
+      role = "magic-lamp";
+      schemas = [ "org.gnome.shell.extensions.com.github.hermes83.compiz-alike-magic-lamp-effect" ];
+    }
+  ];
+in
+{
+  mactahoe.appearance.extensions = extensions;
+  home.packages = map (entry: entry.package) extensions;
+  # Fixed geometry is independent of the user's appearance/effects preference.
+  dconf.settings = {
+    "org/gnome/desktop/wm/preferences".button-layout = "close,minimize,maximize:";
+    "org/gnome/shell/extensions/dash-to-dock" = {
+      dock-position = "BOTTOM";
+      dock-fixed = false;
+      extend-height = false;
+      autohide = true;
+      intellihide = true;
+      dash-max-icon-size = 48;
+      show-trash = true;
+      show-mounts = false;
+      multi-monitor = false;
+    };
+  };
+}

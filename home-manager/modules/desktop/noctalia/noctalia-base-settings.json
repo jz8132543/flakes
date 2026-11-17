@@ -1,0 +1,562 @@
+{
+  "shell": {
+    "font_family": "Inter",
+    "settings_show_advanced": true,
+    "setup_wizard_enabled": false,
+    "telemetry_enabled": false,
+    "polkit_agent": true,
+    "clipboard_enabled": true,
+    "clipboard_history_max_entries": 100,
+    "clipboard_keep_from_closed_apps": true,
+    "clipboard_confirm_clear_history": true,
+    "screen_time_enabled": true,
+    "launch_apps_as_systemd_services": true,
+    "animation": {
+      "enabled": true,
+      "speed": 1.0
+    },
+    "shadow": {
+      "direction": "down",
+      "alpha": 0.45
+    },
+    "panel": {
+      "transparency_mode": "soft",
+      "borders": true,
+      "border_color": "#292933",
+      "border_width": 1.0,
+      "shadow": true,
+      "launcher_placement": "floating",
+      "launcher_position": "center",
+      "clipboard_placement": "floating",
+      "control_center_placement": "floating",
+      "session_placement": "floating",
+      "wallpaper_placement": "floating",
+      "open_near_click_control_center": true,
+      "open_near_click_session": true,
+      "open_near_click_wallpaper": true
+    },
+    "launcher": {
+      "layout": "full",
+      "categories": true,
+      "show_icons": true,
+      "show_app_actions": true,
+      "sort_by_usage": true
+    },
+    "window_switcher": {
+      "style": "carousel",
+      "mru": true,
+      "show_all_outputs": true
+    },
+    "screenshot": {
+      "save_to_file": true,
+      "copy_to_clipboard": true,
+      "annotate": true,
+      "freeze_screen": true,
+      "close_on_copy": true,
+      "close_on_save": true
+    },
+    "session": {
+      "show_shortcuts": true,
+      "actions": [
+        { "action": "lock", "enabled": true, "shortcut": "1" },
+        { "action": "logout", "enabled": true, "shortcut": "2" },
+        { "action": "reboot", "enabled": true, "shortcut": "3" },
+        {
+          "action": "shutdown",
+          "enabled": true,
+          "shortcut": "4",
+          "variant": "destructive"
+        }
+      ]
+    }
+  },
+  "bar": {
+    "order": ["main"],
+    "main": {
+      "enabled": true,
+      "position": "top",
+      "thickness": 34,
+      "scale": 1.0,
+      "reserve_space": true,
+      "background_opacity": 0.0,
+      "border_width": 0.0,
+      "compositor_blur": false,
+      "shadow": false,
+      "contact_shadow": false,
+      "dead_zone": {
+        "click_through": true
+      },
+      "capsule": false,
+      "capsule_thickness": 1.0,
+      "capsule_opacity": 0.6,
+      "capsule_radius": 17.0,
+      "radius": 12,
+      "margin_edge": 10,
+      "margin_ends": 8,
+      "padding": 0,
+      "widget_spacing": 4,
+      "start": ["group:workspaces", "group:resources", "group:visualizer"],
+      "center": ["group:clock"],
+      "end": ["group:tray", "group:controls"],
+      "capsule_group": [
+        {
+          "id": "workspaces",
+          "members": ["workspaces"],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        },
+        {
+          "id": "resources",
+          "members": ["cpu", "ram", "temperature"],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        },
+        {
+          "id": "visualizer",
+          "members": ["audio-visualizer"],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        },
+        {
+          "id": "clock",
+          "members": ["clock"],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        },
+        {
+          "id": "tray",
+          "members": ["tray"],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        },
+        {
+          "id": "controls",
+          "members": [
+            "network",
+            "bluetooth",
+            "volume",
+            "battery",
+            "notifications",
+            "session"
+          ],
+          "fill": "surface_container",
+          "opacity": 0.6,
+          "padding": 8.0
+        }
+      ]
+    }
+  },
+  "widget": {
+    "workspaces": {
+      "type": "workspaces",
+      "style": "regular",
+      "show_labels": true,
+      "label_source": "id",
+      "pill_scale": 1.0,
+      "active_pill_size": 1.2,
+      "hide_when_empty": false,
+      "monitors": []
+    },
+    "clock": {
+      "type": "clock",
+      "format": "{:%Y-%m-%d %a %H:%M}",
+      "tooltip_format": "{:%A, %B %d, %Y %H:%M:%S}"
+    },
+    "audio-visualizer": {
+      "type": "audio_visualizer",
+      "width": 56.0,
+      "bands": 16,
+      "mirrored": false,
+      "centered": true,
+      "show_when_idle": true
+    },
+    "cpu": {
+      "type": "sysmon",
+      "stat": "cpu_usage",
+      "visualization": "gauge",
+      "show_value": false,
+      "show_glyph": true,
+      "scale": 1.0
+    },
+    "ram": {
+      "type": "sysmon",
+      "stat": "ram_pct",
+      "visualization": "gauge",
+      "show_value": false,
+      "show_glyph": true,
+      "scale": 1.0
+    },
+    "temperature": {
+      "type": "sysmon",
+      "stat": "cpu_temp",
+      "visualization": "gauge",
+      "show_value": false,
+      "show_glyph": true,
+      "scale": 1.0
+    },
+    "network": {
+      "type": "network",
+      "peek": true
+    }
+  },
+  "dock": {
+    "enabled": false,
+    "position": "bottom",
+    "auto_hide": true,
+    "show_running": true,
+    "show_instance_count": true,
+    "magnification": true
+  },
+  "desktop_widgets": {
+    "enabled": true,
+    "schema_version": 2,
+    "widget_order": [
+      "clock-card",
+      "weather-card",
+      "monitor-network",
+      "monitor-cpu",
+      "monitor-gpu",
+      "monitor-memory",
+      "monitor-vram"
+    ],
+    "widget": {
+      "clock-card": {
+        "type": "clock",
+        "cx": 1547.0,
+        "cy": 128.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 96.0,
+        "settings": {
+          "clock_style": "digital",
+          "format": "{:%H:%M:%S}",
+          "center_text": true,
+          "color": "on_surface",
+          "background_opacity": 0.78,
+          "shadow": false
+        }
+      },
+      "weather-card": {
+        "type": "weather",
+        "cx": 1547.0,
+        "cy": 244.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 112.0,
+        "settings": {
+          "show_forecast": false,
+          "color": "on_surface",
+          "background_opacity": 0.78,
+          "shadow": false
+        }
+      },
+      "monitor-cpu": {
+        "type": "local/sysmon-cards:card",
+        "cx": 1547.0,
+        "cy": 512.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 152.0,
+        "settings": {
+          "group": "cpu",
+          "background_padding": 8.0,
+          "background_opacity": 0.78
+        }
+      },
+      "monitor-gpu": {
+        "type": "local/sysmon-cards:card",
+        "cx": 1547.0,
+        "cy": 676.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 152.0,
+        "settings": {
+          "group": "gpu",
+          "background_padding": 8.0,
+          "background_opacity": 0.78
+        }
+      },
+      "monitor-vram": {
+        "type": "local/sysmon-cards:card",
+        "cx": 1547.0,
+        "cy": 944.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 112.0,
+        "settings": {
+          "group": "vram",
+          "background_padding": 8.0,
+          "background_opacity": 0.78
+        }
+      },
+      "monitor-memory": {
+        "type": "local/sysmon-cards:card",
+        "cx": 1547.0,
+        "cy": 820.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 112.0,
+        "settings": {
+          "group": "memory",
+          "background_padding": 8.0,
+          "background_opacity": 0.78
+        }
+      },
+      "monitor-network": {
+        "type": "local/sysmon-cards:card",
+        "cx": 1547.0,
+        "cy": 368.0,
+        "placement_width": 1707.0,
+        "placement_height": 1067.0,
+        "box_width": 256.0,
+        "box_height": 112.0,
+        "settings": {
+          "group": "network",
+          "background_padding": 8.0,
+          "background_opacity": 0.78
+        }
+      }
+    }
+  },
+  "location": {
+    "auto_locate": true
+  },
+  "weather": {
+    "enabled": true,
+    "refresh_minutes": 30,
+    "unit": "metric"
+  },
+  "control_center": {
+    "sidebar": "full",
+    "sidebar_section": "full",
+    "width": 700,
+    "hidden_tabs": [],
+    "show_session_button": true,
+    "shortcuts": [
+      { "type": "wifi" },
+      { "type": "bluetooth" },
+      { "type": "caffeine" },
+      { "type": "nightlight" },
+      { "type": "notification" },
+      { "type": "power_profile" }
+    ]
+  },
+  "notification": {
+    "enable_daemon": true,
+    "position": "top_right",
+    "show_actions": true,
+    "group_by_app": true,
+    "keep_dismissed_in_history": true,
+    "history_retention_hours": 168,
+    "max_visible": 5
+  },
+  "osd": {
+    "enabled": true
+  },
+  "system": {
+    "monitor": {
+      "enabled": true,
+      "cpu_poll_seconds": 2.0,
+      "memory_poll_seconds": 2.0,
+      "network_poll_seconds": 3.0,
+      "gpu_poll_seconds": 5.0,
+      "disk_poll_seconds": 10.0
+    }
+  },
+  "lockscreen": {
+    "enabled": true,
+    "lock_before_suspend": true,
+    "allow_empty_password": false,
+    "dnd": true,
+    "blurred_desktop": false,
+    "blur_intensity": 0.75,
+    "tint_intensity": 0.2,
+    "tint_color": "surface",
+    "wallpaper": ""
+  },
+  "lockscreen_widgets": {
+    "enabled": true,
+    "schema_version": 2,
+    "widget_order": [
+      "lock-cpu",
+      "lock-network",
+      "lock-ram",
+      "lock-clock",
+      "lock-calendar"
+    ],
+    "widget": {
+      "lock-cpu": {
+        "type": "sysmon",
+        "cx": 350.0,
+        "cy": 360.0,
+        "placement_width": 2048.0,
+        "placement_height": 1280.0,
+        "box_width": 400.0,
+        "box_height": 200.0,
+        "settings": {
+          "display": "graph",
+          "stat": "cpu_usage",
+          "stat2": "cpu_temp",
+          "show_label": true,
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 0.38,
+          "background_radius": 24.0,
+          "background_padding": 16.0
+        }
+      },
+      "lock-network": {
+        "type": "sysmon",
+        "cx": 350.0,
+        "cy": 640.0,
+        "placement_width": 2048.0,
+        "placement_height": 1280.0,
+        "box_width": 400.0,
+        "box_height": 200.0,
+        "settings": {
+          "display": "graph",
+          "stat": "net_rx",
+          "stat2": "net_tx",
+          "interface": "",
+          "network_speed_unit": "auto",
+          "show_label": true,
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 0.38,
+          "background_radius": 24.0,
+          "background_padding": 16.0
+        }
+      },
+      "lock-ram": {
+        "type": "sysmon",
+        "cx": 350.0,
+        "cy": 920.0,
+        "placement_width": 2048.0,
+        "placement_height": 1280.0,
+        "box_width": 400.0,
+        "box_height": 200.0,
+        "settings": {
+          "display": "graph",
+          "stat": "ram_pct",
+          "show_label": true,
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 0.38,
+          "background_radius": 24.0,
+          "background_padding": 16.0
+        }
+      },
+      "lock-clock": {
+        "type": "clock",
+        "cx": 1024.0,
+        "cy": 460.0,
+        "placement_width": 2048.0,
+        "placement_height": 1280.0,
+        "box_width": 640.0,
+        "box_height": 280.0,
+        "settings": {
+          "clock_style": "digital",
+          "format": "{:%H:%M}",
+          "center_text": true,
+          "color": "on_surface",
+          "shadow": false,
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 0.18,
+          "background_radius": 24.0,
+          "background_padding": 16.0
+        }
+      },
+      "lock-calendar": {
+        "type": "calendar",
+        "cx": 1698.0,
+        "cy": 640.0,
+        "placement_width": 2048.0,
+        "placement_height": 1280.0,
+        "box_width": 400.0,
+        "box_height": 460.0,
+        "settings": {
+          "show_events": false,
+          "show_week_numbers": false,
+          "show_events_location": false,
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 0.38,
+          "background_radius": 24.0,
+          "background_padding": 16.0
+        }
+      }
+    }
+  },
+  "idle": {
+    "behavior_order": ["lock", "screen-off"],
+    "pre_action_fade_seconds": 2.0,
+    "behavior": {
+      "lock": {
+        "enabled": true,
+        "action": "lock",
+        "timeout": 600
+      },
+      "screen-off": {
+        "enabled": true,
+        "action": "screen_off",
+        "timeout": 660
+      }
+    }
+  },
+  "theme": {
+    "mode": "light",
+    "shell_mode": "light",
+    "source": "wallpaper",
+    "wallpaper_scheme": "m3-content",
+    "terminal_colors": "standard",
+    "sync_color_scheme": false,
+    "templates": {
+      "enable_builtin_templates": false,
+      "builtin_ids": [],
+      "enable_community_templates": false,
+      "community_ids": []
+    }
+  },
+  "wallpaper": {
+    "enabled": true,
+    "fill_mode": "crop",
+    "transition": ["fade", "wipe", "disc"],
+    "transition_duration": 1500,
+    "automation": {
+      "enabled": false,
+      "interval_seconds": 1800,
+      "order": "random",
+      "recursive": false
+    }
+  },
+  "plugins": {
+    "auto_update": "none",
+    "enabled": [],
+    "source": [
+      {
+        "name": "official",
+        "kind": "git",
+        "location": "https://github.com/noctalia-dev/official-plugins",
+        "enabled": false
+      },
+      {
+        "name": "community",
+        "kind": "git",
+        "location": "https://github.com/noctalia-dev/community-plugins",
+        "enabled": false
+      }
+    ]
+  }
+}

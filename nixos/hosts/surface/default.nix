@@ -12,7 +12,6 @@
       nixosModules.services.networking.dn42.mesh
       ./hardware-configuration.nix
       ./hardware.nix
-      # ./auto-external-monitor.nix
       nixosModules.optimize.network-desktop
       nixosModules.optimize.brutal
       nixosModules.services.traefik
@@ -22,6 +21,9 @@
     ];
 
   optimize.brutal.target = "!cn";
+
+  # Font/cursor DPI hint, not a compositor output mode or fractional scale.
+  home-manager.users.tippy.wayland.dpi = 192;
 
   desktop.nvidia = {
     mode = "sync";

@@ -31,7 +31,10 @@ let
     if preparePublicSsh then "/run/mihomo/config.yaml" else "\${CREDENTIALS_DIRECTORY}/config.yaml";
 in
 {
-  imports = [ ./mihomo-routing.nix ];
+  imports = [
+    ./mihomo-routing.nix
+    ./mihomo-subscription.nix
+  ];
 
   users.groups.mihomo = { };
   users.users.mihomo = {
@@ -49,13 +52,15 @@ in
   systemd.services.mihomo = {
     after = [ "NetworkManager-wait-online.service" ];
     wants = [ "NetworkManager-wait-online.service" ];
+    startLimitIntervalSec = 0;
     serviceConfig = {
       DynamicUser = lib.mkForce false;
       User = "mihomo";
       Group = "mihomo";
       ExecStart = lib.mkForce "${lib.getExe pkgs.mihomo} -d /var/lib/mihomo -f ${configPath} -ext-ui ${pkgs.metacubexd}";
-      Restart = "on-failure";
+      Restart = "always";
       RestartSec = 5;
+      TimeoutStartSec = "75s";
       ExecStartPre =
         let
           wait-network = pkgs.writeShellApplication {
@@ -65,13 +70,17 @@ in
               set -e
               tries=60
               while [ "$tries" -gt 0 ]; do
-                if ip route show default >/dev/null 2>&1; then
+                # ip exits successfully even when no routes exist. Only the
+                # main table counts: the TUN's own default cannot bootstrap it.
+                if [ -n "$(ip -4 route show table main default)" ] ||
+                   [ -n "$(ip -6 route show table main default)" ]; then
                   exit 0
                 fi
                 tries=$((tries - 1))
                 sleep 1
               done
-              echo "No default route after 60s, starting anyway" >&2
+              echo "No default route after 60s; retrying startup" >&2
+              exit 1
             '';
           };
         in

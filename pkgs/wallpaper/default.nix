@@ -1,5 +1,7 @@
 {
   fetchurl,
+  python3,
+  runCommand,
   stdenv,
   ...
 }:
@@ -14,6 +16,20 @@ in
 stdenv.mkDerivation {
   pname = "wallpaper";
   inherit version src;
+  passthru.hdr =
+    runCommand "wallpaper-hdr-pq-480"
+      {
+        nativeBuildInputs = [
+          (python3.withPackages (p: [
+            p.numpy
+            p.pillow
+          ]))
+        ];
+      }
+      ''
+        mkdir -p "$out"
+        python3 ${./hdr.py} ${src} "$out/wallpaper-hdr.png"
+      '';
   unpackPhase = ":";
   installPhase = ''
     mkdir -p $out

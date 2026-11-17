@@ -1,0 +1,9 @@
+{ config, lib, ... }:
+{
+  config = lib.mkIf config.desktop.gnome.enable {
+    xdg.portal.config.gnome = {
+      default = [ "gnome" "gtk" ];
+      "org.freedesktop.impl.portal.Secret" = [ "gnome-keyring" ];
+    };
+  };
+}

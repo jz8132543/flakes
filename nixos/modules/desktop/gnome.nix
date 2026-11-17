@@ -1,111 +1,19 @@
 {
+  config,
   pkgs,
   lib,
   nixosModules,
   ...
 }:
+let
+  legacy = import ../../../archive/desktop/gnome/nixos/modules/desktop/gnome.nix.bak {
+    inherit pkgs lib nixosModules;
+  };
+in
 {
-  options.desktop.kdeconnect = {
-    customDomains = lib.mkOption {
-      type = lib.types.listOf lib.types.str;
-      default = [
-        "op13.ts"
-        "opap.ts"
-      ];
-      description = "List of custom domains or IPs for KDE Connect default search list";
-    };
-  };
-
-  imports = [ nixosModules.services.acme ];
-
-  config = {
-    # Open firewall ports 1714-1764 TCP/UDP for GSConnect
-    networking.firewall = {
-      allowedTCPPortRanges = [
-        {
-          from = 1714;
-          to = 1764;
-        }
-      ];
-      allowedUDPPortRanges = [
-        {
-          from = 1714;
-          to = 1764;
-        }
-      ];
-    };
-
-    hardware.bluetooth = {
-      enable = true;
-      powerOnBoot = true;
-      settings = {
-        General = {
-          DiscoverableTimeout = "0";
-          Experimental = true;
-        };
-      };
-    };
-
-    services = {
-      xserver.enable = true;
-      displayManager = {
-        gdm = {
-          enable = true;
-          autoSuspend = false;
-        };
-        sddm.enable = lib.mkForce false;
-      };
-      desktopManager = {
-        gnome.enable = true;
-        plasma6.enable = lib.mkForce false;
-      };
-      # services.gnome.gnome-remote-desktop.enable = true;
-      xrdp = {
-        enable = true;
-        openFirewall = true;
-        defaultWindowManager = "${pkgs.gnome-session}/bin/gnome-session";
-      };
-      fprintd.enable = true;
-      gnome = {
-        gnome-browser-connector.enable = true;
-        sushi.enable = true;
-      };
-      gvfs.enable = true;
-      logind.settings.Login = {
-        # Short-press power key only turns off the screen (handled via GNOME
-        # custom keybinding below). Long-press keeps system poweroff as a
-        # safety fallback when the system is unresponsive.
-        HandlePowerKey = "ignore";
-        HandlePowerKeyLongPress = "poweroff";
-      };
-    };
-
-    environment.systemPackages = with pkgs; [
-      weston
-      kooha
-      pulseaudio
-      wl-clipboard
-      gnome-power-manager
-      gnome-tweaks
-      polari
-      # TEST
-      gnome-session
-      gnome-boxes
-      devhelp
-      dconf-editor
-      gnome-sound-recorder
-      nautilus-python
-    ];
-
-    # Let Home Manager own user-level GNOME dconf keys. Keeping locks here makes
-    # `home-manager-tippy.service` fail when it tries to write the same keys.
-    programs.dconf.enable = true;
-
-    systemd.targets = {
-      sleep.enable = false;
-      suspend.enable = false;
-      hibernate.enable = false;
-      hybrid-sleep.enable = false;
-    };
-  };
+  imports = legacy.imports ++ [
+    ../../../archive/desktop/gnome/nixos/hosts/surface/gnome-legacy.nix.bak
+    ../../../archive/desktop/gnome/nixos/modules/desktop/portals.nix.bak
+  ];
+  config = lib.mkIf config.desktop.gnome.enable legacy.config;
 }

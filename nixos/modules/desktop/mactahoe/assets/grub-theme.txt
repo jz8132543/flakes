@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: MIT
+desktop-image: "background.png"
+desktop-image-scale-method: "crop"
+desktop-color: "#10121b"
+title-text: ""
+message-font: "DejaVu Sans Regular 18"
+message-color: "#ffffff"
+message-bg-color: "#10121b"
+terminal-font: "DejaVu Sans Regular 18"
+
++ label {
+  left = 12%
+  top = 16%
+  width = 76%
+  height = 32
+  text = "Choose a system"
+  font = "DejaVu Sans Regular 18"
+  color = "#ffffff"
+}
++ boot_menu {
+  left = 12%
+  top = 27%
+  width = 76%
+  height = 46%
+  item_font = "DejaVu Sans Regular 18"
+  selected_item_font = "DejaVu Sans Regular 18"
+  item_color = "#dddddd"
+  selected_item_color = "#ffffff"
+  item_height = 40
+  item_padding = 10
+  item_spacing = 8
+  icon_width = 0
+  icon_height = 0
+  selected_item_pixmap_style = "selected_*.png"
+  scrollbar = true
+}
++ label {
+  left = 12%
+  top = 82%
+  width = 76%
+  height = 30
+  id = "__timeout__"
+  text = "Starting the selected system in %d seconds"
+  font = "DejaVu Sans Regular 18"
+  color = "#ffffff"
+}
++ label {
+  left = 12%
+  top = 88%
+  width = 76%
+  height = 30
+  text = "Arrows: select   Enter: start   e: edit   c: console"
+  font = "DejaVu Sans Regular 18"
+  color = "#dddddd"
+}

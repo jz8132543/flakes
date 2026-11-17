@@ -1,0 +1,361 @@
+{
+  pkgs,
+  lib,
+  config,
+  osConfig ? { },
+  ...
+}:
+let
+  # ▼▼▼ 在这里调整输入法的字体大小 ▼▼▼
+  kimpanelFontSize = "26pt";
+  # ▲▲▲ 在这里调整输入法的字体大小 ▲▲▲
+
+  imFramework = lib.attrByPath [ "desktop" "inputMethod" "framework" ] "ibus" osConfig;
+  extensionPkgs = with pkgs.gnomeExtensions; [
+    clipboard-history
+    upower-battery
+    alphabetical-app-grid
+    system-monitor-next
+    # caffeine
+    # allow-locked-remote-desktop
+    # fcitx5
+    (kimpanel.overrideAttrs (old: {
+      postInstall = (old.postInstall or "") + ''
+        sed -i -e '/isLookupTableVertical() {/,/}/c\    isLookupTableVertical() { return false; }' $out/share/gnome-shell/extensions/kimpanel@kde.org/extension.js
+        echo ".kimpanel-box, .kimpanel-candidate-item, .kimpanel-preedit-text, .kimpanel-candidate-text { font-family: 'LXGW WenKai GB', 'LXGW WenKai', sans-serif !important; font-size: ${kimpanelFontSize} !important; }" >> $out/share/gnome-shell/extensions/kimpanel@kde.org/stylesheet.css
+      '';
+    }))
+  ];
+
+  inherit (lib.hm.gvariant)
+    mkArray
+    mkTuple
+    mkString
+    mkUint32
+    type
+    ;
+  # Toggle the GNOME/Mutter display power state via DBus.
+  # writeShellApplication ensures busctl and awk are always in PATH
+  # without relying on the ambient system PATH.
+  toggleScreen = pkgs.writeShellApplication {
+    name = "gnome-toggle-screen";
+    runtimeInputs = [
+      pkgs.systemd # busctl
+      pkgs.gawk
+    ];
+    text = ''
+      STATE=$(busctl --user get-property \
+        org.gnome.Mutter.DisplayConfig \
+        /org/gnome/Mutter/DisplayConfig \
+        org.gnome.Mutter.DisplayConfig PowerSaveMode \
+        | awk '{print $2}')
+      if [ "$STATE" = "1" ]; then
+        busctl --user set-property \
+          org.gnome.Mutter.DisplayConfig \
+          /org/gnome/Mutter/DisplayConfig \
+          org.gnome.Mutter.DisplayConfig PowerSaveMode i 0
+      else
+        busctl --user set-property \
+          org.gnome.Mutter.DisplayConfig \
+          /org/gnome/Mutter/DisplayConfig \
+          org.gnome.Mutter.DisplayConfig PowerSaveMode i 1
+      fi
+    '';
+  };
+in
+{
+  home.packages =
+    extensionPkgs
+    ++ [
+      toggleScreen
+    ]
+    ++ (with pkgs; [
+      blackbox-terminal
+      gnome-tweaks
+      seahorse
+    ]);
+
+  # The appearance transaction seeds these without replacing user extension lists.
+  mactahoe.appearance.functionalExtensions = extensionPkgs;
+
+  programs.chromium.extensions = [
+    "gphhapmejobijbbhgpjhcjognlahblep" # GNOME Shell integration
+  ];
+  # Remove initial setup dialog
+
+  # GNOME uses XDG MIME associations, not dconf, for the default browser.
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = lib.genAttrs [
+      "text/html"
+      "application/xhtml+xml"
+      "x-scheme-handler/http"
+      "x-scheme-handler/https"
+      "application/x-extension-htm"
+      "application/x-extension-html"
+      "application/x-extension-shtml"
+      "application/x-extension-xhtml"
+      "application/x-extension-xht"
+    ] (_: lib.mkForce [ "firefox.desktop" ]);
+  };
+
+  dconf.settings = lib.mkMerge [
+    {
+      "org/gnome/desktop/media-handling" = {
+        automount = true;
+        autorun-never = false;
+        autorun-x-content-start-app = [ "x-content/unix-software" ];
+      };
+      # Do not sleep when ac power connected
+      "org/gnome/settings-daemon/plugins/power" = {
+        power-button-action = "nothing";
+        sleep-inactive-ac-type = "nothing";
+      };
+      "org/gnome/desktop/wm/keybindings" = {
+        switch-to-workspace-right = [ "<Control><Super>Right" ];
+        switch-to-workspace-left = [ "<Control><Super>Left" ];
+        move-to-workspace-right = [ "<Control><Shift><Super>Right" ];
+        move-to-workspace-left = [ "<Control><Shift><Super>Left" ];
+        switch-input-source =
+          if imFramework == "ibus" then
+            [
+              "<Control>space"
+            ]
+          else
+            [ ];
+        switch-input-source-backward = [ ];
+      };
+      "org/gnome/settings-daemon/plugins/media-keys" = {
+        control-center = [ ];
+        control-center-static = [ ];
+        custom-keybindings = [
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/"
+          "/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/toggle-screen/"
+        ];
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0" = {
+        binding = mkString "NEXT";
+        # https://www.reddit.com/r/gnome/comments/wencxw/almost_solved_i_wish_gnome_would_have_a_way_to/
+        command = mkString "dbus-send --type=method_call --dest=org.gnome.ScreenSaver /org/gnome/ScreenSaver org.gnome.ScreenSaver.SetActive boolean:true";
+        name = mkString "Power off monitor";
+      };
+      "org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/toggle-screen" = {
+        binding = mkString "XF86PowerOff";
+        # Nix store path — no escaping issues.
+        command = mkString "${toggleScreen}/bin/gnome-toggle-screen";
+        name = mkString "Toggle Screen (Power Key)";
+      };
+      "org/gnome/settings-daemon/plugins/housekeeping" = {
+        donation-reminder-enabled = false;
+      };
+      "org/gnome/shell" = {
+        disable-user-extensions = false;
+        # disable-extension-version-validation = true;
+        last-selected-power-profile = "performance";
+        favorite-apps = lib.mkBefore [
+          "org.gnome.Console.desktop"
+          "org.gnome.Nautilus.desktop"
+          "firefox.desktop"
+          "chromium-browser.desktop"
+          "chromium.desktop"
+          "gnome-system-monitor.desktop"
+          "code.desktop"
+          "steam-hidpi.desktop"
+        ];
+        welcome-dialog-last-shown-version = "43.1";
+      };
+      "org/gnome/mutter" = {
+        # Active Screen Edges
+        # Drag windows against screen edges to resize them
+        edge-tiling = true;
+        dynamic-workspaces = true;
+        center-new-windows = true;
+        experimental-features = [
+          "scale-monitor-framebuffer"
+          "variable-refresh-rate"
+          "xwayland-native-scaling"
+        ];
+      };
+      "org/gnome/desktop/interface" = {
+        # scaling-factor = 1.0 * config.wayland.dpi / 96;
+        # text-scaling-factor = mkDouble 1.5;
+
+        # gtk-theme = "adw-gtk3";
+        # cursor-theme = "capitaine-cursors";
+        # cursor-size = 36 * config.wayland.dpi / 96;
+        clock-show-weekday = true;
+        show-battery-percentage = true;
+        locate-pointer = true;
+        enable-hot-corners = false;
+      };
+      "org/gnome/desktop/peripherals/keyboard" = {
+        numlock-state = true;
+      };
+      "org/gnome/desktop/input-sources" = {
+        sources =
+          mkArray
+            (type.tupleOf [
+              type.string
+              type.string
+            ])
+            [
+              (mkTuple [
+                (mkString (if imFramework == "ibus" then "ibus" else "xkb"))
+                (mkString (if imFramework == "ibus" then "rime" else "us"))
+              ])
+            ];
+        per-window = false;
+        xkb-options = mkArray type.string [ "caps:swapescape" ];
+      };
+
+      "org/gnome/shell/extensions/system-monitor" = {
+        memory-display = false;
+      };
+      "org/gnome/desktop/wm/preferences" = {
+        action-middle-click-titlebar = "lower";
+        focus-new-windows = "smart";
+      };
+      "org/gnome/system/location" = {
+        enabled = true;
+      };
+      # just use the standard touchpad and mouse speed
+      "org/gnome/desktop/peripherals/mouse" = {
+        speed = 0;
+      };
+      "org/gnome/desktop/peripherals/touchpad" = {
+        speed = 0;
+        natural-scroll = true;
+        tap-to-click = true;
+      };
+      "org/gnome/desktop/calendar" = {
+        show-weekdate = true;
+      };
+      "org/gnome/shell/extensions/kimpanel" = {
+        font = "LXGW WenKai 26";
+      };
+      "org/gnome/Console" = {
+        theme = "auto";
+      };
+      "ca/desrt/dconf-editor" = {
+        show-warning = false;
+      };
+      "com/raggesilver/BlackBox" = {
+        terminal-padding = mkTuple [
+          (mkUint32 5)
+          (mkUint32 5)
+          (mkUint32 5)
+          (mkUint32 5)
+        ];
+        # font = "monospace ${toString (10 * config.wayland.dpi / 96)}";
+        theme-light = "Tomorrow";
+        theme-dark = "Tomorrow Night";
+        show-menu-button = false;
+      };
+    }
+  ];
+
+  home.activation.allowGdmReadFace =
+    lib.mkIf (lib.attrByPath [ "services" "displayManager" "gdm" "enable" ] false osConfig)
+      (
+        lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+          ${pkgs.acl}/bin/setfacl --modify=group:gdm:--x "$HOME" || true
+        ''
+      );
+
+  gtk = {
+    enable = true;
+    font = {
+      name = "Inter";
+      size = 11;
+    };
+    gtk3.bookmarks = [
+      "file://${config.home.homeDirectory}/.local/XDG/Desktop 桌面"
+      "file://${config.home.homeDirectory}/.local/XDG/Documents"
+      "file://${config.home.homeDirectory}/.local/XDG/Downloads"
+      "file://${config.home.homeDirectory}/.local/XDG/Music"
+      "file://${config.home.homeDirectory}/.local/XDG/Pictures"
+      "file://${config.home.homeDirectory}/.local/XDG/Videos"
+      "file://${config.home.homeDirectory}/Storage/BottlesShare Bottles 共享目录"
+    ];
+  };
+  home.file.".config/gnome-initial-setup-done".text = "yes";
+  home.sessionVariables = {
+    # Wayland variables
+    CLUTTER_BACKEND = "wayland";
+    ELECTRON_OZONE_PLATFORM_HINT = "wayland";
+    MOZ_ENABLE_WAYLAND = "1";
+    NIXOS_OZONE_WL = "1";
+    # QT_QPA_PLATFORM = "wayland;xcb";
+    WLR_NO_HARDWARE_CURSORS = "1";
+  };
+
+  ## Create startwm.sh for XRDP
+  home.file."startwm.sh".text = ''
+    #!/usr/bin/env bash
+    export DESKTOP_SESSION="gnome"
+    export GDMSESSION="gnome"
+    export XDG_CURRENT_DESKTOP="GNOME"
+    export XDG_SESSION_DESKTOP="gnome"
+    dbus-run-session -- gnome-shell
+  '';
+  home.file."startwm.sh".executable = true;
+
+  home.global-persistence = {
+    directories = [
+      ".local/share/keyrings"
+    ];
+  };
+  # Override GNOME's IBus systemd service to use kimpanel-ibus-panel.
+  # GNOME's built-in unit hardcodes "--panel disable", which bypasses the
+  # NixOS ibus.panel option entirely. kimpanel-ibus-panel bridges IBus to the
+  # kimpanel@kde.org GNOME Shell extension (which runs inside GNOME Shell and
+  # can correctly position candidate popups on Wayland).
+  systemd.user.services."org.freedesktop.IBus.session.GNOME" = lib.mkForce {
+    Unit = {
+      Description = "IBus Daemon for GNOME (kimpanel)";
+      # Do not compete for org.freedesktop.IBus when Fcitx is selected.
+      ConditionEnvironment = lib.mkIf (imFramework != "ibus") "XMODIFIERS=@im=ibus";
+      CollectMode = "inactive-or-failed";
+      Requisite = [ "gnome-session-initialized.target" ];
+      After = [ "gnome-session-initialized.target" ];
+      PartOf = [ "gnome-session-initialized.target" ];
+      Before = [ "gnome-session.target" ];
+    };
+    Service = {
+      Type = "dbus";
+      BusName = "org.freedesktop.IBus";
+      ExecStart = [
+        "${pkgs.bash}/bin/bash -c 'exec /run/current-system/sw/bin/ibus-daemon --replace --panel ${pkgs.kdePackages.plasma-desktop}/libexec/kimpanel-ibus-panel $([ \"$XDG_SESSION_TYPE\" = \"x11\" ] && echo \"--xim\")'"
+      ];
+      Restart = "on-abnormal";
+      TimeoutStopSec = 5;
+      Slice = "session.slice";
+    };
+    Install = {
+      WantedBy = [ "gnome-session.target" ];
+    };
+  };
+
+  # 开机/登录时自动将音量设为 0（等待 WirePlumber 和默认声卡就绪）
+  systemd.user.services.reset-volume-on-login = {
+    Unit = {
+      Description = "Reset audio volume to 0 on login";
+      After = [ "wireplumber.service" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.writeShellScript "reset-volume-zero" ''
+        for i in $(seq 1 30); do
+          if ${pkgs.wireplumber}/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 0 2>/dev/null; then
+            exit 0
+          fi
+          sleep 0.2
+        done
+      ''}";
+    };
+    Install = {
+      WantedBy = [ "graphical-session.target" ];
+    };
+  };
+}

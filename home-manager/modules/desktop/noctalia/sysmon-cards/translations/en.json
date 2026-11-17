@@ -1,0 +1,9 @@
+{
+  "group": "Metric Group",
+  "network": "Network",
+  "cpu": "CPU",
+  "gpu": "GPU",
+  "memory": "Memory and Swap",
+  "vram": "Video Memory",
+  "gpu_frequency_command": "GPU Frequency Command"
+}

@@ -6,10 +6,7 @@
   ...
 }:
 let
-  isDesktop =
-    config.services.xserver.enable
-    || config.services.desktopManager.plasma6.enable
-    || config.services.gnome.core-shell.enable;
+  isDesktop = config.services.xserver.enable || config.services.gnome.core-shell.enable;
 in
 {
   imports = [ inputs.nix-flatpak.nixosModules.nix-flatpak ];
@@ -40,7 +37,6 @@ in
     extraPortals = lib.mkDefault (
       if isDesktop then
         [
-          pkgs.kdePackages.xdg-desktop-portal-kde
           pkgs.xdg-desktop-portal-gtk
           pkgs.xdg-desktop-portal-gnome
         ]

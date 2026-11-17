@@ -1,4 +1,4 @@
-{ config, ... }:
+{ config, pkgs, ... }:
 let
   currentIM = config.i18n.inputMethod.type;
 
@@ -24,18 +24,20 @@ let
       };
 in
 {
+  xdg.icons.enable = true;
+  xdg.sounds.enable = true;
+  # Desktop profiles own portal selection; each compositor adds its own backend.
+  xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   xdg.portal.config.common.default = "*";
   services.flatpak = {
+    enable = true;
     packages = [
       # 用于图形化管理 Flatpak 的权限（如允许微信访问 ~/Downloads）
       "com.github.tchx84.Flatseal"
     ];
     overrides = {
       "global" = {
-        environment = imEnv // {
-          # "GTK_THEME" = "Gruvbox-Dark";
-          "GTK_APPLICATION_PREFER_DARK_THEME" = "1";
-        };
+        environment = imEnv;
 
         Context = {
           devices = [
@@ -67,19 +69,7 @@ in
             "!gpg-agent"
           ];
           filesystems = [
-            "/nix/store:ro"
-
-            # 用户目录资源
-            "~/.local/share/fonts:ro"
-            "~/.local/share/icons:ro"
-            "~/.local/share/themes:ro"
             "~/.local/share/applications"
-
-            # 系统 XDG 资源
-            "xdg-config/gtk-3.0:ro"
-            "xdg-config/gtk-4.0:ro"
-            "xdg-data/themes:ro"
-            "xdg-data/icons:ro"
           ];
         };
       };

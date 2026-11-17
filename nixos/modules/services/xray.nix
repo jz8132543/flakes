@@ -6,7 +6,16 @@
     "tyo0.dora.im"
     "sjc0.dora.im"
   ],
-  serverName ? "assets.msn.com",
+  serverName ? "speedtest.dora.im",
+  core ? "xray",
+  xhttpPath ? "/speedtest",
+  xhttpMode ? "stream-one",
+  xPaddingBytes ? "100-1000",
+  xPaddingObfsMode ? true,
+  xPaddingPlacement ? "header",
+  xPaddingHeader ? "X-Padding",
+  xPaddingMethod ? "repeat-x",
+  healthCheckUrl ? "https://speedtest.dora.im/generate_204",
   ss ? false,
   socks ? true,
   socksPort ? 1080,
@@ -18,6 +27,8 @@
   ...
 }:
 let
+  isXray = core == "xray";
+  primaryTag = if ss then "ss-in" else "vless-in";
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
   selfData = config.lib.self.data or (lib.importJSON ../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
@@ -37,30 +48,259 @@ let
       "::ffff:${ip}/128";
 
   ownDn42Ipv4Mapped = toMappedV6 ownDn42Ipv4;
+  socksSources = [
+    ownDn42Ipv4
+    ownDn42Ipv6
+    "127.0.0.0/8"
+    "::1/128"
+  ];
+  # Xray normalizes mapped addresses to IPv4 and rejects mapped CIDR masks > 32.
+  singBoxSocksSources = socksSources ++ [
+    ownDn42Ipv4Mapped
+    (toMappedV6 "127.0.0.0/8")
+  ];
+  proxyDomains = [
+    "skk.moe"
+    "openai.com"
+    "chatgpt.com"
+    "oaistatic.com"
+    "oaiusercontent.com"
+    "claude.ai"
+    "anthropic.com"
+  ];
+  proxyRoute =
+    if useHealthCheckedBalancer then
+      { balancerTag = "proxy-balancer"; }
+    else
+      { outboundTag = "proxy-0"; };
+  xhttpSettings = {
+    host = serverName;
+    path = xhttpPath;
+    mode = xhttpMode;
+    # Mihomo does not fill Xray's obfs-mode defaults; use explicit shared values.
+    extra = {
+      inherit
+        xPaddingBytes
+        xPaddingObfsMode
+        xPaddingPlacement
+        xPaddingHeader
+        xPaddingMethod
+        ;
+    };
+  };
+  xrayConfig = {
+    log.loglevel = if config.environment.minimal or false then "warning" else "info";
+    inbounds = [
+      (
+        if ss then
+          {
+            tag = primaryTag;
+            listen = "::";
+            port = xrayPort;
+            protocol = "shadowsocks";
+            settings = {
+              method = "2022-blake3-aes-128-gcm";
+              password = config.sops.placeholder."xray/uuid";
+              network = "tcp,udp";
+            };
+          }
+        else
+          {
+            tag = primaryTag;
+            listen = "::";
+            port = xrayPort;
+            protocol = "vless";
+            settings = {
+              clients = [ { id = config.sops.placeholder."xray/uuid"; } ];
+              decryption = "none";
+            };
+            streamSettings = {
+              network = "xhttp";
+              security = "reality";
+              inherit xhttpSettings;
+              realitySettings = {
+                target = "${serverName}:443";
+                serverNames = [ serverName ];
+                privateKey = config.sops.placeholder."xray/private_key";
+                shortIds = [ config.sops.placeholder."xray/short_id" ];
+              };
+            };
+          }
+      )
+    ]
+    ++ lib.optionals socks [
+      {
+        tag = "socks-in";
+        listen = "::";
+        port = socksPort;
+        protocol = "socks";
+        settings = {
+          auth = "noauth";
+          udp = true;
+        };
+      }
+    ];
+    outbounds = [
+      {
+        tag = "direct";
+        protocol = "freedom";
+      }
+      {
+        tag = "block";
+        protocol = "blackhole";
+      }
+    ]
+    ++ lib.optionals needProxy (
+      lib.imap0 (i: host: {
+        tag = "proxy-${toString i}";
+        protocol = "vless";
+        settings = {
+          address = host;
+          port = 8555;
+          id = config.sops.placeholder."xray/uuid";
+          encryption = "none";
+        };
+        streamSettings = {
+          network = "xhttp";
+          security = "reality";
+          inherit xhttpSettings;
+          realitySettings = {
+            inherit serverName;
+            fingerprint = "chrome";
+            password = config.sops.placeholder."xray/public_key";
+            shortId = config.sops.placeholder."xray/short_id";
+          };
+        };
+      }) proxyHosts
+    );
+    routing = {
+      domainStrategy = "AsIs";
+      # Only authorized SOCKS sources may reach either proxy or direct routes.
+      rules =
+        lib.optionals needProxy (
+          [
+            (
+              {
+                type = "field";
+                inboundTag = [ primaryTag ];
+                domain = map (domain: "domain:${domain}") proxyDomains;
+              }
+              // proxyRoute
+            )
+          ]
+          ++ lib.optionals socks [
+            (
+              {
+                type = "field";
+                inboundTag = [ "socks-in" ];
+                source = socksSources;
+                domain = map (domain: "domain:${domain}") proxyDomains;
+              }
+              // proxyRoute
+            )
+          ]
+        )
+        ++ lib.optionals socks [
+          {
+            type = "field";
+            inboundTag = [ "socks-in" ];
+            source = socksSources;
+            outboundTag = "direct";
+          }
+          {
+            type = "field";
+            inboundTag = [ "socks-in" ];
+            outboundTag = "block";
+          }
+        ];
+    }
+    // lib.optionalAttrs useHealthCheckedBalancer {
+      balancers = [
+        {
+          tag = "proxy-balancer";
+          selector = [ "proxy-" ];
+          strategy.type = "leastPing";
+          # Do not bypass the requested proxy route when every relay is down.
+          fallbackTag = "block";
+        }
+      ];
+    };
+  }
+  // lib.optionalAttrs useHealthCheckedBalancer {
+    observatory = {
+      subjectSelector = [ "proxy-" ];
+      probeUrl = healthCheckUrl;
+      probeInterval = "1m";
+      enableConcurrency = true;
+    };
+  };
 in
 {
+  assertions = [
+    {
+      assertion = lib.elem core [
+        "xray"
+        "sing-box"
+      ];
+      message = "xray.nix: core must be xray or sing-box";
+    }
+    {
+      assertion = !isXray || lib.versionAtLeast config.services.xray.package.version "26.11.9";
+      message = "xray.nix: REALITY requires Xray 26.11.9 or later";
+    }
+    {
+      assertion = !needProxy || proxyHosts != [ ];
+      message = "xray.nix: needProxy requires at least one proxy host";
+    }
+    {
+      assertion = lib.elem xhttpMode [
+        "stream-one"
+        "stream-up"
+        "packet-up"
+      ];
+      message = "xray.nix: unsupported XHTTP mode";
+    }
+    {
+      assertion = lib.hasPrefix "/" xhttpPath;
+      message = "xray.nix: XHTTP path must start with /";
+    }
+    {
+      assertion = lib.hasPrefix "https://" healthCheckUrl;
+      message = "xray.nix: health checks must use HTTPS";
+    }
+    {
+      assertion = !socks || socksPort != xrayPort;
+      message = "xray.nix: SOCKS and primary inbound ports must differ";
+    }
+  ];
   sops.secrets = {
     "xray/uuid" = {
-      mode = "0444";
+      mode = "0400";
     };
     "xray/private_key" = {
-      mode = "0444";
+      mode = "0400";
     };
     "xray/short_id" = {
-      mode = "0444";
+      mode = "0400";
     };
     "xray/cf_tunnel_token" = {
-      mode = "0444";
+      mode = "0400";
     };
     "xray/public_key" = {
-      mode = "0444";
+      mode = "0400";
     };
   };
 
-  # 2. 使用 Template 动态生成 sing-box config.json
-  # 配置文件位于 /run/secrets/rendered/，不进入 nix store
-  sops.templates."sing-box-config.json" = {
-    mode = "0444";
+  sops.templates."xray-config.json" = lib.mkIf isXray {
+    mode = "0400";
+    restartUnits = [ "xray.service" ];
+    content = builtins.toJSON xrayConfig;
+  };
+
+  # Rollback also requires the subscription transport to switch to TCP + Vision.
+  # Templates contain only placeholders in the store; credentials are rendered at runtime.
+  sops.templates."sing-box-config.json" = lib.mkIf (!isXray) {
+    mode = "0400";
     restartUnits = [ "sing-box.service" ];
     content = builtins.toJSON {
       log = {
@@ -182,14 +422,7 @@ in
                 }
                 {
                   invert = true;
-                  source_ip_cidr = [
-                    ownDn42Ipv4
-                    ownDn42Ipv6
-                    "127.0.0.0/8"
-                    "::1/128"
-                    ownDn42Ipv4Mapped
-                    (toMappedV6 "127.0.0.0/8")
-                  ];
+                  source_ip_cidr = singBoxSocksSources;
                 }
               ];
               outbound = "block";
@@ -197,15 +430,7 @@ in
           ])
           ++ (lib.optionals needProxy [
             {
-              domain_suffix = [
-                "skk.moe"
-                "openai.com"
-                "chatgpt.com"
-                "oaistatic.com"
-                "oaiusercontent.com"
-                "claude.ai"
-                "anthropic.com"
-              ];
+              domain_suffix = proxyDomains;
               outbound = if useHealthCheckedBalancer then "proxy-balancer" else "proxy-0";
             }
           ]);
@@ -214,29 +439,30 @@ in
     };
   };
 
-  # 3. 启用 Sing-box 服务并显式停用老旧的 Xray 服务与 microsocks
-  services.sing-box = {
-    enable = true;
+  services.xray = {
+    enable = isXray;
+    settingsFile = lib.mkIf isXray config.sops.templates."xray-config.json".path;
   };
-  # services.xray.enable = lib.mkForce false;
-  # services.microsocks.enable = lib.mkForce false;
-  # services.custom-microsocks.enable = lib.mkForce false;
+  services.sing-box.enable = !isXray;
 
   # 4. 针对弱机（1CPU/256M 内存）深度调优 systemd 服务参数
-  systemd.services.sing-box = {
+  systemd.services.${core} = {
+    after = [ "network-online.target" ];
+    wants = [ "network-online.target" ];
     startLimitIntervalSec = lib.mkForce 0;
     serviceConfig = {
-      ExecStart = lib.mkForce [
-        ""
-        "${lib.getExe pkgs.sing-box} -D /var/lib/sing-box run -c ${
-          config.sops.templates."sing-box-config.json".path
-        }"
-      ];
       Restart = lib.mkForce "on-failure";
       RestartSec = "2s";
       MemoryMax = lib.mkDefault "192M";
       MemoryHigh = lib.mkDefault "150M";
       OOMScoreAdjust = lib.mkDefault (-500);
+    }
+    // lib.optionalAttrs (!isXray) {
+      LoadCredential = "config.json:${config.sops.templates."sing-box-config.json".path}";
+      ExecStart = lib.mkForce [
+        ""
+        "${lib.getExe config.services.sing-box.package} -D /var/lib/sing-box run -c \${CREDENTIALS_DIRECTORY}/config.json"
+      ];
     };
     environment = {
       # 激进 GC 控制内存上限，避免低内存 VPS OOM
@@ -275,7 +501,7 @@ in
     description = "Trigger to restart proxy service";
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.systemd}/bin/systemctl restart sing-box.service";
+      ExecStart = "${pkgs.systemd}/bin/systemctl restart ${core}.service";
     };
   };
 

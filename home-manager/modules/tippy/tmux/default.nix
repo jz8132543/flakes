@@ -43,9 +43,9 @@ let
     echo "$rx_now $tx_now $ts_now" > "$STATE_FILE"
     format_speed() {
         local s=$(( ($1) / $2 ))
-        if [ "$s" -ge 1048576 ]; then echo "$((s / 1048576)) MB/s"
-        elif [ "$s" -ge 1024 ]; then echo "$((s / 1024)) KB/s"
-        else echo "$s B/s"; fi
+        if [ "$s" -ge 1048576 ]; then echo "$((s / 1048576))M/s"
+        elif [ "$s" -ge 1024 ]; then echo "$((s / 1024))K/s"
+        else echo "''${s}B/s"; fi
     }
     printf "↓%s ↑%s" "$(format_speed $((rx_now - rx_old)) $dt)" "$(format_speed $((tx_now - tx_old)) $dt)"
   '';
@@ -81,29 +81,21 @@ in
       {
         plugin = cpu;
         extraConfig = ''
-          set -g @cpu_percentage_format "%3d%%"
-          set -g @ram_percentage_format "%2d%%"
+          set -g @cpu_percentage_format "%d%%"
+          set -g @ram_percentage_format "%d%%"
         '';
       }
       {
         plugin = dracula;
         extraConfig = ''
-          set -g @dracula-plugins "battery time"
-          set -g @dracula-show-left-icon " #S"
-          set -g @dracula-left-icon-padding 0
+          # An empty string restores Dracula's defaults; whitespace disables widgets.
+          set -g @dracula-plugins " "
           set -g @dracula-show-powerline false
           set -g @dracula-colors "white='#ffffff'"
-          set -g @dracula-battery-colors "dark_gray white"
-          set -g @dracula-time-colors "dark_gray white"
-          set -g @dracula-left-pad "| "
           set -g @dracula-show-flags true
           set -g @dracula-border-contrast true
           set -g @dracula-refresh-rate 3
-          set -g @dracula-battery-label false
-          set -g @dracula-show-battery-status true
-          set -g @dracula-no-battery-label "AC"
           set -g @dracula-military-time true
-          set -g @dracula-time-format "#{?#{>=:#{client_width},140},%a %m-%d %H:%M %Z,%H:%M}"
         '';
       }
     ];
@@ -145,28 +137,28 @@ in
       setw -g allow-rename on
       set -g automatic-rename-format '#{pane_current_command}'
 
-      # Keep Dracula's battery/time widgets after the existing telemetry.
-      set -gF @dracula-status-right '#{status-right}'
+      # Clear the legacy battery/time tail when reloading an existing server.
+      set -gu @dracula-status-right
       set -g status-right-length 180
-      set -g status-left-length 30
+      set -g status-left-length 0
       # Legacy colour options override status-style in existing servers.
       set -gu status-bg
       set -gu status-fg
       set -g status-style "fg=#ffffff,bg=#282a36"
-      set -g status-left "#[fg=#ffffff,bg=#282a36]#{?client_prefix,#[bold],#[nobold]}  #S "
+      set -g status-left ""
       set -g window-status-format "#[fg=#ffffff,bg=#282a36,nobold] #I #W#{window_flags} "
       set -g window-status-current-format "#[fg=#ffffff,bg=#282a36,bold] #I #W#{window_flags} "
       set -g status-right \
         "#[fg=#ffffff,bg=#282a36]#(${tmux-ssh-status}/bin/tmux-ssh-status #{pane_pid})"
 
       set -ag status-right \
-        "| 󰓅 #(${tmux-net-speed}/bin/tmux-net-speed) "
+        "|#(${tmux-net-speed}/bin/tmux-net-speed)"
 
       set -ag status-right \
-        "| CPU #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh) "
+        "|CPU#(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/cpu_percentage.sh)"
 
       set -ag status-right \
-        "| RAM #(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh) #{E:@dracula-status-right}"
+        "|RAM#(${pkgs.tmuxPlugins.cpu}/share/tmux-plugins/cpu/scripts/ram_percentage.sh)"
 
       set -g message-style "fg=#ffffff,bg=#282a36"
       set -g message-command-style "fg=#ffffff,bg=#282a36"

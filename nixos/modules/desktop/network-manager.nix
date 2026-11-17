@@ -1,4 +1,5 @@
 {
+  lib,
   pkgs,
   ...
 }:
@@ -24,6 +25,21 @@
       "interface-name:p2p-dev-*"
       "interface-name:enp5s0"
     ];
+  };
+
+  systemd.services.NetworkManager-wait-online = {
+    startLimitIntervalSec = 0;
+    serviceConfig = {
+      # Wait for a connection, not completion of every autoconnect profile.
+      # Bound each attempt so an offline laptop can still finish booting.
+      ExecStart = lib.mkForce [
+        ""
+        "${pkgs.networkmanager}/bin/nm-online -q --timeout=30"
+      ];
+      Restart = "on-failure";
+      RestartSec = "5s";
+      TimeoutStartSec = "35s";
+    };
   };
 
   # services.dnscrypt-proxy.enable = true;

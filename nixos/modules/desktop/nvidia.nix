@@ -77,8 +77,6 @@ in
     }
 
     (lib.mkIf (cfg.mode == "offload") {
-      environment.sessionVariables.LIBVA_DRIVER_NAME = "iHD";
-
       hardware.nvidia = {
         powerManagement.finegrained = lib.mkDefault true;
         prime = {

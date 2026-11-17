@@ -1,6 +1,5 @@
 # Source: github/oxalica
-# We avoid wayland scaling since fractional scaling support is still TODO.
-# https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/143
+# Output scaling belongs to the compositor's saved per-monitor configuration.
 # https://blog.lilydjwg.me/2022/2/2/wayfire-migration-4-not-so-high-dpi.216078.html
 {
   lib,
@@ -31,8 +30,7 @@ in
 
   config = mkIf (cfg != default) {
     dconf.enable = mkDefault true;
-    # dconf.settings."org/gnome/desktop/interface".text-scaling-factor = cfg * 1.0 / default;
-    dconf.settings."org/gnome/desktop/interface".scaling-factor = cfg * 1.0 / default;
+    # GNOME's uint scaling-factor cannot represent fractional output scales.
     xresources.properties."Xft.dpi" = cfg;
     home.sessionVariables = {
       GDK_BACKEND = "wayland";

@@ -3,6 +3,7 @@
   self,
   inputs,
   lib,
+  wineAudioHome,
   ...
 }:
 let
@@ -54,6 +55,286 @@ let
           python3 -B suite/test-services.py
           touch "$out"
         '';
+  };
+  desktopEvaluationTest = {
+    "x86_64-linux"."desktop-evaluation-test" =
+      let
+        results = lib.genAttrs [ "arx8" "surface" ] (
+          name:
+          lib.genAttrs [ "umbriel" "gnome" ] (
+            session:
+            let
+              host = config.flake.nixosConfigurations.${name}.extendModules {
+                modules = [ { desktop.defaultSession = lib.mkForce session; } ];
+              };
+            in
+            {
+              # Force complete module evaluation, without building either system.
+              system = builtins.unsafeDiscardStringContext host.config.system.build.toplevel.drvPath;
+              home = builtins.unsafeDiscardStringContext host.config.home-manager.users.tippy.home.activationPackage.drvPath;
+            }
+          )
+        );
+      in
+      fra0Pkgs.runCommand "desktop-evaluation-test" { result = builtins.toJSON results; } ''
+        printf '%s\n' "$result" > "$out"
+      '';
+  };
+  wineAudioLaunchersTest = {
+    "x86_64-linux"."wine-audio-launchers-test" = import ../tests/wine-audio-launchers-test.nix {
+      inherit (wineAudioHome) pkgs;
+      home = wineAudioHome.config;
+      bitwigPackage = config.flake.packages.x86_64-linux.bitwig-studio-patched;
+    };
+  };
+  fluxdownConfigTest = {
+    "x86_64-linux"."fluxdown-config-test" = import ../tests/fluxdown-config-test.nix {
+      pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      configurations = config.flake.nixosConfigurations;
+    };
+  };
+  bitwigPackageTest = {
+    "x86_64-linux"."bitwig-package-test" = import ../tests/bitwig-package-test.nix {
+      pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      package = config.flake.packages.x86_64-linux.bitwig-studio-patched;
+      hostPackages = config.flake.nixosConfigurations.arx8.config.environment.systemPackages;
+    };
+  };
+  gpuStorageConfigTest = {
+    "x86_64-linux"."gpu-storage-config-test" =
+      fra0Pkgs.runCommand "gpu-storage-config-test"
+        {
+          result = builtins.toJSON (
+            import ../tests/gpu-storage-config-test.nix {
+              inherit lib;
+              configurations = config.flake.nixosConfigurations;
+            }
+          );
+        }
+        ''
+          printf '%s\n' "$result" > "$out"
+        '';
+  };
+  umbrielNoctaliaTest = {
+    "x86_64-linux"."umbriel-noctalia-test" =
+      fra0Pkgs.runCommand "umbriel-noctalia-test"
+        {
+          result = builtins.toJSON (
+            import ../tests/umbriel-noctalia-test.nix {
+              inherit lib;
+              configurations = config.flake.nixosConfigurations;
+            }
+          );
+        }
+        ''
+          set -o pipefail
+          mkdir -p "$out"
+          printf '%s\n' "$result" > "$out/checks.json"
+          ${fra0Pkgs.luajit}/bin/luajit ${../tests/noctalia-sysmon-cards-test.lua} \
+            ${../home-manager/modules/desktop/noctalia/sysmon-cards/card.luau}
+          ${lib.concatMapStringsSep "\n"
+            (
+              name:
+              let
+                home = config.flake.nixosConfigurations.${name}.config.home-manager.users.tippy;
+              in
+              ''
+                # Config-only CLI: never launch a graphical compositor in the sandbox.
+                ${home.programs.umbriel.package}/bin/umbriel config validate \
+                  -c ${home.xdg.configFile."umbriel/config.toml".source} --json \
+                  | tee "$out/${name}-umbriel.json"
+                # Realize the upstream HM checkConfig derivation as well.
+                test -s ${home.xdg.configFile."noctalia/config.toml".source}
+                # Building the override catches read-only upstream .desktop modes.
+                grep -Fx 'NotShowIn=Umbriel;umbriel;' \
+                  ${home.xdg.configFile."autostart/org.fcitx.Fcitx5.desktop".source}
+              ''
+            )
+            [
+              "arx8"
+              "surface"
+            ]
+          }
+        '';
+  };
+  wallpaperHdrTest = {
+    "x86_64-linux"."wallpaper-hdr-test" =
+      let
+        pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      in
+      pkgs.runCommand "wallpaper-hdr-test"
+        {
+          nativeBuildInputs = [
+            (pkgs.python3.withPackages (p: [
+              p.numpy
+              p.pillow
+            ]))
+          ];
+        }
+        ''
+          python3 -B ${../tests/wallpaper-hdr-test.py} ${../pkgs/wallpaper/hdr.py} \
+            ${pkgs.wallpaper.hdr}/wallpaper-hdr.png
+          touch "$out"
+        '';
+  };
+  mihomoSubscriptionTest = {
+    "x86_64-linux"."mihomo-subscription-test" =
+      let
+        host = config.flake.nixosConfigurations.arx8;
+        source = lib.fileset.toSource {
+          root = ../.;
+          fileset = lib.fileset.unions [
+            ../tests/test-mihomo-subscription.py
+            ../tests/test-mihomo-runtime-policy.py
+            ../nixos/modules/desktop/mihomo-subscription.sh
+            ../nixos/modules/desktop/mihomo-runtime-policy.py
+          ];
+        };
+      in
+      host.pkgs.runCommand "mihomo-subscription-test"
+        {
+          nativeBuildInputs = [
+            (host.pkgs.python3.withPackages (ps: [ ps.pyyaml ]))
+            host.pkgs.bash
+            host.pkgs.coreutils
+          ];
+          updater = host.config.system.build.mihomoSubscriptionUpdater;
+          PUBLISHED_MIHOMO_CONFIG =
+            config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/mihomo.yaml".file;
+          PUBLISHED_VLESS_URIS =
+            config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/v2ray.txt".file;
+          MIHOMO_REAL_BIN = lib.getExe host.config.services.mihomo.package;
+          inherit (host.config.systemd.services.mihomo-subscription-update.environment)
+            MIHOMO_GEOIP
+            MIHOMO_GEOSITE
+            MIHOMO_MMDB
+            MIHOMO_POLICY_FILE
+            ;
+        }
+        ''
+          test -x "$updater/bin/mihomo-subscription-update"
+          python3 -B ${source}/tests/test-mihomo-runtime-policy.py -v
+          python3 -B ${source}/tests/test-mihomo-subscription.py -v
+          touch "$out"
+        '';
+  };
+  proxyXhttpTest = {
+    "x86_64-linux"."proxy-xhttp-test" = import ../tests/xray-config-test.nix {
+      pkgs = fra0Pkgs;
+    };
+  };
+  speedtestWorkerTest = {
+    "x86_64-linux"."speedtest-worker-test" =
+      let
+        source = lib.fileset.toSource {
+          root = ../.;
+          fileset = lib.fileset.unions [
+            ../tests/speedtest-worker-test.mjs
+            ../terraform/cloudflare.tf
+            ../terraform/.terraform.lock.hcl
+            ../terraform/modules/speedtest-worker
+          ];
+        };
+      in
+      fra0Pkgs.runCommand "speedtest-worker-test" { nativeBuildInputs = [ fra0Pkgs.nodejs ]; } ''
+        node --test ${source}/tests/speedtest-worker-test.mjs
+        touch "$out"
+      '';
+  };
+  mactahoeMigrationTest = {
+    "x86_64-linux"."mactahoe-migration-test" =
+      fra0Pkgs.runCommand "mactahoe-migration-test"
+        {
+          nativeBuildInputs = [ fra0Pkgs.python3 ];
+          MIGRATION_SOURCE = ../home-manager/modules/desktop/mactahoe/migration.py;
+        }
+        ''
+          python3 -B ${../tests/mactahoe-migration-test.py} -v
+          touch "$out"
+        '';
+  };
+  mactahoeAppearanceTest = {
+    "x86_64-linux"."mactahoe-appearance-test" =
+      let
+        pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      in
+      pkgs.runCommand "mactahoe-appearance-test"
+        {
+          nativeBuildInputs = [ pkgs.python3 ];
+          APPEARANCE_SOURCE = ../home-manager/modules/desktop/mactahoe/appearance.py;
+          FLATPAK_BIN = "${pkgs.flatpak}/bin/flatpak";
+        }
+        ''
+          python3 -B ${../tests/mactahoe-appearance-test.py} -v
+          touch "$out"
+        '';
+  };
+  mactahoeFirefoxTest = {
+    "x86_64-linux"."mactahoe-firefox-test" =
+      fra0Pkgs.runCommand "mactahoe-firefox-test"
+        {
+          nativeBuildInputs = [ fra0Pkgs.python3 ];
+          FIREFOX_SOURCE = ../home-manager/modules/desktop/mactahoe/firefox.py;
+          FIREFOX_MODULE_SOURCE = ../home-manager/modules/desktop/mactahoe/firefox.nix;
+        }
+        ''
+          python3 -B ${../tests/mactahoe-firefox-test.py} -v
+          touch "$out"
+        '';
+  };
+  mactahoeStartupAssetsTest = {
+    "x86_64-linux"."mactahoe-startup-assets-test" =
+      let
+        host = config.flake.nixosConfigurations.arx8;
+      in
+      host.pkgs.runCommand "mactahoe-startup-assets-test"
+        {
+          nativeBuildInputs = [ host.pkgs.python3 ];
+          STARTUP_SOURCE = ../nixos/modules/desktop/mactahoe/assets;
+          STARTUP_PACKAGE = host.config.desktop.mactahoe.startupPackage;
+          PLYMOUTH_PLUGIN = "${host.config.boot.plymouth.package}/lib/plymouth/script.so";
+        }
+        ''
+          python3 -B ${../tests/mactahoe-startup-assets-test.py} -v
+          touch "$out"
+        '';
+  };
+  rimeStateTest = {
+    "x86_64-linux" = lib.genAttrs [ "rime-state-test" "fcitx5-rime-state-test" ] (
+      testName:
+      let
+        isFcitx = testName == "fcitx5-rime-state-test";
+        cfg =
+          (config.flake.nixosConfigurations.arx8.extendModules {
+            modules = [
+              { desktop.inputMethod.framework = lib.mkForce (if isFcitx then "fcitx5" else "ibus"); }
+            ];
+          }).config;
+        home = cfg.home-manager.users.tippy;
+      in
+      fra0Pkgs.runCommand testName
+        {
+          nativeBuildInputs = [
+            fra0Pkgs.python3
+            fra0Pkgs.bash
+            fra0Pkgs.stdenv.cc
+          ];
+          buildInputs = [ fra0Pkgs.librime ];
+          RIME_DATA = cfg.system.build.rimeUserData;
+          RIME_HOME = home.home.homeDirectory;
+          RIME_INIT = home.home.activation.initializeRimeState.data;
+          RIME_SUBDIR = if isFcitx then ".local/share/fcitx5/rime" else ".config/ibus/rime";
+          FCITX_CONFIG = if isFcitx then home.xdg.configFile."fcitx5/config".source else "";
+          FCITX_PROFILE = if isFcitx then home.xdg.configFile."fcitx5/profile".source else "";
+          CHROMIUM_ARGS = if isFcitx then builtins.toJSON home.programs.chromium.commandLineArgs else "[]";
+        }
+        ''
+          cc ${../tests/rime-smoke-test.c} -lrime -o rime-smoke-test
+          export RIME_SMOKE="$PWD/rime-smoke-test"
+          python3 -B ${../tests/rime-state-test.py} -v
+          touch "$out"
+        ''
+    );
   };
   hpbTest = {
     "${fra0Pkgs.stdenv.hostPlatform.system}"."nextcloud-hpb-test" =
@@ -451,6 +732,21 @@ in
   flake.checks = lib.foldr lib.recursiveUpdate { } [
     hostToplevels
     livekitSuiteTest
+    desktopEvaluationTest
+    wineAudioLaunchersTest
+    fluxdownConfigTest
+    bitwigPackageTest
+    gpuStorageConfigTest
+    umbrielNoctaliaTest
+    wallpaperHdrTest
+    mihomoSubscriptionTest
+    proxyXhttpTest
+    speedtestWorkerTest
+    mactahoeMigrationTest
+    mactahoeAppearanceTest
+    mactahoeFirefoxTest
+    mactahoeStartupAssetsTest
+    rimeStateTest
     hpbTest
     tsshTest
     tsshPolicyTest
