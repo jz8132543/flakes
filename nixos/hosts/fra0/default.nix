@@ -163,6 +163,8 @@
 
   services.subscriptionPublisher = {
     enable = true;
+    # 区域策略组改用 mihomo-smart 的智能调度，配合各节点的 smartFactor。
+    smartGroupType = "smart";
     nodes = [
       {
         name = "fra0";
@@ -217,6 +219,11 @@
         server = "sjc0";
         port = 8555;
         regions = [ "US" ];
+        # mihomo-smart policy-priority 系数：仅在策略组 type = "smart" 时生效。
+        #   > 1 提高优先级，< 1 降低优先级，不写等价于源码默认值 1.0。
+        #   例：sjc0 带宽最好但延迟偏高，给 1.2 让 smart 在权重相近时优先选它；
+        #       若想尽量不用某节点，给 0.8（必须为正数，<=0 会被内核拒绝）。
+        smartFactor = 1.2;
       }
       {
         name = "hkg5";

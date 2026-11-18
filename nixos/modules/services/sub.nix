@@ -104,16 +104,17 @@ let
   publicNodeNames = map (n: n.name) publicNodes;
 
   # 区域策略组：针对每个 Region 生成 <REGION>
-  mkPublicRegionGroup = region: {
-    name = region;
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 300;
-    tolerance = 20;
-    proxies = map (node: node.name) (
-      lib.filter (node: builtins.elem region (getNodeRegions node)) cfg.nodes
-    );
-  };
+  # 始终使用 url-test：主文档必须保持上游 mihomo 可解析。smart 类型只在
+  # mihomoSmartConfig 中由 smartGroupType 决定是否替换。
+  mkPublicRegionGroup =
+    region:
+    mkSchedulableGroup {
+      name = region;
+      groupType = "url-test";
+      proxies = map (node: node.name) (
+        lib.filter (node: builtins.elem region (getNodeRegions node)) cfg.nodes
+      );
+    };
 
   publicRegionGroups = lib.filter (g: g.proxies != [ ]) (map mkPublicRegionGroup regionNames);
 
@@ -182,10 +183,73 @@ let
           tolerance
           ;
         proxies = resolvedProxies;
+      }
+      // lib.optionalAttrs (g.type == "smart") {
+        # 仅当组内至少一个节点声明了系数时才下发该键。
+        policy-priority = mkPolicyPriority resolvedProxies;
+        prefer-asn = cfg.smartLearning.preferASN;
+        uselightgbm = cfg.smartLearning.useLightGBM;
+      }
+      // lib.optionalAttrs (g.type == "smart" && cfg.smartLearning.collectData) {
+        collectdata = true;
       };
 
   userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
+
+  # mihomo-smart 的 policy-priority 系数。
+  # 源码依据 (vernesong/mihomo adapter/outboundgroup/smart.go)：
+  #   - getPriorityFactor() 未命中任何规则时返回 1.0，因此不下发即等价于 1
+  #   - 排序比较先看 factor：`a.factor > b.factor`，即 **系数越大越优先**
+  #   - 系数必须是正数，<=0 会被拒绝并回退到 1.0
+  #   - pattern 优先按 regexp2 正则匹配，失败则退化为子串包含
+  # 因此：>1 提高优先级，<1 降低优先级，不写就是 1。
+  mkPolicyPriority =
+    members:
+    let
+      # Nix 的 toString 会把 1.2 渲染成 "1.200000"；内核用 ParseFloat 解析，
+      # 两种写法等价，但去掉小数部分尾随的 0 更易读。
+      # 注意不能把 "0" 整个吃掉，因此只在含小数点时 strip。
+      fmtFactor =
+        f:
+        let
+          text = toString f;
+          strip = s: if lib.hasInfix "." s && lib.hasSuffix "0" s then strip (lib.removeSuffix "0" s) else s;
+        in
+        if lib.hasInfix "e" text then text else strip text;
+    in
+    lib.concatStringsSep ";" (
+      lib.filter (s: s != "") (
+        map (node: if node.smartFactor == null then "" else "${node.name}:${fmtFactor node.smartFactor}") (
+          lib.filter (node: builtins.elem node.name members) cfg.nodes
+        )
+      )
+    );
+
+  # 智能策略组：type 由调用方指定（url-test 或 smart），smart 时附带
+  # policy-priority。其余参数与原有 url-test 组保持一致。
+  mkSchedulableGroup =
+    {
+      name,
+      proxies,
+      groupType ? "url-test",
+      interval ? 300,
+      tolerance ? 20,
+    }:
+    {
+      inherit name proxies;
+      type = groupType;
+      url = cfg.healthCheckUrl;
+      inherit interval tolerance;
+    }
+    // lib.optionalAttrs (groupType == "smart") {
+      policy-priority = mkPolicyPriority proxies;
+      prefer-asn = cfg.smartLearning.preferASN;
+      uselightgbm = cfg.smartLearning.useLightGBM;
+    }
+    // lib.optionalAttrs (groupType == "smart" && cfg.smartLearning.collectData) {
+      collectdata = true;
+    };
 
   # 汇总策略组
   summaryGroups = [
@@ -453,6 +517,8 @@ let
       geosite = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat";
       geoip = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat";
       mmdb = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb";
+      # prefer-asn 依赖 ASN.mmdb；缺失时 smart 只能按目标域名维度学习。
+      asn = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb";
     };
   };
   yamlFormat = pkgs.formats.yaml { };
@@ -462,13 +528,60 @@ let
   # mihomo-smart reuses the same proxy definitions, groups and rules; it only
   # needs its own endpoint so clients can select the kernel explicitly. Derived
   # from mihomoConfig so the two documents cannot drift apart.
-  mihomoSmartConfig = mihomoConfig // {
-    # Explicitly bound to loopback: mihomo-smart is a fork, so it must not
-    # silently inherit allow-lan/bind-address from the shared document.
-    allow-lan = false;
-    bind-address = "127.0.0.1";
-    external-controller = "127.0.0.1:9090";
-  };
+  mihomoSmartConfig =
+    mihomoConfig
+    // {
+      # Explicitly bound to loopback: mihomo-smart is a fork, so it must not
+      # silently inherit allow-lan/bind-address from the shared document.
+      allow-lan = false;
+      bind-address = "127.0.0.1";
+      external-controller = "127.0.0.1:9090";
+      # 只有 smart 文档改用 smart 策略组：主文档必须保持上游 mihomo 可解析，
+      # 否则普通内核会因 `unsupported type: smart` 直接拒绝启动。
+      # 这里只把 url-test 组升级为 smart；用户已显式声明的 smart 组原样保留，
+      # 其 policy-priority / prefer-asn / uselightgbm 已在 mkUserGroup 中生成。
+      proxy-groups =
+        if cfg.smartGroupType == "smart" then
+          map (
+            g:
+            if (g.type or "") == "url-test" then
+              g
+              // {
+                type = "smart";
+                prefer-asn = cfg.smartLearning.preferASN;
+                uselightgbm = cfg.smartLearning.useLightGBM;
+              }
+              // lib.optionalAttrs cfg.smartLearning.collectData { collectdata = true; }
+              # 升级后补上系数：mkPolicyPriority 需要组成员名。
+              // lib.optionalAttrs ((mkPolicyPriority (g.proxies or [ ])) != "") {
+                policy-priority = mkPolicyPriority (g.proxies or [ ]);
+              }
+            else
+              g
+          ) mihomoConfig.proxy-groups
+        else
+          mihomoConfig.proxy-groups;
+    }
+    // lib.optionalAttrs cfg.smartLearning.enable {
+      # ── mihomo-smart 自动学习（在线学习 + 官方预训练模型）──────────────
+      # 在线学习只要 type: smart 就会持续运行并写入工作目录 cache.db，
+      # 无需任何开关；以下选项负责 Geo/ASN 数据与模型的自动更新。
+      geo-auto-update = true;
+      geo-update-interval = 24;
+
+      # 官方通用 LightGBM 模型（只做推理）。内核不会在本地重新训练 Model.bin，
+      # 因此这里保持自动更新；本地训练属离线流程，不在此配置内。
+      lgbm-auto-update = true;
+      lgbm-update-interval = 72;
+
+      # smart-collector-size 限制 smart_weight_data.csv 上限；
+      # collectdata 保持 false，不采集离线训练样本，避免持续写大文件。
+      profile = {
+        store-selected = true;
+        store-fake-ip = true;
+        smart-collector-size = cfg.smartLearning.collectorSize;
+      };
+    };
 
   mihomoSmartYamlFile = yamlFormat.generate "mihomo-smart.yaml" mihomoSmartConfig;
 
@@ -546,6 +659,71 @@ in
       ];
       default = "xhttp";
       description = "VLESS transport; select tcp when rolling all servers back to the legacy sing-box configuration.";
+    };
+
+    smartGroupType = lib.mkOption {
+      type = lib.types.enum [
+        "url-test"
+        "smart"
+      ];
+      default = "url-test";
+      description = ''
+        区域策略组的调度类型。
+        - url-test：上游默认，按测速延迟选节点
+        - smart：mihomo-smart 专属，多维度权重 + 可选 policy-priority 系数
+
+        设为 smart 需要客户端内核为 mihomo-smart；上游 mihomo 会直接报
+        `unsupported type: smart` 而拒绝启动。
+      '';
+    };
+
+    smartLearning = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = ''
+              在 mihomo-smart.yaml 中开启自动学习所需的 Geo/ASN 数据与
+              LightGBM 模型自动更新，并持久化学习状态。
+
+              注意：学习状态（cache.db）保存在 mihomo 的工作目录，
+              该目录必须是持久化的，否则重启后回到冷启动状态。
+            '';
+          };
+          collectorSize = lib.mkOption {
+            type = lib.types.number;
+            default = 100;
+            description = "smart_weight_data.csv 的最大体积（MB）。";
+          };
+          preferASN = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = ''
+              smart 策略组的 prefer-asn：按目标 ASN 维度聚合历史最优节点，
+              访问全新子域名也能复用同 ASN 的学习结果。依赖 GeoLite2-ASN.mmdb。
+            '';
+          };
+          useLightGBM = lib.mkOption {
+            type = lib.types.bool;
+            default = true;
+            description = ''
+              smart 策略组的 uselightgbm：用官方预训练模型把实时统计特征
+              换算成权重。只做推理，不在本地重新训练。
+            '';
+          };
+          collectData = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+            description = ''
+              是否采集 smart_weight_data.csv 用于离线训练。日常使用建议
+              false：会持续写磁盘，且写满 collectorSize 后停止而不循环覆盖。
+            '';
+          };
+        };
+      };
+      default = { };
+      description = "mihomo-smart 自动学习相关设置，仅作用于 mihomo-smart.yaml。";
     };
 
     xhttpPath = lib.mkOption {
@@ -685,6 +863,14 @@ in
                 default = [ ];
                 description = "所属地区（如 HK, JP, EU, US 等）";
               };
+              smartFactor = lib.mkOption {
+                type = lib.types.nullOr lib.types.float;
+                default = null;
+                description = ''
+                  mihomo-smart `policy-priority` 系数，仅对 type: smart 策略组生效。
+                  未设置时不下发该项，等价于源码默认值 1.0。
+                '';
+              };
             };
           }
         )
@@ -703,9 +889,15 @@ in
                 description = "策略组名称，例如 UNLOCK, AI, STREAMING 等";
               };
               type = lib.mkOption {
-                type = lib.types.str;
+                type = lib.types.enum [
+                  "url-test"
+                  "smart"
+                  "fallback"
+                  "select"
+                  "load-balance"
+                ];
                 default = "url-test";
-                description = "策略组类型 (url-test, fallback, select, load-balance)，默认 url-test";
+                description = "策略组类型，默认 url-test；smart 为 mihomo-smart 专属";
               };
               url = lib.mkOption {
                 type = lib.types.str;

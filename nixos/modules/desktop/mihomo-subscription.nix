@@ -61,7 +61,10 @@ in
       }
     ];
 
-    systemd.tmpfiles.rules = [ "d ${builtins.dirOf cfg.configFile} 0700 root root -" ];
+    # 配置目录同时是 mihomo-smart 的工作目录（-d /etc/mihomo），
+    # 需要 mihomo 用户可写以保存 cache.db / Model.bin / ASN.mmdb / CSV。
+    # 0700 + mihomo:mihomo：root 仍可管理，其他用户不可读。
+    systemd.tmpfiles.rules = [ "d ${builtins.dirOf cfg.configFile} 0700 mihomo mihomo -" ];
     systemd.services.mihomo-subscription-update = {
       description = "Update and validate the full Mihomo subscription";
       after = [

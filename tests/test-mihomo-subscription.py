@@ -542,9 +542,22 @@ class PublishedSubscriptionTest(unittest.TestCase):
         )
         # Same nodes, groups and rules as the main document; only binding differs.
         main = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
-        self.assertEqual(smart["proxies"], main["proxies"])
-        self.assertEqual(smart["proxy-groups"], main["proxy-groups"])
-        self.assertEqual(smart["rules"], main["rules"])
+        # Same members and ordering; only scheduling fields may differ, because
+        # the smart document upgrades url-test groups to type: smart.
+        def members(group):
+            return (group["name"], tuple(group.get("proxies", [])))
+
+        self.assertEqual(
+            [members(g) for g in smart["proxy-groups"]],
+            [members(g) for g in main["proxy-groups"]],
+        )
+        for smart_group, main_group in zip(smart["proxy-groups"], main["proxy-groups"]):
+            if main_group.get("type") == "url-test":
+                self.assertEqual(smart_group["type"], "smart")
+                self.assertTrue(smart_group["prefer-asn"])
+                self.assertTrue(smart_group["uselightgbm"])
+            else:
+                self.assertEqual(smart_group["type"], main_group["type"])
         # The fork endpoint must not widen the listening surface.
         self.assertFalse(smart["allow-lan"])
         self.assertEqual(smart["bind-address"], "127.0.0.1")

@@ -229,6 +229,26 @@ let
       pkgs = fra0Pkgs;
     };
   };
+  mihomoSmartGroupTest = {
+    "x86_64-linux"."mihomo-smart-group-test" =
+      let
+        assertions = import ../tests/mihomo-smart-group-test.nix { inherit lib; };
+        failures = lib.attrNames (lib.filterAttrs (_: v: v.expected != v.result) assertions);
+      in
+      fra0Pkgs.runCommand "mihomo-smart-group-test"
+        {
+          # runCommand 的 env 需要字符串；列表会让求值失败。
+          failures = lib.concatStringsSep " " failures;
+        }
+        ''
+          if [ -n "$failures" ]; then
+            echo "mihomo-smart group assertions failed:" >&2
+            for name in $failures; do echo "  - $name" >&2; done
+            exit 1
+          fi
+          touch "$out"
+        '';
+  };
   speedtestWorkerTest = {
     "x86_64-linux"."speedtest-worker-test" =
       let
@@ -747,6 +767,7 @@ in
     wallpaperHdrTest
     mihomoSubscriptionTest
     proxyXhttpTest
+    mihomoSmartGroupTest
     speedtestWorkerTest
     mactahoeMigrationTest
     mactahoeAppearanceTest

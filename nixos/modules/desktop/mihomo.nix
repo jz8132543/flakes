@@ -74,7 +74,11 @@ in
           DynamicUser = lib.mkForce false;
           User = "mihomo";
           Group = "mihomo";
-          ExecStart = lib.mkForce "${lib.getExe mihomoPackage} -d /var/lib/mihomo -f ${configPath} -ext-ui ${pkgs.metacubexd}";
+          # mihomo-smart 把学习状态（cache.db）、模型（Model.bin）、
+          # ASN.mmdb 与采样 CSV 全部写在 -d 指定的工作目录。
+          # 该目录必须是持久化的，否则每次重启都退回冷启动状态、
+          # 已收敛的节点权重全部丢失，因此指向 /etc/mihomo。
+          ExecStart = lib.mkForce "${lib.getExe mihomoPackage} -d /etc/mihomo -f ${configPath} -ext-ui ${pkgs.metacubexd}";
           Restart = "always";
           RestartSec = 5;
           TimeoutStartSec = "75s";
@@ -102,8 +106,9 @@ in
               };
             in
             [
-              "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-geoip}/share/v2ray/geoip.dat /var/lib/mihomo/GeoIP.dat"
-              "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-domain-list-community}/share/v2ray/geosite.dat /var/lib/mihomo/GeoSite.dat"
+              # Geo 数据同样落在持久化工作目录，供 smart 的 ASN 维度学习复用。
+              "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-geoip}/share/v2ray/geoip.dat /etc/mihomo/GeoIP.dat"
+              "${pkgs.coreutils}/bin/ln -sf ${pkgs.v2ray-domain-list-community}/share/v2ray/geosite.dat /etc/mihomo/GeoSite.dat"
               "${wait-network}/bin/mihomo-wait-network"
             ]
             ++ lib.optional preparePublicSsh "${prepareConfig}";
