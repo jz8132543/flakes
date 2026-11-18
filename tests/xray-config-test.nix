@@ -60,27 +60,11 @@ let
     noSocks = {
       socks = false;
     };
-    ss = {
-      ss = true;
-    };
-    ssProxy = {
-      ss = true;
-      needProxy = true;
-    };
     xray = {
       core = "xray";
     };
     xrayProxy = {
       core = "xray";
-      needProxy = true;
-    };
-    xraySs = {
-      core = "xray";
-      ss = true;
-    };
-    xraySsProxy = {
-      core = "xray";
-      ss = true;
       needProxy = true;
     };
     xraySingle = {
@@ -120,6 +104,12 @@ let
       };
       realityMaxTimeDifference = "30s";
     };
+    paced = {
+      needProxy = true;
+      xhttpUplinkChunkSize = "131072-262144";
+      xhttpScMaxEachPostBytes = "131072-262144";
+      xhttpScMinPostsIntervalMs = "20-50";
+    };
     xrayAlternateProxy = {
       core = "xray";
       needProxy = true;
@@ -131,10 +121,6 @@ let
     legacyProxy = {
       core = "sing-box";
       needProxy = true;
-    };
-    legacySs = {
-      core = "sing-box";
-      ss = true;
     };
   };
   evaluate =
@@ -180,6 +166,7 @@ let
       firewall = {
         tcp = cfg.networking.firewall.allowedTCPPorts;
         udp = cfg.networking.firewall.allowedUDPPorts;
+        trustedInterfaces = cfg.networking.firewall.trustedInterfaces;
         extraCommands = cfg.networking.firewall.extraCommands;
         extraInputRules = cfg.networking.firewall.extraInputRules;
       };

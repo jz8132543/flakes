@@ -468,6 +468,11 @@ class PublishedSubscriptionTest(unittest.TestCase):
                     "h-keep-alive-period": 45,
                 })
                 self.assertNotIn("max-concurrency", proxy["xhttp-opts"]["reuse-settings"])
+                self.assertEqual(proxy["xhttp-opts"]["uplink-chunk-size"], "524288-1048576")
+                self.assertEqual(proxy["xhttp-opts"]["sc-max-each-post-bytes"], "524288-1048576")
+                self.assertEqual(
+                    proxy["xhttp-opts"]["sc-min-posts-interval-ms"], "10-30"
+                )
         for group in document["proxy-groups"]:
             if group["name"] in ("ALL", "DN42", "NO-DN42"):
                 self.assertEqual(group["url"], os.environ["PUBLISHED_HEALTH_CHECK_URL"])
@@ -504,6 +509,9 @@ class PublishedSubscriptionTest(unittest.TestCase):
                         "hMaxReusableSecs": proxy["xhttp-opts"]["reuse-settings"]["h-max-reusable-secs"],
                         "hKeepAlivePeriod": proxy["xhttp-opts"]["reuse-settings"]["h-keep-alive-period"],
                     },
+                    "uplinkChunkSize": proxy["xhttp-opts"]["uplink-chunk-size"],
+                    "scMaxEachPostBytes": proxy["xhttp-opts"]["sc-max-each-post-bytes"],
+                    "scMinPostsIntervalMs": proxy["xhttp-opts"]["sc-min-posts-interval-ms"],
                 })
 
     def test_real_mihomo_accepts_published_configuration_with_arx8_policy(self):
@@ -524,6 +532,72 @@ class PublishedSubscriptionTest(unittest.TestCase):
         ):
             self.assertIn(rule, document["rules"])
             self.assertLess(document["rules"].index(rule), document["rules"].index("MATCH,PROXY"))
+
+    @unittest.skipUnless(
+        os.environ.get("PUBLISHED_MIHOMO_SMART_CONFIG"), "requires the smart fixture"
+    )
+    def test_mihomo_smart_fork_parses_its_own_published_configuration(self):
+        smart = yaml.safe_load(
+            Path(os.environ["PUBLISHED_MIHOMO_SMART_CONFIG"]).read_text()
+        )
+        # Same nodes, groups and rules as the main document; only binding differs.
+        main = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
+        self.assertEqual(smart["proxies"], main["proxies"])
+        self.assertEqual(smart["proxy-groups"], main["proxy-groups"])
+        self.assertEqual(smart["rules"], main["rules"])
+        # The fork endpoint must not widen the listening surface.
+        self.assertFalse(smart["allow-lan"])
+        self.assertEqual(smart["bind-address"], "127.0.0.1")
+        self.assertEqual(smart["external-controller"], "127.0.0.1:9090")
+        for group in smart["proxy-groups"]:
+            if "url" in group:
+                self.assertEqual(
+                    group["url"], os.environ["PUBLISHED_HEALTH_CHECK_URL"]
+                )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "mihomo-smart.yaml"
+            # SOPS placeholders are not real credentials; substitute public
+            # test values exactly like the main-document test does.
+            text = Path(os.environ["PUBLISHED_MIHOMO_SMART_CONFIG"]).read_text()
+            for proxy in smart["proxies"]:
+                if proxy["type"] == "vless":
+                    text = text.replace(
+                        proxy["uuid"], "12345678-1234-1234-1234-123456789abc"
+                    )
+                    text = text.replace(
+                        proxy["reality-opts"]["public-key"],
+                        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                    )
+                    text = text.replace(
+                        proxy["reality-opts"]["short-id"], "0123456789abcdef"
+                    )
+            source.write_text(text)
+            (root / "GeoIP.dat").symlink_to(os.environ["MIHOMO_GEOIP"])
+            (root / "GeoSite.dat").symlink_to(os.environ["MIHOMO_GEOSITE"])
+            (root / "Country.mmdb").symlink_to(os.environ["MIHOMO_MMDB"])
+            result = subprocess.run(
+                [os.environ["MIHOMO_SMART_BIN"], "-t", "-d", str(root), "-f", str(source)],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_real_mihomo_accepts_published_configuration_with_arx8_policy(self):
+        document = yaml.safe_load(
+            Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text()
+        )
+        # Replace encrypted-secret placeholders with public test credentials only.
+        for proxy in document["proxies"]:
+            if proxy["type"] == "vless":
+                proxy["uuid"] = "12345678-1234-1234-1234-123456789abc"
+                proxy["reality-opts"].update(
+                    {
+                        "public-key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                        "short-id": "0123456789abcdef",
+                    }
+                )
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "source.yaml"

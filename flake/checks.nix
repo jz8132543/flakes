@@ -201,11 +201,15 @@ let
           updater = host.config.system.build.mihomoSubscriptionUpdater;
           PUBLISHED_MIHOMO_CONFIG =
             config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/mihomo.yaml".file;
+          PUBLISHED_MIHOMO_SMART_CONFIG =
+            config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/mihomo-smart.yaml".file;
           PUBLISHED_VLESS_URIS =
             config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/v2ray.txt".file;
           PUBLISHED_HEALTH_CHECK_URL =
             config.flake.nixosConfigurations.fra0.config.services.subscriptionPublisher.healthCheckUrl;
           MIHOMO_REAL_BIN = lib.getExe host.config.services.mihomo.package;
+          # The desktop host runs the fork kernel, so validate with that binary.
+          MIHOMO_SMART_BIN = lib.getExe host.pkgs.nur.repos.zerozawa.mihomo-smart;
           inherit (host.config.systemd.services.mihomo-subscription-update.environment)
             MIHOMO_GEOIP
             MIHOMO_GEOSITE

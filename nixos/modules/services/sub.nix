@@ -19,8 +19,6 @@ let
   );
   subscriptionPathToken = config.sops.placeholder."xray/subscription_path_token";
 
-  selfData = config.lib.self.data or (lib.importJSON ../../../../lib/data/data.json);
-
   # 从 server 字段提取主机名标识符（如 "fra0.dora.im" -> "fra0", "fra0" -> "fra0"）
   serverHost = server: lib.head (lib.splitString "." server);
 
@@ -40,13 +38,6 @@ let
   regionNames = lib.unique (lib.concatMap getNodeRegions cfg.nodes);
 
   publicServer = server: if lib.hasInfix "." server then server else "${server}.${domain}";
-
-  inherit (cfg) dn42Domain;
-
-  dn42Server = server: "${serverHost server}.${dn42Domain}";
-
-  # 判断节点是否自动裂变为 DN42 节点（例如中转节点 *-kxy 不自动生成 DN42）
-  shouldGenDn42 = node: node.enableDn42 && !lib.hasInfix "kxy" node.name && dn42Domain != "";
 
   # 公网直连节点（VLESS Reality 或 Shadowsocks）
   mkPublicNode =
@@ -100,28 +91,19 @@ let
             h-max-reusable-secs = cfg.xhttpXmux.hMaxReusableSecs;
             h-keep-alive-period = cfg.xhttpXmux.hKeepAlivePeriod;
           };
+          # Absorbs burst loss on high-RTT links. Effective for packet-up;
+          # ignored by stream-one, which has no separate upload POSTs.
+          uplink-chunk-size = cfg.xhttpUplinkChunkSize;
+          sc-max-each-post-bytes = cfg.xhttpScMaxEachPostBytes;
+          sc-min-posts-interval-ms = cfg.xhttpScMinPostsIntervalMs;
         };
       };
 
-  # DN42 内网节点：因内部网络天然受 WireGuard/XFRM 隧道加密，直接使用高性能免加密 SOCKS5 协议
-  # 使用真实 DN42 域名 (如 tyo0.dn42)，由 hosts 映射直接解析到 Loopback IP (172.20.232.x)
-  mkDn42Node = node: {
-    name = "${node.name}-DN42";
-    server = dn42Server node.server;
-    port = if node.socksPort != null then node.socksPort else cfg.socksPort;
-    type = "socks5";
-    udp = true;
-  };
-
   publicNodes = map mkPublicNode cfg.nodes;
-  dn42Nodes = map mkDn42Node (lib.filter shouldGenDn42 cfg.nodes);
-  allProxies = publicNodes ++ dn42Nodes;
 
   publicNodeNames = map (n: n.name) publicNodes;
-  dn42NodeNames = map (n: n.name) dn42Nodes;
-  allNodeNames = publicNodeNames ++ dn42NodeNames;
 
-  # 双轨区域策略组：针对每个 Region 生成 <REGION>（公网）和 <REGION>-DN42（内网）
+  # 区域策略组：针对每个 Region 生成 <REGION>
   mkPublicRegionGroup = region: {
     name = region;
     type = "url-test";
@@ -133,21 +115,9 @@ let
     );
   };
 
-  mkDn42RegionGroup = region: {
-    name = "${region}-DN42";
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 120;
-    tolerance = 20;
-    proxies = map (node: "${node.name}-DN42") (
-      lib.filter (node: shouldGenDn42 node && builtins.elem region (getNodeRegions node)) cfg.nodes
-    );
-  };
-
   publicRegionGroups = lib.filter (g: g.proxies != [ ]) (map mkPublicRegionGroup regionNames);
-  dn42RegionGroups = lib.filter (g: g.proxies != [ ]) (map mkDn42RegionGroup regionNames);
 
-  allRegionGroupNames = (map (g: g.name) publicRegionGroups) ++ (map (g: g.name) dn42RegionGroups);
+  allRegionGroupNames = map (g: g.name) publicRegionGroups;
 
   # 通用成员解析函数：
   # nodes: 手动指定的节点名列表（按用户传入顺序排在前面）
@@ -166,7 +136,7 @@ let
           let
             excluded = lib.removePrefix "!" g;
           in
-          lib.filter (r: r != excluded && r != "${excluded}-DN42") allRegionGroupNames
+          lib.filter (r: r != excluded) allRegionGroupNames
         else
           [ g ]
       ) groups;
@@ -176,20 +146,11 @@ let
           lib.concatMap (
             g:
             if g == "ALL" then
-              allNodeNames
-            else if g == "DN42" || g == "DN42-ONLY" then
-              dn42NodeNames
-            else if g == "NO-DN42" || g == "PUBLIC-ONLY" then
+              publicNodeNames
+            else if g == "PUBLIC-ONLY" then
               publicNodeNames
             else if builtins.elem g regionNames then
               map (n: n.name) (lib.filter (n: builtins.elem g (getNodeRegions n)) cfg.nodes)
-            else if lib.hasSuffix "-DN42" g && builtins.elem (lib.removeSuffix "-DN42" g) regionNames then
-              let
-                baseRegion = lib.removeSuffix "-DN42" g;
-              in
-              map (n: "${n.name}-DN42") (
-                lib.filter (n: shouldGenDn42 n && builtins.elem baseRegion (getNodeRegions n)) cfg.nodes
-              )
             else
               [ g ]
           ) resolvedGroupNames
@@ -226,7 +187,7 @@ let
   userGroupDefs = lib.filter (g: g != null) (map mkUserGroup cfg.groups);
   userGroupRules = lib.concatMap (g: g.rules) cfg.groups;
 
-  # 三大汇总策略组：ALL, DN42, NO-DN42
+  # 汇总策略组
   summaryGroups = [
     {
       name = "ALL";
@@ -234,27 +195,9 @@ let
       url = cfg.healthCheckUrl;
       interval = 300;
       tolerance = 20;
-      proxies = allNodeNames;
+      proxies = publicNodeNames;
     }
-  ]
-  ++ lib.optional (dn42NodeNames != [ ]) {
-    name = "DN42";
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 120;
-    tolerance = 20;
-    proxies = dn42NodeNames;
-  }
-  ++ lib.optional (dn42NodeNames != [ ]) {
-    name = "NO-DN42";
-    type = "url-test";
-    url = cfg.healthCheckUrl;
-    interval = 300;
-    tolerance = 20;
-    proxies = publicNodeNames;
-  };
-
-  # 当用户未自定义 AI 规则时，默认创建的非 HK AI/流媒体专用组（优先走 DN42 节点）
+  ];
 
   mihomoConfig = {
     mixed-port = 7890;
@@ -279,8 +222,7 @@ let
     # 彻底越过 TUN 的 table 2022，根除本地 DIRECT 流量环路回流死锁。
     # routing-mark = 1;
 
-    # 包含公网节点及 DN42 SOCKS5 节点
-    proxies = allProxies;
+    proxies = publicNodes;
 
     proxy-groups = [
       # GLOBAL 全局组：用于 Mihomo 切换到全局模式（Global）时的统一出口，默认遵循 PROXY
@@ -291,31 +233,25 @@ let
           "PROXY"
           "ALL"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
-        ++ lib.optional (dn42NodeNames != [ ]) "NO-DN42"
         ++ (map (g: g.name) userGroupDefs)
         ++ allRegionGroupNames
         ++ [ "DIRECT" ];
       }
 
-      # PROXY 规则代理主选择组：支持 DIRECT 直连穿透（交给内核 DN42 策略路由加速），以及全部、公网、DN42、自定义组与各地区组
+      # PROXY 规则代理主选择组：支持全部节点、自定义组与各地区组
       {
         name = "PROXY";
         type = "select";
         proxies = [
-          # "DIRECT"
           "ALL"
         ]
-        ++ lib.optional (dn42NodeNames != [ ]) "DN42"
-        ++ lib.optional (dn42NodeNames != [ ]) "NO-DN42";
-        # ++ (map (g: g.name) userGroupDefs)
-        # ++ allRegionGroupNames;
+        ++ (map (g: g.name) userGroupDefs)
+        ++ allRegionGroupNames;
       }
     ]
     ++ userGroupDefs
     ++ summaryGroups
-    ++ publicRegionGroups
-    ++ dn42RegionGroups;
+    ++ publicRegionGroups;
 
     rules = [
       # 绕过本机的 microsocks / sing-box 代理，防止循环或被 mihomo 捕获导致 IP 变成节点 IP
@@ -343,7 +279,7 @@ let
       "DST-PORT,1022,DIRECT"
     ]
     ++ [
-      # DN42 专用内网段直连，交由内核 Babel 路由表处理，绝不进代理环路
+      # 私网内网段直连，交由内核路由表处理，绝不进代理环路
       "IP-CIDR,172.20.0.0/14,DIRECT,no-resolve"
       "IP-CIDR,172.31.0.0/16,DIRECT,no-resolve"
       "IP-CIDR,10.0.0.0/8,DIRECT,no-resolve"
@@ -359,7 +295,6 @@ let
         "DOMAIN-SUFFIX,ts,DIRECT"
         "DOMAIN-SUFFIX,et,DIRECT"
       ]
-      ++ lib.optional (cfg.dn42Domain != "") "DOMAIN-SUFFIX,${cfg.dn42Domain},DIRECT"
       # Keep domestic SSH direct (including non-standard custom ports).
       ++ map (p: "AND,((NETWORK,TCP),(DST-PORT,${toString p}),(GEOIP,CN)),DIRECT") sshPorts
       ++ map (p: "AND,((NETWORK,TCP),(DST-PORT,${toString p})),PROXY") sshPorts
@@ -441,11 +376,6 @@ let
           "https://223.5.5.5/dns-query"
           "https://119.29.29.29/dns-query"
         ];
-        "+.dn42" = [
-          "172.20.0.53"
-          "172.23.0.53"
-          "172.20.232.1:53"
-        ];
         "+.ts" = [
           "100.100.100.100:53"
         ];
@@ -464,7 +394,7 @@ let
       auto-redirect = true;
       auto-route = true;
       # 必须设为 false：否则 Mihomo 会将所有代理出站强制绑定 (SO_BINDTODEVICE) 到默认网关物理网卡 (如 Wi-Fi/eth0)，
-      # 从而直接绕过内核路由表，导致发往 DN42 内网 SOCKS5 节点的包被错误扔给家用路由器丢弃
+      # 从而直接绕过内核路由表，导致发往内网 SOCKS5 节点的包被错误扔给家用路由器丢弃
       auto-detect-interface = false;
       inet4_route_address = [
         "0.0.0.0/1"
@@ -486,7 +416,7 @@ let
         "100.42.0.0/10"
         # Keep EasyTier's overlay subnet out of Mihomo's TUN.
         "10.100.0.0/24"
-        # Keep DN42 subnets out of Mihomo's TUN.
+        # Keep overlay subnets out of Mihomo's TUN.
         "172.20.0.0/14"
         "172.31.0.0/16"
         "10.0.0.0/8"
@@ -509,7 +439,6 @@ let
       ];
       skip-domain = [
         "*.${domain}"
-        "*.dn42"
         "*.ts"
         "*.et"
       ];
@@ -526,9 +455,22 @@ let
       mmdb = "https://fastly.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb";
     };
   };
-
   yamlFormat = pkgs.formats.yaml { };
+
   mihomoYamlFile = yamlFormat.generate "mihomo.yaml" mihomoConfig;
+
+  # mihomo-smart reuses the same proxy definitions, groups and rules; it only
+  # needs its own endpoint so clients can select the kernel explicitly. Derived
+  # from mihomoConfig so the two documents cannot drift apart.
+  mihomoSmartConfig = mihomoConfig // {
+    # Explicitly bound to loopback: mihomo-smart is a fork, so it must not
+    # silently inherit allow-lan/bind-address from the shared document.
+    allow-lan = false;
+    bind-address = "127.0.0.1";
+    external-controller = "127.0.0.1:9090";
+  };
+
+  mihomoSmartYamlFile = yamlFormat.generate "mihomo-smart.yaml" mihomoSmartConfig;
 
   nginxText = ''
     location = /${subscriptionPathToken}/mihomo.yaml {
@@ -537,6 +479,10 @@ let
 
     location = /${subscriptionPathToken}/clash.yaml {
       alias ${config.sops.templates."subscription/mihomo.yaml".path};
+    }
+
+    location = /${subscriptionPathToken}/mihomo-smart.yaml {
+      alias ${config.sops.templates."subscription/mihomo-smart.yaml".path};
     }
 
     location = /${subscriptionPathToken}/v2ray.txt {
@@ -554,7 +500,17 @@ let
         transportQuery =
           if cfg.transport == "xhttp" then
             "type=xhttp&path=${lib.escapeURL cfg.xhttpPath}&host=${lib.escapeURL cfg.serverName}&mode=${cfg.xhttpMode}&extra=${
-              lib.escapeURL (builtins.toJSON (cfg.xhttpExtra // { xmux = cfg.xhttpXmux; }))
+              lib.escapeURL (
+                builtins.toJSON (
+                  cfg.xhttpExtra
+                  // {
+                    xmux = cfg.xhttpXmux;
+                    uplinkChunkSize = cfg.xhttpUplinkChunkSize;
+                    scMaxEachPostBytes = cfg.xhttpScMaxEachPostBytes;
+                    scMinPostsIntervalMs = cfg.xhttpScMinPostsIntervalMs;
+                  }
+                )
+              )
             }"
           else
             "type=tcp&flow=xtls-rprx-vision";
@@ -671,22 +627,28 @@ in
       description = "Bounded XHTTP client connection reuse; this does not eliminate TCP head-of-line blocking.";
     };
 
+    xhttpUplinkChunkSize = lib.mkOption {
+      type = lib.types.str;
+      default = "524288-1048576";
+      description = "Uplink chunk size range in bytes; helps absorb burst loss on high-RTT links.";
+    };
+
+    xhttpScMaxEachPostBytes = lib.mkOption {
+      type = lib.types.str;
+      default = "524288-1048576";
+      description = "Maximum size of a single packet-up POST in bytes, shared with the server module.";
+    };
+
+    xhttpScMinPostsIntervalMs = lib.mkOption {
+      type = lib.types.str;
+      default = "10-30";
+      description = "Minimum interval between packet-up POSTs in milliseconds (anti-burst), shared with the server module.";
+    };
+
     healthCheckUrl = lib.mkOption {
       type = lib.types.str;
       default = "https://www.gstatic.com/generate_204";
       description = "URL used by URL-test and load-balance groups.";
-    };
-
-    socksPort = lib.mkOption {
-      type = lib.types.port;
-      default = 1080;
-      description = "Default SOCKS5 port for DN42 internal nodes.";
-    };
-
-    dn42Domain = lib.mkOption {
-      type = lib.types.str;
-      default = config.services.dn42.domain or (selfData.dn42.domain or "dn42");
-      description = "Domain suffix used for DN42 internal nodes and hosts mapping (defaults to services.dn42.domain or 'dn42').";
     };
 
     nodes = lib.mkOption {
@@ -700,16 +662,6 @@ in
                 description = "Server hostname (e.g. fra0) or FQDN (e.g. cu.dora.im)";
               };
               port = lib.mkOption { type = lib.types.port; };
-              socksPort = lib.mkOption {
-                type = lib.types.nullOr lib.types.port;
-                default = null;
-                description = "Custom SOCKS5 port for DN42 node (defaults to cfg.socksPort)";
-              };
-              enableDn42 = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Whether to auto-generate a DN42 SOCKS5 proxy node (auto-disabled if name contains kxy)";
-              };
               type = lib.mkOption {
                 type = lib.types.enum [
                   "vless"
@@ -840,6 +792,12 @@ in
       owner = "nginx";
       mode = "0400";
       file = mihomoYamlFile;
+    };
+
+    sops.templates."subscription/mihomo-smart.yaml" = {
+      owner = "nginx";
+      mode = "0400";
+      file = mihomoSmartYamlFile;
     };
 
     sops.templates."subscription/nginx.conf" = {

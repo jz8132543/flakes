@@ -1,7 +1,6 @@
 {
   nixosModules,
   options,
-  lib,
   ...
 }:
 {
@@ -164,7 +163,6 @@
 
   services.subscriptionPublisher = {
     enable = true;
-    dn42Domain = lib.mkForce "";
     nodes = [
       {
         name = "fra0";

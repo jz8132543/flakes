@@ -145,6 +145,7 @@
   };
 
   services.mihomo.routing.proxyPublicSsh = true;
+  mihomoKernel = "mihomo-smart";
   services.mihomo.subscription = {
     enable = true;
     urlFile = config.sops.templates."mihomo/subscription-url".path;
@@ -154,7 +155,7 @@
     mode = "0400";
     content = "https://sub.${config.networking.domain}/${
       config.sops.placeholder."xray/subscription_path_token"
-    }/mihomo.yaml";
+    }/mihomo-smart.yaml";
   };
 
   programs.winpodx.activation.method = "mas";

@@ -10,6 +10,8 @@
 
    OpenHands 的公网访问是安全例外：模型配置和工具由初始化脚本播种，但浏览器或桌面客户端首次连接仍需输入独立的后端会话密钥，不能用 SOPS `password` 或模型 API Key 替代，详见第九节。
 
+   Kilo Star 客户端插件和 New-API 的 Star 运维渠道则是持久化运行时配置例外，不由上述引导脚本生成，配置、验证与生效边界见 4.6 节。
+
 2. **多模态与拟人情感中枢正交解耦**：底层由模型网关接入高性价比模型矩阵；中间层由 FastMCP 工具箱和 Dify 负责知识检索与工作流；顶层由统一的人设编译器（Persona Engine）负责格式解析、世界书触发、草稿箱撕毁、多气泡拆分与跨平台状态机，再通过统一接口分发至 QQ（NapCat + AstrBot）、微信（官方 iLink）与 Matrix。
 3. **数字生活基建全链路感知（Life-OS Sync）**：AI 伴侣深度融合个人生活服务，不仅能闲聊，还能读取随手记（Memos）、考公刷题动态（Kaogong）、影音库更新（Jellyfin / MoviePilot）、智能家居传感器（Home Assistant）与全球分布式网络健康度（DN42 BGP / ATC CDN / VictoriaMetrics），成为真正生活在数字系统里的全知伴侣。
 4. **遵循 Haumea/Rake 无 `default.nix` 递归收集规范**：整个 `services/ai/` 及其子目录（`gateway/`、`mcp/`、`dify/`、`companion/`）严格**不使用 `default.nix`**。根据仓库 `lib/rake.nix` 基于 Haumea 的加载机制，无 `default.nix` 时 Haumea 会自动遍历目录下全部模块，并通过 transformer 动态挂载 `.all` 递归展平属性。在主机配置中只需写 `imports = nixosModules.services.ai.all;` 即可一键声明式装配全部 AI 模块。
@@ -403,6 +405,159 @@ Dify 当前仅使用原生邮箱密码登录（`i@dora.im` / SOPS `password`）�
 - **原因分析**：在 systemd 服务拓扑中，`podman-contextforge.service` 缺乏对 `keycloak.service` 的显式依赖。在机器开机或配置重载瞬间，ContextForge 立即向 Traefik 发起 OIDC Well-Known 抓取，而此时 Keycloak 正在进行 Quarkus 引导，导致首次抓取命中 502。
 - **代码实现修复（`nixos/modules/services/ai/mcp/containers.nix`）**：
   在 `systemd.services.podman-contextforge` 中显式添加 `after = [ "keycloak.service" ]` 与 `wants = [ "keycloak.service" ]`，确保 Keycloak 处于 Ready 状态后再拉起 ContextForge。
+
+---
+
+### 4.6 Kilo Star 供应商模拟 Codex 客户端
+
+本节记录 **2026-11-18** 核对的 Kilo 后端 `7.8.27`、官方 Codex `0.167.1` 和 `fra0` 上 New-API `v1.0.0-rc.51` 的配置与验收。目标是让 Kilo 向 Star 发送与 Codex 标识一致的请求，并修正真实模型 ID，而不是实现另一套 Codex 代理或修改客户端源码。
+
+这里的“模拟”限于请求协议、HTTP 标识和模型映射；Kilo 仍使用自己的提示词、工具与 SDK，**不复制 Codex 的完整请求行为或 TLS ClientHello 指纹**。成功覆盖请求头不等于所有模型均可用，也不保证能通过上游未来增加的校验。Star 是受编程客户端和使用规则约束的上游，不能把此配置理解为允许普通闲聊或绕过服务规则。
+
+#### 4.6.1 配置位置与协议选择
+
+客户端配置位于 `~/.config/kilo/kilo.jsonc`，插件位于 `~/.config/kilo/plugin/star-codex.js`。`home-manager/modules/tippy/config.nix` 持久化整个 `.config/kilo` 目录，但**没有在 Nix 模块中生成这一供应商配置**；此处是已持久化的客户端运行时设置，不应另建重复的系统服务。
+
+以下只是需要合并到现有配置中的相关片段，不能用来覆盖其他供应商、模型、权限或 MCP 设置。API Key 继续由 Kilo 的既有认证机制管理，不写入此 JSON、文档或 Nix Store：
+
+```json
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "plugin": ["file:///home/tippy/.config/kilo/plugin/star-codex.js"],
+  "provider": {
+    "star": {
+      "name": "Star",
+      "npm": "@ai-sdk/openai",
+      "options": {
+        "baseURL": "https://api.131479.xyz/v1",
+        "headers": {
+          "User-Agent": "codex_cli_rs/0.167.1 (NixOS 26.11.0; x86_64) linux",
+          "originator": "codex_cli_rs",
+          "Accept": "text/event-stream"
+        }
+      },
+      "models": {
+        "deepseek-v4.1-flash": {
+          "id": "deepseek-v4.1-flash-1017",
+          "name": "deepseek-v4.1-flash",
+          "reasoning": true
+        },
+        "glm-5.3": {
+          "id": "z-ai/glm-5.3",
+          "name": "glm-5.3",
+          "reasoning": true
+        }
+      }
+    }
+  }
+}
+```
+
+- 在本轮 Kilo 版本中，`@ai-sdk/openai` 使这一自定义供应商使用 `/v1/responses`；原来的 `@ai-sdk/openai-compatible` 使用 `/v1/chat/completions`。不要仅根据库名判断未来版本的行为，应核对实际请求 URL。
+- `codex_cli_rs` 是这里模拟的 Codex CLI 标识；示例版本和系统字符串来自当时核对的客户端，不能盲目套用任意版本号。官方 `codex exec` 的默认标识可能与交互式 CLI 不同，对照测试应记录实际发送的标识。
+- 模型键 `deepseek-v4.1-flash` 是 Kilo 菜单和命令使用的逻辑 ID；`id` 才是发送给上游的真实 ID。本轮 Star 的 `/v1/models` 发布了 `deepseek-v4.1-flash-1017` 和 `z-ai/glm-5.3`，却没有对应的两个裸名称，因此必须显式映射。
+- `/v1/models` 仅说明当前发布的模型名称，不证明模型池健康。目录和客户端版本变化后，应重新核对，不能把历史快照当作永久可用清单。
+
+#### 4.6.2 为什么必须覆盖最终请求头
+
+仅在 `provider.star.options.headers` 中配置 `User-Agent` 不够：Kilo 构造每次请求时会写入自己的标识，SDK 还会追加 `ai-sdk/provider-utils/... runtime/bun/...`。本地捕获曾看到实际发送的是 `Kilo-Code/7.8.27 ...`，而不是供应商配置中的旧 Codex 标识；`HTTP-Referer` 和 `X-Title` 也会声明 Kilo。
+
+因此使用 Kilo 支持的插件 `config` 钩子，为 **`star` 单一供应商** 设置最终 `options.fetch`。插件在 SDK 已完成请求构造后统一标识，保留原有认证、请求体、方法和取消信号，不增加代理进程、轮询或重试逻辑：
+
+```javascript
+export const StarCodex = async () => ({
+  async config(config) {
+    const options = config.provider?.star?.options;
+    if (!options?.headers?.["User-Agent"] || !options.headers.originator)
+      return;
+
+    const send = options.fetch ?? globalThis.fetch;
+    // Kilo overrides provider headers and the SDK appends its own User-Agent.
+    options.fetch = (input, init) => {
+      const headers = new Headers(
+        init?.headers ?? (input instanceof Request ? input.headers : undefined),
+      );
+      headers.set("User-Agent", options.headers["User-Agent"]);
+      headers.set("originator", options.headers.originator);
+      headers.set("Accept", "text/event-stream");
+      headers.delete("X-Title");
+      headers.delete("HTTP-Referer");
+      return send(input, { ...init, headers });
+    };
+  },
+});
+```
+
+显式的 `plugin` 文件 URL 用于确保加载入口明确；迁移用户或目录时需同步更新路径。添加或修改插件后，**已有 Kilo 后台应重启，或重载 VS Code 窗口**，不能假定已缓存的插件实例会热加载。`--pure` 模式会跳过插件，不适合验收这一模拟方式。
+
+本地检查请求头时应使用隔离配置或显式的测试 Key，只保留白名单头和测试正文，不能记录真实 `Authorization`。如果最终头已一致但仍有 `client_not_allowed`，需要继续对照官方客户端的实际请求，不能未经证据就认定是 TLS，也不能宣称仅靠此插件能解决所有指纹校验。
+
+#### 4.6.3 New-API 网关侧的模拟与优先级
+
+另一条调用路径是 Kilo 的 `api` 供应商经 `https://api.dora.im/v1`，由 `fra0` 的 New-API 转发到 Star。系统部署由 `nixos/modules/services/ai/gateway/new-api.nix` 管理，端口登记为 `3280`；本轮 Star 运维渠道为 **ID `5`、名称 `星茶会`**，其运行时配置保存在 New-API 数据库中。迁移或重建数据库后必须重新确认 ID，不能假定其他实例的渠道 `5` 仍是 Star。
+
+Star 使用普通 OpenAI/API Key 渠道类型 `1`。**不能只为了模拟客户端就改成 Codex OAuth 类型 `57`**，后者要求另一种订阅账号认证数据，不适用于现有 Star API Key。
+
+通过已有管理会话使用网页后台或原生 `PUT /api/channel/` 更新。以下是本轮目标字段的 API 示例；`header_override` 和 `param_override` 是编码了 JSON 对象的字符串。更新前应读取、备份并合并现有值，仅替换相关标识，保留其他自定义字段，且不提交 `key`：
+
+```json
+{
+  "id": 5,
+  "header_override": "{\"User-Agent\":\"codex_cli_rs/0.167.1 (NixOS 26.11.0; x86_64) linux\",\"originator\":\"codex_cli_rs\",\"Accept\":\"text/event-stream\"}",
+  "param_override": "{\"store\":false}",
+  "priority": 20
+}
+```
+
+- 移除旧的 OpenCode/Kilo `X-Title`、`HTTP-Referer` 标识覆盖，不配置 `*` 通配请求头透传，避免重新带入相互矛盾的客户端元数据；正常上游认证仍由渠道自身提供。
+- 本轮优先级由 `0` 提高到 `20`，没有更改分组、令牌、角色或其他渠道。原配置和路由字段分别备份为 `fra0:/var/lib/new-api/star-channel-5-before.*.json` 与 `star-channel-5-routing-before.*.json`，应保留为受控恢复资料。
+- 不能仅用 SQL 修改 `channels.priority`：实际选择还依赖 `abilities.priority` 和进程缓存。原生更新接口会重建渠道能力、刷新缓存并同步渠道变更；本轮确认两条 DeepSeek 名称的能力记录均启用且优先级为 `20`。
+- 网关模型清单同时保留 `deepseek-v4.1-flash` 和 `deepseek-v4.1-flash-1017`，并合并模型映射 `{"deepseek-v4.1-flash":"deepseek-v4.1-flash-1017"}`。渠道选择先匹配请求模型，再应用映射，因此只加 `model_mapping` 而不公布友好名称仍可能无法选择 Star。
+- 保留 Kilo `api` 供应商原有的友好模型名，由网关完成上述映射；不把它永久改成仅 Star 使用的原始 ID，避免丢失其他渠道对友好名称的回退能力。
+
+管理认证必须经现有受控会话、运行时秘密或安全注入完成，不把密码或 Key 放到命令行、日志、文档或 Nix Store，不关闭认证或 TLS 校验。需要远程管理时使用既有 SSH 入口，例如 `/run/current-system/sw/bin/ssh fra0`，也可按已有配置先连接 `sjc0` 再连接 `fra0`；连接失败不是修改全局路由或防火墙的理由。
+
+#### 4.6.4 编程任务验收与验证记录
+
+Star 上游禁止问候类探测，**不能用“你好”或普通闲聊作为连通测试**。固定标题可以避免额外的自动标题生成请求；使用短小的真实编程任务，要求不调用工具、不创建文件。下例使用本轮 VS Code 扩展自带的后端，扩展升级后需确认实际路径；如果当前 `kilo` 命令已指向同一后端，也可直接使用该命令：
+
+```bash
+KILO=/home/tippy/.vscode/extensions/kilocode.kilo-code-7.8.27-linux-x64/bin/kilo
+PROMPT='Implement a Python 3 function is_even(n: int) -> bool. Return only Python code. Do not call tools or create files.'
+
+KILO_DISABLE_PROJECT_CONFIG=1 "$KILO" run --dir /tmp \
+  --title "Star direct coding acceptance" \
+  --model star/deepseek-v4.1-flash --format json "$PROMPT"
+
+KILO_DISABLE_PROJECT_CONFIG=1 "$KILO" run --dir /tmp \
+  --title "Star gateway coding acceptance" \
+  --model api/deepseek-v4.1-flash --format json "$PROMPT"
+```
+
+网关返回成功不自动证明使用了 Star。可在管理员授权下使用 New-API 的原生单渠道锁定机制禁止降级，或检查请求日志的 `channel_id`；测试认证只在受控进程内注入，不打印令牌。本轮先锁定渠道 `5` 测试，再验证普通别名调用，消费日志 `12367`、`12377` 均记录渠道 `5`。
+
+| 核对项                        | 2026-11-18 的结果                                                                                   | 验证边界                                                |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Kilo 请求头及插件作用域       | 本地测试确认 Star 最终标识已覆盖，其他供应商不受影响                                                | 匿名本地端点仅验证发送方式，不证明上游接受              |
+| DeepSeek 正确 ID 与持久化插件 | Star 直连、网关锁定和普通别名调用均生成 `is_even` 函数                                              | 使用真实编程请求，无问候或工具调用                      |
+| 生成代码                      | 返回 `n % 2 == 0`，正数、负数、零共 7 个用例通过                                                    | 不等于验收所有模型或所有代理工具                        |
+| GLM 普通版映射                | 根据同一 Star 凭据获取的 `/v1/models` 核对为 `z-ai/glm-5.3`                                         | 本轮没有单独做 GLM 生成验收                             |
+| GPT Luna 模型                 | `gpt-6-luna` 当时返回无可用渠道；`gpt-5.6-luna` 返回 `503`，官方 Codex 使用相同凭据也返回同类 `503` | 不能把该时段的上游失败归咎于 Kilo，也不能承诺永久不可用 |
+| Step 3.7                      | 历史出现 `auto` 组无可用渠道，后续 Responses、Chat Completions 和普通网关调用均成功生成代码         | 当前不能复现历史错误，没有为此切换生产协议或修改分组    |
+
+#### 4.6.5 排错时区分客户端、网关与上游
+
+| 现象                                           | 应先确认的事实                                                     | 不应采取的结论或操作                                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `403 client_not_allowed`，声明身份与指纹不一致 | 实际最终头、插件是否加载、请求协议及官方客户端对照结果             | 配置里写了 `User-Agent` 不代表它已发送；不能直接断言 TLS 是根因                          |
+| Kilo 本地 `Model not found: star/...`          | 菜单逻辑 ID 与 `models.<key>.id` 的区别                            | 不把逻辑 ID 缺失当作远端故障；CLI 使用友好名称而不是盲目使用原始 ID                      |
+| `free/auto` 组下模型无可用渠道                 | 请求 URL、响应头、真实模型 ID，以及直连 Star 是否返回同样错误      | Star 上游的分组信息可能被网关原样转发，不能据此修改 `api.dora.im` 的分组、令牌或访问范围 |
+| 有效模型仍返回 `503`                           | 相同凭据、相同模型、真实编程提示词的官方客户端结果和当时模型池状态 | 不靠重启本地服务、更换分组或增加无限重试解决上游临时不可用                               |
+| 网关生成成功                                   | 实际请求日志的渠道 ID、别名匹配和原生能力优先级                    | 不能把降级到其他渠道的成功算作 Star 验收通过                                             |
+
+本轮直连 Star 响应包含 `x-new-api-version: v0.0.0`，本地 New-API 为 `v1.0.0-rc.51`；这些只是当时的定位线索，不是永久身份凭证。网关只管理自己的渠道与访问范围，不需要获知或指导 Star 的上游分组。发布目录里存在模型、一次请求成功或当前无法复现错误，都不能保证上游以后一直有可用节点。
+
+版本对应的实现参考：[Kilo 请求构造](https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/opencode/src/session/llm/request.ts)、[Kilo 插件加载](https://github.com/Kilo-Org/kilocode/blob/v7.8.27/packages/opencode/src/plugin/index.ts)、[Codex 默认客户端标识](https://github.com/openai/codex/blob/rust-v0.167.1/codex-rs/login/src/auth/default_client.rs)、[New-API 渠道字段与能力更新](https://github.com/QuantumNous/new-api/blob/v1.0.0-rc.51/model/channel.go)。
 
 ---
 

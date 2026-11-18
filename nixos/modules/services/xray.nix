@@ -21,9 +21,16 @@
     hMaxReusableSecs = "1800-3000";
     hKeepAlivePeriod = 45;
   },
+  # Packet-up pacing: a small buffer plus a minimum interval absorbs burst loss on
+  # high-RTT links without stalling the stream. Ranges are plain integers (bytes
+  # for sizes, milliseconds for intervals); `badoption.Range[int]` rejects unit
+  # suffixes such as "512k". Left at the upstream default for stream-one, which
+  # has no separate upload POSTs to pace.
+  xhttpUplinkChunkSize ? "524288-1048576",
+  xhttpScMaxEachPostBytes ? "524288-1048576",
+  xhttpScMinPostsIntervalMs ? "10-30",
   realityMaxTimeDifference ? "1m",
-  healthCheckUrl ? "https://speedtest.dora.im/generate_204",
-  ss ? false,
+  healthCheckUrl ? "https://www.gstatic.com/generate_204",
   socks ? true,
   socksPort ? 1080,
 }:
@@ -37,12 +44,28 @@ let
   isXray = core == "xray";
   isExtended = core == "sing-box-extended";
   serviceName = if isXray then "xray" else "sing-box";
-  primaryTag = if ss then "ss-in" else "vless-in";
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
   selfData = config.lib.self.data or (lib.importJSON ../../../lib/data/data.json);
   dn42Data = selfData.dn42 or { };
   ownDn42Ipv4 = config.services.dn42.ipv4 or dn42Data.ipv4 or "172.20.232.0/26";
   ownDn42Ipv6 = config.services.dn42.ipv6 or dn42Data.ipv6 or "fd53:90fd:4bb6::/48";
+  # SOCKS binds the wildcard so it stays reachable on every overlay interface
+  # without enumerating addresses. Exposure is controlled entirely by the
+  # firewall: the port is deliberately absent from the global allow lists, and
+  # `trustedInterfaces` below admits only the overlay interfaces.
+  # Interface-scoped trust is preferred over address ranges: these ranges are
+  # used by nothing else, and a wildcard keeps future mesh interfaces covered.
+  tailscaleInterface = config.services.tailscale.interfaceName or "tailscale0";
+  overlayTrustedInterfaces = [
+    tailscaleInterface
+    "dn42"
+    "dn42x-*"
+    "dn42m-*"
+  ];
+  # Tailscale addresses are tailnet-assigned, so the CGNAT/ULA ranges stand in
+  # for them in the in-process guard.
+  tailscaleIpv4Range = "100.64.0.0/10";
+  tailscaleIpv6Range = "fd7a:115c:a1e0::/48";
 
   # 将 IPv4 CIDR 动态转换为对应双栈 socket 下的 IPv4-mapped IPv6 CIDR（掩码 + 96）
   toMappedV6 =
@@ -60,6 +83,8 @@ let
   socksSources = [
     ownDn42Ipv4
     ownDn42Ipv6
+    tailscaleIpv4Range
+    tailscaleIpv6Range
     "127.0.0.0/8"
     "::1/128"
   ];
@@ -97,8 +122,17 @@ let
         ;
     };
   };
-  # Pool limits are client-only; do not impose them on the server transport.
-  xhttpClientSettings = lib.recursiveUpdate xhttpSettings { extra.xmux = xhttpXmux; };
+  # Pool limits and uplink pacing are client-only; do not impose them on the
+  # server transport. `congestion_controller`/`cwnd` are deliberately omitted:
+  # Extended only applies them on the HTTP/3 path, and REALITY forces HTTP/2.
+  xhttpClientSettings = lib.recursiveUpdate xhttpSettings {
+    extra = {
+      xmux = xhttpXmux;
+      uplinkChunkSize = xhttpUplinkChunkSize;
+      scMaxEachPostBytes = xhttpScMaxEachPostBytes;
+      scMinPostsIntervalMs = xhttpScMinPostsIntervalMs;
+    };
+  };
   singBoxXhttpTransport = {
     type = "xhttp";
     host = serverName;
@@ -110,6 +144,9 @@ let
     x_padding_header = xPaddingHeader;
     x_padding_method = xPaddingMethod;
   };
+  # Pool limits and uplink pacing are client-only; do not impose them on the
+  # server transport. `congestion_controller`/`cwnd` are deliberately omitted:
+  # Extended only applies them on the HTTP/3 path, and REALITY forces HTTP/2.
   singBoxXhttpClientTransport = singBoxXhttpTransport // {
     xmux = {
       max_connections = xhttpXmux.maxConnections;
@@ -117,46 +154,34 @@ let
       h_max_reusable_secs = xhttpXmux.hMaxReusableSecs;
       h_keep_alive_period = xhttpXmux.hKeepAlivePeriod;
     };
+    uplink_chunk_size = xhttpUplinkChunkSize;
+    sc_max_each_post_bytes = xhttpScMaxEachPostBytes;
+    sc_min_posts_interval_ms = xhttpScMinPostsIntervalMs;
   };
   xrayConfig = {
     log.loglevel = if config.environment.minimal or false then "warning" else "info";
     inbounds = [
-      (
-        if ss then
-          {
-            tag = primaryTag;
-            listen = "::";
-            port = xrayPort;
-            protocol = "shadowsocks";
-            settings = {
-              method = "2022-blake3-aes-128-gcm";
-              password = config.sops.placeholder."xray/uuid";
-              network = "tcp,udp";
-            };
-          }
-        else
-          {
-            tag = primaryTag;
-            listen = "::";
-            port = xrayPort;
-            protocol = "vless";
-            settings = {
-              clients = [ { id = config.sops.placeholder."xray/uuid"; } ];
-              decryption = "none";
-            };
-            streamSettings = {
-              network = "xhttp";
-              security = "reality";
-              inherit xhttpSettings;
-              realitySettings = {
-                target = "${serverName}:443";
-                serverNames = [ serverName ];
-                privateKey = config.sops.placeholder."xray/private_key";
-                shortIds = [ config.sops.placeholder."xray/short_id" ];
-              };
-            };
-          }
-      )
+      {
+        tag = "vless-in";
+        listen = "::";
+        port = xrayPort;
+        protocol = "vless";
+        settings = {
+          clients = [ { id = config.sops.placeholder."xray/uuid"; } ];
+          decryption = "none";
+        };
+        streamSettings = {
+          network = "xhttp";
+          security = "reality";
+          inherit xhttpSettings;
+          realitySettings = {
+            target = "${serverName}:443";
+            serverNames = [ serverName ];
+            privateKey = config.sops.placeholder."xray/private_key";
+            shortIds = [ config.sops.placeholder."xray/short_id" ];
+          };
+        };
+      }
     ]
     ++ lib.optionals socks [
       {
@@ -165,7 +190,13 @@ let
         port = socksPort;
         protocol = "socks";
         settings = {
-          auth = "noauth";
+          auth = "password";
+          accounts = [
+            {
+              user = "proxy";
+              pass = config.sops.placeholder."xray/uuid";
+            }
+          ];
           udp = true;
         };
       }
@@ -212,7 +243,7 @@ let
             (
               {
                 type = "field";
-                inboundTag = [ primaryTag ];
+                inboundTag = [ "vless-in" ];
                 domain = map (domain: "domain:${domain}") proxyDomains;
               }
               // proxyRoute
@@ -350,71 +381,62 @@ in
         final = "local";
       };
 
-      inbounds =
+      inbounds = [
         (
-          if ss then
-            [
-              {
-                type = "shadowsocks";
-                tag = "ss-in";
-                listen = "::";
-                listen_port = xrayPort;
-                method = "2022-blake3-aes-128-gcm";
-                password = config.sops.placeholder."xray/uuid";
-              }
-            ]
-          else
-            [
+          {
+            type = "vless";
+            tag = "vless-in";
+            listen = "::";
+            listen_port = xrayPort;
+            users = [
               (
                 {
-                  type = "vless";
-                  tag = "vless-in";
-                  listen = "::";
-                  listen_port = xrayPort;
-                  users = [
-                    (
-                      {
-                        name = "default";
-                        uuid = config.sops.placeholder."xray/uuid";
-                      }
-                      // lib.optionalAttrs (!isExtended) { flow = "xtls-rprx-vision"; }
-                    )
-                  ];
-                  tls = {
-                    enabled = true;
-                    server_name = serverName;
-                    reality = {
-                      enabled = true;
-                      handshake = {
-                        server = serverName;
-                        server_port = 443;
-                      };
-                      private_key = config.sops.placeholder."xray/private_key";
-                      short_id = [
-                        config.sops.placeholder."xray/short_id"
-                      ];
-                    }
-                    // lib.optionalAttrs isExtended {
-                      # Needs synchronized host clocks; this does not stop immediate replay.
-                      max_time_difference = realityMaxTimeDifference;
-                    };
-                  };
+                  name = "default";
+                  uuid = config.sops.placeholder."xray/uuid";
                 }
-                // lib.optionalAttrs isExtended {
-                  decryption = "none";
-                  transport = singBoxXhttpTransport;
-                }
+                // lib.optionalAttrs (!isExtended) { flow = "xtls-rprx-vision"; }
               )
-            ]
-        )
-        ++ lib.optionals socks [
-          {
-            type = "socks";
-            tag = "socks-in";
-            listen = "::";
-            listen_port = socksPort;
+            ];
+            tls = {
+              enabled = true;
+              server_name = serverName;
+              reality = {
+                enabled = true;
+                handshake = {
+                  server = serverName;
+                  server_port = 443;
+                };
+                private_key = config.sops.placeholder."xray/private_key";
+                short_id = [
+                  config.sops.placeholder."xray/short_id"
+                ];
+              }
+              // lib.optionalAttrs isExtended {
+                # Needs synchronized host clocks; this does not stop immediate replay.
+                max_time_difference = realityMaxTimeDifference;
+              };
+            };
           }
-        ];
+          // lib.optionalAttrs isExtended {
+            decryption = "none";
+            transport = singBoxXhttpTransport;
+          }
+        )
+      ]
+      ++ lib.optionals socks [
+        {
+          type = "socks";
+          tag = "socks-in";
+          listen = "::";
+          listen_port = socksPort;
+          users = [
+            {
+              username = "proxy";
+              password = config.sops.placeholder."xray/uuid";
+            }
+          ];
+        }
+      ];
 
       # 极致精简出站：纯 direct 直连，无冗余封装
       outbounds = [
@@ -497,12 +519,12 @@ in
           # Trusted SOCKS keeps its existing access to loopback and DN42 targets.
           ++ [
             {
-              inbound = [ primaryTag ];
+              inbound = [ "vless-in" ];
               action = "resolve";
               server = "local";
             }
             {
-              inbound = [ primaryTag ];
+              inbound = [ "vless-in" ];
               ip_is_private = true;
               action = "reject";
             }
@@ -598,18 +620,11 @@ in
       8444
       xrayPort
     ];
-    # 针对 SOCKS5 服务实施网段级白名单：仅放行来自自身 DN42 网段与 Loopback 的访问
-    extraCommands = lib.mkIf (socks && !config.networking.nftables.enable) ''
-      iptables -A nixos-fw -p tcp --dport ${toString socksPort} -s ${ownDn42Ipv4} -j nixos-fw-accept 2>/dev/null || true
-      iptables -A nixos-fw -p udp --dport ${toString socksPort} -s ${ownDn42Ipv4} -j nixos-fw-accept 2>/dev/null || true
-      ip6tables -A nixos-fw -p tcp --dport ${toString socksPort} -s ${ownDn42Ipv6} -j nixos-fw-accept 2>/dev/null || true
-      ip6tables -A nixos-fw -p udp --dport ${toString socksPort} -s ${ownDn42Ipv6} -j nixos-fw-accept 2>/dev/null || true
-    '';
-    extraInputRules = lib.mkIf (socks && config.networking.nftables.enable) ''
-      ip saddr ${ownDn42Ipv4} tcp dport ${toString socksPort} counter accept
-      ip saddr ${ownDn42Ipv4} udp dport ${toString socksPort} counter accept
-      ip6 saddr ${ownDn42Ipv6} tcp dport ${toString socksPort} counter accept
-      ip6 saddr ${ownDn42Ipv6} udp dport ${toString socksPort} counter accept
-    '';
+    # SOCKS binds the wildcard, so the firewall is the only thing keeping it off
+    # the public interfaces. The port is deliberately NOT in allowedTCPPorts /
+    # allowedUDPPorts; these interfaces are trusted wholesale instead, which
+    # covers every mesh port and future interfaces without per-port rules.
+    # These address ranges are used by nothing else, so interface trust is safe.
+    trustedInterfaces = overlayTrustedInterfaces;
   };
 }

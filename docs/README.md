@@ -6,7 +6,7 @@
 
 - [全栈 AI 基建与数字伴侣架构设计与运维实战指南](./ai-architecture.md)
 
-  包含组件认证、fra0 用户注册关闭策略（2.1 节）、SSO 账号边界、非部署回归检查与 OpenHands 工作台说明。
+  包含组件认证、fra0 用户注册关闭策略（2.1 节）、Kilo Star 模拟 Codex 的配置、网关路由与验收边界（4.6 节）、SSO 账号边界、非部署回归检查与 OpenHands 工作台说明。
 
 - [Dify 考公老师方法对照：架构、配置、重建与验收](./kaogong-teacher-skills.md)
 
@@ -63,6 +63,20 @@
   - **三、 文件结构与模块职责划分**（系统级 options、compose 生成器、OEM 激活流水线、桌面端配置）
   - **四、 核心问题排查与技术解决方案记录**（DN42 路由溢出、Tiny10 下载中断、开机假就绪挂起、MIME WPS 回退、xrdp 冲突）
   - **五、 日常运维与使用指南**（编译部署、状态检查、Office 自动化安装流程）
+
+- [代理协议抗封锁能力调研与核心选型](./proxy-protocol-research.md)
+  - **一、 威胁模型分层**（代理协议 / 传输方式 / 安全与外观 / 入口设施四层解耦）
+  - **二、 主流协议组合横向对比**（TLS-HTTP 类、QUIC-UDP 类、设施层面，不给无依据的通用排名）
+  - **三、 uTLS 与真实浏览器栈的本质差异**（ClientHello 模仿 ≠ 完整 Chromium 行为）
+  - **四、 REALITY 已知问题与 Xray 修复记录**（post-handshake 消息、异常 CCS 分档、空 SNI 遗漏、XHTTP CDN/WAF、后量子定位）
+  - **五、 Xray 与 Mihomo 的跨核心兼容性**（minClientVer 门槛已撤销、ML-KEM 仍强制、指纹版本差异）
+  - **六、 sing-box 系内核评估**（原生 sing-box、sing-box-lx 仅客户端、sing-box-extended 修复覆盖逐项核实）
+  - **七、 ML-KEM 与 uTLS 的准确语义**（认证密钥与会话密钥是两个独立位置；X25519MLKEM768 为超集关系）
+  - **八、 混淆参数的两端一致性**（字段命名差异、默认值差异实测、XMUX 有界复用）
+  - **九、 密码学特性的定位建议**（建议开启 / 默认关闭及理由）
+  - **十、 Cloudflare Worker 测速页**（官方引擎方案、安全边界、部署权限要求）
+  - **十一、 核心选型与回退路径**（三核声明式切换、订阅同步、诊断分层）
+  - **十二、 验证方法与边界**（已完成项与未验证项明确区分）
 
 - [Android (KernelSU) 端 Box 与 AdGuardHome 协同架构与防回环迁移实战指南](./android-box-agh-architecture.md)
   - **一、 宏观架构总览与分层协同愿景**（DNS/数据双平面流向拓扑、分层职责边界、零脚本修改设计原则）

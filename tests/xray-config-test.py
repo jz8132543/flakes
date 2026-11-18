@@ -18,16 +18,25 @@ FIXTURES = json.loads(sys.argv[1])
 SOURCES = [
     "172.20.232.0/26",
     "fd53:90fd:4bb6::/48",
+    # Tailscale CGNAT + ULA, allowed by interface scope.
+    "100.64.0.0/10",
+    "fd7a:115c:a1e0::/48",
     "127.0.0.0/8",
     "::1/128",
 ]
 SING_BOX_SOURCES = SOURCES + ["::ffff:172.20.232.0/122", "::ffff:127.0.0.0/104"]
+UUID_PLACEHOLDER = "@xray/uuid@"
 UUID = "00000000-0000-4000-8000-000000000001"
 XMUX = {
     "maxConnections": "3-3",
     "hMaxRequestTimes": "600-900",
     "hMaxReusableSecs": "1800-3000",
     "hKeepAlivePeriod": 45,
+}
+PACING = {
+    "uplinkChunkSize": "524288-1048576",
+    "scMaxEachPostBytes": "524288-1048576",
+    "scMinPostsIntervalMs": "10-30",
 }
 EXTENDED = os.environ["extended"]
 
@@ -109,37 +118,48 @@ for name, fixture in FIXTURES.items():
             {"inbound": [primary["tag"]], "action": "resolve", "server": "local"},
             {"inbound": [primary["tag"]], "ip_is_private": True, "action": "reject"},
         ]
-        if not args.get("ss"):
-            if core == "sing-box":
-                assert primary["users"][0]["flow"] == "xtls-rprx-vision"
-                assert "transport" not in primary and "decryption" not in primary
-                assert "max_time_difference" not in primary["tls"]["reality"]
-            else:
-                assert "flow" not in primary["users"][0]
-                assert primary["decryption"] == "none"
-                assert primary["transport"] == {
-                    "type": "xhttp",
-                    "host": args.get("serverName", "speedtest.dora.im"),
-                    "path": args.get("xhttpPath", "/speedtest"),
-                    "mode": args.get("xhttpMode", "stream-one"),
-                    "x_padding_bytes": "100-1000",
-                    "x_padding_obfs_mode": True,
-                    "x_padding_placement": "header",
-                    "x_padding_header": "X-Padding",
-                    "x_padding_method": "repeat-x",
-                }
-                assert primary["tls"]["reality"]["max_time_difference"] == args.get(
-                    "realityMaxTimeDifference", "1m"
-                )
-            assert primary["tls"]["server_name"] == args.get(
-                "serverName", "speedtest.dora.im"
-            )
-            assert primary["tls"]["reality"]["handshake"] == {
-                "server": args.get("serverName", "speedtest.dora.im"),
-                "server_port": 443,
-            }
+        if core == "sing-box":
+            assert primary["users"][0]["flow"] == "xtls-rprx-vision"
+            assert "transport" not in primary and "decryption" not in primary
+            assert "max_time_difference" not in primary["tls"]["reality"]
         else:
-            assert primary["type"] == "shadowsocks"
+            assert "flow" not in primary["users"][0]
+            assert primary["decryption"] == "none"
+            assert primary["transport"] == {
+                "type": "xhttp",
+                "host": args.get("serverName", "speedtest.dora.im"),
+                "path": args.get("xhttpPath", "/speedtest"),
+                "mode": args.get("xhttpMode", "stream-one"),
+                "x_padding_bytes": "100-1000",
+                "x_padding_obfs_mode": True,
+                "x_padding_placement": "header",
+                "x_padding_header": "X-Padding",
+                "x_padding_method": "repeat-x",
+            }
+            assert primary["tls"]["reality"]["max_time_difference"] == args.get(
+                "realityMaxTimeDifference", "1m"
+            )
+        assert primary["tls"]["server_name"] == args.get(
+            "serverName", "speedtest.dora.im"
+        )
+        assert primary["tls"]["reality"]["handshake"] == {
+            "server": args.get("serverName", "speedtest.dora.im"),
+            "server_port": 443,
+        }
+        if args.get("socks", True):
+            socks_inbounds = [
+                inb for inb in config["inbounds"] if inb["type"] == "socks"
+            ]
+            # A single wildcard listener; the firewall is what restricts it.
+            assert len(socks_inbounds) == 1
+            assert socks_inbounds[0]["listen"] == "::"
+            assert socks_inbounds[0]["listen_port"] == 1080
+            # SOCKS reuses the VLESS UUID as its password instead of adding a secret.
+            assert socks_inbounds[0]["users"] == [
+                {"username": "proxy", "password": UUID_PLACEHOLDER}
+            ]
+        else:
+            assert not any(inb["type"] == "socks" for inb in config["inbounds"])
         if args.get("needProxy"):
             proxies = [out for out in config["outbounds"] if out["type"] == "vless"]
             assert len(proxies) == len(args.get("proxyHosts", ["fra0", "tyo0", "sjc0"]))
@@ -160,18 +180,48 @@ for name, fixture in FIXTURES.items():
                             "hKeepAlivePeriod"
                         ],
                     }
+                    server_transport = FIXTURES["default"]["config"]["inbounds"][0][
+                        "transport"
+                    ]
+                    # Uplink pacing is client-only and must not reach the server.
+                    for key in [
+                        "uplink_chunk_size",
+                        "sc_max_each_post_bytes",
+                        "sc_min_posts_interval_ms",
+                    ]:
+                        assert key not in server_transport, (
+                            f"{key} leaked into the server transport"
+                        )
+                    pacing = {
+                        "uplink_chunk_size": args.get(
+                            "xhttpUplinkChunkSize", PACING["uplinkChunkSize"]
+                        ),
+                        "sc_max_each_post_bytes": args.get(
+                            "xhttpScMaxEachPostBytes", PACING["scMaxEachPostBytes"]
+                        ),
+                        "sc_min_posts_interval_ms": args.get(
+                            "xhttpScMinPostsIntervalMs", PACING["scMinPostsIntervalMs"]
+                        ),
+                    }
+                    assert {
+                        k: v
+                        for k, v in outbound["transport"].items()
+                        if k in pacing
+                    } == pacing
+                    # congestion_controller/cwnd only apply to HTTP/3; REALITY is H2.
+                    assert "congestion_controller" not in outbound["transport"]
+                    assert "cwnd" not in outbound["transport"]
                     shared = dict(outbound["transport"])
                     shared.pop("xmux")
-                    assert (
-                        shared
-                        == FIXTURES["default"]["config"]["inbounds"][0]["transport"]
-                    )
+                    for key in pacing:
+                        shared.pop(key)
+                    assert shared == server_transport
                 else:
                     assert outbound["flow"] == "xtls-rprx-vision"
             if len(proxies) > 1:
                 balancer = config["outbounds"][-1]
                 assert balancer["type"] == "urltest"
-                assert balancer["url"] == "https://speedtest.dora.im/generate_204"
+                assert balancer["url"] == "https://www.gstatic.com/generate_204"
             assert config["route"]["rules"][-1]["domain_suffix"] == [
                 "skk.moe",
                 "openai.com",
@@ -184,30 +234,40 @@ for name, fixture in FIXTURES.items():
         continue
     assert config["outbounds"][0] == {"protocol": "freedom", "tag": "direct"}
     primary = config["inbounds"][0]
-    if args.get("ss"):
-        assert primary["protocol"] == "shadowsocks"
-        assert primary["settings"]["network"] == "tcp,udp"
+    assert primary["settings"]["decryption"] == "none"
+    assert primary["settings"]["clients"] == [{"id": "@xray/uuid@"}]
+    stream = primary["streamSettings"]
+    assert stream["network"] == "xhttp" and stream["security"] == "reality"
+    assert stream["xhttpSettings"]["mode"] == args.get("xhttpMode", "stream-one")
+    assert stream["xhttpSettings"]["path"] == args.get("xhttpPath", "/speedtest")
+    assert stream["xhttpSettings"]["host"] == args.get(
+        "serverName", "speedtest.dora.im"
+    )
+    assert stream["xhttpSettings"]["extra"] == {
+        "xPaddingBytes": "100-1000",
+        "xPaddingObfsMode": True,
+        "xPaddingPlacement": "header",
+        "xPaddingHeader": "X-Padding",
+        "xPaddingMethod": "repeat-x",
+    }
+    assert (
+        stream["realitySettings"]["target"]
+        == f"{args.get('serverName', 'speedtest.dora.im')}:443"
+    )
+    if args.get("socks", True):
+        socks_inbounds = [
+            inb for inb in config["inbounds"] if inb["protocol"] == "socks"
+        ]
+        # A single wildcard listener; the firewall is what restricts it.
+        assert len(socks_inbounds) == 1
+        assert socks_inbounds[0]["listen"] == "::"
+        assert socks_inbounds[0]["port"] == 1080
+        # SOCKS reuses the VLESS UUID as its password instead of adding a secret.
+        assert socks_inbounds[0]["settings"]["accounts"] == [
+            {"user": "proxy", "pass": "@xray/uuid@"}
+        ]
     else:
-        assert primary["settings"]["decryption"] == "none"
-        assert primary["settings"]["clients"] == [{"id": "@xray/uuid@"}]
-        stream = primary["streamSettings"]
-        assert stream["network"] == "xhttp" and stream["security"] == "reality"
-        assert stream["xhttpSettings"]["mode"] == args.get("xhttpMode", "stream-one")
-        assert stream["xhttpSettings"]["path"] == args.get("xhttpPath", "/speedtest")
-        assert stream["xhttpSettings"]["host"] == args.get(
-            "serverName", "speedtest.dora.im"
-        )
-        assert stream["xhttpSettings"]["extra"] == {
-            "xPaddingBytes": "100-1000",
-            "xPaddingObfsMode": True,
-            "xPaddingPlacement": "header",
-            "xPaddingHeader": "X-Padding",
-            "xPaddingMethod": "repeat-x",
-        }
-        assert (
-            stream["realitySettings"]["target"]
-            == f"{args.get('serverName', 'speedtest.dora.im')}:443"
-        )
+        assert not any(inb["protocol"] == "socks" for inb in config["inbounds"])
     if args.get("needProxy"):
         proxies = [
             out for out in config["outbounds"] if out["tag"].startswith("proxy-")
@@ -217,7 +277,38 @@ for name, fixture in FIXTURES.items():
             assert outbound["settings"]["encryption"] == "none"
             assert "flow" not in outbound["settings"]
             shared = copy.deepcopy(outbound["streamSettings"]["xhttpSettings"])
-            assert shared["extra"].pop("xmux") == args.get("xhttpXmux", XMUX)
+            extra = shared["extra"]
+            # Uplink pacing is client-only and must not reach the server.
+            assert "xmux" not in FIXTURES["xray"]["config"]["inbounds"][0][
+                "streamSettings"
+            ]["xhttpSettings"]["extra"]
+            for key in [
+                "uplinkChunkSize",
+                "scMaxEachPostBytes",
+                "scMinPostsIntervalMs",
+            ]:
+                assert key not in FIXTURES["xray"]["config"]["inbounds"][0][
+                    "streamSettings"
+                ]["xhttpSettings"]["extra"]
+            assert extra.pop("xmux") == args.get("xhttpXmux", XMUX)
+            assert {
+                key: extra.pop(key)
+                for key in [
+                    "uplinkChunkSize",
+                    "scMaxEachPostBytes",
+                    "scMinPostsIntervalMs",
+                ]
+            } == {
+                "uplinkChunkSize": args.get(
+                    "xhttpUplinkChunkSize", PACING["uplinkChunkSize"]
+                ),
+                "scMaxEachPostBytes": args.get(
+                    "xhttpScMaxEachPostBytes", PACING["scMaxEachPostBytes"]
+                ),
+                "scMinPostsIntervalMs": args.get(
+                    "xhttpScMinPostsIntervalMs", PACING["scMinPostsIntervalMs"]
+                ),
+            }
             assert (
                 shared
                 == FIXTURES["xray"]["config"]["inbounds"][0]["streamSettings"][
@@ -228,7 +319,7 @@ for name, fixture in FIXTURES.items():
             assert config["observatory"]["subjectSelector"] == ["proxy-"]
             assert (
                 config["observatory"]["probeUrl"]
-                == "https://speedtest.dora.im/generate_204"
+                == "https://www.gstatic.com/generate_204"
             )
             assert config["routing"]["balancers"][0]["fallbackTag"] == "block"
             assert config["routing"]["balancers"][0]["strategy"]["type"] == "leastPing"
@@ -273,10 +364,22 @@ for name, fixture in FIXTURES.items():
             "socks-in" in rule.get("inboundTag", [])
             for rule in config["routing"]["rules"]
         )
-assert "iptables" in FIXTURES["default"]["firewall"]["extraCommands"]
-assert (
-    "ip6 saddr fd53:90fd:4bb6::/48" in FIXTURES["proxy"]["firewall"]["extraInputRules"]
-)
+# The SOCKS port must never appear in the global allow lists: the firewall is
+# the only thing keeping the wildcard listener off the public interfaces.
+for rules_key in ("tcp", "udp"):
+    assert 1080 not in FIXTURES["default"]["firewall"][rules_key]
+    assert 1080 not in FIXTURES["proxy"]["firewall"][rules_key]
+# Instead the overlay interfaces are trusted wholesale, with no per-port rules.
+# Other modules legitimately contribute their own interfaces, so assert the
+# overlay entries are present rather than requiring an exact list.
+for iface in ["tailscale0", "dn42", "dn42x-*", "dn42m-*"]:
+    assert iface in FIXTURES["proxy"]["firewall"]["trustedInterfaces"]
+# This module contributes no per-port rules of its own. The DN42 module's own
+# iptables fallback may still appear; only this module's port rules must be gone.
+for rules_key in ("extraCommands", "extraInputRules"):
+    rules = FIXTURES["proxy"]["firewall"][rules_key]
+    assert "1080" not in rules
+    assert "iptables -A nixos-fw -i" not in rules
 
 
 def free_port():
@@ -329,7 +432,7 @@ def process(command, directory, port):
                 child.wait()
 
 
-def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1"):
+def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1", auth=False):
     with socket.create_connection((proxy_host, proxy_port), timeout=10) as sock:
 
         def read_exact(length):
@@ -341,8 +444,22 @@ def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1"):
                 data += chunk
             return data
 
-        sock.sendall(b"\x05\x01\x00")
-        assert read_exact(2) == b"\x05\x00"
+        if auth:
+            # username/password authentication (RFC 1929) reusing the VLESS UUID.
+            user, secret = b"proxy", UUID.encode()
+            sock.sendall(b"\x05\x01\x02")
+            assert read_exact(2) == b"\x05\x02"
+            sock.sendall(
+                b"\x01"
+                + bytes([len(user)])
+                + user
+                + bytes([len(secret)])
+                + secret
+            )
+            assert read_exact(2) == b"\x01\x00"
+        else:
+            sock.sendall(b"\x05\x01\x00")
+            assert read_exact(2) == b"\x05\x00"
         name = host.encode()
         sock.sendall(
             b"\x05\x01\x00\x03"
@@ -368,9 +485,9 @@ def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1"):
         return data
 
 
-def denied_socks(*args):
+def denied_socks(*args, **kwargs):
     try:
-        return not fetch_socks(*args)
+        return not fetch_socks(*args, **kwargs)
     except ConnectionError:
         return True
 
@@ -519,7 +636,10 @@ with tempfile.TemporaryDirectory() as temporary:
             ):
                 wait_for(
                     lambda: fetch_socks(
-                        proxy_port, "api.openai.com", http_target.server_port
+                        proxy_port,
+                        "api.openai.com",
+                        http_target.server_port,
+                        auth=True,
                     ).endswith(b"xhttp-ok"),
                     "Health-checked relay never reached the target",
                     timeout=30,
@@ -529,6 +649,7 @@ with tempfile.TemporaryDirectory() as temporary:
                     "api.openai.com",
                     http_target.server_port,
                     "::ffff:127.0.0.1",
+                    auth=True,
                 ).endswith(b"xhttp-ok")
 
             denied = copy.deepcopy(client)
@@ -550,16 +671,20 @@ with tempfile.TemporaryDirectory() as temporary:
                 ["xray", "run", "-config", str(denied_path)], denied_dir, denied_port
             ):
                 assert not fetch_socks(
-                    denied_port, "api.openai.com", http_target.server_port
+                    denied_port,
+                    "api.openai.com",
+                    http_target.server_port,
+                    auth=True,
                 )
                 assert not fetch_socks(
-                    denied_port, "127.0.0.1", http_target.server_port
+                    denied_port, "127.0.0.1", http_target.server_port, auth=True
                 )
                 assert not fetch_socks(
                     denied_port,
                     "api.openai.com",
                     http_target.server_port,
                     "::ffff:127.0.0.1",
+                    auth=True,
                 )
 
             mihomo_port = free_port()
@@ -638,12 +763,14 @@ with tempfile.TemporaryDirectory() as temporary:
         for target in [private_target, private_v6_target]:
             threading.Thread(target=target.serve_forever, daemon=True).start()
         try:
-            for fixture_name in ["default", "ss"]:
+            # noSocks is asserted statically above; runtime cases need SOCKS.
+            for fixture_name in ["default"]:
                 server = materialize(FIXTURES[fixture_name])
                 server["log"]["level"] = "debug"
                 inbound_port, trusted_port = free_port(), free_port()
                 primary = server["inbounds"][0]
                 primary.update(listen="127.0.0.1", listen_port=inbound_port)
+                server["inbounds"][1]["listen"] = "127.0.0.1"
                 server["inbounds"][1]["listen_port"] = trusted_port
                 server["dns"]["servers"] = [
                     {
@@ -770,9 +897,13 @@ with tempfile.TemporaryDirectory() as temporary:
                             "private.test",
                             private_target.server_port,
                             proxy_host,
+                            auth=True,
                         ).endswith(b"xhttp-ok")
                     assert fetch_socks(
-                        trusted_port, "private-v6.test", private_v6_target.server_port
+                        trusted_port,
+                        "private-v6.test",
+                        private_v6_target.server_port,
+                        auth=True,
                     ).endswith(b"xhttp-ok")
 
                     if fixture_name == "default":
@@ -781,6 +912,7 @@ with tempfile.TemporaryDirectory() as temporary:
                         peer["inbounds"] = [
                             dict(peer["inbounds"][1], listen_port=peer_port)
                         ]
+                        peer["inbounds"][0]["listen"] = "127.0.0.1"
                         peer["dns"] = copy.deepcopy(server["dns"])
                         for outbound in peer["outbounds"]:
                             if outbound["type"] == "vless":
@@ -807,6 +939,7 @@ with tempfile.TemporaryDirectory() as temporary:
                                         peer_port,
                                         "api.openai.com",
                                         http_target.server_port,
+                                        auth=True,
                                     ).endswith(b"xhttp-ok")
                                 except OSError:
                                     return False
@@ -817,16 +950,23 @@ with tempfile.TemporaryDirectory() as temporary:
                                 timeout=30,
                             )
                             assert fetch_socks(
-                                peer_port, "unrelated.test", private_target.server_port
+                                peer_port,
+                                "unrelated.test",
+                                private_target.server_port,
+                                auth=True,
                             ).endswith(b"xhttp-ok")
                             assert denied_socks(
-                                peer_port, "api.openai.com", private_target.server_port
+                                peer_port,
+                                "api.openai.com",
+                                private_target.server_port,
+                                auth=True,
                             )
                             assert fetch_socks(
                                 peer_port,
                                 "api.openai.com",
                                 http_target.server_port,
                                 "::ffff:127.0.0.1",
+                                auth=True,
                             ).endswith(b"xhttp-ok")
                             log = (root / "extended-peer" / "process.log").read_text()
                             assert (
@@ -855,18 +995,21 @@ with tempfile.TemporaryDirectory() as temporary:
                                     rejected_port,
                                     "api.openai.com",
                                     http_target.server_port,
+                                    auth=True,
                                 )
                                 if scenario == "untrusted":
                                     assert denied_socks(
                                         rejected_port,
                                         "127.0.0.1",
                                         http_target.server_port,
+                                        auth=True,
                                     )
                                     assert denied_socks(
                                         rejected_port,
                                         "api.openai.com",
                                         http_target.server_port,
                                         "::ffff:127.0.0.1",
+                                        auth=True,
                                     )
         finally:
             for target in [private_target, private_v6_target]:
