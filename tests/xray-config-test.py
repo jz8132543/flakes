@@ -2,6 +2,7 @@ import copy
 import http.server
 import ipaddress
 import json
+import os
 import pathlib
 import socket
 import ssl
@@ -13,7 +14,6 @@ import threading
 import time
 from contextlib import contextmanager
 
-
 FIXTURES = json.loads(sys.argv[1])
 SOURCES = [
     "172.20.232.0/26",
@@ -23,6 +23,13 @@ SOURCES = [
 ]
 SING_BOX_SOURCES = SOURCES + ["::ffff:172.20.232.0/122", "::ffff:127.0.0.0/104"]
 UUID = "00000000-0000-4000-8000-000000000001"
+XMUX = {
+    "maxConnections": "3-3",
+    "hMaxRequestTimes": "600-900",
+    "hMaxReusableSecs": "1800-3000",
+    "hKeepAlivePeriod": 45,
+}
+EXTENDED = os.environ["extended"]
 
 
 def route(config, source, domain, inbound="socks-in"):
@@ -48,21 +55,29 @@ def route(config, source, domain, inbound="socks-in"):
 for name, fixture in FIXTURES.items():
     core, config, args = fixture["core"], fixture["config"], fixture["args"]
     assert fixture["xrayEnabled"] == (core == "xray")
-    assert fixture["singBoxEnabled"] == (core == "sing-box")
+    service_name = fixture["serviceName"]
+    assert fixture["singBoxEnabled"] == (core != "xray")
     assert fixture["templateMode"] == "0400"
     assert set(fixture["secretModes"].values()) == {"0400"}
-    assert fixture["templateNames"] == [f"{core}-config.json"]
-    assert fixture["restartUnits"] == [f"{core}.service"]
+    assert fixture["templateNames"] == [f"{service_name}-config.json"]
+    assert fixture["restartUnits"] == [f"{service_name}.service"]
+    assert "sing-box-extended" not in fixture["serviceNames"]
+    if core == "sing-box-extended":
+        assert fixture["package"] == EXTENDED
+    else:
+        assert "sing-box-extended" not in fixture["package"]
     assert fixture["templatePath"].startswith("/run/secrets/rendered/")
     assert (
         fixture["service"]["LoadCredential"] == f"config.json:{fixture['templatePath']}"
     )
     assert "CREDENTIALS_DIRECTORY" in str(fixture["service"]["ExecStart"])
-    assert fixture["restartCommand"].endswith(f"restart {core}.service")
+    assert fixture["restartCommand"].endswith(f"restart {service_name}.service")
     assert fixture["service"]["MemoryMax"] == "192M"
     assert fixture["service"]["MemoryHigh"] == "150M"
     assert fixture["environment"]["GOMEMLIMIT"] == "128MiB"
-    assert fixture["environment"]["GOGC"] == "50"
+    assert fixture["environment"]["GOGC"] == (
+        "100" if core == "sing-box-extended" else "50"
+    )
     assert not fixture["service"].get("LoadCredential", "").endswith("/nix/store")
     port = args.get("xrayPort", 8555)
     assert {8443, 8444, port} <= set(fixture["firewall"]["tcp"])
@@ -78,12 +93,94 @@ for name, fixture in FIXTURES.items():
     )
     if core != "xray":
         assert config["route"]["final"] == "direct"
+        assert config["dns"] == {
+            "servers": [{"type": "local", "tag": "local"}],
+            "final": "local",
+        }
+        assert config["route"]["default_domain_resolver"] == "local"
+        primary = config["inbounds"][0]
+        if args.get("socks", True):
+            assert (
+                config["route"]["rules"][0]["rules"][1]["source_ip_cidr"]
+                == SING_BOX_SOURCES
+            )
+        guard_index = 1 if args.get("socks", True) else 0
+        assert config["route"]["rules"][guard_index : guard_index + 2] == [
+            {"inbound": [primary["tag"]], "action": "resolve", "server": "local"},
+            {"inbound": [primary["tag"]], "ip_is_private": True, "action": "reject"},
+        ]
         if not args.get("ss"):
-            assert config["inbounds"][0]["users"][0]["flow"] == "xtls-rprx-vision"
-        assert (
-            config["route"]["rules"][0]["rules"][1]["source_ip_cidr"]
-            == SING_BOX_SOURCES
-        )
+            if core == "sing-box":
+                assert primary["users"][0]["flow"] == "xtls-rprx-vision"
+                assert "transport" not in primary and "decryption" not in primary
+                assert "max_time_difference" not in primary["tls"]["reality"]
+            else:
+                assert "flow" not in primary["users"][0]
+                assert primary["decryption"] == "none"
+                assert primary["transport"] == {
+                    "type": "xhttp",
+                    "host": args.get("serverName", "speedtest.dora.im"),
+                    "path": args.get("xhttpPath", "/speedtest"),
+                    "mode": args.get("xhttpMode", "stream-one"),
+                    "x_padding_bytes": "100-1000",
+                    "x_padding_obfs_mode": True,
+                    "x_padding_placement": "header",
+                    "x_padding_header": "X-Padding",
+                    "x_padding_method": "repeat-x",
+                }
+                assert primary["tls"]["reality"]["max_time_difference"] == args.get(
+                    "realityMaxTimeDifference", "1m"
+                )
+            assert primary["tls"]["server_name"] == args.get(
+                "serverName", "speedtest.dora.im"
+            )
+            assert primary["tls"]["reality"]["handshake"] == {
+                "server": args.get("serverName", "speedtest.dora.im"),
+                "server_port": 443,
+            }
+        else:
+            assert primary["type"] == "shadowsocks"
+        if args.get("needProxy"):
+            proxies = [out for out in config["outbounds"] if out["type"] == "vless"]
+            assert len(proxies) == len(args.get("proxyHosts", ["fra0", "tyo0", "sjc0"]))
+            for outbound in proxies:
+                if core == "sing-box-extended":
+                    assert "flow" not in outbound and outbound["encryption"] == "none"
+                    assert outbound["transport"]["xmux"] == {
+                        "max_connections": args.get("xhttpXmux", XMUX)[
+                            "maxConnections"
+                        ],
+                        "h_max_request_times": args.get("xhttpXmux", XMUX)[
+                            "hMaxRequestTimes"
+                        ],
+                        "h_max_reusable_secs": args.get("xhttpXmux", XMUX)[
+                            "hMaxReusableSecs"
+                        ],
+                        "h_keep_alive_period": args.get("xhttpXmux", XMUX)[
+                            "hKeepAlivePeriod"
+                        ],
+                    }
+                    shared = dict(outbound["transport"])
+                    shared.pop("xmux")
+                    assert (
+                        shared
+                        == FIXTURES["default"]["config"]["inbounds"][0]["transport"]
+                    )
+                else:
+                    assert outbound["flow"] == "xtls-rprx-vision"
+            if len(proxies) > 1:
+                balancer = config["outbounds"][-1]
+                assert balancer["type"] == "urltest"
+                assert balancer["url"] == "https://speedtest.dora.im/generate_204"
+            assert config["route"]["rules"][-1]["domain_suffix"] == [
+                "skk.moe",
+                "openai.com",
+                "chatgpt.com",
+                "oaistatic.com",
+                "oaiusercontent.com",
+                "claude.ai",
+                "anthropic.com",
+            ]
         continue
     assert config["outbounds"][0] == {"protocol": "freedom", "tag": "direct"}
     primary = config["inbounds"][0]
@@ -119,9 +216,11 @@ for name, fixture in FIXTURES.items():
         for outbound in proxies:
             assert outbound["settings"]["encryption"] == "none"
             assert "flow" not in outbound["settings"]
+            shared = copy.deepcopy(outbound["streamSettings"]["xhttpSettings"])
+            assert shared["extra"].pop("xmux") == args.get("xhttpXmux", XMUX)
             assert (
-                outbound["streamSettings"]["xhttpSettings"]
-                == FIXTURES["default"]["config"]["inbounds"][0]["streamSettings"][
+                shared
+                == FIXTURES["xray"]["config"]["inbounds"][0]["streamSettings"][
                     "xhttpSettings"
                 ]
             )
@@ -138,7 +237,11 @@ for name, fixture in FIXTURES.items():
     if args.get("socks", True):
         assert config["routing"]["rules"][-2]["source"] == SOURCES
         assert config["routing"]["rules"][-1]["outboundTag"] == "block"
-        expected = "proxy-0" if name == "single" else "proxy-balancer"
+        expected = (
+            "proxy-0"
+            if len(args.get("proxyHosts", ["fra0", "tyo0", "sjc0"])) == 1
+            else "proxy-balancer"
+        )
         for source in [
             "127.0.0.2",
             "::1",
@@ -233,7 +336,8 @@ def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1"):
             data = b""
             while len(data) < length:
                 chunk = sock.recv(length - len(data))
-                assert chunk, "SOCKS reply ended early"
+                if not chunk:
+                    raise ConnectionResetError("SOCKS reply ended early")
                 data += chunk
             return data
 
@@ -264,6 +368,13 @@ def fetch_socks(proxy_port, host, target_port, proxy_host="127.0.0.1"):
         return data
 
 
+def denied_socks(*args):
+    try:
+        return not fetch_socks(*args)
+    except ConnectionError:
+        return True
+
+
 class Handler(http.server.BaseHTTPRequestHandler):
     hits = 0
 
@@ -277,6 +388,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, *args):
         pass
+
+
+class IPv6HTTPServer(http.server.ThreadingHTTPServer):
+    address_family = socket.AF_INET6
 
 
 with tempfile.TemporaryDirectory() as temporary:
@@ -306,16 +421,16 @@ with tempfile.TemporaryDirectory() as temporary:
         command = (
             ["xray", "run", "-test", "-config", str(path)]
             if fixture["core"] == "xray"
-            else ["sing-box", "check", "-c", str(path)]
+            else [fixture["package"], "check", "-c", str(path)]
         )
         result = subprocess.run(
             command,
             capture_output=True,
             text=True,
         )
-        assert result.returncode == 0, (
-            f"{fixture['core']} parser rejected {name}: {result.stdout} {result.stderr}"
-        )
+        assert (
+            result.returncode == 0
+        ), f"{fixture['core']} parser rejected {name}: {result.stdout} {result.stderr}"
 
     subprocess.run(
         [
@@ -350,7 +465,7 @@ with tempfile.TemporaryDirectory() as temporary:
         threading.Thread(target=target.serve_forever, daemon=True).start()
     try:
         inbound_port = free_port()
-        server = materialize(FIXTURES["default"])
+        server = materialize(FIXTURES["xray"])
         server["inbounds"] = server["inbounds"][:1]
         server["inbounds"][0].update(listen="127.0.0.1", port=inbound_port)
         reality = server["inbounds"][0]["streamSettings"]["realitySettings"]
@@ -378,7 +493,7 @@ with tempfile.TemporaryDirectory() as temporary:
             ["xray", "run", "-config", str(server_path)], server_dir, inbound_port
         ):
             proxy_port = free_port()
-            client = materialize(FIXTURES["proxy"])
+            client = materialize(FIXTURES["xrayProxy"])
             client["inbounds"] = [
                 dict(client["inbounds"][1], listen="::", port=proxy_port)
             ]
@@ -391,9 +506,9 @@ with tempfile.TemporaryDirectory() as temporary:
                     address="127.0.0.1",
                     port=inbound_port if outbound["tag"] == "proxy-1" else 9,
                 )
-                outbound["streamSettings"]["realitySettings"]["serverName"] = (
-                    "localhost"
-                )
+                outbound["streamSettings"]["realitySettings"][
+                    "serverName"
+                ] = "localhost"
                 outbound["streamSettings"]["xhttpSettings"]["host"] = "localhost"
             client_dir = root / "client"
             client_dir.mkdir()
@@ -479,6 +594,12 @@ with tempfile.TemporaryDirectory() as temporary:
                             "x-padding-placement": shared["extra"]["xPaddingPlacement"],
                             "x-padding-header": shared["extra"]["xPaddingHeader"],
                             "x-padding-method": shared["extra"]["xPaddingMethod"],
+                            "reuse-settings": {
+                                "max-connections": "3-3",
+                                "h-max-request-times": "600-900",
+                                "h-max-reusable-secs": "1800-3000",
+                                "h-keep-alive-period": 45,
+                            },
                         },
                     }
                 ],
@@ -496,11 +617,266 @@ with tempfile.TemporaryDirectory() as temporary:
                 assert fetch_socks(
                     mihomo_port, "127.0.0.1", http_target.server_port
                 ).endswith(b"xhttp-ok")
+
+        @contextmanager
+        def run_config(name, config, binary, port):
+            directory = root / name
+            directory.mkdir()
+            path = directory / "config.json"
+            path.write_text(json.dumps(config))
+            command = (
+                [binary, "-d", str(directory), "-f", str(path)]
+                if binary == "mihomo"
+                else [binary, "run", "-c", str(path)]
+            )
+            with process(command, directory, port):
+                yield
+
+        # A second reachable target verifies rejection without depending on timeouts.
+        private_target = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        private_v6_target = IPv6HTTPServer(("::1", 0), Handler)
+        for target in [private_target, private_v6_target]:
+            threading.Thread(target=target.serve_forever, daemon=True).start()
+        try:
+            for fixture_name in ["default", "ss"]:
+                server = materialize(FIXTURES[fixture_name])
+                server["log"]["level"] = "debug"
+                inbound_port, trusted_port = free_port(), free_port()
+                primary = server["inbounds"][0]
+                primary.update(listen="127.0.0.1", listen_port=inbound_port)
+                server["inbounds"][1]["listen_port"] = trusted_port
+                server["dns"]["servers"] = [
+                    {
+                        "type": "hosts",
+                        "tag": "local",
+                        "predefined": {
+                            "api.openai.com": ["127.0.0.1"],
+                            "private.test": ["127.0.0.1"],
+                            "private-v6.test": ["::1"],
+                            "mixed.test": ["8.8.8.8", "127.0.0.1"],
+                            "unrelated.test": ["127.0.0.1"],
+                        },
+                    }
+                ]
+                guard_index = next(
+                    i
+                    for i, rule in enumerate(server["route"]["rules"])
+                    if rule.get("ip_is_private")
+                )
+                # Only this disposable target port is allowed. The production
+                # resolve/private guards remain intact and protect every other port.
+                server["route"]["rules"].insert(
+                    guard_index,
+                    {
+                        "inbound": [primary["tag"]],
+                        "ip_cidr": ["127.0.0.0/8"],
+                        "port": [http_target.server_port],
+                        "outbound": "direct",
+                    },
+                )
+                if fixture_name == "default":
+                    primary["transport"]["host"] = "localhost"
+                    primary["tls"]["server_name"] = "localhost"
+                    primary["tls"]["reality"]["handshake"].update(
+                        server="127.0.0.1", server_port=tls_target.server_port
+                    )
+                    shared = primary["transport"]
+                    relay = {
+                        "name": "relay",
+                        "type": "vless",
+                        "uuid": UUID,
+                        "tls": True,
+                        "servername": "localhost",
+                        "client-fingerprint": "chrome",
+                        "network": "xhttp",
+                        "reality-opts": {
+                            "public-key": public_key,
+                            "short-id": "0123456789abcdef",
+                            "support-x25519mlkem768": True,
+                        },
+                        "xhttp-opts": {
+                            "host": "localhost",
+                            "path": shared["path"],
+                            "mode": shared["mode"],
+                            "x-padding-bytes": shared["x_padding_bytes"],
+                            "x-padding-obfs-mode": shared["x_padding_obfs_mode"],
+                            "x-padding-placement": shared["x_padding_placement"],
+                            "x-padding-header": shared["x_padding_header"],
+                            "x-padding-method": shared["x_padding_method"],
+                            "reuse-settings": {
+                                "max-connections": "3-3",
+                                "h-max-request-times": "600-900",
+                                "h-max-reusable-secs": "1800-3000",
+                                "h-keep-alive-period": 45,
+                            },
+                        },
+                    }
+                else:
+                    relay = {
+                        "name": "relay",
+                        "type": "ss",
+                        "cipher": primary["method"],
+                        "password": primary["password"],
+                    }
+                relay.update(server="127.0.0.1", port=inbound_port)
+                mihomo_port = free_port()
+                mihomo = {
+                    "mixed-port": mihomo_port,
+                    "bind-address": "127.0.0.1",
+                    "mode": "rule",
+                    "log-level": "silent",
+                    "proxies": [relay],
+                    "rules": ["MATCH,relay"],
+                }
+                with run_config(
+                    f"extended-{fixture_name}", server, EXTENDED, inbound_port
+                ):
+                    with run_config(
+                        f"mihomo-{fixture_name}", mihomo, "mihomo", mihomo_port
+                    ):
+                        for _ in range(4):
+                            assert fetch_socks(
+                                mihomo_port, "api.openai.com", http_target.server_port
+                            ).endswith(b"xhttp-ok")
+                        hits_before = Handler.hits
+                        for host in [
+                            "127.0.0.1",
+                            "::1",
+                            "::ffff:127.0.0.1",
+                            "private.test",
+                            "private-v6.test",
+                            "mixed.test",
+                            "api.openai.com",
+                        ]:
+                            target_port = (
+                                private_v6_target.server_port
+                                if host in ["::1", "private-v6.test"]
+                                else private_target.server_port
+                            )
+                            assert denied_socks(mihomo_port, host, target_port), host
+                        assert (
+                            Handler.hits == hits_before
+                        ), "Private guard reached a target"
+                        log = (
+                            root / f"extended-{fixture_name}" / "process.log"
+                        ).read_text()
+                        assert (
+                            "ip_is_private=true => reject" in log
+                        ), "Denied requests did not reach the server guard"
+                    # Authorized SOCKS retains real private-domain and mapped-v4 access.
+                    for proxy_host in ["127.0.0.1", "::ffff:127.0.0.1"]:
+                        assert fetch_socks(
+                            trusted_port,
+                            "private.test",
+                            private_target.server_port,
+                            proxy_host,
+                        ).endswith(b"xhttp-ok")
+                    assert fetch_socks(
+                        trusted_port, "private-v6.test", private_v6_target.server_port
+                    ).endswith(b"xhttp-ok")
+
+                    if fixture_name == "default":
+                        peer = materialize(FIXTURES["proxy"])
+                        peer_port = free_port()
+                        peer["inbounds"] = [
+                            dict(peer["inbounds"][1], listen_port=peer_port)
+                        ]
+                        peer["dns"] = copy.deepcopy(server["dns"])
+                        for outbound in peer["outbounds"]:
+                            if outbound["type"] == "vless":
+                                outbound.update(
+                                    server="127.0.0.1",
+                                    server_port=(
+                                        inbound_port
+                                        if outbound["tag"] == "proxy-1"
+                                        else 9
+                                    ),
+                                )
+                                outbound["tls"]["server_name"] = "localhost"
+                                outbound["transport"]["host"] = "localhost"
+                            elif outbound["type"] == "urltest":
+                                outbound.update(
+                                    url=f"http://127.0.0.1:{http_target.server_port}/generate_204",
+                                    interval="1s",
+                                )
+                        with run_config("extended-peer", peer, EXTENDED, peer_port):
+
+                            def peer_ready():
+                                try:
+                                    return fetch_socks(
+                                        peer_port,
+                                        "api.openai.com",
+                                        http_target.server_port,
+                                    ).endswith(b"xhttp-ok")
+                                except OSError:
+                                    return False
+
+                            wait_for(
+                                peer_ready,
+                                "Extended URLtest did not select the live peer",
+                                timeout=30,
+                            )
+                            assert fetch_socks(
+                                peer_port, "unrelated.test", private_target.server_port
+                            ).endswith(b"xhttp-ok")
+                            assert denied_socks(
+                                peer_port, "api.openai.com", private_target.server_port
+                            )
+                            assert fetch_socks(
+                                peer_port,
+                                "api.openai.com",
+                                http_target.server_port,
+                                "::ffff:127.0.0.1",
+                            ).endswith(b"xhttp-ok")
+                            log = (root / "extended-peer" / "process.log").read_text()
+                            assert (
+                                "outbound/vless[proxy-1]" in log
+                            ), "Live relay was not used"
+
+                        for scenario in ["untrusted", "all-down"]:
+                            rejected = copy.deepcopy(peer)
+                            rejected_port = free_port()
+                            rejected["inbounds"][0]["listen_port"] = rejected_port
+                            if scenario == "untrusted":
+                                rejected["route"]["rules"][0]["rules"][1][
+                                    "source_ip_cidr"
+                                ] = SING_BOX_SOURCES[:2]
+                            else:
+                                for outbound in rejected["outbounds"]:
+                                    if outbound["type"] == "vless":
+                                        outbound["server_port"] = 9
+                            with run_config(
+                                f"extended-{scenario}",
+                                rejected,
+                                EXTENDED,
+                                rejected_port,
+                            ):
+                                assert denied_socks(
+                                    rejected_port,
+                                    "api.openai.com",
+                                    http_target.server_port,
+                                )
+                                if scenario == "untrusted":
+                                    assert denied_socks(
+                                        rejected_port,
+                                        "127.0.0.1",
+                                        http_target.server_port,
+                                    )
+                                    assert denied_socks(
+                                        rejected_port,
+                                        "api.openai.com",
+                                        http_target.server_port,
+                                        "::ffff:127.0.0.1",
+                                    )
+        finally:
+            for target in [private_target, private_v6_target]:
+                target.shutdown()
+                target.server_close()
     finally:
         for target in [http_target, tls_target]:
             target.shutdown()
             target.server_close()
 
 print(
-    "Xray parser, routing/credentials/firewall, relay health selection, SOCKS denial and Mihomo XHTTP interop passed"
+    "Extended/Xray/legacy parsers, credentials/service mapping/firewall, Mihomo XHTTP and SS interop, resolved-private rejection, trusted/mapped SOCKS and relay health/fail-closed selection passed"
 )

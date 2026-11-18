@@ -460,9 +460,17 @@ class PublishedSubscriptionTest(unittest.TestCase):
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-header"], "X-Padding")
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-method"], "repeat-x")
                 self.assertNotIn("extra", proxy["xhttp-opts"])
+                self.assertNotIn("xmux", proxy["xhttp-opts"])
+                self.assertEqual(proxy["xhttp-opts"]["reuse-settings"], {
+                    "max-connections": "3-3",
+                    "h-max-request-times": "600-900",
+                    "h-max-reusable-secs": "1800-3000",
+                    "h-keep-alive-period": 45,
+                })
+                self.assertNotIn("max-concurrency", proxy["xhttp-opts"]["reuse-settings"])
         for group in document["proxy-groups"]:
             if group["name"] in ("ALL", "DN42", "NO-DN42"):
-                self.assertEqual(group["url"], "https://speedtest.dora.im/generate_204")
+                self.assertEqual(group["url"], os.environ["PUBLISHED_HEALTH_CHECK_URL"])
 
     @unittest.skipUnless(os.environ.get("PUBLISHED_VLESS_URIS"), "requires the URI fixture")
     def test_vless_uris_match_published_mihomo_nodes(self):
@@ -490,6 +498,12 @@ class PublishedSubscriptionTest(unittest.TestCase):
                     "xPaddingPlacement": proxy["xhttp-opts"]["x-padding-placement"],
                     "xPaddingHeader": proxy["xhttp-opts"]["x-padding-header"],
                     "xPaddingMethod": proxy["xhttp-opts"]["x-padding-method"],
+                    "xmux": {
+                        "maxConnections": proxy["xhttp-opts"]["reuse-settings"]["max-connections"],
+                        "hMaxRequestTimes": proxy["xhttp-opts"]["reuse-settings"]["h-max-request-times"],
+                        "hMaxReusableSecs": proxy["xhttp-opts"]["reuse-settings"]["h-max-reusable-secs"],
+                        "hKeepAlivePeriod": proxy["xhttp-opts"]["reuse-settings"]["h-keep-alive-period"],
+                    },
                 })
 
     def test_real_mihomo_accepts_published_configuration_with_arx8_policy(self):

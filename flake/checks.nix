@@ -203,6 +203,8 @@ let
             config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/mihomo.yaml".file;
           PUBLISHED_VLESS_URIS =
             config.flake.nixosConfigurations.fra0.config.sops.templates."subscription/v2ray.txt".file;
+          PUBLISHED_HEALTH_CHECK_URL =
+            config.flake.nixosConfigurations.fra0.config.services.subscriptionPublisher.healthCheckUrl;
           MIHOMO_REAL_BIN = lib.getExe host.config.services.mihomo.package;
           inherit (host.config.systemd.services.mihomo-subscription-update.environment)
             MIHOMO_GEOIP

@@ -94,6 +94,12 @@ let
           x-padding-placement = cfg.xhttpExtra.xPaddingPlacement;
           x-padding-header = cfg.xhttpExtra.xPaddingHeader;
           x-padding-method = cfg.xhttpExtra.xPaddingMethod;
+          reuse-settings = {
+            max-connections = cfg.xhttpXmux.maxConnections;
+            h-max-request-times = cfg.xhttpXmux.hMaxRequestTimes;
+            h-max-reusable-secs = cfg.xhttpXmux.hMaxReusableSecs;
+            h-keep-alive-period = cfg.xhttpXmux.hKeepAlivePeriod;
+          };
         };
       };
 
@@ -547,7 +553,9 @@ let
         safeName = lib.replaceStrings [ " " "#" "%" ] [ "-" "-" "-" ] node.name;
         transportQuery =
           if cfg.transport == "xhttp" then
-            "type=xhttp&path=${lib.escapeURL cfg.xhttpPath}&host=${lib.escapeURL cfg.serverName}&mode=${cfg.xhttpMode}&extra=${lib.escapeURL (builtins.toJSON cfg.xhttpExtra)}"
+            "type=xhttp&path=${lib.escapeURL cfg.xhttpPath}&host=${lib.escapeURL cfg.serverName}&mode=${cfg.xhttpMode}&extra=${
+              lib.escapeURL (builtins.toJSON (cfg.xhttpExtra // { xmux = cfg.xhttpXmux; }))
+            }"
           else
             "type=tcp&flow=xtls-rprx-vision";
       in
@@ -631,7 +639,36 @@ in
         };
       };
       default = { };
-      description = "XHTTP extra settings supported by both Xray and Mihomo; keep server and client settings synchronized.";
+      description = "XHTTP padding settings shared by the selected server core and Mihomo.";
+    };
+
+    xhttpXmux = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          maxConnections = lib.mkOption {
+            type = lib.types.str;
+            default = "3-3";
+            description = "HTTP connection pool size range; do not also set maxConcurrency.";
+          };
+          hMaxRequestTimes = lib.mkOption {
+            type = lib.types.str;
+            default = "600-900";
+            description = "Requests served per connection before retirement.";
+          };
+          hMaxReusableSecs = lib.mkOption {
+            type = lib.types.str;
+            default = "1800-3000";
+            description = "Connection reuse lifetime range in seconds.";
+          };
+          hKeepAlivePeriod = lib.mkOption {
+            type = lib.types.int;
+            default = 45;
+            description = "HTTP/2 keep-alive interval in seconds.";
+          };
+        };
+      };
+      default = { };
+      description = "Bounded XHTTP client connection reuse; this does not eliminate TCP head-of-line blocking.";
     };
 
     healthCheckUrl = lib.mkOption {

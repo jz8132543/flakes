@@ -7,7 +7,7 @@
     "sjc0.dora.im"
   ],
   serverName ? "speedtest.dora.im",
-  core ? "xray",
+  core ? "sing-box-extended",
   xhttpPath ? "/speedtest",
   xhttpMode ? "stream-one",
   xPaddingBytes ? "100-1000",
@@ -15,6 +15,13 @@
   xPaddingPlacement ? "header",
   xPaddingHeader ? "X-Padding",
   xPaddingMethod ? "repeat-x",
+  xhttpXmux ? {
+    maxConnections = "3-3";
+    hMaxRequestTimes = "600-900";
+    hMaxReusableSecs = "1800-3000";
+    hKeepAlivePeriod = 45;
+  },
+  realityMaxTimeDifference ? "1m",
   healthCheckUrl ? "https://speedtest.dora.im/generate_204",
   ss ? false,
   socks ? true,
@@ -28,6 +35,8 @@
 }:
 let
   isXray = core == "xray";
+  isExtended = core == "sing-box-extended";
+  serviceName = if isXray then "xray" else "sing-box";
   primaryTag = if ss then "ss-in" else "vless-in";
   useHealthCheckedBalancer = needProxy && builtins.length proxyHosts > 1;
   selfData = config.lib.self.data or (lib.importJSON ../../../lib/data/data.json);
@@ -86,6 +95,27 @@ let
         xPaddingHeader
         xPaddingMethod
         ;
+    };
+  };
+  # Pool limits are client-only; do not impose them on the server transport.
+  xhttpClientSettings = lib.recursiveUpdate xhttpSettings { extra.xmux = xhttpXmux; };
+  singBoxXhttpTransport = {
+    type = "xhttp";
+    host = serverName;
+    path = xhttpPath;
+    mode = xhttpMode;
+    x_padding_bytes = xPaddingBytes;
+    x_padding_obfs_mode = xPaddingObfsMode;
+    x_padding_placement = xPaddingPlacement;
+    x_padding_header = xPaddingHeader;
+    x_padding_method = xPaddingMethod;
+  };
+  singBoxXhttpClientTransport = singBoxXhttpTransport // {
+    xmux = {
+      max_connections = xhttpXmux.maxConnections;
+      h_max_request_times = xhttpXmux.hMaxRequestTimes;
+      h_max_reusable_secs = xhttpXmux.hMaxReusableSecs;
+      h_keep_alive_period = xhttpXmux.hKeepAlivePeriod;
     };
   };
   xrayConfig = {
@@ -163,7 +193,7 @@ let
         streamSettings = {
           network = "xhttp";
           security = "reality";
-          inherit xhttpSettings;
+          xhttpSettings = xhttpClientSettings;
           realitySettings = {
             inherit serverName;
             fingerprint = "chrome";
@@ -241,8 +271,9 @@ in
       assertion = lib.elem core [
         "xray"
         "sing-box"
+        "sing-box-extended"
       ];
-      message = "xray.nix: core must be xray or sing-box";
+      message = "xray.nix: core must be xray, sing-box-extended or sing-box";
     }
     {
       assertion = !isXray || lib.versionAtLeast config.services.xray.package.version "26.11.9";
@@ -297,7 +328,7 @@ in
     content = builtins.toJSON xrayConfig;
   };
 
-  # Rollback also requires the subscription transport to switch to TCP + Vision.
+  # Legacy sing-box rollback requires the subscription to switch to TCP + Vision.
   # Templates contain only placeholders in the store; credentials are rendered at runtime.
   sops.templates."sing-box-config.json" = lib.mkIf (!isXray) {
     mode = "0400";
@@ -307,6 +338,16 @@ in
         disabled = false;
         level = if config.environment.minimal or false then "warn" else "info";
         timestamp = true;
+      };
+      # Typed DNS syntax is required by 1.14; use the host's configured resolver.
+      dns = {
+        servers = [
+          {
+            type = "local";
+            tag = "local";
+          }
+        ];
+        final = "local";
       };
 
       inbounds =
@@ -324,34 +365,46 @@ in
             ]
           else
             [
-              {
-                type = "vless";
-                tag = "vless-in";
-                listen = "::";
-                listen_port = xrayPort;
-                users = [
-                  {
-                    name = "default";
-                    uuid = config.sops.placeholder."xray/uuid";
-                    flow = "xtls-rprx-vision";
-                  }
-                ];
-                tls = {
-                  enabled = true;
-                  server_name = serverName;
-                  reality = {
+              (
+                {
+                  type = "vless";
+                  tag = "vless-in";
+                  listen = "::";
+                  listen_port = xrayPort;
+                  users = [
+                    (
+                      {
+                        name = "default";
+                        uuid = config.sops.placeholder."xray/uuid";
+                      }
+                      // lib.optionalAttrs (!isExtended) { flow = "xtls-rprx-vision"; }
+                    )
+                  ];
+                  tls = {
                     enabled = true;
-                    handshake = {
-                      server = serverName;
-                      server_port = 443;
+                    server_name = serverName;
+                    reality = {
+                      enabled = true;
+                      handshake = {
+                        server = serverName;
+                        server_port = 443;
+                      };
+                      private_key = config.sops.placeholder."xray/private_key";
+                      short_id = [
+                        config.sops.placeholder."xray/short_id"
+                      ];
+                    }
+                    // lib.optionalAttrs isExtended {
+                      # Needs synchronized host clocks; this does not stop immediate replay.
+                      max_time_difference = realityMaxTimeDifference;
                     };
-                    private_key = config.sops.placeholder."xray/private_key";
-                    short_id = [
-                      config.sops.placeholder."xray/short_id"
-                    ];
                   };
-                };
-              }
+                }
+                // lib.optionalAttrs isExtended {
+                  decryption = "none";
+                  transport = singBoxXhttpTransport;
+                }
+              )
             ]
         )
         ++ lib.optionals socks [
@@ -375,33 +428,44 @@ in
         }
       ]
       ++ lib.optionals needProxy (
-        (lib.imap0 (i: host: {
-          tag = "proxy-${toString i}";
-          type = "vless";
-          server = host;
-          server_port = 8555;
-          uuid = config.sops.placeholder."xray/uuid";
-          flow = "xtls-rprx-vision";
-          tls = {
-            enabled = true;
-            server_name = serverName;
-            utls = {
+        (lib.imap0 (
+          i: host:
+          {
+            tag = "proxy-${toString i}";
+            type = "vless";
+            server = host;
+            server_port = 8555;
+            uuid = config.sops.placeholder."xray/uuid";
+            tls = {
               enabled = true;
-              fingerprint = "chrome";
+              server_name = serverName;
+              utls = {
+                enabled = true;
+                fingerprint = "chrome";
+              };
+              reality = {
+                enabled = true;
+                public_key = config.sops.placeholder."xray/public_key";
+                short_id = config.sops.placeholder."xray/short_id";
+              };
             };
-            reality = {
-              enabled = true;
-              public_key = config.sops.placeholder."xray/public_key";
-              short_id = config.sops.placeholder."xray/short_id";
-            };
-          };
-        }) proxyHosts)
+          }
+          // (
+            if isExtended then
+              {
+                encryption = "none";
+                transport = singBoxXhttpClientTransport;
+              }
+            else
+              { flow = "xtls-rprx-vision"; }
+          )
+        ) proxyHosts)
         ++ lib.optionals useHealthCheckedBalancer [
           {
             type = "urltest";
             tag = "proxy-balancer";
             outbounds = lib.imap0 (i: _: "proxy-${toString i}") proxyHosts;
-            url = "https://cp.cloudflare.com/generate_204";
+            url = healthCheckUrl;
             interval = "1m";
           }
         ]
@@ -411,6 +475,7 @@ in
       # 1. 严格限制 SOCKS5 仅允许本机及自身 DN42 段访问，非授权流量直接阻断
       # 2. 需要代理时仅使用纯内存前缀后缀匹配，不加载庞大的外部数据库
       route = {
+        default_domain_resolver = "local";
         rules =
           (lib.optionals socks [
             {
@@ -428,6 +493,20 @@ in
               outbound = "block";
             }
           ])
+          # Resolve first so domain names cannot bypass public-inbound IP guards.
+          # Trusted SOCKS keeps its existing access to loopback and DN42 targets.
+          ++ [
+            {
+              inbound = [ primaryTag ];
+              action = "resolve";
+              server = "local";
+            }
+            {
+              inbound = [ primaryTag ];
+              ip_is_private = true;
+              action = "reject";
+            }
+          ]
           ++ (lib.optionals needProxy [
             {
               domain_suffix = proxyDomains;
@@ -443,10 +522,13 @@ in
     enable = isXray;
     settingsFile = lib.mkIf isXray config.sops.templates."xray-config.json".path;
   };
-  services.sing-box.enable = !isXray;
+  services.sing-box = {
+    enable = !isXray;
+    package = lib.mkIf isExtended pkgs.nur.repos.ataraxiasjel.sing-box-extended;
+  };
 
   # 4. 针对弱机（1CPU/256M 内存）深度调优 systemd 服务参数
-  systemd.services.${core} = {
+  systemd.services.${serviceName} = {
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     startLimitIntervalSec = lib.mkForce 0;
@@ -466,7 +548,7 @@ in
     };
     environment = {
       # 激进 GC 控制内存上限，避免低内存 VPS OOM
-      GOGC = lib.mkDefault "50";
+      GOGC = lib.mkDefault (if isExtended then "100" else "50");
       GOMEMLIMIT = lib.mkDefault "128MiB";
     };
   };
@@ -501,7 +583,7 @@ in
     description = "Trigger to restart proxy service";
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.systemd}/bin/systemctl restart ${core}.service";
+      ExecStart = "${pkgs.systemd}/bin/systemctl restart ${serviceName}.service";
     };
   };
 

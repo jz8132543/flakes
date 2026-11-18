@@ -67,6 +67,41 @@ let
       ss = true;
       needProxy = true;
     };
+    xray = {
+      core = "xray";
+    };
+    xrayProxy = {
+      core = "xray";
+      needProxy = true;
+    };
+    xraySs = {
+      core = "xray";
+      ss = true;
+    };
+    xraySsProxy = {
+      core = "xray";
+      ss = true;
+      needProxy = true;
+    };
+    xraySingle = {
+      core = "xray";
+      needProxy = true;
+      proxyHosts = [ "relay.example" ];
+    };
+    xrayNoSocks = {
+      core = "xray";
+      socks = false;
+    };
+    xrayPacket = {
+      core = "xray";
+      xhttpMode = "packet-up";
+    };
+    xrayAlternate = {
+      core = "xray";
+      xrayPort = 16811;
+      xhttpPath = "/alternate";
+      serverName = "alternate.example";
+    };
     packet = {
       xhttpMode = "packet-up";
     };
@@ -74,6 +109,21 @@ let
       xrayPort = 16811;
       xhttpPath = "/alternate";
       serverName = "alternate.example";
+    };
+    alternateProxy = {
+      needProxy = true;
+      xhttpXmux = {
+        maxConnections = "2-4";
+        hMaxRequestTimes = "100-200";
+        hMaxReusableSecs = "300-600";
+        hKeepAlivePeriod = 30;
+      };
+      realityMaxTimeDifference = "30s";
+    };
+    xrayAlternateProxy = {
+      core = "xray";
+      needProxy = true;
+      xhttpXmux = cases.alternateProxy.xhttpXmux;
     };
     legacy = {
       core = "sing-box";
@@ -100,8 +150,9 @@ let
             { networking.nftables.enable = name != "default"; }
           ];
         }).config;
-      core = args.core or "xray";
-      template = cfg.sops.templates."${core}-config.json";
+      core = args.core or "sing-box-extended";
+      serviceName = if core == "xray" then "xray" else "sing-box";
+      template = cfg.sops.templates."${serviceName}-config.json";
       moduleAssertions =
         ((import ../nixos/modules/services/xray.nix args) {
           config = cfg;
@@ -110,15 +161,19 @@ let
     in
     assert lib.all (entry: entry.assertion) moduleAssertions;
     {
-      inherit args core;
+      inherit args core serviceName;
       config = builtins.fromJSON template.content;
       templateMode = template.mode;
       templatePath = template.path;
       templateNames = builtins.attrNames cfg.sops.templates;
       inherit (template) restartUnits;
       secretModes = lib.mapAttrs (_: secret: secret.mode) cfg.sops.secrets;
-      service = cfg.systemd.services.${core}.serviceConfig;
-      environment = cfg.systemd.services.${core}.environment;
+      service = cfg.systemd.services.${serviceName}.serviceConfig;
+      environment = cfg.systemd.services.${serviceName}.environment;
+      serviceNames = builtins.attrNames cfg.systemd.services;
+      package = lib.getExe (
+        if core == "xray" then cfg.services.xray.package else cfg.services.sing-box.package
+      );
       xrayEnabled = cfg.services.xray.enable;
       singBoxEnabled = cfg.services.sing-box.enable;
       restartCommand = cfg.systemd.services.proxy-restart.serviceConfig.ExecStart;
@@ -142,6 +197,7 @@ pkgs.runCommand "xray-config-test"
       pkgs.sing-box
     ];
     inherit fixtures;
+    extended = lib.getExe pkgs.nur.repos.ataraxiasjel.sing-box-extended;
   }
   ''
     python3 ${./xray-config-test.py} "$fixtures"
