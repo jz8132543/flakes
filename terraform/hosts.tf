@@ -216,16 +216,19 @@ module "hosts" {
     )
   }
 
-  name                 = each.key
-  cloudflare_zone_id   = cloudflare_zone.im_dora.id
-  cloudflare_zone_name = cloudflare_zone.im_dora.name
-  records              = each.value.records
-  ddns_records         = each.value.ddns_records
-  host_indices         = each.value.host_indices
-  dn42_v4_cidr         = var.dn42_v4_cidr
-  dn42_v6_cidr         = var.dn42_v6_cidr
-  endpoints_v4         = each.value.endpoints_v4
-  endpoints_v6         = each.value.endpoints_v6
+  name                       = each.key
+  rustdesk_server_key        = each.key == "fra0" ? tls_private_key.rustdesk_server.private_key_pem : null
+  rustdesk_api_jwt_key       = each.key == "fra0" ? random_password.rustdesk_api_jwt_key.result : null
+  rustdesk_server_public_key = tls_private_key.rustdesk_server.public_key_openssh
+  cloudflare_zone_id         = cloudflare_zone.im_dora.id
+  cloudflare_zone_name       = cloudflare_zone.im_dora.name
+  records                    = each.value.records
+  ddns_records               = each.value.ddns_records
+  host_indices               = each.value.host_indices
+  dn42_v4_cidr               = var.dn42_v4_cidr
+  dn42_v6_cidr               = var.dn42_v6_cidr
+  endpoints_v4               = each.value.endpoints_v4
+  endpoints_v6               = each.value.endpoints_v6
 }
 
 output "hosts" {

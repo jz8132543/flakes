@@ -19,16 +19,25 @@ let
     lib.mapAttrsToList getHostToplevel config.flake.nixosConfigurations
   );
   fra0Pkgs = config.flake.nixosConfigurations.fra0.pkgs;
+  rustdeskClusterTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."rustdesk-cluster-test" =
+      import ../tests/rustdesk-cluster-test.nix
+        {
+          pkgs = fra0Pkgs;
+          configurations = config.flake.nixosConfigurations;
+        };
+  };
   livekitSuiteTest = {
     "${fra0Pkgs.stdenv.hostPlatform.system}"."livekit-suite-test" =
       let
         lazy = import ../nixos/modules/services/livekit-suite/test-discovery.nix { inherit lib; };
         cfg = config.flake.nixosConfigurations.fra0.config.services.livekitSuite;
-        hosts = map (name: config.flake.nixosConfigurations.${name}.config.services.livekitSuite) [
+        hostConfigs = map (name: config.flake.nixosConfigurations.${name}.config) [
           "fra0"
           "cu"
           "sjc0"
         ];
+        hosts = map (host: host.services.livekitSuite) hostConfigs;
       in
       assert lazy.noPackages && lazy.colmena;
       assert cfg.topology.primary.name == "fra0";
@@ -36,6 +45,16 @@ let
       assert builtins.length cfg.topology.turnServers == 9;
       assert builtins.length cfg.topology.redisNodes == 1;
       assert lib.all (host: host.sfu.enable && host.turn.enable && !host.development) hosts;
+      assert lib.all (
+        host:
+        let
+          secret = host.sops.secrets."livekit/master_secret";
+        in
+        secret.sopsFile == host.sops-file.get "common.yaml"
+        && secret.key == "livekit/master_secret"
+        && !secret.terraformOutput.enable
+        && host.services.livekitSuite.secretFile == secret.path
+      ) hostConfigs;
       fra0Pkgs.runCommand "livekit-suite-test"
         {
           nativeBuildInputs = with fra0Pkgs; [
@@ -44,14 +63,18 @@ let
             livekit
             coturn
             redis
+            (python3.withPackages (ps: [
+              ps.cryptography
+              ps.websockets
+            ]))
           ];
         }
         ''
-          cp -r ${../nixos/modules/services/livekit-suite} suite
-          chmod -R u+w suite
-          python3 -B suite/test-runtime.py -v
-          python3 -B suite/test-android-control.py -v
-          node --check suite/frontend/app.js
+            cp -r ${../nixos/modules/services/livekit-suite} suite
+            chmod -R u+w suite
+            python3 -B suite/test-runtime.py -v
+            python3 -B suite/test-android-control.py -v
+            node --check suite/frontend/app.js
           python3 -B suite/test-services.py
           touch "$out"
         '';
@@ -798,6 +821,7 @@ in
   flake.checks = lib.foldr lib.recursiveUpdate { } [
     hostToplevels
     livekitSuiteTest
+    rustdeskClusterTest
     desktopEvaluationTest
     wineAudioLaunchersTest
     fluxdownConfigTest

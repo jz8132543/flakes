@@ -30,7 +30,8 @@ let
               enable = lib.mkDefault true;
               domain = "${name}.example.org";
               httpsPort = if primary then 443 else 50569;
-              turnDomain = "turn-${name}.example.org";
+              signalingPath = if primary then "" else "/livekit";
+              turnDomain = if primary then "turn-primary.example.org" else "secondary.example.org";
               privateAddress = "${name}.internal";
               region = name;
               inherit primary;
@@ -56,7 +57,7 @@ assert builtins.length cfg.topology.sfuNodes == 2;
 assert builtins.length cfg.topology.redisNodes == 1;
 assert cfg.topology.primary.name == "primary";
 assert cfg.topology.primary.url == "wss://primary.example.org";
-assert (builtins.elemAt cfg.topology.nodes 1).url == "wss://secondary.example.org:50569";
+assert (builtins.elemAt cfg.topology.nodes 1).url == "wss://secondary.example.org:50569/livekit";
 assert builtins.length cfg.topology.iceServers == 4;
 assert builtins.length cfg.topology.turnServers == 6;
 assert colmena.config.services.livekitSuite.topology.nodes == cfg.topology.nodes;

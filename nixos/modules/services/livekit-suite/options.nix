@@ -59,6 +59,11 @@ in
         type = types.port;
         default = 443;
       };
+      signalingPath = mkOption {
+        type = types.str;
+        default = "";
+        description = "Optional reverse-proxy path prefix for LiveKit signaling, without a trailing slash.";
+      };
       turnDomain = text "";
       region = text "";
       latitude = mkOption {
@@ -81,7 +86,11 @@ in
       };
       turnTlsPort = mkOption {
         type = types.port;
-        default = cfg.settings.turn.advertisedTlsPort;
+        default =
+          if cfg._meta.turnDomain == cfg._meta.domain then
+            cfg.settings.turn.tlsProxyPort
+          else
+            cfg.settings.turn.advertisedTlsPort;
         internal = true;
       };
       redisPort = mkOption {

@@ -2,17 +2,19 @@
 
 ## 当前已接入节点
 
-| 节点 | 角色                                   | 信令域名                 | TURN 域名                 |
-| ---- | -------------------------------------- | ------------------------ | ------------------------- |
-| fra0 | SFU、TURN、网页/令牌 API、Redis 主节点 | livekit.dora.im          | livekit-turn.dora.im      |
-| cu   | SFU、TURN，媒体公网 IPv6 only          | livekit-cu.dora.im:50569 | livekit-turn-cu.dora.im   |
-| sjc0 | SFU、TURN                              | livekit-sjc0.dora.im     | livekit-turn-sjc0.dora.im |
+| 节点 | 角色                                   | 信令 URL                         | TURN 域名                               |
+| ---- | -------------------------------------- | -------------------------------- | --------------------------------------- |
+| fra0 | SFU、TURN、网页/令牌 API、Redis 主节点 | `wss://livekit.dora.im`          | livekit-turn.dora.im                    |
+| cu   | SFU、TURN，媒体公网 IPv6 only          | `wss://livekit-cu.dora.im:50569` | livekit-turn-cu.dora.im                 |
+| sjc0 | SFU、TURN                              | `wss://sjc0.dora.im/livekit`     | `turns:sjc0.dora.im:5352?transport=tcp` |
 
 DNS 记录在 `terraform/cloudflare.tf` 管理，全部 DNS-only，关闭 Cloudflare 橙云。`livekit-cu` 使用 A/AAAA：A 在每次 plan/apply 时查询 `cu.dora.im` 的 IPv4，AAAA 复用 `cuv6.dora.im` 的声明地址。不能在一个名称上同时放两个 CNAME，也不能 CNAME 与 A/AAAA 共存；`moved` 块保留已经 apply 的旧记录身份，先将 CNAME 改成 A，再创建 AAAA。新增 `hashicorp/dns` provider 后，需要用户先运行 `terraform-init`，再审查/apply DNS 变更；仅旧版 apply 不包含这次双栈修改。cu 的供应商 IPv4 若变化，需要重新 plan/apply 同步 A，DNS-only A 不会像 CNAME 一样自动跟踪变化。
 
 cu 信令使用已有 IPv4 NAT 映射端口 `50569`，即 `wss://livekit-cu.dora.im:50569`，同时允许 IPv4/IPv6 访问；这不代表 IPv4 媒体端口已经映射。`livekit-turn-cu` 继续仅 CNAME 到 `cuv6.dora.im`，避免给客户端广告无法到达的 IPv4 TURN/3480。cu 媒体仍广告真实公网 IPv6，IPv4-only 客户端应优先使用 fra0/sjc0，不能靠增加 A 记录解决媒体跨地址族问题。
 
-`terraform/password.tf` 提供独立敏感输出 `livekit_suite_master_secret`。apply 与秘密输出提取仍由用户执行；密钥未就绪前不进行远端部署。
+sjc0 的信令和 TURN/TLS 共用 `sjc0.dora.im`，无需 `livekit-sjc0` 或 `livekit-turn-sjc0` DNS 名称。信令使用 `wss://sjc0.dora.im/livekit`；TURN/TLS 使用同一主机名的独立端口 `turns:sjc0.dora.im:5352?transport=tcp`。5352 是独立 TCP TLS entrypoint，Traefik 按 `sjc0.dora.im` SNI 转发至 loopback Coturn PROXY v2 端口 5351；UDP/TCP TURN 仍在 3480，媒体 relay pool 仍独立。客户端必须支持非默认 TURN/TLS 端口。
+
+本仓库统一从 `secrets/common.yaml` 的二级字段 `livekit/master_secret` 读取主密钥。Terraform 既有输出 `livekit_suite_master_secret` 保留为迁移来源，不再由套件按 host 提取；实际值由用户使用 SOPS 迁移，密钥未就绪前不进行远端部署。
 
 主入口是 `https://livekit.dora.im`。可在浏览器观看手机发布的屏幕、内录音频并独立连麦；手机屏幕和内录的发布需要原生 Android LiveKit 应用，Android 浏览器普遍不能代替 MediaProjection 采集系统屏幕。
 
@@ -54,7 +56,7 @@ LiveKit 原生客户端通常填写 `wss://livekit.dora.im` 加一枚 JWT，而�
 ```nix
 { config, ... }: {
   services.livekitSuite = {
-    secretFile = config.sops.secrets.livekit_suite_master_secret.path;
+    secretFile = config.sops.secrets."livekit/master_secret".path;
     interfaces = [ "eth0" ];
     _meta = {
       domain = "livekit.example.org";
@@ -91,41 +93,43 @@ services.livekitSuite = {
 };
 ```
 
-## 密钥输出准备
+## common 中的二级密钥
 
-先由用户执行现有 Terraform 工作流。不要将明文输出粘贴到 Nix、日志、网页或聊天中。若使用 `terraform-pipe`，它除了 apply 还会更新输出、提取加密密钥、格式化并提交/推送 secrets 仓库，应确认自己接受这些副作用。单独执行 apply 后，还必须完成输出与秘密提取：
+通过 `sops secrets/common.yaml` 编辑，和 `rustdesk` 等分组并列添加以下结构。示意值必须替换为已有的真实主密钥：
 
-```bash
-terraform-wrapper apply
-terraform-update-outputs
-terraform-outputs-extract-secrets
+```yaml
+livekit:
+  master_secret: "<原 livekit_suite_master_secret 的完整值>"
 ```
 
-这些是仓库 devshell 中已有命令，提取命令在本地处理敏感数据并重新 SOPS 加密。应确认 `secrets/terraform/hosts/{fra0,cu,sjc0}.yaml` 均包含非空的 `livekit_suite_master_secret`，并确认三个节点的 age 私钥可以解密对应文件。**只有 DNS apply 成功，不代表部署密钥已经就绪。** 准备前相关服务即使有配置也不会启动；全量 build 的 SOPS 文件校验也可能因此失败。
+迁移来源是已有 `secrets/terraform/hosts/fra0.yaml` 中的 `livekit_suite_master_secret`，或已有加密 Terraform 输出中的同名字段。由用户在 SOPS 编辑视图中迁移真实值；不要重新生成种子，不要复制 `ENC[...]` 密文到不同文件或路径。fra0、cu、sjc0 都从 common 的同一字段读取，不再要求各 host 的 Terraform SOPS 文件包含它。
 
-运行时路径为 `/run/secrets/livekit_suite_master_secret`，经 `LoadCredential` 注入服务。`sops-install-secrets.service` 是显式依赖，秘密更新会重启相关服务。需要轮换时更新主种子并一致地部署所有节点；不能假设滚动更新期间不同种子的节点可以继续互通。
+套件未启用该字段的 `terraformOutput`，因此原有输出提取流程不会覆盖 common 中的值。已有密钥和 DNS 就绪时，这次读取位置迁移不需要 Terraform apply；不要为此删除已有 Terraform 密钥资源。DNS 或其他基础设施变更仍由用户按原 Terraform 工作流操作。
+
+运行时路径为 `/run/secrets/livekit/master_secret`，经 `LoadCredential` 注入服务。`sops-install-secrets.service` 是显式依赖，秘密更新会重启相关服务。需确认待部署节点的 age 身份可以解密 common；字段名存在或专项配置检查通过，都不能替代该验证。需要轮换时更新主种子并一致地部署所有节点；不能假设滚动更新期间不同种子的节点可以继续互通。
 
 agenix 或独立文件部署同样可用 `secretFile = "/run/agenix/livekit-master"`，文件需要至少 32 字节的真正随机材料，不应使用人类密码。开发机可显式设置 `development = true`，首次启动会在 `/var/lib/livekit-suite/master-secret` 生成随机种子；这只适合单机，不得在三个节点分别自动生成后期待集群互通。启用 impermanence 的开发机需要将该目录加入持久化声明。
 
 ## 防火墙与入口
 
-| 端口                | 用途                           | 暴露范围                           |
-| ------------------- | ------------------------------ | ---------------------------------- |
-| TCP 443             | WSS/HTTPS 与 TURN/TLS SNI 复用 | 公网 Traefik                       |
-| TCP 8443 / cu 50569 | 已有备用 HTTPS/TURN TLS 入口   | 保留现有端口声明                   |
-| TCP 17980           | SFU API/信令                   | 仅 127.0.0.1，由 Traefik 转发      |
-| TCP 17981           | WebRTC ICE/TCP                 | 各节点公网，不能经 HTTP 代理       |
-| UDP 63000-63999     | SFU ICE/媒体                   | 各节点公网                         |
-| UDP/TCP 3480        | Coturn STUN/TURN               | 各节点公网                         |
-| TCP 5351            | Coturn PROXY v2 内部端口       | nftables 仅允许 loopback           |
-| UDP 64000-64499     | 普通 UDP/TCP Coturn relay      | 各节点公网                         |
-| UDP 64500-64999     | TLS/PROXY Coturn relay         | 各节点公网                         |
-| TCP 6390            | Redis                          | fra0 loopback + fra0.ts 的私网地址 |
-| TCP 17990           | 网页/配置/令牌 HTTP 后端       | 仅 127.0.0.1                       |
+| 端口                | 用途                         | 暴露范围                           |
+| ------------------- | ---------------------------- | ---------------------------------- |
+| TCP 443             | WSS/HTTPS                    | 公网 Traefik                       |
+| TCP 5352            | `sjc0.dora.im` TURN/TLS      | sjc0 公网 Traefik 独立 entrypoint  |
+| TCP 8443 / cu 50569 | 已有备用 HTTPS/TURN TLS 入口 | 保留现有端口声明                   |
+| TCP 17980           | SFU API/信令                 | 仅 127.0.0.1，由 Traefik 转发      |
+| TCP 17981           | WebRTC ICE/TCP               | 各节点公网，不能经 HTTP 代理       |
+| UDP 63000-63999     | SFU ICE/媒体                 | 各节点公网                         |
+| UDP/TCP 3480        | Coturn STUN/TURN             | 各节点公网                         |
+| TCP 5351            | Coturn PROXY v2 内部端口     | nftables 仅允许 loopback           |
+| UDP 64000-64499     | 普通 UDP/TCP Coturn relay    | 各节点公网                         |
+| UDP 64500-64999     | TLS/PROXY Coturn relay       | 各节点公网                         |
+| TCP 6390            | Redis                        | fra0 loopback + fra0.ts 的私网地址 |
+| TCP 17990           | 网页/配置/令牌 HTTP 后端     | 仅 127.0.0.1                       |
 
 现有 MatrixRTC 的 7880/7881/50000-60000、既有 Coturn 3479/5349、DERP 3478 和 SSH transport 的 61001-61999 不变；套件不调整 Linux sysctl/qdisc。5350 是通用直连 TLS 模式的监听端口，本仓库采用 Traefik TLS 终止，因此不会向客户端广告或开放它。
 
-TURN 域名必须被证书覆盖，单层 `*.dora.im` 已有证书适用。Traefik 使用现有证书体系；TURN 专用 TLS options 不强制 HTTP ALPN。普通 HTTPS 路由照常工作，只有 TURN 域名 SNI 匹配专用 TCP 路由。cu 443/TLS 的 IPv6 可达性必须实测；若运营商封锁，需要同时修改其实际公开入口与元数据广告端口，不能只改 DNS。当前配置不假设能新增 cu IPv4 端口映射。
+TURN TLS 使用各自 metadata 中的 TURN host/SNI。sjc0 复用 `sjc0.dora.im`，端口 5352 独立 TLS，不与 443 HTTPS/HTTP3 冲突；Fra0 仍用 `livekit-turn.dora.im:443` 的 SNI 复用。Traefik TURN 专用 TLS options 不强制 HTTP ALPN。cu 443/TLS 的 IPv6 可达性必须实测；若运营商封锁，需要同时修改其实际公开入口与元数据广告端口，不能只改 DNS。当前配置不假设能新增 cu IPv4 端口映射。
 
 ## 用户接入
 
@@ -165,7 +169,7 @@ nix flake check --no-build
 
 Git Flake 不包含未跟踪文件。新文件尚未纳入 Git 时，可临时使用 `path:/absolute/path/to/flakes` 做本地求值；不要误把缺文件错误当作 Nix 模块错误。本仓库全量 checks 还包含所有主机和其他已有改动，单项套件检查与全量失败需分别判断。
 
-用户完成 apply 和加密输出提取后，再构建三个节点并进行远端部署测试。部署顺序优先 fra0 的密钥/Redis/Tailscale/HTTPS，再部署边缘节点。在未经用户确认前不执行远端部署。
+用户将既有主密钥迁移到 common，并完成必要的 DNS apply 后，再构建和部署本次获授权的节点。部署顺序优先 fra0 的密钥/Redis/Tailscale/HTTPS，再部署边缘节点。cu 仍按当前任务约定暂缓。
 
 实机验收清单：
 

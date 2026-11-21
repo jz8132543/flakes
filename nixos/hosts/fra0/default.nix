@@ -16,6 +16,7 @@
       nixosModules.services.traefik
       nixosModules.services.livekit.all
       ../../modules/services/livekit-suite/infrastructure.nix
+      nixosModules.services.rustdesk
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.dev
       nixosModules.optimize.anti-balloon
@@ -26,6 +27,7 @@
       # nixosModules.services.minio
       nixosModules.services.ntfy
       nixosModules.services.degoog
+      nixosModules.services.metapi
       (import nixosModules.services.atuin { })
       nixosModules.services.vscode
       # nixosModules.services.ollama
@@ -73,9 +75,22 @@
     ];
 
   services.moviepilot.enable = true;
+  services.rustdesk-server.cluster = {
+    enable = true;
+    role = "signal";
+    api.enable = true;
+    relayHosts = [
+      "fra0.dora.im:21117"
+      "sjc0.dora.im:21117"
+    ];
+  };
   services.cluster-monitoring.server.publicEndpoints =
     options.services.cluster-monitoring.server.publicEndpoints.default
-    ++ [ "https://livekit.dora.im/healthz" ];
+    ++ [
+      "https://livekit.dora.im/healthz"
+      "https://rustdesk.dora.im/"
+      "https://metapi.dora.im/"
+    ];
   services.livekitSuite._meta = {
     primary = true;
     domain = "livekit.dora.im";
@@ -122,6 +137,7 @@
   services.cpa.enable = true;
   services.workbuddy2api-hub.enable = true;
   services.degoog.enable = true;
+  services.metapi.enable = true;
   services.easytierMesh.role = "bootstrap";
   services.easytierMesh.web.enable = true;
   services.obsidianLiveSync.enable = true;

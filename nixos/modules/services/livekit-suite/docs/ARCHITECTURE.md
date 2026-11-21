@@ -20,6 +20,8 @@ flowchart LR
 
 `cu` 的信令域名提供来自 `cu.dora.im`/`cuv6.dora.im` 的 A/AAAA，使用已映射的 TCP 50569。它的媒体仍只广告真实公网 IPv6，不广告 `10.105.0.56` 或供应商有限映射端口之外的公网 IPv4，TURN 域名仍保持 IPv6-only。只有 IPv4 的客户端不应依赖 cu 直连媒体或 cu TURN；可使用 fra0/sjc0 的双栈 TURN。国内 IPv6 与海外 IPv6 的可达性也必须实测。跨地址族 TURN 分配受客户端 RFC 6156 支持影响，不能只凭增加 A/AAAA 记录承诺成功。
 
+sjc0 的 LiveKit 信令复用 `sjc0.dora.im/livekit`。LiveKit JS SDK 将基础 URL 路径保留在信令及验证请求中；Traefik 按 Host 和 `/livekit/rtc`、`/livekit/twirp` 路由，并剥掉 `/livekit` 后转发给 SFU。TURN/TLS 复用同一个 `sjc0.dora.im` SNI，但使用 TCP 5352 独立 entrypoint；Traefik 在该端口终止 TLS 并将 PROXY v2 转发至 Coturn。TURN/TLS 与 HTTPS 是独立连接，客户端需显式使用 `turns:sjc0.dora.im:5352`，不依赖额外 DNS 记录。
+
 ## 惰性发现与防递归
 
 `default.nix` 导出四个角色及聚合模块；同路径的 `options.nix` 被 NixOS 模块系统去重。每个角色入口给 `_meta.enable` 赋 `lib.mkDefault true`，角色布尔值来自本机静态 `sfu/turn/web/redis.enable`，不会引用拓扑。元数据只包含布尔、字符串、整数，不包含 derivation、`pkgs` 或密钥内容。端口默认值来自纯数据 `settings.nix`。
@@ -75,7 +77,7 @@ Coturn 设置 `tcp-proxy-port` 后不会同时保留普通 TCP 监听。因此�
 
 ## 密钥与服务隔离
 
-Terraform 生成独立 64 字符主种子，经现有输出提取流程加密为每节点 SOPS 文件。所有运行时服务通过 systemd `LoadCredential` 读取同一个种子，使用 HMAC-SHA256 域分离派生 API 签名密钥、Redis 密码、TURN secret、用户加入凭据。Nix store 仅保存无秘密模板和派生代码，包含秘密的运行时配置权限为 0600。
+本仓库以 `secrets/common.yaml` 的二级字段 `livekit/master_secret` 作为主种子的统一读取来源，原 Terraform 生成的 64 字符种子由用户原样迁移。套件不再从各节点的 Terraform SOPS 文件读取该值。所有运行时服务通过 systemd `LoadCredential` 读取同一个种子，使用 HMAC-SHA256 域分离派生 API 签名密钥、Redis 密码、TURN secret、用户加入凭据。Nix store 仅保存无秘密模板和派生代码，包含秘密的运行时配置权限为 0600。
 
 主种子不得提供给浏览器。网页仅接收房间加入 JWT 与短期 TURN 凭据，不持久化密码/token。令牌没有管理授权；加入凭据是可信小群体共用密码，不是完整用户账号系统。公开加入 API 的请求体、线程数、等待时间、每分钟请求数均有边界。若要开放给不可信公众，应先接入用户鉴权、房间 ACL、审计及更细的配额。
 

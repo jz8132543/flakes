@@ -27,6 +27,9 @@ terraform {
     dns = {
       source = "hashicorp/dns"
     }
+    tls = {
+      source = "hashicorp/tls"
+    }
     # Media automation providers (devopsarr)
     # sonarr = {
     #   source = "devopsarr/sonarr"

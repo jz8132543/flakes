@@ -38,8 +38,10 @@
     redis.enable = false;
     web.enable = false;
     _meta = {
-      domain = "livekit-sjc0.dora.im";
-      turnDomain = "livekit-turn-sjc0.dora.im";
+      domain = "sjc0.dora.im";
+      signalingPath = "/livekit";
+      turnDomain = "sjc0.dora.im";
+      turnTlsPort = 5352;
       publicIpv4 = "45.143.130.230";
       publicIpv6 = "2604:a840:101:2d9::a";
       privateAddress = "sjc0.ts";
@@ -47,6 +49,10 @@
       latitude = 37.3382;
       longitude = -121.8863;
     };
+  };
+  services.rustdesk-server.cluster = {
+    enable = true;
+    role = "relay";
   };
   services.nextcloud-talk-edge = {
     enable = true;

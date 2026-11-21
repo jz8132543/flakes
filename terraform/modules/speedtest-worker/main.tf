@@ -2,7 +2,7 @@ terraform {
   required_providers {
     cloudflare = {
       source  = "cloudflare/cloudflare"
-      version = "~> 5.16.0"
+      version = ">= 5.16.0"
     }
   }
 }
@@ -36,10 +36,11 @@ resource "cloudflare_workers_script" "this" {
 
 # Custom Domains provision their own DNS record and edge certificate.
 resource "cloudflare_workers_custom_domain" "this" {
-  account_id = var.account_id
-  hostname   = var.hostname
-  service    = cloudflare_workers_script.this.script_name
-  zone_id    = var.zone_id
+  account_id  = var.account_id
+  environment = "production"
+  hostname    = var.hostname
+  service     = cloudflare_workers_script.this.script_name
+  zone_id     = var.zone_id
 }
 
 output "url" {

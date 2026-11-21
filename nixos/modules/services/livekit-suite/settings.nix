@@ -84,6 +84,7 @@
     port = 3480;
     tlsPort = 5350;
     proxyPort = 5351;
+    tlsProxyPort = 5352;
     advertisedTlsPort = 443;
     relayStart = 64000;
     relayEnd = 64499;

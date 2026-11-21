@@ -92,6 +92,10 @@
       qrcp = 3270;
       tailscale = 41641;
       wireguard = 51820;
+      rustdesk-signal = 21116;
+      rustdesk-relay = 21117;
+      rustdesk-relay-cu = 50566;
+      rustdesk-api = 21114;
       authentik = 9001;
       authentik-ldap = 9000;
       authentik-metrics = 9301;
@@ -137,6 +141,7 @@
       nextcloud-talk-hpb = 13445;
       nextcloud-notify-push = 7867; # Nextcloud notify_push 推送服务
       coturn-tls = 5349; # TURN over TLS for Nextcloud Talk
+      livekit-turn-tls-sjc0 = 5352; # TURN/TLS on sjc0.dora.im without another DNS name
       code = 4444;
       opencloud = 9200;
       cfProxy = 2408;
@@ -177,6 +182,7 @@
       cpa = 8317;
       workbuddy2api-hub = 8788;
       degoog = 8888;
+      metapi = 4000;
       # Monitoring stack
       victoriametrics = 8428;
       vmalert = 8881;

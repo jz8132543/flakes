@@ -238,10 +238,6 @@
       "on": "fra0",
       "proxy": false
     },
-    "livekit-sjc0": {
-      "on": "sjc0",
-      "proxy": false
-    },
     "livekit-turn": {
       "on": "fra0",
       "proxy": false
@@ -250,15 +246,15 @@
       "on": "cuv6",
       "proxy": false
     },
-    "livekit-turn-sjc0": {
-      "on": "sjc0",
-      "proxy": false
-    },
     "maintainerr": {
       "on": "fra0",
       "proxy": false
     },
     "memos": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "metapi": {
       "on": "fra0",
       "proxy": false
     },
@@ -299,6 +295,10 @@
       "proxy": false
     },
     "radarr": {
+      "on": "fra0",
+      "proxy": false
+    },
+    "rustdesk": {
       "on": "fra0",
       "proxy": false
     },

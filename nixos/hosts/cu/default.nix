@@ -22,6 +22,7 @@
       nixosModules.nextcloud.talk-edge
       nixosModules.services.livekit.all
       ../../modules/services/livekit-suite/infrastructure.nix
+      nixosModules.services.rustdesk
     ];
 
   optimize.brutal.target = "!cn";
@@ -39,6 +40,11 @@
       latitude = 35.0;
       longitude = 105.0;
     };
+  };
+  services.rustdesk-server.cluster = {
+    enable = true;
+    role = "relay";
+    relayPort = config.ports.rustdesk-relay-cu;
   };
 
   services.nextcloud-talk-edge = {

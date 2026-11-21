@@ -31,7 +31,9 @@ let
       null;
   urlFor =
     node:
-    "wss://${node.domain}${lib.optionalString (node.httpsPort != 443) ":${toString node.httpsPort}"}";
+    "wss://${node.domain}${
+      lib.optionalString (node.httpsPort != 443) ":${toString node.httpsPort}"
+    }${node.signalingPath}";
   host =
     meta:
     if meta.turnDomain != "" then
