@@ -10,7 +10,7 @@
     ++ nixosModules.services.media.all
     ++ nixosModules.matrix.all
     ++ nixosModules.services.networking.dn42.all
-    ++ nixosModules.services.ai.all # AI 全栈体系：gateway (new-api, cpa), dify, mcp, companion
+    ++ nixosModules.services.ai.all # AI 服务器全栈：gateway, dify, mcp, companion, openhands
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik

@@ -8,8 +8,8 @@
   };
 
   imports = [
-    nixosModules.services.ai."local-llm".settings
-    nixosModules.services.ai."local-llm"."llama-suite".llama-cpp
-    nixosModules.services.ai."local-llm"."llama-suite".llama-swap
+    nixosModules.services.ai-local.settings
+    nixosModules.services.ai-local."llama-suite".llama-cpp
+    nixosModules.services.ai-local."llama-suite".llama-swap
   ];
 }

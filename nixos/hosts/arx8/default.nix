@@ -19,7 +19,7 @@
       nixosModules.optimize.dev
       # nixosModules.services.microsocks
     ]
-    ++ nixosModules.services.ai."local-llm".all;
+    ++ nixosModules.services."ai-local".all;
 
   optimize.brutal.target = "!cn";
 

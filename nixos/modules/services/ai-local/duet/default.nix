@@ -10,7 +10,7 @@ let
   settings = config.services.local-llm.settings.duet;
 in
 {
-  imports = [ nixosModules.services.ai."local-llm".settings ];
+  imports = [ nixosModules.services.ai-local.settings ];
   options.services.duet = {
     enable = lib.mkEnableOption "DuET piano performance-to-score transcription";
     package = lib.mkOption {
