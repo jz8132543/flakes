@@ -1,4 +1,5 @@
 local group = noctalia.getConfig("group")
+local overview = noctalia.getConfig("layout") == "overview" or group == "processors" or group == "capacity"
 local titles = { network = "网络", cpu = "CPU", gpu = "GPU", memory = "内存与交换空间", vram = "显存" }
 local history = {}
 local lastLabels = {}
@@ -25,12 +26,17 @@ local function rate(value)
   return string.format("%.0f B/s", value)
 end
 
+local function capacity(used, total, divisor)
+  if used == nil or total == nil then return "不可用" end
+  return string.format("%.1f/%.1f", used / divisor, total / divisor)
+end
+
 function update()
   local stats = noctalia.systemStats()
   local gpuPoll = noctalia.getSetting("system.monitor.gpu_poll_seconds")
-  noctalia.setGpuMonitoring(stats ~= nil and (group == "gpu" or group == "vram") and gpuPoll > 0)
+  noctalia.setGpuMonitoring(stats ~= nil and (group == "gpu" or group == "vram" or group == "processors" or group == "capacity") and gpuPoll > 0)
 
-  if group == "gpu" then
+  if group == "gpu" or group == "processors" then
     local command = noctalia.getConfig("gpu_frequency_command")
     local now = noctalia.nowMs()
     if stats == nil or gpuPoll <= 0 then
@@ -54,6 +60,80 @@ function update()
   local ram = stats and stats.ram or {}
   local swap = stats and stats.swap or {}
   local net = stats and stats.net or {}
+  if overview then
+    local metrics
+    if group == "processors" then
+      metrics = {
+        { "CPU", cpu.usagePercent, formatted(cpu.usagePercent, "%.0f%%"),
+          formatted(cpu.freqMhz and cpu.freqMhz / 1000, "%.2f GHz") .. " / " .. formatted(cpu.tempC, "%.0f °C") },
+        { "GPU", gpu.usagePercent, formatted(gpu.usagePercent, "%.0f%%"),
+          formatted(gpuFrequency and gpuFrequency / 1000, "%.2f GHz") .. " / " .. formatted(gpu.tempC, "%.0f °C") },
+      }
+    elseif group == "capacity" then
+      metrics = {
+        { "RAM", ram.usagePercent, formatted(ram.usagePercent, "%.0f%%"),
+          capacity(ram.usedMb, ram.totalMb, 1024) },
+        { "VRAM", percent(gpu.vramUsedBytes, gpu.vramTotalBytes), formatted(percent(gpu.vramUsedBytes, gpu.vramTotalBytes), "%.0f%%"),
+          capacity(gpu.vramUsedBytes, gpu.vramTotalBytes, 1073741824) },
+        { "Swap", nil, swap.totalMb == 0 and "未启用" or formatted(percent(swap.usedMb, swap.totalMb), "%.0f%%"),
+          capacity(swap.usedMb, swap.totalMb, 1024) },
+      }
+    else
+      metrics = {
+        { "下载", net.rxBytesPerSec, rate(net.rxBytesPerSec) },
+        { "上传", net.txBytesPerSec, rate(net.txBytesPerSec) },
+      }
+    end
+
+    local columns = {}
+    lastLabels = {}
+    for index, metric in ipairs(metrics) do
+      if index <= 2 then
+        local samples = history[index] or {}
+        if metric[2] == nil then
+          samples = {}
+        else
+          table.insert(samples, math.max(0, metric[2]))
+          if #samples > 60 then table.remove(samples, 1) end
+        end
+        history[index] = samples
+      end
+      local color = index == 1 and "primary" or (index == 2 and "secondary" or "tertiary")
+      local children = {
+        ui.label({ text = metric[1], fontSize = 11, color = color, maxLines = 1 }),
+        ui.label({ text = metric[3], fontSize = 16, fontWeight = "bold", color = "on_surface", maxLines = 1 }),
+      }
+      local inspection = metric[1] .. ": " .. metric[3]
+      for detail = 4, 5 do
+        if metric[detail] ~= nil then
+          table.insert(children, ui.label({ text = metric[detail], fontSize = 10, color = "on_surface_variant", maxLines = 1 }))
+          inspection = inspection .. " / " .. metric[detail]
+        end
+      end
+      table.insert(lastLabels, inspection)
+      table.insert(columns, ui.column({ gap = 1, width = (232 - (#metrics - 1) * 8) / #metrics }, children))
+    end
+
+    -- Rescale the complete network window together, so upload and download share
+    -- an honest axis and historical spikes retain their relative magnitudes.
+    local maximum = 100
+    if group == "network" then
+      maximum = 1000
+      for _, samples in ipairs(history) do
+        for _, value in ipairs(samples) do maximum = math.max(maximum, value) end
+      end
+    end
+    local curves = { {}, {} }
+    for index, samples in ipairs(history) do
+      for _, value in ipairs(samples) do table.insert(curves[index], math.min(1, value / maximum)) end
+    end
+    local content = {
+      ui.graph({ values = curves[1], values2 = curves[2], color = "primary", color2 = "secondary", width = 232, height = 48, lineWidth = 1.5, fillOpacity = 0.08 }),
+      ui.row({ gap = 8, width = 232 }, columns),
+    }
+    desktopWidget.render(ui.column({ gap = 6, width = 232 }, content))
+    return
+  end
   local metrics
   if group == "network" then
     metrics = {

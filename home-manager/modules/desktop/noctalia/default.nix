@@ -8,7 +8,113 @@
 }:
 let
   enabled = lib.attrByPath [ "desktop" "noctalia" "enable" ] false osConfig;
+  showcase = lib.attrByPath [ "desktop" "noctalia" "showcase" ] {
+    enable = false;
+    logicalWidth = 1706;
+    logicalHeight = 1066;
+  } osConfig;
   baseline = builtins.fromJSON (builtins.readFile ./noctalia-base-settings.json);
+  showcaseReference = builtins.fromJSON (builtins.readFile ./noctalia-showcase-settings.json);
+  # PlacementMapper remaps centres only. Size the boxes once in logical pixels;
+  # the lockscreen uses a centred safe area, while the desktop column hugs the edge.
+  placeWidgets =
+    referenceHeight: widgets:
+    let
+      width = showcase.logicalWidth * 1.0;
+      height = showcase.logicalHeight * 1.0;
+      scale = lib.min (width / 1920.0) (height / referenceHeight);
+      dx = (width - scale * 1920.0) / 2.0;
+      dy = (height - scale * referenceHeight) / 2.0;
+    in
+    lib.mapAttrs (
+      _: widget:
+      let
+        anchored = widget.anchor_top_right or false;
+      in
+      (builtins.removeAttrs widget [
+        "anchor_top_right"
+        "anchor_below_bar"
+      ])
+      // {
+        cx = if anchored then width - scale * (1920.0 - widget.cx) else dx + scale * widget.cx;
+        cy =
+          if widget.anchor_below_bar or false then
+            showcaseReference.bar.main.thickness + scale * widget.box_height / 2.0
+          else
+            (if anchored then 0.0 else dy) + scale * widget.cy;
+        box_width = scale * widget.box_width;
+        box_height = scale * widget.box_height;
+        placement_width = width;
+        placement_height = height;
+        settings = lib.mapAttrs (
+          key: value:
+          if
+            lib.elem key [
+              "background_radius"
+              "background_padding"
+            ]
+          then
+            # Native backgrounds apply ui_scale separately from the box size.
+            lib.min 32 (builtins.floor (scale * value / showcaseReference.accessibility.ui_scale + 0.5))
+          else
+            value
+        ) widget.settings;
+      }
+    ) widgets;
+  showcaseSettings =
+    lib.recursiveUpdate
+      (builtins.removeAttrs showcaseReference [
+        "desktop_widgets"
+        "lockscreen_widgets"
+      ])
+      {
+        bar.main.margin_ends = builtins.floor (showcase.logicalWidth * 0.093);
+        desktop_widgets = {
+          inherit (showcaseReference.desktop_widgets) widget_order;
+          widget = lib.recursiveUpdate (placeWidgets 1079.0 showcaseReference.desktop_widgets.widget) {
+            showcase-processors.settings.gpu_frequency_command = [ "${gpuClock}" ];
+          };
+        };
+        lockscreen_widgets = {
+          inherit (showcaseReference.lockscreen_widgets) widget_order;
+          widget = placeWidgets 1080.0 showcaseReference.lockscreen_widgets.widget;
+        };
+        wallpaper.default.path = "${pkgs.wallpaper.showcase}/wallpaper.png";
+        lockscreen.wallpaper = "${pkgs.wallpaper.showcaseLockscreen}/lockscreen.png";
+      };
+  # The host's previous authentication card has ordinary priority. Override only
+  # its owned leaves and order, leaving the legacy widgets available when disabled.
+  lockScale = lib.min (showcase.logicalWidth / 1920.0) (showcase.logicalHeight / 1080.0);
+  showcaseLogin = {
+    type = "login_box";
+    output = "eDP-1";
+    cx = showcase.logicalWidth / 2.0;
+    cy = (showcase.logicalHeight - lockScale * 1080.0) / 2.0 + lockScale * 933.0;
+    box_width = lockScale * 810.0;
+    # Native regular login height is recomputed from the controls, not scaled.
+    box_height = 150.0;
+    placement_width = showcase.logicalWidth * 1.0;
+    placement_height = showcase.logicalHeight * 1.0;
+    rotation = 0.0;
+    settings = {
+      layout = "regular";
+      show_media = true;
+      show_media_controls = true;
+      show_weather = true;
+      show_login_button = true;
+      show_password_reveal = false;
+      show_session_buttons = false;
+      show_unlock_hint = true;
+      show_caps_lock = true;
+      show_keyboard_layout = true;
+      center_password_text = true;
+      background_color = "surface_container";
+      background_opacity = 0.88;
+      background_radius = 18;
+      input_opacity = 1.0;
+      input_radius = 9;
+    };
+  };
   # Match tmux's Dracula background while keeping theme-generated dark ANSI colours.
   kittyTemplate = pkgs.writeText "noctalia-kitty-dark.conf" (
     lib.replaceStrings
@@ -72,52 +178,59 @@ let
         config.home.homeDirectory
       ]
       config.xdg.userDirs.pictures;
-  settings = lib.recursiveUpdate baseline {
-    shell.screenshot.directory = "${pictures}/Screenshots";
-    wallpaper = {
-      default.path = "${pkgs.wallpaper}/wallpaper.jpg";
-      directory = "${pictures}/Wallpapers";
-    };
-    theme.templates.user.kitty = {
-      input_path = "${kittyTemplate}";
-      output_path = "$XDG_STATE_HOME/noctalia/kitty-theme.conf";
-      post_hook = "${pkgs.procps}/bin/pkill -USR1 -u ${lib.escapeShellArg config.home.username} -x '(kitty|[.]kitty-wrapped_*)' || true";
-    };
-    plugins = {
-      enabled = [
-        "cleboost/ssh-launcher"
-        "nightwatch75/file-search"
-        "3dprogramin/vscode"
-        "local/sysmon-cards"
-      ];
-      source = baseline.plugins.source ++ [
-        {
-          name = "launcher-pinned";
-          kind = "path";
-          location = "${launcherPlugins}";
-          enabled = true;
-        }
-        {
-          name = "desktop-local";
-          kind = "path";
-          location = "${desktopPlugins}";
-          enabled = true;
-        }
-      ];
-    };
-    desktop_widgets.widget.monitor-gpu.settings.gpu_frequency_command = [ "${gpuClock}" ];
-    plugin_settings = {
-      "nightwatch75/file-search" = {
-        search_folder = "~";
-        show_hidden = false;
-        space_enabled = false;
+  settings =
+    lib.recursiveUpdate
+      (lib.recursiveUpdate baseline (lib.optionalAttrs showcase.enable showcaseSettings))
+      {
+        shell.screenshot.directory = "${pictures}/Screenshots";
+        wallpaper = {
+          default.path =
+            if showcase.enable then
+              "${pkgs.wallpaper.showcase}/wallpaper.png"
+            else
+              "${pkgs.wallpaper}/wallpaper.jpg";
+          directory = "${pictures}/Wallpapers";
+        };
+        theme.templates.user.kitty = {
+          input_path = "${kittyTemplate}";
+          output_path = "$XDG_STATE_HOME/noctalia/kitty-theme.conf";
+          post_hook = "${pkgs.procps}/bin/pkill -USR1 -u ${lib.escapeShellArg config.home.username} -x '(kitty|[.]kitty-wrapped_*)' || true";
+        };
+        plugins = {
+          enabled = [
+            "cleboost/ssh-launcher"
+            "nightwatch75/file-search"
+            "3dprogramin/vscode"
+            "local/sysmon-cards"
+          ];
+          source = baseline.plugins.source ++ [
+            {
+              name = "launcher-pinned";
+              kind = "path";
+              location = "${launcherPlugins}";
+              enabled = true;
+            }
+            {
+              name = "desktop-local";
+              kind = "path";
+              location = "${desktopPlugins}";
+              enabled = true;
+            }
+          ];
+        };
+        desktop_widgets.widget.monitor-gpu.settings.gpu_frequency_command = [ "${gpuClock}" ];
+        plugin_settings = {
+          "nightwatch75/file-search" = {
+            search_folder = "~";
+            show_hidden = false;
+            space_enabled = false;
+          };
+          "3dprogramin/vscode" = {
+            editor = "code";
+            show_git = false;
+          };
+        };
       };
-      "3dprogramin/vscode" = {
-        editor = "code";
-        show_git = false;
-      };
-    };
-  };
 in
 {
   imports = [ inputs.noctalia.homeModules.default ];
@@ -153,7 +266,21 @@ in
       checkConfig = true;
       # Per-key defaults remain overridable by other HM modules. Noctalia's GUI
       # independently writes settings.toml in stateHome, which wins at runtime.
-      settings = lib.mapAttrsRecursive (_: value: lib.mkDefault value) settings;
+      settings = lib.mkMerge [
+        (lib.mapAttrsRecursive (_: value: lib.mkDefault value) settings)
+        { shell.umbriel_overview_type_to_launch_enabled = false; }
+        (lib.mkIf showcase.enable {
+          lockscreen_widgets = {
+            widget_order = lib.mkForce (
+              showcaseReference.lockscreen_widgets.widget_order
+              ++ lib.optional (osConfig.networking.hostName == "arx8") "lockscreen-login-box@eDP-1"
+            );
+            widget = lib.optionalAttrs (osConfig.networking.hostName == "arx8") {
+              "lockscreen-login-box@eDP-1" = lib.mapAttrsRecursive (_: value: lib.mkForce value) showcaseLogin;
+            };
+          };
+        })
+      ];
     };
 
     # GUI overrides and encrypted clipboard history belong to the writable state.

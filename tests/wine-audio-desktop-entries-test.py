@@ -51,8 +51,19 @@ for filename in sys.argv[3:]:
     assert glib.g_shell_parse_argv(value('Exec').encode(), C.byref(argc), C.byref(argv), None)
     arguments = [argv[index].decode() for index in range(argc.value)]
     glib.g_strfreev(argv)
+    desktop = Path(filename).name
+    if desktop == 'vsl-concert-d274-low-latency.desktop':
+        assert value('Terminal') == 'true'
+        assert value('Name') == 'VSL Concert D-274 - Low Latency Carla'
+        assert value('Path') == '/mnt/games/Audio/D-274'
+        assert len(arguments) == 1
+        program = Path(arguments[0])
+        assert program.name == 'vsl-concert-d274-low-latency' and program.is_file()
+        results.append({'file': filename, 'name': value('Name'), 'arguments': arguments})
+        glib.g_key_file_free(keyfile)
+        continue
     assert value('Terminal') == 'false'
-    if Path(filename).name == 'com.bitwig.BitwigStudio.desktop':
+    if desktop == 'com.bitwig.BitwigStudio.desktop':
         assert value('Name') == 'Bitwig Studio'
         assert arguments == [str(bitwig_package / 'bin/bitwig-studio')]
         assert Path(arguments[0]).is_file()
@@ -79,5 +90,7 @@ for filename in sys.argv[3:]:
     results.append({'file': filename, 'name': value('Name'), 'arguments': arguments})
     glib.g_key_file_free(keyfile)
 
-assert {Path(result['file']).name for result in results} == set(expected) | {'com.bitwig.BitwigStudio.desktop'}
+assert {Path(result['file']).name for result in results} == set(expected) | {
+    'com.bitwig.BitwigStudio.desktop', 'vsl-concert-d274-low-latency.desktop',
+}
 print(json.dumps(results, indent=2))

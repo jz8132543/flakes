@@ -1,6 +1,6 @@
 id = "local/sysmon-cards"
 name = "System Monitor Cards"
-version = "1.0.0"
+version = "1.1.0"
 plugin_api = 46
 description = "Named system metrics in grouped desktop cards."
 
@@ -19,6 +19,18 @@ options = [
   { value = "gpu", label_key = "gpu" },
   { value = "memory", label_key = "memory" },
   { value = "vram", label_key = "vram" },
+  { value = "processors", label_key = "processors" },
+  { value = "capacity", label_key = "capacity" },
+]
+
+[[desktop_widget.setting]]
+key = "layout"
+type = "select"
+label_key = "layout"
+default = "rows"
+options = [
+  { value = "rows", label_key = "rows" },
+  { value = "overview", label_key = "overview" },
 ]
 
 [[desktop_widget.setting]]

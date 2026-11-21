@@ -62,10 +62,16 @@ in
 
       services.mihomo = {
         enable = lib.mkDefault true;
+        # 覆盖上游模块的默认包，使订阅更新脚本的 PATH、webui 及其他引用
+        # 全部指向同一内核；只改 ExecStart 会让校验仍用上游二进制。
+        package = lib.mkForce mihomoPackage;
         tunMode = true;
         webui = pkgs.metacubexd;
         configFile = "/etc/mihomo/config.yaml";
       };
+      # Keep the persistent workdir writable even when subscription updates are disabled.
+      # Only the directory is public; credentials and new files retain their private modes.
+      systemd.tmpfiles.rules = [ "d /etc/mihomo 0777 mihomo mihomo -" ];
       systemd.services.mihomo = {
         after = [ "NetworkManager-wait-online.service" ];
         wants = [ "NetworkManager-wait-online.service" ];
@@ -79,6 +85,8 @@ in
           # 该目录必须是持久化的，否则每次重启都退回冷启动状态、
           # 已收敛的节点权重全部丢失，因此指向 /etc/mihomo。
           ExecStart = lib.mkForce "${lib.getExe mihomoPackage} -d /etc/mihomo -f ${configPath} -ext-ui ${pkgs.metacubexd}";
+          # ProtectSystem=strict also applies to ExecStartPre; chmod alone cannot fix EROFS.
+          ReadWritePaths = [ "/etc/mihomo" ];
           Restart = "always";
           RestartSec = 5;
           TimeoutStartSec = "75s";

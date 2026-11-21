@@ -328,13 +328,17 @@ Mihomo 的实际入口是 `xhttp-opts.reuse-settings`（注释 aka XMUX），不
 
 ```yaml
 reuse-settings:
-  max-connections: "3-3" # 连接池大小
-  h-max-request-times: "600-900" # 每连接请求数上限
+  max-connections: "3-4" # 按需建立的连接池目标大小
+  h-max-request-times: "1800-3000" # 每连接请求数上限
   h-max-reusable-secs: "1800-3000" # 连接复用寿命（秒）
-  h-keep-alive-period: 45 # HTTP/2 保活间隔（秒）
+  h-keep-alive-period: 30 # HTTP/2 空闲保活间隔（秒）
 ```
 
 sing-box Extended 侧字段为 `xmux.max_connections` / `h_max_request_times` / `h_max_reusable_secs` / `h_keep_alive_period`。
+
+当前配置使用 3–4 条连接，兼顾并发会话的 TCP 丢包隔离和弱机的 socket、TLS、HTTP/2 开销；较高的请求预算用于减少高 RTT 下的重复握手。连接按需建立，不会预热整个池，也不会把单个下载拆到多条连接。这些值是待实际线路测量的调优起点，不代表所有高丢包链路的最优值。不要同时设置 `maxConcurrency`：Extended/Xray 不接受它与 `maxConnections` 同时非零。
+
+`hMaxReusableSecs` 不是空闲超时，也不会在到期时强制切断活动流。锁定的 Extended 和 Mihomo HTTP 客户端均设置了 300 秒的空闲连接超时；复用管理器中的轻量条目和底层 TCP 连接的寿命也不完全相同。降低复用寿命不能保证清理失效的活动流，反而可能增加握手及新旧连接重叠。请求次数是计数器，不会预分配同等数量的会话或缓冲区。连接池大小是复用目标，不是服务端总连接数硬限制。
 
 ### 8.4 单位后缀陷阱
 
@@ -356,6 +360,8 @@ sing-box Extended 侧字段为 `xmux.max_connections` / `h_max_request_times` / 
 | `sc_min_posts_interval_ms` | 10-30          | POST 间最小间隔（抗突发） |
 
 **这些参数只在 `packet-up` 模式生效。** `stream-one` 只有一个双向请求，没有独立的上传 POST 可以调节，因此配置了也不会生效。
+
+分块和 POST 间隔用于批处理与节奏控制，不提供丢包恢复；增大缓冲也不能消除底层 TCP 重传和队头阻塞。
 
 ### 8.6 拥塞控制参数对 REALITY 无效
 
@@ -452,8 +458,13 @@ nativeBuildInputs = [ installShellFiles ] ++ lib.optionals withCGO [ lld ];
 
 - 优先调连接复用与保活，而非叠加加密层
 - 不盲目提高整机 sysctl 缓冲或声明带宽
-- Extended 使用 `GOGC=100`（比 legacy 的 50 省 CPU），保留既有内存上限
+- 各内核默认 `GOGC=100`，避免弱 CPU 因过低阈值频繁 GC；`infini.nix` 不再强制覆盖为 60
+- 所有节点共享 `GOMEMLIMIT=128MiB`、`MemoryHigh=150M` 默认值，不按 RAM 分档
+- 保留 `MemoryMax=192M` 为 Go 预算之外的内存留余量；Go 软预算不是 RSS 上限，也不能保证避免 cgroup OOM
+- 关闭应用日志以减少磁盘写入：Xray 的 access/error/loglevel 均为 `none`，sing-box 的 `log.disabled=true`，两份 Mihomo 订阅的 `log-level=silent`
 - 所有资源参数保持 `mkDefault` 可覆写
+
+主机级覆写仍优先：tyo0 的 `MemoryHigh=180M` 保持原值。配置解析和本地互通测试不等同于实际 RSS、GC CPU 占用或弱网吞吐验收。systemd 自身的服务启停记录仍由 journald 管理。
 
 ---
 

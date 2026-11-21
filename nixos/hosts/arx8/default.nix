@@ -18,10 +18,12 @@
       nixosModules.services.traefik
       nixosModules.optimize.dev
       # nixosModules.services.microsocks
-      ./ai.nix
-    ];
+    ]
+    ++ nixosModules.services.ai."local-llm".all;
 
   optimize.brutal.target = "!cn";
+
+  services.duet.enable = true;
 
   # The compositor owns scaling; keep client font DPI at its unscaled default.
   home-manager.users.tippy.wayland.dpi = 96;

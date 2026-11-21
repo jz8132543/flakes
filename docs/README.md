@@ -4,6 +4,10 @@
 
 ## 目录索引
 
+- [VSL D-274：NixOS 低延迟钢琴环境与复现指南](./vsl-d274-linux-audio.md)
+
+  包含 E2x2 / MIDI 路由、192 kHz / 1536 帧参数、Carla/yabridge/Wine 固定环境、Nix 与界面脚本解读、独立部署、私有音源数据恢复，以及调试过程和验收边界。
+
 - [全栈 AI 基建与数字伴侣架构设计与运维实战指南](./ai-architecture.md)
 
   包含组件认证、fra0 用户注册关闭策略（2.1 节）、Kilo Star 模拟 Codex 的配置、网关路由与验收边界（4.6 节）、SSO 账号边界、非部署回归检查与 OpenHands 工作台说明。

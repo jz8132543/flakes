@@ -2,62 +2,69 @@
 set -euo pipefail
 umask 077
 
+# Only the subscription is managed here. GeoIP/GeoSite/ASN and the LightGBM
+# model come from nixpkgs or mihomo-smart's own geo/lgbm auto-update, so this
+# script must not touch them.
+
+download() {
+  local url="$1" output="$2"
+  # curl reads the URL on stdin so the token never appears in process arguments.
+  printf 'url = "%s"\n' "$url" | curl -q --config - \
+    --fail --silent --location --noproxy '*' \
+    --proto '=https' --proto-redir '=https' \
+    --connect-timeout 15 --max-time 60 --max-filesize 10485760 \
+    --output "$output"
+}
+
 case "$1" in
 fetch)
   url="$(<"$CREDENTIALS_DIRECTORY/url")"
-  # curl reads the URL on stdin so the token never appears in process arguments.
   if [[ ! $url =~ ^https://[^[:space:]\"\\]+$ ]]; then
     echo "Invalid Mihomo subscription URL" >&2
     exit 1
   fi
-  work="$(mktemp -d "$RUNTIME_DIRECTORY/validate.XXXXXX")"
-  trap 'rm -rf "$work"' EXIT
-  if ! printf 'url = "%s"\n' "$url" | curl -q --config - \
-    --fail --silent --location --noproxy '*' \
-    --proto '=https' --proto-redir '=https' \
-    --connect-timeout 15 --max-time 60 --max-filesize 10485760 \
-    --retry 2 --retry-delay 5 --output "$work/source.yaml" >/dev/null 2>&1; then
+
+  # A non-2xx response or transport error aborts before anything is touched.
+  temporary="$(mktemp "$RUNTIME_DIRECTORY/.subscription.XXXXXX")"
+  if ! download "$url" "$temporary" 2>/dev/null; then
+    rm -f "$temporary"
     echo "Mihomo subscription download failed; keeping the current configuration" >&2
     exit 1
   fi
-  ln -s "$MIHOMO_GEOIP" "$work/GeoIP.dat"
-  ln -s "$MIHOMO_GEOSITE" "$work/GeoSite.dat"
-  ln -s "$MIHOMO_MMDB" "$work/Country.mmdb"
-  if [ -n "$MIHOMO_POLICY_FILE" ]; then
-    if ! "$MIHOMO_PYTHON" "$MIHOMO_POLICY_SCRIPT" \
-      "$work/source.yaml" "$work/config.yaml" "$MIHOMO_POLICY_FILE" >/dev/null 2>&1; then
-      echo "Mihomo subscription policy preparation failed; keeping the current configuration" >&2
-      exit 1
-    fi
-  else
-    cp "$work/source.yaml" "$work/config.yaml"
-  fi
-  # Validate the effective host policy in an isolated cache, not the live daemon's state.
-  if ! mihomo -t -d "$work" -f "$work/config.yaml" >/dev/null 2>&1; then
-    echo "Mihomo subscription validation failed; keeping the current configuration" >&2
-    exit 1
-  fi
-  mv "$work/source.yaml" "$RUNTIME_DIRECTORY/config.yaml"
+  mv -f "$temporary" "$RUNTIME_DIRECTORY/subscription.yaml"
   ;;
+
 install)
   destination="$2"
-  if cmp -s "$RUNTIME_DIRECTORY/config.yaml" "$destination"; then
+  staged="$RUNTIME_DIRECTORY/subscription.yaml"
+  [ -e "$staged" ] || {
+    echo "No staged Mihomo subscription to install" >&2
+    exit 1
+  }
+
+  if [ -e "$destination" ] && cmp -s "$staged" "$destination"; then
+    rm -f "$staged"
     echo "Mihomo subscription is unchanged"
     exit 0
   fi
+
   directory="$(dirname "$destination")"
   temporary="$(mktemp "$directory/.subscription.XXXXXX")"
   backup="$(mktemp "$directory/.previous.XXXXXX")"
   trap 'rm -f "$temporary" "$backup"' EXIT
-  previous=false
+
+  had_previous=false
   if [ -e "$destination" ]; then
     cp -p "$destination" "$backup"
-    previous=true
+    had_previous=true
   fi
-  install -m 0600 "$RUNTIME_DIRECTORY/config.yaml" "$temporary"
+
+  install -m 0600 "$staged" "$temporary"
   mv -f "$temporary" "$destination"
+
+  # Restore the previous bytes if the daemon rejects the new subscription.
   if ! systemctl try-restart mihomo.service >/dev/null 2>&1; then
-    if "$previous"; then
+    if "$had_previous"; then
       mv -f "$backup" "$destination"
     else
       rm -f "$destination"
@@ -66,8 +73,11 @@ install)
     echo "Mihomo restart failed; restored the previous configuration" >&2
     exit 1
   fi
+
+  rm -f "$staged"
   echo "Mihomo subscription updated"
   ;;
+
 *)
   echo "Invalid Mihomo subscription update action" >&2
   exit 1

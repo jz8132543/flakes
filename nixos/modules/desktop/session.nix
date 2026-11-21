@@ -65,10 +65,14 @@
           power_buttons_position = "bottom-right";
           scheme_selector_position = "top-right";
           wallpaper = {
-            path = "${pkgs.wallpaper}/wallpaper.jpg";
+            path =
+              if config.desktop.noctalia.enable && config.desktop.noctalia.showcase.enable then
+                "${pkgs.wallpaper.showcase}/wallpaper.png"
+              else
+                "${pkgs.wallpaper}/wallpaper.jpg";
             fill_mode = "crop";
-            blur = 0.5;
-            tint = 0.35;
+            blur = 0.0;
+            tint = 0.0;
           };
         };
         clock = {

@@ -231,8 +231,9 @@ class ThemeTests(unittest.TestCase):
     def test_shortcuts(self):
         prefix = self.tmux("list-keys", "-T", "prefix")
         root = self.tmux("list-keys", "-T", "root")
-        for action in ("clock-mode", "tmux-system-info", "btm-detail", "autoclipboard"):
+        for action in ("clock-mode", "tmux-system-info", "autoclipboard"):
             self.assertIn(action, prefix)
+        self.assertNotIn("btm-detail", prefix)
         for key in ("M-1", "M-9", "WheelUpPane", "WheelDownPane"):
             self.assertIn(key, root)
 
@@ -294,7 +295,7 @@ class ThemeTests(unittest.TestCase):
 
     def test_real_terminal_clock_and_system_info(self):
         terminal_run = runpy.run_path(
-            str(Path(__file__).with_name("test-bottom-monitor.py"))
+            str(Path(__file__).with_name("terminal_helpers.py"))
         )["terminal_run"]
         for width in (80, 160):
             with self.subTest(width=width):

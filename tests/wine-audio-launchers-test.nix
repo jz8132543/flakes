@@ -9,6 +9,7 @@ let
     "garritan-cfx-desktop"
     "vsl-concert-d274"
     "vsl-concert-d274-desktop"
+    "vsl-concert-d274-low-latency"
     "com.bitwig.BitwigStudio"
   ];
   files = map (name: home.xdg.dataFile."applications/${name}.desktop".source) names;
@@ -17,7 +18,7 @@ in
 assert home.home.homeDirectory == "/home/tippy";
 assert home.home.profileDirectory == "/mnt/games/Audio/.launcher-state/nix/profile";
 assert !home.systemd.user.enable;
-assert builtins.length managedFiles == 5;
+assert builtins.length managedFiles == builtins.length names;
 assert builtins.all (
   file: builtins.any (name: pkgs.lib.hasSuffix "applications/${name}.desktop" file.target) names
 ) managedFiles;

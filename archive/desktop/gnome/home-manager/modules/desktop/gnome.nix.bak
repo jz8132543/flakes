@@ -198,12 +198,15 @@ in
               type.string
               type.string
             ])
-            [
+            ([
               (mkTuple [
                 (mkString (if imFramework == "ibus" then "ibus" else "xkb"))
                 (mkString (if imFramework == "ibus" then "rime" else "us"))
               ])
-            ];
+            ]
+            ++ lib.optional (imFramework == "ibus" && (osConfig.desktop.voiceInput.enable or false)) (
+              mkTuple [ (mkString "ibus") (mkString "vocotype") ]
+            ));
         per-window = false;
         xkb-options = mkArray type.string [ "caps:swapescape" ];
       };

@@ -21,9 +21,9 @@
     },
     "panel": {
       "transparency_mode": "soft",
-      "borders": true,
+      "borders": false,
       "border_color": "#292933",
-      "border_width": 1.0,
+      "border_width": 0.0,
       "shadow": true,
       "launcher_placement": "floating",
       "launcher_position": "center",
@@ -159,7 +159,7 @@
       "label_source": "id",
       "pill_scale": 1.0,
       "active_pill_size": 1.2,
-      "hide_when_empty": false,
+      "hide_when_empty": true,
       "monitors": []
     },
     "clock": {
@@ -354,6 +354,8 @@
   },
   "notification": {
     "enable_daemon": true,
+    "border": false,
+    "border_width": 0.0,
     "position": "top_right",
     "show_actions": true,
     "group_by_app": true,
@@ -362,7 +364,9 @@
     "max_visible": 5
   },
   "osd": {
-    "enabled": true
+    "enabled": true,
+    "border": false,
+    "border_width": 0.0
   },
   "system": {
     "monitor": {

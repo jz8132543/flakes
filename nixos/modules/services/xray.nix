@@ -15,17 +15,19 @@
   xPaddingPlacement ? "header",
   xPaddingHeader ? "X-Padding",
   xPaddingMethod ? "repeat-x",
+  # A small pool balances TCP loss isolation against weak-node socket/TLS costs.
+  # Keep the request budget high to amortize handshakes on high-RTT paths.
+  # Keep maxConcurrency unset: Extended/Xray reject it with maxConnections.
   xhttpXmux ? {
-    maxConnections = "3-3";
-    hMaxRequestTimes = "600-900";
+    maxConnections = "3-4";
+    hMaxRequestTimes = "1800-3000";
     hMaxReusableSecs = "1800-3000";
-    hKeepAlivePeriod = 45;
+    hKeepAlivePeriod = 30;
   },
-  # Packet-up pacing: a small buffer plus a minimum interval absorbs burst loss on
-  # high-RTT links without stalling the stream. Ranges are plain integers (bytes
-  # for sizes, milliseconds for intervals); `badoption.Range[int]` rejects unit
-  # suffixes such as "512k". Left at the upstream default for stream-one, which
-  # has no separate upload POSTs to pace.
+  # Packet-up batching and pacing only; these do not recover lost packets.
+  # Ranges are plain integers (bytes for sizes, milliseconds for intervals);
+  # `badoption.Range[int]` rejects unit suffixes such as "512k". These settings
+  # are inactive in stream-one, which has no separate upload POSTs to pace.
   xhttpUplinkChunkSize ? "524288-1048576",
   xhttpScMaxEachPostBytes ? "524288-1048576",
   xhttpScMinPostsIntervalMs ? "10-30",
@@ -159,7 +161,11 @@ let
     sc_min_posts_interval_ms = xhttpScMinPostsIntervalMs;
   };
   xrayConfig = {
-    log.loglevel = if config.environment.minimal or false then "warning" else "info";
+    log = {
+      access = "none";
+      error = "none";
+      loglevel = "none";
+    };
     inbounds = [
       {
         tag = "vless-in";
@@ -365,11 +371,7 @@ in
     mode = "0400";
     restartUnits = [ "sing-box.service" ];
     content = builtins.toJSON {
-      log = {
-        disabled = false;
-        level = if config.environment.minimal or false then "warn" else "info";
-        timestamp = true;
-      };
+      log.disabled = true;
       # Typed DNS syntax is required by 1.14; use the host's configured resolver.
       dns = {
         servers = [
@@ -549,7 +551,8 @@ in
     package = lib.mkIf isExtended pkgs.nur.repos.ataraxiasjel.sing-box-extended;
   };
 
-  # 4. 针对弱机（1CPU/256M 内存）深度调优 systemd 服务参数
+  # Go's soft budget excludes socket buffers and some process memory. Retain
+  # headroom below the cgroup limits; host-specific overrides still take priority.
   systemd.services.${serviceName} = {
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
@@ -569,8 +572,9 @@ in
       ];
     };
     environment = {
-      # 激进 GC 控制内存上限，避免低内存 VPS OOM
-      GOGC = lib.mkDefault (if isExtended then "100" else "50");
+      # Normal GC pacing avoids spending scarce CPU on aggressive collections;
+      # GOMEMLIMIT provides a soft runtime budget, not an RSS or connection cap.
+      GOGC = lib.mkDefault "100";
       GOMEMLIMIT = lib.mkDefault "128MiB";
     };
   };

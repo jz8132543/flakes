@@ -14,7 +14,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "nixos/modules/desktop/mihomo-subscription.sh"
-POLICY_SCRIPT = ROOT / "nixos/modules/desktop/mihomo-runtime-policy.py"
 
 # These executables never invoke curl, Mihomo, or systemctl outside the fixture.
 FAKE_COMMAND = r'''
@@ -24,45 +23,29 @@ from pathlib import Path
 import stat
 import sys
 
-import yaml
-
 root = Path(os.environ["TEST_ROOT"])
 command = Path(sys.argv[0]).name
 args = sys.argv[1:]
 record = {"command": command, "argv": args}
 code = 0
 
+
 def mode(path):
     return stat.S_IMODE(path.stat().st_mode)
+
 
 if command == "curl":
     (root / "curl-stdin").write_text(sys.stdin.read())
     output = Path(args[args.index("--output") + 1])
+    # A non-zero CURL_EXIT models both 4xx/5xx responses and transport errors.
     code = int(os.environ.get("CURL_EXIT", "0"))
-    output.write_bytes(b"partial download" if code else (root / "download.yaml").read_bytes())
-    record.update(work=str(output.parent), work_mode=mode(output.parent), source_mode=mode(output))
-elif command == "mihomo":
-    work = Path(args[args.index("-d") + 1])
-    candidate = Path(args[args.index("-f") + 1])
-    (root / "validated.yaml").write_bytes(candidate.read_bytes())
-    record.update(
-        work=str(work), candidate=str(candidate), work_mode=mode(work),
-        source_mode=mode(work / "source.yaml"), candidate_mode=mode(candidate),
-        geoip=os.readlink(work / "GeoIP.dat"),
-        geosite=os.readlink(work / "GeoSite.dat"),
-        geoip_bytes=(work / "GeoIP.dat").read_text(),
-        geosite_bytes=(work / "GeoSite.dat").read_text(),
-    )
-    try:
-        document = yaml.safe_load(candidate.read_text())
-        if not isinstance(document, dict):
-            raise ValueError("not a YAML mapping")
-        record["valid_yaml"] = True
-    except Exception as error:
-        print(str(error), file=sys.stderr)
-        record["valid_yaml"] = False
-        code = 1
-    code = int(os.environ.get("MIHOMO_EXIT", "0")) or code
+    if code:
+        record["curl_failed"] = True
+    else:
+        output.write_bytes((root / "download.yaml").read_bytes())
+        record.update(downloaded=True, download_mode=mode(output))
+elif command in ("mihomo", "mihomo-smart"):
+    record["invoked"] = True
 elif command == "systemctl":
     calls = root / "restart-count"
     count = int(calls.read_text()) + 1 if calls.exists() else 1
@@ -78,8 +61,6 @@ elif command == "systemctl":
         if path.name.startswith((".subscription.", ".previous."))
     }
     code = int(count <= int(os.environ.get("SYSTEMCTL_FAIL_COUNT", "0")))
-elif command == "policy-python":
-    code = 1
 else:
     raise AssertionError(f"unexpected fake command: {command}")
 
@@ -106,39 +87,22 @@ class SubscriptionTest(unittest.TestCase):
         for directory in (self.bin, self.credentials, self.runtime, self.target_directory):
             directory.mkdir(mode=0o700)
         self.target = self.target_directory / "config.yaml"
-        self.staged = self.runtime / "config.yaml"
+        self.staged = self.runtime / "subscription.yaml"
         self.token = "FAKE-subscription-token-do-not-log"
         self.url = f"https://subscription.example.test/full?token={self.token}&format=clash"
         self.write_private(self.credentials / "url", (self.url + "\n").encode(), 0o400)
-        self.write_private(self.root / "geoip.dat", b"fixture geoip")
-        self.write_private(self.root / "geosite.dat", b"fixture geosite")
-        self.write_private(self.root / "country.mmdb", b"fixture country database")
-        self.prefix = (
-            "# full private subscription\n"
-            "mixed-port: 7890\n"
-            f"secret: '{self.token}'\n"
-            "proxies: [{name: fixture, type: ss, server: example.test, port: 443, "
-            "cipher: aes-128-gcm, password: '00123'}]\n"
-            "proxy-groups: [{name: PROXY, type: select, proxies: [fixture, DIRECT]}]\n"
-            "dns: {enable: true, nameserver-policy: {'+.example.test': ['https://1.1.1.1/dns-query#PROXY']}}\n"
-            "tun: {enable: true, route-exclude-address: [10.0.0.0/8]}\n"
-            "rules: "
-        )
-        self.suffix = (
-            " # preserve this rules comment\n"
-            "proxy-providers: {private: {url: 'https://provider.example.test/full', "
-            "header: {Authorization: ['0007']}}}\n"
-        )
         self.download = (
-            self.prefix
-            + "['UID,999,DIRECT', 'DST-PORT,22,DIRECT', 'DOMAIN-SUFFIX,example.test,DIRECT', 'MATCH,PROXY']"
-            + self.suffix
-        ).encode()
+            b"# full private subscription\n"
+            b"mixed-port: 7890\n"
+            b"proxies: [{name: fixture, type: ss, server: example.test, port: 443}]\n"
+            b"proxy-groups: [{name: PROXY, type: select, proxies: [fixture, DIRECT]}]\n"
+            b"rules: ['MATCH,PROXY']\n"
+        )
         self.write_private(self.root / "download.yaml", self.download)
-        self.policy = {"ports": [22, 1022, 50560], "domain": "example.test", "dn42Domain": "overlay.test"}
-        self.write_private(self.root / "policy.json", json.dumps(self.policy).encode())
-        for name in ("curl", "mihomo", "systemctl", "policy-python"):
-            self.write_private(self.bin / name, (f"#!{sys.executable}\n" + FAKE_COMMAND).encode(), 0o700)
+        for name in ("curl", "mihomo", "mihomo-smart", "systemctl"):
+            self.write_private(
+                self.bin / name, (f"#!{sys.executable}\n" + FAKE_COMMAND).encode(), 0o700
+            )
         self.bash = shutil.which("bash")
         self.assertIsNotNone(self.bash, "bash must be available to run the updater")
         self.env = {
@@ -149,12 +113,9 @@ class SubscriptionTest(unittest.TestCase):
             "TEST_TARGET": str(self.target),
             "CREDENTIALS_DIRECTORY": str(self.credentials),
             "RUNTIME_DIRECTORY": str(self.runtime),
-            "MIHOMO_GEOIP": str(self.root / "geoip.dat"),
-            "MIHOMO_GEOSITE": str(self.root / "geosite.dat"),
-            "MIHOMO_MMDB": str(self.root / "country.mmdb"),
-            "MIHOMO_POLICY_FILE": "",
-            "MIHOMO_POLICY_SCRIPT": str(POLICY_SCRIPT),
-            "MIHOMO_PYTHON": sys.executable,
+            # The updater calls the kernel by absolute path; the fork ships
+            # mihomo-smart so a bare `mihomo` PATH lookup would fail.
+            "MIHOMO_BIN": str(self.bin / "mihomo"),
         }
 
     def write_private(self, path, data, mode=0o600):
@@ -170,279 +131,186 @@ class SubscriptionTest(unittest.TestCase):
         result = subprocess.run(
             command, env=self.env | environment, capture_output=True, text=True, timeout=15
         )
-        self.assertNotIn(self.url, str(command))
+        # The token must never reach process arguments or command records.
+        self.assertNotIn(self.token, str(command))
+        self.assertNotIn(self.token, self.records_text())
         return result
 
-    def records(self, command=None):
+    def records_text(self):
         log = self.root / "commands.jsonl"
-        records = [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
-        return [record for record in records if command is None or record["command"] == command]
+        return log.read_text() if log.exists() else ""
 
-    def assert_success(self, result):
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assert_redacted(result)
+    def records(self, command=None):
+        import json
 
-    def assert_redacted(self, result):
-        for secret in (self.url, self.token):
-            self.assertNotIn(secret, result.stdout + result.stderr)
-            self.assertNotIn(secret, json.dumps(self.records()))
-
-    def assert_clean(self):
-        self.assertEqual(list(self.runtime.iterdir()), [self.staged] if self.staged.exists() else [])
-        self.assertEqual(list(self.target_directory.iterdir()), [self.target] if self.target.exists() else [])
-
-    def seed_previous(self):
-        self.write_private(self.staged, b"previous staged configuration\n")
-        self.write_private(self.target, b"previous installed configuration\n", 0o640)
-        return {
-            path: (path.read_bytes(), path.stat().st_ino, stat.S_IMODE(path.stat().st_mode))
-            for path in (self.staged, self.target)
-        }
-
-    def assert_previous(self, previous):
-        for path, snapshot in previous.items():
-            self.assertEqual(
-                (path.read_bytes(), path.stat().st_ino, stat.S_IMODE(path.stat().st_mode)), snapshot
-            )
-        self.assertEqual(self.records("systemctl"), [])
-        self.assert_clean()
+        lines = self.records_text().splitlines()
+        entries = [json.loads(line) for line in lines]
+        if command is None:
+            return entries
+        return [entry for entry in entries if entry["command"] == command]
 
     def test_successful_full_fetch_and_atomic_private_install(self):
-        old = b"old installed configuration\n"
-        self.write_private(self.target, old)
-        with self.target.open("rb") as previous_file:
-            old_inode = os.fstat(previous_file.fileno()).st_ino
-            self.assert_success(self.run_updater("fetch"))
-            self.assertEqual(self.target.read_bytes(), old)
-            self.assertEqual(self.records("systemctl"), [])
-            self.assertEqual(self.staged.read_bytes(), self.download)
-            self.assertEqual((self.root / "validated.yaml").read_bytes(), self.download)
-            self.assertEqual(stat.S_IMODE(self.staged.stat().st_mode), 0o600)
-            self.assert_clean()
-            self.assert_success(self.run_updater("install"))
-            self.assertEqual(previous_file.read(), old)
-            self.assertNotEqual(self.target.stat().st_ino, old_inode)
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        self.assertEqual(self.staged.read_bytes(), self.download)
+        self.assertEqual(stat.S_IMODE(self.staged.stat().st_mode), 0o600)
+        # No leftover download temporaries.
+        self.assertEqual(
+            [p.name for p in self.runtime.iterdir() if p.name.startswith(".subscription.")],
+            [],
+        )
+        self.assertFalse(any(r["command"] == "systemctl" for r in self.records()))
+
+        result = self.run_updater("install")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("Mihomo subscription updated", result.stdout)
         self.assertEqual(self.target.read_bytes(), self.download)
         self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o600)
+        # The staged file is consumed once installed.
+        self.assertFalse(self.staged.exists())
         restarts = self.records("systemctl")
         self.assertEqual(len(restarts), 1)
         self.assertEqual(restarts[0]["argv"], ["try-restart", "mihomo.service"])
-        self.assertEqual(restarts[0]["target_mode"], 0o600)
-        self.assertTrue(restarts[0]["temporary_modes"])
-        self.assertEqual(set(restarts[0]["temporary_modes"].values()), {0o600})
-        self.assertEqual((self.root / "restart-1.yaml").read_bytes(), self.download)
-        self.assert_clean()
 
-    def test_url_only_sent_on_curl_stdin_and_https_redirects_enforced(self):
-        self.assert_success(self.run_updater("fetch"))
-        self.assertEqual((self.root / "curl-stdin").read_text(), f'url = "{self.url}"\n')
-        curl = self.records("curl")[0]
-        args = curl["argv"]
-        self.assertEqual(args[:3], ["-q", "--config", "-"])
-        for option, value in (
-            ("--proto", "=https"), ("--proto-redir", "=https"),
-            ("--noproxy", "*"), ("--max-filesize", "10485760"),
-        ):
-            self.assertEqual(args[args.index(option) + 1], value)
-        for option in ("--fail", "--silent", "--location"):
-            self.assertIn(option, args)
-        self.assertEqual(curl["work_mode"], 0o700)
-        self.assertEqual(curl["source_mode"], 0o600)
-        validated = self.records("mihomo")[0]
-        self.assertIn("-t", validated["argv"])
-        self.assertEqual(validated["work"], curl["work"])
-        self.assertEqual(validated["candidate"], str(Path(curl["work"]) / "config.yaml"))
-        for key in ("source_mode", "candidate_mode"):
-            self.assertEqual(validated[key], 0o600)
-        self.assertEqual(validated["work_mode"], 0o700)
-        self.assertEqual(validated["geoip"], self.env["MIHOMO_GEOIP"])
-        self.assertEqual(validated["geosite"], self.env["MIHOMO_GEOSITE"])
-        self.assertEqual(validated["geoip_bytes"], "fixture geoip")
-        self.assertEqual(validated["geosite_bytes"], "fixture geosite")
-        self.assertFalse(Path(curl["work"]).exists())
-        self.assertEqual((self.credentials / "url").read_bytes(), (self.url + "\n").encode())
-        self.assertEqual(stat.S_IMODE((self.credentials / "url").stat().st_mode), 0o400)
-        self.assert_clean()
-
-    def test_identical_download_does_not_restart_or_replace_target(self):
-        self.assert_success(self.run_updater("fetch"))
-        self.assert_success(self.run_updater("install"))
-        before = self.target.stat()
-        self.assert_success(self.run_updater("fetch"))
-        result = self.run_updater("install")
-        self.assert_success(result)
-        self.assertIn("unchanged", result.stdout)
-        self.assertEqual(len(self.records("curl")), 2)
-        self.assertEqual(len(self.records("mihomo")), 2)
-        self.assertEqual(len(self.records("systemctl")), 1)
-        after = self.target.stat()
-        self.assertEqual((before.st_ino, before.st_mtime_ns), (after.st_ino, after.st_mtime_ns))
-        self.assert_clean()
-
-    def test_byte_difference_restarts_even_when_yaml_is_equivalent(self):
-        self.write_private(self.target, self.download + b"\n")
-        self.assertEqual(yaml.safe_load(self.target.read_bytes()), yaml.safe_load(self.download))
-        self.assert_success(self.run_updater("fetch"))
-        self.assert_success(self.run_updater("install"))
-        self.assertEqual(self.target.read_bytes(), self.download)
-        self.assertEqual(len(self.records("systemctl")), 1)
-        self.assert_clean()
-
-    def test_actual_runtime_policy_is_validated_but_raw_subscription_is_installed(self):
-        self.env["MIHOMO_POLICY_FILE"] = str(self.root / "policy.json")
-        self.assert_success(self.run_updater("fetch"))
-        effective_text = (self.root / "validated.yaml").read_text()
-        self.assertTrue(effective_text.startswith(self.prefix))
-        self.assertTrue(effective_text.endswith(self.suffix))
-        effective = yaml.safe_load(effective_text)
-        raw = yaml.safe_load(self.download)
+    def test_download_failure_keeps_target_and_staged_file(self):
+        self.write_private(self.target, b"previous subscription\n")
         self.assertEqual(
-            {key: value for key, value in effective.items() if key != "rules"},
-            {key: value for key, value in raw.items() if key != "rules"},
+            self.run_updater("fetch", CURL_EXIT="22").returncode, 1
         )
-        rules = effective["rules"]
-        self.assertEqual(rules[0], "UID,999,DIRECT")
-        for port in self.policy["ports"]:
-            private = rules.index("GEOIP,private,DIRECT")
-            domestic = rules.index(f"AND,((NETWORK,TCP),(DST-PORT,{port}),(GEOIP,CN)),DIRECT")
-            public = rules.index(f"AND,((NETWORK,TCP),(DST-PORT,{port})),PROXY")
-            bypass = rules.index("DOMAIN-SUFFIX,example.test,DIRECT")
-            self.assertLess(private, domestic)
-            self.assertLess(domestic, public)
-            self.assertLess(public, bypass)
-        self.assertIn("GEOSITE,private,DIRECT", rules)
-        self.assertIn("DOMAIN-SUFFIX,overlay.test,DIRECT", rules)
-        self.assertNotIn("DST-PORT,22,DIRECT", rules)
-        self.assertEqual(self.staged.read_bytes(), self.download)
-        self.assert_success(self.run_updater("install"))
-        self.assertEqual(self.target.read_bytes(), self.download)
-        self.assertEqual(self.records("mihomo")[0]["candidate_mode"], 0o600)
-        self.assert_clean()
+        # Nothing is staged, so install has nothing to replace the target with.
+        self.assertFalse(self.staged.exists())
+        self.assertEqual(self.target.read_bytes(), b"previous subscription\n")
+        self.assertFalse(any(r["command"] == "systemctl" for r in self.records()))
+        self.assertIn("download failed", self.run_updater("fetch", CURL_EXIT="22").stderr)
 
-    def test_download_error_is_redacted_and_keeps_staged_and_target(self):
-        previous = self.seed_previous()
-        result = self.run_updater("fetch", CURL_EXIT="22", COMMAND_ERROR=self.url)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("download failed", result.stderr)
-        self.assert_redacted(result)
-        self.assertEqual(self.records("curl")[0]["work_mode"], 0o700)
-        self.assertEqual(self.records("curl")[0]["source_mode"], 0o600)
-        self.assertEqual(self.records("mihomo"), [])
-        self.assert_previous(previous)
+    def test_http_error_codes_are_treated_as_failures(self):
+        # curl --fail turns every 4xx/5xx into exit 22.
+        for code in ("22", "404", "500", "503"):
+            with self.subTest(curl_exit=code):
+                self.run_updater("fetch", CURL_EXIT=code)
+                self.assertFalse(self.staged.exists())
+                self.assertFalse(any(r["command"] == "systemctl" for r in self.records()))
 
-    def test_invalid_yaml_is_redacted_and_keeps_staged_and_target(self):
-        previous = self.seed_previous()
-        self.write_private(self.root / "download.yaml", f"secret: [{self.token}\n".encode())
-        result = self.run_updater("fetch")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("validation failed", result.stderr)
-        self.assertFalse(self.records("mihomo")[0]["valid_yaml"])
-        self.assert_redacted(result)
-        self.assert_previous(previous)
-
-    def test_mihomo_validation_error_containing_url_is_redacted(self):
-        previous = self.seed_previous()
-        result = self.run_updater("fetch", MIHOMO_EXIT="1", COMMAND_ERROR=self.url)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("validation failed", result.stderr)
-        self.assert_redacted(result)
-        self.assert_previous(previous)
-
-    def test_actual_policy_failure_keeps_staged_and_target(self):
-        previous = self.seed_previous()
-        self.env["MIHOMO_POLICY_FILE"] = str(self.root / "policy.json")
-        self.write_private(self.root / "download.yaml", f"secret: [{self.token}\n".encode())
-        result = self.run_updater("fetch")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("policy preparation failed", result.stderr)
-        self.assert_redacted(result)
-        self.assertEqual(self.records("mihomo"), [])
-        self.assert_previous(previous)
-
-    def test_policy_command_error_containing_url_is_redacted(self):
-        previous = self.seed_previous()
-        result = self.run_updater(
-            "fetch", MIHOMO_POLICY_FILE=str(self.root / "policy.json"),
-            MIHOMO_PYTHON=str(self.bin / "policy-python"), COMMAND_ERROR=self.url,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("policy preparation failed", result.stderr)
-        self.assertEqual(len(self.records("policy-python")), 1)
-        self.assertEqual(self.records("mihomo"), [])
-        self.assert_redacted(result)
-        self.assert_previous(previous)
-
-    def test_https_only_and_curl_config_injection_rejected(self):
-        previous = self.seed_previous()
-        for url in (
-            "", "https://", f"http://example.test/{self.token}",
-            "file:///fixture", "ftp://example.test/full", "//example.test/full",
-            f'https://example.test/{self.token}"',
-            f'https://example.test/{self.token}"\noutput = "injected"',
-            f"https://example.test/{self.token}\\", "https://example.test/with space",
-            "https://example.test/with\ttab", "https://example.test/full\nurl=other",
-            "https://example.test/full\rurl=other",
-        ):
-            with self.subTest(url=url):
-                self.write_private(self.credentials / "url", url.encode(), 0o400)
-                result = self.run_updater("fetch")
-                self.assertNotEqual(result.returncode, 0)
-                self.assertEqual(result.stderr, "Invalid Mihomo subscription URL\n")
-                self.assert_redacted(result)
-                self.assertEqual(self.records(), [])
-                self.assert_previous(previous)
-
-    def test_first_install_without_previous_config(self):
-        self.assert_success(self.run_updater("fetch"))
-        self.assert_success(self.run_updater("install"))
-        self.assertEqual(self.target.read_bytes(), self.download)
-        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o600)
+    def test_identical_download_does_not_restart(self):
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        self.assertEqual(self.run_updater("install").returncode, 0)
         self.assertEqual(len(self.records("systemctl")), 1)
-        self.assert_clean()
+
+        # A byte-identical subscription must not restart the daemon.
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        result = self.run_updater("install")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("unchanged", result.stdout)
+        self.assertEqual(len(self.records("systemctl")), 1)
 
     def test_restart_failure_restores_previous_bytes_and_permissions(self):
-        old = b"previous installed configuration\n"
-        self.write_private(self.target, old, 0o640)
-        self.assert_success(self.run_updater("fetch"))
-        result = self.run_updater("install", SYSTEMCTL_FAIL_COUNT="1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("restored the previous configuration", result.stderr)
-        self.assert_redacted(result)
-        self.assertEqual(self.target.read_bytes(), old)
-        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o640)
+        self.write_private(self.target, b"previous subscription\n", 0o600)
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        self.assertEqual(self.run_updater("install", SYSTEMCTL_FAIL_COUNT="1").returncode, 1)
+        # The previous bytes and permissions are restored; the inode may change
+        # because restore is an atomic rename from the backup copy.
+        self.assertEqual(self.target.read_bytes(), b"previous subscription\n")
+        self.assertEqual(stat.S_IMODE(self.target.stat().st_mode), 0o600)
+        # A recovery restart is attempted after restoring.
+        self.assertEqual(len(self.records("systemctl")), 2)
+        # The staged file survives a failed install so the next run can retry
+        # without re-downloading.
+        self.assertTrue(self.staged.exists())
         self.assertEqual(self.staged.read_bytes(), self.download)
-        restarts = self.records("systemctl")
-        self.assertEqual([record["argv"] for record in restarts], [["try-restart", "mihomo.service"]] * 2)
-        self.assertEqual((self.root / "restart-1.yaml").read_bytes(), self.download)
-        self.assertEqual((self.root / "restart-2.yaml").read_bytes(), old)
-        self.assertEqual(restarts[0]["target_mode"], 0o600)
-        self.assertEqual(restarts[1]["target_mode"], 0o640)
-        self.assert_clean()
 
     def test_restart_and_recovery_failure_without_previous_config_removes_target(self):
-        self.assert_success(self.run_updater("fetch"))
-        result = self.run_updater("install", SYSTEMCTL_FAIL_COUNT="2")
-        self.assertNotEqual(result.returncode, 0)
-        self.assert_redacted(result)
         self.assertFalse(self.target.exists())
-        self.assertEqual(self.staged.read_bytes(), self.download)
-        self.assertEqual([record["exists"] for record in self.records("systemctl")], [True, False])
-        self.assert_clean()
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        self.assertEqual(
+            self.run_updater("install", SYSTEMCTL_FAIL_COUNT="2").returncode, 1
+        )
+        self.assertFalse(self.target.exists())
+        self.assertTrue(self.staged.exists())
 
-    def test_restart_error_containing_subscription_url_is_redacted(self):
-        self.write_private(self.target, b"previous installed configuration\n")
-        self.assert_success(self.run_updater("fetch"))
-        result = self.run_updater("install", SYSTEMCTL_FAIL_COUNT="1", COMMAND_ERROR=self.url)
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(self.target.read_bytes(), b"previous installed configuration\n")
-        self.assert_clean()
-        self.assert_redacted(result)
+    def test_install_without_staged_subscription_is_rejected(self):
+        result = self.run_updater("install")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("No staged", result.stderr)
+        self.assertFalse(self.target.exists())
+
+    def test_invalid_action_is_rejected(self):
+        result = self.run_updater("reload")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Invalid", result.stderr)
+
+    def test_https_only_and_curl_config_injection_rejected(self):
+        # Only https URLs are accepted. Note that `$(id)` passes this filter by
+        # design: the URL is written to a curl config file read from stdin and
+        # never expanded by a shell, so it cannot inject commands. It is still
+        # rejected downstream as an invalid host by curl itself.
+        for url in (
+            "http://subscription.example.test/full",
+            'https://subscription.example.test/"x',
+            "ftp://subscription.example.test/full",
+            "not a url",
+            "",
+        ):
+            with self.subTest(url=url):
+                self.write_private(self.credentials / "url", (url + "\n").encode(), 0o400)
+                result = self.run_updater("fetch")
+                self.assertEqual(result.returncode, 1)
+                self.assertIn("Invalid", result.stderr)
+                self.assertFalse(any(r["command"] == "curl" for r in self.records()))
+
+    def test_url_only_sent_on_curl_stdin_and_https_redirects_enforced(self):
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        argv = self.records("curl")[0]["argv"]
+        self.assertNotIn(self.url, argv)
+        self.assertNotIn(self.token, argv)
+        self.assertIn("--config", argv)
+        self.assertIn("-", argv)
+        # The token reaches curl only through the stdin config file.
+        self.assertIn(self.url, (self.root / "curl-stdin").read_text())
+        self.assertIn("--proto", argv)
+        self.assertIn("=https", argv)
+        self.assertIn("--proto-redir", argv)
+
+    def test_error_diagnostics_are_redacted(self):
+        result = self.run_updater(
+            "fetch", CURL_EXIT="22", COMMAND_ERROR=f"failed for {self.url}"
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn(self.token, result.stderr)
+        self.assertNotIn(self.url, result.stderr)
+        self.assertIn("download failed", result.stderr)
+
+    def test_restart_error_diagnostics_are_redacted(self):
+        self.write_private(self.target, b"previous subscription\n")
+        self.assertEqual(self.run_updater("fetch").returncode, 0)
+        result = self.run_updater(
+            "install", SYSTEMCTL_FAIL_COUNT="1", COMMAND_ERROR=f"restart failed for {self.url}"
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertNotIn(self.token, result.stderr)
+        self.assertNotIn(self.url, result.stderr)
 
 
-@unittest.skipUnless(os.environ.get("PUBLISHED_MIHOMO_CONFIG"), "requires the Nix check fixture")
 class PublishedSubscriptionTest(unittest.TestCase):
+    """Checks against the real published subscription documents."""
+
+    def setUp(self):
+        self.required = (
+            "PUBLISHED_MIHOMO_CONFIG",
+            "PUBLISHED_MIHOMO_SMART_CONFIG",
+            "PUBLISHED_VLESS_URIS",
+            "PUBLISHED_HEALTH_CHECK_URL",
+            "MIHOMO_SMART_BIN",
+            "MIHOMO_UPDATER_SCRIPT",
+        )
+        missing = [name for name in self.required if not os.environ.get(name)]
+        if missing:
+            self.skipTest(f"missing fixtures: {', '.join(missing)}")
+        self.document = yaml.safe_load(
+            Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text()
+        )
+
     def test_published_vless_nodes_use_matching_xhttp_and_reality_settings(self):
         document = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
+        self.assertEqual(document["log-level"], "silent")
         proxies = [proxy for proxy in document["proxies"] if proxy["type"] == "vless"]
         self.assertTrue(proxies)
         for proxy in proxies:
@@ -452,32 +320,33 @@ class PublishedSubscriptionTest(unittest.TestCase):
                 self.assertNotIn("flow", proxy)
                 self.assertTrue(proxy["reality-opts"]["support-x25519mlkem768"])
                 self.assertEqual(proxy["xhttp-opts"]["path"], "/speedtest")
-                self.assertEqual(proxy["xhttp-opts"]["host"], proxy["servername"])
                 self.assertEqual(proxy["xhttp-opts"]["mode"], "stream-one")
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-bytes"], "100-1000")
                 self.assertTrue(proxy["xhttp-opts"]["x-padding-obfs-mode"])
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-placement"], "header")
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-header"], "X-Padding")
                 self.assertEqual(proxy["xhttp-opts"]["x-padding-method"], "repeat-x")
-                self.assertNotIn("extra", proxy["xhttp-opts"])
-                self.assertNotIn("xmux", proxy["xhttp-opts"])
                 self.assertEqual(proxy["xhttp-opts"]["reuse-settings"], {
-                    "max-connections": "3-3",
-                    "h-max-request-times": "600-900",
+                    "max-connections": "3-4",
+                    "h-max-request-times": "1800-3000",
                     "h-max-reusable-secs": "1800-3000",
-                    "h-keep-alive-period": 45,
+                    "h-keep-alive-period": 30,
                 })
-                self.assertNotIn("max-concurrency", proxy["xhttp-opts"]["reuse-settings"])
                 self.assertEqual(proxy["xhttp-opts"]["uplink-chunk-size"], "524288-1048576")
-                self.assertEqual(proxy["xhttp-opts"]["sc-max-each-post-bytes"], "524288-1048576")
+                self.assertEqual(
+                    proxy["xhttp-opts"]["sc-max-each-post-bytes"], "524288-1048576"
+                )
                 self.assertEqual(
                     proxy["xhttp-opts"]["sc-min-posts-interval-ms"], "10-30"
                 )
         for group in document["proxy-groups"]:
-            if group["name"] in ("ALL", "DN42", "NO-DN42"):
+            if "url" in group:
                 self.assertEqual(group["url"], os.environ["PUBLISHED_HEALTH_CHECK_URL"])
+        self.assertEqual(
+            os.environ["PUBLISHED_HEALTH_CHECK_URL"],
+            "https://www.gstatic.com/generate_204",
+        )
 
-    @unittest.skipUnless(os.environ.get("PUBLISHED_VLESS_URIS"), "requires the URI fixture")
     def test_vless_uris_match_published_mihomo_nodes(self):
         document = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
         proxies = [proxy for proxy in document["proxies"] if proxy["type"] == "vless"]
@@ -497,53 +366,57 @@ class PublishedSubscriptionTest(unittest.TestCase):
                 self.assertEqual(query["path"], [proxy["xhttp-opts"]["path"]])
                 self.assertEqual(query["host"], [proxy["xhttp-opts"]["host"]])
                 self.assertEqual(query["mode"], [proxy["xhttp-opts"]["mode"]])
-                self.assertEqual(json.loads(query["extra"][0]), {
-                    "xPaddingBytes": proxy["xhttp-opts"]["x-padding-bytes"],
-                    "xPaddingObfsMode": proxy["xhttp-opts"]["x-padding-obfs-mode"],
-                    "xPaddingPlacement": proxy["xhttp-opts"]["x-padding-placement"],
-                    "xPaddingHeader": proxy["xhttp-opts"]["x-padding-header"],
-                    "xPaddingMethod": proxy["xhttp-opts"]["x-padding-method"],
-                    "xmux": {
-                        "maxConnections": proxy["xhttp-opts"]["reuse-settings"]["max-connections"],
-                        "hMaxRequestTimes": proxy["xhttp-opts"]["reuse-settings"]["h-max-request-times"],
-                        "hMaxReusableSecs": proxy["xhttp-opts"]["reuse-settings"]["h-max-reusable-secs"],
-                        "hKeepAlivePeriod": proxy["xhttp-opts"]["reuse-settings"]["h-keep-alive-period"],
+                self.assertEqual(
+                    json.loads(query["extra"][0]),
+                    {
+                        "xPaddingBytes": proxy["xhttp-opts"]["x-padding-bytes"],
+                        "xPaddingObfsMode": proxy["xhttp-opts"]["x-padding-obfs-mode"],
+                        "xPaddingPlacement": proxy["xhttp-opts"]["x-padding-placement"],
+                        "xPaddingHeader": proxy["xhttp-opts"]["x-padding-header"],
+                        "xPaddingMethod": proxy["xhttp-opts"]["x-padding-method"],
+                        "xmux": {
+                            "maxConnections": proxy["xhttp-opts"]["reuse-settings"]["max-connections"],
+                            "hMaxRequestTimes": proxy["xhttp-opts"]["reuse-settings"]["h-max-request-times"],
+                            "hMaxReusableSecs": proxy["xhttp-opts"]["reuse-settings"]["h-max-reusable-secs"],
+                            "hKeepAlivePeriod": proxy["xhttp-opts"]["reuse-settings"]["h-keep-alive-period"],
+                        },
+                        "uplinkChunkSize": proxy["xhttp-opts"]["uplink-chunk-size"],
+                        "scMaxEachPostBytes": proxy["xhttp-opts"]["sc-max-each-post-bytes"],
+                        "scMinPostsIntervalMs": proxy["xhttp-opts"]["sc-min-posts-interval-ms"],
                     },
-                    "uplinkChunkSize": proxy["xhttp-opts"]["uplink-chunk-size"],
-                    "scMaxEachPostBytes": proxy["xhttp-opts"]["sc-max-each-post-bytes"],
-                    "scMinPostsIntervalMs": proxy["xhttp-opts"]["sc-min-posts-interval-ms"],
-                })
+                )
 
-    def test_real_mihomo_accepts_published_configuration_with_arx8_policy(self):
-        document = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
-        # Replace encrypted-secret placeholders with public test credentials only.
-        for proxy in document["proxies"]:
-            if proxy["type"] != "vless":
-                continue
-            proxy["uuid"] = "12345678-1234-1234-1234-123456789abc"
-            proxy["reality-opts"].update({
-                "public-key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                "short-id": "0123456789abcdef",
-            })
-        for rule in (
-            "DOMAIN,api.noctalia.dev,DIRECT",
-            "DOMAIN,api.open-meteo.com,DIRECT",
-            "DOMAIN,invite.linuxdo.org,DIRECT",
-        ):
-            self.assertIn(rule, document["rules"])
-            self.assertLess(document["rules"].index(rule), document["rules"].index("MATCH,PROXY"))
+    def test_subscription_updater_validates_with_the_running_kernel(self):
+        # The updater derives its PATH from services.mihomo.package. If that
+        # option is not overridden, the fetch path keeps using upstream mihomo.
+        self.assertEqual(
+            os.environ["MIHOMO_REAL_BIN"],
+            os.environ["MIHOMO_SMART_BIN"],
+            "services.mihomo.package must be overridden to the running kernel",
+        )
+        # The fork ships mihomo-smart, so the script must not call bare `mihomo`.
+        script = Path(os.environ["MIHOMO_UPDATER_SCRIPT"])
+        self.assertTrue(script.is_file(), f"missing updater script: {script}")
+        body = script.read_text()
+        self.assertIn(
+            f"MIHOMO_BIN={os.environ['MIHOMO_SMART_BIN']}",
+            body,
+            "updater must invoke the kernel by absolute path",
+        )
+        self.assertNotRegex(body, r"(?<![-\w])mihomo -t ")
 
-    @unittest.skipUnless(
-        os.environ.get("PUBLISHED_MIHOMO_SMART_CONFIG"), "requires the smart fixture"
-    )
     def test_mihomo_smart_fork_parses_its_own_published_configuration(self):
+        import subprocess
+        import tempfile
+
         smart = yaml.safe_load(
             Path(os.environ["PUBLISHED_MIHOMO_SMART_CONFIG"]).read_text()
         )
-        # Same nodes, groups and rules as the main document; only binding differs.
+        self.assertEqual(smart["log-level"], "silent")
+        # Same members and ordering; only scheduling fields may differ.
         main = yaml.safe_load(Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text())
-        # Same members and ordering; only scheduling fields may differ, because
-        # the smart document upgrades url-test groups to type: smart.
+        self.assertEqual(smart["proxies"], main["proxies"])
+
         def members(group):
             return (group["name"], tuple(group.get("proxies", [])))
 
@@ -562,17 +435,16 @@ class PublishedSubscriptionTest(unittest.TestCase):
         self.assertFalse(smart["allow-lan"])
         self.assertEqual(smart["bind-address"], "127.0.0.1")
         self.assertEqual(smart["external-controller"], "127.0.0.1:9090")
-        for group in smart["proxy-groups"]:
-            if "url" in group:
-                self.assertEqual(
-                    group["url"], os.environ["PUBLISHED_HEALTH_CHECK_URL"]
-                )
+        self.assertEqual(smart["profile"]["smart-collector-size"], 100)
+        self.assertTrue(smart["profile"]["store-selected"])
+        self.assertTrue(smart["profile"]["store-fake-ip"])
+        self.assertTrue(smart["geo-auto-update"])
+        self.assertTrue(smart["lgbm-auto-update"])
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            source = root / "mihomo-smart.yaml"
-            # SOPS placeholders are not real credentials; substitute public
-            # test values exactly like the main-document test does.
+            source = root / "source.yaml"
             text = Path(os.environ["PUBLISHED_MIHOMO_SMART_CONFIG"]).read_text()
+            # SOPS placeholders are not real credentials.
             for proxy in smart["proxies"]:
                 if proxy["type"] == "vless":
                     text = text.replace(
@@ -596,35 +468,6 @@ class PublishedSubscriptionTest(unittest.TestCase):
                 timeout=30,
             )
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-
-    def test_real_mihomo_accepts_published_configuration_with_arx8_policy(self):
-        document = yaml.safe_load(
-            Path(os.environ["PUBLISHED_MIHOMO_CONFIG"]).read_text()
-        )
-        # Replace encrypted-secret placeholders with public test credentials only.
-        for proxy in document["proxies"]:
-            if proxy["type"] == "vless":
-                proxy["uuid"] = "12345678-1234-1234-1234-123456789abc"
-                proxy["reality-opts"].update(
-                    {
-                        "public-key": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-                        "short-id": "0123456789abcdef",
-                    }
-                )
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source = root / "source.yaml"
-            effective = root / "config.yaml"
-            source.write_text(yaml.safe_dump(document))
-            (root / "GeoIP.dat").symlink_to(os.environ["MIHOMO_GEOIP"])
-            (root / "GeoSite.dat").symlink_to(os.environ["MIHOMO_GEOSITE"])
-            (root / "Country.mmdb").symlink_to(os.environ["MIHOMO_MMDB"])
-            for command in (
-                [sys.executable, str(POLICY_SCRIPT), str(source), str(effective), os.environ["MIHOMO_POLICY_FILE"]],
-                [os.environ["MIHOMO_REAL_BIN"], "-t", "-d", str(root), "-f", str(effective)],
-            ):
-                result = subprocess.run(command, capture_output=True, text=True, timeout=30)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

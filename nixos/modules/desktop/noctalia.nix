@@ -22,6 +22,23 @@ in
       default = "graphical-session.target";
       description = "Compositor session target that starts and stops Noctalia.";
     };
+    showcase = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Use the official showcase desktop and lockscreen preset; disable to restore the previous layout.";
+      };
+      logicalWidth = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 1706;
+        description = "Logical output width used to size showcase widgets, before native placement remapping.";
+      };
+      logicalHeight = lib.mkOption {
+        type = lib.types.ints.positive;
+        default = 1066;
+        description = "Logical output height used to size showcase widgets, before native placement remapping.";
+      };
+    };
   };
 
   config = lib.mkIf cfg.enable {

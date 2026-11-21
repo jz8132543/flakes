@@ -5,5 +5,10 @@
   "gpu": "GPU",
   "memory": "Memory and Swap",
   "vram": "Video Memory",
+  "processors": "CPU and GPU",
+  "capacity": "Memory, Video Memory and Swap",
+  "layout": "Layout",
+  "rows": "Individual Metric Graphs",
+  "overview": "Dual Graph with Paired Readings",
   "gpu_frequency_command": "GPU Frequency Command"
 }

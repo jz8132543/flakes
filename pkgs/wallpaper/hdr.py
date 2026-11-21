@@ -1,9 +1,9 @@
-"""Make an image-specific HDR grade, not a reconstruction of lost source detail."""
+"""Generate wallpaper variants without reconstructing lost source detail."""
 
+import argparse
 import io
 import json
 import struct
-import sys
 import zlib
 from pathlib import Path
 
@@ -32,8 +32,12 @@ def pq_decode(code):
                             / (2413 / 128 - 2392 / 128 * power), 16384 / 2610)
 
 
+def srgb_to_linear(rgb):
+    return np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+
+
 def grade(rgb):
-    linear = np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    linear = srgb_to_linear(rgb)
     height, width = linear.shape[:2]
     y, x = np.ogrid[:height, :width]
     x = (x + 0.5) / width
@@ -68,7 +72,7 @@ def grade(rgb):
     return result.astype(np.float32), boost
 
 
-def write_png(path, radiance):
+def write_png(path, radiance, mastering_peak=PEAK):
     def chunk(kind, payload):
         return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload))
 
@@ -87,36 +91,53 @@ def write_png(path, radiance):
         output.write(b"\x89PNG\r\n\x1a\n")
         output.write(chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 16, 2, 0, 0, 0)))
         output.write(chunk(b"cICP", bytes([9, 16, 0, 1])))
-        output.write(chunk(b"mDCV", struct.pack(">8H2I", 35400, 14600, 8500, 39850,
-                                              6550, 2300, 15635, 16450, 4800000, 0)))
+        if mastering_peak is not None:
+            output.write(chunk(b"mDCV", struct.pack(">8H2I", 35400, 14600, 8500, 39850,
+                                                  6550, 2300, 15635, 16450,
+                                                  round(mastering_peak * 10000), 0)))
         output.write(chunk(b"cLLI", struct.pack(">2I", round(cll * 10000), round(fall * 10000))))
         output.write(chunk(b"IDAT", zlib.compress(scanlines.tobytes(), 6)))
         output.write(chunk(b"IEND", b""))
     decoded = pq_decode(pixels.astype(np.float64) / 65535)
     assert np.isfinite(decoded).all()
-    assert decoded.max() <= PEAK + 0.1
+    assert decoded.max() <= (mastering_peak if mastering_peak is not None else WHITE) + 0.1
     assert np.max(np.abs(decoded - radiance)) < 0.1
     return cll, fall
 
 
 def main():
-    source, destination = map(Path, sys.argv[1:])
-    image = Image.open(source)
-    icc = image.info.get("icc_profile")
-    if icc:
-        image = ImageCms.profileToProfile(image, ImageCms.ImageCmsProfile(io.BytesIO(icc)),
-                                         ImageCms.createProfile("sRGB"), outputMode="RGB")
-    rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
-    radiance, boost = grade(rgb)
-    cll, fall = write_png(destination, radiance)
-    assert boost.max() > 200, "The selected light sources must extend beyond SDR white"
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--preserve-sdr", action="store_true", help="map SDR white to 203 nits without boosting highlights")
+    parser.add_argument("source", type=Path)
+    parser.add_argument("destination", type=Path)
+    args = parser.parse_args()
+    source, destination = args.source, args.destination
+    with Image.open(source) as image:
+        width, height = image.size
+        icc = image.info.get("icc_profile")
+        if icc:
+            image = ImageCms.profileToProfile(image, ImageCms.ImageCmsProfile(io.BytesIO(icc)),
+                                             ImageCms.createProfile("sRGB"), outputMode="RGB")
+        rgb = np.asarray(image.convert("RGB"), dtype=np.float32) / 255.0
+    if args.preserve_sdr:
+        # Clip only floating-point overshoot at white; the matrix maps sRGB inside BT.2020.
+        radiance = np.minimum((srgb_to_linear(rgb) * WHITE) @ SRGB_TO_2020.T, WHITE)
+        mastering_peak = None
+        method = "SDR colorimetry preserved in BT.2020 PQ; no highlight expansion"
+    else:
+        radiance, boost = grade(rgb)
+        mastering_peak = PEAK
+        method = "Image-specific local inverse tone mapping; no AI reconstruction"
+    cll, fall = write_png(destination, radiance, mastering_peak)
+    if not args.preserve_sdr:
+        assert boost.max() > 200, "The selected light sources must extend beyond SDR white"
     report = {
-        "source": source.name, "width": image.width, "height": image.height,
+        "source": source.name, "width": width, "height": height,
         "bit_depth": 16, "primaries": "BT.2020", "transfer": "ST 2084 PQ",
-        "reference_white_nits": WHITE, "mastering_peak_nits": PEAK,
+        "reference_white_nits": WHITE, "mastering_peak_nits": mastering_peak,
         "max_rgb_nits": float(radiance.max()), "max_cll_nits": cll, "max_fall_nits": fall,
         "pixels_above_sdr_white_percent": float((radiance.max(axis=2) > WHITE).mean() * 100),
-        "method": "Image-specific local inverse tone mapping; no AI reconstruction",
+        "method": method,
     }
     destination.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))

@@ -91,8 +91,8 @@ let
             h-max-reusable-secs = cfg.xhttpXmux.hMaxReusableSecs;
             h-keep-alive-period = cfg.xhttpXmux.hKeepAlivePeriod;
           };
-          # Absorbs burst loss on high-RTT links. Effective for packet-up;
-          # ignored by stream-one, which has no separate upload POSTs.
+          # Packet-up batching/pacing, not packet-loss recovery; ignored by
+          # stream-one, which has no separate upload POSTs.
           uplink-chunk-size = cfg.xhttpUplinkChunkSize;
           sc-max-each-post-bytes = cfg.xhttpScMaxEachPostBytes;
           sc-min-posts-interval-ms = cfg.xhttpScMinPostsIntervalMs;
@@ -266,7 +266,7 @@ let
   mihomoConfig = {
     mixed-port = 7890;
     mode = "Rule";
-    log-level = "info";
+    log-level = "silent";
     allow-lan = true;
     bind-address = "0.0.0.0";
     ipv6 = true;
@@ -781,23 +781,23 @@ in
         options = {
           maxConnections = lib.mkOption {
             type = lib.types.str;
-            default = "3-3";
-            description = "HTTP connection pool size range; do not also set maxConcurrency.";
+            default = "3-4";
+            description = "Target HTTP connection pool size range; balances loss isolation with low-memory client/server costs. Do not also set maxConcurrency.";
           };
           hMaxRequestTimes = lib.mkOption {
             type = lib.types.str;
-            default = "600-900";
+            default = "1800-3000";
             description = "Requests served per connection before retirement.";
           };
           hMaxReusableSecs = lib.mkOption {
             type = lib.types.str;
             default = "1800-3000";
-            description = "Connection reuse lifetime range in seconds.";
+            description = "Connection reuse lifetime range in seconds, not an idle timeout or a deadline for active streams.";
           };
           hKeepAlivePeriod = lib.mkOption {
             type = lib.types.int;
-            default = 45;
-            description = "HTTP/2 keep-alive interval in seconds.";
+            default = 30;
+            description = "HTTP/2 idle interval before sending a keep-alive ping, in seconds.";
           };
         };
       };
@@ -808,7 +808,7 @@ in
     xhttpUplinkChunkSize = lib.mkOption {
       type = lib.types.str;
       default = "524288-1048576";
-      description = "Uplink chunk size range in bytes; helps absorb burst loss on high-RTT links.";
+      description = "Packet-up uplink chunk size range in bytes; inactive in stream-one and not a packet-loss recovery mechanism.";
     };
 
     xhttpScMaxEachPostBytes = lib.mkOption {

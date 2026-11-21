@@ -115,6 +115,12 @@ let
           printf '%s\n' "$result" > "$out"
         '';
   };
+  waydroidConfigTest = {
+    "x86_64-linux"."waydroid-config-test" = import ../tests/waydroid-config-test.nix {
+      pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      configurations = config.flake.nixosConfigurations;
+    };
+  };
   umbrielNoctaliaTest = {
     "x86_64-linux"."umbriel-noctalia-test" =
       fra0Pkgs.runCommand "umbriel-noctalia-test"
@@ -145,6 +151,13 @@ let
                   | tee "$out/${name}-umbriel.json"
                 # Realize the upstream HM checkConfig derivation as well.
                 test -s ${home.xdg.configFile."noctalia/config.toml".source}
+                # The CLI accepts unknown keys with warnings; the preset must be warning-free.
+                ${home.programs.noctalia.package}/bin/noctalia config validate \
+                  ${home.xdg.configFile."noctalia/config.toml".source} 2>&1 \
+                  | tee "$out/${name}-noctalia.txt"
+                if grep -E '(^|[[:space:]])WARN[[:space:]]' "$out/${name}-noctalia.txt"; then
+                  exit 1
+                fi
                 # Building the override catches read-only upstream .desktop modes.
                 grep -Fx 'NotShowIn=Umbriel;umbriel;' \
                   ${home.xdg.configFile."autostart/org.fcitx.Fcitx5.desktop".source}
@@ -173,7 +186,10 @@ let
         }
         ''
           python3 -B ${../tests/wallpaper-hdr-test.py} ${../pkgs/wallpaper/hdr.py} \
-            ${pkgs.wallpaper.hdr}/wallpaper-hdr.png
+            ${pkgs.wallpaper.hdr}/wallpaper-hdr.png \
+            ${pkgs.wallpaper.showcase}/wallpaper.png \
+            ${pkgs.wallpaper.showcaseHdr}/wallpaper-hdr.png \
+            ${pkgs.wallpaper.showcaseLockscreen}/lockscreen.png
           touch "$out"
         '';
   };
@@ -185,9 +201,7 @@ let
           root = ../.;
           fileset = lib.fileset.unions [
             ../tests/test-mihomo-subscription.py
-            ../tests/test-mihomo-runtime-policy.py
             ../nixos/modules/desktop/mihomo-subscription.sh
-            ../nixos/modules/desktop/mihomo-runtime-policy.py
           ];
         };
       in
@@ -210,16 +224,42 @@ let
           MIHOMO_REAL_BIN = lib.getExe host.config.services.mihomo.package;
           # The desktop host runs the fork kernel, so validate with that binary.
           MIHOMO_SMART_BIN = lib.getExe host.pkgs.nur.repos.zerozawa.mihomo-smart;
-          inherit (host.config.systemd.services.mihomo-subscription-update.environment)
-            MIHOMO_GEOIP
-            MIHOMO_GEOSITE
-            MIHOMO_MMDB
-            MIHOMO_POLICY_FILE
-            ;
+          # The updater invokes the kernel by absolute path because the fork
+          # ships mihomo-smart; a bare `mihomo` PATH lookup would fail.
+          MIHOMO_UPDATER_SCRIPT = lib.getExe host.config.system.build.mihomoSubscriptionUpdater;
+          # Geo databases are needed to validate the published document with the
+          # real kernel binary; the updater service itself no longer touches them.
+          MIHOMO_GEOIP = "${fra0Pkgs.v2ray-geoip}/share/v2ray/geoip.dat";
+          MIHOMO_GEOSITE = "${fra0Pkgs.v2ray-domain-list-community}/share/v2ray/geosite.dat";
+          MIHOMO_MMDB = fra0Pkgs.dbip-country-lite.mmdb;
+          # Check the merged upstream sandbox, including the no-updater case.
+          MIHOMO_DIRECTORY_CASES = builtins.unsafeDiscardStringContext (
+            builtins.toJSON (
+              map
+                (
+                  subscription:
+                  let
+                    cfg =
+                      (host.extendModules {
+                        modules = [ { services.mihomo.subscription.enable = lib.mkForce subscription; } ];
+                      }).config;
+                  in
+                  {
+                    inherit subscription;
+                    service = cfg.systemd.services.mihomo.serviceConfig;
+                    tmpfiles = cfg.systemd.tmpfiles.rules;
+                    persistence = cfg.environment.global-persistence.directories;
+                  }
+                )
+                [
+                  true
+                  false
+                ]
+            )
+          );
         }
         ''
           test -x "$updater/bin/mihomo-subscription-update"
-          python3 -B ${source}/tests/test-mihomo-runtime-policy.py -v
           python3 -B ${source}/tests/test-mihomo-subscription.py -v
           touch "$out"
         '';
@@ -763,6 +803,7 @@ in
     fluxdownConfigTest
     bitwigPackageTest
     gpuStorageConfigTest
+    waydroidConfigTest
     umbrielNoctaliaTest
     wallpaperHdrTest
     mihomoSubscriptionTest

@@ -19,8 +19,7 @@ in
       shellAliases = {
         # ls = "${pkgs.eza}/bin/eza --icons=auto";
         # tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
-        top = "${config.programs.bottom.package}/bin/btm";
-        top-threads = "${config.programs.bottom.package}/bin/btm --get_threads --tree --tree_collapse --expanded";
+        top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
         cat = "${pkgs.bat}/bin/bat --style=plain";
         fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
         batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
@@ -92,8 +91,7 @@ in
       shellAliases = {
         # ls = "${pkgs.eza}/bin/eza --icons=auto";
         # tree = "${pkgs.eza}/bin/eza --tree --icons=auto";
-        top = "${config.programs.bottom.package}/bin/btm";
-        top-threads = "${config.programs.bottom.package}/bin/btm --get_threads --tree --tree_collapse --expanded";
+        top = "${pkgs.bottom}/bin/btm --enable_cache_memory --battery";
         cat = "${pkgs.bat}/bin/bat --style=plain";
         fzf = "${pkgs.fzf}/bin/fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'";
         batdiff = "git diff --name-only --relative --diff-filter=d | xargs ${pkgs.bat}/bin/bat --diff";
@@ -256,12 +254,16 @@ in
         batdiff
       ];
     };
+    bottom = {
+      settings = { };
+    };
     skim.enable = true;
   };
   home.packages =
     with pkgs;
     [
       eza
+      bottom
       bat
       fzf
       ripgrep

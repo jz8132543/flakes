@@ -50,6 +50,7 @@ let
   };
   cases = {
     default = { };
+    resourceOverride = { };
     proxy = {
       needProxy = true;
     };
@@ -133,7 +134,19 @@ let
           modules = [
             fixtureSops
             (import ../nixos/modules/services/xray.nix args)
-            { networking.nftables.enable = name != "default"; }
+            {
+              networking.nftables.enable = name != "default";
+              systemd.services.${serviceName} = lib.mkIf (name == "resourceOverride") {
+                serviceConfig = {
+                  MemoryMax = "128M";
+                  MemoryHigh = "96M";
+                };
+                environment = {
+                  GOMEMLIMIT = "64MiB";
+                  GOGC = "80";
+                };
+              };
+            }
           ];
         }).config;
       core = args.core or "sing-box-extended";

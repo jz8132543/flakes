@@ -39,12 +39,22 @@ in
             printf '\nNotShowIn=Umbriel;umbriel;\n' >> "$out"
           '';
         };
+    # Replace only the image argument of the existing host-owned HDR service.
+    systemd.user.services =
+      lib.mkIf
+        (
+          osConfig.desktop.noctalia.enable
+          && osConfig.desktop.noctalia.showcase.enable
+          && osConfig.networking.hostName == "arx8"
+        )
+        {
+          hdr-wallpaper.Service.ExecStart = lib.mkForce "${pkgs.hdr-wallpaper}/bin/hdr-wallpaper eDP-1 ${pkgs.wallpaper.showcaseHdr}/wallpaper-hdr.png";
+        };
     programs.umbriel = {
       enable = true;
       package = osConfig.programs.umbriel.package;
       settings = {
         include = {
-          files = [ "${config.programs.umbriel.package}/share/umbriel/effects/border/pulse/effect.toml" ];
           optional.files = [ "noctalia.toml" ];
         };
         general = {
@@ -52,8 +62,14 @@ in
           autostart = lib.optional (
             osConfig.desktop.inputMethod.framework == "fcitx5"
           ) "${osConfig.i18n.inputMethod.package}/bin/fcitx5 -d";
+          show_cheatsheet = false;
           xwayland = true;
           xwayland_native_resolution = lib.mkDefault true;
+        };
+        # Other outputs already default to dynamic workspaces. Replace arx8's
+        # legacy fixed inventory without changing its measured display settings.
+        output = lib.optionalAttrs (osConfig.networking.hostName == "arx8") {
+          "eDP-1".workspaces = lib.mkForce "dynamic";
         };
         environment = {
           NIXOS_OZONE_WL = "1";
@@ -102,16 +118,9 @@ in
         };
         appearance = {
           corner_radius = 12;
-          border_width = 1;
-          blur = {
-            enabled = true;
-            optimized = true;
-            passes = 3;
-            radius = 10;
-            contrast = 0.9;
-            brightness = 0.9;
-            saturation = 1.1;
-          };
+          border_width = 0;
+          outer_border_width = 0;
+          blur.enabled = false;
           shadow = {
             enabled = true;
             softness = 18;
@@ -122,13 +131,12 @@ in
           unfocused = "#1F2026";
         };
         effects = {
-          border = "pulse";
           max_fps = 60;
         };
         # Avoid applying a second animation to Noctalia's animated layer surfaces.
         animation.layers.enabled = false;
         window_rule = [
-          { blur = true; }
+          { blur = false; }
           {
             match.app_id = "^dev.noctalia.Noctalia$";
             default_floating = true;
@@ -154,39 +162,48 @@ in
             border_width = 0;
             outer_border_width = 0;
             border_effect = "off";
-            blur = true;
-            blur_optimized = false;
+            blur = false;
           }
         ];
         layer_rule = [
           {
-            match.namespace = "^noctalia-(bar-.*|notification|dock|panel|attached-panel|osd|desktop-widget-.*)$";
-            blur = true;
-            blur_ignore_alpha = 0.05;
-            blur_popups = true;
-          }
-          # The compositor masks bar blur by client alpha, leaving transparent gaps clear.
-          {
-            match.namespace = "^noctalia-bar-main$";
-            blur = true;
-            blur_ignore_alpha = 0.05;
-            blur_optimized = false;
-          }
-          {
-            match.namespace = "^noctalia-(panel|attached-panel|notification|osd)$";
-            blur_optimized = false;
+            # Noctalia paints its own soft outer shadows; blur would turn their
+            # transparent margins into frosted outlines.
+            match.namespace = "^noctalia-.*$";
+            blur = false;
+            blur_popups = false;
           }
         ];
-        # Follow the locked upstream starting config, except for modifier-only taps.
-        keybinds = builtins.removeAttrs upstreamKeybinds [
-          "Mod"
-          "Super"
-        ];
+        keybinds =
+          builtins.removeAttrs upstreamKeybinds [
+            "Mod"
+            "Super"
+          ]
+          // lib.optionalAttrs osConfig.desktop.noctalia.enable {
+            # Modifier-only bindings fire on release and are cancelled when
+            # another key is pressed, leaving Win combinations unaffected.
+            Mod = {
+              action = "spawn ${lib.getExe config.programs.vicinae.package} toggle";
+              repeat = false;
+            };
+            "Mod+L" = {
+              action = "spawn ${lib.getExe config.programs.noctalia.package} msg session lock";
+              repeat = false;
+            };
+            "Mod+Shift+Slash" = {
+              action = "cheatsheet-toggle";
+              repeat = false;
+            };
+          };
       };
     };
     home.global-persistence.directories = lib.mkIf config.home.global-persistence.enabled [
       {
         directory = lib.removePrefix "${config.home.homeDirectory}/" "${config.xdg.configHome}/umbriel";
+        mode = "0700";
+      }
+      {
+        directory = lib.removePrefix "${config.home.homeDirectory}/" "${config.xdg.stateHome}/vicinae";
         mode = "0700";
       }
     ];

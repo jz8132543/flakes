@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 
 FIXTURES = json.loads(sys.argv[1])
@@ -28,10 +29,10 @@ SING_BOX_SOURCES = SOURCES + ["::ffff:172.20.232.0/122", "::ffff:127.0.0.0/104"]
 UUID_PLACEHOLDER = "@xray/uuid@"
 UUID = "00000000-0000-4000-8000-000000000001"
 XMUX = {
-    "maxConnections": "3-3",
-    "hMaxRequestTimes": "600-900",
+    "maxConnections": "3-4",
+    "hMaxRequestTimes": "1800-3000",
     "hMaxReusableSecs": "1800-3000",
-    "hKeepAlivePeriod": 45,
+    "hKeepAlivePeriod": 30,
 }
 PACING = {
     "uplinkChunkSize": "524288-1048576",
@@ -81,12 +82,22 @@ for name, fixture in FIXTURES.items():
     )
     assert "CREDENTIALS_DIRECTORY" in str(fixture["service"]["ExecStart"])
     assert fixture["restartCommand"].endswith(f"restart {service_name}.service")
-    assert fixture["service"]["MemoryMax"] == "192M"
-    assert fixture["service"]["MemoryHigh"] == "150M"
-    assert fixture["environment"]["GOMEMLIMIT"] == "128MiB"
-    assert fixture["environment"]["GOGC"] == (
-        "100" if core == "sing-box-extended" else "50"
-    )
+    if name == "resourceOverride":
+        assert fixture["service"]["MemoryMax"] == "128M"
+        assert fixture["service"]["MemoryHigh"] == "96M"
+        assert fixture["environment"]["GOMEMLIMIT"] == "64MiB"
+        assert fixture["environment"]["GOGC"] == "80"
+    else:
+        assert fixture["service"]["MemoryMax"] == "192M"
+        assert fixture["service"]["MemoryHigh"] == "150M"
+        assert fixture["environment"]["GOMEMLIMIT"] == "128MiB"
+        assert fixture["environment"]["GOGC"] == "100"
+    if core == "xray":
+        assert config["log"] == {
+            "access": "none", "error": "none", "loglevel": "none"
+        }
+    else:
+        assert config["log"] == {"disabled": True}
     assert not fixture["service"].get("LoadCredential", "").endswith("/nix/store")
     port = args.get("xrayPort", 8555)
     assert {8443, 8444, port} <= set(fixture["firewall"]["tcp"])
@@ -720,10 +731,10 @@ with tempfile.TemporaryDirectory() as temporary:
                             "x-padding-header": shared["extra"]["xPaddingHeader"],
                             "x-padding-method": shared["extra"]["xPaddingMethod"],
                             "reuse-settings": {
-                                "max-connections": "3-3",
-                                "h-max-request-times": "600-900",
-                                "h-max-reusable-secs": "1800-3000",
-                                "h-keep-alive-period": 45,
+                                "max-connections": XMUX["maxConnections"],
+                                "h-max-request-times": XMUX["hMaxRequestTimes"],
+                                "h-max-reusable-secs": XMUX["hMaxReusableSecs"],
+                                "h-keep-alive-period": XMUX["hKeepAlivePeriod"],
                             },
                         },
                     }
@@ -766,7 +777,7 @@ with tempfile.TemporaryDirectory() as temporary:
             # noSocks is asserted statically above; runtime cases need SOCKS.
             for fixture_name in ["default"]:
                 server = materialize(FIXTURES[fixture_name])
-                server["log"]["level"] = "debug"
+                server["log"] = {"level": "debug", "timestamp": True}
                 inbound_port, trusted_port = free_port(), free_port()
                 primary = server["inbounds"][0]
                 primary.update(listen="127.0.0.1", listen_port=inbound_port)
@@ -831,10 +842,10 @@ with tempfile.TemporaryDirectory() as temporary:
                             "x-padding-header": shared["x_padding_header"],
                             "x-padding-method": shared["x_padding_method"],
                             "reuse-settings": {
-                                "max-connections": "3-3",
-                                "h-max-request-times": "600-900",
-                                "h-max-reusable-secs": "1800-3000",
-                                "h-keep-alive-period": 45,
+                                "max-connections": XMUX["maxConnections"],
+                                "h-max-request-times": XMUX["hMaxRequestTimes"],
+                                "h-max-reusable-secs": XMUX["hMaxReusableSecs"],
+                                "h-keep-alive-period": XMUX["hKeepAlivePeriod"],
                             },
                         },
                     }
@@ -861,10 +872,20 @@ with tempfile.TemporaryDirectory() as temporary:
                     with run_config(
                         f"mihomo-{fixture_name}", mihomo, "mihomo", mihomo_port
                     ):
-                        for _ in range(4):
-                            assert fetch_socks(
-                                mihomo_port, "api.openai.com", http_target.server_port
-                            ).endswith(b"xhttp-ok")
+                        # More sessions than pool entries exercise concurrent H2
+                        # reuse with the actual Mihomo and Extended binaries.
+                        with ThreadPoolExecutor(max_workers=16) as executor:
+                            requests = [
+                                executor.submit(
+                                    fetch_socks,
+                                    mihomo_port,
+                                    "api.openai.com",
+                                    http_target.server_port,
+                                )
+                                for _ in range(16)
+                            ]
+                            for request in requests:
+                                assert request.result().endswith(b"xhttp-ok")
                         hits_before = Handler.hits
                         for host in [
                             "127.0.0.1",
@@ -908,6 +929,8 @@ with tempfile.TemporaryDirectory() as temporary:
 
                     if fixture_name == "default":
                         peer = materialize(FIXTURES["proxy"])
+                        # This fixture verifies relay selection through its log.
+                        peer["log"] = {"level": "info", "timestamp": True}
                         peer_port = free_port()
                         peer["inbounds"] = [
                             dict(peer["inbounds"][1], listen_port=peer_port)

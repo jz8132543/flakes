@@ -130,6 +130,8 @@
       perplexica-backend = 3003;
       ollama-api = 11434;
       ollama-ui = 11435;
+      llama-cpp = 11436;
+      strata = 11437;
       reader = 4396;
       office = 13444;
       nextcloud-talk-hpb = 13445;

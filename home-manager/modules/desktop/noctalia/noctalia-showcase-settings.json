@@ -1,0 +1,630 @@
+{
+  "accessibility": { "ui_scale": 0.9 },
+  "theme": { "shell_mode": "dark" },
+  "shell": {
+    "panel": {
+      "control_center_placement": "attached",
+      "control_center_position": "center",
+      "open_near_click_control_center": false,
+      "shadow": true
+    },
+    "shadow": {
+      "alpha": 0.45,
+      "direction": "down"
+    }
+  },
+  "bar": {
+    "main": {
+      "thickness": 30,
+      "background_opacity": 0.78,
+      "compositor_blur": false,
+      "radius": 0,
+      "concave_edge_corners": true,
+      "radius_top_left": 14,
+      "radius_top_right": 14,
+      "radius_bottom_left": 12,
+      "radius_bottom_right": 12,
+      "margin_edge": 0,
+      "margin_ends": 159,
+      "padding": 8,
+      "widget_spacing": 8,
+      "capsule": false,
+      "capsule_group": [],
+      "start": ["launcher", "screenshot"],
+      "center": [
+        "temperature",
+        "weather",
+        "workspaces",
+        "volume",
+        "bluetooth",
+        "network"
+      ],
+      "end": ["tray", "clock", "notifications", "session"]
+    }
+  },
+  "widget": {
+    "launcher": {
+      "type": "launcher",
+      "glyph": "rocket",
+      "actions": { "left": "exec vicinae toggle" }
+    },
+    "wallpaper": { "type": "wallpaper" },
+    "screenshot": { "type": "screenshot" },
+    "session": { "type": "session" },
+    "temperature": {
+      "type": "sysmon",
+      "stat": "cpu_temp",
+      "visualization": "none",
+      "show_glyph": true,
+      "show_value": true,
+      "label_show_units": true
+    },
+    "control-center": { "type": "control-center" },
+    "clock": { "format": "{:%a %d %b  %H:%M}" }
+  },
+  "control_center": {
+    "sidebar": "compact",
+    "sidebar_section": "compact",
+    "width": 696,
+    "show_avatar_border": true,
+    "shortcuts": [
+      { "type": "wifi" },
+      { "type": "bluetooth" },
+      { "type": "caffeine" },
+      { "type": "nightlight" },
+      { "type": "notification" },
+      { "type": "power_profile" }
+    ]
+  },
+  "desktop_widgets": {
+    "widget_order": [
+      "showcase-spectrum",
+      "showcase-rings",
+      "showcase-clock",
+      "showcase-weather",
+      "showcase-network",
+      "showcase-processors",
+      "showcase-capacity"
+    ],
+    "widget": {
+      "showcase-spectrum": {
+        "type": "audio_visualizer",
+        "anchor_below_bar": true,
+        "cx": 960,
+        "cy": 105,
+        "box_width": 604,
+        "box_height": 150,
+        "flip_y": true,
+        "settings": {
+          "background": false,
+          "bands": 64,
+          "centered": false,
+          "show_wave": false,
+          "mirrored": true,
+          "show_when_idle": false,
+          "color_1": "#b5c9ff",
+          "color_2": "#8eafff"
+        }
+      },
+      "showcase-rings": {
+        "type": "fancy_audio_visualizer",
+        "cx": 940,
+        "cy": 680,
+        "box_width": 540,
+        "box_height": 540,
+        "settings": {
+          "background": false,
+          "visualization_mode": "wave_rings",
+          "inner_diameter": 0.7,
+          "ring_opacity": 0.9,
+          "bloom_intensity": 0.6,
+          "fade_when_idle": true,
+          "primary_color": "#b5c9ff",
+          "secondary_color": "#d8e2ff"
+        }
+      },
+      "showcase-clock": {
+        "type": "clock",
+        "anchor_top_right": true,
+        "cx": 1744,
+        "cy": 112,
+        "box_width": 256,
+        "box_height": 80,
+        "settings": {
+          "clock_style": "digital",
+          "format": "{:%H:%M:%S}",
+          "center_text": true,
+          "background": true,
+          "background_color": "#1b202b",
+          "background_opacity": 0.88,
+          "background_radius": 16,
+          "background_padding": 12,
+          "color": "#dce2f1",
+          "shadow": false
+        }
+      },
+      "showcase-weather": {
+        "type": "weather",
+        "anchor_top_right": true,
+        "cx": 1744,
+        "cy": 212,
+        "box_width": 256,
+        "box_height": 104,
+        "settings": {
+          "show_forecast": false,
+          "background": true,
+          "background_color": "#1b202b",
+          "background_opacity": 0.88,
+          "background_radius": 16,
+          "background_padding": 12,
+          "color": "#dce2f1",
+          "shadow": false
+        }
+      },
+      "showcase-processors": {
+        "type": "local/sysmon-cards:card",
+        "anchor_top_right": true,
+        "cx": 1744,
+        "cy": 502,
+        "box_width": 256,
+        "box_height": 148,
+        "settings": {
+          "group": "processors",
+          "layout": "overview",
+          "background": true,
+          "background_color": "#1b202b",
+          "background_opacity": 0.88,
+          "background_radius": 16,
+          "background_padding": 12
+        }
+      },
+      "showcase-capacity": {
+        "type": "local/sysmon-cards:card",
+        "anchor_top_right": true,
+        "cx": 1744,
+        "cy": 658,
+        "box_width": 256,
+        "box_height": 148,
+        "settings": {
+          "group": "capacity",
+          "layout": "overview",
+          "background": true,
+          "background_color": "#1b202b",
+          "background_opacity": 0.88,
+          "background_radius": 16,
+          "background_padding": 12
+        }
+      },
+      "showcase-network": {
+        "type": "local/sysmon-cards:card",
+        "anchor_top_right": true,
+        "cx": 1744,
+        "cy": 346,
+        "box_width": 256,
+        "box_height": 148,
+        "settings": {
+          "group": "network",
+          "layout": "overview",
+          "background": true,
+          "background_color": "#1b202b",
+          "background_opacity": 0.88,
+          "background_radius": 16,
+          "background_padding": 12
+        }
+      }
+    }
+  },
+  "lockscreen": { "blur_intensity": 0.0, "tint_intensity": 0.0 },
+  "lockscreen_widgets": {
+    "widget_order": [
+      "showcase-band-top",
+      "showcase-band-bottom",
+      "showcase-star-0",
+      "showcase-star-1",
+      "showcase-star-2",
+      "showcase-inner-star-0",
+      "showcase-inner-star-1",
+      "showcase-inner-star-2",
+      "showcase-square-left",
+      "showcase-dot-upper-left",
+      "showcase-dot-left",
+      "showcase-square-right",
+      "showcase-square-right-back",
+      "showcase-small-square",
+      "showcase-dot-right",
+      "showcase-clock-face",
+      "showcase-lock-title",
+      "showcase-lock-time",
+      "showcase-lock-date",
+      "showcase-lock-memory",
+      "showcase-lock-monitor",
+      "showcase-caption",
+      "showcase-lock-spectrum"
+    ],
+    "widget": {
+      "showcase-band-top": {
+        "type": "label",
+        "cx": 730.8377685546875,
+        "cy": 0,
+        "box_width": 2487.954833984375,
+        "box_height": 928.8473510742188,
+        "rotation": -0.27045175433158875,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "secondary",
+          "background_opacity": 0.39,
+          "background_radius": 0,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-band-bottom": {
+        "type": "label",
+        "cx": 1135.51171875,
+        "cy": 1080,
+        "box_width": 2403.496826171875,
+        "box_height": 657.2086791992188,
+        "rotation": -0.27045175433158875,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_secondary",
+          "background_opacity": 0.3,
+          "background_radius": 0,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-star-0": {
+        "type": "label",
+        "cx": 224,
+        "cy": 264,
+        "box_width": 160,
+        "box_height": 152,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 1,
+          "background_radius": 10,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-star-1": {
+        "type": "label",
+        "cx": 224,
+        "cy": 264,
+        "box_width": 160,
+        "box_height": 152,
+        "rotation": 0.5235987901687622,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 1,
+          "background_radius": 10,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-star-2": {
+        "type": "label",
+        "cx": 224,
+        "cy": 264,
+        "box_width": 160,
+        "box_height": 152,
+        "rotation": 1.0471975803375244,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface",
+          "background_opacity": 1,
+          "background_radius": 10,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-inner-star-0": {
+        "type": "label",
+        "cx": 248,
+        "cy": 228,
+        "box_width": 120,
+        "box_height": 120,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface_container",
+          "background_opacity": 1,
+          "background_radius": 12,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-inner-star-1": {
+        "type": "label",
+        "cx": 248,
+        "cy": 228,
+        "box_width": 120,
+        "box_height": 120,
+        "rotation": -0.5235987901687622,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface_container",
+          "background_opacity": 1,
+          "background_radius": 12,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-inner-star-2": {
+        "type": "label",
+        "cx": 249.32052612304688,
+        "cy": 227.22598266601562,
+        "box_width": 120,
+        "box_height": 120,
+        "rotation": -1.0471975803375244,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface_container",
+          "background_opacity": 1,
+          "background_radius": 12,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-square-left": {
+        "type": "label",
+        "cx": 80,
+        "cy": 105.21224975585938,
+        "box_width": 96,
+        "box_height": 96,
+        "rotation": 0.2617993950843811,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "outline_variant",
+          "background_opacity": 1,
+          "background_radius": 20,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-dot-left": {
+        "type": "label",
+        "cx": 318.14361572265625,
+        "cy": 95.66973876953125,
+        "box_width": 48,
+        "box_height": 48,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_primary",
+          "background_opacity": 1,
+          "background_radius": 32,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-dot-upper-left": {
+        "type": "label",
+        "cx": 265.75128173828125,
+        "cy": 76,
+        "box_width": 56,
+        "box_height": 56,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_secondary",
+          "background_opacity": 1,
+          "background_radius": 32,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-square-right": {
+        "type": "label",
+        "cx": 1779.5025634765625,
+        "cy": 120.49742126464844,
+        "box_width": 112,
+        "box_height": 112,
+        "rotation": 0.5235987901687622,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_tertiary",
+          "background_opacity": 1,
+          "background_radius": 20,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-square-right-back": {
+        "type": "label",
+        "cx": 1793.9615478515625,
+        "cy": 114.24871063232422,
+        "box_width": 120,
+        "box_height": 120,
+        "rotation": -1.0471975803375244,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_tertiary",
+          "background_opacity": 1,
+          "background_radius": 12,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-small-square": {
+        "type": "label",
+        "cx": 1628.413818359375,
+        "cy": 156.7179718017578,
+        "box_width": 64,
+        "box_height": 64,
+        "rotation": -0.2617993950843811,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface_container",
+          "background_opacity": 1,
+          "background_radius": 20,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-dot-right": {
+        "type": "label",
+        "cx": 1790.2486572265625,
+        "cy": 266.24871826171875,
+        "box_width": 56,
+        "box_height": 56,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "on_primary",
+          "background_opacity": 1,
+          "background_radius": 32,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-clock-face": {
+        "type": "label",
+        "cx": 952,
+        "cy": 468,
+        "box_width": 464,
+        "box_height": 368,
+        "settings": {
+          "title": " ",
+          "background": true,
+          "background_color": "surface_container",
+          "background_opacity": 0.87,
+          "background_radius": 32,
+          "background_padding": 0,
+          "shadow": false
+        }
+      },
+      "showcase-lock-title": {
+        "type": "label",
+        "cx": 952.5,
+        "cy": 244,
+        "box_width": 340,
+        "box_height": 32,
+        "settings": {
+          "title": "L   O   C   K   E   D",
+          "font_family": "JetBrainsMono Nerd Font",
+          "background": false,
+          "color": "on_surface",
+          "shadow": false
+        }
+      },
+      "showcase-lock-time": {
+        "type": "clock",
+        "cx": 952,
+        "cy": 370,
+        "box_width": 400,
+        "box_height": 150,
+        "settings": {
+          "clock_style": "digital",
+          "format": "{:%H:%M}",
+          "center_text": true,
+          "font_family": "Inter",
+          "background": false,
+          "color": "on_surface",
+          "shadow": false
+        }
+      },
+      "showcase-lock-date": {
+        "type": "clock",
+        "cx": 948,
+        "cy": 464,
+        "box_width": 328,
+        "box_height": 24,
+        "settings": {
+          "clock_style": "digital",
+          "format": "{:%a,  %b  %d}",
+          "center_text": false,
+          "font_family": "JetBrainsMono Nerd Font",
+          "background": false,
+          "color": "on_surface",
+          "shadow": false
+        }
+      },
+      "showcase-lock-memory": {
+        "type": "sysmon",
+        "cx": 840,
+        "cy": 572,
+        "box_width": 208,
+        "box_height": 112,
+        "settings": {
+          "display": "graph",
+          "stat": "ram_pct",
+          "stat2": "swap_pct",
+          "show_label": true,
+          "color": "#b5c9ff",
+          "color2": "#f2b6d6",
+          "background": true,
+          "background_color": "on_secondary",
+          "background_opacity": 0.5,
+          "background_radius": 12,
+          "background_padding": 8,
+          "shadow": false
+        }
+      },
+      "showcase-lock-monitor": {
+        "type": "sysmon",
+        "cx": 1072,
+        "cy": 572,
+        "box_width": 192,
+        "box_height": 112,
+        "settings": {
+          "display": "graph",
+          "stat": "cpu_usage",
+          "stat2": "cpu_temp",
+          "show_label": true,
+          "background": true,
+          "background_color": "on_secondary",
+          "background_opacity": 0.5,
+          "background_radius": 12,
+          "background_padding": 8,
+          "shadow": false
+        }
+      },
+      "showcase-caption": {
+        "type": "label",
+        "cx": 1589.221923828125,
+        "cy": 978.1924438476562,
+        "box_width": 100,
+        "box_height": 32,
+        "rotation": 0.2617993950843811,
+        "settings": {
+          "title": "Locked, lol",
+          "font_family": "Inter",
+          "background": false,
+          "shadow": false
+        }
+      },
+      "showcase-lock-spectrum": {
+        "type": "audio_visualizer",
+        "cx": 960,
+        "cy": 779,
+        "box_width": 800,
+        "box_height": 140,
+        "flip_y": true,
+        "settings": {
+          "background": false,
+          "bands": 32,
+          "centered": false,
+          "mirrored": true,
+          "color_1": "outline_variant",
+          "color_2": "on_primary",
+          "show_when_idle": false
+        }
+      }
+    }
+  }
+}

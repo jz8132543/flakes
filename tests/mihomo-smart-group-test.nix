@@ -48,10 +48,10 @@ let
               xPaddingMethod = "repeat-x";
             };
             xhttpXmux = {
-              maxConnections = "3-3";
-              hMaxRequestTimes = "600-900";
+              maxConnections = "3-4";
+              hMaxRequestTimes = "1800-3000";
               hMaxReusableSecs = "1800-3000";
-              hKeepAlivePeriod = 45;
+              hKeepAlivePeriod = 30;
             };
             xhttpUplinkChunkSize = "524288-1048576";
             xhttpScMaxEachPostBytes = "524288-1048576";

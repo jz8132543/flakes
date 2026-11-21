@@ -13,11 +13,13 @@ let
     inherit pkgs;
     modules = [
       ../home-manager/modules/desktop/wine-audio/launchers.nix
+      ../home-manager/modules/desktop/wine-audio/low-latency.nix
       ({ config, ... }: {
         home.username = "tippy";
         home.homeDirectory = "/home/tippy";
         home.stateVersion = lib.importJSON ../lib/state-version.json;
         programs.wineAudio.enable = true;
+        programs.wineAudio.lowLatency.enable = true;
         xdg.desktopEntries."com.bitwig.BitwigStudio" = {
           name = "Bitwig Studio";
           genericName = "Digital Audio Workstation";
