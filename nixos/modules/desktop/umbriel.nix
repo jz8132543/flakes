@@ -16,6 +16,7 @@
       sessionTarget = lib.mkDefault "umbriel-session.target";
     };
     programs.umbriel.enable = true;
+    programs.nvf.settings.vim.binds.cheatsheet.enable = lib.mkForce false;
     xdg.portal = {
       enable = true;
       extraPortals = [ pkgs.xdg-desktop-portal-gtk ];

@@ -89,6 +89,7 @@
         wallpaper-hdr = pkgs.wallpaper.hdr;
         mactahoe-gdm = mactahoe.gdmTheme;
         inherit (localPackages)
+          corplink-rs
           fluxdown
           hdr-wallpaper
           ssh-race

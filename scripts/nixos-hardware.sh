@@ -7,42 +7,42 @@ echo "=== 开始获取官方 NixOS 硬件配置 (按需拉取/用完即清理版
 # 1. 自动适配并安装轻量级系统依赖
 MISSING_CMDS=""
 for cmd in curl xz tar sudo; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    MISSING_CMDS="$MISSING_CMDS $cmd"
-  fi
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+                MISSING_CMDS="$MISSING_CMDS $cmd"
+        fi
 done
 
 if [ -n "$MISSING_CMDS" ]; then
-  echo "正在静默安装基础依赖: $MISSING_CMDS"
-  SUDO_CMD=$([ "$EUID" -eq 0 ] && echo "" || echo "sudo")
+        echo "正在静默安装基础依赖: $MISSING_CMDS"
+        SUDO_CMD=$([ "$EUID" -eq 0 ] && echo "" || echo "sudo")
 
-  if command -v apt-get >/dev/null 2>&1; then
-    # shellcheck disable=SC2001
-    PKGS=$(echo "$MISSING_CMDS" | sed 's/\bxz\b/xz-utils/g')
-    $SUDO_CMD apt-get update -qq && $SUDO_CMD apt-get install -y -qq "$PKGS"
-  elif command -v dnf >/dev/null 2>&1; then
-    $SUDO_CMD dnf install -y -q "$MISSING_CMDS"
-  elif command -v yum >/dev/null 2>&1; then
-    $SUDO_CMD yum install -y -q "$MISSING_CMDS"
-  elif command -v pacman >/dev/null 2>&1; then
-    $SUDO_CMD pacman -Sy --noconfirm -q "$MISSING_CMDS"
-  elif command -v zypper >/dev/null 2>&1; then
-    $SUDO_CMD zypper install -y -q "$MISSING_CMDS"
-  fi
+        if command -v apt-get >/dev/null 2>&1; then
+                # shellcheck disable=SC2001
+                PKGS=$(echo "$MISSING_CMDS" | sed 's/\bxz\b/xz-utils/g')
+                $SUDO_CMD apt-get update -qq && $SUDO_CMD apt-get install -y -qq "$PKGS"
+        elif command -v dnf >/dev/null 2>&1; then
+                $SUDO_CMD dnf install -y -q "$MISSING_CMDS"
+        elif command -v yum >/dev/null 2>&1; then
+                $SUDO_CMD yum install -y -q "$MISSING_CMDS"
+        elif command -v pacman >/dev/null 2>&1; then
+                $SUDO_CMD pacman -Sy --noconfirm -q "$MISSING_CMDS"
+        elif command -v zypper >/dev/null 2>&1; then
+                $SUDO_CMD zypper install -y -q "$MISSING_CMDS"
+        fi
 fi
 
 # 2. 安装官方 Nix 环境
 if ! command -v nix >/dev/null 2>&1; then
-  echo "正在安装官方 Nix 包管理器..."
-  curl -L https://nixos.org/nix/install | sh -s -- --daemon
+        echo "正在安装官方 Nix 包管理器..."
+        curl -L https://nixos.org/nix/install | sh -s -- --daemon
 
-  if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]; then
-    # shellcheck disable=SC1091
-    source "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
-  else
-    echo "Nix 安装完成。请运行 'source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' 后再次执行本脚本。"
-    exit 0
-  fi
+        if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh" ]; then
+                # shellcheck disable=SC1091
+                source "/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
+        else
+                echo "Nix 安装完成。请运行 'source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' 后再次执行本脚本。"
+                exit 0
+        fi
 fi
 
 # 3. 设置输出目录

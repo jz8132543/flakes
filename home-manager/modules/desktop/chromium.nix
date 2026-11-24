@@ -30,7 +30,7 @@ in
     enable = true;
     # package = pkgs.chromium;
     extensions = [
-      # "padekgcemlokbadohgkifijomclgjgif" # SwitchyOmega
+      "pfnededegaaopdmhkdmcofjmoldfiped" # ZeroOmega (SwitchyOmega MV3 fork)
       "nngceckbapebfimnlniiiahkandclblb" # Bitwarden
       # "kgljlkdpcelbbmdfilomhgjaaefofkfh" # DeepL
       "cjpalhdlnbpafiamejdnhcphjbkeiagm" # uBlock Origin

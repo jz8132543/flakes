@@ -196,11 +196,6 @@
         dontUseCargoParallelTests = true;
       });
 
-      # TODO: 上游 nixpkgs 补齐 cc-switch 的 sqlite 依赖后移除此临时覆盖。
-      cc-switch = prev.cc-switch.overrideAttrs (old: {
-        buildInputs = final.lib.unique ((old.buildInputs or [ ]) ++ [ final.sqlite ]);
-      });
-
       # Host allowBroken includes pysaml2; Synapse tests still fail to import XMLSchema.
       matrix-synapse-unwrapped = prev.matrix-synapse-unwrapped.overrideAttrs (_old: {
         doCheck = false;

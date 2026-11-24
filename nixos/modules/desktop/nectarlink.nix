@@ -14,6 +14,7 @@ let
     ethtool
     ffmpeg
     glib
+    gsettings-desktop-schemas
     gst_all_1.gstreamer
     imagemagick
     iproute2
@@ -51,6 +52,7 @@ let
         makeBinaryWrapper "${pkgs.nectarlink}/bin/$binary" "$out/bin/$binary" \
           --prefix PATH : "/run/wrappers/bin:${lib.makeBinPath runtimePackages}" \
           --prefix GST_PLUGIN_SYSTEM_PATH_1_0 : "${lib.makeSearchPath "lib/gstreamer-1.0" gstPlugins}" \
+          --set GSETTINGS_SCHEMA_DIR "${pkgs.gsettings-desktop-schemas}/share/glib-2.0/schemas" \
           --prefix LD_LIBRARY_PATH : "${
             lib.makeLibraryPath [
               pkgs.libXtst

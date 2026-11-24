@@ -34,13 +34,13 @@
 
       model = lib.mkOption {
         type = lib.types.str;
-        default = "iq3_xxs";
+        default = "IQ3_XXS";
         description = "Strata model identifier.";
       };
 
       context = lib.mkOption {
         type = lib.types.str;
-        default = "8k";
+        default = "8192";
         description = "Initial Strata context size.";
       };
 
@@ -50,24 +50,43 @@
         description = "Initial Strata request parallelism.";
       };
 
+      lowRam = lib.mkOption {
+        type = lib.types.enum [
+          "auto"
+          "on"
+          "off"
+          "resident"
+          "mmap"
+        ];
+        default = "auto";
+        description = "Strata low-memory expert loading policy.";
+      };
+
       vision = lib.mkOption {
         type = lib.types.enum [
-          "off"
-          "on"
+          "yes"
+          "no"
+          "none"
           "cpu"
           "gpu"
         ];
-        default = "off";
+        default = "no";
         description = "Strata vision reader mode.";
       };
 
-      access = lib.mkOption {
+      source = lib.mkOption {
         type = lib.types.enum [
-          "local"
-          "lan"
+          "huggingface"
+          "modelscope"
         ];
-        default = "local";
-        description = "Strata network access mode.";
+        default = "huggingface";
+        description = "Upstream source used by Strata for model downloads.";
+      };
+
+      downloadProxy = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
+        default = null;
+        description = "Optional HTTP proxy used only by Strata's model preparation service.";
       };
 
     };

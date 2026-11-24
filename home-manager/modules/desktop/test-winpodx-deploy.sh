@@ -53,11 +53,11 @@ flock 7
 timeout 1 bash "$deploy" init
 flock -u 7
 for command in pause stop restart rm; do
-  set +e
-  bash "$guard" "$command" winpodx-windows >/dev/null 2>&1
-  rc=$?
-  set -e
-  [[ $rc == 75 ]]
+        set +e
+        bash "$guard" "$command" winpodx-windows >/dev/null 2>&1
+        rc=$?
+        set -e
+        [[ $rc == 75 ]]
 done
 bash "$guard" unpause winpodx-windows
 set +e

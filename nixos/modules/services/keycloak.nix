@@ -26,7 +26,9 @@ in
   #   "d ' /var/lib/private/lldap/' 0700 lldap lldap - -"
   # ];
 
-  networking.firewall.allowedTCPPorts = [ config.ports.ldap ];
+  networking.firewall.allowedTCPPorts = [
+    config.ports.ldaps
+  ];
   services.keycloak = {
     enable = true;
     plugins = [ pkgs.keycloak-themes-phasetwo ];
@@ -270,13 +272,28 @@ in
   services.traefik.proxies.keycloak = {
     rule = "Host(`sso.dora.im`)";
     target = "http://localhost:${toString config.ports.keycloak}";
+    homepage = {
+      title = "Keycloak";
+      category = "Identity";
+      icon = "keycloak.png";
+      description = "Single sign-on and account management";
+    };
   };
 
   services.traefik.tcpProxies.ldap = {
     rule = "HostSNI(`*`)";
     target = "localhost:3389"; # Internal 389ds port
     entryPoints = [ "ldap" ];
+    tls = false;
+  };
+  services.traefik.tcpProxies.ldaps = {
+    rule = "HostSNI(`ldap.${config.networking.domain}`)";
+    target = "localhost:3389";
+    entryPoints = [ "ldaps" ];
     tls = true;
+  };
+  services.traefik.staticConfigOptions.entryPoints = {
+    ldaps.address = ":${toString config.ports.ldaps}";
   };
 
   systemd.services.keycloak-ldap-bootstrap = {

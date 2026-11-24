@@ -2,9 +2,13 @@
   config,
   lib,
   osConfig,
+  pkgs,
   ...
 }:
 let
+  onboardingState = pkgs.writeText "vicinae-onboarding-complete.json" ''
+    {"version":1,"completedAt":""}
+  '';
   sandstoneTheme = variant: core: {
     meta = {
       name = "Sandstone";
@@ -71,6 +75,17 @@ in
         };
       };
     };
+    # Vicinae only records onboarding completion when its welcome window's
+    # finish action is clicked. Treat a missing record as dismissed, without
+    # overwriting state from users who completed onboarding themselves.
+    home.activation.vicinaeOnboarding = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      state_dir=${lib.escapeShellArg "${config.xdg.stateHome}/vicinae"}
+      state_file="$state_dir/onboarding.json"
+      if [ ! -e "$state_file" ]; then
+        run mkdir -p "$state_dir"
+        run ${pkgs.coreutils}/bin/install -m 0600 ${onboardingState} "$state_file"
+      fi
+    '';
     # NVIDIA's Wayland EGL path can block the first Qt Quick frame here.
     # Vulkan keeps the native GPU renderer without changing other applications.
     systemd.user.services.vicinae.Service.Environment =

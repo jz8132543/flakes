@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
+        cat <<'EOF'
 Usage: nixos-anywhere-deploy.sh --host NAME --target-host user@host [options]
 
 Options:
@@ -17,16 +17,16 @@ Behavior:
 2. Download the kexec tarball on the build host and force upload it to the target via --kexec when --kexec-local-only=on.
 3. Optionally inject a temporary installer nix.conf so the target can use binary caches.
 EOF
-  exit 1
+        exit 1
 }
 
 log() {
-  printf '[nixos-anywhere-deploy] %s\n' "$*"
+        printf '[nixos-anywhere-deploy] %s\n' "$*"
 }
 
 die() {
-  printf '[nixos-anywhere-deploy] %s\n' "$*" >&2
-  exit 1
+        printf '[nixos-anywhere-deploy] %s\n' "$*" >&2
+        exit 1
 }
 
 HOST=""
@@ -47,115 +47,115 @@ TEMP_DIR=""
 INSTALLER_NIX_CONF_PATH=""
 
 cleanup() {
-  if [ -n "${TEMP_DIR}" ] && [ -d "${TEMP_DIR}" ]; then
-    rm -rf "${TEMP_DIR}"
-  fi
+        if [ -n "${TEMP_DIR}" ] && [ -d "${TEMP_DIR}" ]; then
+                rm -rf "${TEMP_DIR}"
+        fi
 }
 
 trap cleanup EXIT
 
 parse_args() {
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-    --host | --hostname)
-      HOST="$2"
-      shift 2
-      ;;
-    --target-host | --target)
-      TARGET_HOST="$2"
-      shift 2
-      ;;
-    --port)
-      PORT="$2"
-      shift 2
-      ;;
-    --target-cache)
-      TARGET_CACHE="$2"
-      shift 2
-      ;;
-    --target-cache=*)
-      TARGET_CACHE="${1#*=}"
-      shift 1
-      ;;
-    --kexec-url)
-      KEXEC_URL="$2"
-      shift 2
-      ;;
-    --kexec-url=*)
-      KEXEC_URL="${1#*=}"
-      shift 1
-      ;;
-    --kexec-attr)
-      KEXEC_ATTR="$2"
-      shift 2
-      ;;
-    --kexec-attr=*)
-      KEXEC_ATTR="${1#*=}"
-      shift 1
-      ;;
-    --kexec-local-only)
-      KEXEC_LOCAL_ONLY="$2"
-      shift 2
-      ;;
-    --kexec-local-only=*)
-      KEXEC_LOCAL_ONLY="${1#*=}"
-      shift 1
-      ;;
-    -h | --help)
-      usage
-      ;;
-    *)
-      die "Unknown arg: $1"
-      ;;
-    esac
-  done
+        while [ "$#" -gt 0 ]; do
+                case "$1" in
+                --host | --hostname)
+                        HOST="$2"
+                        shift 2
+                        ;;
+                --target-host | --target)
+                        TARGET_HOST="$2"
+                        shift 2
+                        ;;
+                --port)
+                        PORT="$2"
+                        shift 2
+                        ;;
+                --target-cache)
+                        TARGET_CACHE="$2"
+                        shift 2
+                        ;;
+                --target-cache=*)
+                        TARGET_CACHE="${1#*=}"
+                        shift 1
+                        ;;
+                --kexec-url)
+                        KEXEC_URL="$2"
+                        shift 2
+                        ;;
+                --kexec-url=*)
+                        KEXEC_URL="${1#*=}"
+                        shift 1
+                        ;;
+                --kexec-attr)
+                        KEXEC_ATTR="$2"
+                        shift 2
+                        ;;
+                --kexec-attr=*)
+                        KEXEC_ATTR="${1#*=}"
+                        shift 1
+                        ;;
+                --kexec-local-only)
+                        KEXEC_LOCAL_ONLY="$2"
+                        shift 2
+                        ;;
+                --kexec-local-only=*)
+                        KEXEC_LOCAL_ONLY="${1#*=}"
+                        shift 1
+                        ;;
+                -h | --help)
+                        usage
+                        ;;
+                *)
+                        die "Unknown arg: $1"
+                        ;;
+                esac
+        done
 
-  if [ -z "$HOST" ] || [ -z "$TARGET_HOST" ]; then
-    usage
-  fi
+        if [ -z "$HOST" ] || [ -z "$TARGET_HOST" ]; then
+                usage
+        fi
 
-  case "${TARGET_CACHE}" in
-  on | off) ;;
-  *)
-    die "Unsupported --target-cache value: ${TARGET_CACHE} (expected: on|off)"
-    ;;
-  esac
+        case "${TARGET_CACHE}" in
+        on | off) ;;
+        *)
+                die "Unsupported --target-cache value: ${TARGET_CACHE} (expected: on|off)"
+                ;;
+        esac
 
-  case "${KEXEC_LOCAL_ONLY}" in
-  on | off) ;;
-  *)
-    die "Unsupported --kexec-local-only value: ${KEXEC_LOCAL_ONLY} (expected: on|off)"
-    ;;
-  esac
+        case "${KEXEC_LOCAL_ONLY}" in
+        on | off) ;;
+        *)
+                die "Unsupported --kexec-local-only value: ${KEXEC_LOCAL_ONLY} (expected: on|off)"
+                ;;
+        esac
 }
 
 build_attr_path() {
-  local attr="$1"
-  nix build \
-    --no-link \
-    --print-out-paths \
-    --experimental-features 'nix-command flakes' \
-    "$attr"
+        local attr="$1"
+        nix build \
+                --no-link \
+                --print-out-paths \
+                --experimental-features 'nix-command flakes' \
+                "$attr"
 }
 
 build_out_path() {
-  local attr="$1"
-  nix build \
-    --no-link \
-    --print-out-paths \
-    --experimental-features 'nix-command flakes' \
-    "$attr"
+        local attr="$1"
+        nix build \
+                --no-link \
+                --print-out-paths \
+                --experimental-features 'nix-command flakes' \
+                "$attr"
 }
 
 eval_attr_raw() {
-  nix eval \
-    --raw \
-    --experimental-features 'nix-command flakes' \
-    "$@"
+        nix eval \
+                --raw \
+                --experimental-features 'nix-command flakes' \
+                "$@"
 }
 
 dedupe_words() {
-  awk '
+        awk '
     {
       for (i = 1; i <= NF; i++) {
         if (!seen[$i]++) {
@@ -172,191 +172,191 @@ dedupe_words() {
 }
 
 prepare_local_nixos_anywhere() {
-  local package_attr
-  local package_path
+        local package_attr
+        local package_path
 
-  BUILD_SYSTEM="$(nix eval --impure --raw --expr builtins.currentSystem)"
-  package_attr=".#packages.${BUILD_SYSTEM}.nixos-anywhere"
+        BUILD_SYSTEM="$(nix eval --impure --raw --expr builtins.currentSystem)"
+        package_attr=".#packages.${BUILD_SYSTEM}.nixos-anywhere"
 
-  log "Building local nixos-anywhere package (${package_attr})"
-  package_path="$(build_attr_path "$package_attr")"
-  NIXOS_ANYWHERE_BIN="${package_path}/bin/nixos-anywhere"
+        log "Building local nixos-anywhere package (${package_attr})"
+        package_path="$(build_attr_path "$package_attr")"
+        NIXOS_ANYWHERE_BIN="${package_path}/bin/nixos-anywhere"
 
-  if [ ! -x "$NIXOS_ANYWHERE_BIN" ]; then
-    die "Expected nixos-anywhere binary at ${NIXOS_ANYWHERE_BIN}"
-  fi
+        if [ ! -x "$NIXOS_ANYWHERE_BIN" ]; then
+                die "Expected nixos-anywhere binary at ${NIXOS_ANYWHERE_BIN}"
+        fi
 }
 
 prepare_target_artifacts() {
-  log "Building target toplevel for ${HOST}"
-  TOPLEVEL_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.toplevel")"
+        log "Building target toplevel for ${HOST}"
+        TOPLEVEL_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.toplevel")"
 
-  log "Building disko script for ${HOST}"
-  DISKO_SCRIPT_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.diskoScriptNoDeps")"
+        log "Building disko script for ${HOST}"
+        DISKO_SCRIPT_PATH="$(build_attr_path ".#nixosConfigurations.${HOST}.config.system.build.diskoScriptNoDeps")"
 
-  HOST_SYSTEM="$(eval_attr_raw ".#nixosConfigurations.${HOST}.pkgs.stdenv.hostPlatform.system")"
+        HOST_SYSTEM="$(eval_attr_raw ".#nixosConfigurations.${HOST}.pkgs.stdenv.hostPlatform.system")"
 
-  if [ ! -e "$TOPLEVEL_PATH" ]; then
-    die "Missing toplevel store path: ${TOPLEVEL_PATH}"
-  fi
+        if [ ! -e "$TOPLEVEL_PATH" ]; then
+                die "Missing toplevel store path: ${TOPLEVEL_PATH}"
+        fi
 
-  if [ ! -e "$DISKO_SCRIPT_PATH" ]; then
-    die "Missing disko script store path: ${DISKO_SCRIPT_PATH}"
-  fi
+        if [ ! -e "$DISKO_SCRIPT_PATH" ]; then
+                die "Missing disko script store path: ${DISKO_SCRIPT_PATH}"
+        fi
 }
 
 default_kexec_package_attr() {
-  case "$1" in
-  x86_64-linux)
-    printf '%s\n' "github:nix-community/nixos-images#packages.x86_64-linux.kexec-installer-nixos-unstable-noninteractive"
-    ;;
-  aarch64-linux)
-    printf '%s\n' "github:nix-community/nixos-images#packages.aarch64-linux.kexec-installer-nixos-unstable-noninteractive"
-    ;;
-  *)
-    die "Unsupported target system for default kexec package: $1"
-    ;;
-  esac
+        case "$1" in
+        x86_64-linux)
+                printf '%s\n' "github:nix-community/nixos-images#packages.x86_64-linux.kexec-installer-nixos-unstable-noninteractive"
+                ;;
+        aarch64-linux)
+                printf '%s\n' "github:nix-community/nixos-images#packages.aarch64-linux.kexec-installer-nixos-unstable-noninteractive"
+                ;;
+        *)
+                die "Unsupported target system for default kexec package: $1"
+                ;;
+        esac
 }
 
 find_kexec_tarball() {
-  local package_path="$1"
-  local tarball
+        local package_path="$1"
+        local tarball
 
-  tarball="$(find "${package_path}" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
-  if [ -z "${tarball}" ]; then
-    die "Could not find a kexec tarball in ${package_path}"
-  fi
+        tarball="$(find "${package_path}" -maxdepth 1 -type f -name '*.tar.gz' -print -quit)"
+        if [ -z "${tarball}" ]; then
+                die "Could not find a kexec tarball in ${package_path}"
+        fi
 
-  printf '%s\n' "${tarball}"
+        printf '%s\n' "${tarball}"
 }
 
 prepare_temp_dir() {
-  if [ -z "${TEMP_DIR}" ]; then
-    TEMP_DIR="$(mktemp -d)"
-  fi
+        if [ -z "${TEMP_DIR}" ]; then
+                TEMP_DIR="$(mktemp -d)"
+        fi
 }
 
 prepare_kexec_tarball() {
-  local source
-  local package_attr
-  local package_path
-  local filename
+        local source
+        local package_attr
+        local package_path
+        local filename
 
-  prepare_temp_dir
+        prepare_temp_dir
 
-  source="${KEXEC_URL}"
-  if [ -n "${KEXEC_ATTR}" ]; then
-    package_attr="${KEXEC_ATTR}"
-    log "Building custom kexec tarball on build host from ${package_attr}"
-    package_path="$(build_out_path "${package_attr}")"
-    KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
-    log "Using built custom kexec tarball ${KEXEC_TARBALL_PATH}"
-    return
-  fi
+        source="${KEXEC_URL}"
+        if [ -n "${KEXEC_ATTR}" ]; then
+                package_attr="${KEXEC_ATTR}"
+                log "Building custom kexec tarball on build host from ${package_attr}"
+                package_path="$(build_out_path "${package_attr}")"
+                KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
+                log "Using built custom kexec tarball ${KEXEC_TARBALL_PATH}"
+                return
+        fi
 
-  if [ -z "${source}" ]; then
-    package_attr="$(default_kexec_package_attr "${HOST_SYSTEM}")"
-    log "Building default kexec tarball on build host from ${package_attr}"
-    package_path="$(build_out_path "${package_attr}")"
-    KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
-    log "Using built kexec tarball ${KEXEC_TARBALL_PATH}"
-    return
-  fi
+        if [ -z "${source}" ]; then
+                package_attr="$(default_kexec_package_attr "${HOST_SYSTEM}")"
+                log "Building default kexec tarball on build host from ${package_attr}"
+                package_path="$(build_out_path "${package_attr}")"
+                KEXEC_TARBALL_PATH="$(find_kexec_tarball "${package_path}")"
+                log "Using built kexec tarball ${KEXEC_TARBALL_PATH}"
+                return
+        fi
 
-  if [ -f "${source}" ]; then
-    KEXEC_TARBALL_PATH="$(readlink -f -- "${source}")"
-    log "Using local kexec tarball ${KEXEC_TARBALL_PATH}"
-    return
-  fi
+        if [ -f "${source}" ]; then
+                KEXEC_TARBALL_PATH="$(readlink -f -- "${source}")"
+                log "Using local kexec tarball ${KEXEC_TARBALL_PATH}"
+                return
+        fi
 
-  if [ "${KEXEC_LOCAL_ONLY}" != "on" ]; then
-    KEXEC_TARBALL_PATH="${source}"
-    log "Using remote kexec URL ${KEXEC_TARBALL_PATH}"
-    return
-  fi
+        if [ "${KEXEC_LOCAL_ONLY}" != "on" ]; then
+                KEXEC_TARBALL_PATH="${source}"
+                log "Using remote kexec URL ${KEXEC_TARBALL_PATH}"
+                return
+        fi
 
-  filename="$(basename -- "${source%%\?*}")"
-  if [ -z "${filename}" ]; then
-    filename="nixos-kexec-installer.tar.gz"
-  fi
+        filename="$(basename -- "${source%%\?*}")"
+        if [ -z "${filename}" ]; then
+                filename="nixos-kexec-installer.tar.gz"
+        fi
 
-  KEXEC_TARBALL_PATH="${TEMP_DIR}/${filename}"
-  log "Downloading kexec tarball on build host from ${source}"
-  if ! curl --fail --location --silent --show-error --output "${KEXEC_TARBALL_PATH}" "${source}"; then
-    die "Failed to fetch kexec tarball on build host: ${source}"
-  fi
+        KEXEC_TARBALL_PATH="${TEMP_DIR}/${filename}"
+        log "Downloading kexec tarball on build host from ${source}"
+        if ! curl --fail --location --silent --show-error --output "${KEXEC_TARBALL_PATH}" "${source}"; then
+                die "Failed to fetch kexec tarball on build host: ${source}"
+        fi
 }
 
 prepare_target_cache_config() {
-  local base_substituters
-  local base_trusted_public_keys
-  local substituters
-  local trusted_public_keys
+        local base_substituters
+        local base_trusted_public_keys
+        local substituters
+        local trusted_public_keys
 
-  if [ "${TARGET_CACHE}" != "on" ]; then
-    return
-  fi
+        if [ "${TARGET_CACHE}" != "on" ]; then
+                return
+        fi
 
-  prepare_temp_dir
-  INSTALLER_NIX_CONF_PATH="${TEMP_DIR}/installer-nix.conf"
-  base_substituters="https://cache.nixos.org https://nix-community.cachix.org https://mirrors.ustc.edu.cn/nix-channels/store"
-  base_trusted_public_keys="cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-  substituters="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.substituters")"
-  trusted_public_keys="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.trusted-public-keys")"
+        prepare_temp_dir
+        INSTALLER_NIX_CONF_PATH="${TEMP_DIR}/installer-nix.conf"
+        base_substituters="https://cache.nixos.org https://nix-community.cachix.org https://mirrors.ustc.edu.cn/nix-channels/store"
+        base_trusted_public_keys="cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
+        substituters="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.substituters")"
+        trusted_public_keys="$(eval_attr_raw --apply toString ".#nixosConfigurations.${HOST}.config.nix.settings.trusted-public-keys")"
 
-  substituters="$(dedupe_words "${base_substituters} ${substituters}")"
-  trusted_public_keys="$(dedupe_words "${base_trusted_public_keys} ${trusted_public_keys}")"
+        substituters="$(dedupe_words "${base_substituters} ${substituters}")"
+        trusted_public_keys="$(dedupe_words "${base_trusted_public_keys} ${trusted_public_keys}")"
 
-  {
-    printf 'extra-substituters = %s\n' "${substituters}"
-    printf 'extra-trusted-public-keys = %s\n' "${trusted_public_keys}"
-    printf 'connect-timeout = 1\n'
-    printf 'stalled-download-timeout = 1\n'
-    printf 'download-attempts = 1\n'
-    printf 'require-sigs = false\n'
-    printf 'fallback = true\n'
-  } >"${INSTALLER_NIX_CONF_PATH}"
+        {
+                printf 'extra-substituters = %s\n' "${substituters}"
+                printf 'extra-trusted-public-keys = %s\n' "${trusted_public_keys}"
+                printf 'connect-timeout = 1\n'
+                printf 'stalled-download-timeout = 1\n'
+                printf 'download-attempts = 1\n'
+                printf 'require-sigs = false\n'
+                printf 'fallback = true\n'
+        } >"${INSTALLER_NIX_CONF_PATH}"
 
-  log "Prepared temporary installer nix.conf with target-side cache settings"
+        log "Prepared temporary installer nix.conf with target-side cache settings"
 }
 
 run_nixos_anywhere() {
-  local cmd=(
-    "$NIXOS_ANYWHERE_BIN"
-    "--kexec"
-    "$KEXEC_TARBALL_PATH"
-    "--store-paths"
-    "$DISKO_SCRIPT_PATH"
-    "$TOPLEVEL_PATH"
-    "$TARGET_HOST"
-    "-p"
-    "$PORT"
-  )
+        local cmd=(
+                "$NIXOS_ANYWHERE_BIN"
+                "--kexec"
+                "$KEXEC_TARBALL_PATH"
+                "--store-paths"
+                "$DISKO_SCRIPT_PATH"
+                "$TOPLEVEL_PATH"
+                "$TARGET_HOST"
+                "-p"
+                "$PORT"
+        )
 
-  if [ "${TARGET_CACHE}" = "on" ]; then
-    cmd+=(
-      "--disk-encryption-keys"
-      "/root/.config/nix/nix.conf"
-      "$INSTALLER_NIX_CONF_PATH"
-      "--no-use-machine-substituters"
-    )
-  else
-    cmd+=("--no-substitute-on-destination")
-  fi
+        if [ "${TARGET_CACHE}" = "on" ]; then
+                cmd+=(
+                        "--disk-encryption-keys"
+                        "/root/.config/nix/nix.conf"
+                        "$INSTALLER_NIX_CONF_PATH"
+                        "--no-use-machine-substituters"
+                )
+        else
+                cmd+=("--no-substitute-on-destination")
+        fi
 
-  log "Running nixos-anywhere"
-  "${cmd[@]}"
+        log "Running nixos-anywhere"
+        "${cmd[@]}"
 }
 
 main() {
-  parse_args "$@"
-  prepare_local_nixos_anywhere
-  prepare_target_artifacts
-  prepare_kexec_tarball
-  prepare_target_cache_config
-  run_nixos_anywhere
-  log "Done."
+        parse_args "$@"
+        prepare_local_nixos_anywhere
+        prepare_target_artifacts
+        prepare_kexec_tarball
+        prepare_target_cache_config
+        run_nixos_anywhere
+        log "Done."
 }
 
 main "$@"

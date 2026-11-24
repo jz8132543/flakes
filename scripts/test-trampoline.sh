@@ -20,24 +20,24 @@ SSH_PORT=2222
 TRAMPOLINE_PORT=22
 # Locate qemu-system-x86_64 – prefer PATH, fall back to nix run
 if command -v qemu-system-x86_64 >/dev/null 2>&1; then
-  QEMU_BIN="qemu-system-x86_64"
+        QEMU_BIN="qemu-system-x86_64"
 else
-  QEMU_BIN="$(which qemu-system-x86_64 2>/dev/null ||
-    nix build --no-link --print-out-paths nixpkgs#qemu 2>/dev/null | head -1)/bin/qemu-system-x86_64"
+        QEMU_BIN="$(which qemu-system-x86_64 2>/dev/null ||
+                nix build --no-link --print-out-paths nixpkgs#qemu 2>/dev/null | head -1)/bin/qemu-system-x86_64"
 fi
 
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-  --port)
-    SSH_PORT="$2"
-    TRAMPOLINE_PORT="$2"
-    shift 2
-    ;;
-  *)
-    echo "Usage: $0 [--port PORT]"
-    exit 1
-    ;;
-  esac
+        case "$1" in
+        --port)
+                SSH_PORT="$2"
+                TRAMPOLINE_PORT="$2"
+                shift 2
+                ;;
+        *)
+                echo "Usage: $0 [--port PORT]"
+                exit 1
+                ;;
+        esac
 done
 
 log() { printf '\e[1;36m[test-trampoline]\e[0m %s\n' "$*"; }
@@ -62,11 +62,11 @@ mkdir -p "$ALPINE_DIR"
 
 log "Downloading Alpine netboot kernel + initramfs..."
 curl --fail --location --silent --show-error \
-  -o "${ALPINE_DIR}/vmlinuz" \
-  "${ALPINE_MIRROR}/${ALPINE_RELEASE}/releases/${ALPINE_ARCH}/netboot/vmlinuz-${ALPINE_FLAVOR}"
+        -o "${ALPINE_DIR}/vmlinuz" \
+        "${ALPINE_MIRROR}/${ALPINE_RELEASE}/releases/${ALPINE_ARCH}/netboot/vmlinuz-${ALPINE_FLAVOR}"
 curl --fail --location --silent --show-error \
-  -o "${ALPINE_DIR}/initramfs" \
-  "${ALPINE_MIRROR}/${ALPINE_RELEASE}/releases/${ALPINE_ARCH}/netboot/initramfs-${ALPINE_FLAVOR}"
+        -o "${ALPINE_DIR}/initramfs" \
+        "${ALPINE_MIRROR}/${ALPINE_RELEASE}/releases/${ALPINE_ARCH}/netboot/initramfs-${ALPINE_FLAVOR}"
 
 # Generate ephemeral SSH key pair
 TRAMPOLINE_KEY="${TEMP_DIR}/trampoline_id"
@@ -77,27 +77,27 @@ log "Connect with: ssh -i ${TRAMPOLINE_KEY} -p ${SSH_PORT} -o StrictHostKeyCheck
 # Build overlay (same structure as in deploy-live-kexec.sh)
 OVERLAY_ROOT="${TEMP_DIR}/overlay"
 mkdir -p \
-  "${OVERLAY_ROOT}/bin" \
-  "${OVERLAY_ROOT}/dev" \
-  "${OVERLAY_ROOT}/etc/dropbear" \
-  "${OVERLAY_ROOT}/root/.ssh" \
-  "${OVERLAY_ROOT}/usr/share/udhcpc"
+        "${OVERLAY_ROOT}/bin" \
+        "${OVERLAY_ROOT}/dev" \
+        "${OVERLAY_ROOT}/etc/dropbear" \
+        "${OVERLAY_ROOT}/root/.ssh" \
+        "${OVERLAY_ROOT}/usr/share/udhcpc"
 
 cp "$LOCAL_BUSYBOX" "${OVERLAY_ROOT}/bin/busybox"
 cp "$LOCAL_DROPBEAR" "${OVERLAY_ROOT}/bin/dropbear"
 
 for sym in sh mount mkdir mdev modprobe udhcpc ip sleep cat ls dd sync reboot \
-  poweroff ps kill setsid wget cp rm mv chmod ln mkswap swapon swapoff \
-  ifconfig route dmesg uname grep awk sed; do
-  ln -sf busybox "${OVERLAY_ROOT}/bin/${sym}"
+        poweroff ps kill setsid wget cp rm mv chmod ln mkswap swapon swapoff \
+        ifconfig route dmesg uname grep awk sed; do
+        ln -sf busybox "${OVERLAY_ROOT}/bin/${sym}"
 done
 
 # authorized_keys: ephemeral key + SSH agent keys + ~/.ssh/*.pub
 {
-  cat "${TRAMPOLINE_KEY}.pub"
-  printf '\n'
-  ssh-add -L 2>/dev/null || true
-  find "${HOME}/.ssh" -maxdepth 1 -name '*.pub' -exec cat {} \; 2>/dev/null || true
+        cat "${TRAMPOLINE_KEY}.pub"
+        printf '\n'
+        ssh-add -L 2>/dev/null || true
+        find "${HOME}/.ssh" -maxdepth 1 -name '*.pub' -exec cat {} \; 2>/dev/null || true
 } | awk 'NF && !seen[$0]++' >"${OVERLAY_ROOT}/root/.ssh/authorized_keys"
 chmod 0700 "${OVERLAY_ROOT}/root/.ssh"
 chmod 0600 "${OVERLAY_ROOT}/root/.ssh/authorized_keys"
@@ -217,8 +217,8 @@ chmod 0755 "${OVERLAY_ROOT}/init"
 
 LOCAL_OVERLAY="${TEMP_DIR}/overlay.cpio.gz"
 (
-  cd "$OVERLAY_ROOT"
-  find . -print0 | LC_ALL=C sort -z | cpio --null -o -H newc | gzip -1 >"$LOCAL_OVERLAY"
+        cd "$OVERLAY_ROOT"
+        find . -print0 | LC_ALL=C sort -z | cpio --null -o -H newc | gzip -1 >"$LOCAL_OVERLAY"
 ) 2>/dev/null
 
 LOCAL_INITRAMFS="${TEMP_DIR}/initramfs"
@@ -236,12 +236,12 @@ echo
 # Boot QEMU directly with the trampoline.  Serial goes to stdio so we see
 # every line from /init in real time.
 "$QEMU_BIN" \
-  -enable-kvm -cpu host -m 1024 \
-  -kernel "${ALPINE_DIR}/vmlinuz" \
-  -initrd "$LOCAL_INITRAMFS" \
-  -append "console=ttyS0 console=tty0 nomodeset panic=30 init=/init" \
-  -serial stdio \
-  -display none \
-  -device virtio-net-pci,netdev=net0 \
-  -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:${TRAMPOLINE_PORT}" \
-  -no-reboot
+        -enable-kvm -cpu host -m 1024 \
+        -kernel "${ALPINE_DIR}/vmlinuz" \
+        -initrd "$LOCAL_INITRAMFS" \
+        -append "console=ttyS0 console=tty0 nomodeset panic=30 init=/init" \
+        -serial stdio \
+        -display none \
+        -device virtio-net-pci,netdev=net0 \
+        -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:${TRAMPOLINE_PORT}" \
+        -no-reboot

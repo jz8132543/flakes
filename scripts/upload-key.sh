@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
+        cat <<'EOF'
 Usage: upload-key.sh --host NAME --target-host root@IP --device /dev/vdX [options]
 
 Options:
@@ -17,16 +17,16 @@ EOF
 }
 
 log() {
-  printf '[upload-key] %s\n' "$*"
+        printf '[upload-key] %s\n' "$*"
 }
 
 die() {
-  printf '[upload-key] %s\n' "$*" >&2
-  exit 1
+        printf '[upload-key] %s\n' "$*" >&2
+        exit 1
 }
 
 quote_for_sh() {
-  printf '%q' "$1"
+        printf '%q' "$1"
 }
 
 HOST=""
@@ -59,126 +59,126 @@ LOCAL_MOUNT=""
 LOCAL_DISKO_MOUNT=""
 
 cleanup() {
-  if [ -n "${TEMP_DIR}" ] && [ -d "${TEMP_DIR}" ]; then
-    rm -rf "${TEMP_DIR}"
-  fi
+        if [ -n "${TEMP_DIR}" ] && [ -d "${TEMP_DIR}" ]; then
+                rm -rf "${TEMP_DIR}"
+        fi
 }
 
 trap cleanup EXIT
 
 parse_args() {
-  while [ "$#" -gt 0 ]; do
-    case "$1" in
-    --host)
-      HOST="${2:-}"
-      shift 2
-      ;;
-    --target-host | --target)
-      TARGET_HOST="${2:-}"
-      shift 2
-      ;;
-    --port)
-      PORT="${2:-}"
-      shift 2
-      ;;
-    --device | --disk)
-      DEVICE="${2:-}"
-      shift 2
-      ;;
-    --identity-file)
-      IDENTITY_FILE="${2:-}"
-      shift 2
-      ;;
-    --key-src)
-      KEY_SRC="${2:-}"
-      shift 2
-      ;;
-    -h | --help)
-      usage
-      exit 0
-      ;;
-    *)
-      die "Unknown arg: $1"
-      ;;
-    esac
-  done
+        while [ "$#" -gt 0 ]; do
+                case "$1" in
+                --host)
+                        HOST="${2:-}"
+                        shift 2
+                        ;;
+                --target-host | --target)
+                        TARGET_HOST="${2:-}"
+                        shift 2
+                        ;;
+                --port)
+                        PORT="${2:-}"
+                        shift 2
+                        ;;
+                --device | --disk)
+                        DEVICE="${2:-}"
+                        shift 2
+                        ;;
+                --identity-file)
+                        IDENTITY_FILE="${2:-}"
+                        shift 2
+                        ;;
+                --key-src)
+                        KEY_SRC="${2:-}"
+                        shift 2
+                        ;;
+                -h | --help)
+                        usage
+                        exit 0
+                        ;;
+                *)
+                        die "Unknown arg: $1"
+                        ;;
+                esac
+        done
 
-  [ -n "${HOST}" ] || die "Missing --host"
-  [ -n "${TARGET_HOST}" ] || die "Missing --target-host"
-  [ -n "${DEVICE}" ] || die "Missing --device"
-  [ -f "${KEY_SRC}" ] || die "Missing key file: ${KEY_SRC}"
+        [ -n "${HOST}" ] || die "Missing --host"
+        [ -n "${TARGET_HOST}" ] || die "Missing --target-host"
+        [ -n "${DEVICE}" ] || die "Missing --device"
+        [ -f "${KEY_SRC}" ] || die "Missing key file: ${KEY_SRC}"
 }
 
 prepare_temp_dir() {
-  if [ -z "${TEMP_DIR}" ]; then
-    TEMP_DIR="$(mktemp -d)"
-  fi
+        if [ -z "${TEMP_DIR}" ]; then
+                TEMP_DIR="$(mktemp -d)"
+        fi
 }
 
 resolve_identity_file() {
-  local candidate
+        local candidate
 
-  if [ -n "${IDENTITY_FILE}" ]; then
-    [ -f "${IDENTITY_FILE}" ] || die "Identity file not found: ${IDENTITY_FILE}"
-    return
-  fi
+        if [ -n "${IDENTITY_FILE}" ]; then
+                [ -f "${IDENTITY_FILE}" ] || die "Identity file not found: ${IDENTITY_FILE}"
+                return
+        fi
 
-  while IFS= read -r candidate; do
-    [ -n "${candidate}" ] || continue
-    if [ -f "${candidate}" ]; then
-      IDENTITY_FILE="${candidate}"
-      return
-    fi
-  done < <(ssh -G -p "${PORT}" "${TARGET_HOST}" 2>/dev/null | awk '/^identityfile / { print $2 }')
+        while IFS= read -r candidate; do
+                [ -n "${candidate}" ] || continue
+                if [ -f "${candidate}" ]; then
+                        IDENTITY_FILE="${candidate}"
+                        return
+                fi
+        done < <(ssh -G -p "${PORT}" "${TARGET_HOST}" 2>/dev/null | awk '/^identityfile / { print $2 }')
 
-  if [ -f "${HOME}/.ssh/id_ed25519" ]; then
-    IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
-  fi
+        if [ -f "${HOME}/.ssh/id_ed25519" ]; then
+                IDENTITY_FILE="${HOME}/.ssh/id_ed25519"
+        fi
 }
 
 setup_ssh() {
-  SSH_BASE_OPTS=(
-    -o StrictHostKeyChecking=accept-new
-    -o ServerAliveInterval=15
-    -o ServerAliveCountMax=4
-    -o ControlMaster=no
-    -p "${PORT}"
-  )
+        SSH_BASE_OPTS=(
+                -o StrictHostKeyChecking=accept-new
+                -o ServerAliveInterval=15
+                -o ServerAliveCountMax=4
+                -o ControlMaster=no
+                -p "${PORT}"
+        )
 
-  SSH_AUTH_OPTS=()
-  if [ -n "${IDENTITY_FILE}" ]; then
-    SSH_AUTH_OPTS=(-i "${IDENTITY_FILE}")
-  fi
+        SSH_AUTH_OPTS=()
+        if [ -n "${IDENTITY_FILE}" ]; then
+                SSH_AUTH_OPTS=(-i "${IDENTITY_FILE}")
+        fi
 
-  SCP_BASE_OPTS=(
-    -C
-    -o StrictHostKeyChecking=accept-new
-    -P "${PORT}"
-  )
+        SCP_BASE_OPTS=(
+                -C
+                -o StrictHostKeyChecking=accept-new
+                -P "${PORT}"
+        )
 
-  if [ -n "${IDENTITY_FILE}" ]; then
-    SCP_BASE_OPTS+=(-i "${IDENTITY_FILE}")
-  fi
+        if [ -n "${IDENTITY_FILE}" ]; then
+                SCP_BASE_OPTS+=(-i "${IDENTITY_FILE}")
+        fi
 }
 
 remote_ssh() {
-  ssh "${SSH_BASE_OPTS[@]}" "${SSH_AUTH_OPTS[@]}" "${TARGET_HOST}" "$@"
+        ssh "${SSH_BASE_OPTS[@]}" "${SSH_AUTH_OPTS[@]}" "${TARGET_HOST}" "$@"
 }
 
 upload_file() {
-  local local_path="$1"
-  local remote_path="$2"
-  local mode="${3:-0644}"
-  local remote_dir=""
+        local local_path="$1"
+        local remote_path="$2"
+        local mode="${3:-0644}"
+        local remote_dir=""
 
-  remote_dir="$(dirname "${remote_path}")"
-  remote_ssh "mkdir -p $(quote_for_sh "${remote_dir}")"
-  cat "${local_path}" | remote_ssh "cat > $(quote_for_sh "${remote_path}") && chmod ${mode} $(quote_for_sh "${remote_path}")"
+        remote_dir="$(dirname "${remote_path}")"
+        remote_ssh "mkdir -p $(quote_for_sh "${remote_dir}")"
+        cat "${local_path}" | remote_ssh "cat > $(quote_for_sh "${remote_path}") && chmod ${mode} $(quote_for_sh "${remote_path}")"
 }
 
 discover_remote_base() {
-  REMOTE_BASE="$(
-    remote_ssh '
+        REMOTE_BASE="$(
+                remote_ssh '
       set -eu
 
       pick_exec_dir() {
@@ -215,102 +215,102 @@ discover_remote_base() {
 
       exit 1
     '
-  )" || die "Could not find a writable executable remote temp directory"
+        )" || die "Could not find a writable executable remote temp directory"
 
-  REMOTE_ROOT="${REMOTE_BASE}/upload-key-$$"
-  REMOTE_BIN="${REMOTE_ROOT}/bin"
-  REMOTE_BUSYBOX="${REMOTE_BIN}/busybox"
-  REMOTE_BASH="${REMOTE_BIN}/bash"
-  REMOTE_FINDMNT="${REMOTE_BIN}/findmnt"
-  REMOTE_MOUNT="${REMOTE_BIN}/mount"
-  REMOTE_DISKO_MOUNT="${REMOTE_ROOT}/disko-mount.sh"
-  REMOTE_KEY="${REMOTE_ROOT}/key"
+        REMOTE_ROOT="${REMOTE_BASE}/upload-key-$$"
+        REMOTE_BIN="${REMOTE_ROOT}/bin"
+        REMOTE_BUSYBOX="${REMOTE_BIN}/busybox"
+        REMOTE_BASH="${REMOTE_BIN}/bash"
+        REMOTE_FINDMNT="${REMOTE_BIN}/findmnt"
+        REMOTE_MOUNT="${REMOTE_BIN}/mount"
+        REMOTE_DISKO_MOUNT="${REMOTE_ROOT}/disko-mount.sh"
+        REMOTE_KEY="${REMOTE_ROOT}/key"
 }
 
 build_out_path() {
-  local attr="$1"
-  nix build \
-    --no-link \
-    --print-out-paths \
-    --experimental-features 'nix-command flakes' \
-    "$attr"
+        local attr="$1"
+        nix build \
+                --no-link \
+                --print-out-paths \
+                --experimental-features 'nix-command flakes' \
+                "$attr"
 }
 
 build_bin_from_attr() {
-  local attr="$1"
-  local rel_bin="$2"
-  local out=""
+        local attr="$1"
+        local rel_bin="$2"
+        local out=""
 
-  while IFS= read -r out; do
-    if [ -x "${out}/${rel_bin}" ]; then
-      printf '%s\n' "${out}/${rel_bin}"
-      return 0
-    fi
-  done < <(build_out_path "${attr}")
+        while IFS= read -r out; do
+                if [ -x "${out}/${rel_bin}" ]; then
+                        printf '%s\n' "${out}/${rel_bin}"
+                        return 0
+                fi
+        done < <(build_out_path "${attr}")
 
-  return 1
+        return 1
 }
 
 prepare_local_artifacts() {
-  log "Resolving target system for ${HOST}"
-  TARGET_SYSTEM="$(nix eval --raw --experimental-features 'nix-command flakes' ".#nixosConfigurations.${HOST}.pkgs.stdenv.hostPlatform.system")"
+        log "Resolving target system for ${HOST}"
+        TARGET_SYSTEM="$(nix eval --raw --experimental-features 'nix-command flakes' ".#nixosConfigurations.${HOST}.pkgs.stdenv.hostPlatform.system")"
 
-  log "Building tiny remote runtime for ${TARGET_SYSTEM}"
-  LOCAL_BUSYBOX="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.busybox" "bin/busybox")"
-  LOCAL_BASH="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.bash" "bin/bash")"
-  LOCAL_FINDMNT="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.util-linux" "bin/findmnt")"
-  LOCAL_MOUNT="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.util-linux" "bin/mount")"
-  LOCAL_DISKO_MOUNT="$(build_out_path ".#nixosConfigurations.${HOST}.config.system.build.mountScriptNoDeps")"
+        log "Building tiny remote runtime for ${TARGET_SYSTEM}"
+        LOCAL_BUSYBOX="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.busybox" "bin/busybox")"
+        LOCAL_BASH="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.bash" "bin/bash")"
+        LOCAL_FINDMNT="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.util-linux" "bin/findmnt")"
+        LOCAL_MOUNT="$(build_bin_from_attr "nixpkgs#legacyPackages.${TARGET_SYSTEM}.pkgsStatic.util-linux" "bin/mount")"
+        LOCAL_DISKO_MOUNT="$(build_out_path ".#nixosConfigurations.${HOST}.config.system.build.mountScriptNoDeps")"
 
-  [ -x "${LOCAL_BUSYBOX}" ] || die "Missing busybox binary"
-  [ -x "${LOCAL_BASH}" ] || die "Missing bash binary"
-  [ -x "${LOCAL_FINDMNT}" ] || die "Missing findmnt binary"
-  [ -x "${LOCAL_MOUNT}" ] || die "Missing mount binary"
-  [ -e "${LOCAL_DISKO_MOUNT}" ] || die "Missing disko mount script"
+        [ -x "${LOCAL_BUSYBOX}" ] || die "Missing busybox binary"
+        [ -x "${LOCAL_BASH}" ] || die "Missing bash binary"
+        [ -x "${LOCAL_FINDMNT}" ] || die "Missing findmnt binary"
+        [ -x "${LOCAL_MOUNT}" ] || die "Missing mount binary"
+        [ -e "${LOCAL_DISKO_MOUNT}" ] || die "Missing disko mount script"
 }
 
 show_local_sizes() {
-  log "Upload set:"
-  ls -lh \
-    "${LOCAL_BUSYBOX}" \
-    "${LOCAL_BASH}" \
-    "${LOCAL_FINDMNT}" \
-    "${LOCAL_MOUNT}" \
-    "${LOCAL_DISKO_MOUNT}" | sed 's/^/[upload-key]   /'
+        log "Upload set:"
+        ls -lh \
+                "${LOCAL_BUSYBOX}" \
+                "${LOCAL_BASH}" \
+                "${LOCAL_FINDMNT}" \
+                "${LOCAL_MOUNT}" \
+                "${LOCAL_DISKO_MOUNT}" | sed 's/^/[upload-key]   /'
 }
 
 prepare_remote_runtime() {
-  log "Uploading minimal runtime to ${TARGET_HOST}"
-  remote_ssh "rm -rf $(quote_for_sh "${REMOTE_ROOT}") && mkdir -p $(quote_for_sh "${REMOTE_BIN}")"
+        log "Uploading minimal runtime to ${TARGET_HOST}"
+        remote_ssh "rm -rf $(quote_for_sh "${REMOTE_ROOT}") && mkdir -p $(quote_for_sh "${REMOTE_BIN}")"
 
-  upload_file "${LOCAL_BUSYBOX}" "${REMOTE_BUSYBOX}" 0755
-  upload_file "${LOCAL_BASH}" "${REMOTE_BASH}" 0755
-  upload_file "${LOCAL_FINDMNT}" "${REMOTE_FINDMNT}" 0755
-  upload_file "${LOCAL_MOUNT}" "${REMOTE_MOUNT}" 0755
-  upload_file "${LOCAL_DISKO_MOUNT}" "${REMOTE_DISKO_MOUNT}" 0755
-  upload_file "${KEY_SRC}" "${REMOTE_KEY}" 0600
+        upload_file "${LOCAL_BUSYBOX}" "${REMOTE_BUSYBOX}" 0755
+        upload_file "${LOCAL_BASH}" "${REMOTE_BASH}" 0755
+        upload_file "${LOCAL_FINDMNT}" "${REMOTE_FINDMNT}" 0755
+        upload_file "${LOCAL_MOUNT}" "${REMOTE_MOUNT}" 0755
+        upload_file "${LOCAL_DISKO_MOUNT}" "${REMOTE_DISKO_MOUNT}" 0755
+        upload_file "${KEY_SRC}" "${REMOTE_KEY}" 0600
 }
 
 run_remote_install() {
-  local remote_dest="/mnt/persist/var/lib/sops-nix/key"
-  local remote_dir="/mnt/persist/var/lib/sops-nix"
-  local remote_path="${REMOTE_BIN}:/usr/sbin:/usr/bin:/sbin:/bin"
-  local efi_part=""
-  local nixos_part=""
+        local remote_dest="/mnt/persist/var/lib/sops-nix/key"
+        local remote_dir="/mnt/persist/var/lib/sops-nix"
+        local remote_path="${REMOTE_BIN}:/usr/sbin:/usr/bin:/sbin:/bin"
+        local efi_part=""
+        local nixos_part=""
 
-  case "${DEVICE}" in
-  *[0-9])
-    efi_part="${DEVICE}p2"
-    nixos_part="${DEVICE}p3"
-    ;;
-  *)
-    efi_part="${DEVICE}2"
-    nixos_part="${DEVICE}3"
-    ;;
-  esac
+        case "${DEVICE}" in
+        *[0-9])
+                efi_part="${DEVICE}p2"
+                nixos_part="${DEVICE}p3"
+                ;;
+        *)
+                efi_part="${DEVICE}2"
+                nixos_part="${DEVICE}3"
+                ;;
+        esac
 
-  log "Running remote mount + key install on ${TARGET_HOST}"
-  remote_ssh "
+        log "Running remote mount + key install on ${TARGET_HOST}"
+        remote_ssh "
     set -eu
     export PATH=$(quote_for_sh "${remote_path}"):\$PATH
 
@@ -345,19 +345,19 @@ run_remote_install() {
 }
 
 main() {
-  parse_args "$@"
-  prepare_temp_dir
-  resolve_identity_file
-  setup_ssh
-  discover_remote_base
-  prepare_local_artifacts
+        parse_args "$@"
+        prepare_temp_dir
+        resolve_identity_file
+        setup_ssh
+        discover_remote_base
+        prepare_local_artifacts
 
-  show_local_sizes
-  prepare_remote_runtime
-  run_remote_install
+        show_local_sizes
+        prepare_remote_runtime
+        run_remote_install
 
-  log "Done"
-  log "Target: ${TARGET_HOST}  port=${PORT}  disk=${DEVICE}"
+        log "Done"
+        log "Target: ${TARGET_HOST}  port=${PORT}  disk=${DEVICE}"
 }
 
 main "$@"

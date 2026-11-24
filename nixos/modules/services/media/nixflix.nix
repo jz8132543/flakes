@@ -4,6 +4,7 @@
   config,
   pkgs,
   inputs,
+  options,
   ...
 }:
 let
@@ -75,6 +76,31 @@ let
     rule = "Host(`${subdomain}.${domain}`) || Host(`${subdomain}.${fqdn}`)";
     target = "http://127.0.0.1:${toString port}";
   };
+
+  mkHomepageProxy =
+    {
+      name,
+      subdomain ? name,
+      port,
+      title,
+      icon,
+      href ? "https://${subdomain}.${domain}",
+      description ? null,
+      widget ? null,
+    }:
+    (mkProxy subdomain port)
+    // {
+      homepage = {
+        inherit
+          title
+          icon
+          href
+          description
+          widget
+          ;
+        category = "Media";
+      };
+    };
 in
 {
   imports = [ inputs.nixflix.nixosModules.default ];
@@ -469,19 +495,148 @@ in
     };
 
     services.traefik.proxies = {
-      jellyfin = mkProxy "jellyfin" config.ports.jellyfin;
-      jellyseerr = mkProxy "seerr" config.ports.jellyseerr;
-      navidrome = mkProxy "navidrome" config.ports.navidrome;
-      maintainerr = mkProxy "maintainerr" config.ports.maintainerr;
-      sonarr = mkProxy "sonarr" config.ports.sonarr;
-      sonarr-anime = mkProxy "sonarr-anime" config.ports.sonarr-anime;
-      radarr = mkProxy "radarr" config.ports.radarr;
-      prowlarr = mkProxy "prowlarr" config.ports.prowlarr;
-      lidarr = mkProxy "lidarr" config.ports.lidarr;
-      autobrr = mkProxy "autobrr" config.ports.autobrr;
-      bazarr = mkProxy "bazarr" config.ports.bazarr;
-      qbittorrent = mkProxy "qbit" config.ports.qbittorrent;
+      jellyfin = mkHomepageProxy {
+        name = "jellyfin";
+        port = config.ports.jellyfin;
+        title = "Jellyfin";
+        icon = "jellyfin.png";
+        href = externalUrls.jellyfin;
+        description = "Media server";
+        widget = {
+          type = "jellyfin";
+          url = externalUrls.jellyfin;
+          key = "{{HOMEPAGE_VAR_JELLYFIN_KEY}}";
+          version = 2;
+        };
+      };
+      jellyseerr = mkHomepageProxy {
+        name = "jellyseerr";
+        subdomain = "seerr";
+        port = config.ports.jellyseerr;
+        title = "Jellyseerr";
+        icon = "jellyseerr.png";
+        href = externalUrls.seerr;
+        description = "Media requests";
+        widget = {
+          type = "jellyseerr";
+          url = externalUrls.seerr;
+          key = "{{HOMEPAGE_VAR_JELLYSEERR_KEY}}";
+        };
+      };
+      navidrome = mkHomepageProxy {
+        name = "navidrome";
+        port = config.ports.navidrome;
+        title = "Navidrome";
+        icon = "navidrome.png";
+        description = "Music streaming";
+      };
+      maintainerr = mkHomepageProxy {
+        name = "maintainerr";
+        port = config.ports.maintainerr;
+        title = "Maintainerr";
+        icon = "maintainerr.png";
+      };
+      sonarr = mkHomepageProxy {
+        name = "sonarr";
+        port = config.ports.sonarr;
+        title = "Sonarr";
+        icon = "sonarr.png";
+        href = externalUrls.sonarr;
+        widget = {
+          type = "sonarr";
+          url = externalUrls.sonarr;
+          key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
+        };
+      };
+      sonarr-anime = mkHomepageProxy {
+        name = "sonarr-anime";
+        port = config.ports.sonarr-anime;
+        title = "Sonarr Anime";
+        icon = "sonarr.png";
+        href = externalUrls.sonarr-anime;
+        widget = {
+          type = "sonarr";
+          url = externalUrls.sonarr-anime;
+          key = "{{HOMEPAGE_VAR_SONARR_KEY}}";
+        };
+      };
+      radarr = mkHomepageProxy {
+        name = "radarr";
+        port = config.ports.radarr;
+        title = "Radarr";
+        icon = "radarr.png";
+        href = externalUrls.radarr;
+        widget = {
+          type = "radarr";
+          url = externalUrls.radarr;
+          key = "{{HOMEPAGE_VAR_RADARR_KEY}}";
+        };
+      };
+      prowlarr = mkHomepageProxy {
+        name = "prowlarr";
+        port = config.ports.prowlarr;
+        title = "Prowlarr";
+        icon = "prowlarr.png";
+        href = externalUrls.prowlarr;
+        widget = {
+          type = "prowlarr";
+          url = externalUrls.prowlarr;
+          key = "{{HOMEPAGE_VAR_PROWLARR_KEY}}";
+        };
+      };
+      lidarr = mkHomepageProxy {
+        name = "lidarr";
+        port = config.ports.lidarr;
+        title = "Lidarr";
+        icon = "lidarr.png";
+        href = externalUrls.lidarr;
+        widget = {
+          type = "lidarr";
+          url = externalUrls.lidarr;
+          key = "{{HOMEPAGE_VAR_LIDARR_KEY}}";
+        };
+      };
+      autobrr = mkHomepageProxy {
+        name = "autobrr";
+        port = config.ports.autobrr;
+        title = "Autobrr";
+        icon = "autobrr.png";
+      };
+      bazarr = mkHomepageProxy {
+        name = "bazarr";
+        port = config.ports.bazarr;
+        title = "Bazarr";
+        icon = "bazarr.png";
+      };
+      qbittorrent = mkHomepageProxy {
+        name = "qbittorrent";
+        subdomain = "qbit";
+        port = config.ports.qbittorrent;
+        title = "qBittorrent";
+        icon = "qbittorrent.png";
+        description = "Torrent client";
+        widget = {
+          type = "qbittorrent";
+          url = "https://qbit.${domain}";
+          username = "i";
+          password = "{{HOMEPAGE_VAR_PASSWORD}}";
+        };
+      };
     };
+
+    sops.templates."homepage-media.env".content = ''
+      HOMEPAGE_VAR_JELLYFIN_KEY=${config.sops.placeholder."media/jellyfin_api_key"}
+      HOMEPAGE_VAR_JELLYSEERR_KEY=${config.sops.placeholder."media/jellyseerr_api_key"}
+      HOMEPAGE_VAR_SONARR_KEY=${config.sops.placeholder."media/sonarr_api_key"}
+      HOMEPAGE_VAR_RADARR_KEY=${config.sops.placeholder."media/radarr_api_key"}
+      HOMEPAGE_VAR_PROWLARR_KEY=${config.sops.placeholder."media/prowlarr_api_key"}
+      HOMEPAGE_VAR_LIDARR_KEY=${config.sops.placeholder."media/lidarr_api_key"}
+      HOMEPAGE_VAR_PASSWORD=${config.sops.placeholder."password"}
+    '';
+    # Desktop hosts import Homepage; server hosts keep media independent of it.
+    services.homepage-dashboard.environmentFiles = lib.mkIf (options.services ? homepage-dashboard) [
+      config.sops.templates."homepage-media.env".path
+    ];
 
     nixflix.torrentClients.qbittorrent = {
       enable = true;

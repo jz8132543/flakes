@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixos-2605.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # TODO: Remove after Hermes upstream resolves ErikBPF/hermes-flake#77.
+    hermes-nixpkgs.url = "github:NixOS/nixpkgs/31ecbaca1bdefa45dffc409f0250bd8039ea0010";
     # LTS is mutable; refresh with: nix flake update --refresh rime-wanxiang-gram
     rime-wanxiang-gram = {
       url = "file+https://github.com/amzxyz/rime-wanxiang-data/releases/download/LTS/wanxiang-lts-zh-hans.gram";
@@ -177,6 +179,17 @@
       url = "github:degoog-org/degoog";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    hermes-agent = {
+      url = "github:NousResearch/hermes-agent";
+      inputs.nixpkgs.follows = "hermes-nixpkgs";
+      inputs.home-manager.follows = "home-manager";
+    };
+    paseo = {
+      url = "github:getpaseo/paseo";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    jailed-agents.url = "github:andersonjoseph/jailed-agents";
+    omp-flake.url = "github:cernoh/omp-flake";
     grimmory-flake = {
       url = "github:dnaq/booklore-flake";
       inputs.nixpkgs.follows = "nixpkgs";

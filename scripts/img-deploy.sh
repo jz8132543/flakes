@@ -12,46 +12,46 @@ FORCE=no
 NO_KEY_INSTALL=no
 
 while [ $# -gt 0 ]; do
-  case "$1" in
-  --target)
-    TARGET="$2"
-    shift 2
-    ;;
-  --host)
-    HOST="$2"
-    shift 2
-    ;;
-  --user)
-    USER="$2"
-    shift 2
-    ;;
-  --port)
-    PORT="$2"
-    shift 2
-    ;;
-  --device)
-    DEVICE="$2"
-    shift 2
-    ;;
-  --compression)
-    COMPRESSION="$2"
-    shift 2
-    ;;
-  --force)
-    # shellcheck disable=SC2034
-    FORCE=yes
-    shift 1
-    ;;
-  --no-key-install)
-    NO_KEY_INSTALL=yes
-    shift 1
-    ;;
-  --dry-run)
-    DRY_RUN=yes
-    shift 1
-    ;;
-  *) die "Unknown arg: $1" ;;
-  esac
+        case "$1" in
+        --target)
+                TARGET="$2"
+                shift 2
+                ;;
+        --host)
+                HOST="$2"
+                shift 2
+                ;;
+        --user)
+                USER="$2"
+                shift 2
+                ;;
+        --port)
+                PORT="$2"
+                shift 2
+                ;;
+        --device)
+                DEVICE="$2"
+                shift 2
+                ;;
+        --compression)
+                COMPRESSION="$2"
+                shift 2
+                ;;
+        --force)
+                # shellcheck disable=SC2034
+                FORCE=yes
+                shift 1
+                ;;
+        --no-key-install)
+                NO_KEY_INSTALL=yes
+                shift 1
+                ;;
+        --dry-run)
+                DRY_RUN=yes
+                shift 1
+                ;;
+        *) die "Unknown arg: $1" ;;
+        esac
 done
 
 [ -n "${TARGET:-}" ] || die "--target is required (nix flake build target)"
@@ -72,8 +72,8 @@ SIZE_BYTES=$(stat -c%s "$IMG")
 log "Image size: $SIZE_BYTES bytes"
 
 if [ "${DRY_RUN:-}" = "yes" ]; then
-  log "DRY RUN: would stream $IMG to $USER_AT_HOST:$DEVICE using $COMPRESSION"
-  exit 0
+        log "DRY RUN: would stream $IMG to $USER_AT_HOST:$DEVICE using $COMPRESSION"
+        exit 0
 fi
 
 confirm "About to overwrite $DEVICE on $USER_AT_HOST. Type 'y' to proceed." || die "Aborted by user"
@@ -106,9 +106,9 @@ REMOTE_HASH=$(ssh -p "$PORT" "$USER_AT_HOST" "sudo dd if=$DEVICE bs=$BS count=$C
 log "Remote hash: $REMOTE_HASH"
 
 if [ "$LOCAL_HASH" = "$REMOTE_HASH" ]; then
-  log "SUCCESS: hashes match"
+        log "SUCCESS: hashes match"
 else
-  die "HASH MISMATCH: local=$LOCAL_HASH remote=$REMOTE_HASH"
+        die "HASH MISMATCH: local=$LOCAL_HASH remote=$REMOTE_HASH"
 fi
 
 log "Deployment finished. You may now reboot the target manually or via: ssh -p $PORT $USER_AT_HOST 'sudo reboot'"

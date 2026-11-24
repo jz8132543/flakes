@@ -38,6 +38,7 @@
       ssh = 1022;
       homepage = 3005;
       homepage-machine = 3006;
+      open-webui = 8081;
       pastebin = 3000;
       vaultwarden-http = 3010;
       vaultwarden-websocket = 3011;
@@ -104,7 +105,6 @@
       keycloak = 3260;
       mas = 9190;
       lldap = 17170;
-      ldap = 389;
       ldaps = 636;
       mta-sts = 8097;
       derp = 3340;
@@ -153,6 +153,7 @@
       radarr = 7878;
       prowlarr = 9696;
       bazarr = 6767;
+      paseo = 6768;
       jellyseerr = 5055;
       qbittorrent = 8080;
       autobrr = 7474;

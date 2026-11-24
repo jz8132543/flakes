@@ -45,6 +45,43 @@ with lib;
                 ];
                 description = "List of entrypoints for the router.";
               };
+              homepage = {
+                enable = mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = "Include this HTTP service in the desktop Homepage dashboard.";
+                };
+                title = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional display title in Homepage.";
+                };
+                category = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Homepage category; only proxies with a category are included.";
+                };
+                href = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional Homepage link override for path-based or nonstandard routes.";
+                };
+                icon = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional Homepage icon name or URL.";
+                };
+                description = mkOption {
+                  type = types.nullOr types.str;
+                  default = null;
+                  description = "Optional Homepage service description.";
+                };
+                widget = mkOption {
+                  type = types.nullOr types.attrs;
+                  default = null;
+                  description = "Optional Homepage widget configuration owned by the service module.";
+                };
+              };
             };
           }
         )
@@ -129,8 +166,6 @@ with lib;
       443
       8443
       853 # DoT
-      config.ports.ldap
-      636 # LDAPS
     ];
     services.nginx = {
       enable = true;
@@ -216,12 +251,6 @@ with lib;
           dot = {
             address = ":853";
           };
-          ldap = {
-            address = ":${toString config.ports.ldap}";
-          };
-          ldaps = {
-            address = ":636";
-          };
           metrics = {
             address = "127.0.0.1:${toString config.ports.traefik-metrics}";
           };
@@ -290,9 +319,6 @@ with lib;
                   entryPoints
                   ;
                 service = name;
-                # Only the CDN DoH endpoint uses the shared security.acme
-                # wildcard certificate. Other services keep Traefik's own
-                # Cloudflare DNS-01 resolver.
                 tls =
                   if name == "traffic-router-doh" then
                     { }
@@ -340,37 +366,33 @@ with lib;
             };
           };
         };
-        tcp = {
-          routers = mkIf (config.services.traefik.tcpProxies != { }) (
-            mapAttrs (
-              name: value:
-              (filterAttrs (_n: v: v != null) {
-                inherit (value)
-                  rule
-                  entryPoints
-                  priority
-                  ;
-                service = name;
-                tls =
-                  if value.passthrough then
-                    { passthrough = true; }
-                  else if value.tls then
-                    (
-                      let
-                        base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
-                      in
-                      if value.tlsOptions != null then base // { options = value.tlsOptions; } else base
-                    )
-                  else
-                    null;
-              })
-            ) config.services.traefik.tcpProxies
-          );
-          services = mkIf (config.services.traefik.tcpProxies != { }) (
-            mapAttrs (_name: value: {
-              loadBalancer.servers = [ { address = value.target; } ];
-            }) config.services.traefik.tcpProxies
-          );
+        tcp = mkIf (config.services.traefik.tcpProxies != { }) {
+          routers = mapAttrs (
+            name: value:
+            (filterAttrs (_n: v: v != null) {
+              inherit (value)
+                rule
+                entryPoints
+                priority
+                ;
+              service = name;
+              tls =
+                if value.passthrough then
+                  { passthrough = true; }
+                else if value.tls then
+                  (
+                    let
+                      base = if config.environment.isNAT then { } else { certResolver = "zerossl"; };
+                    in
+                    if value.tlsOptions != null then base // { options = value.tlsOptions; } else base
+                  )
+                else
+                  null;
+            })
+          ) config.services.traefik.tcpProxies;
+          services = mapAttrs (_name: value: {
+            loadBalancer.servers = [ { address = value.target; } ];
+          }) config.services.traefik.tcpProxies;
         };
         udp = mkIf (config.services.traefik.udpProxies != { }) {
           routers = mapAttrs (name: value: {
@@ -382,13 +404,6 @@ with lib;
           }) config.services.traefik.udpProxies;
         };
       };
-    };
-
-    services.traefik.tcpProxies.ldaps = {
-      rule = "HostSNI(`*`)";
-      target = "localhost:3389"; # Forward to same 389ds port
-      entryPoints = [ "ldaps" ];
-      tls = true;
     };
 
     systemd.services.traefik-certs-dumper = {

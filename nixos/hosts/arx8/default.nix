@@ -24,6 +24,22 @@
   optimize.brutal.target = "!cn";
 
   services.duet.enable = true;
+  services.local-llm.workbench.enable = true;
+  services.paseo.enable = true;
+
+  services.local-llm.settings.strata = {
+    enable = true;
+    family = "qwen";
+    model = "IQ3_XXS";
+    context = "8192";
+    parallel = 1;
+    vision = "no";
+    lowRam = "mmap";
+    source = "huggingface";
+    downloadProxy = "http://127.0.0.1:7890";
+    port = config.ports.strata;
+    dataDir = "/mnt/games/AI/strata";
+  };
 
   # The compositor owns scaling; keep client font DPI at its unscaled default.
   home-manager.users.tippy.wayland.dpi = 96;

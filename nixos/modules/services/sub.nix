@@ -475,6 +475,7 @@ let
         "dn42x-+"
         "xfrm+"
       ];
+      exclude-uid = [ 997 ];
       route-exclude-address = [
         "100.64.0.0/10"
         "100.42.0.0/10"

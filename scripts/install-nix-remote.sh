@@ -8,46 +8,46 @@ PORT=${3:-22}
 SYSTEM="x86_64-linux"
 
 if [ -z "$HOST" ] || [ -z "$USER" ]; then
-  echo "Usage: $0 <host> <user> [port]"
-  exit 1
+        echo "Usage: $0 <host> <user> [port]"
+        exit 1
 fi
 
 # SSH Key Setup
 echo "=== Ensuring SSH key access to $USER@$HOST... ==="
 # Check if we already have passwordless access
 if ! ssh -o BatchMode=yes -o ConnectTimeout=5 -p "$PORT" "$USER@$HOST" "true" 2>/dev/null; then
-  echo "SSH key access not detected. Attempting to copy SSH key..."
-  ID_FILE="$HOME/.ssh/id_ed25519"
-  if [ ! -f "$ID_FILE" ]; then
-    ID_FILE="$HOME/.ssh/id_rsa"
-  fi
+        echo "SSH key access not detected. Attempting to copy SSH key..."
+        ID_FILE="$HOME/.ssh/id_ed25519"
+        if [ ! -f "$ID_FILE" ]; then
+                ID_FILE="$HOME/.ssh/id_rsa"
+        fi
 
-  SSH_COPY_ARGS=(-o "StrictHostKeyChecking=no" -p "$PORT")
-  if [ -f "$ID_FILE" ]; then
-    SSH_COPY_ARGS+=(-i "$ID_FILE.pub")
-  fi
+        SSH_COPY_ARGS=(-o "StrictHostKeyChecking=no" -p "$PORT")
+        if [ -f "$ID_FILE" ]; then
+                SSH_COPY_ARGS+=(-i "$ID_FILE.pub")
+        fi
 
-  if [ -n "$SSHPASS" ]; then
-    echo "Using provided password via sshpass..."
-    nix shell nixpkgs#sshpass nixpkgs#openssh -c sshpass -e ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
-  else
-    echo "Please enter the password for $USER@$HOST when prompted:"
-    ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
-  fi
+        if [ -n "$SSHPASS" ]; then
+                echo "Using provided password via sshpass..."
+                nix shell nixpkgs#sshpass nixpkgs#openssh -c sshpass -e ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
+        else
+                echo "Please enter the password for $USER@$HOST when prompted:"
+                ssh-copy-id "${SSH_COPY_ARGS[@]}" "$USER@$HOST"
+        fi
 else
-  echo "SSH key access already configured. Good."
+        echo "SSH key access already configured. Good."
 fi
 
 # Check if Nix is already installed on remote
 echo "=== Checking for existing Nix installation on $USER@$HOST... ==="
 if ssh -p "$PORT" "$USER@$HOST" "test -f ~/.nix-profile/etc/profile.d/nix.sh && test -d /nix/store"; then
-  echo "Nix is already installed on $HOST."
+        echo "Nix is already installed on $HOST."
 
-  # Check if nix-store is in PATH (required for nix copy)
-  echo "Checking if nix-store is in PATH..."
-  if ! ssh -p "$PORT" "$USER@$HOST" "which nix-store >/dev/null 2>&1"; then
-    echo "nix-store found but NOT in PATH. Attempting to fix shell configuration..."
-    ssh -p "$PORT" "$USER@$HOST" '
+        # Check if nix-store is in PATH (required for nix copy)
+        echo "Checking if nix-store is in PATH..."
+        if ! ssh -p "$PORT" "$USER@$HOST" "which nix-store >/dev/null 2>&1"; then
+                echo "nix-store found but NOT in PATH. Attempting to fix shell configuration..."
+                ssh -p "$PORT" "$USER@$HOST" '
             NIX_PROFILE="$HOME/.nix-profile/etc/profile.d/nix.sh"
             if [ -f "$NIX_PROFILE" ]; then
                 # Add to .zshenv for non-interactive Zsh
@@ -65,13 +65,13 @@ if ssh -p "$PORT" "$USER@$HOST" "test -f ~/.nix-profile/etc/profile.d/nix.sh && 
                 fi
             fi
         '
-    echo "Shell configuration updated."
-  else
-    echo "nix-store is in PATH. Good."
-  fi
+                echo "Shell configuration updated."
+        else
+                echo "nix-store is in PATH. Good."
+        fi
 
-  echo "Skipping installation."
-  exit 0
+        echo "Skipping installation."
+        exit 0
 fi
 
 echo "=== Detecting latest Nix version ==="
@@ -79,8 +79,8 @@ echo "=== Detecting latest Nix version ==="
 LATEST_VERSION=$(curl -s https://api.github.com/repos/NixOS/nix/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 # Try 2: Local Nix version (fallback)
 if [ -z "$LATEST_VERSION" ]; then
-  echo "Warning: Could not fetch latest version from GitHub. Trying local Nix version..."
-  LATEST_VERSION=$(nix --version 2>/dev/null | awk '{print $3}')
+        echo "Warning: Could not fetch latest version from GitHub. Trying local Nix version..."
+        LATEST_VERSION=$(nix --version 2>/dev/null | awk '{print $3}')
 fi
 # Try 3: Hardcoded fallback
 NIX_VERSION="${LATEST_VERSION:-2.18.1}"
@@ -92,39 +92,39 @@ DOWNLOAD_URL="https://nixos.org/releases/nix/nix-${NIX_VERSION}/${TARBALL_NAME}"
 
 # === Ensuring Nix binary tarball exists locally ===
 if [ ! -f "$LOCAL_TARBALL" ]; then
-  echo "=== Selecting fastest mirror for Nix tarball... ==="
-  # Format: "URL:TIMEOUT_IN_SECONDS"
-  MIRRORS=(
-    "https://mirrors.tuna.tsinghua.edu.cn/nixos-releases:0.3"
-    "https://mirrors.ustc.edu.cn/nixos-releases:0.3"
-    "https://releases.nixos.org:0.8"
-  )
+        echo "=== Selecting fastest mirror for Nix tarball... ==="
+        # Format: "URL:TIMEOUT_IN_SECONDS"
+        MIRRORS=(
+                "https://mirrors.tuna.tsinghua.edu.cn/nixos-releases:0.3"
+                "https://mirrors.ustc.edu.cn/nixos-releases:0.3"
+                "https://releases.nixos.org:0.8"
+        )
 
-  SELECTED_MIRROR=""
-  for ENTRY in "${MIRRORS[@]}"; do
-    MIRROR="${ENTRY%:*}"
-    TIMEOUT="${ENTRY#*:}"
-    echo -n "Checking $MIRROR (timeout ${TIMEOUT}s)... "
-    # Check connectivity with specific timeout
-    if curl -s -o /dev/null --connect-timeout "$TIMEOUT" --max-time 2 "$MIRROR"; then
-      echo "OK"
-      SELECTED_MIRROR="$MIRROR"
-      break
-    else
-      echo "Timeout or unreachable"
-    fi
-  done
+        SELECTED_MIRROR=""
+        for ENTRY in "${MIRRORS[@]}"; do
+                MIRROR="${ENTRY%:*}"
+                TIMEOUT="${ENTRY#*:}"
+                echo -n "Checking $MIRROR (timeout ${TIMEOUT}s)... "
+                # Check connectivity with specific timeout
+                if curl -s -o /dev/null --connect-timeout "$TIMEOUT" --max-time 2 "$MIRROR"; then
+                        echo "OK"
+                        SELECTED_MIRROR="$MIRROR"
+                        break
+                else
+                        echo "Timeout or unreachable"
+                fi
+        done
 
-  if [ -z "$SELECTED_MIRROR" ]; then
-    echo "Warning: All mirrors timed out or failed. Falling back to official releases.nixos.org"
-    SELECTED_MIRROR="https://releases.nixos.org"
-  fi
+        if [ -z "$SELECTED_MIRROR" ]; then
+                echo "Warning: All mirrors timed out or failed. Falling back to official releases.nixos.org"
+                SELECTED_MIRROR="https://releases.nixos.org"
+        fi
 
-  DOWNLOAD_URL="${SELECTED_MIRROR}/nix/nix-${NIX_VERSION}/${TARBALL_NAME}"
-  echo "Downloading $TARBALL_NAME from $SELECTED_MIRROR..."
-  curl -L -o "$LOCAL_TARBALL" "$DOWNLOAD_URL"
+        DOWNLOAD_URL="${SELECTED_MIRROR}/nix/nix-${NIX_VERSION}/${TARBALL_NAME}"
+        echo "Downloading $TARBALL_NAME from $SELECTED_MIRROR..."
+        curl -L -o "$LOCAL_TARBALL" "$DOWNLOAD_URL"
 else
-  echo "Found local $LOCAL_TARBALL, skipping download."
+        echo "Found local $LOCAL_TARBALL, skipping download."
 fi
 
 echo "=== Copying Nix installer to remote host ($USER@$HOST:$PORT) ==="

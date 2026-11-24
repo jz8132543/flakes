@@ -8,21 +8,21 @@ PYTHON="${4:-python3}"
 
 # Wait for qBittorrent to start and create initial config
 for _ in {1..30}; do
-  if [ -f "$CONFIG_FILE" ]; then
-    break
-  fi
-  sleep 2
+        if [ -f "$CONFIG_FILE" ]; then
+                break
+        fi
+        sleep 2
 done
 
 if [ ! -f "$CONFIG_FILE" ]; then
-  echo "qBittorrent config file not found, waiting for service to initialize..."
-  exit 0
+        echo "qBittorrent config file not found, waiting for service to initialize..."
+        exit 0
 fi
 
 # Check if already configured
 if grep -q 'WebUI\Username=i' "$CONFIG_FILE" 2>/dev/null; then
-  echo "qBittorrent already configured, skipping..."
-  exit 0
+        echo "qBittorrent already configured, skipping..."
+        exit 0
 fi
 
 echo "Configuring qBittorrent..."
@@ -33,17 +33,17 @@ sleep 2
 
 # Read password from sops and export for Python
 if [ -f "$PASSWORD_FILE" ]; then
-  PASSWORD=$(cat "$PASSWORD_FILE")
-  export PASSWORD
+        PASSWORD=$(cat "$PASSWORD_FILE")
+        export PASSWORD
 else
-  echo "Password file not found, using default"
-  PASSWORD="changeme"
-  export PASSWORD
+        echo "Password file not found, using default"
+        PASSWORD="changeme"
+        export PASSWORD
 fi
 
 # Generate PBKDF2 password hash for qBittorrent 4.2+
 HASH=$(
-  $PYTHON <<'PYTHON_EOF'
+        $PYTHON <<'PYTHON_EOF'
 import hashlib
 import base64
 import secrets

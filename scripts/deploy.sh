@@ -8,8 +8,8 @@ PORT=${3:-22}
 BUILD_HOST=${4:-$HOST}
 
 if [ -z "$HOST" ]; then
-  echo "Usage: $0 <HOST> [USER] [PORT] [BUILD_HOST]"
-  exit 1
+        echo "Usage: $0 <HOST> [USER] [PORT] [BUILD_HOST]"
+        exit 1
 fi
 
 FLAKE_ATTR="homeConfigurations.\"${USER}@${BUILD_HOST}\".activationPackage"
@@ -20,8 +20,8 @@ echo "=== 1. Building Configuration ($FLAKE_ATTR) ==="
 ACTIVATION_PKG=$(nix build ".#$FLAKE_ATTR" --impure --print-out-paths --no-link)
 
 if [ -z "$ACTIVATION_PKG" ]; then
-  echo "Error: Build failed or produced no output."
-  exit 1
+        echo "Error: Build failed or produced no output."
+        exit 1
 fi
 
 echo "Build successful: $ACTIVATION_PKG"

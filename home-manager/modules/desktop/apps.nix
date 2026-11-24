@@ -157,7 +157,7 @@ in
     # ./storage-papers.nix (Migrated to NixOS system-level autofs)
     ./obsidian-livesync.nix
     # ./zotero.nix  # disabled due to Zotero build issues
-    ./cc-switch.nix
+    ./claude-code.nix
   ];
 
   home.packages = with pkgs; [
@@ -203,7 +203,6 @@ in
     wechat
     antigravity-ide-fhs
     codex
-    devin-desktop
     code-cursor
     nur.repos.lonerOrz.trae
     nur.repos.MCSeekeri.workbuddy

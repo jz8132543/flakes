@@ -9,9 +9,11 @@ let
       fluxdown = home.programs.fluxdown;
       extensions = home.programs.firefox.policies.ExtensionSettings;
       mime = home.xdg.mimeApps.defaultApplications;
+      downloadDir = "${home.xdg.userDirs.download}/FluxDown";
     in
     assert fluxdown.enable;
     assert fluxdown.autostart;
+    assert home.home.sessionVariables.FLUXDOWN_SAVE_DIR == downloadDir;
     assert lib.elem fluxdown.package home.home.packages;
     assert extensions."fluxdown@fluxdown.app".installation_mode == "force_installed";
     assert lib.hasPrefix "file:///nix/store/" extensions."fluxdown@fluxdown.app".install_url;
@@ -33,6 +35,7 @@ let
     assert lib.elem ".local/share/fluxdown" home.home.global-persistence.directories;
     {
       inherit (fluxdown) package;
+      inherit downloadDir;
       firefoxManifest = home.home.file.".mozilla/native-messaging-hosts".source;
       chromiumManifest = home.home.file."${home.xdg.configHome}/chromium/NativeMessagingHosts".source;
       autostart = home.xdg.configFile.autostart.source;

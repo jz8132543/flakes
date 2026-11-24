@@ -63,6 +63,9 @@ in
       # 对于双栈域名（如 Google、Bilibili），底层通过本文件末尾配置的 gai.conf (RFC 6724 规则)
       # 自动使系统优先选择 IPv4，从而无缝享受 DN42 骨干网出国加速，同时兼顾 IPv6-only 站点的正常连通。
       force-AAAA-SOA = false;
+      # Never suppress AAAA just because IPv4 probes faster. Hosts can have
+      # reachable IPv6 control endpoints while their IPv4 path is filtered.
+      dualstack-ip-selection = false;
 
       cache-size = 4096;
       prefetch-domain = true;

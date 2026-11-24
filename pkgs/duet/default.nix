@@ -1,10 +1,12 @@
 {
   lib,
-  python3Packages,
+  pkgsCuda,
   makeWrapper,
   fetchFromGitHub,
 }:
 let
+  inherit (pkgsCuda) python3Packages;
+  inherit (python3Packages) torch;
   source = fetchFromGitHub {
     owner = "wei-zeng98";
     repo = "DuET";
@@ -18,7 +20,7 @@ let
     python3Packages.huggingface-hub
     python3Packages.pandas
     python3Packages.scipy
-    python3Packages.torchWithCuda
+    torch
   ]);
 in
 
@@ -41,8 +43,11 @@ python3Packages.buildPythonApplication {
       pandas
       scipy
     ]
-    ++ [ python3Packages.torchWithCuda ];
-  pythonRelaxDeps = [ "torch" ];
+    ++ [ torch ];
+  pythonRelaxDeps = [
+    "huggingface-hub"
+    "torch"
+  ];
   pythonImportsCheck = [ "duet" ];
   nativeBuildInputs = [ makeWrapper ];
   postInstall = ''

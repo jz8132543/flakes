@@ -18,32 +18,32 @@ echo ""
 
 # Check dependencies
 for cmd in sops jq yq terraform; do
-  if ! command -v "$cmd" &>/dev/null; then
-    echo "Error: $cmd is required but not installed."
-    exit 1
-  fi
+        if ! command -v "$cmd" &>/dev/null; then
+                echo "Error: $cmd is required but not installed."
+                exit 1
+        fi
 done
 
 echo "Checking current secrets configuration..."
 
 # Check if password exists in sops
 if sops -d "$SECRETS_FILE" 2>/dev/null | yq -e '.password' &>/dev/null; then
-  echo "✓ Main password already configured"
+        echo "✓ Main password already configured"
 else
-  echo "! Main password not found in secrets"
-  echo "  Please add 'password' key to secrets/common.yaml"
-  echo ""
-  echo "  Example:"
-  echo "    sops secrets/common.yaml"
-  echo "    # Add: password: your-secure-password"
+        echo "! Main password not found in secrets"
+        echo "  Please add 'password' key to secrets/common.yaml"
+        echo ""
+        echo "  Example:"
+        echo "    sops secrets/common.yaml"
+        echo "    # Add: password: your-secure-password"
 fi
 
 # Check smtp password
 if sops -d "$SECRETS_FILE" 2>/dev/null | yq -e '.smtp.password' &>/dev/null; then
-  echo "✓ SMTP password already configured"
+        echo "✓ SMTP password already configured"
 else
-  echo "! SMTP password not found"
-  echo "  Please add 'smtp.password' key to secrets/common.yaml"
+        echo "! SMTP password not found"
+        echo "  Please add 'smtp.password' key to secrets/common.yaml"
 fi
 
 # Check media API keys
@@ -51,11 +51,11 @@ echo ""
 echo "Checking media API keys..."
 
 for key in "media.sonarr_api_key" "media.radarr_api_key" "media.prowlarr_api_key"; do
-  if sops -d "$SECRETS_FILE" 2>/dev/null | yq -e ".$key" &>/dev/null; then
-    echo "✓ $key configured"
-  else
-    echo "! $key not found - will be generated on first run"
-  fi
+        if sops -d "$SECRETS_FILE" 2>/dev/null | yq -e ".$key" &>/dev/null; then
+                echo "✓ $key configured"
+        else
+                echo "! $key not found - will be generated on first run"
+        fi
 done
 
 echo ""
@@ -68,8 +68,8 @@ cd "$TERRAFORM_DIR"
 
 # Initialize terraform if needed
 if [ ! -d ".terraform" ]; then
-  echo "Initializing Terraform..."
-  terraform init
+        echo "Initializing Terraform..."
+        terraform init
 fi
 
 # Show plan for media resources

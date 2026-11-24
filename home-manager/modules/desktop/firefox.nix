@@ -25,10 +25,10 @@
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/bitwarden-password-manager/latest.xpi";
         };
-        # "switchyomega@feliscatus.addons.mozilla.org" = {
-        #   installation_mode = "force_installed";
-        #   install_url = "https://addons.mozilla.org/firefox/downloads/latest/switchyomega/latest.xpi";
-        # };
+        "suziwen1@gmail.com" = {
+          installation_mode = "force_installed";
+          install_url = "https://addons.mozilla.org/firefox/downloads/file/5017630/zeroomega-3.5.2.xpi";
+        };
         "uBlock0@raymondhill.net" = {
           installation_mode = "force_installed";
           install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";

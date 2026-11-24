@@ -50,7 +50,9 @@
   };
   xdg.portal.config.common.default = "*";
 
-  # Use sops templates to generate the nix config file with the raw token
+  # Nix clients authenticate GitHub API requests through access-tokens in nix.conf;
+  # exporting GITHUB_TOKEN (even to nix-daemon) does not configure Nix's fetchers.
+  # Keep the token in a runtime SOPS template instead of embedding it in the Nix store.
   sops.templates."nix-access-tokens.conf" = {
     content = "access-tokens = github.com=${config.sops.placeholder."github-token"}";
     mode = "0440";

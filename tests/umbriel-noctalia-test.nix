@@ -1050,6 +1050,17 @@ let
             && home.xdg.configFile."vicinae/home-manager.json".enable
             && !(home.xdg.configFile ? "vicinae/settings.json")
             && lib.any (value: lib.hasInfix "VICINAE_OVERRIDES=" value) launcherService.Service.Environment;
+          onboardingDefaultsToComplete =
+            lib.hasInfix "home.activation.vicinaeOnboarding" (
+              builtins.readFile ../home-manager/modules/desktop/vicinae.nix
+            )
+            && lib.hasInfix ''{"version":1,"completedAt":""}'' (
+              builtins.readFile ../home-manager/modules/desktop/vicinae.nix
+            )
+            && lib.hasInfix ''if [ ! -e "$state_file" ]'' (
+              builtins.readFile ../home-manager/modules/desktop/vicinae.nix
+            )
+            && lib.elem ".local/state/vicinae" (directories home.home.global-persistence.directories);
           translucentWithoutBlur =
             launcher.settings.theme.light.name == "sandstone-light"
             && launcher.settings.theme.dark.name == "sandstone-dark"
@@ -1073,6 +1084,7 @@ let
             && noctalia.widget.launcher.actions.left == "exec vicinae toggle";
           cheatsheetOnDemand =
             umbriel.general.show_cheatsheet == false
+            && cfg.programs.nvf.settings.vim.binds.cheatsheet.enable == false
             && umbriel.keybinds."Mod+Shift+Slash".action == "cheatsheet-toggle"
             && !umbriel.keybinds."Mod+Shift+Slash".repeat
             &&

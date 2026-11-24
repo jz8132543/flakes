@@ -69,6 +69,18 @@ in
         webui = pkgs.metacubexd;
         configFile = "/etc/mihomo/config.yaml";
       };
+      services.traefik.proxies.mihomo-dashboard = lib.mkIf config.services.mihomo.enable {
+        rule = "Host(`mihomo.${config.networking.domain}`)";
+        target = "http://127.0.0.1:9090/ui/";
+        middlewares = [ "auth" ];
+        homepage = {
+          title = "Mihomo Dashboard";
+          category = "Network";
+          icon = "mihomo.png";
+          description = "Local proxy and traffic controls";
+          href = "http://127.0.0.1:9090/ui/";
+        };
+      };
       # Keep the persistent workdir writable even when subscription updates are disabled.
       # Only the directory is public; credentials and new files retain their private modes.
       systemd.tmpfiles.rules = [ "d /etc/mihomo 0777 mihomo mihomo -" ];

@@ -49,6 +49,7 @@ let
     ip -4 rule add to 224.0.0.0/4 lookup main priority 8996
     ip -6 rule add to ff00::/8 lookup main priority 8996
   '';
+
 in
 {
   options.services.mihomo.routing.proxyPublicSsh = lib.mkOption {
@@ -96,7 +97,7 @@ in
       '';
     };
 
-    # Mihomo UID 级与 fwmark 0x1 防回环绝缘墙 + 本机出站 TUN 接管 (priority 8980 - 8998)
+    # Mihomo UID 防回环 + 本机 TUN 接管 (priority 8980 - 8998)
     # 8980/8985/8995 彻底杜绝 Mihomo 自身出站流量在初始路由阶段或断网缺省时掉入 TUN (table 2022) 形成自捕获死循环；
     # 8996/8998 则负责把普通本机进程的出站流量交还给 TUN，并保留 SSH 直连语义。
     systemd.services.mihomo-loop-prevention = {

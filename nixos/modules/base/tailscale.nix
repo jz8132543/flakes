@@ -64,82 +64,51 @@ in
           pkgs.coreutils
         ];
         script = ''
-          if [ "''${1:-}" != "--attempt" ]; then
-            # A temporary login failure is not a failed system startup. Keep
-            # retrying in this managed worker, with a deadline for each attempt.
-            until timeout 3m "$0" --attempt; do
-              echo "Tailscale login attempt failed; retrying in 10 seconds."
-              sleep 10
-            done
-            exit 0
-          fi
-
           login_server=https://ts.${config.networking.domain}
           preauth_key=${config.sops.secrets.tailscale_preauth_key.path}
 
-          # Wait for tailscaled and the decrypted preauth key to be ready.
-          for _ in $(seq 1 60); do
-            if [ -s "$preauth_key" ] && tailscale status --json >/dev/null 2>&1; then
-              break
+          # Keep reconciling after initial login too: Headscale can remove a
+          # node while tailscaled itself remains active in NeedsLogin.
+          while true; do
+            if [ ! -s "$preauth_key" ]; then
+              echo "Tailscale preauth key is not available: $preauth_key"
+              sleep 10
+              continue
             fi
-            sleep 1
+
+            status_json=$(tailscale status --json 2>/dev/null || true)
+            status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
+
+            case "$status" in
+              Running|Starting|Stopped)
+                sleep 60
+                ;;
+              NeedsLogin|NoState)
+                echo "Tailscale not authenticated (state: $status), logging in..."
+                exit_code=0
+                timeout 2m tailscale up \
+                  --reset \
+                  --login-server "$login_server" \
+                  --auth-key "file:$preauth_key" \
+                  ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1 || exit_code=$?
+                if [ $exit_code -ne 0 ]; then
+                  echo "tailscale up failed with exit code $exit_code. Log output:"
+                  cat /tmp/tailscale-setup.log
+                  sleep 10
+                fi
+                ;;
+              *)
+                echo "Tailscale is in state $status; retrying status check."
+                sleep 10
+                ;;
+            esac
           done
-
-          if [ ! -s "$preauth_key" ]; then
-            echo "Tailscale preauth key is not available: $preauth_key"
-            exit 1
-          fi
-
-          if ! tailscale status --json >/dev/null 2>&1; then
-            echo "Tailscale daemon is not ready."
-            exit 1
-          fi
-
-          # Check if already authenticated
-          status_json=$(tailscale status --json 2>/dev/null || true)
-          status=$(printf '%s' "$status_json" | jq -r '.BackendState // "Unknown"' 2>/dev/null || echo Unknown)
-
-          if [ "$status" = "Running" ] || [ "$status" = "Starting" ] || [ "$status" = "Stopped" ]; then
-            echo "Tailscale is already authenticated (state: $status); reconciling configured flags."
-            exit_code=0
-            timeout 2m tailscale up \
-              --reset \
-              --login-server "$login_server" \
-              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1 || exit_code=$?
-            if [ $exit_code -ne 0 ]; then
-              echo "tailscale up failed with exit code $exit_code while reconciling flags. Log output:"
-              cat /tmp/tailscale-setup.log
-              exit $exit_code
-            fi
-            exit 0
-          fi
-
-          if [ "$status" = "NeedsLogin" ] || [ "$status" = "NoState" ]; then
-            echo "Tailscale not authenticated (state: $status), logging in..."
-            AUTH_KEY=$(cat "${config.sops.secrets.tailscale_preauth_key.path}" | tr -d '\n\r' || true)
-            exit_code=0
-            timeout 2m tailscale up \
-              --reset \
-              --login-server "$login_server" \
-              --auth-key "$AUTH_KEY" \
-              ${lib.concatStringsSep " " config.services.tailscale.extraSetFlags} > /tmp/tailscale-setup.log 2>&1 || exit_code=$?
-            if [ $exit_code -ne 0 ]; then
-              echo "tailscale up failed with exit code $exit_code. Log output:"
-              cat /tmp/tailscale-setup.log
-              exit $exit_code
-            fi
-          else
-            echo "Tailscale is in state $status; waiting for a usable state."
-            exit 1
-          fi
         '';
         serviceConfig = {
-          # Login runs after the start job completes, so an offline control server
-          # cannot hold multi-user.target or nixos-rebuild open.
+          # Run as a long-lived state reconciler without blocking boot.
           Type = "exec";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "10";
+          Restart = "always";
+          RestartSec = "10s";
           TimeoutStopSec = "10s";
         };
       };

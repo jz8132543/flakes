@@ -116,6 +116,12 @@ let
       configurations = config.flake.nixosConfigurations;
     };
   };
+  homepageConfigTest = {
+    "x86_64-linux"."homepage-config-test" = import ../tests/homepage-config-test.nix {
+      pkgs = config.flake.nixosConfigurations.arx8.pkgs;
+      configurations = config.flake.nixosConfigurations;
+    };
+  };
   bitwigPackageTest = {
     "x86_64-linux"."bitwig-package-test" = import ../tests/bitwig-package-test.nix {
       pkgs = config.flake.nixosConfigurations.arx8.pkgs;
@@ -763,6 +769,91 @@ let
           touch "$out"
         '';
   };
+  tailscaleRecoveryTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."tailscale-recovery-test" =
+      let
+        cu = config.flake.nixosConfigurations.cu.config;
+        arx8 = config.flake.nixosConfigurations.arx8.config;
+        service = cu.systemd.services.tailscale-setup;
+        inherit (service) script;
+      in
+      assert lib.elem false cu.services.smartdns.settings.dualstack-ip-selection;
+      assert lib.elem false arx8.services.smartdns.settings.dualstack-ip-selection;
+      assert service.serviceConfig.Restart == "always";
+      assert lib.hasInfix "while true" script;
+      assert lib.hasInfix "NeedsLogin|NoState" script;
+      assert lib.hasInfix "--auth-key \"file:$preauth_key\"" script;
+      assert !(lib.hasInfix "AUTH_KEY=$(cat" script);
+      fra0Pkgs.runCommand "tailscale-recovery-test" { } "touch $out";
+  };
+  localWebuiConfigTest = {
+    "x86_64-linux"."local-webui-config-test" =
+      let
+        host = config.flake.nixosConfigurations.arx8;
+        cfg = host.config;
+      in
+      host.pkgs.runCommand "local-webui-config-test"
+        {
+          nativeBuildInputs = [ host.pkgs.python3 ];
+          LOCAL_WEBUI_CONFIG = builtins.unsafeDiscardStringContext (
+            builtins.toJSON {
+              inherit (cfg.services.open-webui) environment host;
+              inherit (cfg.systemd.services.open-webui) preStart;
+              strataPort = cfg.ports.strata;
+              swapPort = cfg.services.llama-swap.port;
+            }
+          );
+        }
+        ''
+          python3 -B ${../tests/test-open-webui-local-config.py} -v
+          touch "$out"
+        '';
+  };
+  aiAgentConfigTest = {
+    "x86_64-linux"."ai-agent-config-test" =
+      let
+        cfg = config.flake.nixosConfigurations.arx8.config;
+        hm = cfg.home-manager.users.tippy;
+        packages = map lib.getName cfg.environment.systemPackages;
+        homePackages = map lib.getName hm.home.packages;
+        hermes = hm.services.hermes-agent;
+        paseo = cfg.services.paseo;
+        paseoService = cfg.systemd.services.paseo;
+        paseoProviders = paseo.settings.agents.providers;
+      in
+      assert cfg.services.local-llm.workbench.enable;
+      assert lib.elem "omp" packages;
+      assert lib.elem ".omp" cfg.environment.global-persistence.user.directories;
+      assert !(lib.elem "cc-switch" homePackages);
+      assert hermes.enable && hermes.gateway.enable;
+      assert hermes.settings.providers.new-api.api == "https://api.dora.im/v1";
+      assert hermes.settings.providers.new-api.key_env == "OPENAI_API_KEY";
+      assert hermes.settings.providers.local-llama.api == "http://127.0.0.1:8080/v1";
+      assert hermes.settings.model.provider == "local-llama";
+      assert paseo.enable && paseo.package.pname == "paseo";
+      assert paseo.user == "tippy" && paseo.group == "users";
+      assert paseo.dataDir == "/var/lib/paseo" && paseo.port == cfg.ports.paseo;
+      assert paseo.listenAddress == "127.0.0.1";
+      assert !paseo.openFirewall && paseo.hostnames == [ ];
+      assert !paseo.relay.enable && paseo.inheritUserEnvironment;
+      assert paseo.settings.daemon.listen == "127.0.0.1:${toString cfg.ports.paseo}";
+      assert paseo.settings.features.webUi.enabled;
+      assert paseoProviders.omp.enabled && paseoProviders.omp.command == [ "omp" ];
+      assert lib.all (provider: !paseoProviders.${provider}.enabled) [
+        "claude"
+        "codex"
+        "copilot"
+        "opencode"
+        "pi"
+      ];
+      assert paseoService.serviceConfig.User == "tippy";
+      assert lib.elem "multi-user.target" paseoService.wantedBy;
+      assert lib.elem "home-tippy.mount" paseoService.requires;
+      assert lib.elem "/var/lib/paseo" paseoService.unitConfig.RequiresMountsFor;
+      assert lib.elem "/home/tippy" paseoService.unitConfig.RequiresMountsFor;
+      assert !(lib.elem cfg.ports.paseo cfg.networking.firewall.allowedTCPPorts);
+      config.flake.nixosConfigurations.arx8.pkgs.runCommand "ai-agent-config-test" { } "touch $out";
+  };
   tcpBrutalRoutingTest = {
     "${fra0Pkgs.stdenv.hostPlatform.system}"."tcp-brutal-routing-test" =
       let
@@ -825,6 +916,7 @@ in
     desktopEvaluationTest
     wineAudioLaunchersTest
     fluxdownConfigTest
+    homepageConfigTest
     bitwigPackageTest
     gpuStorageConfigTest
     waydroidConfigTest
@@ -849,6 +941,9 @@ in
     newApiResponsesPolicyTest
     workbuddyTest
     dn42SdwanTest
+    tailscaleRecoveryTest
+    localWebuiConfigTest
+    aiAgentConfigTest
     tcpBrutalRoutingTest
   ];
 }

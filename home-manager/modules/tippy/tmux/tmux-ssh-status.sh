@@ -6,215 +6,215 @@ pane_pid=$1
 display_text=$(hostname)
 
 find_ssh_pid() {
-  local pid="$1"
-  local child found cmdline exe
+        local pid="$1"
+        local child found cmdline exe
 
-  [ -n "$pid" ] || return 1
-  [ -r "/proc/$pid/cmdline" ] || return 1
+        [ -n "$pid" ] || return 1
+        [ -r "/proc/$pid/cmdline" ] || return 1
 
-  cmdline=$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n 1)
-  exe=${cmdline##*/}
-  if [ "$exe" = "ssh" ] || [ "$exe" = "tssh" ]; then
-    printf '%s\n' "$pid"
-    return 0
-  fi
+        cmdline=$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | head -n 1)
+        exe=${cmdline##*/}
+        if [ "$exe" = "ssh" ] || [ "$exe" = "tssh" ]; then
+                printf '%s\n' "$pid"
+                return 0
+        fi
 
-  for child in $(cat "/proc/$pid/task/$pid/children" 2>/dev/null); do
-    found=$(find_ssh_pid "$child")
-    if [ -n "$found" ]; then
-      printf '%s\n' "$found"
-      return 0
-    fi
-  done
+        for child in $(cat "/proc/$pid/task/$pid/children" 2>/dev/null); do
+                found=$(find_ssh_pid "$child")
+                if [ -n "$found" ]; then
+                        printf '%s\n' "$found"
+                        return 0
+                fi
+        done
 
-  return 1
+        return 1
 }
 
 load_ssh_args() {
-  local pid="$1"
-  SSH_ARGS=()
-  while IFS= read -r -d '' arg; do
-    SSH_ARGS+=("$arg")
-  done <"/proc/$pid/cmdline"
+        local pid="$1"
+        SSH_ARGS=()
+        while IFS= read -r -d '' arg; do
+                SSH_ARGS+=("$arg")
+        done <"/proc/$pid/cmdline"
 }
 
 is_ssh_flag_with_value() {
-  case "$1" in
-  -B | -b | -c | -D | -E | -e | -F | -I | -i | -J | -L | -l | -m | -O | -o | -p | -Q | -R | -S | -W | -w)
-    return 0
-    ;;
-  *)
-    return 1
-    ;;
-  esac
+        case "$1" in
+        -B | -b | -c | -D | -E | -e | -F | -I | -i | -J | -L | -l | -m | -O | -o | -p | -Q | -R | -S | -W | -w)
+                return 0
+                ;;
+        *)
+                return 1
+                ;;
+        esac
 }
 
 extract_ssh_target() {
-  local i arg flag value j destination=""
-  SSH_CONFIG_ARGS=()
+        local i arg flag value j destination=""
+        SSH_CONFIG_ARGS=()
 
-  for ((i = 1; i < ${#SSH_ARGS[@]}; i++)); do
-    arg="${SSH_ARGS[$i]}"
-    case "$arg" in
-    --)
-      destination="${SSH_ARGS[$((i + 1))]:-}"
-      [ -n "$destination" ] && SSH_CONFIG_ARGS+=("$destination")
-      break
-      ;;
-    --auto-transport | --reliable-io | --tcp | --udp | --kcp | --quic | --debug | --attach | --reconnect | --relay | --client)
-      ;;
-    --dns | --tsshd-path | --tsshd-port)
-      ((i += 1))
-      ;;
-    --dns=* | --tsshd-path=* | --tsshd-port=*)
-      ;;
-    --*)
-      return 1
-      ;;
-    -*)
-      for ((j = 1; j < ${#arg}; j++)); do
-        flag="-${arg:j:1}"
-        if is_ssh_flag_with_value "$flag"; then
-          value="${arg:$((j + 1))}"
-          if [ -z "$value" ]; then
-            ((i += 1))
-            value="${SSH_ARGS[$i]:-}"
-          fi
-          [ -n "$value" ] || return 1
-          case "$flag" in
-          -F | -i | -J | -l | -p)
-            SSH_CONFIG_ARGS+=("$flag" "$value")
-            ;;
-          -o)
-            # tssh extension options are not accepted by the OpenSSH parser.
-            case "${value,,}" in
-            autotransport* | reliableio* | udp* | tsshd* | reconnect*) ;;
-            *) SSH_CONFIG_ARGS+=("$flag" "$value") ;;
-            esac
-            ;;
-          esac
-          break
-        fi
-        case "$flag" in
-        -4 | -6) SSH_CONFIG_ARGS+=("$flag") ;;
-        -A | -a | -f | -g | -M | -N | -n | -q | -s | -T | -t | -v | -X | -x | -Y) ;;
-        *) return 1 ;;
-        esac
-      done
-      ;;
-    *)
-      destination="$arg"
-      SSH_CONFIG_ARGS+=("$arg")
-      break
-      ;;
-    esac
-  done
+        for ((i = 1; i < ${#SSH_ARGS[@]}; i++)); do
+                arg="${SSH_ARGS[$i]}"
+                case "$arg" in
+                --)
+                        destination="${SSH_ARGS[$((i + 1))]:-}"
+                        [ -n "$destination" ] && SSH_CONFIG_ARGS+=("$destination")
+                        break
+                        ;;
+                --auto-transport | --reliable-io | --tcp | --udp | --kcp | --quic | --debug | --attach | --reconnect | --relay | --client)
+                        ;;
+                --dns | --tsshd-path | --tsshd-port)
+                        ((i += 1))
+                        ;;
+                --dns=* | --tsshd-path=* | --tsshd-port=*)
+                        ;;
+                --*)
+                        return 1
+                        ;;
+                -*)
+                        for ((j = 1; j < ${#arg}; j++)); do
+                                flag="-${arg:j:1}"
+                                if is_ssh_flag_with_value "$flag"; then
+                                        value="${arg:$((j + 1))}"
+                                        if [ -z "$value" ]; then
+                                                ((i += 1))
+                                                value="${SSH_ARGS[$i]:-}"
+                                        fi
+                                        [ -n "$value" ] || return 1
+                                        case "$flag" in
+                                        -F | -i | -J | -l | -p)
+                                                SSH_CONFIG_ARGS+=("$flag" "$value")
+                                                ;;
+                                        -o)
+                                                # tssh extension options are not accepted by the OpenSSH parser.
+                                                case "${value,,}" in
+                                                autotransport* | reliableio* | udp* | tsshd* | reconnect*) ;;
+                                                *) SSH_CONFIG_ARGS+=("$flag" "$value") ;;
+                                                esac
+                                                ;;
+                                        esac
+                                        break
+                                fi
+                                case "$flag" in
+                                -4 | -6) SSH_CONFIG_ARGS+=("$flag") ;;
+                                -A | -a | -f | -g | -M | -N | -n | -q | -s | -T | -t | -v | -X | -x | -Y) ;;
+                                *) return 1 ;;
+                                esac
+                        done
+                        ;;
+                *)
+                        destination="$arg"
+                        SSH_CONFIG_ARGS+=("$arg")
+                        break
+                        ;;
+                esac
+        done
 
-  DESTINATION="$destination"
+        DESTINATION="$destination"
 }
 
 parse_ssh_config() {
-  local config_text="$1"
-  CONFIG_HOST=$(printf '%s\n' "$config_text" | awk '/^hostname / {print $2; exit}')
-  CONFIG_PORT=$(printf '%s\n' "$config_text" | awk '/^port / {print $2; exit}')
-  CONFIG_PROXYJUMP=$(printf '%s\n' "$config_text" | awk '/^proxyjump / {print $2; exit}')
-  CONFIG_PROXYCOMMAND=$(printf '%s\n' "$config_text" | sed -n 's/^proxycommand //p' | head -n 1)
+        local config_text="$1"
+        CONFIG_HOST=$(printf '%s\n' "$config_text" | awk '/^hostname / {print $2; exit}')
+        CONFIG_PORT=$(printf '%s\n' "$config_text" | awk '/^port / {print $2; exit}')
+        CONFIG_PROXYJUMP=$(printf '%s\n' "$config_text" | awk '/^proxyjump / {print $2; exit}')
+        CONFIG_PROXYCOMMAND=$(printf '%s\n' "$config_text" | sed -n 's/^proxycommand //p' | head -n 1)
 }
 
 parse_peer() {
-  local peer="$1"
-  if [ "${peer#\[}" != "$peer" ]; then
-    PEER_HOST="${peer#\[}"
-    PEER_HOST="${PEER_HOST%%]*}"
-    PEER_PORT="${peer##*]:}"
-  else
-    PEER_HOST="${peer%:*}"
-    PEER_PORT="${peer##*:}"
-  fi
+        local peer="$1"
+        if [ "${peer#\[}" != "$peer" ]; then
+                PEER_HOST="${peer#\[}"
+                PEER_HOST="${PEER_HOST%%]*}"
+                PEER_PORT="${peer##*]:}"
+        else
+                PEER_HOST="${peer%:*}"
+                PEER_PORT="${peer##*:}"
+        fi
 }
 
 get_latency() {
-  local host="$1" port="$2"
-  [ -n "$host" ] && [ -n "$port" ] || return 1
+        local host="$1" port="$2"
+        [ -n "$host" ] && [ -n "$port" ] || return 1
 
-  local target tcp_ms
-  host="${host#[}"
-  host="${host%]}"
-  if [[ $host == *:* ]]; then
-    target="[${host}]:${port}"
-  else
-    target="${host}:${port}"
-  fi
-  # Bound DNS resolution as well as the connection attempt; never use ICMP.
-  tcp_ms=$(timeout 2s tcping --timeout-ms 1200 -c 1 -o json "$target" 2>/dev/null |
-    grep '"record":"probe"' |
-    grep '"success":true' |
-    grep -oE '"duration_ms":[0-9]+(\.[0-9]+)?' |
-    grep -oE '[0-9]+(\.[0-9]+)?$')
+        local target tcp_ms
+        host="${host#[}"
+        host="${host%]}"
+        if [[ $host == *:* ]]; then
+                target="[${host}]:${port}"
+        else
+                target="${host}:${port}"
+        fi
+        # Bound DNS resolution as well as the connection attempt; never use ICMP.
+        tcp_ms=$(timeout 2s tcping --timeout-ms 1200 -c 1 -o json "$target" 2>/dev/null |
+                grep '"record":"probe"' |
+                grep '"success":true' |
+                grep -oE '"duration_ms":[0-9]+(\.[0-9]+)?' |
+                grep -oE '[0-9]+(\.[0-9]+)?$')
 
-  if [ -n "$tcp_ms" ]; then
-    echo "$tcp_ms"
-    return 0
-  fi
+        if [ -n "$tcp_ms" ]; then
+                echo "$tcp_ms"
+                return 0
+        fi
 
-  return 1
+        return 1
 }
 
 ssh_pid=$(find_ssh_pid "$pane_pid")
 
 if [ -n "$ssh_pid" ]; then
-  load_ssh_args "$ssh_pid"
-  # Call without $() so SSH_CONFIG_ARGS mutations survive in this shell
-  DESTINATION=""
-  extract_ssh_target || SSH_CONFIG_ARGS=()
-  destination="$DESTINATION"
+        load_ssh_args "$ssh_pid"
+        # Call without $() so SSH_CONFIG_ARGS mutations survive in this shell
+        DESTINATION=""
+        extract_ssh_target || SSH_CONFIG_ARGS=()
+        destination="$DESTINATION"
 
-  if [ -n "$destination" ]; then
-    # Strip user@, then strip everything after the first dot (domain suffix)
-    raw_label="${destination##*@}"
-    target_label="${raw_label%%.*}"
-  else
-    target_label=""
-  fi
+        if [ -n "$destination" ]; then
+                # Strip user@, then strip everything after the first dot (domain suffix)
+                raw_label="${destination##*@}"
+                target_label="${raw_label%%.*}"
+        else
+                target_label=""
+        fi
 
-  ssh_config=""
-  if [ -n "$destination" ]; then
-    ssh_config=$(@ssh@ -G "${SSH_CONFIG_ARGS[@]}" 2>/dev/null)
-  fi
-  parse_ssh_config "$ssh_config"
+        ssh_config=""
+        if [ -n "$destination" ]; then
+                ssh_config=$(@ssh@ -G "${SSH_CONFIG_ARGS[@]}" 2>/dev/null)
+        fi
+        parse_ssh_config "$ssh_config"
 
-  final_host="$CONFIG_HOST"
-  final_port="$CONFIG_PORT"
+        final_host="$CONFIG_HOST"
+        final_port="$CONFIG_PORT"
 
-  # Use the short hostname (first label) as display label if not already set
-  if [ -z "$target_label" ] && [ -n "$final_host" ]; then
-    target_label="${final_host%%.*}"
-  fi
+        # Use the short hostname (first label) as display label if not already set
+        if [ -z "$target_label" ] && [ -n "$final_host" ]; then
+                target_label="${final_host%%.*}"
+        fi
 
-  display_text="${target_label:-$(hostname)}"
-  if [ -n "$final_port" ] && [ "$final_port" != 22 ]; then
-    display_text="$display_text:$final_port"
-  fi
+        display_text="${target_label:-$(hostname)}"
+        if [ -n "$final_port" ] && [ "$final_port" != 22 ]; then
+                display_text="$display_text:$final_port"
+        fi
 
-  # Probe the configured SSH endpoint, not the RTT of an existing tunnel.
-  if [ -n "$final_host" ] && [ -n "$final_port" ]; then
-    latency_ms=$(get_latency "$final_host" "$final_port")
-    if [ -n "$latency_ms" ]; then
-      latency_fmt=$(printf '%s\n' "$latency_ms" | awk '{
+        # Probe the configured SSH endpoint, not the RTT of an existing tunnel.
+        if [ -n "$final_host" ] && [ -n "$final_port" ]; then
+                latency_ms=$(get_latency "$final_host" "$final_port")
+                if [ -n "$latency_ms" ]; then
+                        latency_fmt=$(printf '%s\n' "$latency_ms" | awk '{
         if ($1 < 1) printf "%.1fms", $1
         else printf "%dms", int($1 + 0.5)
       }')
-      if [ "${SSH_ARGS[0]##*/}" = "tssh" ]; then
-        display_text="$display_text TCP probe ${latency_fmt}"
-      else
-        display_text="$display_text TCP ${latency_fmt}"
-      fi
-    else
-      display_text="$display_text TCP --"
-    fi
-  else
-    display_text="$display_text TCP --"
-  fi
+                        if [ "${SSH_ARGS[0]##*/}" = "tssh" ]; then
+                                display_text="$display_text TCP probe ${latency_fmt}"
+                        else
+                                display_text="$display_text TCP ${latency_fmt}"
+                        fi
+                else
+                        display_text="$display_text TCP --"
+                fi
+        else
+                display_text="$display_text TCP --"
+        fi
 fi
 
 echo "$display_text"

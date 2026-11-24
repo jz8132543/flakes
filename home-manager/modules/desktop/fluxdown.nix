@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.programs.fluxdown;
+  downloadDir = "${config.xdg.userDirs.download}/FluxDown";
   chromiumId = "meleenglfggcmcajknpeeeiobnpfmahc";
   firefoxId = "fluxdown@fluxdown.app";
   mimeTypes = [
@@ -67,6 +68,7 @@ in
 
   config = lib.mkIf cfg.enable {
     home.packages = [ cfg.package ];
+    home.sessionVariables.FLUXDOWN_SAVE_DIR = downloadDir;
     xdg.mimeApps = {
       enable = true;
       associations.added = associations;

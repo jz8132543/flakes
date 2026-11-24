@@ -7,11 +7,10 @@
 let
   cfg = config.services.local-llm.settings;
   modelDir = cfg.strata.dataDir;
+  strataHome = "${modelDir}/xdg-data/strata";
   strata = pkgs.nur.repos.xddxdd.strata;
   strataExe = lib.getExe strata;
-  strataProfile = "arx8-iq3-xxs";
-  launchArgs = [
-    "launch"
+  setupArgs = [
     "--family"
     cfg.strata.family
     "--model"
@@ -24,21 +23,50 @@ let
     (toString cfg.strata.parallel)
     "--data-dir"
     cfg.strata.dataDir
-    "--access"
-    cfg.strata.access
+    "--low-ram"
+    cfg.strata.lowRam
+    "--source"
+    cfg.strata.source
     "--port"
     (toString cfg.strata.port)
-    "--save-preset"
-    strataProfile
     "--yes"
-    "--no-tui"
+    "--setup"
+    "--no-start"
+    "--no-browser"
   ];
+  runScript = "${strataHome}/run-${lib.toLower cfg.strata.model}.sh";
+  downloadProxyEnv = lib.optionalAttrs (cfg.strata.downloadProxy != null) {
+    HTTPS_PROXY = cfg.strata.downloadProxy;
+    HTTP_PROXY = cfg.strata.downloadProxy;
+    ALL_PROXY = cfg.strata.downloadProxy;
+  };
 in
 {
   config = {
+    services.traefik.proxies.strata = lib.mkIf cfg.strata.enable {
+      rule = "Host(`strata.${config.networking.domain}`)";
+      target = "http://127.0.0.1:${toString cfg.strata.port}";
+      middlewares = [ "auth" ];
+      homepage = {
+        title = "Strata";
+        category = "AI";
+        icon = "si-ollama";
+        description = "Local Strata inference UI and API";
+        href = "http://127.0.0.1:${toString cfg.strata.port}";
+      };
+    };
+
     systemd.services.strata-model-prepare = lib.mkIf cfg.strata.enable {
       description = "Prepare Strata ${cfg.strata.model} model files";
-      wantedBy = [ "multi-user.target" ];
+      path = [ config.hardware.nvidia.package ];
+      wants = [
+        "network-online.target"
+        "mihomo.service"
+      ];
+      after = [
+        "network-online.target"
+        "mihomo.service"
+      ];
       unitConfig.RequiresMountsFor = modelDir;
       serviceConfig = {
         Type = "oneshot";
@@ -56,23 +84,27 @@ in
         XDG_DATA_HOME = "${modelDir}/xdg-data";
         XDG_CONFIG_HOME = "${modelDir}/xdg-config";
         XDG_STATE_HOME = "${modelDir}/xdg-state";
-      };
+        HF_ENDPOINT = "https://huggingface.co";
+        NO_PROXY = "localhost,127.0.0.1,::1";
+      }
+      // downloadProxyEnv;
       script = ''
         set -eu
-        mkdir -p ${lib.escapeShellArg modelDir}
-        ${strataExe} launch ${lib.escapeShellArgs launchArgs} --plan
+        mkdir -p ${lib.escapeShellArg "${modelDir}/xdg-data"}
+        ${strataExe} ${lib.escapeShellArgs setupArgs}
+        test -x ${lib.escapeShellArg runScript}
       '';
     };
 
     systemd.services.strata = lib.mkIf cfg.strata.enable {
       description = "Strata ${cfg.strata.model} OpenAI-compatible API";
-      wantedBy = [ "multi-user.target" ];
+      path = [ config.hardware.nvidia.package ];
       after = [ "strata-model-prepare.service" ];
       requires = [ "strata-model-prepare.service" ];
+      wants = [ "network-online.target" ];
       unitConfig.RequiresMountsFor = modelDir;
       serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
+        Type = "simple";
         User = "tippy";
         Group = "users";
         SupplementaryGroups = [
@@ -90,10 +122,8 @@ in
         XDG_STATE_HOME = "${modelDir}/xdg-state";
       };
       script = ''
-        exec ${strataExe} ${lib.escapeShellArgs launchArgs}
-      '';
-      preStop = ''
-        ${strataExe} launch --stop --preset ${lib.escapeShellArg strataProfile}
+        test -x ${lib.escapeShellArg runScript}
+        exec ${lib.escapeShellArg runScript}
       '';
     };
 
@@ -124,6 +154,20 @@ in
       };
     };
 
+    services.homepage-dashboard.services = [
+      {
+        AI = [
+          {
+            llama-swap = {
+              href = "http://127.0.0.1:8080";
+              icon = "si-ollama";
+              description = "Local model routing and playground";
+            };
+          }
+        ];
+      }
+    ];
+
     systemd.services.llama-swap = {
       unitConfig.RequiresMountsFor = modelDir;
       serviceConfig = {
@@ -149,5 +193,6 @@ in
     };
 
     environment.systemPackages = [ strata ];
+    systemd.tmpfiles.rules = [ "d ${modelDir} 0750 tippy users -" ];
   };
 }
