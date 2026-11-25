@@ -46,9 +46,19 @@ let
 
   categories = lib.unique (lib.mapAttrsToList (_: proxy: proxy.homepage.category) proxyServices);
   homepageServices = map (category: {
-    ${category} = lib.mapAttrsToList homepageCard (
-      lib.filterAttrs (_: proxy: proxy.homepage.category == category) proxyServices
-    );
+    ${category} =
+      lib.mapAttrsToList homepageCard (
+        lib.filterAttrs (_: proxy: proxy.homepage.category == category) proxyServices
+      )
+      ++ lib.optionals (category == "AI" && options.services ? paseo && config.services.paseo.enable) [
+        {
+          Paseo = {
+            href = "http://127.0.0.1:${toString config.ports.paseo}";
+            icon = "si-codeium";
+            description = "Local AI agent workbench";
+          };
+        }
+      ];
   }) categories;
 
   headscaleCard = {
@@ -57,17 +67,6 @@ let
       icon = "tailscale.png";
       description = "Tailscale network management";
     };
-  };
-  paseoCards = lib.optional (options.services ? paseo && config.services.paseo.enable) {
-    AI = [
-      {
-        Paseo = {
-          href = "http://127.0.0.1:${toString config.ports.paseo}";
-          icon = "si-codeium";
-          description = "Local AI agent workbench";
-        };
-      }
-    ];
   };
 in
 {
@@ -81,7 +80,7 @@ in
     enable = true;
     listenPort = config.ports.homepage;
     allowedHosts = "${config.networking.fqdn},localhost:${toString config.ports.homepage},127.0.0.1:${toString config.ports.homepage}";
-    services = homepageServices ++ paseoCards ++ [ { Network = [ headscaleCard ]; } ];
+    services = homepageServices ++ [ { Network = [ headscaleCard ]; } ];
     widgets = [
       { search.provider = "duckduckgo"; }
       {

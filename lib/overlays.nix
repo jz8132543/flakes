@@ -138,6 +138,9 @@
           for bin in $out/bin/*; do
             if [ -f "$bin" ] && [ -x "$bin" ]; then
               wrapProgram "$bin" \
+                --set GTK_IM_MODULE "fcitx" \
+                --set QT_IM_MODULE "fcitx" \
+                --set XMODIFIERS "@im=fcitx" \
                 --run '${configureWps}' \
                 --run '${refreshWpsVersion} >/dev/null 2>&1 &'
             fi

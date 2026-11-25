@@ -27,6 +27,11 @@ let
   omp = pkgs.writeShellScriptBin "omp" ''
     exec ${jailedOmp}/bin/jailed-omp "$@"
   '';
+  paseoPackage = inputs.paseo.packages.${system}.default.overrideAttrs (old: {
+    preBuild = (old.preBuild or "") + ''
+      npm run postinstall
+    '';
+  });
 in
 {
   imports = [ inputs.paseo.nixosModules.default ];
@@ -54,6 +59,7 @@ in
     # Paseo sessions run as tippy, whose account has passwordless sudo. The
     # daemon therefore remains loopback-only and is not exposed to other clients.
     services.paseo = {
+      package = lib.mkForce paseoPackage;
       user = "tippy";
       group = "users";
       dataDir = "/var/lib/paseo";
@@ -81,12 +87,15 @@ in
     };
 
     systemd.services.paseo = {
-      after = [ "home-tippy.mount" ];
-      requires = [ "home-tippy.mount" ];
-      unitConfig.RequiresMountsFor = [
-        "/var/lib/paseo"
-        "/home/tippy"
+      after = [
+        "home-manager-tippy.service"
+        "home-tippy-.omp.mount"
       ];
+      requires = [
+        "home-manager-tippy.service"
+        "home-tippy-.omp.mount"
+      ];
+      unitConfig.RequiresMountsFor = [ "/var/lib/paseo" ];
     };
   };
 }

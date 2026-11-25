@@ -31,7 +31,7 @@
     enable = true;
     family = "qwen";
     model = "IQ3_XXS";
-    context = "8192";
+    context = "32768";
     parallel = 1;
     vision = "no";
     lowRam = "mmap";
@@ -43,7 +43,7 @@
 
   # The compositor owns scaling; keep client font DPI at its unscaled default.
   home-manager.users.tippy.wayland.dpi = 96;
-  home-manager.users.tippy.programs.umbriel.settings.general.xwayland_native_resolution = false;
+  home-manager.users.tippy.programs.umbriel.settings.general.xwayland_native_resolution = true;
   services.displayManager.noctalia-greeter.settings.output = {
     scales = "eDP-1:1.5";
     use_synced_settings = false;

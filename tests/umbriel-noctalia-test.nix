@@ -566,6 +566,7 @@ let
           && home.programs.kitty.settings.window_padding_width == 0;
         wpsUsesGlobalScale =
           lib.hasSuffix "-configured" host.pkgs.wpsoffice-cn.name
+          && lib.hasInfix "--set QT_IM_MODULE \"fcitx\"" host.pkgs.wpsoffice-cn.buildCommand
           && !(lib.hasInfix "--set QT_AUTO_SCREEN_SCALE_FACTOR" host.pkgs.wpsoffice-cn.buildCommand)
           && !(lib.hasInfix "--set QT_ENABLE_HIGHDPI_SCALING" host.pkgs.wpsoffice-cn.buildCommand)
           && !(lib.hasInfix "--set QT_SCALE_FACTOR" host.pkgs.wpsoffice-cn.buildCommand);
@@ -993,7 +994,7 @@ let
             && umbriel.output."eDP-1".scale == 1.5
             && umbriel.output."eDP-1".hdr == "on"
             && umbriel.output."eDP-1".workspaces == "dynamic"
-            && !umbriel.general.xwayland_native_resolution
+            && umbriel.general.xwayland_native_resolution
             && home.wayland.dpi == 96
             && cfg.services.displayManager.noctalia-greeter.settings.output.scales == "eDP-1:1.5"
             && !cfg.services.displayManager.noctalia-greeter.settings.output.use_synced_settings
