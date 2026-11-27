@@ -5,6 +5,22 @@
   pkgs,
   ...
 }:
+let
+  grubFontSize = builtins.div (18 * config.environment.desktop.dpi + 48) 96;
+  grubFont =
+    pkgs.runCommand "grub-font-${toString grubFontSize}"
+      {
+        nativeBuildInputs = [ pkgs.grub2 ];
+      }
+      ''
+        mkdir -p "$out"
+        grub-mkfont \
+          --size=${toString grubFontSize} \
+          --name="DejaVu Sans" \
+          ${pkgs.dejavu_fonts.minimal}/share/fonts/truetype/DejaVuSans.ttf \
+          -o "$out/dejavu-sans-${toString grubFontSize}.pf2"
+      '';
+in
 {
   imports =
     nixosModules.cloud.all
@@ -41,8 +57,34 @@
     dataDir = "/mnt/games/AI/strata";
   };
 
-  # The compositor owns scaling; keep client font DPI at its unscaled default.
-  home-manager.users.tippy.wayland.dpi = 96;
+  environment.desktop.dpi = 144;
+  boot.loader.grub.font = "${grubFont}/dejavu-sans-${toString grubFontSize}.pf2";
+  boot.loader.grub2-theme = {
+    enable = true;
+    theme = "vimix";
+    screen = "2k";
+    customResolution = "2560x1600";
+    bootMenuConfig = ''
+      left = 30%
+      top = 30%
+      width = 40%
+      height = 40%
+      item_font = "DejaVu Sans Regular ${toString grubFontSize}"
+      selected_item_font = "DejaVu Sans Regular ${toString grubFontSize}"
+      item_color = "#cccccc"
+      selected_item_color = "#ffffff"
+      icon_width = 48
+      icon_height = 48
+      item_icon_space = 24
+      item_height = 56
+      item_padding = 8
+      item_spacing = 16
+      selected_item_pixmap_style = "select_*.png"
+    '';
+    terminalConfig = ''
+      terminal-font: "DejaVu Sans Regular ${toString grubFontSize}"
+    '';
+  };
   home-manager.users.tippy.programs.umbriel.settings.general.xwayland_native_resolution = true;
   services.displayManager.noctalia-greeter.settings.output = {
     scales = "eDP-1:1.5";

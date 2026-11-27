@@ -56,21 +56,20 @@ in
 
     environment.global-persistence.user.directories = [ ".omp" ];
 
-    # Paseo sessions run as tippy, whose account has passwordless sudo. The
-    # daemon therefore remains loopback-only and is not exposed to other clients.
+    # Tailscale is the only firewall interface allowed to reach this listener.
     services.paseo = {
       package = lib.mkForce paseoPackage;
       user = "tippy";
       group = "users";
       dataDir = "/var/lib/paseo";
       port = config.ports.paseo;
-      listenAddress = "127.0.0.1";
+      listenAddress = "0.0.0.0";
       openFirewall = false;
-      hostnames = [ ];
-      relay.enable = false;
+      hostnames = [ "arx8.ts" ];
+      relay.enable = true;
       inheritUserEnvironment = true;
       settings = {
-        daemon.listen = "127.0.0.1:${toString config.ports.paseo}";
+        daemon.listen = "0.0.0.0:${toString config.ports.paseo}";
         features.webUi.enabled = true;
         agents.providers = {
           claude.enabled = false;
@@ -97,5 +96,7 @@ in
       ];
       unitConfig.RequiresMountsFor = [ "/var/lib/paseo" ];
     };
+
+    networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ config.ports.paseo ];
   };
 }

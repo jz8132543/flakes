@@ -24,6 +24,7 @@ in
 
   systemd.services.corplink-rs = lib.mkIf enable {
     description = "Nankai University Feilian VPN client";
+    wantedBy = [ "multi-user.target" ];
     wants = [ "network-online.target" ];
     after = [
       "network-online.target"

@@ -76,6 +76,13 @@ in
       NIXOS_OZONE_WL = "1";
     };
 
+    # Qt's GTK3 platform theme loads GTK's file chooser at runtime. Expose
+    # GTK3's bundled schemas to both launched apps and systemd user services.
+    xdg.systemDirs.data = [
+      "${pkgs.gtk3}/share/gsettings-schemas/${pkgs.gtk3.name}"
+      "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+    ];
+
     systemd.user.services.reset-volume-on-login = {
       Unit = {
         Description = "Reset audio volume to 0 on login";

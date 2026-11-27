@@ -37,6 +37,7 @@
       "/data/.state/vertex/config"
       "/data/.state/vertex/db/sql.db"
       "/data/.state/vertex/qb-patched.js"
+      "/data/.state/vertex/data/rule/delete/a1f0c901.json"
     ];
   };
 }

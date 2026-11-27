@@ -56,7 +56,6 @@ let
         effects: lib.genAttrs [ "light" "dark" ] (variant effects)
       );
       gnomeMajor = lib.versions.major pkgs.gnome-shell.version;
-      flatpakSystemOverride = "/var/lib/flatpak/overrides/global";
       extensions = map extension (
         cfg.extensions
         ++ map (package: {
@@ -75,7 +74,6 @@ let
         systemctl = "${pkgs.systemd}/bin/systemctl";
         gsettings = "${pkgs.glib}/bin/gsettings";
         dconf = "${pkgs.dconf}/bin/dconf";
-        flatpak = "${pkgs.flatpak}/bin/flatpak";
       };
     }
   );

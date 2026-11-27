@@ -357,7 +357,6 @@ let
         {
           nativeBuildInputs = [ pkgs.python3 ];
           APPEARANCE_SOURCE = ../home-manager/modules/desktop/mactahoe/appearance.py;
-          FLATPAK_BIN = "${pkgs.flatpak}/bin/flatpak";
         }
         ''
           python3 -B ${../tests/mactahoe-appearance-test.py} -v
@@ -836,10 +835,10 @@ let
       assert paseo.enable && paseo.package.pname == "paseo";
       assert paseo.user == "tippy" && paseo.group == "users";
       assert paseo.dataDir == "/var/lib/paseo" && paseo.port == cfg.ports.paseo;
-      assert paseo.listenAddress == "127.0.0.1";
-      assert !paseo.openFirewall && paseo.hostnames == [ ];
-      assert !paseo.relay.enable && paseo.inheritUserEnvironment;
-      assert paseo.settings.daemon.listen == "127.0.0.1:${toString cfg.ports.paseo}";
+      assert paseo.listenAddress == "0.0.0.0";
+      assert !paseo.openFirewall && paseo.hostnames == [ "arx8.ts" ];
+      assert paseo.relay.enable && paseo.relay.mode == "hosted" && paseo.inheritUserEnvironment;
+      assert paseo.settings.daemon.listen == "0.0.0.0:${toString cfg.ports.paseo}";
       assert paseo.settings.features.webUi.enabled;
       assert paseoProviders.omp.enabled && paseoProviders.omp.command == [ "omp" ];
       assert lib.all (provider: !paseoProviders.${provider}.enabled) [
@@ -855,9 +854,12 @@ let
       assert lib.elem "home-manager-tippy.service" paseoService.after;
       assert lib.elem "home-tippy-.omp.mount" paseoService.requires;
       assert lib.elem "/var/lib/paseo" paseoService.unitConfig.RequiresMountsFor;
+      assert lib.elem cfg.ports.paseo cfg.networking.firewall.interfaces.tailscale0.allowedTCPPorts;
       assert lib.elem "multi-user.target" strata.wantedBy;
       assert lib.elem "strata-model-prepare.service" strata.requires;
-      assert builtins.match ".*lazy_load.*idle_unload_s.*600.*" strataRunConfig != null;
+      assert
+        builtins.match ".*lazy_load.*idle_unload_s.*600.*host.*0.0.0.0.*allowed_hosts.*arx8.ts.*" strataRunConfig
+        != null;
       assert builtins.match ".*run-iq3_xxs.sh.*" strata.script != null;
       assert lib.hasInfix "openai-models-list" (builtins.readFile ompModels);
       assert lib.hasInfix "http://127.0.0.1:${toString cfg.ports.strata}/v1" (

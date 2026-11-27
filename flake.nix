@@ -29,7 +29,6 @@
     kaogong.url = "github:jz8132543/kaogong";
     flake-utils.url = "github:numtide/flake-utils";
     blank.url = "github:divnix/blank";
-    systems.url = "github:nix-systems/default";
     nix-index-database = {
       url = "github:Mic92/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -43,7 +42,7 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
     haumea = {
-      url = "github:nix-community/haumea/v0.2.2";
+      url = "github:nix-community/haumea";
 
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -72,12 +71,8 @@
     umbriel.url = "github:noctalia-dev/umbriel/cachix";
     noctalia.url = "github:noctalia-dev/noctalia/cachix";
     noctalia-greeter.url = "github:noctalia-dev/noctalia-greeter";
-    gitignore-nix = {
-      url = "github:hercules-ci/gitignore.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     devshell = {
-      url = "github:numtide/devshell/a41d4f419bd893ddcaadb45d5c81b3d599a89d4d";
+      url = "github:numtide/devshell";
 
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -106,15 +101,6 @@
       inputs.nixago.follows = "nixago";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    flake-utils-plus = {
-      url = "github:gytis-ivaskevicius/flake-utils-plus";
-      inputs.flake-utils.follows = "flake-utils";
-    };
-    neovim-nightly-overlay = {
-      url = "github:nix-community/neovim-nightly-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-    };
     linyinfeng = {
       url = "github:linyinfeng/nur-packages";
       inputs.flake-parts.follows = "flake-parts";
@@ -124,15 +110,6 @@
       inputs.devshell.follows = "devshell";
       inputs.treefmt-nix.follows = "treefmt-nix";
       inputs.flake-compat.follows = "flake-compat";
-    };
-    nixpkgs-terraform-providers-bin = {
-      url = "github:nix-community/nixpkgs-terraform-providers-bin";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    xremap-flake = {
-      url = "github:xremap/nix-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
     };
     # Themes
     mactahoe-gtk = {
@@ -144,32 +121,17 @@
       flake = false;
     };
     grub2-themes = {
-      url = "github:vinceliuice/grub2-themes";
+      url = "github:vinceliuice/grub2-themes/4c5a77125b93f833edc9bf7b14a899faa8ac79c6";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    preservation.url = "github:nix-community/preservation";
     chinese-fonts-overlay.url = "github:brsvh/chinese-fonts-overlay";
     nvf = {
       url = "github:notashelf/nvf";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-compat.follows = "flake-compat";
     };
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-parts.follows = "flake-parts";
-    };
-    nix-vscode-extensions = {
-      url = "github:nix-community/nix-vscode-extensions";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-flatpak.url = "github:gmodena/nix-flatpak";
     nixflix = {
       url = "github:kiriwalawren/nixflix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    nix-gaming = {
-      url = "github:fufexan/nix-gaming";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     aagl = {

@@ -11,7 +11,7 @@ in
   config = {
     services.llama-swap = {
       enable = true;
-      listenAddress = "127.0.0.1";
+      listenAddress = "0.0.0.0";
       port = 8080;
       settings = {
         healthCheckTimeout = 3600;
@@ -32,20 +32,6 @@ in
       };
     };
 
-    services.homepage-dashboard.services = [
-      {
-        AI = [
-          {
-            llama-swap = {
-              href = "http://127.0.0.1:8080";
-              icon = "si-ollama";
-              description = "Local model routing and playground";
-            };
-          }
-        ];
-      }
-    ];
-
     systemd.services.llama-swap = {
       unitConfig.RequiresMountsFor = modelDir;
       serviceConfig = {
@@ -61,7 +47,11 @@ in
           "/home/tippy/.cache"
         ];
         IPAddressDeny = "any";
-        IPAddressAllow = "localhost";
+        IPAddressAllow = [
+          "localhost"
+          "100.64.0.0/10"
+          "fd7a:115c:a1e0::/48"
+        ];
       };
       environment = {
         HF_HOME = lib.mkForce modelDir;

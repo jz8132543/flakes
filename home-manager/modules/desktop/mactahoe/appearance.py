@@ -2,7 +2,6 @@
 
 import argparse
 import ast
-import configparser
 from contextlib import contextmanager
 import errno
 import fcntl
@@ -328,42 +327,6 @@ class Appearance:
                            "color-scheme": "prefer-dark" if dark else "prefer-light"}.items():
             self.setting(tx, "org.gnome.desktop.interface", "/org/gnome/desktop/interface/", key, value)
 
-    def flatpak(self, tx):
-        # nix-flatpak's merge mode retains removed declarations. Mask only our
-        # old theme variables at user scope; do not rewrite system overrides.
-        system = Path(self.manifest.get("flatpakSystemOverride", "/var/lib/flatpak/overrides/global"))
-        user_root = Path(self.env.get("FLATPAK_USER_DIR", str(Path(
-            self.env.get("XDG_DATA_HOME", self.home / ".local/share")) / "flatpak")))
-        user = user_root / "overrides/global"
-        if user.is_symlink():
-            warn(f"Preserving symlinked Flatpak overrides: {user}; theme override may remain active")
-            return
-
-        def settings(path):
-            values = configparser.ConfigParser(interpolation=None, strict=False)
-            values.optionxform = str
-            if path.is_file():
-                values.read_string(path.read_text())
-            return values
-
-        system_values, user_values = settings(system), settings(user)
-        system_env = system_values["Environment"] if system_values.has_section("Environment") else {}
-        user_env = user_values["Environment"] if user_values.has_section("Environment") else {}
-        known = {variant["gtkTheme"] for presets in self.manifest["variants"].values() for variant in presets.values()}
-        old_theme = user_env.get("GTK_THEME") or system_env.get("GTK_THEME")
-        if old_theme not in known:
-            if old_theme:
-                warn("Preserving custom Flatpak GTK_THEME; those applications may not follow appearance")
-            return
-        unset = set(user_values.get("Context", "unset-environment", fallback="").split(";"))
-        keys = [key for key in ("GTK_THEME", "GTK_APPLICATION_PREFER_DARK_THEME")
-                if key not in unset and
-                (user_env.get(key, system_env.get(key)) in (known if key == "GTK_THEME" else {"0", "1"}))]
-        if keys:
-            tx.snapshot(user)
-            self.run("flatpak", "override", "--user", *["--unset-env=" + key for key in keys])
-            warn("Removed legacy Flatpak theme environment at user scope; reopen running Flatpak applications")
-
     def extension_policy(self, state):
         supported = {}
         for entry in self.manifest.get("extensions", []):
@@ -466,7 +429,6 @@ class Appearance:
                                  "; using compatible rendering this session, retaining visual preference and display settings")
                     variant = self.resources(effective)
                     self.shared(tx, effective, variant)
-                    self.flatpak(tx)
                     self.gnome(tx, effective, variant)
                 # Committing preferences is last. Offline means state-only, not
                 # even GTK files or an inactive desktop's dconf keys are touched.

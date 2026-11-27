@@ -47,6 +47,7 @@
       settings = {
         session.default = config.services.displayManager.defaultSession;
         user.default = "tippy";
+        output.scales = lib.mkIf (config.networking.hostName == "surface") "eDP-1:2.0";
         keyboard = {
           layout = "us";
           options = "caps:swapescape";

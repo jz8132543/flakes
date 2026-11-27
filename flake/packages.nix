@@ -92,6 +92,7 @@
           corplink-rs
           fluxdown
           hdr-wallpaper
+          linglong-store
           ssh-race
           trzsz-ssh-auto
           tsshd

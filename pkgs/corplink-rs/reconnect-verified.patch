@@ -1,0 +1,610 @@
+diff --git a/src/client.rs b/src/client.rs
+index 70c38d3..ac22401 100644
+--- a/src/client.rs
++++ b/src/client.rs
+@@ -211,6 +211,29 @@ fn corplink_client_builder() -> ClientBuilder {
+         .timeout(Duration::from_millis(10000))
+ }
+ 
++fn is_auth_rejected(status: reqwest::StatusCode) -> bool {
++    matches!(
++        status,
++        reqwest::StatusCode::UNAUTHORIZED | reqwest::StatusCode::FORBIDDEN
++    )
++}
++
++#[cfg(test)]
++mod reconnect_policy_tests {
++    use super::is_auth_rejected;
++
++    #[test]
++    fn only_explicit_auth_rejections_reset_session_state() {
++        assert!(is_auth_rejected(reqwest::StatusCode::UNAUTHORIZED));
++        assert!(is_auth_rejected(reqwest::StatusCode::FORBIDDEN));
++        assert!(!is_auth_rejected(reqwest::StatusCode::BAD_GATEWAY));
++        assert!(!is_auth_rejected(reqwest::StatusCode::SERVICE_UNAVAILABLE));
++        assert!(!is_auth_rejected(
++            reqwest::StatusCode::INTERNAL_SERVER_ERROR
++        ));
++    }
++}
++
+ #[derive(Clone)]
+ pub struct Client {
+     conf: Config,
+@@ -558,9 +581,11 @@ impl Client {
+             .await
+             .with_context(|| format!("request {api:?} failed"))?;
+ 
+-        if !resp.status().is_success() {
+-            let msg = format!("logout because of bad resp code: {}", resp.status());
++        if is_auth_rejected(resp.status()) {
++            let msg = format!("logout because of auth response: {}", resp.status());
+             self.handle_logout_err(msg).await?;
++        } else if !resp.status().is_success() {
++            bail!("request {api:?} returned HTTP status {}", resp.status());
+         }
+ 
+         self.parse_time_offset_from_date_header(&resp);
+@@ -599,7 +624,6 @@ impl Client {
+             data,
+             action: raw.action,
+         };
+-        log::debug!("api {:#?} resp: {:#?}", api, resp);
+         Ok(resp)
+     }
+ 
+@@ -653,7 +677,8 @@ impl Client {
+                 let msg = resp
+                     .message
+                     .unwrap_or_else(|| "tps token check failed".to_string());
+-                if self.conf.poll_tps_auth.unwrap_or(false) && (code == 3040 || msg == "用户未登录") {
++                if self.conf.poll_tps_auth.unwrap_or(false) && (code == 3040 || msg == "用户未登录")
++                {
+                     bail!("tps authentication pending: {code}: {msg}");
+                 }
+                 bail!(msg)
+@@ -667,8 +692,6 @@ impl Client {
+         url: &String,
+         token: &String,
+     ) -> Result<String> {
+-        log::info!("old token is: {token}");
+-        log::info!("please scan the QR code or visit the following link to auth corplink:\n{url}");
+         match TerminalQrCode::from_bytes(url.as_bytes()) {
+             Ok(qr) => qr.print(),
+             Err(e) => {
+@@ -853,7 +876,6 @@ impl Client {
+                         let url = Url::parse(&otp_uri).context("failed to parse otp uri")?;
+                         for (k, v) in url.query_pairs() {
+                             if k == "secret" {
+-                                log::info!("got 2fa token: {}", &v);
+                                 self.conf.code = Some(v.to_string());
+                                 self.conf.save().await?;
+                                 break;
+@@ -865,7 +887,7 @@ impl Client {
+                             "no otp code from server, will ask for 2fa code when connecting"
+                         );
+                     }
+-                    Err(e) => log::warn!("failed to get otp code: {e}"),
++                    Err(_) => log::warn!("failed to get otp code"),
+                 }
+                 Ok(())
+             }
+@@ -906,7 +928,6 @@ impl Client {
+             let url = Url::parse(&otp_uri).context("failed to parse otp uri")?;
+             for (k, v) in url.query_pairs() {
+                 if k == "secret" {
+-                    log::info!("got 2fa token: {}", &v);
+                     self.conf.code = Some(v.to_string());
+                     self.conf.save().await?;
+                     break;
+@@ -1274,11 +1295,7 @@ impl Client {
+                 let offset = self.date_offset_sec / TIME_STEP as i32;
+                 let raw_otp = totp_offset(code.as_slice(), offset);
+                 otp = format!("{:06}", raw_otp.code);
+-                log::info!(
+-                    "2fa code generated: {}, {} seconds left",
+-                    &otp,
+-                    raw_otp.secs_left
+-                );
++                log::debug!("2fa code generated; {} seconds left", raw_otp.secs_left);
+             }
+         }
+         if otp.is_empty() {
+@@ -1319,14 +1336,7 @@ impl Client {
+     pub async fn connect_vpn(&mut self) -> Result<WgConf> {
+         let vpn_info = self.list_vpn().await?;
+ 
+-        log::info!(
+-            "found {} vpn(s), details: {:?}",
+-            vpn_info.len(),
+-            vpn_info
+-                .iter()
+-                .map(|i| i.en_name.clone())
+-                .collect::<Vec<String>>()
+-        );
++        log::info!("found {} vpn(s)", vpn_info.len());
+         let filtered_vpn = vpn_info
+             .into_iter()
+             .filter(|vpn| {
+@@ -1433,14 +1443,9 @@ impl Client {
+                 let v4 = wg_info.setting.vpn_route_full;
+                 let v6 = wg_info.setting.v6_route_full.unwrap_or_default();
+                 log::info!(
+-                    "route_mode=full, server returned vpn_route_full ({} entries): {:?}",
++                    "route_mode=full, server returned {} IPv4 and {} IPv6 routes",
+                     v4.len(),
+-                    v4
+-                );
+-                log::info!(
+-                    "route_mode=full, server returned v6_route_full ({} entries): {:?}",
+-                    v6.len(),
+-                    v6
++                    v6.len()
+                 );
+                 let mut routes = v4;
+                 if has_ipv6_address {
+@@ -1534,11 +1539,7 @@ impl Client {
+                 );
+             }
+         }
+-        log::info!(
+-            "final allowed_ips ({} entries): {:?}",
+-            allowed_ips.len(),
+-            allowed_ips
+-        );
++        log::info!("final allowed_ips contain {} entries", allowed_ips.len());
+         let auto_setup_routes = self.conf.auto_setup_routes.unwrap_or(true);
+         let routes = if auto_setup_routes {
+             allowed_ips.clone()
+@@ -1581,7 +1582,6 @@ impl Client {
+                 Ok(_) => (),
+                 Err(err) => {
+                     log::warn!("keep alive error: {}", err);
+-                    return;
+                 }
+             }
+             tokio::time::sleep(Duration::from_secs(interval)).await;
+@@ -1606,6 +1606,13 @@ impl Client {
+             .await?;
+         match resp.code {
+             0 => Ok(()),
++            101 => {
++                let msg = resp
++                    .message
++                    .unwrap_or_else(|| "logout required".to_string());
++                self.handle_logout_err(msg).await?;
++                unreachable!()
++            }
+             _ => bail!(format!(
+                 "failed to report connection with error {}: {}",
+                 resp.code,
+@@ -1729,8 +1736,10 @@ mod tests {
+     #[test]
+     fn signing_preserves_unicode_cookie_bytes() {
+         let client = test_client();
+-        let url = reqwest::Url::parse("https://vpn.example.test/api/vpn/list?timestamp=123").unwrap();
+-        let cookie = reqwest::header::HeaderValue::from_bytes("device_name=测试".as_bytes()).unwrap();
++        let url =
++            reqwest::Url::parse("https://vpn.example.test/api/vpn/list?timestamp=123").unwrap();
++        let cookie =
++            reqwest::header::HeaderValue::from_bytes("device_name=测试".as_bytes()).unwrap();
+         assert!(cookie.to_str().is_err());
+         let sign = client
+             .sign_request(
+@@ -1754,9 +1763,10 @@ mod tests {
+     #[test]
+     fn connect_signature_matches_synthetic_fixture_and_requires_jwt_token() {
+         let client = test_client();
+-        let url =
+-            reqwest::Url::parse("https://node.example.test/vpn/conn?app_version=3.3.17&timestamp=123")
+-                .unwrap();
++        let url = reqwest::Url::parse(
++            "https://node.example.test/vpn/conn?app_version=3.3.17&timestamp=123",
++        )
++        .unwrap();
+         let token = reqwest::header::HeaderValue::from_static("synthetic.jwt.token");
+         let body = r#"{"public_key":"synthetic","otp":""}"#;
+         let sign = client
+diff --git a/src/main.rs b/src/main.rs
+index 07f766b..e7ca551 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -19,7 +19,8 @@ use dns::DNSManager;
+ use std::env;
+ use std::process::exit;
+ 
+-use anyhow::{anyhow, Context, Result};
++use anyhow::{Context, Result};
++use std::time::Duration;
+ 
+ use client::Client;
+ use config::{Config, WgConf};
+@@ -120,61 +121,50 @@ async fn run() -> Result<()> {
+     }
+ 
+     let with_wg_log = conf.debug_wg.unwrap_or_default();
+-    let platform = conf.platform.clone();
+     let mut c = Client::new(conf).context("failed to initialize client")?;
+-    let mut logout_retry = true;
+-    let wg_conf: Option<WgConf>;
++    let mut reauth_count = 0usize;
++    let mut attempt = 0usize;
+ 
+-    loop {
++    let mut wg_conf = loop {
+         if c.need_login() {
+             log::info!("not login yet, try to login");
+             c.login().await.context("login failed")?;
+             log::info!("login success");
+         }
+         log::info!("try to connect");
++        let was_logged_in = !c.need_login();
+         match c.connect_vpn().await {
+-            Ok(conf) => {
+-                wg_conf = Some(conf);
+-                break;
++            Ok(conf) => break conf,
++            Err(err) if was_logged_in && c.need_login() && reauth_count == 0 => {
++                reauth_count += 1;
++                log::warn!("session_reauth_required");
++                c.login().await.context("session reauthentication failed")?;
+             }
+-            Err(e) => {
+-                if logout_retry && e.to_string().contains("logout") {
+-                    // e contains detail message, so just print it out
+-                    log::warn!("{}", e);
+-                    logout_retry = false;
+-                    continue;
+-                } else {
+-                    return Err(e);
+-                }
++            Err(err) if was_logged_in && c.need_login() => {
++                return Err(err.context("second session invalidation; failing closed"));
+             }
+-        };
+-    }
+-    let wg_conf = wg_conf.ok_or_else(|| anyhow!("wg conf missing after connect loop"))?;
+-    let protocol = wg_conf.protocol;
+-    let mut uapi = wg::UAPIClient { name: name.clone() };
+-    if let Some(listen) = &socks5_listen {
+-        log::info!("start wg-corplink (netstack/socks5) on {}", listen);
+-        wg::start_wg_go_netstack(&wg_conf, listen, &socks5_username, &socks5_password, with_wg_log)
+-            .context("failed to start wg-corplink in netstack mode")?;
+-        uapi.config_wg_netstack(&wg_conf)
+-            .await
+-            .context("failed to config netstack interface with uapi")?;
+-        if socks5_username.is_empty() {
+-            log::info!("socks5 proxy ready at {} (no auth)", listen);
+-        } else {
+-            log::info!(
+-                "socks5 proxy ready at {} (username/password auth required)",
+-                listen
+-            );
++            Err(err) => {
++                let delay = wg::retry_delay(attempt);
++                attempt = attempt.saturating_add(1);
++                log::warn!(
++                    "initial VPN connection failed; retry in {}s: {err}",
++                    delay.as_secs()
++                );
++                tokio::time::sleep(delay).await;
++            }
+         }
+-    } else {
+-        log::info!("start wg-corplink for {}", &name);
+-        wg::start_wg_go(&name, protocol, with_wg_log)
+-            .with_context(|| format!("failed to start wg-corplink for {}", name))?;
+-        uapi.config_wg(&wg_conf)
+-            .await
+-            .with_context(|| format!("failed to config interface with uapi for {name}"))?;
+-    }
++    };
++    let mut uapi = wg::UAPIClient { name: name.clone() };
++    start_tunnel(
++        &wg_conf,
++        &name,
++        socks5_listen.as_deref(),
++        &socks5_username,
++        &socks5_password,
++        with_wg_log,
++        &mut uapi,
++    )
++    .await?;
+ 
+     #[cfg(any(target_os = "macos", target_os = "linux"))]
+     let mut dns_manager = DNSManager::new(dns_backup_filename);
+@@ -189,38 +171,141 @@ async fn run() -> Result<()> {
+         }
+     }
+ 
+-    let mut exit_code = 0;
+-    tokio::select! {
+-        _ = wait_for_shutdown_signal() => {},
+-
+-        // keep alive
+-        // _ = c.keep_alive_vpn(&wg_conf, 60) => {
+-        //     exit_code = ETIMEDOUT;
+-        // },
+-
+-        // check wg handshake and exit if timeout
+-        _ = async {
+-            uapi.check_wg_connection().await;
+-            log::warn!("last handshake timeout");
+-        } => {
+-            exit_code = ETIMEDOUT;
+-        },
+-    }
+-
+-    // shutdown
+-    log::info!("disconnecting vpn...");
+-    if let Err(e) = c.disconnect_vpn(&wg_conf).await {
+-        log::warn!("failed to disconnect vpn: {}", e)
++    let mut shutdown = Box::pin(wait_for_shutdown_signal());
++    let mut keepalive = tokio::time::interval(Duration::from_secs(60));
++    keepalive.tick().await;
++    let make_watchdog = || {
++        let watchdog_name = name.clone();
++        tokio::spawn(async move {
++            wg::UAPIClient {
++                name: watchdog_name,
++            }
++            .check_wg_connection()
++            .await;
++        })
+     };
+-
+-    // only logout for feilian_v1
+-    if platform.as_deref() == Some(config::PLATFORM_CORPLINK_V1) {
+-        log::info!("logging out current terminal...");
+-        if let Err(e) = c.logout().await {
+-            log::warn!("failed to logout: {}", e)
++    let mut watchdog = make_watchdog();
++    let mut graceful_shutdown = true;
++    'supervisor: loop {
++        let mut watchdog_completed = false;
++        let event = tokio::select! {
++            _ = shutdown.as_mut() => {
++                watchdog.abort();
++                break 'supervisor;
++            },
++            _ = keepalive.tick() => match c.report_vpn_status(&wg_conf).await {
++                Ok(()) => {
++                    log::info!("vpn_report: keepalive sent");
++                    false
++                }
++                Err(_) if c.need_login() => {
++                    log::warn!("session_reauth_required");
++                    true
++                }
++                Err(err) => {
++                    log::warn!("vpn_report transport/control failure: {err}");
++                    false
++                }
++            },
++            result = &mut watchdog => {
++                watchdog_completed = true;
++                if let Err(err) = result {
++                    log::warn!("WireGuard watchdog task failed: {err}");
++                }
++                log::warn!("wg_reconnect_attempt: handshake deadline expired");
++                true
++            }
+         };
++        if !event {
++            continue;
++        }
++        if !watchdog_completed {
++            watchdog.abort();
++            let _ = watchdog.await;
++        }
++        wg::stop_wg_go();
++        #[cfg(any(target_os = "macos", target_os = "linux"))]
++        if use_vpn_dns && !netstack_mode {
++            if let Err(err) = dns_manager.restore_dns() {
++                log::warn!("failed to restore DNS before reconnect: {err}");
++            }
++        }
++
++        loop {
++            if c.need_login() {
++                if reauth_count > 0 {
++                    graceful_shutdown = false;
++                    break 'supervisor;
++                }
++                reauth_count += 1;
++                log::warn!("session_reauth_required; one delayed login attempt");
++                tokio::select! {
++                    _ = shutdown.as_mut() => break 'supervisor,
++                    _ = tokio::time::sleep(Duration::from_secs(60)) => {}
++                }
++                if let Err(err) = c.login().await {
++                    log::warn!("session reauthentication failed; manual recovery required: {err}");
++                    graceful_shutdown = false;
++                    break 'supervisor;
++                }
++            }
++            match c.connect_vpn().await {
++                Ok(new_conf) => {
++                    wg_conf = new_conf;
++                    if let Err(err) = start_tunnel(
++                        &wg_conf,
++                        &name,
++                        socks5_listen.as_deref(),
++                        &socks5_username,
++                        &socks5_password,
++                        with_wg_log,
++                        &mut uapi,
++                    )
++                    .await
++                    {
++                        log::warn!("WG restart failed: {err}");
++                        wg::stop_wg_go();
++                    } else {
++                        log::info!("WireGuard transport restored");
++                        break;
++                    }
++                }
++                Err(err) if c.need_login() => {
++                    if reauth_count > 0 {
++                        graceful_shutdown = false;
++                        break 'supervisor;
++                    }
++                    reauth_count += 1;
++                    log::warn!("session_reauth_required; one delayed login attempt");
++                    tokio::select! {
++                        _ = shutdown.as_mut() => break 'supervisor,
++                        _ = tokio::time::sleep(Duration::from_secs(60)) => {}
++                    }
++                    if let Err(login_err) = c.login().await {
++                        log::warn!("session reauthentication failed; manual recovery required: {login_err}");
++                        graceful_shutdown = false;
++                        break 'supervisor;
++                    }
++                }
++                Err(err) => log::warn!("WG config refresh failed: {err}"),
++            }
++            let delay = wg::retry_delay(attempt);
++            attempt = attempt.saturating_add(1);
++            log::warn!("wg_reconnect_attempt: retry in {}s", delay.as_secs());
++            tokio::select! {
++                _ = shutdown.as_mut() => break 'supervisor,
++                _ = tokio::time::sleep(delay) => {}
++            }
++        }
++        watchdog = make_watchdog();
+     }
+ 
++    if graceful_shutdown {
++        log::info!("disconnecting VPN without terminal logout...");
++        if let Err(err) = c.disconnect_vpn(&wg_conf).await {
++            log::warn!("failed to disconnect VPN: {err}");
++        }
++    }
+     wg::stop_wg_go();
+ 
+     #[cfg(any(target_os = "macos", target_os = "linux"))]
+@@ -234,7 +319,37 @@ async fn run() -> Result<()> {
+     }
+ 
+     log::info!("reach exit");
+-    exit(exit_code)
++    Ok(())
++}
++
++async fn start_tunnel(
++    conf: &WgConf,
++    name: &str,
++    socks5_listen: Option<&str>,
++    socks5_username: &str,
++    socks5_password: &str,
++    with_wg_log: bool,
++    uapi: &mut wg::UAPIClient,
++) -> Result<()> {
++    let started = if let Some(listen) = socks5_listen {
++        wg::start_wg_go_netstack(conf, listen, socks5_username, socks5_password, with_wg_log)
++    } else {
++        wg::start_wg_go(name, conf.protocol, with_wg_log)
++    };
++    if let Err(err) = started {
++        wg::stop_wg_go();
++        return Err(err);
++    }
++    let configured = if socks5_listen.is_some() {
++        uapi.config_wg_netstack(conf).await
++    } else {
++        uapi.config_wg(conf).await
++    };
++    if let Err(err) = configured {
++        wg::stop_wg_go();
++        return Err(err);
++    }
++    Ok(())
+ }
+ 
+ // Resolve when the process is asked to terminate: ctrl+c (SIGINT) or, on unix,
+diff --git a/src/wg.rs b/src/wg.rs
+index ef0545d..fc0634b 100644
+--- a/src/wg.rs
++++ b/src/wg.rs
+@@ -1,5 +1,5 @@
+ use std::ffi::{c_void, CStr, CString};
+-use std::time;
++use std::time::{self, Duration};
+ 
+ use anyhow::{anyhow, Context, Result};
+ 
+@@ -212,8 +212,9 @@ impl UAPIClient {
+         // default refresh key timeout of wg is 2 min
+         // we set wg connection timeout to 5 min
+         let interval = time::Duration::from_secs(5 * 60);
+-        let mut ticker = tokio::time::interval(interval);
++        let mut ticker = tokio::time::interval(time::Duration::from_secs(5));
+         let mut timeout = false;
++        let initial_deadline = tokio::time::Instant::now() + interval;
+         // consume the first tick
+         ticker.tick().await;
+         while !timeout {
+@@ -246,7 +247,14 @@ impl UAPIClient {
+                     match last.parse::<i64>() {
+                         Ok(timestamp) => {
+                             if timestamp == 0 {
+-                                // do nothing because it's invalid
++                                if initial_handshake_expired(
++                                    timestamp,
++                                    tokio::time::Instant::now(),
++                                    initial_deadline,
++                                ) {
++                                    log::warn!("no WireGuard handshake before initial deadline");
++                                    timeout = true;
++                                }
+                             } else if let Some(nt) = chrono::DateTime::from_timestamp(timestamp, 0)
+                             {
+                                 let now = chrono::Utc::now().to_utc();
+@@ -289,3 +297,46 @@ impl UAPIClient {
+         }
+     }
+ }
++
++fn initial_handshake_expired(
++    last_handshake: i64,
++    now: tokio::time::Instant,
++    deadline: tokio::time::Instant,
++) -> bool {
++    last_handshake == 0 && now >= deadline
++}
++
++pub fn retry_delay(attempt: usize) -> Duration {
++    let seconds = [5u64, 15, 30, 60][attempt.min(3)];
++    let jitter_ms = (rand::random::<u64>() % 2001) as i64 - 1000;
++    Duration::from_millis((seconds as i64 * 1000 + jitter_ms).max(0) as u64)
++}
++
++#[cfg(test)]
++mod reconnect_tests {
++    use super::{initial_handshake_expired, retry_delay};
++    use std::time::Duration;
++
++    #[test]
++    fn reconnect_delay_uses_bounded_backoff() {
++        let bases = [5, 15, 30, 60, 60, 60];
++        for (attempt, base) in bases.into_iter().enumerate() {
++            let delay = retry_delay(attempt);
++            assert!(delay >= Duration::from_millis(base * 1000 - 1000));
++            assert!(delay <= Duration::from_millis(base * 1000 + 1000));
++        }
++    }
++
++    #[test]
++    fn only_zero_handshake_past_deadline_expires_initial_connection() {
++        let start = tokio::time::Instant::now();
++        let deadline = start + Duration::from_secs(300);
++        assert!(!initial_handshake_expired(
++            0,
++            deadline - Duration::from_secs(1),
++            deadline
++        ));
++        assert!(initial_handshake_expired(0, deadline, deadline));
++        assert!(!initial_handshake_expired(10, deadline, deadline));
++    }
++}

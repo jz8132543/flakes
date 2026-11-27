@@ -11,6 +11,7 @@ in
 {
   imports = [
     ./edid
+    inputs.grub2-themes.nixosModules.default
     inputs.nixos-hardware.nixosModules.common-hidpi
     inputs.nixos-hardware.nixosModules.common-pc-laptop
     inputs.nixos-hardware.nixosModules.common-pc-laptop-ssd
@@ -47,6 +48,7 @@ in
     kernelParams = [
       # "fbdev=1"
       "acpi=copy_dsdt"
+      "acpi_backlight=video"
       "video=${MONITOR}:2560x1600@240"
       # "nvidia_drm.modeset=1"
       # "nvidia.NVreg_PreserveVideoMemoryAllocations=1"

@@ -77,7 +77,7 @@ let
           category = "AI";
           icon = "si-ollama";
           description = "Local Strata inference UI and API";
-          href = "http://127.0.0.1:${toString cfg.port}";
+          href = "http://${config.networking.hostName}.ts:${toString cfg.port}";
         };
       };
 
@@ -140,7 +140,11 @@ let
           if raw.endswith(chr(92) + "n"):
               raw = raw[:-2]
           config = json.loads(raw)
-          config.update({"lazy_load": True, "idle_unload_s": 600})
+          config.update({"lazy_load": True, "idle_unload_s": 600, "host": "0.0.0.0"})
+          allowed_hosts = config.get("allowed_hosts", [])
+          if isinstance(allowed_hosts, str):
+              allowed_hosts = [allowed_hosts]
+          config["allowed_hosts"] = list(dict.fromkeys([*allowed_hosts, "${config.networking.hostName}.ts"]))
           args = config["args"]
           for index, value in enumerate(args[:-1]):
               if value == "--max-context":
@@ -181,7 +185,11 @@ let
           TimeoutStartSec = "infinity";
           ReadWritePaths = [ modelDir ];
           IPAddressDeny = "any";
-          IPAddressAllow = "localhost";
+          IPAddressAllow = [
+            "localhost"
+            "100.64.0.0/10"
+            "fd7a:115c:a1e0::/48"
+          ];
         };
         environment = {
           XDG_DATA_HOME = "${modelDir}/xdg-data";
