@@ -123,7 +123,7 @@ let
     sjc1 = {
       system = "x86_64-linux";
     };
-    iad0 = {
+    sjc2 = {
       system = "x86_64-linux";
     };
   };

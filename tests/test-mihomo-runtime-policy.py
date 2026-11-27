@@ -62,14 +62,26 @@ class RuntimePolicyTest(unittest.TestCase):
             ],
         }
 
-    def test_only_rule_settings_change_and_input_is_immutable(self):
+    def test_runtime_controller_and_rules_change_without_mutating_input(self):
         original = copy.deepcopy(self.config)
         result = runtime.prepare_policy(self.config, self.policy)
         self.assertEqual(self.config, original)
         self.assertEqual(
             {k: v for k, v in result.items() if k != "rules"},
-            {k: v for k, v in original.items() if k != "rules"},
+            {k: v for k, v in original.items() if k != "rules"}
+            | {
+                "external-controller": "0.0.0.0:9090",
+                "external-ui": "./dashboard",
+            },
         )
+
+    def test_runtime_controller_overrides_subscription_values(self):
+        result = runtime.prepare_policy(
+            {**self.config, "external-controller": "127.0.0.1:9090", "external-ui": None},
+            self.policy,
+        )
+        self.assertEqual(result["external-controller"], "0.0.0.0:9090")
+        self.assertEqual(result["external-ui"], "./dashboard")
 
     def test_exact_ports_and_existing_rules_preserved(self):
         result = runtime.prepare_policy(self.config, self.policy)["rules"]
@@ -161,7 +173,12 @@ class RuntimePolicyTest(unittest.TestCase):
             credential = root / "credential.yaml"
             output = root / "config.yaml"
             policy = root / "policy.json"
-            credential.write_text(yaml.safe_dump(self.config), encoding="utf-8")
+            source_config = {
+                **self.config,
+                "external-controller": "127.0.0.1:9090",
+                "external-ui": None,
+            }
+            credential.write_text(yaml.safe_dump(source_config), encoding="utf-8")
             os.chmod(credential, 0o400)
             original = credential.read_bytes()
             policy.write_text(json.dumps(self.policy), encoding="utf-8")
@@ -181,7 +198,7 @@ class RuntimePolicyTest(unittest.TestCase):
                 self.assertEqual(stat.S_IMODE(output.stat().st_mode), 0o600)
                 self.assertEqual(
                     yaml.safe_load(output.read_text()),
-                    runtime.prepare_policy(self.config, self.policy),
+                    runtime.prepare_policy(source_config, self.policy),
                 )
             self.assertFalse(list(root.glob(".config-*")))
 

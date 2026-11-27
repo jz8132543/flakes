@@ -255,6 +255,13 @@ let
           && cfg.xdg.portal.config.umbriel."org.freedesktop.impl.portal.Screenshot" == "umbriel"
           && cfg.xdg.portal.config.umbriel."org.freedesktop.impl.portal.FileChooser" == "gtk"
           && cfg.xdg.portal.config.umbriel."org.freedesktop.impl.portal.Secret" == "gnome-keyring";
+        gtkFileChooserSchemas =
+          let
+            dataDirs = home.xdg.systemDirs.data;
+          in
+          builtins.elem "${host.pkgs.gtk3}/share/gsettings-schemas/${host.pkgs.gtk3.name}" dataDirs
+          && builtins.elem "${host.pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${host.pkgs.gsettings-desktop-schemas.name}" dataDirs
+          && lib.hasInfix "XDG_DATA_DIRS" home.systemd.user.sessionVariables.XDG_DATA_DIRS;
         noKdePortal =
           !(cfg.xdg.portal.config ? kde)
           && !(lib.any (
@@ -566,9 +573,11 @@ let
           && home.programs.kitty.settings.window_padding_width == 0;
         wpsUsesGlobalScale =
           lib.hasSuffix "-configured" host.pkgs.wpsoffice-cn.name
-          && !(lib.hasInfix "--set QT_AUTO_SCREEN_SCALE_FACTOR" host.pkgs.wpsoffice-cn.buildCommand)
-          && !(lib.hasInfix "--set QT_ENABLE_HIGHDPI_SCALING" host.pkgs.wpsoffice-cn.buildCommand)
-          && !(lib.hasInfix "--set QT_SCALE_FACTOR" host.pkgs.wpsoffice-cn.buildCommand);
+          && lib.hasInfix "--set QT_IM_MODULE \"xim\"" host.pkgs.wpsoffice-cn.buildCommand
+          && lib.hasInfix "--set QT_AUTO_SCREEN_SCALE_FACTOR \"0\"" host.pkgs.wpsoffice-cn.buildCommand
+          && lib.hasInfix "--set QT_SCALE_FACTOR \"1\"" host.pkgs.wpsoffice-cn.buildCommand
+          && lib.hasInfix "QT_FONT_DPI" host.pkgs.wpsoffice-cn.buildCommand
+          && lib.hasInfix "WPS_QT_FONT_DPI" host.pkgs.wpsoffice-cn.buildCommand;
         applicationScaling =
           home.programs.alacritty.settings.font.size == 15
           && !(lib.any (package: lib.getName package == "steam-hidpi") cfg.environment.systemPackages)
@@ -993,10 +1002,15 @@ let
             && umbriel.output."eDP-1".scale == 1.5
             && umbriel.output."eDP-1".hdr == "on"
             && umbriel.output."eDP-1".workspaces == "dynamic"
-            && !umbriel.general.xwayland_native_resolution
-            && home.wayland.dpi == 96
+            && umbriel.general.xwayland_native_resolution
+            && cfg.environment.desktop.dpi == 144
+            && home.wayland.dpi == cfg.environment.desktop.dpi
             && cfg.services.displayManager.noctalia-greeter.settings.output.scales == "eDP-1:1.5"
             && !cfg.services.displayManager.noctalia-greeter.settings.output.use_synced_settings
+          else if name == "surface" then
+            builtins.attrNames umbriel.output == [ "eDP-1" ]
+            && umbriel.output."eDP-1".scale == 2.0
+            && cfg.services.displayManager.noctalia-greeter.settings.output.scales == "eDP-1:2.0"
           else
             (umbriel.output or { }) == { };
         noGlobalScaling =

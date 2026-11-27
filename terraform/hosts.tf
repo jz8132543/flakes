@@ -80,7 +80,7 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
-    iad0 = {
+    sjc2 = {
       records = {
         a = {
           proxied = false

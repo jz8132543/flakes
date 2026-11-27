@@ -68,9 +68,13 @@ in
         };
         # Other outputs already default to dynamic workspaces. Replace arx8's
         # legacy fixed inventory without changing its measured display settings.
-        output = lib.optionalAttrs (osConfig.networking.hostName == "arx8") {
-          "eDP-1".workspaces = lib.mkForce "dynamic";
-        };
+        output =
+          lib.optionalAttrs (osConfig.networking.hostName == "arx8") {
+            "eDP-1".workspaces = lib.mkForce "dynamic";
+          }
+          // lib.optionalAttrs (osConfig.networking.hostName == "surface") {
+            "eDP-1".scale = 2.0;
+          };
         environment = {
           NIXOS_OZONE_WL = "1";
           MOZ_ENABLE_WAYLAND = "1";

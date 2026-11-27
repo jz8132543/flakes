@@ -113,6 +113,24 @@
       "endpoints_v6": [],
       "host_indices": [16]
     },
+    "sjc1": {
+      "dn42_addresses_v4": ["172.20.232.17"],
+      "dn42_addresses_v6": ["fd53:90fd:4bb6:11::1"],
+      "dn42_v6_prefixes": ["fd53:90fd:4bb6:11::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [17]
+    },
+    "sjc2": {
+      "dn42_addresses_v4": ["172.20.232.18"],
+      "dn42_addresses_v6": ["fd53:90fd:4bb6:12::1"],
+      "dn42_v6_prefixes": ["fd53:90fd:4bb6:12::/64"],
+      "endpoints": [],
+      "endpoints_v4": [],
+      "endpoints_v6": [],
+      "host_indices": [18]
+    },
     "surface": {
       "dn42_addresses_v4": ["172.20.232.30"],
       "dn42_addresses_v6": ["fd53:90fd:4bb6:1e::1"],
@@ -622,6 +640,42 @@
         "nat_t_port": 4500,
         "role": "border"
       },
+      "sjc1": {
+        "enable": true,
+        "endpoints": [
+          {
+            "addr": "sjc1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
+        "ibgp": false,
+        "id": 17,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "sjc2": {
+        "enable": true,
+        "endpoints": [
+          {
+            "addr": "sjc2.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
+        "ibgp": false,
+        "id": 18,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
       "surface": {
         "enable": true,
         "endpoints": [],
@@ -847,6 +901,42 @@
         "nat": false,
         "nat_t_port": 4500,
         "role": "border"
+      },
+      "sjc1": {
+        "enable": true,
+        "endpoints": [
+          {
+            "addr": "sjc1.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
+        "ibgp": false,
+        "id": 17,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat": false,
+        "nat_t_port": 4500,
+        "role": "internal"
+      },
+      "sjc2": {
+        "enable": true,
+        "endpoints": [
+          {
+            "addr": "sjc2.dora.im",
+            "family": "ipv4",
+            "name": "default",
+            "port": 4500
+          }
+        ],
+        "ibgp": false,
+        "id": 18,
+        "ike_port": 500,
+        "is_controller": false,
+        "nat": false,
+        "nat_t_port": 4500,
+        "role": "internal"
       },
       "surface": {
         "enable": true,

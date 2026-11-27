@@ -1,0 +1,298 @@
+diff --git a/libwg/main.go b/libwg/main.go
+index 96cd008..f4dd4b2 100644
+--- a/libwg/main.go
++++ b/libwg/main.go
+@@ -19,6 +19,7 @@ import (
+ 	// _ "net/http/pprof"
+ 	"net/netip"
+ 	"strings"
++	"sync"
+ 
+ 	"golang.zx2c4.com/wireguard/conn"
+ 	"golang.zx2c4.com/wireguard/device"
+@@ -34,12 +35,16 @@ const (
+ 
+ var wgDevice *device.Device
+ 
++var lifecycleMu sync.Mutex
++
+ // tnet is the userspace network stack used in netstack (SOCKS5) mode.
+ // It is nil when running in the normal kernel-TUN mode.
+ var tnet *netstack.Net
+ 
+ //export uapi
+ func uapi(cmdStr *C.cchar_t) *C.char {
++	lifecycleMu.Lock()
++	defer lifecycleMu.Unlock()
+ 	content := C.GoString(cmdStr)
+ 	cmds := strings.Split(content, "\n")
+ 	var result string
+@@ -81,10 +86,21 @@ var logger *device.Logger
+ 
+ //export stopWg
+ func stopWg() {
++	lifecycleMu.Lock()
++	defer lifecycleMu.Unlock()
++	stopWgLocked()
++}
++
++func stopWgLocked() {
++	if socksServer != nil {
++		socksServer.Close()
++		socksServer = nil
++	}
+ 	if wgDevice != nil {
+ 		wgDevice.Close()
+-		logger.Verbosef("Shutting down")
++		wgDevice = nil
+ 	}
++	tnet = nil
+ }
+ 
+ // startWg param:
+@@ -95,6 +111,10 @@ func stopWg() {
+ //
+ //export startWg
+ func startWg(logLevel, protocol C.int, interfaceName *C.cchar_t) C.int {
++	lifecycleMu.Lock()
++	defer lifecycleMu.Unlock()
++	stopWgLocked()
++
+ 	name := C.GoString(interfaceName)
+ 	logger = device.NewLogger(
+ 		int(logLevel),
+@@ -123,6 +143,7 @@ func startWg(logLevel, protocol C.int, interfaceName *C.cchar_t) C.int {
+ 		wgDevice = device.NewDevice(tunDevice, conn.NewTCPBind(), logger)
+ 	default:
+ 		logger.Errorf("Protocol %d not supported", protocol)
++		_ = tunDevice.Close()
+ 		return ExitSetupFailed
+ 	}
+ 
+@@ -177,6 +198,10 @@ func parseAddrList(s string) ([]netip.Addr, error) {
+ //
+ //export startWgNetstack
+ func startWgNetstack(logLevel, protocol C.int, addresses, dnsServers, socksListen, socksUser, socksPass *C.cchar_t, mtu C.int) C.int {
++	lifecycleMu.Lock()
++	defer lifecycleMu.Unlock()
++	stopWgLocked()
++
+ 	logger = device.NewLogger(int(logLevel), "wg-corplink(netstack) ")
+ 	logger.Verbosef("Starting wg-corplink version %s (netstack/socks5 mode)", Version)
+ 
+@@ -214,21 +239,27 @@ func startWgNetstack(logLevel, protocol C.int, addresses, dnsServers, socksListe
+ 		wgDevice = device.NewDevice(tunDevice, conn.NewTCPBind(), logger)
+ 	default:
+ 		logger.Errorf("Protocol %d not supported", protocol)
++		_ = tunDevice.Close()
++		tnet = nil
+ 		return ExitSetupFailed
+ 	}
+ 
+ 	if err := wgDevice.Up(); err != nil {
+ 		logger.Errorf("Failed to bring up netstack device: %v", err)
++		stopWgLocked()
+ 		return ExitSetupFailed
+ 	}
+ 
+ 	listen := C.GoString(socksListen)
+ 	user := C.GoString(socksUser)
+ 	pass := C.GoString(socksPass)
+-	if err := startSocks5(listen, user, pass, netStack, logger); err != nil {
++	server, err := startSocks5(listen, user, pass, netStack, logger)
++	if err != nil {
+ 		logger.Errorf("Failed to start socks5 proxy on %s: %v", listen, err)
++		stopWgLocked()
+ 		return ExitSetupFailed
+ 	}
++	socksServer = server
+ 	logger.Verbosef("socks5 proxy listening on %s", listen)
+ 	return ExitSetupSuccess
+ }
+diff --git a/libwg/socks5.go b/libwg/socks5.go
+index a88a5e2..21cfbb9 100644
+--- a/libwg/socks5.go
++++ b/libwg/socks5.go
+@@ -9,6 +9,7 @@ package main
+ import (
+ 	"context"
+ 	"net"
++	"sync"
+ 
+ 	socks5 "github.com/things-go/go-socks5"
+ 	"golang.zx2c4.com/wireguard/device"
+@@ -57,11 +58,78 @@ func (l socksLogger) Errorf(format string, args ...interface{}) {
+ // startSocks5 binds a SOCKS5 listener on the host and serves it in the
+ // background. When username is non-empty, username/password authentication is
+ // required (clients offering only no-auth are rejected).
+-func startSocks5(listen, username, password string, tnet *netstack.Net, logger *device.Logger) error {
++var socksServer *socks5Server
++
++type socks5Server struct {
++	listener *trackedListener
++}
++
++func (s *socks5Server) Close() {
++	s.listener.mu.Lock()
++	s.listener.closed = true
++	s.listener.mu.Unlock()
++	_ = s.listener.Close()
++	s.listener.closeConnections()
++}
++
++type trackedListener struct {
++	net.Listener
++	mu     sync.Mutex
++	conns  map[net.Conn]struct{}
++	closed bool
++}
++
++type trackedConn struct {
++	net.Conn
++	owner *trackedListener
++	once  sync.Once
++}
++
++func (c *trackedConn) Close() error {
++	err := c.Conn.Close()
++	c.once.Do(func() {
++		c.owner.mu.Lock()
++		delete(c.owner.conns, c)
++		c.owner.mu.Unlock()
++	})
++	return err
++}
++
++func (l *trackedListener) Accept() (net.Conn, error) {
++	conn, err := l.Listener.Accept()
++	if err != nil {
++		return nil, err
++	}
++	c := &trackedConn{Conn: conn, owner: l}
++	l.mu.Lock()
++	if l.closed {
++		l.mu.Unlock()
++		_ = c.Close()
++		return nil, net.ErrClosed
++	}
++	l.conns[c] = struct{}{}
++	l.mu.Unlock()
++	return c, nil
++}
++
++func (l *trackedListener) closeConnections() {
++	l.mu.Lock()
++	conns := make([]net.Conn, 0, len(l.conns))
++	for conn := range l.conns {
++		conns = append(conns, conn)
++	}
++	l.mu.Unlock()
++	for _, conn := range conns {
++		_ = conn.Close()
++	}
++}
++
++func startSocks5(listen, username, password string, tnet *netstack.Net, logger *device.Logger) (*socks5Server, error) {
+ 	ln, err := net.Listen("tcp", listen)
+ 	if err != nil {
+-		return err
++		return nil, err
+ 	}
++	tracked := &trackedListener{Listener: ln, conns: make(map[net.Conn]struct{})}
+ 
+ 	opts := []socks5.Option{
+ 		socks5.WithResolver(netstackResolver{tnet: tnet}),
+@@ -81,9 +149,7 @@ func startSocks5(listen, username, password string, tnet *netstack.Net, logger *
+ 
+ 	server := socks5.NewServer(opts...)
+ 	go func() {
+-		if err := server.Serve(ln); err != nil {
+-			logger.Errorf("socks5: serve stopped: %v", err)
+-		}
++		_ = server.Serve(tracked)
+ 	}()
+-	return nil
++	return &socks5Server{listener: tracked}, nil
+ }
+diff --git a/libwg/socks5_lifecycle_test.go b/libwg/socks5_lifecycle_test.go
+new file mode 100644
+index 0000000..29a03b8
+--- /dev/null
++++ b/libwg/socks5_lifecycle_test.go
+@@ -0,0 +1,76 @@
++package main
++
++import (
++	"net"
++	"testing"
++	"time"
++
++	"golang.zx2c4.com/wireguard/device"
++)
++
++func TestSocks5ListenerCanStopAndRestartOnSamePort(t *testing.T) {
++	probe, err := net.Listen("tcp", "127.0.0.1:0")
++	if err != nil {
++		t.Fatal(err)
++	}
++	addr := probe.Addr().String()
++	if err := probe.Close(); err != nil {
++		t.Fatal(err)
++	}
++
++	for i := 0; i < 3; i++ {
++		server, err := startSocks5(addr, "", "", nil, device.NewLogger(0, "test "))
++		if err != nil {
++			t.Fatalf("start %d: %v", i, err)
++		}
++		client, err := net.Dial("tcp", addr)
++		if err != nil {
++			server.Close()
++			t.Fatalf("dial %d: %v", i, err)
++		}
++		waitForConnections(t, server.listener, 1)
++		// Keep the accepted SOCKS connection idle so shutdown must actively
++		// close it rather than relying on handler completion.
++		server.Close()
++		_ = client.SetReadDeadline(time.Now().Add(time.Second))
++		if _, err := client.Read(make([]byte, 1)); err == nil {
++			t.Fatalf("accepted connection remained open after stop %d", i)
++		}
++		_ = client.Close()
++	}
++}
++
++func TestSocks5StartFailureLeavesExistingListenerUsable(t *testing.T) {
++	server, err := startSocks5("127.0.0.1:0", "", "", nil, device.NewLogger(0, "test "))
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer server.Close()
++
++	if _, err := startSocks5(server.listener.Addr().String(), "", "", nil, device.NewLogger(0, "test ")); err == nil {
++		t.Fatal("second listener unexpectedly bound an occupied address")
++	}
++	client, err := net.Dial("tcp", server.listener.Addr().String())
++	if err != nil {
++		t.Fatalf("existing listener was affected by failed start: %v", err)
++	}
++	_ = client.Close()
++}
++
++func waitForConnections(t *testing.T, listener *trackedListener, want int) {
++	t.Helper()
++	deadline := time.Now().Add(time.Second)
++	for time.Now().Before(deadline) {
++		listener.mu.Lock()
++		got := len(listener.conns)
++		listener.mu.Unlock()
++		if got == want {
++			return
++		}
++		time.Sleep(time.Millisecond)
++	}
++	listener.mu.Lock()
++	got := len(listener.conns)
++	listener.mu.Unlock()
++	t.Fatalf("listener accepted %d connections, want %d", got, want)
++}

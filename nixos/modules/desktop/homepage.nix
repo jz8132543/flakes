@@ -6,6 +6,9 @@
   ...
 }:
 let
+  tailscaleSuffix = "ts";
+  tailscaleHost = "${config.networking.hostName}.${tailscaleSuffix}";
+
   proxyServices = lib.filterAttrs (
     name: proxy:
     name != "homepage"
@@ -45,11 +48,44 @@ let
     };
 
   categories = lib.unique (lib.mapAttrsToList (_: proxy: proxy.homepage.category) proxyServices);
-  homepageServices = map (category: {
-    ${category} = lib.mapAttrsToList homepageCard (
-      lib.filterAttrs (_: proxy: proxy.homepage.category == category) proxyServices
-    );
-  }) categories;
+  homepageServices =
+    map (category: {
+      ${category} =
+        lib.mapAttrsToList homepageCard (
+          lib.filterAttrs (_: proxy: proxy.homepage.category == category) proxyServices
+        )
+        ++ lib.optionals (category == "AI" && options.services ? paseo && config.services.paseo.enable) [
+          {
+            Paseo = {
+              href = "http://${tailscaleHost}:${toString config.ports.paseo}";
+              icon = "si-codeium";
+              description = "Local AI agent workbench";
+            };
+          }
+        ]
+        ++ lib.optionals (category == "AI" && config.services.llama-swap.enable) [
+          {
+            llama-swap = {
+              href = "http://${tailscaleHost}:${toString config.services.llama-swap.port}";
+              icon = "si-ollama";
+              description = "Local model routing and playground";
+            };
+          }
+        ];
+    }) categories
+    ++ [
+      {
+        Applications = [
+          {
+            Linyaps = {
+              href = "https://store.linyaps.org.cn/";
+              icon = "si-linux";
+              description = "Official Linyaps web app store";
+            };
+          }
+        ];
+      }
+    ];
 
   headscaleCard = {
     Tailscale = {
@@ -57,17 +93,6 @@ let
       icon = "tailscale.png";
       description = "Tailscale network management";
     };
-  };
-  paseoCards = lib.optional (options.services ? paseo && config.services.paseo.enable) {
-    AI = [
-      {
-        Paseo = {
-          href = "http://127.0.0.1:${toString config.ports.paseo}";
-          icon = "si-codeium";
-          description = "Local AI agent workbench";
-        };
-      }
-    ];
   };
 in
 {
@@ -80,8 +105,8 @@ in
   services.homepage-dashboard = {
     enable = true;
     listenPort = config.ports.homepage;
-    allowedHosts = "${config.networking.fqdn},localhost:${toString config.ports.homepage},127.0.0.1:${toString config.ports.homepage}";
-    services = homepageServices ++ paseoCards ++ [ { Network = [ headscaleCard ]; } ];
+    allowedHosts = "${config.networking.fqdn},${tailscaleHost}:${toString config.ports.homepage},localhost:${toString config.ports.homepage}";
+    services = homepageServices ++ [ { Network = [ headscaleCard ]; } ];
     widgets = [
       { search.provider = "duckduckgo"; }
       {
@@ -99,16 +124,23 @@ in
       language = "zh-Hans";
       headerStyle = "clean";
       hideVersion = true;
-      layout = lib.genAttrs categories (_: {
-        style = "row";
-        columns = 3;
-      });
+      layout =
+        lib.genAttrs categories (_: {
+          style = "row";
+          columns = 3;
+        })
+        // {
+          Applications = {
+            style = "row";
+            columns = 3;
+          };
+        };
     };
   };
 
   services.traefik.proxies.homepage = {
     rule = "Host(`${config.networking.fqdn}`)";
-    target = "http://127.0.0.1:${toString config.ports.homepage}";
+    target = "http://localhost:${toString config.ports.homepage}";
     entryPoints = [ "https" ];
     # More specific routes on the same FQDN, such as /dashboard/, must win.
     priority = lib.mkDefault 1;

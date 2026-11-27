@@ -78,7 +78,7 @@ in
           category = "Network";
           icon = "mihomo.png";
           description = "Local proxy and traffic controls";
-          href = "http://127.0.0.1:9090/ui/";
+          href = "http://${config.networking.hostName}.ts:9090/ui/";
         };
       };
       # Keep the persistent workdir writable even when subscription updates are disabled.

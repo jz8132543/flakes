@@ -61,6 +61,7 @@ let
     assert cfg.environment.etc ? "homepage-dashboard/services.yaml";
     assert homepage.listenPort == cfg.ports.homepage;
     assert !homepage.openFirewall;
+    assert !(lib.elem cfg.ports.homepage cfg.networking.firewall.allowedTCPPorts);
     assert homepage.allowedHosts != "*";
     assert router.rule == "Host(`${cfg.networking.fqdn}`)";
     assert router.entryPoints == [ "https" ];
@@ -95,21 +96,50 @@ let
     );
     assert (findCard "Test App").href == "https://test.${cfg.networking.domain}";
     assert (findCard "Test App").widget.type == "customapi";
-    assert (findCard "Mihomo Dashboard").href == "http://127.0.0.1:9090/ui/";
+    assert (findCard "Mihomo Dashboard").href == "http://${cfg.networking.hostName}.ts:9090/ui/";
+    assert (findCard "Linyaps").href == "https://store.linyaps.org.cn/";
     assert (
-      name != "arx8" || (findCard "Paseo").href == "http://127.0.0.1:${toString cfg.ports.paseo}"
+      name != "arx8"
+      || (findCard "Paseo").href == "http://${cfg.networking.hostName}.ts:${toString cfg.ports.paseo}"
     );
     assert (
       !(cfg.services.traefik.proxies ? open-webui)
-      || (findCard "Open WebUI").href == "http://127.0.0.1:${toString cfg.ports.open-webui}"
+      ||
+        (findCard "Open WebUI").href
+        == "http://${cfg.networking.hostName}.ts:${toString cfg.ports.open-webui}"
     );
-    assert (name != "arx8" || (findCard "llama-swap").href == "http://127.0.0.1:8080");
+    assert (name != "arx8" || cfg.services.open-webui.host == "0.0.0.0");
+    assert (
+      name != "arx8"
+      ||
+        (findCard "llama-swap").href
+        == "http://${cfg.networking.hostName}.ts:${toString cfg.services.llama-swap.port}"
+    );
+    assert (name != "arx8" || cfg.services.llama-swap.listenAddress == "0.0.0.0");
+    assert (
+      name != "arx8"
+      ||
+        cfg.systemd.services.llama-swap.serviceConfig.IPAddressAllow == [
+          "localhost"
+          "100.64.0.0/10"
+          "fd7a:115c:a1e0::/48"
+        ]
+    );
     assert (
       !(cfg.services.keycloak.enable or false) || (findCard "Keycloak").href == "https://sso.dora.im"
     );
     assert (
       !(cfg.services.traefik.proxies ? strata)
-      || (findCard "Strata").href == "http://127.0.0.1:${toString cfg.ports.strata}"
+      || (findCard "Strata").href == "http://${cfg.networking.hostName}.ts:${toString cfg.ports.strata}"
+    );
+    assert (
+      name != "arx8"
+      ||
+        cfg.systemd.services.strata.serviceConfig.IPAddressAllow == [
+          "localhost"
+          "100.64.0.0/10"
+          "fd7a:115c:a1e0::/48"
+        ]
     );
     assert (findCard "Path App").href == "https://${cfg.networking.fqdn}/test-app/";
     assert

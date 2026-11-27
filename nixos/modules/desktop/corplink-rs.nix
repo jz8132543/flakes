@@ -20,8 +20,6 @@ in
   sops.secrets = lib.mkIf enable {
     "corplink-rs/username".sopsFile = config.sops-file.get "common.yaml";
     "corplink-rs/password".sopsFile = config.sops-file.get "common.yaml";
-    "corplink-rs/username".restartUnits = [ "corplink-rs.service" ];
-    "corplink-rs/password".restartUnits = [ "corplink-rs.service" ];
   };
 
   systemd.services.corplink-rs = lib.mkIf enable {
@@ -35,9 +33,6 @@ in
     ];
     requires = [ "sops-install-secrets.service" ];
     path = [ pkgs.jq ];
-    startLimitIntervalSec = 0;
-    startLimitBurst = 0;
-    restartIfChanged = true;
     serviceConfig = {
       Type = "simple";
       User = "corplink-rs";
@@ -72,8 +67,7 @@ in
         mv -f "$config_tmp" "$config"
       '';
       ExecStart = "${lib.getExe pkgs.corplink-rs} /var/lib/corplink-rs/config.json";
-      Restart = "on-failure";
-      RestartSec = "15s";
+      Restart = "no";
       TimeoutStopSec = "20s";
       KillSignal = "SIGINT";
     };

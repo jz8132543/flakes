@@ -1,5 +1,7 @@
 { pkgs, lib, ... }: {
-  services.ipp-usb.enable = true;
+  # The P3301DN advertises a broken IPP-over-USB scanner endpoint and resets
+  # during ipp-usb probing; use its P3300DN-compatible USB driver instead.
+  services.ipp-usb.enable = false;
   programs.system-config-printer.enable = true;
   services.printing = {
     enable = true;
@@ -35,16 +37,16 @@
     };
   };
 
-  # hardware.printers.ensurePrinters = [
-  #   {
-  #     name = "Pantum3301DN";
-  #     description = "Pantum P3301DN";
-  #     deviceUri = "usb://Pantum/P3301DN";
-  #     model = "drv:///hp/hpcups.drv/hp-business_inkjet_3000-pcl3.ppd";
-  #     ppdOptions = {
-  #       PageSize = "A4";
-  #       Duplex = "DuplexNoTumble";
-  #     };
-  #   }
-  # ];
+  hardware.printers.ensurePrinters = [
+    {
+      name = "PantumP3301DN";
+      description = "Pantum P3301DN";
+      deviceUri = "usb://Pantum/P3301DN?serial=CF6L054208";
+      model = "Pantum/Pantum P3300DN Series PS.ppd";
+      ppdOptions = {
+        PageSize = "A4";
+        Duplex = "DuplexNoTumble";
+      };
+    }
+  ];
 }

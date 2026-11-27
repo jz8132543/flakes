@@ -64,25 +64,7 @@ class RecordedAppearance(appearance.Appearance):
             if operation == "reset":
                 self.values.pop(path, None)
             return ""
-        if tool == "flatpak":
-            self.assert_flatpak_args(args)
-            path = self.home / ".local/share/flatpak/overrides/global"
-            path.parent.mkdir(parents=True, exist_ok=True)
-            text = path.read_text() if path.exists() else ""
-            unset = appearance.read_ini(path, "Context", "unset-environment", "").split(";")
-            for argument in args[2:]:
-                key = argument.removeprefix("--unset-env=")
-                text = appearance.ini_value(text, "Environment", key, "")
-                if key not in unset:
-                    unset.append(key)
-            text = appearance.ini_value(text, "Context", "unset-environment", ";".join(filter(None, unset)) + ";")
-            path.write_text(text)
-            return ""
         raise AssertionError(f"Unexpected command {tool} {args}")
-
-    def assert_flatpak_args(self, args):
-        assert args[:2] == ("override", "--user")
-        assert all(arg in ("--unset-env=GTK_THEME", "--unset-env=GTK_APPLICATION_PREFER_DARK_THEME") for arg in args[2:])
 
 
 def toggles(manifest, root):
@@ -100,7 +82,6 @@ class AppearanceTest(unittest.TestCase):
         self.home = self.root / "home"
         self.home.mkdir()
         self.manifest = {"variants": {}, "commands": {}, "extensions": [], "gnomeMajor": "51",
-                          "flatpakSystemOverride": str(self.root / "system-flatpak-override"),
                          "conflictingExtensions": ["rounded@conflict", "desaturate@conflict"]}
         for effects in ("visual", "compatible"):
             self.manifest["variants"][effects] = {}
@@ -190,77 +171,6 @@ class AppearanceTest(unittest.TestCase):
             with patch.object(self.subject, 'run') as command:
                 self.subject.restore_session_environment()
                 command.assert_not_called()
-
-    def test_flatpak_stale_system_theme_is_masked_at_user_scope(self):
-        system = Path(self.manifest["flatpakSystemOverride"])
-        original = "[Environment]\nGTK_THEME=MacTahoe-Light-solid\nGTK_APPLICATION_PREFER_DARK_THEME=0\nGTK_IM_MODULE=ibus\n"
-        system.write_text(original)
-        user = self.home / ".local/share/flatpak/overrides/global"
-        user.parent.mkdir(parents=True)
-        user.write_text("[Context]\nfilesystems=/custom:ro;\nunset-environment=OTHER;\n[Environment]\nQT_IM_MODULE=ibus\n")
-        self.apply("dark")
-        self.apply()
-        self.assertEqual(system.read_text(), original)
-        self.assertIn("filesystems=/custom:ro;", user.read_text())
-        self.assertIn("QT_IM_MODULE=ibus", user.read_text())
-        self.assertIn("unset-environment=OTHER;GTK_THEME;GTK_APPLICATION_PREFER_DARK_THEME;", user.read_text())
-        self.assertEqual(len([call for call in self.subject.calls if call[0] == "flatpak"]), 1)
-
-    def test_flatpak_custom_user_theme_is_preserved(self):
-        Path(self.manifest["flatpakSystemOverride"]).write_text("[Environment]\nGTK_THEME=MacTahoe-Light-solid\n")
-        user = self.home / ".local/share/flatpak/overrides/global"
-        user.parent.mkdir(parents=True)
-        original = "[Environment]\nGTK_THEME=PersonalTheme\nGTK_IM_MODULE=ibus\n"
-        user.write_text(original)
-        self.apply("dark")
-        self.assertEqual(user.read_text(), original)
-        self.assertFalse(any(call[0] == "flatpak" for call in self.subject.calls))
-        self.assertIn("Preserving custom Flatpak GTK_THEME", self.stderr.getvalue())
-
-    def test_flatpak_override_is_rolled_back_with_desktop(self):
-        Path(self.manifest["flatpakSystemOverride"]).write_text("[Environment]\nGTK_THEME=MacTahoe-Light-solid\n")
-        user = self.home / ".local/share/flatpak/overrides/global"
-        user.parent.mkdir(parents=True)
-        original = "[Context]\nfilesystems=/custom:ro;\n"
-        user.write_text(original)
-        self.subject.fail = lambda tool, args: tool == "gsettings" and "set" in args and "enabled-extensions" in args
-        with self.assertRaisesRegex(RuntimeError, "previous settings restored"):
-            self.apply("dark")
-        self.assertEqual(user.read_text(), original)
-        self.assertFalse(self.subject.state_file.exists())
-
-    def test_flatpak_symlinked_user_overrides_are_not_changed(self):
-        Path(self.manifest["flatpakSystemOverride"]).write_text("[Environment]\nGTK_THEME=MacTahoe-Light-solid\n")
-        user = self.home / ".local/share/flatpak/overrides/global"
-        user.parent.mkdir(parents=True)
-        other = self.root / "personal-overrides"
-        other.write_text("[Environment]\nGTK_THEME=PersonalTheme\n")
-        user.symlink_to(other)
-        self.apply("dark")
-        self.assertTrue(user.is_symlink())
-        self.assertFalse(any(call[0] == "flatpak" for call in self.subject.calls))
-
-    @unittest.skipUnless(os.environ.get("FLATPAK_BIN"), "native Flatpak test runs in the flake check")
-    def test_native_flatpak_unset_preserves_permissions_and_input_method(self):
-        Path(self.manifest["flatpakSystemOverride"]).write_text(
-            "[Environment]\nGTK_THEME=MacTahoe-Light-solid\nGTK_APPLICATION_PREFER_DARK_THEME=0\n")
-        user = self.home / ".local/share/flatpak/overrides/global"
-        user.parent.mkdir(parents=True)
-        user.write_text("[Context]\nfilesystems=/custom:ro;\n[Environment]\nGTK_IM_MODULE=ibus\n")
-        self.manifest["commands"]["flatpak"] = os.environ["FLATPAK_BIN"]
-        recorded = self.subject.run
-        def run(tool, *args):
-            if tool == "flatpak":
-                return appearance.Appearance.run(self.subject, tool, *args)
-            return recorded(tool, *args)
-        with patch.object(self.subject, "run", side_effect=run):
-            self.apply("dark")
-        actual = appearance.configparser.ConfigParser(interpolation=None)
-        actual.read(user)
-        self.assertEqual(actual["Context"]["filesystems"], "/custom:ro;")
-        self.assertEqual(actual["Environment"]["GTK_IM_MODULE"], "ibus")
-        self.assertEqual(set(actual["Context"]["unset-environment"].split(";")),
-                         {"GTK_THEME", "GTK_APPLICATION_PREFER_DARK_THEME", ""})
 
     def test_offline_missing_resources_still_saves_preference(self):
         Path(self.manifest["variants"]["visual"]["dark"]["gtk4"]).unlink()

@@ -138,6 +138,14 @@
           for bin in $out/bin/*; do
             if [ -f "$bin" ] && [ -x "$bin" ]; then
               wrapProgram "$bin" \
+                --set GTK_IM_MODULE "fcitx" \
+                --set QT_IM_MODULE "xim" \
+                --set XMODIFIERS "@im=fcitx" \
+                --set QT_AUTO_SCREEN_SCALE_FACTOR "0" \
+                --set QT_ENABLE_HIGHDPI_SCALING "0" \
+                --set QT_SCALE_FACTOR "1" \
+                --set QT_SCREEN_SCALE_FACTORS "1" \
+                --run 'export QT_FONT_DPI="''${WPS_QT_FONT_DPI:-96}"' \
                 --run '${configureWps}' \
                 --run '${refreshWpsVersion} >/dev/null 2>&1 &'
             fi

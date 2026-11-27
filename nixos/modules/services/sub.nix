@@ -533,11 +533,10 @@ let
   mihomoSmartConfig =
     mihomoConfig
     // {
-      # Explicitly bound to loopback: mihomo-smart is a fork, so it must not
-      # silently inherit allow-lan/bind-address from the shared document.
+      # Keep proxy listeners off the LAN; the controller has its own bind address.
       allow-lan = false;
-      bind-address = "127.0.0.1";
-      external-controller = "127.0.0.1:9090";
+      bind-address = "0.0.0.0";
+      external-controller = "0.0.0.0:9090";
       # 只有 smart 文档改用 smart 策略组：主文档必须保持上游 mihomo 可解析，
       # 否则普通内核会因 `unsupported type: smart` 直接拒绝启动。
       # 这里只把 url-test 组升级为 smart；用户已显式声明的 smart 组原样保留，

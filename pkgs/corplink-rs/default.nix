@@ -27,6 +27,7 @@ let
     pname = "corplink-libwg";
     inherit version;
     src = wireguardGo;
+    patches = [ ./patches/wireguard-go/0001-cleanup-netstack-listener.patch ];
     vendorHash = "sha256-ihsFS2SuI1iqACHnJesgJD14k08XMsuwUGE8w+Mwl+k=";
     nativeBuildInputs = [ clang ];
     buildPhase = ''
@@ -42,13 +43,19 @@ let
       install -Dm644 libwg/libwg.h "$out/include/libwg.h"
       runHook postInstall
     '';
-    doCheck = false;
+    checkPhase = ''
+      runHook preCheck
+      go test ./libwg
+      runHook postCheck
+    '';
+    doCheck = true;
   };
 in
 rustPlatform.buildRustPackage {
   pname = "corplink-rs";
   inherit version src;
   cargoLock.lockFile = "${src}/Cargo.lock";
+  patches = [ ./reconnect-verified.patch ];
   nativeBuildInputs = [
     clang
     llvmPackages.libclang

@@ -26,7 +26,7 @@ in
 
   services.open-webui = {
     enable = lib.mkDefault true;
-    host = "127.0.0.1";
+    host = "0.0.0.0";
     port = config.ports.open-webui;
     environmentFile = config.sops.templates."open-webui.env".path;
     environment = {
@@ -80,7 +80,7 @@ in
       category = "AI";
       icon = "open-webui.png";
       description = "Local AI models";
-      href = "http://127.0.0.1:${toString config.services.open-webui.port}";
+      href = "http://${config.networking.hostName}.ts:${toString config.services.open-webui.port}";
     };
   };
 

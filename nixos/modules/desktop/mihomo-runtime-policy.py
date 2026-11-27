@@ -55,6 +55,12 @@ def prepare_policy(config, policy):
         raise ValueError("Missing domain")
     if not isinstance(config, dict):
         raise ValueError("Invalid configuration")
+    # The active daemon uses this runtime copy, not the generated subscription template.
+    config = {
+        **config,
+        "external-controller": "0.0.0.0:9090",
+        "external-ui": "./dashboard",
+    }
     original = config.get("rules", [])
     if not isinstance(original, list) or any(
         not isinstance(rule, str) for rule in original
@@ -118,6 +124,7 @@ def prepare_file(source, destination, policy_path):
         policy = json.load(stream)
     text = source.read_bytes().decode("utf-8")
     config = prepare_policy(yaml.load(text, Loader=ConfigLoader), policy)
+
     document = yaml.compose(text, Loader=ConfigLoader)
     values = [value for key, value in document.value if key.value == "rules"]
     replacement = yaml.safe_dump(
