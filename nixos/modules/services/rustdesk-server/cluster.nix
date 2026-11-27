@@ -12,7 +12,7 @@ let
   python = pkgs.python3.withPackages (ps: [ ps.cryptography ]);
   forapiPackage = pkgs.callPackage ../../../../pkgs/rustdesk-server-forapi { };
   apiPackage = pkgs.callPackage ../../../../pkgs/rustdesk-api { };
-  apiEnabled = isSignal && cluster.api.enable;
+  apiEnabled = cluster.api.enable;
   databaseName = "rustdesk";
   databaseEnvironment = {
     PGHOST = "127.0.0.1";
@@ -52,8 +52,8 @@ let
     export RUSTDESK_API_POSTGRESQL_PASSWORD=${lib.escapeShellArg "''"}
     export RUSTDESK_API_POSTGRESQL_SSLMODE=disable
     export RUSTDESK_API_POSTGRESQL_TIME_ZONE=Asia/Shanghai
-    export RUSTDESK_API_RUSTDESK_ID_SERVER=${cluster.api.domain}:${toString signal}
-    export RUSTDESK_API_RUSTDESK_RELAY_SERVER=fra0.dora.im:${toString relay}
+    export RUSTDESK_API_RUSTDESK_ID_SERVER=${lib.escapeShellArg cluster.api.idServer}
+    export RUSTDESK_API_RUSTDESK_RELAY_SERVER=${lib.escapeShellArg cluster.api.relayServer}
     export RUSTDESK_API_RUSTDESK_API_SERVER=https://${cluster.api.domain}
     export RUSTDESK_API_RUSTDESK_KEY_FILE=$CREDENTIALS_DIRECTORY/public-key
     export RUSTDESK_API_RUSTDESK_PERSONAL=1
@@ -62,14 +62,15 @@ let
   '';
   signal = config.ports.rustdesk-signal;
   relay = config.ports.rustdesk-relay;
-  restartUnits = [ "rustdesk-relay.service" ] ++ lib.optional isSignal "rustdesk-signal.service";
+  restartUnits =
+    lib.optional cluster.relay.enable "rustdesk-relay.service"
+    ++ lib.optional isSignal "rustdesk-signal.service"
+    ++ lib.optional apiEnabled "rustdesk-api.service";
   credentials = [ "public-key:${config.sops.secrets."rustdesk/server_public_key".path}" ];
   signalCredentials =
     credentials
     ++ lib.optional isSignal "private-key:${config.sops.secrets."rustdesk/server_private_key".path}"
-    ++
-      lib.optional (isSignal && cluster.api.enable)
-        "api-jwt:${config.sops.secrets."rustdesk/api_jwt_key".path}";
+    ++ lib.optional isSignal "api-jwt:${config.sops.secrets."rustdesk/api_jwt_key".path}";
   exec =
     mode: binary: args:
     lib.escapeShellArgs (
@@ -106,7 +107,7 @@ in
         "relay"
       ];
       default = "relay";
-      description = "One central signal/ID database plus its relay, or a relay-only edge.";
+      description = "The single signal/ID database host or a relay-only edge; the API may live on either role.";
     };
     relayHosts = lib.mkOption {
       type = lib.types.listOf (lib.types.strMatching "[A-Za-z0-9.-]+:[0-9]+");
@@ -117,6 +118,16 @@ in
       type = lib.types.port;
       default = relay;
       description = "Public native TCP relay port. A different port uses source-preserving nft redirect.";
+    };
+    relay.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Run hbbr on this host alongside the selected signal/API role.";
+    };
+    selfProbeHost = lib.mkOption {
+      type = lib.types.nullOr (lib.types.strMatching "[A-Za-z0-9.-]+");
+      default = null;
+      description = "A public relay hostname resolved to loopback locally for this node's health check; clients still resolve its public DNS.";
     };
     bandwidth = {
       perSession = lib.mkOption {
@@ -133,6 +144,16 @@ in
       domain = lib.mkOption {
         type = lib.types.strMatching "[A-Za-z0-9.-]+";
         default = "rustdesk.dora.im";
+      };
+      idServer = lib.mkOption {
+        type = lib.types.strMatching "[A-Za-z0-9.-]+:[0-9]+";
+        default = "rustdesk.dora.im:${toString signal}";
+        description = "Public RustDesk ID server address advertised by the API.";
+      };
+      relayServer = lib.mkOption {
+        type = lib.types.strMatching "[A-Za-z0-9.-]+:[0-9]+";
+        default = "fra0.dora.im:${toString relay}";
+        description = "Primary relay address advertised by the API; hbbs supplies the live relay pool.";
       };
       port = lib.mkOption {
         type = lib.types.port;
@@ -155,12 +176,12 @@ in
         message = "RustDesk hbbs requires a nonempty relay pool.";
       }
       {
-        assertion = config.networking.nftables.enable && (!mapped || !isSignal);
-        message = "RustDesk cluster uses the existing nftables backend; mapped ports require relay-only mode.";
+        assertion = config.networking.nftables.enable;
+        message = "RustDesk cluster requires the existing nftables backend.";
       }
       {
-        assertion = !cluster.api.enable || isSignal;
-        message = "The RustDesk API control plane can only run beside the signal server.";
+        assertion = cluster.selfProbeHost == null || (mapped && isSignal);
+        message = "RustDesk self-probe alias requires a signal node with a mapped relay port.";
       }
       {
         assertion = !apiEnabled || config.services.postgresql.enable;
@@ -172,7 +193,7 @@ in
       package = lib.mkDefault forapiPackage;
       openFirewall = false;
       signal.enable = isSignal;
-      relay.enable = true;
+      relay.enable = cluster.relay.enable;
       # Nixpkgs joins this option with ':', whereas hbbs requires commas.
       signal.relayHosts = lib.mkForce [ (lib.concatStringsSep "," cluster.relayHosts) ];
     };
@@ -189,12 +210,10 @@ in
       sopsFile = config.sops-file.get "common.yaml";
       restartUnits = [ "rustdesk-signal.service" ];
     };
-    sops.secrets."rustdesk/api_jwt_key" = lib.mkIf (isSignal && cluster.api.enable) {
+    sops.secrets."rustdesk/api_jwt_key" = lib.mkIf (isSignal || apiEnabled) {
       sopsFile = config.sops-file.get "common.yaml";
-      restartUnits = [
-        "rustdesk-signal.service"
-        "rustdesk-api.service"
-      ];
+      restartUnits =
+        lib.optional isSignal "rustdesk-signal.service" ++ lib.optional apiEnabled "rustdesk-api.service";
     };
     sops.secrets.password = lib.mkIf apiEnabled {
       sopsFile = config.sops-file.get "common.yaml";
@@ -206,14 +225,16 @@ in
     };
     networking.firewall = {
       # Input filtering runs after prerouting redirect and sees its target port.
-      allowedTCPPorts = [
-        relay
-      ]
-      ++ lib.optionals isSignal [
-        (signal - 1)
-        signal
-      ];
+      allowedTCPPorts =
+        lib.optional cluster.relay.enable relay
+        ++ lib.optionals isSignal [
+          (signal - 1)
+          signal
+        ];
       allowedUDPPorts = lib.optional isSignal signal;
+    };
+    networking.hosts = lib.mkIf (cluster.selfProbeHost != null) {
+      "127.0.0.1" = [ cluster.selfProbeHost ];
     };
     networking.nftables.tables.rustdesk-ports = {
       family = "inet";
@@ -224,10 +245,18 @@ in
             fib daddr type local tcp dport ${toString cluster.relayPort} redirect to :${toString relay}
           }
         ''}
+        ${lib.optionalString (cluster.selfProbeHost != null) ''
+          chain relay_self_probe {
+            type nat hook output priority dstnat; policy accept;
+            ip daddr 127.0.0.1 tcp dport ${toString cluster.relayPort} redirect to :${toString relay}
+          }
+        ''}
         chain native_only {
           type filter hook input priority -10; policy accept;
           iifname != "lo" tcp dport { ${
-            lib.concatStringsSep ", " (map toString ([ (relay + 2) ] ++ lib.optional isSignal (signal + 2)))
+            lib.concatStringsSep ", " (
+              map toString (lib.optional cluster.relay.enable (relay + 2) ++ lib.optional isSignal (signal + 2))
+            )
           } } drop
           ${lib.optionalString mapped ''
             iifname != "lo" tcp dport ${toString relay} ct original proto-dst != ${toString cluster.relayPort} drop
@@ -256,43 +285,45 @@ in
           }
         ]
       );
-      rustdesk-relay = lib.mkMerge [
-        defaults
-        {
-          environment = {
-            # Upstream units are 1024*1024 bit/s, not decimal Mbit/s.
-            SINGLE_BANDWIDTH = toString cluster.bandwidth.perSession;
-            TOTAL_BANDWIDTH = toString cluster.bandwidth.total;
-            # Avoid the stock 32-unit downgrade after a long viewing session.
-            LIMIT_SPEED = toString cluster.bandwidth.perSession;
-            DOWNGRADE_THRESHOLD = "1";
-          };
-          serviceConfig = {
-            ExecStart = lib.mkForce (
-              exec "relay" "hbbr" [
-                "--port"
-                (toString relay)
-              ]
-            );
-            LoadCredential = credentials;
-          };
-        }
-      ];
+      rustdesk-relay = lib.mkIf cluster.relay.enable (
+        lib.mkMerge [
+          defaults
+          {
+            environment = {
+              # Upstream units are 1024*1024 bit/s, not decimal Mbit/s.
+              SINGLE_BANDWIDTH = toString cluster.bandwidth.perSession;
+              TOTAL_BANDWIDTH = toString cluster.bandwidth.total;
+              # Avoid the stock 32-unit downgrade after a long viewing session.
+              LIMIT_SPEED = toString cluster.bandwidth.perSession;
+              DOWNGRADE_THRESHOLD = "1";
+            };
+            serviceConfig = {
+              ExecStart = lib.mkForce (
+                exec "relay" "hbbr" [
+                  "--port"
+                  (toString relay)
+                ]
+              );
+              LoadCredential = credentials;
+            };
+          }
+        ]
+      );
       rustdesk-api = lib.mkIf apiEnabled {
         wantedBy = [ "rustdesk.target" ];
         path = [ config.services.postgresql.package ];
         after = [
           "sops-install-secrets.service"
-          "rustdesk-signal.service"
           "postgresql.service"
           "postgresql-setup.service"
-        ];
+        ]
+        ++ lib.optional isSignal "rustdesk-signal.service";
         requires = [
           "sops-install-secrets.service"
-          "rustdesk-signal.service"
           "postgresql.service"
           "postgresql-setup.service"
-        ];
+        ]
+        ++ lib.optional isSignal "rustdesk-signal.service";
         environment = databaseEnvironment;
         serviceConfig = {
           ExecStart = apiStart;
@@ -313,7 +344,7 @@ in
         };
       };
     };
-    services.traefik.proxies.rustdesk-api = lib.mkIf (isSignal && cluster.api.enable) {
+    services.traefik.proxies.rustdesk-api = lib.mkIf apiEnabled {
       rule = "Host(`${cluster.api.domain}`)";
       target = "http://127.0.0.1:${toString cluster.api.port}";
       priority = 20;

@@ -6,6 +6,73 @@
   ...
 }:
 let
+  networkUsers = {
+    servers = "s@";
+    personal = "u@";
+  };
+  publicTcpPorts = [
+    443
+    1022
+  ];
+  routedDatabasePorts = [
+    3306
+    5432
+  ];
+  acls = [
+    {
+      action = "accept";
+      src = [ "group:s" ];
+      dst = [
+        "group:s:*"
+        "tag:laptop:*"
+      ];
+    }
+    {
+      action = "accept";
+      src = [ "group:u" ];
+      dst = [
+        "group:u:*"
+        "tag:laptop:*"
+      ];
+    }
+    {
+      action = "accept";
+      src = [ "tag:laptop" ];
+      dst = [
+        "group:s:*"
+        "group:u:*"
+        "tag:laptop:*"
+      ];
+    }
+  ]
+  ++ map (port: {
+    action = "accept";
+    src = [ "*" ];
+    dst = [ "*:${toString port}" ];
+    proto = "tcp";
+  }) publicTcpPorts
+  ++ [
+    {
+      action = "accept";
+      src = [
+        "group:s"
+        "tag:laptop"
+      ];
+      dst = map (port: "10.222.222.1:${toString port}") routedDatabasePorts;
+      proto = "tcp";
+    }
+  ];
+  aclPolicy = {
+    tagOwners = {
+      "tag:laptop" = [ "group:s" ];
+    };
+    groups = {
+      "group:s" = [ networkUsers.servers ];
+      "group:u" = [ networkUsers.personal ];
+    };
+    inherit acls;
+  };
+  aclPolicyFile = (pkgs.formats.json { }).generate "headscale-acl.json" aclPolicy;
   headscaleConfig = {
     disable_check_updates = true;
     unix_socket = "/run/headscale/headscale.sock";
@@ -169,7 +236,9 @@ with lib.strings;
       "acl.json:/etc/headscale/acl.json"
     ];
   };
+  systemd.services.headscale.restartTriggers = [ aclPolicyFile ];
   environment.etc."headscale/config.yaml".source = lib.mkForce headscaleConfigFile;
+  environment.etc."headscale/acl.json".source = aclPolicyFile;
   systemd.services.headscale.script = lib.mkForce ''
     exec ${lib.getExe config.services.headscale.package} serve --config ${headscaleConfigFile}
   '';

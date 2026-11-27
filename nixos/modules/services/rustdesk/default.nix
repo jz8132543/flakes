@@ -1,6 +1,6 @@
 { config, lib, ... }:
 {
-  imports = [ ./rustdesk-server/cluster.nix ];
+  imports = [ ../rustdesk-server/cluster.nix ];
 
   # Keep the pre-existing independent deployments on ams0/hkg4 unchanged.
   services.rustdesk-server = {

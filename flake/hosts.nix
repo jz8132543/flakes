@@ -14,6 +14,11 @@ let
   nixosModules = rawNixosModules // {
     services = rawNixosModules.services // {
       livekit = import ../nixos/modules/services/livekit-suite;
+      rustdesk = {
+        default = import ../nixos/modules/services/rustdesk/default.nix;
+        server = import ../nixos/modules/services/rustdesk/server.nix;
+        relay = import ../nixos/modules/services/rustdesk/relay.nix;
+      };
     };
   };
   hmModules = selfLib.rake ../home-manager/modules;
@@ -113,6 +118,12 @@ let
       system = "x86_64-linux";
     };
     tyo1 = {
+      system = "x86_64-linux";
+    };
+    sjc1 = {
+      system = "x86_64-linux";
+    };
+    iad0 = {
       system = "x86_64-linux";
     };
   };

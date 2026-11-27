@@ -26,7 +26,6 @@
       })
       # nixosModules.services.tuic
       # nixosModules.services.perplexica
-      nixosModules.services.rustdesk
       # nixosModules.media.jellyfin
       # nixosModules.services.headscale
       # (import nixosModules.services.alist { })
@@ -49,10 +48,6 @@
       latitude = 37.3382;
       longitude = -121.8863;
     };
-  };
-  services.rustdesk-server.cluster = {
-    enable = true;
-    role = "relay";
   };
   services.nextcloud-talk-edge = {
     enable = true;

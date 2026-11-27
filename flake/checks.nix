@@ -542,28 +542,22 @@ let
           touch "$out"
         '';
   };
-  aiRegistrationTest = {
-    "${fra0Pkgs.stdenv.hostPlatform.system}"."ai-registration-test" =
+  aiAuthenticationTest = {
+    "${fra0Pkgs.stdenv.hostPlatform.system}"."ai-authentication-test" =
       let
         cfg = config.flake.nixosConfigurations.fra0.config;
         containers = cfg.virtualisation.oci-containers.containers;
-        difyRegistrationDisabled =
-          env:
-          env.ALLOW_REGISTER == "false"
-          && env.ALLOW_CREATE_WORKSPACE == "false"
-          && env.ENABLE_EMAIL_CODE_LOGIN == "false"
-          && env.ENABLE_SOCIAL_OAUTH_LOGIN == "false"
-          && env.ENABLE_EMAIL_PASSWORD_LOGIN == "true";
         newApiScript = cfg.systemd.services.new-api-bootstrap.script;
         mcpEnv = containers.contextforge.environment;
         realm = builtins.fromJSON cfg.sops.templates."keycloak-realm-dora".content;
+        openhands = cfg.systemd.services.openhands-oauth2-proxy.serviceConfig.ExecStart;
+        inherit (realm) clients;
+        openhandsClient = lib.findFirst (client: client.clientId == "openhands") null clients;
         results = {
           newApi =
             lib.hasInfix ''upsert_opt "RegisterEnabled" "false"'' newApiScript
             && lib.hasInfix ''upsert_opt "PasswordRegisterEnabled" "false"'' newApiScript
             && lib.hasInfix ''upsert_opt "PasswordLoginEnabled" "true"'' newApiScript;
-          difyApi = difyRegistrationDisabled containers.dify-api.environment;
-          difyWorker = difyRegistrationDisabled containers.dify-worker.environment;
           contextforge =
             mcpEnv.PUBLIC_REGISTRATION_ENABLED == "false"
             && mcpEnv.SSO_AUTO_CREATE_USERS == "false"
@@ -574,12 +568,62 @@ let
           keycloakExistingRealm =
             lib.hasInfix "registration_allowed = false" cfg.systemd.services.keycloak-ldap-reconcile.script
             && builtins.elem "keycloak-ldap-reconcile.service" cfg.systemd.services.keycloak.requires;
+          openhandsOidc =
+            lib.hasInfix "openhands-oauth2-proxy-start" openhands
+            && builtins.elem "podman-openhands.service" cfg.systemd.services.openhands-oauth2-proxy.after
+            && openhandsClient != null
+            && openhandsClient.standardFlowEnabled
+            && !openhandsClient.directAccessGrantsEnabled;
+          openhandsDedicatedSecrets =
+            lib.any (lib.hasPrefix "gateway-key:") cfg.systemd.services.openhands-bootstrap.serviceConfig.LoadCredential
+            && cfg.sops.secrets ? "openai_api_key"
+            &&
+              lib.hasInfix cfg.sops.placeholder."openhands/backend_api_key"
+                cfg.sops.templates."openhands-gateway.env".content
+            &&
+              lib.hasInfix cfg.sops.placeholder."openhands/oidc-secret"
+                cfg.sops.templates."openhands-oauth2-proxy.env".content;
+          difyRemoved =
+            !(containers ? dify-api)
+            && !(cfg.ports ? dify-api)
+            && !(cfg.systemd.services ? dify-bootstrap)
+            && !(lib.any (client: client.clientId == "dify") clients);
+          openhandsIsLoopbackOnly =
+            lib.any (port: lib.hasInfix "127.0.0.1:3290:8000" port) containers.openhands.ports
+            && lib.hasInfix "openhands-oauth2-proxy-start" openhands
+            && cfg.systemd.services.openhands-oauth2-proxy.serviceConfig.DynamicUser;
+          openhandsContainerRestricted =
+            lib.elem "--security-opt=no-new-privileges" containers.openhands.extraOptions
+            && lib.elem "--cap-drop=ALL" containers.openhands.extraOptions
+            && lib.elem "--pids-limit=256" containers.openhands.extraOptions
+            && containers.openhands.environment.AGENT_CANVAS_ALLOW_LAN_SESSION_KEY == "true"
+            && !(lib.any (volume: lib.hasInfix "/run/docker.sock" volume) containers.openhands.volumes);
+          openhandsEgressRestricted =
+            cfg.services.ai.openhands.network.enable
+            && lib.elem "--network=openhands" containers.openhands.extraOptions
+            && lib.hasInfix "iifname \"openhands0\" ip saddr 10.231.48.0/28 ip daddr 10.231.48.1 tcp dport 3280" cfg.networking.firewall.extraInputRules
+            && lib.hasInfix "169.254.0.0/16" cfg.networking.nftables.tables.openhands.content
+            && lib.hasInfix "192.168.0.0/16" cfg.networking.nftables.tables.openhands.content
+            && lib.hasInfix "oifname \"eth0\" tcp dport { 80, 443 } accept" cfg.networking.nftables.tables.openhands.content
+            && lib.hasInfix "10.231.48.1:3280/v1" cfg.services.ai.openhands.gatewayBaseUrl;
+          openhandsLegacyEntryRedirects =
+            let
+              http = cfg.services.traefik.dynamicConfigOptions.http;
+              alias = http.routers.openhands-aliases;
+            in
+            alias.rule == "Host(`chat.dora.im`)"
+            && alias.service == "noop@internal"
+            && alias.middlewares == [ "openhands-canonical-domain" ]
+            &&
+              http.middlewares.openhands-canonical-domain.redirectRegex.replacement
+              == "https://openhands.dora.im/$1"
+            && openhandsClient.redirectUris == [ "https://openhands.dora.im/oauth2/callback" ];
         };
       in
       assert lib.assertMsg (lib.all (value: value) (
         builtins.attrValues results
-      )) "fra0 AI registration policy must block self-registration while preserving existing logins";
-      fra0Pkgs.runCommand "ai-registration-test" { result = builtins.toJSON results; } ''
+      )) "fra0 AI authentication policy must disable registration and use Keycloak for OpenHands";
+      fra0Pkgs.runCommand "ai-authentication-test" { result = builtins.toJSON results; } ''
         printf '%s\n' "$result" > "$out"
       '';
   };
@@ -937,7 +981,7 @@ in
     tsshAdapterTest
     hostIndependenceTest
     grafanaRuntimeHostsTest
-    aiRegistrationTest
+    aiAuthenticationTest
     newApiResponsesPolicyTest
     workbuddyTest
     dn42SdwanTest

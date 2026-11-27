@@ -6,7 +6,7 @@
 # 路由：
 #   mcp.dora.im        → ContextForge Web UI（管理面板）
 #   mcp.dora.im/api/*  → ContextForge REST API
-#   mcp.dora.im/mcp/*  → Virtual MCP 端点（供 Dify 调用）
+#   mcp.dora.im/mcp/*  → Virtual MCP endpoints
 # ─────────────────────────────────────────────────────────────────────────────
 {
   config,

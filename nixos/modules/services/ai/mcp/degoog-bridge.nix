@@ -6,7 +6,7 @@
 # 功能：
 #   1. 将本地 degoog 搜索引擎封装为标准 MCP (Model Context Protocol) 工具
 #   2. 暴露 Streamable HTTP / SSE MCP 端点供 IBM ContextForge 聚合
-#   3. 提供符合 Dify Custom Tool 规范的 OpenAPI 3.0 Schema
+#   3. 提供通用 OpenAPI 3.0 Schema 兼容客户端
 # ─────────────────────────────────────────────────────────────────────────────
 {
   config,
@@ -48,7 +48,7 @@ let
     app = FastAPI(
         title="Degoog Web Search & Extraction Tool",
         version="1.0.0",
-        description="Local Privacy Search and Webpage Reader Bridge for Dify and MCP Gateway",
+        description="Local Privacy Search and Webpage Reader Bridge for MCP clients",
         servers=[{"url": f"http://127.0.0.1:${toString bridgePort}"}]
     )
 
@@ -270,7 +270,7 @@ in
       };
     };
 
-    # 将 OpenAPI 规范落盘，方便 Dify 与命令行直接读取
+    # 将 OpenAPI 规范落盘，方便通用客户端直接读取
     systemd.tmpfiles.rules = [
       "d /var/lib/degoog-mcp 0755 root root -"
     ];

@@ -3,7 +3,7 @@
 #
 # ContextForge PostgreSQL 初始化 oneshot service
 #
-# 与 Dify 的 db-init 同样的约束：
+# Keep database initialization and MCP registration declarative and idempotent.
 #   • 禁用 ensureDatabases / ensureUsers
 #   • 手动创建用户（无密码，内网 trust）、数据库、授权、扩展
 # ─────────────────────────────────────────────────────────────────────────────

@@ -80,6 +80,19 @@ locals {
       endpoints_v4 = []
       endpoints_v6 = []
     }
+    iad0 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "204.202.1.141"
+        }
+      }
+      ddns_records = {}
+      host_indices = [18]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
     hkg5 = {
       records = {
         a = {
@@ -190,6 +203,19 @@ locals {
       }
       ddns_records = {}
       host_indices = [16]
+      endpoints_v4 = []
+      endpoints_v6 = []
+    }
+    sjc1 = {
+      records = {
+        a = {
+          proxied = false
+          type    = "A"
+          value   = "107.148.211.96"
+        }
+      }
+      ddns_records = {}
+      host_indices = [17]
       endpoints_v4 = []
       endpoints_v6 = []
     }

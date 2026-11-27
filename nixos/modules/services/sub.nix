@@ -474,6 +474,7 @@ let
         "dn42"
         "dn42x-+"
         "xfrm+"
+        "corplink"
       ];
       exclude-uid = [ 997 ];
       route-exclude-address = [

@@ -12,9 +12,9 @@
 
    Kilo Star 客户端插件和 New-API 的 Star 运维渠道则是持久化运行时配置例外，不由上述引导脚本生成，配置、验证与生效边界见 4.6 节。
 
-2. **多模态与拟人情感中枢正交解耦**：底层由模型网关接入高性价比模型矩阵；中间层由 FastMCP 工具箱和 Dify 负责知识检索与工作流；顶层由统一的人设编译器（Persona Engine）负责格式解析、世界书触发、草稿箱撕毁、多气泡拆分与跨平台状态机，再通过统一接口分发至 QQ（NapCat + AstrBot）、微信（官方 iLink）与 Matrix。
+2. **通用 Agent 与情感中枢正交解耦**：底层由模型网关接入模型矩阵；通用任务工作台由 OpenHands、可插拔 MCP 与用户管理的工作区/Skills 构成；Persona Engine 独立服务 QQ、微信与 Matrix 渠道。
 3. **数字生活基建全链路感知（Life-OS Sync）**：AI 伴侣深度融合个人生活服务，不仅能闲聊，还能读取随手记（Memos）、考公刷题动态（Kaogong）、影音库更新（Jellyfin / MoviePilot）、智能家居传感器（Home Assistant）与全球分布式网络健康度（DN42 BGP / ATC CDN / VictoriaMetrics），成为真正生活在数字系统里的全知伴侣。
-4. **遵循 Haumea/Rake 无 `default.nix` 递归收集规范**：整个 `services/ai/` 及其子目录（`gateway/`、`mcp/`、`dify/`、`companion/`）严格**不使用 `default.nix`**。根据仓库 `lib/rake.nix` 基于 Haumea 的加载机制，无 `default.nix` 时 Haumea 会自动遍历目录下全部模块，并通过 transformer 动态挂载 `.all` 递归展平属性。在主机配置中只需写 `imports = nixosModules.services.ai.all;` 即可一键声明式装配全部 AI 模块。
+4. **遵循 Haumea/Rake 无 `default.nix` 递归收集规范**：整个 `services/ai/` 及其子目录（`gateway/`、`mcp/`、`openhands/`、`companion/`）严格**不使用 `default.nix`**。根据仓库 `lib/rake.nix` 的 Haumea 加载机制，目录中的模块通过 `.all` 递归展平属性。在主机配置中可导入 `nixosModules.services.ai.all`，再以模块选项显式启用所需服务。
 
 ---
 
@@ -33,10 +33,10 @@ nixos/modules/services/ai/
 │   ├── lifeos-bridge.nix       # 个人生活基建 MCP 工具箱 (Memos, 考公, 影音, 智能家居, 监控) (5007 端口)
 │   ├── traefik-proxy.nix       # ContextForge Traefik 反向代理
 │   └── backup.nix              # MCP 备份配置
-├── dify/
-│   ├── common.nix / containers.nix / db-init.nix / traefik-proxy.nix / backup.nix
-├── openhands-agent-canvas.nix  # OpenHands 容器、公网认证、初始化、持久化与备份
-├── openhands-bootstrap.py      # 模型档案、工具、工作目录与停用自动化草稿播种
+├── openhands/
+│   ├── common.nix / containers.nix / bootstrap.nix / traefik-proxy.nix / backup.nix
+│   ├── bootstrap.py             # 幂等对账模型档案、MCP、工作区与自动化草稿
+│   └── skills/                  # 通用示例；用户可热插拔自己的 SKILL.md
 └── companion/
     ├── common.nix              # 伴侣通用选项、端口、持久化与反向代理
     ├── persona-engine.nix      # 人设编译器、记忆中枢、出站清洗、主动关怀与告警 Webhook (5006 端口)
@@ -113,15 +113,15 @@ nixos/modules/services/ai/
 +------------------------------------+                      ^
          |                                                  |
          +--------------------------+-----------------------+
-                                    |
-                                    v
+                                     |
+                                     v
 +-------------------------------------------------------------------------------+
-|                    Dify 知识库与复杂工作流引擎 (Dify CE :5001)                 |
-|                                                                               |
-|  • 社区版原生邮箱密码登录：i@dora.im；关闭 OAuth、注册与自建工作区             |
-|  • 自动免配置向导：dify_setups 表自动标记完成，无需网页 /install 引导          |
-|  • 自动注入 Degoog Search 联网搜索工具 (OpenAPI 3.0 Schema)                   |
-|  • 向量存储：原生 Qdrant 实例 (:6333, /var/lib/private/qdrant)                |
+| OpenHands Agent Workspace (127.0.0.1:3290) + Keycloak OIDC Ingress (:3291)    |
+|                                                                             |
+|  • 通用 workspace / knowledge / outputs / Skills 挂载与持久化                |
+|  • New-API 专属 SOPS token，模型档案通过 API 幂等配置                         |
+|  • Degoog MCP 与声明式外部 MCP；不承载任何垂直领域固定工作流                  |
+|  • 入口仅由 Traefik 转发到 Keycloak OIDC 代理，保留独立后端会话密钥           |
 +-------------------------------------------------------------------------------+
 ```
 
@@ -131,22 +131,20 @@ nixos/modules/services/ai/
 
 支持用户名和密码登录的入口统一使用**用户名：`i`**、**密码：SOPS `password`**。OpenHands 的后端会话密钥、模型提供商 API Key 与网页登录密码是不同凭据，不应混用：
 
-| 组件名称           | 核心作用                                | 宿主机/内部端口                | 对外公网域名                | 默认用户名 / 标识       | 默认密码 / 访问令牌               | 认证方式                            |
-| ------------------ | --------------------------------------- | ------------------------------ | --------------------------- | ----------------------- | --------------------------------- | ----------------------------------- |
-| **AstrBot**        | QQ 机器人调度中枢、插件/多模态管理      | `6185`                         | `bot.dora.im`               | **`i`**                 | **SOPS `password`**               | PBKDF2-SHA256 哈希登录              |
-| **NapCatQQ**       | 无头 NTQQ 协议端 (OneBot v11)           | `6099` (WebUI)<br>`6098` (WS)  | `napcat.dora.im`            | -                       | **SOPS `password`**               | WebUI Token (SHA256 校验)           |
-| **New-API**        | 统一模型路由、配额与密钥网关            | `3280`                         | `api.dora.im`               | **`i`**                 | **SOPS `password`**               | Bcrypt 哈希 / Keycloak SSO          |
-| **Dify (API/Web)** | 知识库 RAG、工作流编排与应用生成        | `5001` (API)<br>`3000` (Web)   | `chat.dora.im`              | **`i`** (`i@dora.im`)   | **SOPS `password`**               | 原生邮箱密码 / PBKDF2 哈希          |
-| **ContextForge**   | IBM 开源 MCP 聚合虚拟网关               | `5002` (API)<br>`5003` (UI)    | `mcp.dora.im`               | **`i`** (`i@dora.im`)   | **SOPS `password`** + 复合规则    | Basic Auth / Keycloak SSO           |
-| **CPA**            | CLI-Proxy-API 逆向与商业 API 代理       | `8317`                         | `cpa.dora.im`               | -                       | **SOPS `password`**               | Management Secret Key               |
-| **OpenHands**      | 编程代理、浏览器、技能与自动化工作台    | `127.0.0.1:3290` → 容器 `8000` | `openhands.dora.im`         | **`i`**                 | **SOPS `password`**；会话密钥独立 | Traefik BasicAuth + Session API Key |
-| **Persona Engine** | 人设编译器、记忆中枢与出站清洗          | `5006`                         | 无 (纯内网回环，不暴露公网) | **`i`** (`defaultUser`) | 免密 / 内网受信调用               | RESTful API                         |
-| **Degoog MCP**     | 隐私搜索与网页正文提取桥接服务          | `5005`                         | 本地回环                    | -                       | -                                 | FastMCP SSE / OpenAPI               |
-| **Life-OS MCP**    | 个人生活基建 (Memos/考公/影音/监控)     | `5007`                         | 本地回环                    | -                       | -                                 | FastMCP SSE                         |
-| **Keycloak**       | 集中身份认证与 OIDC 单点登录            | `3260`                         | `sso.dora.im`               | **`i`** (`i@dora.im`)   | **SOPS `password`**               | LDAP / PostgreSQL 统一凭据          |
-| **PostgreSQL**     | 基础数据库 (Dify, New-API, Keycloak 等) | `5432`                         | 本地回环                    | `postgres`              | 系统凭据 / Peer 认证              | 本地 Socket / Peer                  |
-| **Redis**          | 缓存与 Celery 异步任务队列              | `6379`                         | 本地回环                    | -                       | -                                 | 本地回环免密                        |
-| **Qdrant**         | Dify 知识库向量存储引擎                 | `6333`                         | 本地回环                    | -                       | -                                 | 本地 HTTP API                       |
+| 组件名称           | 核心作用                                     | 宿主机/内部端口                | 对外公网域名                                     | 默认用户名 / 标识       | 默认密码 / 访问令牌             | 认证方式                                      |
+| ------------------ | -------------------------------------------- | ------------------------------ | ------------------------------------------------ | ----------------------- | ------------------------------- | --------------------------------------------- |
+| **AstrBot**        | QQ 机器人调度中枢、插件/多模态管理           | `6185`                         | `bot.dora.im`                                    | **`i`**                 | **SOPS `password`**             | PBKDF2-SHA256 哈希登录                        |
+| **NapCatQQ**       | 无头 NTQQ 协议端 (OneBot v11)                | `6099` (WebUI)<br>`6098` (WS)  | `napcat.dora.im`                                 | -                       | **SOPS `password`**             | WebUI Token (SHA256 校验)                     |
+| **New-API**        | 统一模型路由、配额与密钥网关                 | `3280`                         | `api.dora.im`                                    | **`i`**                 | **SOPS `password`**             | Bcrypt 哈希 / Keycloak SSO                    |
+| **ContextForge**   | IBM 开源 MCP 聚合虚拟网关                    | `5002` (API)<br>`5003` (UI)    | `mcp.dora.im`                                    | **`i`** (`i@dora.im`)   | **SOPS `password`** + 复合规则  | Basic Auth / Keycloak SSO                     |
+| **CPA**            | CLI-Proxy-API 逆向与商业 API 代理            | `8317`                         | `cpa.dora.im`                                    | -                       | **SOPS `password`**             | Management Secret Key                         |
+| **OpenHands**      | 通用自主 Agent、浏览器、MCP 与 Skills 工作台 | `127.0.0.1:3290` → 容器 `8000` | `openhands.dora.im`；`chat.dora.im` 旧入口重定向 | Keycloak `users` Realm  | SOPS OIDC / 后端 / 模型独立密钥 | Traefik → oauth2-proxy OIDC + Session API Key |
+| **Persona Engine** | 人设编译器、记忆中枢与出站清洗               | `5006`                         | 无 (纯内网回环，不暴露公网)                      | **`i`** (`defaultUser`) | 免密 / 内网受信调用             | RESTful API                                   |
+| **Degoog MCP**     | 隐私搜索与网页正文提取桥接服务               | `5005`                         | 本地回环                                         | -                       | -                               | FastMCP SSE / OpenAPI                         |
+| **Life-OS MCP**    | 个人生活基建 (Memos/考公/影音/监控)          | `5007`                         | 本地回环                                         | -                       | -                               | FastMCP SSE                                   |
+| **Keycloak**       | 集中身份认证与 OIDC 单点登录                 | `3260`                         | `sso.dora.im`                                    | **`i`** (`i@dora.im`)   | **SOPS `password`**             | LDAP / PostgreSQL 统一凭据                    |
+| **PostgreSQL**     | New-API、Keycloak 等基础数据库               | `5432`                         | 本地回环                                         | `postgres`              | 系统凭据 / Peer 认证            | 本地 Socket / Peer                            |
+| **Redis**          | 各服务独立缓存与任务队列                     | `6379`                         | 本地回环                                         | -                       | -                               | 本地回环免密                                  |
 
 ---
 
@@ -154,16 +152,15 @@ nixos/modules/services/ai/
 
 本节针对当前机器 **`fra0`**。注册关闭策略已写入仓库配置，**本次未部署、未重启服务，也未修改运行中的数据库**；需要后续单独部署才会生效。禁用的是用户自助注册和首次 OAuth/SSO 登录自动建号，不删除现有账号，也不禁用已有用户登录或声明式管理员播种。
 
-| 服务                                                                                                                             | 声明式策略                                                                                                                                  | 登录与初始化边界                                                                                                                                                                                  |
-| -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **New-API**                                                                                                                      | `RegisterEnabled=false`、`PasswordRegisterEnabled=false`，由 `new-api-bootstrap` 幂等写入 `options` 表                                      | 保留 `PasswordLoginEnabled=true` 和现有 OIDC 登录；只有密码注册开关不足以阻止 OAuth 自动建号。尚未绑定 OIDC 的现有用户应先用密码登录并绑定，不再通过首次 OIDC 登录创建另一个账号                  |
-| **Dify API / Worker**                                                                                                            | 共享环境显式设置 `ALLOW_REGISTER=false`、`ALLOW_CREATE_WORKSPACE=false`、`ENABLE_EMAIL_CODE_LOGIN=false`、`ENABLE_SOCIAL_OAUTH_LOGIN=false` | 保留 `ENABLE_EMAIL_PASSWORD_LOGIN=true`；`dify-bootstrap` 继续播种 `i@dora.im`、既有工作区和安装完成标记，不依赖网页注册                                                                          |
-| **ContextForge**                                                                                                                 | `PUBLIC_REGISTRATION_ENABLED=false`、`SSO_AUTO_CREATE_USERS=false`                                                                          | 保留 Keycloak SSO，仅允许符合既有 provider 绑定规则的已有用户登录；不额外开启跨 provider 自动关联。`SSO_PRESERVE_ADMIN_AUTH=true` 保留平台管理员原生认证，管理员 `i@dora.im` 由既有初始化机制提供 |
-| **Keycloak `users` Realm**                                                                                                       | 首次导入设置 `registrationAllowed=false`；启动前的 `keycloak-ldap-reconcile` 同时写入已有 Realm 的 `registration_allowed=false`             | 不仅修改初始 Realm 文件，避免现存数据库配置被跳过；保留 LDAP 用户同步和管理员播种。此 Realm 被其他服务共用，其自助注册也一并关闭                                                                  |
-| **OpenHands Agent Canvas**                                                                                                       | 单用户会话密钥认证，无本地账号自助注册系统                                                                                                  | 保留 Traefik BasicAuth 和独立会话密钥；桌面远端入口使用同一后端，不另建用户                                                                                                                       |
-| **AstrBot / NapCat / CPA**                                                                                                       | 分别为预置管理员、WebUI Token、Management Secret Key，无开放用户注册系统                                                                    | 保留现有认证，不通过关闭认证来实现所谓“禁注册”                                                                                                                                                    |
-| **Persona Engine / Degoog（含原生 MCP）/ Degoog MCP Bridge / Life-OS MCP / Browserless / Dify Sandbox / Plugin Daemon / Qdrant** | 搜索、内部工具、执行器或存储组件，无终端用户自助注册系统                                                                                    | 保留既有网络边界、内部令牌或服务认证；MCP 工具、模型渠道和机器人平台的“注册”属于服务配置，不在禁用范围                                                                                            |
-| **VS Code Web IDE**                                                                                                              | 单用户 BasicAuth，无本地用户注册入口                                                                                                        | 保留 `auth` middleware 和既有模型配置，不变更非 AI 业务注册策略                                                                                                                                   |
+| 服务                                                                        | 声明式策略                                                                                                                      | 登录与初始化边界                                                                                                                                                                                  |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **New-API**                                                                 | `RegisterEnabled=false`、`PasswordRegisterEnabled=false`，由 `new-api-bootstrap` 幂等写入 `options` 表                          | 保留 `PasswordLoginEnabled=true` 和现有 OIDC 登录；只有密码注册开关不足以阻止 OAuth 自动建号。尚未绑定 OIDC 的现有用户应先用密码登录并绑定，不再通过首次 OIDC 登录创建另一个账号                  |
+| **ContextForge**                                                            | `PUBLIC_REGISTRATION_ENABLED=false`、`SSO_AUTO_CREATE_USERS=false`                                                              | 保留 Keycloak SSO，仅允许符合既有 provider 绑定规则的已有用户登录；不额外开启跨 provider 自动关联。`SSO_PRESERVE_ADMIN_AUTH=true` 保留平台管理员原生认证，管理员 `i@dora.im` 由既有初始化机制提供 |
+| **Keycloak `users` Realm**                                                  | 首次导入设置 `registrationAllowed=false`；启动前的 `keycloak-ldap-reconcile` 同时写入已有 Realm 的 `registration_allowed=false` | 不仅修改初始 Realm 文件，避免现存数据库配置被跳过；保留 LDAP 用户同步和管理员播种。此 Realm 被其他服务共用，其自助注册也一并关闭                                                                  |
+| **OpenHands Agent Canvas**                                                  | Keycloak OIDC 代理保护 Web/API，独立会话密钥认证 Agent Server；无本地用户注册入口                                               | Keycloak `users` Realm 自助注册关闭；浏览器端还需独立后端会话密钥                                                                                                                                 |
+| **AstrBot / NapCat / CPA**                                                  | 分别为预置管理员、WebUI Token、Management Secret Key，无开放用户注册系统                                                        | 保留现有认证，不通过关闭认证来实现所谓“禁注册”                                                                                                                                                    |
+| **Persona Engine / Degoog / Degoog MCP Bridge / Life-OS MCP / Browserless** | 搜索、内部工具或执行器，无终端用户自助注册系统                                                                                  | 保留既有网络边界、内部令牌或服务认证；MCP 工具和模型渠道的“注册”属于服务配置，不在禁用范围                                                                                                        |
+| **VS Code Web IDE**                                                         | 单用户 BasicAuth，无本地用户注册入口                                                                                            | 保留 `auth` middleware 和既有模型配置，不变更非 AI 业务注册策略                                                                                                                                   |
 
 `fra0` 没有启用 LobeChat、Open WebUI / Ollama、LiteLLM、Perplexica 或 OpenClaw，不应为了关闭注册而启动它们，也不在本次修改中改变其他主机的服务配置。
 
@@ -172,10 +169,10 @@ New-API 的数据库选项由现有引导服务更新，运行进程按 `SYNC_FR
 只求值、不部署的回归检查：
 
 ```bash
-nix eval --offline --no-write-lock-file --raw .#checks.x86_64-linux.ai-registration-test.result
+nix eval --offline --no-write-lock-file --raw .#checks.x86_64-linux.ai-authentication-test.result
 ```
 
-本次六项配置断言均通过（New-API、Dify API、Dify Worker、ContextForge、Keycloak 首次导入及已有 Realm 同步），并通过 `fra0` 整机 derivation 求值、修改文件的 `nixfmt --check` 和 `git diff --check`。这些都是静态检查，不执行引导 SQL 或服务启动。后续授权部署后，应分别确认密码注册及未绑定的新 OAuth/SSO 用户不能建号、已有管理员仍能登录；本次没有执行线上注册请求或真实账号验收。
+检查覆盖 New-API、ContextForge、Keycloak Realm/既有 Realm 同步，以及 OpenHands Keycloak OIDC 客户端和独立 SOPS 密钥配置。静态求值不执行服务启动或线上登录；部署后仍需验证未认证请求被拒、Keycloak 登录成功以及既有用户访问正常。
 
 ---
 
@@ -264,7 +261,7 @@ nix eval --offline --no-write-lock-file --raw .#checks.x86_64-linux.ai-registrat
 ### 3.3 核心流程 3：Life-OS 个人数字基建工具调用流
 
 ```
-[AI 智能体 / Dify 工作流需要使用工具]
+[OpenHands 或其他 MCP 客户端需要使用工具]
        │
        ▼
  [IBM ContextForge MCP 总线 :5002]
@@ -286,8 +283,8 @@ nix eval --offline --no-write-lock-file --raw .#checks.x86_64-linux.ai-registrat
 ### 3.4 核心流程 4：统一单点登录 (SSO) 与鉴权流
 
 ```
-[已有用户浏览器访问 New-API / ContextForge]
-       │ 点击 "Keycloak 登录"
+[已有用户浏览器访问 OpenHands / New-API / ContextForge]
+       │ 选择服务提供的 Keycloak 登录
        ▼
  [Traefik 反向代理 :443]
        │ 路由至 Keycloak OIDC 端点 (https://sso.dora.im)
@@ -299,10 +296,10 @@ nix eval --offline --no-write-lock-file --raw .#checks.x86_64-linux.ai-registrat
  [签发 JWT ID Token 与 Access Token]
        │ 重定向回调至对应服务 (Redirect URI)
        ▼
-[匹配已有本地账号并完成登录，保留其既有权限]
+[OIDC 代理校验身份；OpenHands 另校验独立 Session API Key]
 ```
 
-Dify 当前仅使用原生邮箱密码登录（`i@dora.im` / SOPS `password`），不再挂载 GitHub OAuth 到 Keycloak 的桥接补丁。Keycloak 自助注册和下游首次 SSO 自动建号均已在代码中关闭，具体生效时机见 2.1 节；SSO 登录本身不自动授予管理员权限。
+OpenHands 入口经 oauth2-proxy 使用 Keycloak OIDC，不向公网裸露本地服务；Keycloak `users` Realm 关闭自助注册。Session API Key、OIDC 客户端密钥、OAuth Cookie 密钥与模型网关 token 相互独立，均由 SOPS 管理。
 
 ---
 
@@ -331,47 +328,15 @@ Dify 当前仅使用原生邮箱密码登录（`i@dora.im` / SOPS `password`）�
 
 在实际部署与服务编排中，遇到了多项由上游协议断层、数据库 Schema 演进和网络时序引发的问题。以下为具体排错原因与针对性解决方案：
 
-### 4.1 Dify v1.17+ 数据库 Schema 不兼容导致 `dify-bootstrap` 启动崩溃
+### 4.1 Dify 到 OpenHands 的服务端迁移边界
 
-- **故障现象**：`systemctl status dify-bootstrap.service` 报错：
-  ```text
-  psycopg2.errors.UndefinedColumn: column "label" of relation "tool_api_providers" does not exist
-  ```
-- **原因分析**：Dify 在 1.17 之后重构了工具提供商元数据表 `tool_api_providers`，移除了 `label` 列，将多工具清单序列化为 `tools_str`（类型为 `text` 且为 `NOT NULL`），同时新增了 `custom_disclaimer`（`text` 且为 `NOT NULL`）。原初始化脚本依据旧版字段插入导致 SQL 语法失败。
-- **代码实现修复（`nixos/modules/services/ai/dify/db-init.nix`）**：
-  修改插入语句，生成包含工具基本元数据的 `tools_str` JSON 串，设置 `custom_disclaimer = ""`，并将 `label` 从列名中移除：
-  ```python
-  tools_str = json.dumps([
-      {"name": "search_web", "label": "Search Web", "description": "Search the web via Degoog"},
-      {"name": "fetch_webpage", "label": "Fetch Webpage", "description": "Extract clean webpage text"}
-  ])
-  cur.execute("""
-      INSERT INTO tool_api_providers (
-          id, user_id, tenant_id, name, schema, schema_type_str,
-          tools_str, icon, credentials_str, description,
-          custom_disclaimer, created_at, updated_at
-      ) VALUES (
-          %s, %s, %s, 'degoog', %s, 'openapi',
-          %s, '{"content":"🔍","background":"#2563EB"}', '{}',
-          'Local privacy search and article reader',
-          "", NOW(), NOW()
-      );
-  """, (str(uuid.uuid4()), account_id, tenant_id, json.dumps(degoog_openapi), tools_str))
-  ```
+fra0 已将 Dify API、Web、Worker、Sandbox、Plugin Daemon、专属 Redis/Qdrant、初始化单元、Traefik 路由和 Dify 专用 Keycloak 客户端从声明式配置移除。通用工作台由 OpenHands 提供，模型经 New-API、工具经可插拔 MCP、资料与产物经通用持久化目录管理，不迁移领域专用工作流。
 
----
+旧宿主机数据**不会**由 NixOS 激活或本次代码变更删除。下次部署后，管理员需先确认备份与保留要求，再人工审阅并清理 `/var/lib/dify`、Dify PostgreSQL 数据库/角色、`/var/lib/private/qdrant`、`/var/lib/redis-dify` 和相关容器存储；不得把这些路径直接放入无确认的删除脚本。SOPS `dify/secret_key` 已从代码引用移除，可由密钥维护者在确认无其他消费者后通过 SOPS 单独删除。
 
-### 4.2 Dify Celery Worker 循环崩溃 (`ImportError: cannot import name 'decode_oauth_state'`)
+OpenHands 通用目录为 `/var/lib/openhands/{state,knowledge,workspace,skills,outputs}`。本目录只预装通用调研与任务管理 SKILL.md 示例；垂直能力由用户后续添加技能文件，不内置任何行业工作流。
 
-- **故障现象**：`podman-dify-worker.service` 启动后立即退出，退出码为 2：
-  ```text
-  File "/app/api/controllers/console/auth/oauth.py", line 18, in <module>
-    from libs.oauth import decode_oauth_state
-  ImportError: cannot import name 'decode_oauth_state' from 'libs.oauth' (/app/api/libs/oauth.py)
-  ```
-- **原因分析**：为了实现 Keycloak SSO 登录，我们通过 Volume 挂载覆盖了容器内的 `/app/api/libs/oauth.py`。然而精简版的 `oauth.py` 遗漏了 Celery Worker 与控制台认证所需的 `decode_oauth_state`、`encode_oauth_state`、`OAuthState`、`OAuthUserInfo` 等关键数据结构，导致 Celery Worker 加载 `app_factory` 时直接中断。
-- **代码实现修复（`nixos/modules/services/ai/dify/containers.nix`）**：
-  历史修复曾补齐桥接 `oauth.py` 的类型与编解码函数。当前代码已移除该覆盖挂载，使用官方原生邮箱密码登录并设置 `ENABLE_SOCIAL_OAUTH_LOGIN=false`；API 与 Worker 均加载镜像自带的 OAuth 模块，不应重新挂载旧补丁。
+此次不执行服务切换、数据库清理、DNS apply 或真实浏览器验收。切换前应确认 New-API 中已创建限额/模型受限的专属 token，并在 SOPS 增加后文列出的后端会话密钥、Keycloak OIDC、OAuth Cookie 和模型网关密钥。
 
 ---
 
@@ -715,7 +680,6 @@ Persona Engine 提供了三种极其便捷的人设管理与切换方式：
   ```bash
   sudo podman logs -f napcat      # 查看 NTQQ 协议日志
   sudo podman logs -f astrbot     # 查看 AstrBot 调度与对话日志
-  sudo podman logs -f dify-api    # 查看 Dify 知识库处理日志
   sudo podman logs -f new-api     # 查看模型路由与 Token 消耗日志
   ```
 - **查看情感中枢与 MCP 日志**：
@@ -735,7 +699,6 @@ Persona Engine 提供了三种极其便捷的人设管理与切换方式：
 
 - **已完全运行在统一 PostgreSQL 里的服务**：
   - **New-API**：数据库 `new_api`（存储渠道 Channels、访问令牌 Tokens、系统设置 Options、用户 Users）。
-  - **Dify**：数据库 `dify`（存储租户 Tenants、用户 Accounts、应用 Apps、工作流 Workflows、知识库元数据 Datasets、工具绑定等）。
   - **Keycloak**：数据库 `keycloak`（存储 OIDC Clients、用户凭据、Realm 配置）。
   - **Memos**：数据库 `memos`（存储全部个人笔记与标签）。
 - **基于本地文件存储的服务及其原因**：
@@ -754,10 +717,9 @@ Persona Engine 提供了三种极其便捷的人设管理与切换方式：
   - New-API 的管理员 `i`、内部 Token、渠道模型矩阵由 `new-api-bootstrap.service` 自动写入；
   - CPA 配置文件由 `cpa-init-config.service` 自动从 SOPS 渲染；
   - NapCat 的 `webui.json` Token 与 AstrBot 的 `cmd_config.json` 账号密码由 `dafeiyu-setup-dirs` 自动生成；
-  - Dify 的免安装向导与管理员 `i` 由 `dify-bootstrap.service` 自动播种。
 - **终极极简迁移服务器指南（零手动配置）**：
   当你需要迁移到新服务器时，只需要两步：
-  1. **迁数据库**：`pg_dumpall` 并在新机器 `psql` 导入（迁移 New-API 渠道、Dify 工作流与知识库）；
+  1. **迁数据库**：`pg_dumpall` 并在新机器 `psql` 导入所需服务数据库；
   2. **迁 QQ 登录态**：拷贝 `/var/lib/dafeiyu/napcat/data`（仅几百 KB 的设备秘钥，为了免去重新扫码）；
   3. 新机器拉取 Flakes 仓库，执行 `sudo nixos-rebuild switch` —— **整套系统的所有端口、配置、密钥、反代与后台账密全自动就绪，无需在网页上手动填任何一项参数！**
 
@@ -843,41 +805,33 @@ Persona Engine 提供了三种极其便捷的人设管理与切换方式：
 
 ---
 
-### 7.6 Dify Celery Worker 崩溃原因与官方镜像澄清
+### 7.6 OpenHands OIDC 与注册边界
 
-- **我们使用的是官方原版镜像吗？**
-  - **是的，官方镜像**（`docker.io/langgenius/dify-api:latest`），没有做任何二次打包或私有构建。
-- **为什么之前要挂载 `oauth.py`？**
-  - Dify 官方在商业策略上故意将“通用 OIDC / SAML SSO”锁死在企业版（Enterprise Edition）；社区开源版（Community Edition）后台只开放了 GitHub OAuth 与 Google OAuth。
-  - 在上一阶段方案中，为了实现“在 Dify 社区版登录页一键通过 Keycloak 单点登录”，我们利用社区版原生的 GitHub OAuth 入口，通过 Volume 挂载覆盖了其内部的 `oauth.py`，将 GitHub 请求透明映射到了 Keycloak OIDC 端点。
-  - **崩溃原因**：最初的简版 `oauth.py` 遗漏了 Celery Worker 异步任务所需的几个 TypedDict 类型声明，导致 Worker 在加载环境时抛出 `ImportError`。
-  - **当前配置**：已删除 `oauth.py` 挂载，仅使用官方原生邮箱密码登录；`ENABLE_SOCIAL_OAUTH_LOGIN=false`，API 与 Worker 共用同一认证配置。
-- **当前登录与注册策略**：
-  - `dify-bootstrap` 继续在数据库中播种管理员账号 **`i@dora.im`**，密码为 **SOPS `password`**，不需要通过网页注册或创建工作区。
-  - 注册、邮件验证码登录及自建工作区的关闭开关见 2.1 节。本次仅修改代码，不代表线上服务已应用这些开关。
+OpenHands Web/API 入口由独立 oauth2-proxy 作为 Keycloak OIDC 反向代理保护；Keycloak 客户端使用授权码流程，不启用 direct access grants。`users` Realm 禁止自助注册与首次 SSO 自动建号。OpenHands 仍保留独立 Session API Key；fra0 仅向 allowlist 中的 `i@dora.im` 浏览器会话自动提供该 key，以完成同源 Agent Server backend 登记。
+
+该保护不是多租户隔离。Agent Canvas 官方 `AGENT_CANVAS_ALLOW_LAN_SESSION_KEY` 会将 backend Session API Key 注入已认证页面；任何获准登录的用户均具有 Agent Server 执行权限。因此必须保持 oauth2-proxy 邮箱 allowlist 只包含受信任用户，新增用户前应先评估授权边界。该 opt-in 使用上游支持配置，不是源码补丁。
 
 ---
 
 ### 7.7 Docker 镜像版本策略：动态 `:latest` 与 OpenHands 固定版本
 
-现有 New-API、CPA、ContextForge、Dify 全家桶、NapCat、AstrBot 采用 `:latest` 策略；OpenHands 是例外，固定已验证的镜像 digest 和桌面客户端版本：
+现有 New-API、CPA、ContextForge、NapCat、AstrBot 采用 `:latest` 策略；OpenHands 是例外，固定镜像 digest：
 
-| 组件服务         | 镜像声明                                             | 标签策略    | 为什么使用 `:latest`                                                                                   |
-| ---------------- | ---------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
-| **NapCatQQ**     | `docker.io/mlikiowa/napcat-docker:latest`            | `:latest`   | **腾讯 NTQQ 协议对抗刚需**：旧版本客户端极易被腾讯服务器强制风控或提示版本过低禁止登录，必须紧跟最新版 |
-| **AstrBot**      | `docker.io/soulter/astrbot:latest`                   | `:latest`   | 快速获取新模型适配、协议自愈与插件生态修复                                                             |
-| **New-API**      | `docker.io/calciumion/new-api:latest`                | `:latest`   | 紧跟各大模型商（Claude 3.7 / Step-5 / Qwen2.5 / DeepSeek）的最新 API 协议与渠道兼容                    |
-| **CPA**          | `docker.io/eceasy/cli-proxy-api:latest`              | `:latest`   | 紧跟逆向代理上游认证与凭据算法更新                                                                     |
-| **Dify 全栈**    | `docker.io/langgenius/dify-{api,web,sandbox}:latest` | `:latest`   | 享受工作流编排与 RAG 引擎的最新特性                                                                    |
-| **ContextForge** | `ghcr.io/ibm/mcp-context-forge:latest`               | `:latest`   | 保持对 MCP 规范最新提案的兼容                                                                          |
-| **OpenHands**    | `ghcr.io/openhands/agent-canvas@sha256:…`            | 固定 digest | 公网编程代理涉及执行权限与持久凭据，升级前验证认证、API 兼容和客户端行为，完整版本见第九节             |
+| 组件服务         | 镜像声明                                  | 标签策略    | 为什么使用 `:latest`                                                                                   |
+| ---------------- | ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------ |
+| **NapCatQQ**     | `docker.io/mlikiowa/napcat-docker:latest` | `:latest`   | **腾讯 NTQQ 协议对抗刚需**：旧版本客户端极易被腾讯服务器强制风控或提示版本过低禁止登录，必须紧跟最新版 |
+| **AstrBot**      | `docker.io/soulter/astrbot:latest`        | `:latest`   | 快速获取新模型适配、协议自愈与插件生态修复                                                             |
+| **New-API**      | `docker.io/calciumion/new-api:latest`     | `:latest`   | 紧跟各大模型商（Claude 3.7 / Step-5 / Qwen2.5 / DeepSeek）的最新 API 协议与渠道兼容                    |
+| **CPA**          | `docker.io/eceasy/cli-proxy-api:latest`   | `:latest`   | 紧跟逆向代理上游认证与凭据算法更新                                                                     |
+| **ContextForge** | `ghcr.io/ibm/mcp-context-forge:latest`    | `:latest`   | 保持对 MCP 规范最新提案的兼容                                                                          |
+| **OpenHands**    | `ghcr.io/openhands/agent-canvas@sha256:…` | 固定 digest | 公网编程代理涉及执行权限与持久凭据，升级前验证认证、API 兼容和客户端行为，完整版本见第九节             |
 
 #### 深度辨析：为什么很多运维/配置模板倾向于“固定版本”？
 
 1. **NixOS 声明式与可复现性（Reproducibility）哲学**：
    Nix 的核心设计理念是“无论何时构建，产物 100% 确定相同”。使用固定 Tag（如 `v4.18.37`）或哈希，可以保证相同的 Git Commit 在半年后重新 build 出完全一样的行为；而 `:latest` 是个动态指针，不同时间拉取到的内容会发生变化。
 2. **防范上游“破坏性改动”（Breaking Changes）**：
-   部分快速演进的开源软件在次版本升级中可能会调整数据库字段（如 Dify 1.17 变动表结构）或弃用配置项。固定版本可以让系统“在已知验证过的安全集里平稳运行”，升级动作转由人工测试后主动推进。
+   部分快速演进的开源软件在次版本升级中可能会调整数据库字段或弃用配置项。固定版本可以让系统“在已知验证过的安全集里平稳运行”，升级动作转由人工测试后主动推进。
 
 #### 为什么在此 AI / QQ 机器人场景下，使用 `:latest` 更有优势？
 
@@ -932,59 +886,57 @@ Persona Engine 提供了三种极其便捷的人设管理与切换方式：
 
 ## 九、 OpenHands 编程工作台、桌面客户端与公网安全
 
-OpenHands Agent Canvas 是独立的编程代理工作台，不替代 Dify 的知识库与工作流，也没有默认接入 Life-OS 的写操作。服务已部署在 `fra0`；桌面端仅加入代码并完成定向构建，没有在 `fra0` 或 `arx8` 激活桌面配置。
+OpenHands 工作台配置了 New-API 模型网关、可插拔 MCP 和领域无关的持久化知识/工作区目录。领域能力通过 Skills 扩展。当前配置尚未接通默认 Degoog MCP、独立语义知识库 MCP 和远端 ACP，定时自动化仅配置了可选的停用草稿。
 
 ### 9.1 服务版本、模块与流量拓扑
 
 | 项目                | 配置                                                                                                     |
 | ------------------- | -------------------------------------------------------------------------------------------------------- |
-| WebUI               | `https://openhands.dora.im`，根路径进入 `/canvas/`                                                       |
+| WebUI               | `https://openhands.dora.im`，根路径进入 `/canvas/`；`chat.dora.im` 重定向到主域                          |
 | Canvas / 桌面客户端 | `1.34.0`                                                                                                 |
 | Agent Server / SDK  | `1.58.1`                                                                                                 |
 | Automation Server   | `1.26.0`                                                                                                 |
 | 官方容器            | `ghcr.io/openhands/agent-canvas@sha256:f96a67b825fae3e8a0587516e48216a68913eb3aaf7f069ec2a68dfe643bbdce` |
 | 容器引擎            | Podman，通过 NixOS `virtualisation.oci-containers` 管理官方 Docker 镜像                                  |
-| 宿主监听            | `127.0.0.1:3290`，容器内部统一入口为 `8000`                                                              |
-| 服务模块            | `nixos/modules/services/ai/openhands-agent-canvas.nix`                                                   |
-| 首次初始化          | `nixos/modules/services/ai/openhands-bootstrap.py`                                                       |
+| 宿主监听            | Agent Canvas `127.0.0.1:3290`；Keycloak OIDC proxy `127.0.0.1:3291`                                      |
+| 服务模块            | `nixos/modules/services/ai/openhands/`                                                                   |
+| 首次初始化          | `nixos/modules/services/ai/openhands/bootstrap.nix` 与 `bootstrap.py`                                    |
 | 桌面模块            | `home-manager/modules/desktop/openhands.nix`                                                             |
 | 桌面包和启动层      | `pkgs/openhands-desktop/`                                                                                |
 
 ```mermaid
 flowchart LR
-  Browser[浏览器] --> TLS[Traefik HTTPS + BasicAuth]
+  Browser[浏览器] --> TLS[Traefik HTTPS]
   Desktop[OpenHands 桌面客户端] --> TLS
-  TLS --> Ingress[127.0.0.1:3290 / Canvas 统一入口]
-  Ingress --> Agent[Agent Server / 会话密钥认证]
+  TLS --> OIDC[127.0.0.1:3291 / oauth2-proxy + Keycloak OIDC]
+  OIDC --> Ingress[127.0.0.1:3290 / Canvas]
+  Ingress --> Agent[Agent Server / 独立会话密钥]
   Ingress --> Automation[Automation Server / 停用草稿]
-  Agent --> CPA[CPA OpenAI-compatible 网关]
-  Agent --> Projects["/projects 独立工作目录"]
+  Agent --> NewAPI[New-API / 专属 token]
+  Agent --> Workspace[knowledge / workspace / outputs]
   Agent --> Tools[浏览器 / Skills / MCP / 子代理]
 ```
 
-`fra0` 已导入 `nixosModules.services.ai.all`，并设置 `services.ai.openhands-agent-canvas.enable = true`。模块默认关闭，其他主机不会因导入 AI 模块而自动运行该容器。
+`fra0` 导入 `nixosModules.services.ai.all` 并显式设置 `services.ai.openhands.enable = true`。模块默认关闭，其他主机不会因导入 AI 模块而自动运行该容器。
 
-DNS 使用直连 CNAME；Traefik 复用现有 `*.dora.im` 证书。整个 origin，包括首页、API、自动化、文档和健康检查，都经过 `auth` middleware。认证后的响应设置 `Cache-Control: no-store`，HTTPS 入口保留 SSE 和 WebSocket 转发，不单独公开内部服务端口。
+`openhands.dora.im` 使用现有直连 CNAME。旧入口 `chat.dora.im` 已按现有 CDN 源站策略解析到 fra0，Traefik 仅将其重定向到 `openhands.dora.im`，无需改动 DNS。Keycloak 回调和会话 Cookie 仍只使用主域名。主入口支持长连接与 WebSocket，并转发到 loopback OIDC proxy，不单独公开内部服务端口。
 
 ### 9.2 身份验证与三类访问凭据
 
-| 凭据                         | 用途                                                | 来源                                                                               |
-| ---------------------------- | --------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 用户名 `i` / SOPS `password` | Traefik HTTP BasicAuth，允许访问 WebUI 和受保护入口 | 复用 `auth` middleware；服务端 htpasswd 文件为 `/run/secrets/traefik/TRAEFIK_AUTH` |
-| 后端会话密钥                 | 浏览器或客户端调用 Agent Server                     | 持久保存于 `/var/lib/openhands-agent-canvas/backend-key`，权限 `0600`              |
-| 模型 API Key                 | OpenHands 调用 CPA 提供的模型                       | 首次初始化读取 SOPS `openai_api_key`，保存到 OpenHands 模型配置                    |
+| 凭据                        | 用途                                    | SOPS 路径                       |
+| --------------------------- | --------------------------------------- | ------------------------------- |
+| Keycloak OIDC client secret | OAuth2 proxy 与 Keycloak 建立授权码流程 | `openhands/oidc-secret`         |
+| OAuth Cookie secret         | 签名 OIDC 登录 Cookie                   | `openhands/oauth_cookie_secret` |
+| Session API Key             | OpenHands Agent Server 会话/API 认证    | `openhands/backend_api_key`     |
+| 模型网关 token              | OpenHands 复用现有 New-API 客户端密钥   | `openai_api_key`                |
 
-用户名 `i` 是远程网页登录身份，不是要创建的 Linux 用户；桌面应用仍安装给 `tippy`。
+Keycloak 用户 `i` 由现有目录服务管理；OpenHands 不建立本地账号或开放注册。桌面应用仍安装给 `tippy`。
 
-容器显式读取同一密钥的两个环境变量：`LOCAL_BACKEND_API_KEY` 与 `OH_SESSION_API_KEYS_0`。固定版本的启动器和 SDK 使用不同变量名，只设置前者可能造成前端要求登录、后端却没有有效密钥校验。因此必须验证无密钥的 `/api/settings` 请求返回 `401`，不能仅观察前端登录页面。
+容器显式读取同一 SOPS 会话密钥的两个环境变量：`LOCAL_BACKEND_API_KEY` 与 `OH_SESSION_API_KEYS_0`。固定版本的启动器和 SDK 使用不同变量名，只设置前者可能造成前端要求登录、后端却没有有效密钥校验。因此部署后必须验证无密钥的 `/api/settings` 请求返回 `401`，不能仅观察前端登录页面。
 
-公网部署不设置 `AGENT_CANVAS_ALLOW_LAN_SESSION_KEY`，不会把后端密钥嵌入页面。首次打开 WebUI 时先通过 BasicAuth，再输入后端会话密钥。在 `fra0` 上可查看该密钥：
+后端 Session API Key 由 SOPS template 注入，不把密钥写入 Nix Store。fra0 的 Agent Canvas 显式启用官方 `AGENT_CANVAS_ALLOW_LAN_SESSION_KEY`，仅在 Keycloak OIDC 鉴权后将当前 backend key 提供给同源 UI，自动生成默认 backend 登记；用户不必手动 Add Backend 或输入 Session API Key。该功能仅对被 OIDC allowlist 授权的可信用户安全。不要用 SOPS `password` 或模型 token 替代 backend key。
 
-```bash
-sudo podman exec openhands-agent-canvas printenv LOCAL_BACKEND_API_KEY
-```
-
-该命令只用于管理员的私有终端，不要把输出粘贴到日志、文档或聊天记录。SOPS `password` 和模型 API Key 都不能替代这个会话密钥。
+不要通过 `podman exec printenv` 或日志读取会话密钥。通过受控的 SOPS 文件分发方式授权客户端；SOPS `password` 和模型 API Key 都不能替代这个会话密钥。
 
 另外，`OH_SECRET_KEY` 和 Automation KV secret 用于保护持久化凭据，由官方入口脚本在数据卷中稳定保存，不应当成登录密钥。恢复时必须同时恢复这些文件和对应数据库。
 
@@ -992,44 +944,41 @@ sudo podman exec openhands-agent-canvas printenv LOCAL_BACKEND_API_KEY
 
 ### 9.3 已配置的模型、工具与安全边界
 
-模型通过 `https://cpa.dora.im/v1` 的 OpenAI-compatible 接口调用，初始档案如下：
+模型通过 `https://api.dora.im/v1` New-API OpenAI-compatible 接口调用。默认模型档案可由 `services.ai.openhands.profiles` 覆盖：
 
-| 档案        | SDK 模型名                       | 用途         |
-| ----------- | -------------------------------- | ------------ |
-| `default`   | `openai/devin/gpt-6-1-sol`       | 默认编程工作 |
-| `fast`      | `openai/devin/deepseek-v4-flash` | 快速交互     |
-| `reasoning` | `openai/claude-opus-4-6`         | 复杂推理     |
+| 档案        | SDK 模型名           | 用途            |
+| ----------- | -------------------- | --------------- |
+| `default`   | `openai/gpt-6.1-sol` | 默认 Agent 工作 |
+| `fast`      | `openai/gpt-5.6-sol` | 快速交互        |
+| `reasoning` | `openai/gpt-6.2-sol` | 复杂推理        |
 
 已开启以下能力：
 
 - 终端、文件编辑、任务跟踪和模型切换。
 - Chromium 浏览器工具、子代理任务委派、Glob/Grep 代码检索。
-- 官方技能目录（部署时 70 项）、用户技能、项目技能和持久记忆加载。
-- `web-fetch` MCP：`uvx mcp-server-fetch==2026.10.28`，读取公开网页，不启用私网访问选项。
-- `time` MCP：`uvx mcp-server-time==2026.10.28 --local-timezone=Asia/Shanghai`，提供时间与时区转换。
-- `sequential-thinking` MCP：`npx --yes @modelcontextprotocol/server-sequential-thinking@2.0.0`，关闭思考过程日志。
+- 全局通用 Skills、用户技能、项目技能和持久记忆加载。当前仓库仅提供两个通用示例 Skills。
+- `services.ai.openhands.mcpServers` 可挂载 SSE 和 Streamable HTTP 工具。Bearer Token 通过 `mcpServerSecrets` 对应的 SOPS 键注入。锁定版 Degoog 的 Web 实例不提供 `/mcp`，此前指向 `https://s.dora.im/mcp` 的默认配置已移除。Degoog 搜索验收需要接入独立的 MCP 服务。
+- 通用知识、工作文件、技能和输出分别保存在 `/knowledge`、`/workspace`、OpenHands Microagents 目录与 `/outputs`。
 
 执行确认配置为 `confirmation_mode = true`、`security_analyzer = null`，采用确认门禁而不额外调用安全分析模型；单次会话 `max_iterations = 100`。子代理、浏览器和 MCP 的使用仍可能增加主模型轮次与费用，100 轮不是全局预算上限。
 
-容器仅挂载独立 `/projects` 和 OpenHands 数据卷，没有挂载 Docker socket、宿主仓库、SSH 密钥或宿主用户目录。未开启 VS Code 入口，没有默认赋予 GitHub 写入、自动合并、家居控制、Life-OS 写操作或第三方 Apps 权限。
+OpenHands OCI 主容器绑定 loopback，启用 `no-new-privileges`、`cap-drop=ALL`、CPU/内存/PID 上限；配置没有挂载宿主 Docker/Podman socket、宿主仓库、SSH 密钥或宿主用户目录。fra0 现以 `openhands0` 独立 bridge 和 nftables 路由 ACL 限制容器出站：只允许 New-API 宿主网关、指定公网 interface 的 DNS 与 TCP 80/443，拒绝 link-local、RFC1918、CGNAT 等保留地址；该 bridge 不在 Podman/NixOS trusted interfaces 内。这个 ACL 只约束该容器的 IP 出站，**不**把 Agent 工具从 Canvas 分离，也无法阻止公开网站反向代理等应用层 SSRF；部署后仍须实测路由/防火墙计数器。
 
-确认门禁不等于文件系统或网络隔离。放入 `/projects` 的内容就是代理可操作的工作区；第三方 Skills/MCP 也属于执行信任边界，应先审阅再安装。记忆可能保存跨会话信息，不宜放入不相关项目的敏感材料。
+确认门禁不等于文件系统或网络隔离。放入 `/workspace` 的内容就是代理可操作的工作区；第三方 Skills/MCP 也属于执行信任边界，应先审阅再安装。记忆可能保存跨会话信息，不宜放入不相关项目的敏感材料。
 
 ### 9.4 自动化草稿：先审阅，不自动运行
 
-首次初始化保存三个草稿：
+定时自动化默认关闭。只有显式设置 `services.ai.openhands.automation.enable = true` 才播种一个通用、禁用状态的工作区维护草稿：
 
-| 草稿                           | 预设时间（Asia/Shanghai） | 范围                                                  |
-| ------------------------------ | ------------------------- | ----------------------------------------------------- |
-| Daily developer research brief | 每日 `09:00`              | 公开开发资讯，带来源链接，写入 `/projects/research`   |
-| Workspace code review          | 工作日 `19:00`            | 审查 `/projects` 内明确放置的仓库，不编辑、提交或推送 |
-| Browser QA report              | 周一 `10:00`              | 先询问测试项目和 URL，再执行浏览器 QA                 |
+| 草稿                         | 预设时间（Asia/Shanghai） | 范围                                             |
+| ---------------------------- | ------------------------- | ------------------------------------------------ |
+| Workspace maintenance review | 周一 `09:00`              | 仅检查明确配置的工作区，不修改文件或联系外部服务 |
 
-这些时间只是草稿内容，所有草稿均为 `enabled = false`，没有物化为运行中的自动化，也没有试运行记录。需要在 UI 审阅提示词、模型档案、工作区和费用后明确启用。
+草稿为 `enabled = false`，没有物化为运行中的自动化，也没有试运行记录。需在 UI 审阅提示词、模型档案、工作区和费用后明确启用。
 
 Automation 的 draft dispatch 和模型 profile validate 都不是纯 schema 检查：前者会创建运行，后者会发起真实模型请求。不要把它们当作零费用验收接口。
 
-### 9.5 官方桌面客户端与默认远端模式
+### 9.5 桌面入口与 Keycloak OIDC
 
 Linux 客户端使用官方 `OpenHands.Agent.Canvas-1.34.0.AppImage`，由 `appimageTools` 包装为 Nix FHS 应用，固定官方 SHA-256：
 
@@ -1037,26 +986,19 @@ Linux 客户端使用官方 `OpenHands.Agent.Canvas-1.34.0.AppImage`，由 `appi
 sha256-8VY5V2XHwZmNQcu1p0pk9g6wPDav+9CGemcg3Jyo9G4=
 ```
 
-上游 v1.34.0 支持在 UI 添加远端 Agent Server，但没有运行时默认远端参数。官方 Electron 入口会启动本地 stack 并固定加载 `http://localhost:8000`；构建期 `VITE_BACKEND_BASE_URL` 也不能当成已发布 AppImage 的环境开关。本地 UI 跨域请求受 BasicAuth 的 OPTIONS 预检限制，仅添加 CORS 响应头不能解决。
+官方 Electron 入口与仓库启动器只支持 BasicAuth 密码挑战，并拒绝跳转到不同 origin。Keycloak OIDC 会跨域重定向，因此桌面菜单的 OpenHands 入口改为通过系统浏览器打开受保护的 `/canvas/`，由浏览器完成 SSO；独立 Electron 包仍可用于不依赖远端 SSO 的本地测试。
 
-本仓库增加了可选的 `remote-main.mjs` 启动层，保留原版 `main.mjs`：
+桌面入口不为 Electron 设置 BasicAuth 密码文件，也不把 Session API Key 放进启动参数。OIDC 完成后，若 Agent Server 要求会话密钥，用户通过 WebUI 的受控输入流程提供该独立密钥。
 
-- 桌面菜单和 `openhands` 命令设置 `OPENHANDS_SERVER_URL=https://openhands.dora.im`，直接加载服务器 `/canvas/`，UI、API 和 WebSocket 同 origin，不启动本地代理。
-- `OPENHANDS_PASSWORD_FILE` 只包含用户侧 SOPS 解密文件路径。主进程仅对本窗口、`https://openhands.dora.im:443`、非代理的 BasicAuth 请求读取该文件，并以用户名 `i` 认证；文件必须属于当前用户且没有组/其他用户读权限。
-- 密码不进入 Nix store、桌面文件、URL、进程参数或 renderer；同一认证请求最多尝试三次。
-- 远端窗口启用 sandbox、context isolation 和 web security，禁用 Node integration，不加载原生 preload，不绕过证书验证；跨 origin 页面在系统浏览器中打开，硬件权限默认拒绝。
-- 拒绝 `--no-sandbox`、`--disable-web-security` 和 `--ignore-certificate-errors`。上游桌面入口自带的 `--no-sandbox` 已移除。
-- 首次连接仍由官方 WebUI 收集后端会话密钥；不会为省去这一步而降低服务器认证。
-
-这是基于官方客户端的仓库侧启动补丁，不是上游原生远端模式。未设置 `OPENHANDS_SERVER_URL` 时仍使用原版本地客户端。需要明确切换到本地模式时：
+本地开发需要运行官方 Electron 客户端时，直接启动其本地应用入口：
 
 ```bash
-env -u OPENHANDS_SERVER_URL -u OPENHANDS_PASSWORD_FILE openhands-desktop
+openhands-desktop
 ```
 
-本地模式会以当前用户权限运行本地后端，模型配置、会话和工作目录与远端实例分开；不要误认为它自动继承服务器的容器隔离。远端模式不暴露官方 preload 的本地文件/终端能力，而是使用服务器 WebUI。
+本地 Electron 客户端会以当前用户权限运行本地后端，模型配置、会话和工作目录与远端实例分开；不要误认为它自动继承服务器的容器隔离。
 
-Home Manager 模块位于 `home-manager/modules/desktop/openhands.nix`，由 `hmModules.desktop.all` 自动收集。当前配置中 `arx8` 和 `surface` 的 `tippy` 会获得客户端、默认远端桌面入口和浏览器备用入口；`fra0` 没有桌面，不会安装该应用。桌面配置持久化 `.config/OpenHands Agent Canvas`；保留本地模式所需的 `.openhands` 状态目录。
+Home Manager 模块位于 `home-manager/modules/desktop/openhands.nix`，由 `hmModules.desktop.all` 自动收集。桌面菜单与 `openhands` 命令均通过系统浏览器访问 OIDC-protected URL；Electron 应用只作为本地开发入口安装，不再尝试自动绕过 Keycloak。`fra0` 无桌面，不会安装该应用。
 
 只构建客户端、不部署主机的检查命令：
 
@@ -1068,52 +1010,42 @@ nix build --no-link .#nixosConfigurations.arx8.pkgs.openhands-desktop
 
 ### 9.6 服务启动、持久化与备份
 
-| 单元 / 路径                                                  | 作用                                                                                                        |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `openhands-backend-key.service`                              | 初始化或复用稳定会话密钥，生成私有 `backend.env`                                                            |
-| `podman-openhands-agent-canvas.service`                      | 正式 NixOS 容器服务，开机启动                                                                               |
-| `openhands-bootstrap.service`                                | 等待后端就绪，播种档案、工具、工作目录与停用草稿                                                            |
-| `/var/lib/openhands-agent-canvas/projects`                   | 宿主工作目录，挂入容器 `/projects`；容器 UID `10001`，宿主 `users` 组可管理文件                             |
-| `/var/lib/openhands-agent-canvas/backend-key`、`backend.env` | 私有后端凭据，不能提交到 Git                                                                                |
-| `/var/lib/openhands-agent-canvas/bootstrap-v1.json`          | 成功初始化标记；存在时不覆盖用户后续设置                                                                    |
-| `openhands-data` named volume                                | 挂入 `/home/openhands/.openhands`，包含 settings、secrets、profiles、会话、记忆、自动化数据库和内部加密密钥 |
+| 单元 / 路径                                | 作用                                                                       |
+| ------------------------------------------ | -------------------------------------------------------------------------- |
+| `podman-openhands.service`                 | Agent Canvas 容器，绑定 `127.0.0.1:3290`，启用 CPU/内存/PID 和容器权限限制 |
+| `openhands-oauth2-proxy.service`           | loopback Keycloak OIDC 代理，监听 `127.0.0.1:3291`                         |
+| `openhands-bootstrap.service`              | 对账模型档案、MCP、工作区与可选自动化草稿                                  |
+| `/var/lib/openhands/{knowledge,workspace}` | 用户资料与项目工作区                                                       |
+| `/var/lib/openhands/skills`                | 全局 Skills/Microagents 目录                                               |
+| `/var/lib/openhands/outputs`               | 用户交付产物目录                                                           |
+| `/var/lib/openhands/state`                 | OpenHands settings、会话、记忆、自动化数据库与内部加密状态                 |
 
-`/var/lib` 已由主机的持久化配置保护，named volume 的数据位于 `/var/lib/containers/storage/volumes/openhands-data/_data`。服务已写入持久系统配置，不再依赖 `systemctl enable --runtime`。
+`/var/lib/openhands` 由 Impermanence 与 Restic 持久化/备份。旧 `/var/lib/dify` 与 Qdrant 数据不会自动删除；清理前须独立确认备份、保留策略及数据库消费者。
 
-Restic 已增加 `/var/lib/openhands-agent-canvas` 和上述 named volume 数据目录。工作区、依赖缓存和大型 QA 产物可能增长，应按现有 5GB 配额检查备份范围；不能假定启用备份就一定满足容量限制。需要一致性迁移时，停止服务或执行 SQLite 一致性备份，并恢复完整状态和加密密钥，不只复制单个 `.db` 文件。
+Restic 覆盖 OpenHands state、knowledge、skills、outputs 与 workspace，并排除常见缓存。工作区、大型产物与容器镜像可能增长，应按现有 5GB 配额检查实际备份大小；不能假定启用备份就一定满足容量限制。
 
 日常检查：
 
 ```bash
-systemctl status podman-openhands-agent-canvas.service openhands-bootstrap.service
-sudo journalctl -u podman-openhands-agent-canvas.service -f
+systemctl status podman-openhands.service openhands-oauth2-proxy.service openhands-bootstrap.service
+sudo journalctl -u podman-openhands.service -f
 sudo journalctl -u openhands-bootstrap.service -n 50 --no-pager
-sudo podman ps --filter name=openhands-agent-canvas
+sudo podman ps --filter name=openhands
 ```
 
 ### 9.7 Git flake 新模块不可见的排错
 
-如果报 `The option services.ai.openhands-agent-canvas does not exist`，先检查新模块是否被 Git 跟踪。普通 `--flake .#fra0` 使用 Git 源，未跟踪的 `.nix` 和初始化 `.py` 文件不会进入 flake；Haumea 因而找不到新模块。
-
-必要时可用 intent-to-add 登记新文件：它不暂存文件内容，但让 Git flake 能读取工作树中的文件。新建类似模块时可采用：
+普通 `--flake .#fra0` 使用 Git 源；新建目录/文件必须被 Git flake 输入纳入后才能由 Haumea 加载。若报 `services.ai.openhands` 不存在，先检查 flake 输入是否包含新模块，而不是临时改成 impurity 绕过。
 
 ```bash
-git add --intent-to-add -- \
-  nixos/modules/services/ai/openhands-agent-canvas.nix \
-  nixos/modules/services/ai/openhands-bootstrap.py \
-  home-manager/modules/desktop/openhands.nix \
-  pkgs/openhands-desktop/
-
-nix eval --raw .#nixosConfigurations.fra0.config.services.ai.openhands-agent-canvas.domain
+nix eval --raw .#nixosConfigurations.fra0.config.services.ai.openhands.domain
 ```
 
-另一种临时检查方式是显式使用 `path:/home/tippy/source/flakes#…`，让工作目录中的新文件进入求值。完整 `nixos-rebuild switch` 会应用该主机所有相关工作区改动，应先审阅 diff；不要为部署 OpenHands 而顺带应用不相关的 Dify 改动。
+完整 `nixos-rebuild switch` 会应用该主机所有相关工作区改动，应先审阅 diff；不要顺带应用无关配置变更。
 
 ### 9.8 验证记录与参考资料
 
-本次已完成服务器 HTTPS 与真实 DNS 访问验证：未登录的 WebUI、API、文档、自动化和健康接口返回 `401`；正确 BasicAuth 后 WebUI 返回 `200`；API 还必须具有有效会话密钥；页面不含嵌入密钥。三个 MCP 服务成功列出工具，Chromium 实际渲染测试通过，三个草稿有效且没有运行记录。
-
-客户端包、用户启动器和桌面文件已构建；七项自动化测试覆盖本地模式保留、远端 origin 校验、安全开关、SOPS 凭据隔离、文件权限、有限重试、导航与权限边界。求值确认客户端只进入桌面主机，不进入 `fra0`。测试采用 Electron mock；由于本机没有桌面，没有做真实图形会话验收，也没有通过模型 completion 做付费验证。
+本次代码重构尚未部署。部署后需执行本文末尾的认证、网络隔离、容器限额、备份恢复与跨工具冒烟清单；代码求值、容器存在或健康探针成功都不能代替真实 WebUI/Agent 验收。
 
 - [官方 v1.34.0 发布及桌面资产](https://github.com/OpenHands/OpenHands/releases/tag/v1.34.0)
 - [官方安装与桌面预览说明](https://docs.openhands.dev/openhands/usage/agent-canvas/setup.md)
@@ -1121,3 +1053,96 @@ nix eval --raw .#nixosConfigurations.fra0.config.services.ai.openhands-agent-can
 - [固定版本 Electron 入口](https://github.com/OpenHands/OpenHands/blob/v1.34.0/electron/main.mjs)
 - [社区 VPS 部署、出站代理与备份](https://github.com/osamuelsublate/openhands-infra)
 - [父子代理、人工门禁与浏览器 QA 示例](https://github.com/rajistics-demo/sdlc-automation-github-demo)
+
+## 十、迁移部署与端到端验收
+
+### 10.1 SOPS 密钥维护
+
+本次不编辑加密 SOPS 文件。密钥维护者需先用仓库既有流程更新 `secrets/common.yaml`：
+
+- 新增 `openhands/backend_api_key`：高熵随机值，用于 OpenHands 会话/API 认证，并仅分发给受信任客户端。
+- 新增 `openhands/oidc-secret`：专属 OIDC confidential-client secret，须与 Keycloak `openhands` 客户端配置相同。
+- 新增 `openhands/oauth_cookie_secret`：oauth2-proxy Cookie 签名密钥，使用 oauth2-proxy 支持的随机 Base64 格式。
+- 从 `secrets/common.yaml` 删除旧 `dify/secret_key` 前，先由密钥维护者确认没有仓库外消费者；`password` 与 `openai_api_key` 是其他服务共用键，不能删除或替换。
+- 只有配置 `services.ai.openhands.mcpServerSecrets` 时，才为每个声明的外部 MCP 另加独立 SOPS Bearer Token 键，并使用同名 SOPS key 映射。
+
+示例随机值生成命令只在可信终端本地执行，命令输出不得进入 Git、日志或聊天：
+
+```bash
+openssl rand -hex 32
+openssl rand -base64 32 | tr -d '\n'
+```
+
+OpenHands 复用现有顶层 `openai_api_key`，本脚本不会再生成重复的网关密钥。
+
+Keycloak 启动时的 Realm 导入只用于新建 Realm。对于 `fra0` 上既有的 `users` Realm，在管理控制台添加 confidential client `openhands`，启用 Standard flow，关闭 Direct access grants，设置唯一回调 `https://openhands.dora.im/oauth2/callback`，并将其专属 client secret 写入对应 SOPS 键。入口仅允许 Keycloak 返回已验证的 `i@dora.im` 邮箱。确认旧客户端 `dify` 已停用后，可在该控制台将其移除。
+
+升级前确认旧 Canvas 状态和工作区的 Restic 快照可恢复。上一代使用 `openhands-data` OCI 卷和 `/var/lib/openhands-agent-canvas/projects`。如需保留会话历史，在维护窗口停止写入，从完整快照恢复应用状态及其内部加密材料到新 `state`，项目文件恢复到新 `workspace`。验证新会话密钥和模型令牌后再恢复服务。先保留旧卷和目录作为回滚来源。
+
+### 10.2 部署前检查
+
+```bash
+nix fmt --no-update-lock-file -- <本次修改的 Nix 文件>
+nix eval --no-update-lock-file --raw .#nixosConfigurations.fra0.config.system.build.toplevel.drvPath
+nix eval --no-update-lock-file --raw .#checks.x86_64-linux.ai-authentication-test.result
+nix build --no-update-lock-file --no-link .#nixosConfigurations.fra0.config.system.build.toplevel -L
+```
+
+当前仓库存在本任务之外的已修改主机/Colmena/RustDesk 文件。部署前必须逐项审阅完整 `git diff`；不可用包含这些无关变更的工作树直接切换 fra0。系统切换、Keycloak Realm 更新、容器拉取均须在授权范围内并准备回滚到上一代系统配置。
+
+### 10.3 鉴权与进程检查
+
+```bash
+curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' https://openhands.dora.im/canvas/
+sudo ss -lntp | rg ':(3290|3291)\b'
+systemctl is-active podman-openhands.service openhands-oauth2-proxy.service openhands-bootstrap.service
+curl -fsS http://127.0.0.1:3291/ping
+sudo podman inspect openhands --format '{{json .HostConfig}}' | jq '{Privileged, CapAdd, CapDrop, PidsLimit, Memory, NanoCpus, SecurityOpt, Binds}'
+```
+
+公网未登录请求应重定向到 Keycloak 或返回拒绝，不能返回 OpenHands 工作区/API 内容；本机 3290/3291 应只绑定 `127.0.0.1`。容器检查应确认 `Privileged=false`、连接 `openhands` 而不是默认 `podman` 网络、未挂载 `/var/run/docker.sock`、`CapDrop` 包含 `ALL`、`no-new-privileges` 生效，并应用声明的内存/CPU/PID 上限。
+
+### 10.4 沙箱与 SSRF 验收限制
+
+fra0 声明了独立 OpenHands bridge 和 nftables egress ACL，但固定版 Agent Canvas 的工具与 Agent Server 仍在同一个受限容器执行，没有独立的沙箱容器引擎 proxy。含 ACL 的系统代尚未激活；部署后须在 Agent 实际 shell/浏览器运行环境中验证：
+
+- 访问宿主 SSH、Metrics、数据库、容器 API/Socket Proxy 均失败。
+- 访问 `169.254.169.254` 及其他 link-local 元数据目标失败。
+- 访问未授权的 RFC1918 内网目标失败；允许的 MCP 与 New-API 端点仍可连通。
+- 沙箱运行时没有 privileged、额外 capabilities 或宿主敏感目录挂载，且 CPU、内存、PID 与磁盘限制均在对应运行时实测生效。
+
+DNS 查询直接发往声明的公共解析器；公网 HTTP(S) 可达。测试内网拒绝时还应检查 nftables packet counter/trace，不能把目标恰巧无服务监听当作隔离成功。任何一项失败都应保持服务仅限可信管理者访问并阻止公网开放。
+
+### 10.5 通用闭环冒烟测试
+
+先在 WebUI 上传一份无敏感信息的测试资料，并将其放入 `/knowledge`。通过 Keycloak 登录后提交一个通用任务，例如：
+
+> 研究“如何设计可复现的本地软件基准测试”，先用 Degoog 搜索至少三份独立来源并读取正文，记录来源 URL/日期和证据；再通过一个已授权 MCP 查询非敏感测试记录；结合我上传的基准测试说明文件，在工作区创建 Python 汇总脚本并实际运行；将结论、限制、复现步骤、脚本及引用来源写入 `/outputs/benchmark-review.md`，不要覆盖原始资料。
+
+验收应逐项确认：
+
+- 未登录浏览器进入 Keycloak，不出现未鉴权的 OpenHands 内容；Realm 不提供自助注册。
+- 登录后 Degoog MCP 搜索结果能被打开抓取为完整正文；单有摘要不算通过。PDF 正文提取另行选取真实 PDF 验证，当前基础 bridge 不保证所有 PDF 均可解析。
+- 指定 MCP 工具能返回结果，且未配置的 MCP 不会被自动调用。
+- Agent 能同时读取 `/knowledge` 用户文件和网页来源，不能将二者混为同一来源。
+- Agent 沙箱执行脚本并生成可下载的 Markdown 交付物，工作区和输出在重启后仍存在且进入备份。
+- 检查 systemd/Traefik/OAuth 日志、模型网关独立 token 用量及备份任务结果；日志中不应出现任何密钥。
+
+### 10.6 本轮验证结果
+
+- `fra0` NixOS 闭包与 AI authentication regression check 已构建并切换。Canvas、bootstrap、oauth2-proxy、Traefik、Keycloak 和 PostgreSQL 均运行；bootstrap 对账成功。
+- 现有 `openhands` Keycloak 客户端原先只有过宽的 `https://chat.dora.im/*` callback。SOPS `openhands/oidc-secret` 已作为唯一 OIDC 客户端 secret 来源；reconcile 单元现在同步该 secret、标准授权流程、唯一 `https://openhands.dora.im/oauth2/callback` callback 与 Web Origin，并删除 OpenHands client 的其他 redirect URI。生产授权端点以 HTTP 200 返回 Keycloak 登录页，不再返回 `invalid redirect_uri`。
+- 公开 `/canvas/` 请求返回 302 到 Keycloak；Canvas 未认证 `/api/settings` 返回 401；oauth2-proxy `/ping` 与 Canvas `/ready` 均返回 200。
+- `chat.dora.im` 曾返回 404，原因是旧 Dify/LobeChat 路由已移除但域名仍指向 fra0。已加入仅重定向到 `openhands.dora.im` 的 Traefik 路由，避免为旧域名复制或放宽 OIDC callback。
+- New-API `openai_api_key` 从 fra0 SOPS 运行时读取，真实 completion 请求成功。Canvas 容器原先把 `api.dora.im` 解析到自身回环；现在使用 Podman `host-gateway`，容器内解析至 `10.88.0.1` 并可校验证书访问模型网关。模型档案现为 `gpt-6.1-sol`、`gpt-5.6-sol`、`gpt-6.2-sol`，三个档案均报告 `api_key_set=true`。
+- 使用 SOPS 运行时目录中的现有 `password` 在受限 HTTP 客户端中完成真实 Keycloak 授权码登录，验证 OIDC cookie 安全属性、canvas 返回 200 及 registration disabled；不输出密码、cookie 或授权码。
+- 通过 OpenHands 默认 profile 完成真实 Agent 会话并收到预期 completion；另一次 Agent terminal-tool 会话只在 `/outputs` 写入临时标记文件，从容器挂载卷逐字节校验后删除文件和对话。
+- Degoog bridge MCP initialize 握手成功，搜索返回三个来源；网页抓取返回 2.6KB Python.org 正文。**该 bridge 当前没有挂载到 OpenHands `mcpServers`**，因此这些结果只验证 bridge 本身，不代表 Agent 已能调用 MCP。
+- 下一代 fra0 的专属 egress policy 与 nftables ruleset 语法已通过 `nix build` 和 `nft --check`，但尚未激活或做真实数据包隔离验收。
+- 未做 PDF 正文提取、Agent 工具内 MCP 调用及备份恢复验收；容器仍与 Canvas 服务同一隔离边界。
+
+### 10.7 Agent Canvas Backend 自动登记
+
+Agent Canvas 是浏览器 frontend，Agent Server 是负责 conversation/tools/workspace 的 backend。即使同一个 Agent Canvas 容器也同时运行 Agent Server，Docker/self-hosted frontend 默认仍要求用户在 `Manage Backends` 注册 backend；这是上游跨多个 remote backend 的设计，不表示 fra0 缺少服务。
+
+fra0 声明了上游支持的 `AGENT_CANVAS_ALLOW_LAN_SESSION_KEY=true`，同源 UI 可据 runtime 注入的 Session API Key 自动生成默认 backend 条目；但只有将含此环境变量的新系统代部署到 fra0 后才会生效。该上游选项会把 backend API key 发送给已认证的浏览器。`openhands-oauth2-proxy` 因此必须继续只 allowlist `i@dora.im`；不要让普通 Keycloak 用户访问或从互联网直连容器端口。该变更的整机 build 通过，但切换预演会一并重启工作树中已有新版本的 DN42 agent/controller 与 Traffic Ops 初始化服务，目前未切换以免夹带这些服务变更。

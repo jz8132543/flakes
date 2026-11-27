@@ -7,6 +7,21 @@
 }:
 let
   cfg = config.services.cluster-monitoring.server;
+  openhandsEnabled = config.services.ai.openhands.enable or false;
+  blackboxRelabel = [
+    {
+      source_labels = [ "__address__" ];
+      target_label = "__param_target";
+    }
+    {
+      source_labels = [ "__param_target" ];
+      target_label = "instance";
+    }
+    {
+      target_label = "__address__";
+      replacement = "127.0.0.1:${toString config.ports.blackbox-exporter}";
+    }
+  ];
 
   # Extract domain names from Traefik proxies rules: Host(`...`)
   extractHostFromRule =
@@ -168,22 +183,23 @@ in
                 targets = allBlackboxTargets;
               }
             ];
-            relabel_configs = [
-              {
-                source_labels = [ "__address__" ];
-                target_label = "__param_target";
-              }
-              {
-                source_labels = [ "__param_target" ];
-                target_label = "instance";
-              }
-              {
-                target_label = "__address__";
-                replacement = "127.0.0.1:${toString config.ports.blackbox-exporter}";
-              }
-            ];
+            relabel_configs = blackboxRelabel;
           }
-        ];
+        ]
+        ++ lib.optional openhandsEnabled {
+          job_name = "openhands";
+          metrics_path = "/probe";
+          params.module = [ "openhands_local" ];
+          static_configs = [
+            {
+              targets = [
+                "http://127.0.0.1:${toString config.ports.openhands}/ready"
+                "http://127.0.0.1:${toString config.ports.openhands-oauth}/ping"
+              ];
+            }
+          ];
+          relabel_configs = blackboxRelabel;
+        };
       };
     };
 
@@ -218,6 +234,13 @@ in
                   insecure_skip_verify = false;
                 };
               };
+            };
+          }
+          // lib.optionalAttrs openhandsEnabled {
+            openhands_local = {
+              prober = "http";
+              timeout = "5s";
+              http.follow_redirects = false;
             };
           };
         }

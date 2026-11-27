@@ -22,7 +22,7 @@
       nixosModules.nextcloud.talk-edge
       nixosModules.services.livekit.all
       ../../modules/services/livekit-suite/infrastructure.nix
-      nixosModules.services.rustdesk
+      nixosModules.services.rustdesk.relay
     ];
 
   optimize.brutal.target = "!cn";
@@ -42,8 +42,6 @@
     };
   };
   services.rustdesk-server.cluster = {
-    enable = true;
-    role = "relay";
     relayPort = config.ports.rustdesk-relay-cu;
   };
 
@@ -56,6 +54,11 @@
   boot.loader.grub.device = lib.mkForce "nodev";
   boot.loader.grub.devices = lib.mkForce [ "nodev" ];
 
+  # Public TCP/UDP 50560-50569 mapping plan:
+  # 50560: SSH management; 50561-50565: kernel-relay forwards to regional
+  # services; 50566: RustDesk hbbr (public relay -> local TCP 21117);
+  # 50567: EasyTier bootstrap (WS/QUIC); 50568: DN42 NAT-T; 50569: alternate
+  # HTTPS. Keep each provider-mapped port assigned to exactly one service.
   services.kernel-relay = {
     enable = true;
     dnsInterval = "3min";
@@ -135,6 +138,11 @@
     natTPort = 50568; # 利用 cu 1:1 映射至公网的 50568 端口
   };
 
+  # Provider-mapped 50560-50569 TCP/UDP allocation:
+  # 50560 SSH management, 50561-50565 regional kernel-relay forwards,
+  # 50566 RustDesk hbbr (nft redirects to local 21117), 50567 EasyTier
+  # bootstrap, 50568 DN42 NAT-T, and 50569 alternate HTTPS. Keep these
+  # assignments unique; RustDesk clients use cu.dora.im:50566 (IPv4 capable).
   networking.firewall.allowedTCPPorts = lib.range 50560 50569;
   networking.firewall.allowedUDPPorts = lib.range 50560 50569;
   environment.networkTune = {

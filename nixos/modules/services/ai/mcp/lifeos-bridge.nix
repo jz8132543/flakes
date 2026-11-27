@@ -7,7 +7,7 @@
 #   将自建的数字生活服务（Memos 随手记、Linkwarden 收藏、Reader 阅读器、
 #   Zotero 文献、MoviePilot 影视订阅、Jellyfin 媒体库、考公平台、
 #   Home-Assistant 智能家居、VictoriaMetrics 节点基础设施监控）
-#   封装为标准 MCP 工具与 OpenAPI 接口，供 IBM ContextForge、Dify 与 AI 伴侣直接调用。
+#   封装为标准 MCP 工具与 OpenAPI 接口，供 IBM ContextForge、OpenHands 与 AI 伴侣调用。
 # ─────────────────────────────────────────────────────────────────────────────
 {
   config,

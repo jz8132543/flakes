@@ -9,11 +9,9 @@
 # 网络策略：
 #   --network=host：与宿主机共享网络栈，以便：
 #     a) 访问原生 PG/Redis（loopback）
-#     b) 被 Dify API 容器通过 loopback 访问（无需 Podman bridge）
+#     b) 可由本机受信 AI 服务通过 loopback 访问
 #
-# Dify 与 ContextForge 的联动：
-#   Dify API 容器通过 MCP_GATEWAY_URL = "http://127.0.0.1:<mcpApiPort>"
-#   调用 ContextForge 生成的 Virtual MCP 端点，实现 Workflow 工具链调用。
+# ContextForge exposes its Virtual MCP API to authorized local clients.
 # ─────────────────────────────────────────────────────────────────────────────
 {
   config,

@@ -4,15 +4,15 @@
 
 本方案使用 `lejianwen/rustdesk-server` v0.1.2（内含 1.1.14 forapi）及 `lejianwen/rustdesk-api` v2.7。API 的登录/JWT/客户端 WebSocket 修复依赖 forapi hbbs，不能与官方 hbbs 混搭。NixOS 服务编排和隔离仍由本仓库声明，不运行 Docker、不启用 Pro 专属功能。
 
-| 节点 | 角色                        | 原生客户端入口                                            | 纳入自动中继池           |
-| ---- | --------------------------- | --------------------------------------------------------- | ------------------------ |
-| fra0 | 唯一 hbbs/ID 数据库 + hbbr  | ID: `rustdesk.dora.im:21116`，relay: `fra0.dora.im:21117` | 是                       |
-| sjc0 | hbbr                        | `sjc0.dora.im:21117`                                      | 是                       |
-| cu   | hbbr，经 nft 本机端口重定向 | `cu.dora.im:50566`                                        | 否，按需在双方客户端手选 |
+| 节点 | 角色                                 | 原生客户端入口                                                | 纳入自动中继池 |
+| ---- | ------------------------------------ | ------------------------------------------------------------- | -------------- |
+| fra0 | 唯一 hbbs/ID + API/PostgreSQL        | ID: `rustdesk.dora.im:21116`，API: `https://rustdesk.dora.im` | 否             |
+| cu   | 唯一 relay，经 nft 映射              | `cu.dora.im:50566` (IPv4)                                     | 是             |
+| sjc0 | 旧版官方 hbbr 部署，不导入本集群模块 | 原有配置                                                      | 否             |
 
-原生 ID 与 HTTPS API/管理后台共用 DNS 名称 `rustdesk.dora.im`：ID 使用 TCP/UDP 21116，API 使用 HTTPS 443。该 DNS 记录是未代理的 CNAME，原生 ID 流量直达 fra0；TLS Web 请求由现有 Traefik 转发。Relay 仍使用 fra0/sjc0 中继池。RustDesk 原生 ID/Relay 字段不是 HTTPS URL，不填写 `/rustdesk` 路径。客户端登录使用管理员用户名 `i` 和 SOPS `common.yaml` 的 `password`；设备连接仍需用户授权或会话密码。
+ID Server 与 HTTPS API/管理后台分离，但都由 fra0 提供：hbbs/设备 SQLite 和 API/PostgreSQL 均在 fra0；CU 只运行 hbbr。客户端 ID Server 使用 `rustdesk.dora.im:21116`，API Server 使用 `https://rustdesk.dora.im`。该 ID 域名解析到 fra0，支持 IPv4-only 和 IPv6 客户端。hbbs 只配置一个 relay：`cu.dora.im:50566`；固定版本在单候选时不进行 relay 健康过滤，直接把该地址返回给客户端。客户端不会按 relay 列表切换备用。RustDesk 原生 ID/Relay 字段不是 HTTPS URL，不填写路径。客户端登录使用管理员用户名 `i` 和 SOPS `common.yaml` 的 `password`；设备连接仍需用户授权或会话密码。
 
-fra0 是唯一注册中心；如果 fra0 故障，不能保证新会话建立。sjc0/cu 是媒体中继备选，不是第二份 hbbs 数据库。不要把两个独立 SQLite hbbs 放在轮询 DNS 后面冒充高可用。现有 ams0/hkg4 RustDesk 导入保持原行为，不加入这套身份或中继池。
+fra0 是唯一注册中心；fra0 或 CU 故障都会影响新连接/中继会话。CU 上只有 hbbr，绝不复制 hbbs SQLite。hbbs 配置单一 relay，避免服务端健康探测过滤 CU；该方案没有备用 relay 故障切换。运行期不依赖 Tailscale、EasyTier、DN42 或其他 overlay。现有 ams0/hkg4 RustDesk 导入保持原行为。
 
 ## lejianwen API 控制面
 
@@ -22,8 +22,8 @@ fra0 启用后，API 只绑定 `127.0.0.1:21114`，由 Traefik 暴露为 `https:
 - Web Client：由 API release 提供的静态资源服务。
 - 默认关闭公开注册；管理员用户名固定同步为 `i`，密码来自 SOPS `common.yaml` 的 `password`。fra0 API 启动前会同步该账号；发生改动时清除该账户旧 token。secret 不进入 Nix store、命令行参数、SQL 日志或 journal。其他普通用户仍通过管理后台创建。
 - Swagger 默认关闭。生产配置使用 fra0 自己的 CNAME/DNS-01 TLS，不通过 HTTPS 代理转发 private JWT 或 RustDesk server 私钥。
-- hbbs 配置 `MUST_LOGIN=Y` 和与 API 相同的 JWT key；API v2.7 配置同一 ID/relay 地址及 server public key。`secrets/common.yaml` 的 `rustdesk` 分组不完整时，构建校验或运行时凭据加载会阻止启动。
-- sjc0、cu 只运行 forapi hbbr；不运行 API、不复制 SQLite，服务只加载公钥。共享加密文件的解密权限边界见下文。
+- fra0 上 hbbs 配置 `MUST_LOGIN=Y` 和 API JWT；API 广告 ID 地址 `rustdesk.dora.im:21116`、唯一 Relay 地址 `cu.dora.im:50566` 及 server public key。`secrets/common.yaml` 的 RustDesk 分组不完整时，构建校验或运行时凭据加载会阻止启动。
+- fra0 hbbs 加载身份私钥、公钥和 JWT；CU hbbr 只加载公钥。API/PostgreSQL 也留在 fra0。共享加密文件的解密权限边界见下文。
 
 仓库固定官方 release assets 的 SHA-256，不使用 floating Docker `latest`。API release 是 MIT；server forapi 使用其上游仓库 LICENSE/发布条件。升级前应一并更新兼容性、哈希和软件许可审查。API 仓库 v2.7 release note 说明 webclient2 因 DMCA 从该 release 移除；Web Admin、常规 Web Client 和地址簿仍按 release 配置提供。
 
@@ -80,9 +80,9 @@ rustdesk:
 
 由用户使用 `sops secrets/common.yaml` 迁移实际值；旧值可从 `secrets/terraform/hosts/fra0.yaml` 的 SOPS 编辑视图取得。若此前已在 common 顶层添加 `rustdesk_server_public_key`，需要在 SOPS 编辑视图中把它移入上述分组。不要直接重命名加密 YAML 的键或复制 `ENC[...]` 密文。
 
-必须保留 fra0 现有身份和 JWT，不为 sjc0 重新生成一套公私钥，也不要用随机字符串替换已有私钥。`rustdesk-server-key` 输出的 base64 原始公钥用于客户端；common 中仍需 OpenSSH 格式。迁移前后实际密钥值不变，只改变读取位置和名称。
+必须保留现有身份和 JWT，不为 cu 重新生成一套公私钥，也不要用随机字符串替换已有私钥。`rustdesk-server-key` 输出的 base64 原始公钥用于客户端；common 中仍需 OpenSSH 格式。迁移前后实际密钥值不变，只改变 hbbs 所在节点和读取位置。
 
-运行时路径是 `/run/secrets/rustdesk/server_private_key`、`/run/secrets/rustdesk/server_public_key`、`/run/secrets/rustdesk/api_jwt_key`。fra0 声明并加载三项，sjc0/cu 仅声明并加载公钥；systemd 仍通过 `LoadCredential` 注入，主私钥和 JWT 不进入 Nix store、API YAML 或公开 JSON。
+运行时路径是 `/run/secrets/rustdesk/server_private_key`、`/run/secrets/rustdesk/server_public_key`、`/run/secrets/rustdesk/api_jwt_key`。cu 的 hbbs 加载私钥、公钥和 JWT；fra0 API 加载公钥/JWT，fra0/sjc0 hbbr 只加载公钥。systemd 仍通过 `LoadCredential` 注入，主私钥和 JWT 不进入 Nix store、API YAML 或公开 JSON。
 
 **共享文件的权限边界：** common 的 SOPS 规则允许多个节点解密同一文件。把私钥和 JWT 放入 common 后，持有该文件解密身份的节点可以解密这些值，即使其服务没有声明或加载它们。角色条件只控制运行时文件和服务凭据，不提供加密上的主机隔离。
 
@@ -92,21 +92,20 @@ common 字段就绪后再部署。服务显示 active 也可能仍是旧系统�
 
 ## 自动选择与故障边界
 
-保持 `ALWAYS_USE_RELAY=N`，允许客户端先尝试直连。失败后使用 hbbs 返回的 hbbr。OSS 1.1.16 对两个以上 relay 每 3 秒发起一轮并发 TCP 检查，每地址约 3 秒连接超时，然后在有连接成功的候选中轮询：
+保持 `ALWAYS_USE_RELAY=N`，允许客户端先尝试直连。失败后使用 hbbs 返回的 hbbr。本部署只配置一个 relay (`cu.dora.im:50566`)；固定 hbbs 仅在配置两个以上 relay 时启动每 3 秒一次的 TCP 健康检查，单 relay 直接广播：
 
-- 检查的是 **fra0 到 relay 的 TCP 可达性**，不是两部手机到节点的 RTT/丢包/吞吐。
+- 多 relay 配置下检查的是 **fra0 hbbs 到 relay 的 TCP 可达性**，不是两部手机到节点的 RTT/丢包/吞吐。本部署单 relay 时不做此检查。
 - 不是自动最近或最低 RTT 选择；若所有候选都探测失败，上游保留上一轮列表，不能称严格剔除全部死节点。
 - 建立的 relay 会话固定在一台机器，节点失效或 Wi-Fi/蜂窝切换需要客户端恢复/重连，不承诺视频无中断或转到最优节点。
-- 国外无法主动访问 cu，因此默认池仅含 fra0、sjc0；cu 若加入，会被国外探测排除。双方均可达 cu 时可手动指定 `cu.dora.im:50566`，ID Server 仍用 fra0。手选中继不等于强制中继，客户端直连逻辑仍独立。
+- 多 relay 配置时探测失败会从当前轮询池过滤候选；本部署只有 CU 一项，不会因 fra0 无法主动连接 CU 的映射端口而过滤它。
 - Pro 的 GeoIP 选择需要另购和配置，且地理最近也不等于实测网络最好。本次未部署或购买 Pro。
 
 ## 端口与 cu 的最小暴露
 
-| 节点 | TCP 公网端口        | UDP 公网端口 | 说明                            |
-| ---- | ------------------- | ------------ | ------------------------------- |
-| fra0 | 21115、21116、21117 | 21116        | NAT 测试、注册/信令、原生 relay |
-| sjc0 | 21117               | 无新增       | 仅原生 relay                    |
-| cu   | **50566**           | **无新增**   | 只占一个供应商映射 TCP 端口     |
+| 节点 | TCP 公网端口 | UDP 公网端口 | 说明                                     |
+| ---- | ------------ | ------------ | ---------------------------------------- |
+| fra0 | 21115、21116 | 21116/UDP    | 唯一 hbbs/ID；API 仍经 HTTPS 443         |
+| cu   | 21117、50566 | 无新增       | 唯一 hbbr，本地 21117 映射至供应商 50566 |
 
 cu 的 50560/SSH、50561-50565/kernel-relay、50567/EasyTier、50568/DN42 NAT-T、50569/HTTPS 均保持不变。5352/LiveKit TURN 等既有配置不变，不注入 Linux sysctl。
 
@@ -114,37 +113,39 @@ cu 的 50560/SSH、50561-50565/kernel-relay、50567/EasyTier、50568/DN42 NAT-T�
 
 模块在 cu 拒绝对内部 21117 的非映射外部连接，并拒绝各节点无需使用的 WebSocket 端口。NixOS input 规则看到重定向后的端口，所以 `allowedTCPPorts` 包含内部 21117；前置 `native_only` 链检查 conntrack 原始目标端口，实际公网入口仍只有 50566。现有 cu 对整个 5056x 的防火墙许可未扩大。
 
-本次不开放 21118/21119，不提供网页 RustDesk 客户端，原生 Android 客户端不需要它们。
+目标配置在 fra0 开放 hbbs 原生 TCP/UDP 21116，并放行 TCP 21115；CU relay 入口为 TCP 50566，映射到本机 21117。
 
 ## 密钥与身份保持
 
 `terraform/rustdesk.tf` 使用 `tls_private_key` 生成真正的 Ed25519 密钥对，并设置 `prevent_destroy`。不能使用 64 个随机字节直接当成 Ed25519 密钥：libsodium 所需格式是 **32 字节 seed + 由该 seed 推导的 32 字节公钥**，必须匹配。
 
-- Terraform 既有敏感输出 `rustdesk_server_key` 是 PEM 私钥，迁移时原样放入 common 的 `rustdesk/server_private_key`；仅 fra0 服务加载。
+- Terraform 既有敏感输出 `rustdesk_server_key` 是 PEM 私钥，迁移时原样放入 common 的 `rustdesk/server_private_key`；仅 fra0 的 hbbs 服务加载。
 - 既有输出 `rustdesk_server_public_key` 是 OpenSSH 公钥，迁移至 common 的 `rustdesk/server_public_key`；运行时转换为 RustDesk 所需的 base64 原始公钥，三个节点都读取同一项。
-- 运行时 `runtime.py` 验证密钥类型和公私匹配，在 fra0 状态目录生成 base64 libsodium 格式的 `id_ed25519`，权限 0600。命令行和 Nix store 没有私钥。
+- 运行时 `runtime.py` 验证密钥类型和公私匹配，在 fra0 的状态目录生成 base64 libsodium 格式的 `id_ed25519`，权限 0600。命令行和 Nix store 没有私钥。
 - 若已有状态中的 `id_ed25519` 不同、存在 `.env` 覆盖或符号链接，会拒绝启动，**不会自动轮换/覆盖已有 RustDesk 身份**。部署前应备份并迁移已有实例。不要删库或删密钥来跳过该检查。
-- hbbr 仅通过凭据接收经过转换的公钥，设置 `KEY`，拒绝不匹配的 relay 请求；sjc0/cu 的服务没有私钥凭据。服务器公钥不是访问设备的密码，手机端仍需临时会话密码或手动同意。
+- hbbr 仅通过凭据接收经过转换的公钥，设置 `KEY`，拒绝不匹配的 relay 请求；CU relay 不加载签名私钥。服务器公钥不是访问设备的密码，手机端仍需临时会话密码或手动同意。
 - `/var/lib/rustdesk` 和其中的 fra0 `db_v2.sqlite3` 随既有全局 `/var/lib` 持久化，沿用 Nixpkgs 非特权用户/沙箱。
 
 Terraform 既有 state 本身仍包含初始私钥。继续使用仓库现有加密 state/outputs 流程，不将明文 state、plan 或私钥提交到 Git，不把私钥写进 `lib/data/data.json`。服务以 common 为读取来源，不再要求各 host 的 Terraform SOPS 文件包含 RustDesk 字段。实际值迁移和解密由用户操作。
 
 初稿中的 `random_id.rustdesk_server_key` 已替换为真实 Ed25519 资源，尚未用于生产。若你已自行 apply 初稿，应审查 plan 中该未使用随机值的移除；不得把随机 64 字节当作合法私钥，也不要擅自替换已有设备信任的真实身份。
 
-## 用户部署步骤
+## ID 数据库迁移与部署状态
 
-1. 将本次新增源码纳入你的 Git 源边界；Git-backed Flake 不读取未跟踪导入。无需为了本任务更新其他 inputs。
-2. 使用 SOPS 把已有 RustDesk 三项密钥及 LiveKit 主密钥迁移至 common 的二级分组；保留既有值，避免身份或令牌意外轮换。DNS 已就绪时无需为此次迁移再次 Terraform apply。
-3. 确认 common 的 SOPS recipients 覆盖待部署节点；配置或字段存在不代表目标节点实际可以解密。不把值粘贴到聊天或日志。
-4. 部署本次已获授权的节点；cu 仍按任务约定暂缓。所需字段尚未就绪时构建校验或 `LoadCredential` 会阻止启动，而不是自动生成另一个身份。
-5. 在 fra0 可信终端运行 `sudo rustdesk-server-key`，输出客户端应信任的 **base64 原始公钥**，不是 Terraform/OpenSSH 公钥整行，也不是私钥。将该公钥提供给双方客户端。
+hbbs SQLite 是唯一设备注册库。此次将 CU 上活动库的最新一致性快照迁回 fra0，传输使用获准的一次性 `cu.ts` SSH 路径；该路径不作为 RustDesk 运行期依赖。
 
-| Android 字段 | 普通模式                              | 国内 cu 手选模式           |
-| ------------ | ------------------------------------- | -------------------------- |
-| ID Server    | `rustdesk.dora.im:21116`              | `rustdesk.dora.im:21116`   |
-| Relay Server | 留空，使用健康候选池                  | `cu.dora.im:50566`         |
-| API Server   | `https://rustdesk.dora.im`            | `https://rustdesk.dora.im` |
-| Key          | `sudo rustdesk-server-key` 返回的公钥 | 同左                       |
+部署切换需停止 CU hbbs、复制其最新 SQLite、核验摘要、安装到 fra0 的持久目录，再部署 fra0 hbbs。迁移前 CU 原件及 fra0 回滚快照都保留到验收完成，不删除原注册数据。
+
+fra0 安全组/NixOS firewall 需允许客户端访问 ID TCP/UDP 21116；CU 只提供 relay TCP 50566。API PostgreSQL 与 hbbs SQLite 均在 fra0。客户端 ID Server 为 `rustdesk.dora.im:21116`，IPv4-only 客户端也可连接；API Server 保持 `https://rustdesk.dora.im`。
+
+### 客户端字段
+
+| Android 字段 | 内容                                  |
+| ------------ | ------------------------------------- |
+| ID Server    | `rustdesk.dora.im:21116`              |
+| Relay Server | 留空，使用唯一 CU relay               |
+| API Server   | `https://rustdesk.dora.im`            |
+| Key          | `sudo rustdesk-server-key` 返回的公钥 |
 
 不要将 URL `https://fra0.dora.im` 当成 API Server。本方案的 API 地址是 `https://rustdesk.dora.im`，管理后台是 `/_admin/`；hbbs 已启用账户登录要求。管理员创建并启用用户后，再在客户端完成登录。
 
@@ -174,9 +175,9 @@ Terraform 既有 state 本身仍包含初始私钥。继续使用仓库现有加
 
 生产中继探测记录：两端同时提交同一 UUID 的原生握手曾在 fra0 和未修改的 sjc0 上失败。固定上游的配对表 remove/insert 使用两个独立锁，存在并发配对竞态；本次没有修改上游源码。按发起端先请求、对端随后建立连接的正常顺序，两节点重复三轮双向二进制转发及错误公钥拒绝均通过；不能据此宣称并发边界已修复。
 
-配置测试检查三节点角色、common 二级字段来源、私钥/JWT 仅在 fra0 声明、relay CSV、cu 端口与 DN42/EasyTier 不冲突，并确认 Terraform 提取模板已排除 RustDesk 密钥。该检查不证明 common 中已填入正确值或节点能解密。cu nft 重定向以 NixOS `nft check` 做构建期检查；这不是实机 NAT 端到端测试。部署后需要在能访问 cu 的国内网络测试 50566，而不是从国外主动探测 cu。
+配置测试检查三节点角色、common 二级字段来源、hbbs 私钥/JWT 凭据、relay CSV、cu 自身 loopback 健康探测和原生端口。该检查不证明 common 中已填入正确值或节点能解密。cu nft 重定向以 NixOS `nft check` 做构建期检查；这不是实机 NAT 端到端测试。
 
-部署后验收：ID 注册、优先 direct、强制 relay 时分别命中 fra0/sjc0、手选 cu、错误 key 拒绝、重连其他 relay、长于 30 分钟的持续观影、Wi-Fi/蜂窝切换、真实内录音质/实际 codec/FPS/尺寸、授权与撤销远控。不要用 service active 替代这些测试。
+部署后验收：从 fra0 ID 端口完成 ID 注册、secure_tcp 握手、优先 direct、强制 relay 时命中 CU、错误 key 拒绝、长于 30 分钟的持续观影、Wi-Fi/蜂窝切换、真实内录音质/实际 codec/FPS/尺寸、授权与撤销远控。不要用 service active 替代这些测试。
 
 ## 借鉴的上游与 GitHub 配置
 

@@ -1,25 +1,20 @@
 {
-  config,
-  lib,
   pkgs,
   ...
 }:
 let
   launcher = pkgs.writeShellScriptBin "openhands" ''
-    export OPENHANDS_SERVER_URL=https://openhands.dora.im
-    export OPENHANDS_PASSWORD_FILE=${lib.escapeShellArg config.sops.secrets.password.path}
-    exec ${pkgs.openhands-desktop}/bin/openhands-desktop "$@"
+    exec ${pkgs.xdg-utils}/bin/xdg-open https://openhands.dora.im/canvas/ "$@"
   '';
   desktop = pkgs.makeDesktopItem {
     name = "agent-canvas";
-    desktopName = "OpenHands Agent Canvas";
-    genericName = "Remote AI Coding Workspace";
-    comment = "Connect to the authenticated OpenHands server";
+    desktopName = "OpenHands Workspace";
+    genericName = "Remote Autonomous Agent Workspace";
+    comment = "Open the Keycloak-protected OpenHands workspace in a browser";
     exec = "${launcher}/bin/openhands";
     icon = "agent-canvas";
     terminal = false;
     categories = [ "Development" ];
-    startupWMClass = "OpenHands Agent Canvas";
   };
 in
 {
@@ -27,8 +22,6 @@ in
     pkgs.openhands-desktop
     launcher
   ];
-  sops.secrets.password = { };
-
   # The user-level entry overrides the package's original local-stack launcher.
   xdg.dataFile."applications/agent-canvas.desktop".source =
     "${desktop}/share/applications/agent-canvas.desktop";

@@ -179,7 +179,8 @@
       tdarr-webui = 8265;
       unmanic = 8889;
       new-api = 3280;
-      openhands-agent-canvas = 3290;
+      openhands = 3290;
+      openhands-oauth = 3291;
       cpa = 8317;
       workbuddy2api-hub = 8788;
       degoog = 8888;
@@ -191,16 +192,6 @@
       redis-exporter = 9121;
       matrix-metrics = 9092;
       traefik-metrics = 8082;
-
-      # ── Dify AI 应用平台 ──────────────────────────────────────
-      dify-api = 5001; # Dify Flask API (gunicorn)
-      dify-plugin-daemon = 5002; # Dify Plugin Daemon (HTTP API)
-      dify-plugin-debug = 5003; # Dify Plugin Daemon (Remote Install / Debug)
-      dify-web = 5004; # Dify Next.js Web
-      dify-sandbox = 8194; # Dify 代码执行沙箱
-      dify-redis = 6380; # Dify 专属 Redis 实例（与系统 Redis 隔离）
-      dify-qdrant = 6333; # Qdrant HTTP API
-      dify-qdrant-grpc = 6334; # Qdrant gRPC
 
       # ── IBM ContextForge MCP 总线 ─────────────────────────────
       mcp-contextforge-api = 5012; # ContextForge API + Virtual MCP 端点

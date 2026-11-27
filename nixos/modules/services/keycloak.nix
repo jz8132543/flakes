@@ -1,5 +1,5 @@
 {
-  PG ? "127.0.0.1",
+  PG ? "postgres.ts",
   ...
 }:
 {
@@ -16,6 +16,54 @@ let
   ldapBaseDn = "dc=dora,dc=im";
   ldapUsersDn = "ou=people,dc=dora,dc=im";
   ldapServicesDn = "uid=services,ou=people,dc=dora,dc=im";
+  openhands = config.services.ai.openhands or { enable = false; };
+  lobeChat = config.services.new-api.lobeChat or { enable = false; };
+  openhandsClientReconcile = lib.optionalString openhands.enable ''
+    openhands_secret="$(cat ${
+      lib.escapeShellArg config.sops.secrets.${openhands.oidc.clientSecretKey}.path
+    })"
+    openhands_secret_sql="$(printf '%s' "$openhands_secret" | ${pkgs.gawk}/bin/awk '{gsub(/\047/, "\047\047"); print}')"
+
+    {
+      cat <<SQL
+    update client
+    set enabled = true,
+        public_client = false,
+        client_authenticator_type = 'client-secret',
+        secret = '$openhands_secret_sql',
+        standard_flow_enabled = true,
+        direct_access_grants_enabled = false
+    where realm_id = (select id from realm where name = 'users')
+      and client_id = '${openhands.oidc.clientId}';
+
+    insert into redirect_uris (client_id, value)
+    select c.id, 'https://${openhands.domain}/oauth2/callback'
+    from client c join realm r on r.id = c.realm_id
+    where r.name = 'users' and c.client_id = '${openhands.oidc.clientId}'
+      and not exists (
+        select 1 from redirect_uris u
+        where u.client_id = c.id
+          and u.value = 'https://${openhands.domain}/oauth2/callback'
+      );
+
+    delete from redirect_uris u
+    using client c, realm r
+    where u.client_id = c.id and c.realm_id = r.id
+      and r.name = 'users' and c.client_id = '${openhands.oidc.clientId}'
+      and u.value <> 'https://${openhands.domain}/oauth2/callback';
+
+    insert into web_origins (client_id, value)
+    select c.id, 'https://${openhands.domain}'
+    from client c join realm r on r.id = c.realm_id
+    where r.name = 'users' and c.client_id = '${openhands.oidc.clientId}'
+      and not exists (
+        select 1 from web_origins o
+        where o.client_id = c.id and o.value = 'https://${openhands.domain}'
+      );
+    SQL
+    } | psql -h ${lib.escapeShellArg PG} -U keycloak -d keycloak -v ON_ERROR_STOP=1 -Atq
+    unset openhands_secret openhands_secret_sql
+  '';
 in
 {
   imports = [
@@ -34,6 +82,7 @@ in
     plugins = [ pkgs.keycloak-themes-phasetwo ];
     database = {
       type = "postgresql";
+      createLocally = false;
       host = PG;
       useSSL = false;
       passwordFile = "/dev/null"; # Required by NixOS module assertion, but PostgreSQL uses trust auth
@@ -45,7 +94,7 @@ in
       http-host = "127.0.0.1";
       http-port = config.ports.keycloak;
     };
-    realmFiles = [ config.sops.templates."keycloak-realm-dora".path ];
+    realmFiles = [ "/run/credentials/keycloak.service/users-realm.json" ];
   };
   virtualisation.podman.enable = true;
   virtualisation.oci-containers = {
@@ -65,7 +114,7 @@ in
     "d /var/lib/389ds 0755 root root -"
   ];
   sops.templates."keycloak-realm-dora" = {
-    mode = "0444";
+    mode = "0400";
     content = ''
       {
         "realm": "users",
@@ -119,43 +168,38 @@ in
             "publicClient": false,
             "standardFlowEnabled": true,
             "directAccessGrantsEnabled": true
-          },
-          {
-            "clientId": "lobechat",
-            "name": "LobeChat",
-            "enabled": true,
-            "protocol": "openid-connect",
-            "clientAuthenticatorType": "client-secret",
-            "secret": "${config.sops.placeholder."lobechat/keycloak_client_secret"}",
-            "redirectUris": [
-              "https://chat.dora.im/api/auth/callback/keycloak"
-            ],
-            "webOrigins": [
-              "https://chat.dora.im"
-            ],
-            "publicClient": false,
-            "standardFlowEnabled": true,
-            "directAccessGrantsEnabled": false
-          },
-          {
-            "clientId": "dify",
-            "name": "Dify AI Platform",
-            "enabled": true,
-            "protocol": "openid-connect",
-            "clientAuthenticatorType": "client-secret",
-            "secret": "${config.sops.placeholder."password"}",
-            "redirectUris": [
-              "https://chat.dora.im/console/api/oauth/authorize/github",
-              "https://chat.dora.im/*"
-            ],
-            "webOrigins": [
-              "https://chat.dora.im"
-            ],
-            "publicClient": false,
-            "standardFlowEnabled": true,
-            "directAccessGrantsEnabled": true
-          },
-          {
+          }${lib.optionalString lobeChat.enable ''
+            ,
+            ${builtins.toJSON {
+              clientId = "lobechat";
+              name = "LobeChat";
+              enabled = true;
+              protocol = "openid-connect";
+              clientAuthenticatorType = "client-secret";
+              secret = toString config.sops.placeholder."lobechat/keycloak_client_secret";
+              redirectUris = [ "https://chat.dora.im/api/auth/callback/keycloak" ];
+              webOrigins = [ "https://chat.dora.im" ];
+              publicClient = false;
+              standardFlowEnabled = true;
+              directAccessGrantsEnabled = false;
+            }}
+          ''}${lib.optionalString openhands.enable ''
+            ,
+            ${builtins.toJSON {
+              inherit (openhands.oidc) clientId;
+              name = "OpenHands Agent Workspace";
+              enabled = true;
+              protocol = "openid-connect";
+              clientAuthenticatorType = "client-secret";
+              secret = toString config.sops.placeholder.${openhands.oidc.clientSecretKey};
+              redirectUris = [ "https://${openhands.domain}/oauth2/callback" ];
+              webOrigins = [ "https://${openhands.domain}" ];
+              publicClient = false;
+              standardFlowEnabled = true;
+              directAccessGrantsEnabled = false;
+            }}
+          ''}
+          , {
             "clientId": "mcp-gateway",
             "name": "IBM ContextForge MCP Gateway",
             "enabled": true,
@@ -261,10 +305,12 @@ in
     "memos/oidc_client_secret" = { };
     "mail/services" = { };
     "jellyfin/oidc_client_secret" = { };
-    "lobechat/keycloak_client_secret" = { };
     "password" = {
       mode = "0444";
     };
+  }
+  // lib.optionalAttrs lobeChat.enable {
+    "lobechat/keycloak_client_secret" = { };
   }
   // lib.optionalAttrs (config.services.new-api.oidc.enable or false) {
     "new-api/oidc_client_secret" = { };
@@ -381,10 +427,13 @@ in
   systemd.services.keycloak-ldap-reconcile = {
     description = "Reconcile Keycloak LDAP federation config";
     after = [
-      "postgresql.service"
       "keycloak-ldap-bootstrap.service"
+      "sops-install-secrets.service"
     ];
-    requires = [ "keycloak-ldap-bootstrap.service" ];
+    requires = [
+      "keycloak-ldap-bootstrap.service"
+      "sops-install-secrets.service"
+    ];
     wantedBy = [ "multi-user.target" ];
     path = with pkgs; [
       coreutils
@@ -403,7 +452,7 @@ in
       })"
       bind_password_sql="$(${pkgs.coreutils}/bin/printf '%s' "$bind_password" | ${pkgs.gawk}/bin/awk '{gsub(/\047/, "\047\047"); print}')"
 
-      psql -h 127.0.0.1 -U keycloak -d keycloak -v ON_ERROR_STOP=1 -Atq -c "
+      psql -h ${lib.escapeShellArg PG} -U keycloak -d keycloak -v ON_ERROR_STOP=1 -Atq -c "
         update realm
         set login_theme = 'phasetwo-ui',
             account_theme = 'phasetwo-ui',
@@ -516,12 +565,17 @@ in
         )
         and name = 'changedSyncPeriod';
       "
+
+      ${openhandsClientReconcile}
     '';
   };
 
   systemd.services.keycloak = {
+    preStart = ''
+      install -d -m 0700 /run/keycloak/data/import
+      ln -sfn "$CREDENTIALS_DIRECTORY/users-realm.json" /run/keycloak/data/import/users-realm.json
+    '';
     after = [
-      "postgresql.service"
       "tailscaled.service"
       "keycloak-ldap-bootstrap.service"
       "keycloak-ldap-reconcile.service"
@@ -530,7 +584,10 @@ in
       "keycloak-ldap-bootstrap.service"
       "keycloak-ldap-reconcile.service"
     ];
-    serviceConfig.Restart = lib.mkForce "always";
+    serviceConfig = {
+      LoadCredential = [ "users-realm.json:${config.sops.templates."keycloak-realm-dora".path}" ];
+      Restart = lib.mkForce "always";
+    };
   };
   services.restic.backups.borgbase.paths = [
     "/var/lib/389ds/"

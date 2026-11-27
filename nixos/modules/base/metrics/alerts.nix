@@ -97,6 +97,18 @@ in
               };
             }
             {
+              alert = "OpenHandsIngressDown";
+              expr = ''(probe_success{job="openhands"} == 0) or (up{job="openhands"} == 0)'';
+              for = "5m";
+              labels = {
+                severity = "warning";
+              };
+              annotations = {
+                summary = "OpenHands HTTP health probe failed for {{ $labels.instance }}";
+                description = "The local OpenHands backend or OIDC proxy has failed its health probe for more than 5m.";
+              };
+            }
+            {
               alert = "SSLCertExpiringSoon";
               expr = "probe_ssl_earliest_cert_expiry - time() < 86400 * 14";
               for = "1h";

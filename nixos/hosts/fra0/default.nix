@@ -10,13 +10,13 @@
     ++ nixosModules.services.media.all
     ++ nixosModules.matrix.all
     ++ nixosModules.services.networking.dn42.all
-    ++ nixosModules.services.ai.all # AI 服务器全栈：gateway, dify, mcp, companion, openhands
+    ++ nixosModules.services.ai.all # AI 服务器全栈：gateway, mcp, companion, openhands
     ++ [
       ./hardware-configuration.nix
       nixosModules.services.traefik
       nixosModules.services.livekit.all
       ../../modules/services/livekit-suite/infrastructure.nix
-      nixosModules.services.rustdesk
+      nixosModules.services.rustdesk.server
       (import nixosModules.services.hydra { PG = "127.0.0.1"; })
       nixosModules.optimize.dev
       nixosModules.optimize.anti-balloon
@@ -32,10 +32,10 @@
       nixosModules.services.vscode
       # nixosModules.services.ollama
       nixosModules.services.syncthing
-      # nixosModules.services.lobechat  # ← 已由 Dify 替代，chat.dora.im 释放
+      # nixosModules.services.lobechat  # Disabled; chat.dora.im redirects to OpenHands
       nixosModules.services.obsidian-livesync
       nixosModules.services.zotero-sync-server
-      nixosModules.services.reader
+      # nixosModules.services.reader
       (import nixosModules.services.xray {
       })
       nixosModules.services.sub
@@ -48,7 +48,7 @@
       # nixosModules.services.authentik
       # (import nixosModules.services.ebook-sender { })
       # (import nixosModules.services.kindle-sender { })
-      (import nixosModules.services.keycloak { PG = "127.0.0.1"; })
+      (import nixosModules.services.keycloak { PG = "postgres.ts"; })
       # nixosModules.services.grimmory
       # ../../modules/services/mas.nix
       (import nixosModules.services.vaultwarden { PG = "127.0.0.1"; })
@@ -76,13 +76,11 @@
 
   services.moviepilot.enable = true;
   services.rustdesk-server.cluster = {
-    enable = true;
-    role = "signal";
+    relay.enable = false;
     api.enable = true;
-    relayHosts = [
-      "fra0.dora.im:21117"
-      "sjc0.dora.im:21117"
-    ];
+    relayHosts = [ "cu.dora.im:50566" ];
+    api.idServer = "rustdesk.dora.im:21116";
+    api.relayServer = "cu.dora.im:50566";
   };
   services.cluster-monitoring.server.publicEndpoints =
     options.services.cluster-monitoring.server.publicEndpoints.default
@@ -102,17 +100,15 @@
     latitude = 50.1109;
     longitude = 8.6821;
   };
-  services.ai.openhands-agent-canvas.enable = true;
-  # services.ai.litellm.enable = true;
-
-  # ── Dify AI 应用平台（接管 chat.dora.im）────────────────────────
-  services.ai.dify = {
+  services.ai.openhands = {
     enable = true;
-    domain = "chat.dora.im";
-    # gatewayApiBase 默认已指向 CPA（http://127.0.0.1:<cpa_port>/v1）
-    # 如需对接 BGE-reranker，取消以下注释：
-    # rerankApiBase = "http://127.0.0.1:8000";
+    aliasDomains = [ "chat.dora.im" ];
+    network = {
+      enable = true;
+      publicInterface = "eth0";
+    };
   };
+  # services.ai.litellm.enable = true;
 
   # ── IBM ContextForge MCP 总线 ────────────────────────────────────
   services.ai.mcp = {
@@ -130,6 +126,7 @@
   };
   services.new-api = {
     enable = true;
+    lobeChat.enable = false;
     oidc = {
       enable = true; # 后续在 Keycloak 创建 Client 并添加 sops 密钥 (new-api/oidc_client_secret) 后取消注释即可
     };

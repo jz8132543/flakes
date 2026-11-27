@@ -6,7 +6,7 @@
 # 定位：
 #   整个服务器的 MCP (Model Context Protocol) 总线中枢：
 #   • 集中注册所有 MCP Server（文件系统、数据库、API、工具等）
-#   • 对外暴露 Virtual MCP 端点，供 Dify Workflow 调用
+#   • 对外暴露 Virtual MCP 端点，供声明式配置的 MCP 客户端调用
 #   • 提供统一的 MCP Web 管理 UI（mcp.dora.im）
 #
 # 架构决策：
@@ -27,7 +27,7 @@
 let
   cfg = config.services.ai.mcp;
 
-  # ── 连接变量（与 Dify 模块保持相同命名约定）──────────────────────
+  # ── ContextForge connection settings ────────────────────────────
   pgHost = "127.0.0.1";
   pgPort = 5432;
   mcpPgUser = "contextforge";

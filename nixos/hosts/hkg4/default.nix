@@ -13,7 +13,7 @@
       })
       # nixosModules.services.tuic
       # nixosModules.services.perplexica
-      nixosModules.services.rustdesk
+      nixosModules.services.rustdesk.default
       # nixosModules.media.jellyfin
       # nixosModules.services.headscale
       # (import nixosModules.services.alist { })
